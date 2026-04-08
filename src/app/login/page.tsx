@@ -6,6 +6,17 @@ import { createClient } from '@/utils/supabase/client'
 
 type Message = { type: 'error' | 'success'; text: string }
 
+const EMAIL_DOMAINS = [
+  'gmail.com', 'googlemail.com',
+  'outlook.com', 'hotmail.com', 'live.it', 'live.com',
+  'yahoo.com', 'yahoo.it',
+  'icloud.com', 'me.com',
+  'libero.it', 'virgilio.it', 'alice.it', 'tim.it',
+  'tiscali.it', 'fastwebnet.it', 'aruba.it',
+  'pec.it', 'legalmail.it',
+  'proton.me', 'protonmail.com',
+]
+
 export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -14,6 +25,31 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState<'login' | 'signup' | null>(null)
   const [message, setMessage] = useState<Message | null>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  const handleEmailChange = (val: string) => {
+    setEmail(val)
+    const atIdx = val.indexOf('@')
+    if (atIdx !== -1) {
+      const afterAt = val.slice(atIdx + 1).toLowerCase()
+      const local = val.slice(0, atIdx)
+      const filtered = EMAIL_DOMAINS
+        .filter((d) => d.startsWith(afterAt) && d !== afterAt)
+        .map((d) => `${local}@${d}`)
+      setSuggestions(filtered.slice(0, 6))
+      setShowSuggestions(filtered.length > 0)
+    } else {
+      setSuggestions([])
+      setShowSuggestions(false)
+    }
+  }
+
+  const applySuggestion = (s: string) => {
+    setEmail(s)
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
 
   const handleLogin = async () => {
     setLoading('login')
@@ -97,7 +133,7 @@ export default function LoginPage() {
                   <stop offset="100%" stopColor="#22d3ee"/>
                 </linearGradient>
               </defs>
-              <rect x="25" y="5" width="50" height="50" rx="12" fill="url(#lg-grad)" opacity="0.2"/>
+              <rect x="0" y="5" width="50" height="50" rx="12" fill="url(#lg-grad)" opacity="0.2"/>
               <path d="M5 35 C20 15, 45 15, 55 35 S80 55, 95 35"
                     stroke="url(#lg-grad)" strokeWidth="4" fill="none" strokeLinecap="round"/>
               <circle cx="5"  cy="35" r="4" fill="#3b82f6"/>
@@ -116,17 +152,38 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-4">
 
           {/* Email */}
-          <div>
+          <div className="relative">
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email</label>
             <input
               type="email"
               autoComplete="email"
               placeholder="nome@azienda.it"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => handleEmailChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+              onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               className={inputCls}
             />
+            {showSuggestions && (
+              <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden text-sm">
+                {suggestions.map((s) => {
+                  const atIdx = s.indexOf('@')
+                  return (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onMouseDown={() => applySuggestion(s)}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors flex items-center gap-1"
+                      >
+                        <span className="text-gray-400">{s.slice(0, atIdx + 1)}</span>
+                        <span className="text-gray-800 font-medium">{s.slice(atIdx + 1)}</span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
 
           {/* Password */}
