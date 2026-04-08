@@ -151,7 +151,7 @@ export default function Sidebar() {
               <stop offset="100%" stopColor="#67e8f9"/>
             </linearGradient>
           </defs>
-          <g transform="translate(20,20)">
+          <g transform="translate(76,20)">
             <rect x="0" y="20" width="50" height="50" rx="12" fill="url(#sb-grad)" opacity="0.25"/>
             <path d="M10 45 C20 25, 40 25, 50 45 S80 65, 90 45"
                   stroke="url(#sb-grad)" strokeWidth="4" fill="none" strokeLinecap="round"/>
@@ -159,8 +159,8 @@ export default function Sidebar() {
             <circle cx="50" cy="45" r="4" fill="#22d3ee"/>
             <circle cx="90" cy="45" r="4" fill="#3b82f6"/>
           </g>
-          <text x="130" y="68" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="42" fill="url(#sb-textGrad)">FLUXO</text>
-          <text x="132" y="96" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="18" fill="rgba(255,255,255,0.85)">Invoice Management</text>
+          <text x="184" y="68" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="42" fill="url(#sb-textGrad)">FLUXO</text>
+          <text x="186" y="96" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="18" fill="rgba(255,255,255,0.85)">Invoice Management</text>
         </svg>
       </div>
 

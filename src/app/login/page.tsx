@@ -87,30 +87,29 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <svg viewBox="0 0 420 120" xmlns="http://www.w3.org/2000/svg" className="w-56 h-16 mb-1">
-            <defs>
-              <linearGradient id="lg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6"/>
-                <stop offset="100%" stopColor="#22d3ee"/>
-              </linearGradient>
-              <linearGradient id="lg-textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#93c5fd"/>
-                <stop offset="100%" stopColor="#67e8f9"/>
-              </linearGradient>
-            </defs>
-            <g transform="translate(20,20)">
-              <rect x="0" y="20" width="50" height="50" rx="12" fill="url(#lg-grad)" opacity="0.25"/>
-              <path d="M10 45 C20 25, 40 25, 50 45 S80 65, 90 45"
+        <div className="flex flex-col items-center mb-8 -mt-8">
+          {/* Icona + testo affiancati */}
+          <div className="flex items-center gap-3">
+            <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg" className="w-24 h-14 shrink-0">
+              <defs>
+                <linearGradient id="lg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#3b82f6"/>
+                  <stop offset="100%" stopColor="#22d3ee"/>
+                </linearGradient>
+              </defs>
+              <rect x="25" y="5" width="50" height="50" rx="12" fill="url(#lg-grad)" opacity="0.2"/>
+              <path d="M5 35 C20 15, 45 15, 55 35 S80 55, 95 35"
                     stroke="url(#lg-grad)" strokeWidth="4" fill="none" strokeLinecap="round"/>
-              <circle cx="10" cy="45" r="4" fill="#3b82f6"/>
-              <circle cx="50" cy="45" r="4" fill="#22d3ee"/>
-              <circle cx="90" cy="45" r="4" fill="#3b82f6"/>
-            </g>
-            <text x="130" y="70" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="42" fill="url(#lg-textGrad)">FLUXO</text>
-            <text x="132" y="95" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="14" fill="rgba(255,255,255,0.4)">Invoice Management</text>
-          </svg>
-          <p className="text-sm text-white/50">Accedi o crea il tuo account</p>
+              <circle cx="5"  cy="35" r="4" fill="#3b82f6"/>
+              <circle cx="55" cy="35" r="4" fill="#22d3ee"/>
+              <circle cx="95" cy="35" r="4" fill="#3b82f6"/>
+            </svg>
+            <div className="flex flex-col">
+              <h1 className="text-4xl font-extrabold tracking-widest bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent leading-none">FLUXO</h1>
+              <p className="text-sm text-white tracking-wide mt-1">Invoice Management</p>
+            </div>
+          </div>
+          <p className="text-sm text-white/50 mt-8">Accedi o crea il tuo account</p>
         </div>
 
         {/* Card */}

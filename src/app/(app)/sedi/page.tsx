@@ -403,11 +403,59 @@ export default function SediPage() {
                         <div className="col-span-2">
                           <label className="block text-xs font-medium text-gray-600 mb-1">{t.sedi.imapHost}</label>
                           <input
-                            type="text" placeholder={t.sedi.imapHostPlaceholder}
+                            type="text"
+                            list="imap-providers"
+                            placeholder={t.sedi.imapHostPlaceholder}
                             value={imapForm.imap_host}
-                            onChange={(e) => setImapForm({ ...imapForm, imap_host: e.target.value })}
+                            onChange={(e) => {
+                              const host = e.target.value
+                              const portMap: Record<string, string> = {
+                                'imap.gmail.com': '993',
+                                'imap.googlemail.com': '993',
+                                'outlook.office365.com': '993',
+                                'imap-mail.outlook.com': '993',
+                                'imap.mail.yahoo.com': '993',
+                                'imap.apple.com': '993',
+                                'imap.fastmail.com': '993',
+                                'imap.libero.it': '993',
+                                'imap.alice.it': '993',
+                                'imap.tim.it': '993',
+                                'imap.virgilio.it': '993',
+                                'imap.aruba.it': '993',
+                                'imapmail.aruba.it': '993',
+                                'imap.tiscali.it': '993',
+                                'imap.pec.it': '993',
+                                'mail.registro.it': '993',
+                                'imap.protonmail.ch': '993',
+                                'imap.zoho.com': '993',
+                              }
+                              setImapForm({
+                                ...imapForm,
+                                imap_host: host,
+                                imap_port: portMap[host] ?? imapForm.imap_port,
+                              })
+                            }}
                             className={inputCls}
                           />
+                          <datalist id="imap-providers">
+                            <option value="imap.gmail.com">Gmail</option>
+                            <option value="imap.googlemail.com">Gmail (alternativo)</option>
+                            <option value="outlook.office365.com">Outlook / Microsoft 365</option>
+                            <option value="imap-mail.outlook.com">Outlook.com</option>
+                            <option value="imap.mail.yahoo.com">Yahoo Mail</option>
+                            <option value="imap.apple.com">Apple iCloud</option>
+                            <option value="imap.fastmail.com">Fastmail</option>
+                            <option value="imap.protonmail.ch">Proton Mail</option>
+                            <option value="imap.zoho.com">Zoho Mail</option>
+                            <option value="imap.libero.it">Libero</option>
+                            <option value="imap.alice.it">Alice / TIM</option>
+                            <option value="imap.tim.it">TIM Mail</option>
+                            <option value="imap.virgilio.it">Virgilio</option>
+                            <option value="imap.aruba.it">Aruba Mail</option>
+                            <option value="imapmail.aruba.it">Aruba PEC</option>
+                            <option value="imap.tiscali.it">Tiscali</option>
+                            <option value="mail.registro.it">Registro.it</option>
+                          </datalist>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">{t.sedi.imapPort}</label>
@@ -458,6 +506,23 @@ export default function SediPage() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Nota App Password */}
+                      {(imapForm.imap_host.includes('gmail') || imapForm.imap_host.includes('googlemail') || imapForm.imap_host.includes('outlook') || imapForm.imap_host.includes('office365')) && (
+                        <div className="flex gap-2.5 px-3 py-2.5 bg-amber-50 border border-amber-100 rounded-lg">
+                          <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          <div className="text-xs text-amber-700 leading-relaxed">
+                            <strong>App Password richiesta.</strong>{' '}
+                            {imapForm.imap_host.includes('gmail') || imapForm.imap_host.includes('googlemail') ? (
+                              <>Gmail non accetta la password normale. Genera una <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-amber-900">App Password Google →</a></>
+                            ) : (
+                              <>Outlook non accetta la password normale. Genera una <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-amber-900">App Password Microsoft →</a></>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Test result */}
                       {imapTestResult && (
