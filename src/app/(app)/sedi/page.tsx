@@ -48,6 +48,22 @@ export default function SediPage() {
   // Edit sede name
   const [editingSede, setEditingSede] = useState<{ id: string; nome: string } | null>(null)
 
+  // Elimina utente
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const handleDeleteUser = async (userId: string, email: string) => {
+    if (!confirm(`Eliminare l'utente ${email}? Questa azione è irreversibile.`)) return
+    setDeletingUserId(userId)
+    const res = await fetch('/api/delete-user', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+    const data = await res.json()
+    setDeletingUserId(null)
+    if (!res.ok) { setError(data.error); return }
+    await loadData()
+  }
+
   // Crea operatore
   const [createUserOpen, setCreateUserOpen] = useState<string | null>(null)
   const [newUserEmail, setNewUserEmail] = useState('')
@@ -792,6 +808,7 @@ export default function SediPage() {
                   <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">{t.sedi.emailHeader}</th>
                   <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">{t.sedi.sedeHeader}</th>
                   <th className="text-left text-xs font-semibold text-gray-500 px-5 py-3">{t.sedi.ruoloHeader}</th>
+                  <th className="px-5 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -821,6 +838,20 @@ export default function SediPage() {
                         <option value="operatore">{t.sedi.operatoreRole}</option>
                         <option value="admin">{t.sedi.adminRole}</option>
                       </select>
+                    </td>
+                    <td className="px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteUser(p.id, p.email ?? '')}
+                        disabled={deletingUserId === p.id}
+                        title="Elimina utente"
+                        className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                      >
+                        {deletingUserId === p.id
+                          ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                          : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        }
+                      </button>
                     </td>
                   </tr>
                 ))}
