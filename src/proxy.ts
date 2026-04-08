@@ -4,14 +4,6 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Rotte accessibili senza autenticazione
 const PUBLIC_PATHS = ['/login', '/api/solleciti', '/sede-lock']
 
-// Rotte riservate agli operatori (admin bloccato)
-const OPERATORE_ONLY_PREFIXES = [
-  '/fornitori',
-  '/bolle',
-  '/fatture',
-  '/archivio',
-]
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -30,7 +22,6 @@ export async function proxy(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          // Propaga i cookie aggiornati sia nella request che nella response
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
@@ -41,7 +32,6 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Recupera l'utente dalla sessione (non usare getSession: può essere falsificata)
   const { data: { user } } = await supabase.auth.getUser()
 
   // Utente non autenticato → redirect a /login
@@ -58,26 +48,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(homeUrl)
   }
 
-  // Recupera profilo utente (ruolo + sede)
+  // Recupera profilo utente
   const { data: profile } = await supabase
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
     .single()
 
-  // Protezione rotte operative: admin non può accedere a fornitori/bolle/fatture/archivio
-  const isOperativoPath = OPERATORE_ONLY_PREFIXES.some((p) => pathname.startsWith(p))
-  if (isOperativoPath && profile?.role === 'admin') {
-    const sediUrl = request.nextUrl.clone()
-    sediUrl.pathname = '/sedi'
-    return NextResponse.redirect(sediUrl)
-  }
-
-  // Verifica codice accesso sede per operatori
+  // Verifica codice accesso sede per operatori (non admin)
   if (profile?.role !== 'admin' && profile?.sede_id && pathname !== '/sede-lock') {
     const verifiedCookie = request.cookies.get('sede-verified')?.value
     if (verifiedCookie !== profile.sede_id) {
-      // Controlla se la sede ha un codice accesso
       const { data: sede } = await supabase
         .from('sedi')
         .select('access_password')

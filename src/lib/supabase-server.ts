@@ -25,3 +25,24 @@ export async function createClient() {
     }
   )
 }
+
+// Restituisce ruolo e sede_id effettiva (per admin usa admin-sede-id cookie)
+export async function getProfileAndSede() {
+  const supabase = await createClient()
+  const cookieStore = await cookies()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { user: null, profile: null, sedeId: null, isAdmin: false }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, sede_id')
+    .eq('id', user.id)
+    .single()
+
+  const isAdmin = profile?.role === 'admin'
+  const sedeId = isAdmin
+    ? (cookieStore.get('admin-sede-id')?.value ?? null)
+    : (profile?.sede_id ?? null)
+
+  return { user, profile, sedeId, isAdmin }
+}

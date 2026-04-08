@@ -19,6 +19,8 @@ export default function Sidebar() {
   const [locale, setLocale] = useState<Locale>('it')
   const [sedeNome, setSedeNome] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [allSedi, setAllSedi] = useState<{ id: string; nome: string }[]>([])
+  const [adminSedeId, setAdminSedeId] = useState<string>('')
 
   useEffect(() => {
     setLocale((getCookie('app-locale') as Locale) || 'it')
@@ -32,12 +34,33 @@ export default function Sidebar() {
         .single()
         .then(({ data }) => {
           if (!data) return
-          setIsAdmin(data.role === 'admin')
+          const admin = data.role === 'admin'
+          setIsAdmin(admin)
           const sede = (Array.isArray(data.sedi) ? data.sedi[0] : data.sedi) as { nome: string } | null
           setSedeNome(sede?.nome ?? null)
+
+          if (admin) {
+            // Carica tutte le sedi per il selettore admin
+            supabase.from('sedi').select('id, nome').order('nome').then(({ data: sediData }) => {
+              setAllSedi(sediData ?? [])
+              // Leggi sede selezionata dal cookie
+              const savedSede = getCookie('admin-sede-id')
+              if (savedSede) setAdminSedeId(savedSede)
+              else if (sediData && sediData.length > 0) {
+                setAdminSedeId(sediData[0].id)
+                document.cookie = `admin-sede-id=${sediData[0].id}; path=/; SameSite=Strict`
+              }
+            })
+          }
         })
     })
   }, [supabase])
+
+  const handleAdminSedeChange = (sedeId: string) => {
+    setAdminSedeId(sedeId)
+    document.cookie = `admin-sede-id=${sedeId}; path=/; SameSite=Strict`
+    router.refresh()
+  }
 
   const t = getTranslations(locale)
 
@@ -189,9 +212,24 @@ export default function Sidebar() {
       {(isAdmin || sedeNome) && (
         <div className="px-4 pb-3">
           {isAdmin ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-400/10 border border-amber-400/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-              <span className="text-xs font-semibold text-amber-300/80">Admin</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-400/10 border border-amber-400/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                <span className="text-xs font-semibold text-amber-300/80">Admin</span>
+              </div>
+              {allSedi.length > 0 && (
+                <select
+                  value={adminSedeId}
+                  onChange={(e) => handleAdminSedeChange(e.target.value)}
+                  className="w-full text-xs bg-white/5 border border-white/10 text-white/60 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400/40 cursor-pointer"
+                >
+                  {allSedi.map((s) => (
+                    <option key={s.id} value={s.id} className="bg-[#1a3050] text-white">
+                      {s.nome}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">

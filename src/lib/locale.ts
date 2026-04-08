@@ -25,6 +25,13 @@ export async function getT() {
   return getTranslations(locale)
 }
 
+// Restituisce la sede_id effettiva: per admin usa il cookie admin-sede-id
+export async function getEffectiveSedeId(userSedeId: string | null, isAdmin: boolean): Promise<string | null> {
+  if (!isAdmin) return userSedeId
+  const store = await cookies()
+  return store.get('admin-sede-id')?.value ?? null
+}
+
 export function formatDate(
   d: string,
   locale: Locale = 'it',
