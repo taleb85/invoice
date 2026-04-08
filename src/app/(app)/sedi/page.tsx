@@ -48,6 +48,34 @@ export default function SediPage() {
   // Edit sede name
   const [editingSede, setEditingSede] = useState<{ id: string; nome: string } | null>(null)
 
+  // Crea operatore
+  const [createUserOpen, setCreateUserOpen] = useState<string | null>(null)
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserPassword, setNewUserPassword] = useState('')
+  const [showNewUserPw, setShowNewUserPw] = useState(false)
+  const [creatingUser, setCreatingUser] = useState(false)
+  const [createUserMsg, setCreateUserMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const handleCreateUser = async (sedeId: string) => {
+    setCreatingUser(true)
+    setCreateUserMsg(null)
+    const res = await fetch('/api/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: newUserEmail, password: newUserPassword, sedeId, role: 'operatore' }),
+    })
+    const data = await res.json()
+    setCreatingUser(false)
+    if (res.ok) {
+      setCreateUserMsg({ ok: true, text: data.message })
+      setNewUserEmail('')
+      setNewUserPassword('')
+      await loadData()
+    } else {
+      setCreateUserMsg({ ok: false, text: data.error })
+    }
+  }
+
   // Codice accesso sede
   const [accessPwOpen, setAccessPwOpen] = useState<string | null>(null)
   const [accessPwValue, setAccessPwValue] = useState('')
@@ -383,6 +411,87 @@ export default function SediPage() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Crea operatore */}
+                <div className="border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreateUserOpen(createUserOpen === sede.id ? null : sede.id)
+                      setCreateUserMsg(null)
+                      setNewUserEmail('')
+                      setNewUserPassword('')
+                    }}
+                    className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                      </svg>
+                      Crea operatore
+                    </span>
+                    <svg className={`w-4 h-4 text-gray-400 transition-transform ${createUserOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+
+                  {createUserOpen === sede.id && (
+                    <div className="px-5 pb-5 space-y-3 bg-gray-50/50 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 pt-4">
+                        Crea un account operatore per questa sede. L&apos;utente potrà accedere subito con email e password.
+                      </p>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Email operatore</label>
+                        <input type="email" placeholder="operatore@azienda.it"
+                          value={newUserEmail}
+                          onChange={(e) => setNewUserEmail(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Password</label>
+                        <div className="relative">
+                          <input
+                            type={showNewUserPw ? 'text' : 'password'}
+                            placeholder="Minimo 6 caratteri"
+                            value={newUserPassword}
+                            onChange={(e) => setNewUserPassword(e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white pr-10"
+                          />
+                          <button type="button" onClick={() => setShowNewUserPw(!showNewUserPw)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            {showNewUserPw
+                              ? <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+                              : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            }
+                          </button>
+                        </div>
+                      </div>
+                      {createUserMsg && (
+                        <div className={`flex items-start gap-2 text-xs px-3 py-2.5 rounded-lg ${createUserMsg.ok ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                          <svg className="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {createUserMsg.ok
+                              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                              : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>}
+                          </svg>
+                          {createUserMsg.text}
+                        </div>
+                      )}
+                      <div className="flex gap-2 pt-1">
+                        <button type="button" onClick={() => setCreateUserOpen(null)}
+                          className="px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors">
+                          Annulla
+                        </button>
+                        <button type="button"
+                          onClick={() => handleCreateUser(sede.id)}
+                          disabled={creatingUser || !newUserEmail || !newUserPassword}
+                          className="flex-1 px-3 py-2 text-sm font-medium bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white rounded-lg transition-colors">
+                          {creatingUser ? 'Creazione…' : 'Crea operatore'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Codice accesso sede */}
