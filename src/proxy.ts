@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Rotte accessibili senza autenticazione
-const PUBLIC_PATHS = ['/login', '/api/solleciti']
+const PUBLIC_PATHS = ['/login', '/api/solleciti', '/sede-lock']
 
 // Rotte riservate agli operatori (admin bloccato)
 const OPERATORE_ONLY_PREFIXES = [
@@ -58,19 +58,37 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(homeUrl)
   }
 
+  // Recupera profilo utente (ruolo + sede)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, sede_id')
+    .eq('id', user.id)
+    .single()
+
   // Protezione rotte operative: admin non può accedere a fornitori/bolle/fatture/archivio
   const isOperativoPath = OPERATORE_ONLY_PREFIXES.some((p) => pathname.startsWith(p))
-  if (isOperativoPath) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+  if (isOperativoPath && profile?.role === 'admin') {
+    const sediUrl = request.nextUrl.clone()
+    sediUrl.pathname = '/sedi'
+    return NextResponse.redirect(sediUrl)
+  }
 
-    if (profile?.role === 'admin') {
-      const sediUrl = request.nextUrl.clone()
-      sediUrl.pathname = '/sedi'
-      return NextResponse.redirect(sediUrl)
+  // Verifica codice accesso sede per operatori
+  if (profile?.role !== 'admin' && profile?.sede_id && pathname !== '/sede-lock') {
+    const verifiedCookie = request.cookies.get('sede-verified')?.value
+    if (verifiedCookie !== profile.sede_id) {
+      // Controlla se la sede ha un codice accesso
+      const { data: sede } = await supabase
+        .from('sedi')
+        .select('access_password')
+        .eq('id', profile.sede_id)
+        .single()
+
+      if (sede?.access_password) {
+        const lockUrl = request.nextUrl.clone()
+        lockUrl.pathname = '/sede-lock'
+        return NextResponse.redirect(lockUrl)
+      }
     }
   }
 
