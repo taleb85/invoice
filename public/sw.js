@@ -34,9 +34,12 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
-  // Ignora richieste non-GET e API esterne
+  // Ignora richieste non-GET
   if (request.method !== 'GET') return
-  if (!url.origin.startsWith('http')) return
+
+  // Ignora origini esterne (es. ipapi.co, Supabase auth, analytics, ecc.)
+  // Il SW gestisce solo risorse della stessa origine per evitare log ridondanti
+  if (url.origin !== self.location.origin) return
 
   // API routes → Network first, fallback offline
   if (url.pathname.startsWith('/api/')) {

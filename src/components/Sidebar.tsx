@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import { getTranslations, type Locale } from '@/lib/translations'
+import { useMe } from '@/lib/me-context'
 
 function getCookie(name: string): string {
   if (typeof document === 'undefined') return ''
@@ -21,6 +22,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const { me } = useMe()
   const [mounted, setMounted] = useState(false)
   const [locale, setLocale] = useState<Locale>('it')
   const [sedeNome, setSedeNome] = useState<string | null>(null)
@@ -45,38 +47,37 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
+  // Populate state from shared UserContext (no direct /api/me fetch)
   useEffect(() => {
     setMounted(true)
     setLocale((getCookie('app-locale') as Locale) || 'it')
-
-    fetch('/api/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data) return
-        setIsAdmin(data.is_admin)
-        setSedeNome(data.sede_nome)
-        setSedeId(data.sede_id ?? null)
-
-        if (data.is_admin && data.all_sedi?.length > 0) {
-          setAllSedi(data.all_sedi)
-          const savedSede = getCookie('admin-sede-id')
-          if (savedSede) {
-            setAdminSedeId(savedSede)
-          } else {
-            setAdminSedeId(data.all_sedi[0].id)
-            document.cookie = `admin-sede-id=${data.all_sedi[0].id}; path=/; SameSite=Strict`
-          }
-        }
-
-        // Load suppliers for operators (filtered by their sede)
-        if (!data.is_admin) {
-          const supabaseClient = createClient()
-          let q = supabaseClient.from('fornitori').select('id, nome').order('nome')
-          if (data.sede_id) q = q.eq('sede_id', data.sede_id) as typeof q
-          q.then(({ data: rows }: { data: { id: string; nome: string }[] | null }) => setFornitori(rows ?? []))
-        }
-      })
   }, [])
+
+  useEffect(() => {
+    if (!me) return
+    setIsAdmin(me.is_admin)
+    setSedeNome(me.sede_nome)
+    setSedeId(me.sede_id ?? null)
+
+    if (me.is_admin && me.all_sedi?.length > 0) {
+      setAllSedi(me.all_sedi)
+      const savedSede = getCookie('admin-sede-id')
+      if (savedSede) {
+        setAdminSedeId(savedSede)
+      } else {
+        setAdminSedeId(me.all_sedi[0].id)
+        document.cookie = `admin-sede-id=${me.all_sedi[0].id}; path=/; SameSite=Strict`
+      }
+    }
+
+    // Load suppliers for operators (filtered by their sede)
+    if (!me.is_admin) {
+      const supabaseClient = createClient()
+      let q = supabaseClient.from('fornitori').select('id, nome').order('nome')
+      if (me.sede_id) q = q.eq('sede_id', me.sede_id) as typeof q
+      q.then(({ data: rows }: { data: { id: string; nome: string }[] | null }) => setFornitori(rows ?? []))
+    }
+  }, [me])
 
   const handleAdminSedeChange = (sedeId: string) => {
     setAdminSedeId(sedeId)

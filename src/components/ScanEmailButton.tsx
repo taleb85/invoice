@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useT } from '@/lib/use-t'
 import { useRouter } from 'next/navigation'
+import { useMe } from '@/lib/me-context'
 
 interface Props {
   /** Se true mostra sempre il testo (non solo su desktop) */
@@ -17,18 +18,16 @@ interface Props {
 export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propSedeId }: Props) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'ok' | 'warn' | 'error'; text: string } | null>(null)
-  // Fallback: if no prop sedeId, discover from /api/me
   const fallbackSedeIdRef = useRef<string | null>(null)
   const t = useT()
   const router = useRouter()
+  const { me } = useMe()
 
+  // Populate fallback sede_id from shared context — no extra /api/me fetch
   useEffect(() => {
-    // Only fetch /api/me when sedeId is not passed as a prop
     if (propSedeId) return
-    fetch('/api/me').then(r => r.ok ? r.json() : null).then(data => {
-      if (data?.sede_id) fallbackSedeIdRef.current = data.sede_id
-    }).catch(() => { /* silently ignore */ })
-  }, [propSedeId])
+    if (me?.sede_id) fallbackSedeIdRef.current = me.sede_id
+  }, [propSedeId, me])
 
   const handleClick = async () => {
     setLoading(true)

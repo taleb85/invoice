@@ -1,21 +1,15 @@
-import { useEffect, useState } from 'react'
+/**
+ * Hook che restituisce sede_id e role dell'utente corrente.
+ * Legge dal UserContext (un solo fetch /api/me per l'intera sessione),
+ * invece di fare una nuova chiamata HTTP per ogni consumer.
+ */
+import { useMe } from '@/lib/me-context'
 
-/** Hook che restituisce il sede_id e il role dell'utente corrente via API server-side. */
 export function useSedeId() {
-  const [sedeId, setSedeId] = useState<string | null>(null)
-  const [role, setRole] = useState<'admin' | 'operatore' | null>(null)
-  const [ready, setReady] = useState(false)
-
-  useEffect(() => {
-    fetch('/api/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setSedeId(data?.sede_id ?? null)
-        setRole(data?.role ?? 'operatore')
-        setReady(true)
-      })
-      .catch(() => setReady(true))
-  }, [])
-
-  return { sedeId, role, ready }
+  const { me, loading } = useMe()
+  return {
+    sedeId: me?.sede_id ?? null,
+    role:   me?.role    ?? null,
+    ready:  !loading,
+  }
 }
