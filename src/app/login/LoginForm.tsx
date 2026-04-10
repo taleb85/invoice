@@ -162,7 +162,7 @@ export default function LoginForm() {
     router.push('/'); router.refresh()
   }
 
-  const inputCls = 'w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a3050] focus:border-transparent bg-white placeholder:text-gray-300 transition'
+  const inputCls = 'w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white placeholder:text-gray-300 transition'
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
@@ -196,7 +196,11 @@ export default function LoginForm() {
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-5">
+      <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden">
+        {/* Barra colorata superiore */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600" />
+
+        <div className="p-8 space-y-5">
 
         {mode === 'name' ? (
           /* ── OPERATORE: Nome + PIN a 4 cifre ── */
@@ -204,7 +208,7 @@ export default function LoginForm() {
 
             {/* Nome */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Nome</label>
+              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">Nome</label>
               <input
                 type="text"
                 autoComplete="name"
@@ -228,24 +232,24 @@ export default function LoginForm() {
                   </span>
                 )}
                 {!lookingUp && sedeNome && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
+                    <svg className="w-3 h-3 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                     {sedeNome}
                   </span>
                 )}
                 {!lookingUp && !sedeNome && name.trim().length > 1 && !nameReady && (
-                  <span className="text-xs text-gray-400">Inserisci il tuo nome completo e premi Tab</span>
+                  <span className="text-xs text-gray-400">Inserisci il nome completo e premi Tab</span>
                 )}
               </div>
             </div>
 
             {/* PIN a 4 caselle */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-3">
+              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-3 uppercase tracking-wide">
                 PIN
-                <span className="ml-1.5 font-normal text-gray-400">(4 cifre)</span>
+                <span className="ml-1.5 font-normal text-gray-400 normal-case">(4 cifre)</span>
               </label>
               <div className="flex gap-3 justify-center" onPaste={handlePinPaste}>
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -265,32 +269,33 @@ export default function LoginForm() {
                       loading
                         ? 'border-gray-100 bg-gray-50 text-gray-300'
                         : pin[idx]
-                          ? 'border-[#1a3050] bg-[#1a3050]/5 text-[#1a3050]'
+                          ? 'border-blue-500 bg-gradient-to-b from-blue-50 to-cyan-50 text-[#1a3050] shadow-sm shadow-blue-100'
                           : nameReady
-                            ? 'border-gray-200 bg-white focus:border-[#1a3050]'
+                            ? 'border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500 focus:bg-blue-50/30'
                             : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed',
                     ].join(' ')}
                   />
                 ))}
               </div>
 
+              {/* Progress dots */}
+              <div className="flex justify-center gap-2 mt-3">
+                {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                  <span key={i} className={[
+                    'w-1.5 h-1.5 rounded-full transition-all duration-200',
+                    pin[i] ? 'bg-blue-500 scale-110' : 'bg-gray-200',
+                  ].join(' ')} />
+                ))}
+              </div>
+
               {/* Indicatore auto-login */}
-              {pinFilled && !loading && (
-                <p className="text-center text-xs text-blue-500 mt-3 flex items-center justify-center gap-1.5">
+              {(pinFilled || loading) && (
+                <p className="text-center text-xs text-blue-500 mt-2 flex items-center justify-center gap-1.5">
                   <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  Accesso in corso…
-                </p>
-              )}
-              {loading && (
-                <p className="text-center text-xs text-blue-500 mt-3 flex items-center justify-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                  Verifica credenziali…
+                  {loading ? 'Verifica credenziali…' : 'Accesso in corso…'}
                 </p>
               )}
             </div>
@@ -303,7 +308,7 @@ export default function LoginForm() {
           <form onSubmit={e => { e.preventDefault(); handleLoginByEmail() }} className="space-y-4">
 
             <div className="relative">
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Email</label>
+              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">Email</label>
               <input
                 type="email" autoComplete="email" placeholder="admin@azienda.it"
                 value={email}
@@ -331,7 +336,7 @@ export default function LoginForm() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Password</label>
+              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'} autoComplete="current-password"
@@ -366,7 +371,8 @@ export default function LoginForm() {
             </button>
           </form>
         )}
-      </div>
+        </div>{/* fine p-8 */}
+      </div>{/* fine card */}
 
       {/* Toggle admin (discreto) */}
       <div className="text-center mt-5">
