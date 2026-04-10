@@ -31,7 +31,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <div className="flex items-center gap-3 mb-8">
         <Link href="/bolle" className="text-gray-400 hover:text-gray-600 transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

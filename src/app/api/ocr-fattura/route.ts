@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { ocrInvoice } from '@/lib/ocr-invoice'
 
 export async function POST(req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
@@ -14,46 +14,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nessun file ricevuto.' }, { status: 400 })
     }
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Formato non supportato. Usa JPG, PNG, WebP o GIF. Per i PDF, scatta uno screenshot della fattura.' }, { status: 400 })
+      return NextResponse.json({ error: 'Formato non supportato. Usa JPG, PNG, WebP, GIF o PDF.' }, { status: 400 })
     }
 
     const buffer = await file.arrayBuffer()
-    const base64 = Buffer.from(buffer).toString('base64')
-    const mimeType = file.type
-    const imageUrl = `data:${mimeType};base64,${base64}`
+    const result = await ocrInvoice(new Uint8Array(buffer), file.type)
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 300,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: { url: imageUrl, detail: 'low' },
-          },
-          {
-            type: 'text',
-            text: `Analizza questa fattura ed estrai i dati del FORNITORE (chi emette la fattura, non il destinatario).
-Rispondi SOLO con JSON valido, senza markdown:
-{"nome":"Ragione sociale","piva":"P.IVA senza prefisso paese o null","email":"email o null"}`,
-          },
-        ],
-      }],
-    })
-
-    const content = response.choices[0]?.message?.content ?? ''
-    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-    const data = JSON.parse(cleaned)
+    if (!result.nome && !result.data) {
+      return NextResponse.json({ error: 'Impossibile estrarre dati dal documento.' }, { status: 422 })
+    }
 
     return NextResponse.json({
-      nome: data.nome ?? null,
-      piva: data.piva ?? null,
-      email: data.email ?? null,
+      nome: result.nome,
+      piva: result.piva,
+      email: null,
+      data: result.data,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Errore sconosciuto'

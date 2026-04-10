@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale'
+import ReplaceFileButton from './ReplaceFileButton'
 
 async function getFattura(id: string) {
   const supabase = await createClient()
@@ -20,7 +21,7 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
-    <div className="p-8 max-w-2xl">
+    <div className="p-4 md:p-8 max-w-2xl">
       <div className="flex items-center gap-3 mb-8">
         <Link href="/fatture" className="text-gray-400 hover:text-gray-600 transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -70,9 +71,9 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
           </dl>
         </div>
 
-        {fattura.file_url && (
-          <div className="bg-white rounded-xl border border-gray-100 p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">{t.common.attachment}</h2>
+        <div className="bg-white rounded-xl border border-gray-100 p-6">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">{t.common.attachment}</h2>
+          {fattura.file_url ? (
             <a
               href={fattura.file_url}
               target="_blank"
@@ -84,8 +85,11 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
               </svg>
               {t.common.openAttachment}
             </a>
-          </div>
-        )}
+          ) : (
+            <p className="text-sm text-gray-400">Nessun allegato</p>
+          )}
+          <ReplaceFileButton fatturaId={fattura.id} />
+        </div>
       </div>
     </div>
   )

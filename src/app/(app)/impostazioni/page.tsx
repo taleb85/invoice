@@ -20,18 +20,19 @@ function setCookie(name: string, value: string) {
 type Locale = 'it' | 'en' | 'es' | 'fr' | 'de'
 
 export default function ImpostazioniPage() {
+  const [mounted, setMounted] = useState(false)
   const [locale, setLocale] = useState<Locale>('it')
   const [currency, setCurrency] = useState('EUR')
   const [timezone, setTimezone] = useState('Europe/Rome')
   const [saved, setSaved] = useState(false)
 
-  // traduzioni reattive: cambiano subito quando l'utente cambia la lingua nel menu
   const t = useMemo(() => getTranslations(locale), [locale])
 
   useEffect(() => {
     setLocale((getCookie(LOCALE_COOKIE) || 'it') as Locale)
     setCurrency(getCookie(CURRENCY_COOKIE) || 'EUR')
     setTimezone(getCookie(TIMEZONE_COOKIE) || 'Europe/Rome')
+    setMounted(true)
   }, [])
 
   const handleSave = () => {
@@ -55,8 +56,17 @@ export default function ImpostazioniPage() {
     : locale === 'fr' ? 'fr-FR'
     : 'de-DE'
 
+  // Valutate solo lato client dopo il mount per evitare hydration mismatch:
+  // server e browser possono avere locale di sistema diversi.
+  const previewData = mounted
+    ? new Intl.DateTimeFormat(intlLocale, { day: '2-digit', month: 'long', year: 'numeric', timeZone: timezone }).format(new Date())
+    : '…'
+  const previewValuta = mounted
+    ? new Intl.NumberFormat(intlLocale, { style: 'currency', currency }).format(1234.56)
+    : '…'
+
   return (
-    <div className="p-8 max-w-lg">
+    <div className="p-4 md:p-8 max-w-lg">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">{t.impostazioni.title}</h1>
         <p className="text-sm text-gray-500 mt-1">{t.impostazioni.subtitle}</p>
@@ -121,7 +131,7 @@ export default function ImpostazioniPage() {
           </div>
         </div>
 
-        {/* Preview */}
+        {/* Preview — renderizzato solo lato client per evitare hydration mismatch */}
         <div className="p-5 flex items-start gap-4">
           <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
             <svg className="w-[18px] h-[18px] text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,19 +146,19 @@ export default function ImpostazioniPage() {
                 <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                {new Intl.DateTimeFormat(intlLocale, { day: '2-digit', month: 'long', year: 'numeric', timeZone: timezone }).format(new Date())}
+                {previewData}
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {new Intl.NumberFormat(intlLocale, { style: 'currency', currency }).format(1234.56)}
+                {previewValuta}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Save */}
+        {/* Salva */}
         <div className="p-5 space-y-3">
           {saved && (
             <div className="flex items-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium">

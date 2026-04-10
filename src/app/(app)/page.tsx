@@ -15,13 +15,19 @@ async function getStats() {
     { count: totFornitori },
     { count: totBolle },
     { count: bolleInAttesa },
-    { count: totFatture },
+    { count: fattureFirmate },
+    { count: documentiInCoda },
     { count: erroriRecenti },
   ] = await Promise.all([
     supabase.from('fornitori').select('*', { count: 'exact', head: true }),
     supabase.from('bolle').select('*', { count: 'exact', head: true }),
     supabase.from('bolle').select('*', { count: 'exact', head: true }).eq('stato', 'in attesa'),
     supabase.from('fatture').select('*', { count: 'exact', head: true }),
+    // Documents received via email not yet matched to a GRN count as invoices
+    supabase
+      .from('documenti_da_processare')
+      .select('*', { count: 'exact', head: true })
+      .in('stato', ['in_attesa', 'da_associare']),
     supabase
       .from('log_sincronizzazione')
       .select('*', { count: 'exact', head: true })
@@ -30,10 +36,10 @@ async function getStats() {
   ])
 
   return {
-    totFornitori: totFornitori ?? 0,
-    totBolle: totBolle ?? 0,
+    totFornitori:  totFornitori ?? 0,
+    totBolle:      totBolle ?? 0,
     bolleInAttesa: bolleInAttesa ?? 0,
-    totFatture: totFatture ?? 0,
+    totFatture:    (fattureFirmate ?? 0) + (documentiInCoda ?? 0),
     erroriRecenti: erroriRecenti ?? 0,
   }
 }
@@ -44,12 +50,23 @@ async function getStatsBySede() {
 
   const sediWithStats = await Promise.all(
     (sedi ?? []).map(async (sede: Sede) => {
-      const [{ count: fornitori }, { count: bolleInAttesa }, { count: fatture }] = await Promise.all([
+      const [{ count: fornitori }, { count: bolleInAttesa }, { count: fattureFirmate }, { count: documentiInCoda }] = await Promise.all([
         supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
         supabase.from('bolle').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id).eq('stato', 'in attesa'),
         supabase.from('fatture').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
+        // Pending email documents count as received invoices for this sede
+        supabase
+          .from('documenti_da_processare')
+          .select('*', { count: 'exact', head: true })
+          .eq('sede_id', sede.id)
+          .in('stato', ['in_attesa', 'da_associare']),
       ])
-      return { ...sede, fornitori: fornitori ?? 0, bolleInAttesa: bolleInAttesa ?? 0, fatture: fatture ?? 0 }
+      return {
+        ...sede,
+        fornitori:     fornitori ?? 0,
+        bolleInAttesa: bolleInAttesa ?? 0,
+        fatture:       (fattureFirmate ?? 0) + (documentiInCoda ?? 0),
+      }
     })
   )
   return sediWithStats
@@ -83,31 +100,39 @@ export default async function DashboardPage() {
           .then(({ count }) => count ?? 0)
       ),
     ])
+    // Totale bolle in attesa su tutte le sedi
+    const totaleBolleInAttesa = sediStats.reduce((sum, s) => sum + (s.bolleInAttesa ?? 0), 0)
 
     return (
-      <div className="p-8 max-w-5xl">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t.dashboard.title}</h1>
-            <p className="text-sm text-gray-500 mt-1">{t.sedi.subtitle}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <ScanEmailButton />
-            <Link
-              href="/log"
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                erroriRecenti > 0
-                  ? 'bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {erroriRecenti > 0 && (
-                <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
-                  {erroriRecenti > 9 ? '9+' : erroriRecenti}
-                </span>
-              )}
-              {t.dashboard.viewLog}
-            </Link>
+      <div className="p-4 md:p-8 max-w-5xl">
+        <div className="mb-8">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">{t.dashboard.title}</h1>
+              <p className="text-sm text-gray-500 mt-1 hidden md:block">{t.sedi.subtitle}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              <SollecitiButton bolleInAttesa={totaleBolleInAttesa} />
+              <ScanEmailButton alwaysShowLabel />
+              <Link
+                href="/log"
+                className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                  erroriRecenti > 0
+                    ? 'bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {erroriRecenti > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                    {erroriRecenti > 9 ? '9+' : erroriRecenti}
+                  </span>
+                )}
+                <span className="hidden md:inline">{t.dashboard.viewLog}</span>
+                <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -214,32 +239,33 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t.dashboard.title}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t.dashboard.subtitle}</p>
+    <div className="p-4 md:p-8">
+      <div className="flex items-center justify-between mb-6 md:mb-8 gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">{t.dashboard.title}</h1>
+          <p className="text-sm text-gray-500 mt-0.5 hidden md:block">{t.dashboard.subtitle}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <ScanEmailButton />
-            <Link
-              href="/log"
-              className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                stats.erroriRecenti > 0
-                  ? 'bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {stats.erroriRecenti > 0 && (
-                <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
-                  {stats.erroriRecenti > 9 ? '9+' : stats.erroriRecenti}
-                </span>
-              )}
-              {t.dashboard.viewLog}
-            </Link>
-          </div>
-          <SollecitiButton />
+        <div className="flex items-center gap-2 shrink-0">
+          <ScanEmailButton alwaysShowLabel />
+          <Link
+            href="/log"
+            className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+              stats.erroriRecenti > 0
+                ? 'bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {stats.erroriRecenti > 0 && (
+              <span className="w-4 h-4 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                {stats.erroriRecenti > 9 ? '9+' : stats.erroriRecenti}
+              </span>
+            )}
+            <span className="hidden md:inline">{t.dashboard.viewLog}</span>
+            <svg className="w-4 h-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </Link>
+          <SollecitiButton bolleInAttesa={stats.bolleInAttesa} />
         </div>
       </div>
 
@@ -264,9 +290,20 @@ export default async function DashboardPage() {
       <div className="bg-white rounded-xl border border-gray-100">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">{t.dashboard.recentBills}</h2>
-          <Link href="/bolle" className="text-sm text-[#1a3050] font-medium">
-            {t.dashboard.viewAll}
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/bolle/new"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1a3050] hover:bg-[#122238] text-white text-xs font-semibold rounded-lg transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {t.bolle.new}
+            </Link>
+            <Link href="/bolle" className="text-sm text-[#1a3050] font-medium hover:underline">
+              {t.dashboard.viewAll} →
+            </Link>
+          </div>
         </div>
 
         {bolle.length === 0 ? (

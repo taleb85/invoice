@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
+
+// States that can be retried (any error state, regardless of which version created the log)
+const RETRYABLE_STATES = ['bolla_non_trovata', 'fornitore_non_trovato'] as const
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
 
-  // 1. Recupera il log
-  const { data: log, error: logError } = await supabase
+  // Auth check via user client
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autenticato.' }, { status: 401 })
+
+  // 1. Fetch the log entry
+  const service = createServiceClient()
+  const { data: log, error: logError } = await service
     .from('log_sincronizzazione')
     .select('*')
     .eq('id', id)
@@ -16,50 +24,90 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Log non trovato.' }, { status: 404 })
   }
 
-  if (log.stato !== 'bolla_non_trovata') {
-    return NextResponse.json({ error: 'Il retry è disponibile solo per log con stato "bolla_non_trovata".' }, { status: 400 })
+  if (!RETRYABLE_STATES.includes(log.stato)) {
+    return NextResponse.json(
+      { error: `Il retry è disponibile solo per log in stato di errore (trovato: "${log.stato}").` },
+      { status: 400 }
+    )
   }
 
-  if (!log.fornitore_id || !log.file_url) {
-    return NextResponse.json({ error: 'Dati insufficienti nel log per eseguire il retry.' }, { status: 400 })
+  // A file URL is the minimum required to recreate the document record
+  if (!log.file_url) {
+    return NextResponse.json(
+      { error: 'Nessun file associato a questo log: impossibile eseguire il retry senza un URL del documento.' },
+      { status: 400 }
+    )
   }
 
-  // 2. Cerca la bolla più vecchia ancora 'in attesa' per quel fornitore
-  const { data: bolle } = await supabase
-    .from('bolle')
-    .select('id')
-    .eq('fornitore_id', log.fornitore_id)
-    .eq('stato', 'in attesa')
-    .order('data', { ascending: true })
-    .limit(1)
-
-  if (!bolle || bolle.length === 0) {
-    return NextResponse.json({ error: 'Nessuna bolla "in attesa" disponibile per questo fornitore.' }, { status: 404 })
+  // 2. Resolve sede_id from the fornitore if one is linked
+  //    Falls back to null — documenti_da_processare accepts a nullable sede_id
+  let sedeId: string | null = null
+  if (log.fornitore_id) {
+    const { data: fornitore } = await service
+      .from('fornitori')
+      .select('sede_id')
+      .eq('id', log.fornitore_id)
+      .single()
+    sedeId = fornitore?.sede_id ?? null
   }
 
-  const bollaId = bolle[0].id
-  const oggi = new Date().toISOString().split('T')[0]
+  // 3. Save to documenti_da_processare with stato 'da_associare'
+  //    mittente is NOT NULL in the schema — fall back to a placeholder if missing.
+  //    metadata column may not be migrated yet — use fallback insert without it.
+  //    Never block on missing bolla — the user will associate it manually in Statements.
+  const basePayload = {
+    fornitore_id:   log.fornitore_id ?? null,
+    sede_id:        sedeId,
+    mittente:       log.mittente || 'sconosciuto',   // NOT NULL — no null allowed
+    oggetto_mail:   log.oggetto_mail ?? null,
+    file_url:       log.file_url,
+    file_name:      null,
+    content_type:   null,
+    data_documento: null,
+    stato:          'da_associare',
+    metadata:       null,   // column added by migration — fallback below if missing
+  }
 
-  // 3. Inserisci la fattura con il file già in storage
-  const { error: insertError } = await supabase.from('fatture').insert([{
-    fornitore_id: log.fornitore_id,
-    bolla_id: bollaId,
-    data: oggi,
-    file_url: log.file_url,
-  }])
+  console.log('DEBUG_INSERT_PAYLOAD (retry):', JSON.stringify(basePayload, null, 2))
+
+  let { error: insertError } = await service.from('documenti_da_processare').insert([basePayload])
+
+  // Fallback: 'metadata' column not yet migrated in this environment
+  if (insertError && (insertError.code === '42703' || insertError.message?.includes('metadata') || insertError.message?.includes('is_statement'))) {
+    console.warn('[RETRY] ⚠️  Colonna extra mancante — retry senza metadata')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { metadata: _m, is_statement: _is, ...safePayload } = basePayload as Record<string, unknown>
+    const r2 = await service.from('documenti_da_processare').insert([safePayload])
+    insertError = r2.error
+    if (insertError) {
+      console.error('DEBUG_DB_ERROR retry fallback:', JSON.stringify(insertError, null, 2))
+    }
+  }
 
   if (insertError) {
-    return NextResponse.json({ error: `Errore inserimento fattura: ${insertError.message}` }, { status: 500 })
+    console.error('DEBUG_DB_ERROR (retry):', JSON.stringify(insertError, null, 2))
+    const detail = `[${insertError.code ?? 'ERR'}] ${insertError.message}${insertError.details ? ' | ' + insertError.details : ''}`
+    // Write the real DB error into the log so it's visible in the UI
+    await service
+      .from('log_sincronizzazione')
+      .update({ errore_dettaglio: `Retry fallito: ${detail}` })
+      .eq('id', id)
+    return NextResponse.json(
+      { error: `Errore nel salvataggio del documento: ${detail}` },
+      { status: 500 }
+    )
   }
 
-  // 4. Chiude la bolla
-  await supabase.from('bolle').update({ stato: 'completato' }).eq('id', bollaId)
-
-  // 5. Aggiorna il log a 'successo'
-  await supabase
+  // 4. Mark log as successo
+  await service
     .from('log_sincronizzazione')
     .update({ stato: 'successo', errore_dettaglio: null })
     .eq('id', id)
 
-  return NextResponse.json({ successo: true })
+  console.log(`[RETRY] Log ${id} → successo | fornitore=${log.fornitore_id ?? 'N/A'} sede=${sedeId ?? 'NULL'}`)
+
+  return NextResponse.json({
+    successo: true,
+    messaggio: 'Documento salvato come "da associare". Vai in Statements per abbinarlo alla bolla.',
+  })
 }

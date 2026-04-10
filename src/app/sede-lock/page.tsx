@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase-browser'
 
 export default function SedeLockPage() {
   const router = useRouter()
@@ -10,79 +9,57 @@ export default function SedeLockPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [sedeName, setSedeName] = useState('')
+  const [sedeId, setSedeId] = useState('')
   const [checking, setChecking] = useState(true)
+  const [fatalError, setFatalError] = useState('')
 
   useEffect(() => {
-    const init = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+    let active = true
+    fetch('/api/sede-lock')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!active) return
+        if (data.redirect) { router.replace(data.redirect); return }
+        if (data.error) {
+          // Sessione non valida: mostra errore invece di fare redirect (evita loop)
+          setFatalError(data.error)
+          setChecking(false)
+          return
+        }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('sede_id, role')
-        .eq('id', user.id)
-        .single()
+        const verified = document.cookie.includes(`sede-verified=${data.sede_id}`)
+        if (verified) { router.replace('/'); return }
 
-      // Admin non ha bisogno del codice sede
-      if (!profile || profile.role === 'admin') { router.push('/'); return }
-
-      // Controlla se la sede ha un codice accesso
-      if (!profile.sede_id) { router.push('/'); return }
-
-      const { data: sede } = await supabase
-        .from('sedi')
-        .select('nome, access_password')
-        .eq('id', profile.sede_id)
-        .single()
-
-      if (!sede?.access_password) {
-        // Nessun codice richiesto
-        router.push('/')
-        return
-      }
-
-      // Controlla se già verificato (cookie)
-      const verified = document.cookie.includes(`sede-verified=${profile.sede_id}`)
-      if (verified) { router.push('/'); return }
-
-      setSedeName(sede.nome ?? '')
-      setChecking(false)
-    }
-    init()
-  }, [router])
+        setSedeName(data.sede_nome ?? '')
+        setSedeId(data.sede_id)
+        setChecking(false)
+      })
+      .catch(() => { if (active) { setFatalError('Errore di connessione. Ricarica la pagina.'); setChecking(false) } })
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
+    const res = await fetch('/api/sede-lock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+    const data = await res.json()
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('sede_id')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.sede_id) { router.push('/'); return }
-
-    const { data: sede } = await supabase
-      .from('sedi')
-      .select('access_password')
-      .eq('id', profile.sede_id)
-      .single()
-
-    if (sede?.access_password === code) {
-      // Imposta cookie di sessione per la verifica (letto dal middleware)
-      document.cookie = `sede-verified=${profile.sede_id}; path=/; SameSite=Strict`
-      router.push('/')
-    } else {
-      setError('Codice non corretto. Riprova.')
+    if (!res.ok) {
+      setError(data.error ?? 'Codice non corretto. Riprova.')
       setCode('')
+      setLoading(false)
+      return
     }
+
+    document.cookie = `sede-verified=${data.sede_id}; path=/; Max-Age=86400; SameSite=Strict`
+    router.replace('/')
     setLoading(false)
   }
 
@@ -90,6 +67,22 @@ export default function SedeLockPage() {
     return (
       <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (fatalError) {
+    return (
+      <div className="min-h-screen bg-[#1a3050] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
+          <p className="text-sm text-red-500 font-medium">{fatalError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-2.5 bg-[#1a3050] text-white text-sm font-semibold rounded-lg"
+          >
+            Ricarica
+          </button>
+        </div>
       </div>
     )
   }

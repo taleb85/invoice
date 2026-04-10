@@ -32,7 +32,7 @@ export default function NewFornitore() {
   const labelCls = 'block text-xs font-medium text-gray-600 mb-1'
 
   return (
-    <div className="p-8 max-w-lg">
+    <div className="p-4 md:p-8 max-w-lg">
       <div className="flex items-center gap-3 mb-8">
         <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

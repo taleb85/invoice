@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Fornitore } from '@/types'
 import { useSedeId } from '@/lib/use-sede'
@@ -40,10 +40,13 @@ function matchFornitore(fornitori: Fornitore[], nome: string | null, piva: strin
   return null
 }
 
-export default function NuovaBollaPage() {
+function NuovaBollaForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const preselectedFornitoreId = searchParams.get('fornitore_id') ?? ''
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
   const { sedeId } = useSedeId()
   const t = useT()
 
@@ -54,6 +57,9 @@ export default function NuovaBollaPage() {
   const [preview, setPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [registratoDa, setRegistratoDa] = useState('')
+  // 'idle' = mostra scelta, 'camera' = input fotocamera, 'file' = input file
+  const [uploadMode, setUploadMode] = useState<'idle' | 'camera' | 'file'>('idle')
 
   // OCR state
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>('idle')
@@ -63,11 +69,17 @@ export default function NuovaBollaPage() {
   const [dateFromOcr, setDateFromOcr] = useState(false)
 
   useEffect(() => {
-    supabase.from('fornitori').select('id, nome, piva').order('nome').then(({ data }) => {
-      setFornitori((data as Fornitore[]) ?? [])
-      if (data && data.length > 0) setFornitoreId(data[0].id)
+    supabase.from('fornitori').select('id, nome, piva').order('nome').then(({ data }: { data: Fornitore[] | null }) => {
+      const rows = (data as Fornitore[]) ?? []
+      setFornitori(rows)
+      // Pre-select from URL param if valid, otherwise default to first supplier
+      if (preselectedFornitoreId && rows.some(f => f.id === preselectedFornitoreId)) {
+        setFornitoreId(preselectedFornitoreId)
+      } else if (rows.length > 0) {
+        setFornitoreId(rows[0].id)
+      }
     })
-  }, [supabase])
+  }, [supabase, preselectedFornitoreId])
 
   const runOcr = async (f: File) => {
     // Solo immagini — PDF non supportato dall'OCR
@@ -134,7 +146,9 @@ export default function NuovaBollaPage() {
     setOcrNome(null)
     setOcrPiva(null)
     setDateFromOcr(false)
+    setUploadMode('idle')
     if (fileRef.current) fileRef.current.value = ''
+    if (cameraRef.current) cameraRef.current.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -171,6 +185,7 @@ export default function NuovaBollaPage() {
       data,
       file_url,
       stato: 'in attesa',
+      registrato_da: registratoDa.trim() || null,
     }])
 
     setSaving(false)
@@ -207,6 +222,33 @@ export default function NuovaBollaPage() {
           <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
             {t.bolle.fotoLabel}
           </label>
+
+          {/* Scelta modalità upload */}
+          {!preview && uploadMode === 'idle' && (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => { setUploadMode('camera'); setTimeout(() => cameraRef.current?.click(), 50) }}
+                className="flex flex-col items-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-[#2a4a7f] hover:text-[#2a4a7f] transition-colors active:bg-[#e8edf5]"
+              >
+                <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="text-sm font-semibold">{t.bolle.cameraBtn}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUploadMode('file'); setTimeout(() => fileRef.current?.click(), 50) }}
+                className="flex flex-col items-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-[#2a4a7f] hover:text-[#2a4a7f] transition-colors active:bg-[#e8edf5]"
+              >
+                <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <span className="text-sm font-semibold">{t.bolle.fileBtn}</span>
+              </button>
+            </div>
+          )}
 
           {preview ? (
             <div className="relative">
@@ -253,30 +295,43 @@ export default function NuovaBollaPage() {
                 </div>
               )}
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="w-full border-2 border-dashed border-gray-200 rounded-xl py-8 flex flex-col items-center gap-2 text-gray-400 hover:border-[#2a4a7f] hover:text-[#2a4a7f] transition-colors active:bg-[#e8edf5]"
-            >
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="text-sm font-medium">{t.bolle.takePhotoOrFile}</span>
-              <span className="text-xs text-gray-300">{t.bolle.ocrHint}</span>
-            </button>
-          )}
+          ) : null}
 
+          {/* Input fotocamera */}
           <input
-            ref={fileRef}
+            ref={cameraRef}
             type="file"
-            accept="image/*,application/pdf"
+            accept="image/*"
             capture="environment"
             onChange={handleFile}
             className="hidden"
           />
+          {/* Input file picker */}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={handleFile}
+            className="hidden"
+          />
         </div>
+
+        {/* Registrato da — appare dopo che il file è stato caricato */}
+        {file && (
+          <div className="bg-white rounded-2xl border border-blue-100 p-5 ring-1 ring-blue-200/50">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Registrato da
+            </label>
+            <input
+              type="text"
+              placeholder="Nome di chi ha registrato la bolla…"
+              value={registratoDa}
+              onChange={(e) => setRegistratoDa(e.target.value)}
+              autoFocus
+              className="w-full text-base text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 py-1 -mx-1 placeholder:text-gray-300"
+            />
+          </div>
+        )}
 
         {/* Fornitore */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -336,28 +391,41 @@ export default function NuovaBollaPage() {
           )}
         </div>
 
-        {/* Data */}
-        <div className={`bg-white rounded-2xl border p-5 transition-colors ${dateFromOcr ? 'border-green-200 bg-green-50/30' : 'border-gray-100'}`}>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              {t.bolle.dataLabel}
-            </label>
-            {dateFromOcr && (
-              <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                </svg>
-                {t.bolle.ocrAutoRecognized}
-              </span>
-            )}
+        {/* Date — documento + caricamento */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          {/* Data sul documento */}
+          <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-green-50/40' : ''}`}>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                {t.bolle.dataLabel}
+              </label>
+              {dateFromOcr ? (
+                <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                  </svg>
+                  {t.bolle.ocrAutoRecognized}
+                </span>
+              ) : (
+                <span className="text-[11px] text-gray-300">Dal documento</span>
+              )}
+            </div>
+            <input
+              type="date"
+              required
+              value={data}
+              onChange={(e) => { setData(e.target.value); setDateFromOcr(false) }}
+              className="w-full text-base text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 py-1 -mx-1"
+            />
           </div>
-          <input
-            type="date"
-            required
-            value={data}
-            onChange={(e) => { setData(e.target.value); setDateFromOcr(false) }}
-            className="w-full text-base text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 py-1 -mx-1"
-          />
+
+          {/* Data di caricamento — automatica */}
+          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Data caricamento</span>
+            <span className="text-sm text-gray-500 font-medium">
+              {new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} — automatica
+            </span>
+          </div>
         </div>
 
         {error && (
@@ -374,5 +442,13 @@ export default function NuovaBollaPage() {
         </button>
       </form>
     </div>
+  )
+}
+
+export default function NuovaBollaPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-400">Caricamento…</div>}>
+      <NuovaBollaForm />
+    </Suspense>
   )
 }

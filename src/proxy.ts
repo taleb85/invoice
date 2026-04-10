@@ -2,7 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Rotte accessibili senza autenticazione
-const PUBLIC_PATHS = ['/login', '/api/solleciti', '/sede-lock']
+const PUBLIC_PATHS = ['/login', '/api/solleciti', '/api/lookup-name', '/api/scan-emails', '/sede-lock', '/manifest.json', '/sw.js', '/offline']
+
+// Rotte che non vanno reindirizzate a /sede-lock (ma richiedono comunque la sessione)
+const SEDE_LOCK_EXEMPT = ['/api/sede-lock']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -56,7 +59,8 @@ export async function proxy(request: NextRequest) {
     .single()
 
   // Verifica codice accesso sede per operatori (non admin)
-  if (profile?.role !== 'admin' && profile?.sede_id && pathname !== '/sede-lock') {
+  const isSedeExempt = SEDE_LOCK_EXEMPT.some((p) => pathname.startsWith(p))
+  if (!isSedeExempt && profile?.role !== 'admin' && profile?.sede_id && pathname !== '/sede-lock') {
     const verifiedCookie = request.cookies.get('sede-verified')?.value
     if (verifiedCookie !== profile.sede_id) {
       const { data: sede } = await supabase
@@ -78,6 +82,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|png)$).*)',
   ],
 }

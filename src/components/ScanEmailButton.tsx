@@ -1,53 +1,105 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useT } from '@/lib/use-t'
+import { useRouter } from 'next/navigation'
 
-export default function ScanEmailButton() {
+interface Props {
+  /** Se true mostra sempre il testo (non solo su desktop) */
+  alwaysShowLabel?: boolean
+  /**
+   * When provided (e.g. from /sedi/[sede_id]/page.tsx URL params), the scan is
+   * scoped to this specific branch — skips the /api/me lookup entirely.
+   */
+  sedeId?: string
+}
+
+export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propSedeId }: Props) {
   const [loading, setLoading] = useState(false)
+  const [toast, setToast] = useState<{ type: 'ok' | 'warn' | 'error'; text: string } | null>(null)
+  // Fallback: if no prop sedeId, discover from /api/me
+  const fallbackSedeIdRef = useRef<string | null>(null)
   const t = useT()
+  const router = useRouter()
+
+  useEffect(() => {
+    // Only fetch /api/me when sedeId is not passed as a prop
+    if (propSedeId) return
+    fetch('/api/me').then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.sede_id) fallbackSedeIdRef.current = data.sede_id
+    }).catch(() => { /* silently ignore */ })
+  }, [propSedeId])
 
   const handleClick = async () => {
     setLoading(true)
+    setToast(null)
     try {
-      const res = await fetch('/api/scan-emails', { method: 'POST' })
+      const effectiveSedeId = propSedeId ?? fallbackSedeIdRef.current
+      const payload = effectiveSedeId
+        ? {
+            user_sede_id: effectiveSedeId,
+            // filter_sede_id tells the API to restrict the IMAP scan to this branch only
+            filter_sede_id: propSedeId ?? undefined,
+          }
+        : undefined
+      const body = payload ? JSON.stringify(payload) : undefined
+      const res = await fetch('/api/scan-emails', {
+        method: 'POST',
+        headers: body ? { 'Content-Type': 'application/json' } : undefined,
+        body,
+      })
       const json = await res.json()
 
       if (!res.ok) {
-        alert(`Errore: ${json.error ?? 'Si è verificato un problema.'}`)
-        return
+        setToast({ type: 'error', text: json.error ?? 'Errore durante la scansione.' })
+      } else {
+        // Avvisi IMAP (configurazione errata) mostrati in arancione
+        const tipo = json.avvisi?.length ? 'warn' : 'ok'
+        setToast({ type: tipo, text: json.messaggio ?? 'Sincronizzazione completata.' })
+        router.refresh()
       }
-
-      alert(json.messaggio ?? 'Sincronizzazione completata.')
     } catch {
-      alert('Errore di rete. Controlla la connessione e riprova.')
+      setToast({ type: 'error', text: 'Errore di rete. Riprova.' })
     } finally {
       setLoading(false)
+      setTimeout(() => setToast(null), 5000)
     }
   }
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-800 active:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-    >
-      {loading ? (
-        <>
-          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-          </svg>
-          {t.dashboard.syncing}
-        </>
-      ) : (
-        <>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          {t.dashboard.syncEmail}
-        </>
+    <div className="flex flex-col items-end gap-1.5">
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        className="flex items-center gap-2 px-3 py-2.5 bg-[#1a3050] hover:bg-[#122238] active:bg-[#0d1e35] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+      >
+        {loading ? (
+          <>
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+            {t.dashboard.syncing}
+          </>
+        ) : (
+          <>
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className={alwaysShowLabel ? '' : 'hidden md:inline'}>{t.dashboard.syncEmail}</span>
+          </>
+        )}
+      </button>
+
+      {toast && (
+        <p className={`text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${
+          toast.type === 'ok' ? 'text-green-700 bg-green-50' :
+          toast.type === 'warn' ? 'text-amber-700 bg-amber-50' :
+          'text-red-600 bg-red-50'
+        }`}>
+          {toast.text}
+        </p>
       )}
-    </button>
+    </div>
   )
 }

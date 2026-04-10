@@ -13,7 +13,7 @@ export default function RetryButton({ logId }: { logId: string }) {
       const res = await fetch(`/api/retry-log/${logId}`, { method: 'POST' })
       const data = await res.json()
       if (!res.ok) {
-        alert(data.error ?? 'Errore durante il retry.')
+        alert(data.error ?? 'Si è verificato un errore. Riprovare.')
       } else {
         router.refresh()
       }

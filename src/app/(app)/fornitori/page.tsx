@@ -14,8 +14,9 @@ export default async function FornitoriPage() {
   const [fornitori, t] = await Promise.all([getFornitori(), getT()])
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8">
+      {/* Header */}
+      <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between md:mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.fornitori.title}</h1>
           <p className="text-sm text-gray-500 mt-1">{fornitori.length} {t.fornitori.countLabel}</p>
@@ -23,18 +24,18 @@ export default async function FornitoriPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/fornitori/import"
-            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
           >
-            <svg className="w-4 h-4 text-[#1a3050]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[#1a3050] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             {t.fornitori.importaDaFattura}
           </Link>
           <Link
             href="/fornitori/new"
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-lg transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             {t.fornitori.new}
@@ -54,31 +55,30 @@ export default async function FornitoriPage() {
             </Link>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-500 font-medium uppercase tracking-wide">
-                <th className="text-left px-6 py-3">{t.fornitori.nome}</th>
-                <th className="text-left px-6 py-3">{t.fornitori.email}</th>
-                <th className="text-left px-6 py-3">{t.fornitori.piva}</th>
-                <th className="px-6 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
+          <>
+            {/* Mobile: card list */}
+            <div className="md:hidden divide-y divide-gray-50">
               {fornitori.map((f) => (
-                <tr key={f.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">{f.nome}</td>
-                  <td className="px-6 py-4 text-gray-500">{f.email ?? '—'}</td>
-                  <td className="px-6 py-4 text-gray-500">{f.piva ?? '—'}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1">
+                <div key={f.id} className="px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{f.nome}</p>
+                      {f.email && (
+                        <p className="text-sm text-gray-500 mt-0.5 truncate">{f.email}</p>
+                      )}
+                      {f.piva && (
+                        <p className="text-xs text-gray-400 mt-0.5">VAT {f.piva}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
                       <Link
                         href={`/fornitori/${f.id}/edit`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1a3050] hover:text-[#1a3050] hover:bg-[#e8edf5] rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-[#1a3050] hover:bg-[#e8edf5] rounded-lg transition-colors"
+                        title={t.common.edit}
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
-                        {t.common.edit}
                       </Link>
                       <DeleteButton
                         id={f.id}
@@ -86,11 +86,52 @@ export default async function FornitoriPage() {
                         confirmMessage={`${t.fornitori.deleteConfirm.replace('questo fornitore', `"${f.nome}"`).replace('Delete this supplier', `"${f.nome}"`)}`}
                       />
                     </div>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm min-w-[520px]">
+              <thead>
+                <tr className="border-b border-gray-100 text-xs text-gray-500 font-medium uppercase tracking-wide">
+                  <th className="text-left px-6 py-3">{t.fornitori.nome}</th>
+                  <th className="text-left px-6 py-3">{t.fornitori.email}</th>
+                  <th className="text-left px-6 py-3">{t.fornitori.piva}</th>
+                  <th className="px-6 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {fornitori.map((f) => (
+                  <tr key={f.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">{f.nome}</td>
+                    <td className="px-6 py-4 text-gray-500">{f.email ?? '—'}</td>
+                    <td className="px-6 py-4 text-gray-500">{f.piva ?? '—'}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/fornitori/${f.id}/edit`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#1a3050] hover:text-[#1a3050] hover:bg-[#e8edf5] rounded-lg transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          {t.common.edit}
+                        </Link>
+                        <DeleteButton
+                          id={f.id}
+                          table="fornitori"
+                          confirmMessage={`${t.fornitori.deleteConfirm.replace('questo fornitore', `"${f.nome}"`).replace('Delete this supplier', `"${f.nome}"`)}`}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </>
         )}
       </div>
     </div>
