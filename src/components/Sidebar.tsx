@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
-import { getTranslations, type Locale } from '@/lib/translations'
+import { LOCALES } from '@/lib/translations'
 import { useMe } from '@/lib/me-context'
+import { useLocale } from '@/lib/locale-context'
 
 function getCookie(name: string): string {
   if (typeof document === 'undefined') return ''
@@ -23,8 +24,8 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const router = useRouter()
   const supabase = createClient()
   const { me } = useMe()
+  const { locale, t, setLocale } = useLocale()
   const [mounted, setMounted] = useState(false)
-  const [locale, setLocale] = useState<Locale>('it')
   const [sedeNome, setSedeNome] = useState<string | null>(null)
   const [sedeId, setSedeId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -35,6 +36,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
   const [fornitoriOpen, setFornitoriOpen] = useState(true)
   const [fornitoriSearch, setFornitoriSearch] = useState('')
   const [collapsed, setCollapsed] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
 
   // Body scroll lock when mobile drawer is open
   useEffect(() => {
@@ -47,11 +49,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  // Populate state from shared UserContext (no direct /api/me fetch)
-  useEffect(() => {
-    setMounted(true)
-    setLocale((getCookie('app-locale') as Locale) || 'it')
-  }, [])
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (!me) return
@@ -84,8 +82,6 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
     document.cookie = `admin-sede-id=${sedeId}; path=/; SameSite=Strict`
     router.refresh()
   }
-
-  const t = getTranslations(locale)
 
   const operatoreNavItems = [
     {
@@ -466,6 +462,76 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
         {/* ── Footer ── */}
         <div className={`border-t border-white/10 ${collapsed ? 'px-2 py-3 space-y-1' : 'px-3 py-3 space-y-1'}`}>
+
+          {/* Language switcher */}
+          {!collapsed && (
+            <div className="relative">
+              <button
+                onClick={() => setLangOpen(o => !o)}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-white/40 hover:text-white/70 hover:bg-white/5 rounded-lg transition-colors text-[11px]"
+              >
+                <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}</span>
+                <span className="font-medium">{LOCALES.find(l => l.code === locale)?.label ?? locale}</span>
+                <svg className={`w-3 h-3 ml-auto transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              {langOpen && (
+                <div className="absolute bottom-full mb-1 left-0 right-0 bg-[#0f2040] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50">
+                  {LOCALES.map(l => (
+                    <button
+                      key={l.code}
+                      onClick={() => { setLocale(l.code); setLangOpen(false) }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
+                        locale === l.code
+                          ? 'bg-white/15 text-white'
+                          : 'text-white/50 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-sm">{l.flag}</span>
+                      <span>{l.label}</span>
+                      {locale === l.code && (
+                        <svg className="w-3 h-3 ml-auto text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Collapsed: globe icon → opens lang popover */}
+          {collapsed && (
+            <div className="relative">
+              <button
+                onClick={() => setLangOpen(o => !o)}
+                title="Lingua / Language"
+                className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors text-sm"
+              >
+                {LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}
+              </button>
+              {langOpen && (
+                <div className="absolute bottom-0 left-full ml-2 bg-[#0f2040] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 w-40">
+                  {LOCALES.map(l => (
+                    <button
+                      key={l.code}
+                      onClick={() => { setLocale(l.code); setLangOpen(false) }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
+                        locale === l.code
+                          ? 'bg-white/15 text-white'
+                          : 'text-white/50 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-sm">{l.flag}</span>
+                      <span>{l.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {!isAdmin && !collapsed && (
             <Link
               href="/bolle/new"

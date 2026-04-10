@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { LOCALES, CURRENCIES, TIMEZONES, getTranslations } from '@/lib/translations'
+import { useState, useEffect } from 'react'
+import { LOCALES, CURRENCIES, TIMEZONES } from '@/lib/translations'
+import { useLocale } from '@/lib/locale-context'
 
-const LOCALE_COOKIE = 'app-locale'
 const CURRENCY_COOKIE = 'app-currency'
 const TIMEZONE_COOKIE = 'app-timezone'
 
@@ -17,33 +17,25 @@ function setCookie(name: string, value: string) {
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${60 * 60 * 24 * 365}`
 }
 
-type Locale = 'it' | 'en' | 'es' | 'fr' | 'de'
-
 export default function ImpostazioniPage() {
+  const { locale, t, setLocale } = useLocale()
   const [mounted, setMounted] = useState(false)
-  const [locale, setLocale] = useState<Locale>('it')
   const [currency, setCurrency] = useState('EUR')
   const [timezone, setTimezone] = useState('Europe/Rome')
   const [saved, setSaved] = useState(false)
 
-  const t = useMemo(() => getTranslations(locale), [locale])
-
   useEffect(() => {
-    setLocale((getCookie(LOCALE_COOKIE) || 'it') as Locale)
     setCurrency(getCookie(CURRENCY_COOKIE) || 'EUR')
     setTimezone(getCookie(TIMEZONE_COOKIE) || 'Europe/Rome')
     setMounted(true)
   }, [])
 
   const handleSave = () => {
-    setCookie(LOCALE_COOKIE, locale)
     setCookie(CURRENCY_COOKIE, currency)
     setCookie(TIMEZONE_COOKIE, timezone)
     setSaved(true)
-    setTimeout(() => {
-      setSaved(false)
-      window.location.reload()
-    }, 1200)
+    setTimeout(() => setSaved(false), 1500)
+    // No page reload needed — locale changes propagate reactively via context
   }
 
   const selectCls = 'w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white'
@@ -83,7 +75,7 @@ export default function ImpostazioniPage() {
           </div>
           <div className="flex-1">
             <label className={labelCls}>{t.impostazioni.lingua}</label>
-            <select value={locale} onChange={(e) => setLocale(e.target.value as Locale)} className={selectCls}>
+            <select value={locale} onChange={(e) => setLocale(e.target.value as 'it' | 'en' | 'es' | 'fr' | 'de')} className={selectCls}>
               {LOCALES.map((l) => (
                 <option key={l.code} value={l.code}>
                   {l.flag} {l.label}

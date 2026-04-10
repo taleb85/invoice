@@ -34,6 +34,28 @@ export const TIMEZONES = [
 ]
 
 type Translations = {
+  login: {
+    subtitle: string
+    adminSubtitle: string
+    nameLabel: string
+    namePlaceholder: string
+    pinLabel: string
+    pinDigits: string
+    lookingUp: string
+    enterFullName: string
+    emailLabel: string
+    emailPlaceholder: string
+    passwordLabel: string
+    passwordPlaceholder: string
+    loginBtn: string
+    adminLink: string
+    operatorLink: string
+    pinIncorrect: string
+    invalidCredentials: string
+    verifying: string
+    accessing: string
+    notFound: string
+  }
   nav: {
     dashboard: string
     fornitori: string
@@ -249,6 +271,28 @@ type Translations = {
 }
 
 const it: Translations = {
+  login: {
+    subtitle: 'Inserisci nome e PIN per accedere',
+    adminSubtitle: 'Accesso amministratore',
+    nameLabel: 'Nome',
+    namePlaceholder: 'Mario Rossi',
+    pinLabel: 'PIN',
+    pinDigits: '(4 cifre)',
+    lookingUp: 'Ricerca sede…',
+    enterFullName: 'Inserisci il nome completo e premi Tab',
+    emailLabel: 'Email',
+    emailPlaceholder: 'admin@azienda.it',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Minimo 6 caratteri',
+    loginBtn: 'Accedi',
+    adminLink: 'Accesso amministratore →',
+    operatorLink: '← Accesso operatore',
+    pinIncorrect: 'PIN non corretto. Riprova.',
+    invalidCredentials: 'Credenziali non valide.',
+    verifying: 'Verifica credenziali…',
+    accessing: 'Accesso in corso…',
+    notFound: 'Utente non trovato.',
+  },
   nav: {
     dashboard: 'Dashboard',
     fornitori: 'Fornitori',
@@ -464,6 +508,28 @@ const it: Translations = {
 }
 
 const en: Translations = {
+  login: {
+    subtitle: 'Enter your name and PIN to access',
+    adminSubtitle: 'Administrator access',
+    nameLabel: 'Name',
+    namePlaceholder: 'John Smith',
+    pinLabel: 'PIN',
+    pinDigits: '(4 digits)',
+    lookingUp: 'Looking up location…',
+    enterFullName: 'Enter your full name and press Tab',
+    emailLabel: 'Email',
+    emailPlaceholder: 'admin@company.com',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Minimum 6 characters',
+    loginBtn: 'Sign In',
+    adminLink: 'Administrator access →',
+    operatorLink: '← Operator access',
+    pinIncorrect: 'Incorrect PIN. Please try again.',
+    invalidCredentials: 'Invalid credentials.',
+    verifying: 'Verifying…',
+    accessing: 'Signing in…',
+    notFound: 'User not found.',
+  },
   nav: {
     dashboard: 'Dashboard',
     fornitori: 'Suppliers',
@@ -489,6 +555,28 @@ const en: Translations = {
 }
 
 const es: Translations = {
+  login: {
+    subtitle: 'Introduce tu nombre y PIN para acceder',
+    adminSubtitle: 'Acceso administrador',
+    nameLabel: 'Nombre',
+    namePlaceholder: 'Juan García',
+    pinLabel: 'PIN',
+    pinDigits: '(4 dígitos)',
+    lookingUp: 'Buscando sede…',
+    enterFullName: 'Introduce tu nombre completo y pulsa Tab',
+    emailLabel: 'Email',
+    emailPlaceholder: 'admin@empresa.com',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: 'Mínimo 6 caracteres',
+    loginBtn: 'Entrar',
+    adminLink: 'Acceso administrador →',
+    operatorLink: '← Acceso operador',
+    pinIncorrect: 'PIN incorrecto. Inténtalo de nuevo.',
+    invalidCredentials: 'Credenciales no válidas.',
+    verifying: 'Verificando…',
+    accessing: 'Accediendo…',
+    notFound: 'Usuario no encontrado.',
+  },
   nav: { dashboard: 'Panel', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', archivio: 'Archivo', logEmail: 'Log Email', sedi: 'Sedes y Usuarios', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', esci: 'Cerrar sesión' },
   common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: '+ Añadir', rename: 'Renombrar', role: 'Rol' },
   status: { inAttesa: 'Pendiente', completato: 'Completado', completata: 'Completada' },
@@ -503,6 +591,28 @@ const es: Translations = {
 }
 
 const fr: Translations = {
+  login: {
+    subtitle: 'Entrez votre nom et PIN pour accéder',
+    adminSubtitle: 'Accès administrateur',
+    nameLabel: 'Nom',
+    namePlaceholder: 'Jean Dupont',
+    pinLabel: 'PIN',
+    pinDigits: '(4 chiffres)',
+    lookingUp: 'Recherche du site…',
+    enterFullName: 'Entrez votre nom complet et appuyez sur Tab',
+    emailLabel: 'Email',
+    emailPlaceholder: 'admin@entreprise.fr',
+    passwordLabel: 'Mot de passe',
+    passwordPlaceholder: '6 caractères minimum',
+    loginBtn: 'Se connecter',
+    adminLink: 'Accès administrateur →',
+    operatorLink: '← Accès opérateur',
+    pinIncorrect: 'PIN incorrect. Réessayez.',
+    invalidCredentials: 'Identifiants invalides.',
+    verifying: 'Vérification…',
+    accessing: 'Connexion…',
+    notFound: 'Utilisateur introuvable.',
+  },
   nav: { dashboard: 'Tableau de bord', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', archivio: 'Archive', logEmail: 'Log Email', sedi: 'Sites & Utilisateurs', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', esci: 'Déconnexion' },
   common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: '+ Ajouter', rename: 'Renommer', role: 'Rôle' },
   status: { inAttesa: 'En attente', completato: 'Complété', completata: 'Complétée' },
@@ -517,6 +627,28 @@ const fr: Translations = {
 }
 
 const de: Translations = {
+  login: {
+    subtitle: 'Name und PIN eingeben, um anzumelden',
+    adminSubtitle: 'Administrator-Zugang',
+    nameLabel: 'Name',
+    namePlaceholder: 'Max Mustermann',
+    pinLabel: 'PIN',
+    pinDigits: '(4 Ziffern)',
+    lookingUp: 'Standort wird gesucht…',
+    enterFullName: 'Vollständigen Namen eingeben und Tab drücken',
+    emailLabel: 'E-Mail',
+    emailPlaceholder: 'admin@firma.de',
+    passwordLabel: 'Passwort',
+    passwordPlaceholder: 'Mindestens 6 Zeichen',
+    loginBtn: 'Anmelden',
+    adminLink: 'Administrator-Zugang →',
+    operatorLink: '← Operator-Zugang',
+    pinIncorrect: 'Falscher PIN. Bitte erneut versuchen.',
+    invalidCredentials: 'Ungültige Anmeldedaten.',
+    verifying: 'Überprüfung…',
+    accessing: 'Anmeldung läuft…',
+    notFound: 'Benutzer nicht gefunden.',
+  },
   nav: { dashboard: 'Dashboard', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standorte & Nutzer', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', esci: 'Abmelden' },
   common: { save: 'Speichern', cancel: 'Abbrechen', delete: 'Löschen', edit: 'Bearbeiten', new: 'Neu', loading: 'Laden...', error: 'Fehler', success: 'Erfolg', noData: 'Keine Daten', document: 'Dokument', actions: 'Aktionen', date: 'Datum', status: 'Status', supplier: 'Lieferant', notes: 'Notizen', saving: 'Speichern...', attachment: 'Anhang', openAttachment: 'Anhang öffnen', detail: 'Detail', add: '+ Hinzufügen', rename: 'Umbenennen', role: 'Rolle' },
   status: { inAttesa: 'Ausstehend', completato: 'Abgeschlossen', completata: 'Abgeschlossen' },

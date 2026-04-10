@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { LocaleProvider, useLocale } from '@/lib/locale-context'
+import { LOCALES } from '@/lib/translations'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -15,8 +17,18 @@ const EMAIL_DOMAINS = [
 const PIN_LENGTH = 4
 
 export default function LoginForm() {
+  return (
+    <LocaleProvider>
+      <LoginFormInner />
+    </LocaleProvider>
+  )
+}
+
+function LoginFormInner() {
   const router   = useRouter()
   const supabase = createClient()
+  const { locale, t, setLocale } = useLocale()
+  const [langOpen, setLangOpen] = useState(false)
 
   const [mode, setMode]     = useState<'name' | 'admin'>('name')
   const [loading, setLoading] = useState(false)
@@ -54,7 +66,6 @@ export default function LoginForm() {
       setSedeNome(data.sede_nome ?? null)
       resolvedEmail.current = data.email ?? null
       setNameReady(true)
-      /* se il PIN era già completo, prova il login */
       if (pin.join('').length === PIN_LENGTH && data.email) {
         doLoginByName(data.email, pin.join(''))
       }
@@ -62,6 +73,7 @@ export default function LoginForm() {
       setSedeNome(null)
       setNameReady(false)
       resolvedEmail.current = null
+      setMessage({ type: 'error', text: t.login.notFound })
     }
   }
 
@@ -71,7 +83,7 @@ export default function LoginForm() {
     setLoading(true); setMessage(null)
     const { error } = await supabase.auth.signInWithPassword({ email: internalEmail, password: pinStr })
     if (error) {
-      setMessage({ type: 'error', text: 'PIN non corretto. Riprova.' })
+      setMessage({ type: 'error', text: t.login.pinIncorrect })
       setLoading(false)
       /* svuota e rimetti focus sul primo campo */
       setPin(Array(PIN_LENGTH).fill(''))
@@ -158,7 +170,7 @@ export default function LoginForm() {
     if (!email || !adminPw) return
     setLoading(true); setMessage(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password: adminPw })
-    if (error) { setMessage({ type: 'error', text: 'Credenziali non valide.' }); setLoading(false); return }
+    if (error) { setMessage({ type: 'error', text: t.login.invalidCredentials }); setLoading(false); return }
     router.push('/'); router.refresh()
   }
 
@@ -191,7 +203,7 @@ export default function LoginForm() {
           </div>
         </div>
         <p className="text-sm text-white/50 mt-8">
-          {mode === 'name' ? 'Inserisci nome e PIN per accedere' : 'Accesso amministratore'}
+          {mode === 'name' ? t.login.subtitle : t.login.adminSubtitle}
         </p>
       </div>
 
@@ -208,11 +220,11 @@ export default function LoginForm() {
 
             {/* Nome */}
             <div>
-              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">Nome</label>
+              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">{t.login.nameLabel}</label>
               <input
                 type="text"
                 autoComplete="name"
-                placeholder="Mario Rossi"
+                placeholder={t.login.namePlaceholder}
                 value={name}
                 onChange={e => { setName(e.target.value); setSedeNome(null); setNameReady(false); resolvedEmail.current = null }}
                 onBlur={() => lookupSede(name)}
@@ -228,7 +240,7 @@ export default function LoginForm() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                     </svg>
-                    Ricerca sede…
+                    {t.login.lookingUp}
                   </span>
                 )}
                 {!lookingUp && sedeNome && (
@@ -240,7 +252,7 @@ export default function LoginForm() {
                   </span>
                 )}
                 {!lookingUp && !sedeNome && name.trim().length > 1 && !nameReady && (
-                  <span className="text-xs text-gray-400">Inserisci il nome completo e premi Tab</span>
+                  <span className="text-xs text-gray-400">{t.login.enterFullName}</span>
                 )}
               </div>
             </div>
@@ -248,8 +260,8 @@ export default function LoginForm() {
             {/* PIN a 4 caselle */}
             <div>
               <label className="block text-xs font-semibold text-[#1a3050]/70 mb-3 uppercase tracking-wide">
-                PIN
-                <span className="ml-1.5 font-normal text-gray-400 normal-case">(4 cifre)</span>
+                {t.login.pinLabel}
+                <span className="ml-1.5 font-normal text-gray-400 normal-case">{t.login.pinDigits}</span>
               </label>
               <div className="flex gap-3 justify-center" onPaste={handlePinPaste}>
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -295,7 +307,7 @@ export default function LoginForm() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  {loading ? 'Verifica credenziali…' : 'Accesso in corso…'}
+                  {loading ? t.login.verifying : t.login.accessing}
                 </p>
               )}
             </div>
@@ -308,9 +320,9 @@ export default function LoginForm() {
           <form onSubmit={e => { e.preventDefault(); handleLoginByEmail() }} className="space-y-4">
 
             <div className="relative">
-              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">Email</label>
+              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">{t.login.emailLabel}</label>
               <input
-                type="email" autoComplete="email" placeholder="admin@azienda.it"
+                type="email" autoComplete="email" placeholder={t.login.emailPlaceholder}
                 value={email}
                 onChange={e => handleEmailChange(e.target.value)}
                 onBlur={() => setTimeout(() => setShowSugg(false), 150)}
@@ -336,11 +348,11 @@ export default function LoginForm() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">Password</label>
+              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">{t.login.passwordLabel}</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'} autoComplete="current-password"
-                  placeholder="Minimo 6 caratteri" value={adminPw}
+                  placeholder={t.login.passwordPlaceholder} value={adminPw}
                   onChange={e => setAdminPw(e.target.value)} className={inputCls + ' pr-11'}
                 />
                 <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
@@ -367,26 +379,62 @@ export default function LoginForm() {
                 ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                 : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
               }
-              Accedi
+              {t.login.loginBtn}
             </button>
           </form>
         )}
         </div>{/* fine p-8 */}
       </div>{/* fine card */}
 
-      {/* Toggle admin (discreto) */}
-      <div className="text-center mt-5">
+      {/* Toggle admin + language selector row */}
+      <div className="flex items-center justify-between mt-5 px-1">
         {mode === 'name' ? (
           <button type="button" onClick={() => { setMode('admin'); setMessage(null) }}
             className="text-[11px] text-white/25 hover:text-white/50 transition-colors">
-            Accesso amministratore →
+            {t.login.adminLink}
           </button>
         ) : (
           <button type="button" onClick={() => { setMode('name'); setMessage(null) }}
             className="text-[11px] text-white/25 hover:text-white/50 transition-colors">
-            ← Accesso operatore
+            {t.login.operatorLink}
           </button>
         )}
+
+        {/* Compact language switcher */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setLangOpen(o => !o)}
+            className="flex items-center gap-1 text-[11px] text-white/25 hover:text-white/50 transition-colors"
+          >
+            <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag}</span>
+            <svg className={`w-2.5 h-2.5 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          {langOpen && (
+            <div className="absolute bottom-full mb-1 right-0 bg-[#0f2040] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 w-36">
+              {LOCALES.map(l => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => { setLocale(l.code); setLangOpen(false) }}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
+                    locale === l.code ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <span className="text-sm">{l.flag}</span>
+                  <span>{l.label}</span>
+                  {locale === l.code && (
+                    <svg className="w-3 h-3 ml-auto text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
