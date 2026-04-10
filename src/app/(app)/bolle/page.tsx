@@ -30,7 +30,7 @@ export default async function BollePage() {
         </div>
         <Link
           href="/bolle/new"
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
         >
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -46,7 +46,7 @@ export default async function BollePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <p className="text-gray-400 text-sm font-medium">{t.bolle.noBills}</p>
-            <Link href="/bolle/new" className="mt-4 inline-block text-sm text-[#1a3050] font-medium">
+            <Link href="/bolle/new" className="mt-4 inline-block text-sm text-accent font-medium">
               {t.bolle.addFirst}
             </Link>
           </div>
@@ -81,7 +81,7 @@ export default async function BollePage() {
                         href={b.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[#1a3050] bg-[#e8edf5] hover:bg-[#d0daea] transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-accent bg-[#e8edf5] hover:bg-[#d0daea] transition-colors"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -141,7 +141,7 @@ export default async function BollePage() {
                       <div className="flex items-center justify-end gap-2">
                         {b.file_url && (
                           <a href={b.file_url} target="_blank" rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#1a3050] bg-[#e8edf5] hover:bg-[#d0daea] transition-colors"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-accent bg-[#e8edf5] hover:bg-[#d0daea] transition-colors"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

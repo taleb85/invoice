@@ -120,7 +120,7 @@ function AddFornitoreModal({
               value={nome}
               onChange={e => setNome(e.target.value)}
               placeholder="es. Mario Rossi S.r.l."
-              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050]/30 focus:border-[#1a3050] placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent placeholder:text-gray-400"
               required
             />
           </div>
@@ -138,7 +138,7 @@ function AddFornitoreModal({
               placeholder="es. 01234567890"
               maxLength={11}
               inputMode="numeric"
-              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050]/30 focus:border-[#1a3050] placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent placeholder:text-gray-400"
             />
           </div>
 
@@ -153,7 +153,7 @@ function AddFornitoreModal({
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="es. fatture@fornitore.it"
-              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050]/30 focus:border-[#1a3050] placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent placeholder:text-gray-400"
             />
             <p className="mt-1.5 text-xs text-gray-400">
               Questa email verrà usata per abbinare automaticamente le fatture ricevute.
@@ -173,7 +173,7 @@ function AddFornitoreModal({
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#1a3050] hover:bg-[#122238] text-white rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -295,7 +295,7 @@ export default function SedeFornitoriPage({
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -327,7 +327,7 @@ export default function SedeFornitoriPage({
               <p className="text-gray-400 text-xs mb-4">Aggiungi il primo fornitore oppure usa il Discovery per importarli dalle email.</p>
               <button
                 onClick={() => setShowModal(true)}
-                className="inline-flex items-center gap-1.5 text-sm text-[#1a3050] font-medium hover:underline"
+                className="inline-flex items-center gap-1.5 text-sm text-accent font-medium hover:underline"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -393,7 +393,7 @@ export default function SedeFornitoriPage({
                         {f.email ? (
                           <a
                             href={`mailto:${f.email}`}
-                            className="hover:text-[#1a3050] hover:underline transition-colors"
+                            className="hover:text-accent hover:underline transition-colors"
                           >
                             {f.email}
                           </a>
@@ -433,7 +433,7 @@ export default function SedeFornitoriPage({
         {!loading && fornitori.length > 0 && (
           <p className="mt-4 text-xs text-gray-400 text-center">
             Vuoi importare altri fornitori dalle email?{' '}
-            <Link href={`/sedi/${sede_id}/discovery`} className="text-[#1a3050] hover:underline font-medium">
+            <Link href={`/sedi/${sede_id}/discovery`} className="text-accent hover:underline font-medium">
               Vai al Supplier Discovery →
             </Link>
           </p>

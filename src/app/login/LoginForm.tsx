@@ -174,7 +174,7 @@ function LoginFormInner() {
     router.push('/'); router.refresh()
   }
 
-  const inputCls = 'w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white placeholder:text-gray-300 transition'
+  const inputCls = 'w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent bg-white placeholder:text-gray-300 transition'
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
@@ -187,15 +187,15 @@ function LoginFormInner() {
           <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg" className="w-24 h-14 shrink-0">
             <defs>
               <linearGradient id="lg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6"/>
+                <stop offset="0%" stopColor="#06b6d4"/>
                 <stop offset="100%" stopColor="#22d3ee"/>
               </linearGradient>
             </defs>
-            <rect x="0" y="5" width="50" height="50" rx="12" fill="url(#lg-grad)" opacity="0.2"/>
+            <rect x="0" y="5" width="50" height="50" rx="12" fill="url(#lg-grad)" opacity="0.18"/>
             <path d="M5 35 C20 15, 45 15, 55 35 S80 55, 95 35" stroke="url(#lg-grad)" strokeWidth="4" fill="none" strokeLinecap="round"/>
-            <circle cx="5"  cy="35" r="4" fill="#3b82f6"/>
+            <circle cx="5"  cy="35" r="4" fill="#06b6d4"/>
             <circle cx="55" cy="35" r="4" fill="#22d3ee"/>
-            <circle cx="95" cy="35" r="4" fill="#3b82f6"/>
+            <circle cx="95" cy="35" r="4" fill="#06b6d4"/>
           </svg>
           <div>
             <h1 className="text-4xl font-extrabold tracking-widest bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent leading-none">FLUXO</h1>
@@ -210,7 +210,7 @@ function LoginFormInner() {
       {/* Card */}
       <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden">
         {/* Barra colorata superiore */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-cyan-500 via-cyan-300 to-accent" />
 
         <div className="p-8 space-y-5">
 
@@ -220,7 +220,7 @@ function LoginFormInner() {
 
             {/* Nome */}
             <div>
-              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">{t.login.nameLabel}</label>
+              <label className="block text-xs font-semibold text-accent/70 mb-1.5 uppercase tracking-wide">{t.login.nameLabel}</label>
               <input
                 type="text"
                 autoComplete="name"
@@ -259,7 +259,7 @@ function LoginFormInner() {
 
             {/* PIN a 4 caselle */}
             <div>
-              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-3 uppercase tracking-wide">
+              <label className="block text-xs font-semibold text-accent/70 mb-3 uppercase tracking-wide">
                 {t.login.pinLabel}
                 <span className="ml-1.5 font-normal text-gray-400 normal-case">{t.login.pinDigits}</span>
               </label>
@@ -281,9 +281,9 @@ function LoginFormInner() {
                       loading
                         ? 'border-gray-100 bg-gray-50 text-gray-300'
                         : pin[idx]
-                          ? 'border-blue-500 bg-gradient-to-b from-blue-50 to-cyan-50 text-[#1a3050] shadow-sm shadow-blue-100'
+                          ? 'border-cyan-400 bg-gradient-to-b from-cyan-50 to-cyan-100/60 text-cyan-900 shadow-sm shadow-cyan-100'
                           : nameReady
-                            ? 'border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500 focus:bg-blue-50/30'
+                            ? 'border-gray-200 bg-white hover:border-cyan-300 focus:border-cyan-400 focus:bg-cyan-50/20'
                             : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed',
                     ].join(' ')}
                   />
@@ -293,9 +293,9 @@ function LoginFormInner() {
               {/* Progress dots */}
               <div className="flex justify-center gap-2 mt-3">
                 {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-                  <span key={i} className={[
+                    <span key={i} className={[
                     'w-1.5 h-1.5 rounded-full transition-all duration-200',
-                    pin[i] ? 'bg-blue-500 scale-110' : 'bg-gray-200',
+                    pin[i] ? 'bg-cyan-400 scale-110 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-gray-200',
                   ].join(' ')} />
                 ))}
               </div>
@@ -320,7 +320,7 @@ function LoginFormInner() {
           <form onSubmit={e => { e.preventDefault(); handleLoginByEmail() }} className="space-y-4">
 
             <div className="relative">
-              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">{t.login.emailLabel}</label>
+              <label className="block text-xs font-semibold text-accent/70 mb-1.5 uppercase tracking-wide">{t.login.emailLabel}</label>
               <input
                 type="email" autoComplete="email" placeholder={t.login.emailPlaceholder}
                 value={email}
@@ -348,7 +348,7 @@ function LoginFormInner() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1a3050]/70 mb-1.5 uppercase tracking-wide">{t.login.passwordLabel}</label>
+              <label className="block text-xs font-semibold text-accent/70 mb-1.5 uppercase tracking-wide">{t.login.passwordLabel}</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'} autoComplete="current-password"
@@ -374,7 +374,7 @@ function LoginFormInner() {
             {message && <FeedbackMsg msg={message} />}
 
             <button type="submit" disabled={loading || !email || !adminPw}
-              className="w-full py-3 bg-[#1a3050] hover:bg-[#122238] disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
+              className="w-full py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
               {loading
                 ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                 : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>

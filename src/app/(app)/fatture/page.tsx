@@ -26,7 +26,7 @@ export default async function FatturePage() {
         </div>
         <Link
           href="/fatture/new"
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
         >
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -42,7 +42,7 @@ export default async function FatturePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <p className="text-gray-400 text-sm font-medium">{t.fatture.noInvoices}</p>
-            <Link href="/fatture/new" className="mt-4 inline-block text-sm text-[#1a3050] font-medium">
+            <Link href="/fatture/new" className="mt-4 inline-block text-sm text-accent font-medium">
               {t.fatture.addFirst}
             </Link>
           </div>
@@ -58,7 +58,7 @@ export default async function FatturePage() {
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
                     {f.bolla_id && (
-                      <span className="inline-flex items-center gap-1 text-xs text-[#1a3050] font-medium bg-[#e8edf5] px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-xs text-accent font-medium bg-[#e8edf5] px-2 py-0.5 rounded-full">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
                         </svg>
@@ -90,14 +90,14 @@ export default async function FatturePage() {
                 {fatture.map((f: any) => (
                   <tr key={f.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <Link href={`/fatture/${f.id}`} className="font-medium text-[#1a3050] hover:text-[#1a3050]">
+                      <Link href={`/fatture/${f.id}`} className="font-medium text-accent hover:text-accent">
                         {f.fornitore?.nome ?? '—'}
                       </Link>
                     </td>
                     <td className="px-6 py-4 text-gray-500">{formatDate(f.data)}</td>
                     <td className="px-6 py-4">
                       {f.bolla_id ? (
-                        <Link href={`/bolle/${f.bolla_id}`} className="text-xs text-[#1a3050] font-medium hover:underline">
+                        <Link href={`/bolle/${f.bolla_id}`} className="text-xs text-accent font-medium hover:underline">
                           {t.fatture.openBill}
                         </Link>
                       ) : (
@@ -106,7 +106,7 @@ export default async function FatturePage() {
                     </td>
                     <td className="px-6 py-4">
                       {f.file_url ? (
-                        <a href={f.file_url} target="_blank" rel="noopener noreferrer" className="text-[#1a3050] text-xs font-medium hover:underline">
+                        <a href={f.file_url} target="_blank" rel="noopener noreferrer" className="text-accent text-xs font-medium hover:underline">
                           {t.fatture.apri}
                         </a>
                       ) : (

@@ -6,7 +6,7 @@ interface MobileTopbarProps {
 
 export default function MobileTopbar({ onOpen }: MobileTopbarProps) {
   return (
-    <div className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-[#1a3050] flex items-center gap-2 px-3 border-b border-white/10 shrink-0">
+    <div className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-accent flex items-center gap-2 px-3 border-b border-white/10 shrink-0">
       <button
         onClick={onOpen}
         className="p-2.5 -ml-1.5 text-white/70 hover:text-white hover:bg-white/10 active:bg-white/20 rounded-xl transition-colors touch-manipulation"

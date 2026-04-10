@@ -127,7 +127,7 @@ export default async function LogPage() {
                           href={log.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-[#1a3050] font-medium hover:underline"
+                          className="text-xs text-accent font-medium hover:underline"
                         >
                           {t.log.vediFile}
                         </a>
@@ -182,7 +182,7 @@ export default async function LogPage() {
                       ) : (
                         log.file_url ? (
                           <a href={log.file_url} target="_blank" rel="noopener noreferrer"
-                            className="text-[#1a3050] hover:underline">
+                            className="text-accent hover:underline">
                             {t.log.vediFile}
                           </a>
                         ) : (

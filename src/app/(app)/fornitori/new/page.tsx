@@ -28,7 +28,7 @@ export default function NewFornitore() {
     router.refresh()
   }
 
-  const inputCls = 'w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] focus:border-transparent bg-white'
+  const inputCls = 'w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent bg-white'
   const labelCls = 'block text-xs font-medium text-gray-600 mb-1'
 
   return (
@@ -62,7 +62,7 @@ export default function NewFornitore() {
           <button type="button" onClick={() => router.back()} className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
             {t.common.cancel}
           </button>
-          <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-medium bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white rounded-lg transition-colors">
+          <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-medium bg-accent hover:bg-accent-hover disabled:opacity-60 text-white rounded-lg transition-colors">
             {saving ? t.fornitori.saving : t.common.save}
           </button>
         </div>

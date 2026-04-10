@@ -86,7 +86,7 @@ export default async function ArchivioPage() {
       {archivio.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 px-6 py-16 text-center">
           <p className="text-gray-400 text-sm">{t.fornitori.noSuppliers}</p>
-          <Link href="/fornitori/new" className="mt-3 inline-block text-sm text-[#1a3050] font-medium hover:text-[#1a3050]">
+          <Link href="/fornitori/new" className="mt-3 inline-block text-sm text-accent font-medium hover:text-accent">
             {t.fornitori.addFirst}
           </Link>
         </div>
@@ -98,7 +98,7 @@ export default async function ArchivioPage() {
               {/* Header fornitore */}
               <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100">
                 <div className="w-9 h-9 rounded-lg bg-[#d0daea] flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-[#1a3050]">{f.nome.charAt(0).toUpperCase()}</span>
+                  <span className="text-sm font-bold text-accent">{f.nome.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-gray-900 truncate text-sm">{f.nome}</p>
@@ -127,7 +127,7 @@ export default async function ArchivioPage() {
               <div className="px-4 pt-3 pb-2">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t.bolle.title}</h3>
-                  <Link href="/bolle/new" className="text-[11px] text-[#1a3050] font-semibold hover:underline">
+                  <Link href="/bolle/new" className="text-[11px] text-accent font-semibold hover:underline">
                     + {t.archivio.nuova}
                   </Link>
                 </div>
@@ -170,7 +170,7 @@ export default async function ArchivioPage() {
               <div className="px-4 pt-2 pb-3 border-t border-gray-100 mt-2">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{t.fatture.title}</h3>
-                  <Link href={`/fatture/new?fornitore_id=${f.id}`} className="text-[11px] text-[#1a3050] font-semibold hover:underline">
+                  <Link href={`/fatture/new?fornitore_id=${f.id}`} className="text-[11px] text-accent font-semibold hover:underline">
                     + {t.archivio.nuova}
                   </Link>
                 </div>

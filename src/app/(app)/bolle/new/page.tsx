@@ -436,7 +436,7 @@ function NuovaBollaForm() {
         <button
           type="submit"
           disabled={saving || fornitori.length === 0 || ocrStatus === 'scanning'}
-          className="w-full py-4 bg-[#1a3050] hover:bg-[#122238] active:bg-[#0d1e35] disabled:opacity-50 text-white text-base font-semibold rounded-2xl transition-colors mt-auto shadow-sm"
+          className="w-full py-4 bg-accent hover:bg-accent-hover active:bg-cyan-700 disabled:opacity-50 text-white text-base font-semibold rounded-2xl transition-colors mt-auto shadow-sm"
         >
           {saving ? t.bolle.savingNote : ocrStatus === 'scanning' ? t.bolle.analyzingNote : t.bolle.saveNote}
         </button>

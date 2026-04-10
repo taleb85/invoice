@@ -68,7 +68,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#1a3050] rounded-xl flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center shrink-0">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
@@ -125,7 +125,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Link
           href={`/sedi/${sede_id}/statements`}
-          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-[#1a3050] hover:shadow-sm transition-all"
+          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-accent hover:shadow-sm transition-all"
         >
           <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,14 +136,14 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
             <p className="font-semibold text-slate-800 text-sm">Estratti Conto</p>
             <p className="text-xs text-slate-500 mt-0.5">Associa fatture alle bolle</p>
           </div>
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-[#1a3050] mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-slate-400 group-hover:text-accent mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
 
         <Link
           href={`/sedi/${sede_id}/discovery`}
-          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-[#1a3050] hover:shadow-sm transition-all"
+          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-accent hover:shadow-sm transition-all"
         >
           <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
             <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,14 +154,14 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
             <p className="font-semibold text-slate-800 text-sm">Scopri Fornitori</p>
             <p className="text-xs text-slate-500 mt-0.5">Trova mittenti sconosciuti</p>
           </div>
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-[#1a3050] mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-slate-400 group-hover:text-accent mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
 
         <Link
           href={`/sedi/${sede_id}/fornitori`}
-          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-[#1a3050] hover:shadow-sm transition-all"
+          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-accent hover:shadow-sm transition-all"
         >
           <div className="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center group-hover:bg-violet-200 transition-colors">
             <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
             <p className="font-semibold text-slate-800 text-sm">Fornitori</p>
             <p className="text-xs text-slate-500 mt-0.5">{sede.fornitori_count} registrati</p>
           </div>
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-[#1a3050] mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-slate-400 group-hover:text-accent mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>

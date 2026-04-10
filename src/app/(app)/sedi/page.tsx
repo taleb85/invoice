@@ -346,7 +346,7 @@ export default function SediPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-[#1a3050] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -365,7 +365,7 @@ export default function SediPage() {
     )
   }
 
-  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white'
+  const inputCls = 'w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white'
 
   return (
     <div className="p-4 md:p-8 max-w-5xl space-y-6 md:space-y-8">
@@ -378,7 +378,7 @@ export default function SediPage() {
         </div>
         <button
           onClick={openWizard}
-          className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+          className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors shrink-0"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -402,7 +402,7 @@ export default function SediPage() {
                 <h2 className="font-semibold text-gray-900">Nuova sede</h2>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   {[1,2,3].map((s) => (
-                    <div key={s} className={`h-1 rounded-full transition-all ${s <= wizardStep ? 'bg-[#1a3050] w-8' : 'bg-gray-200 w-4'}`} />
+                    <div key={s} className={`h-1 rounded-full transition-all ${s <= wizardStep ? 'bg-accent w-8' : 'bg-gray-200 w-4'}`} />
                   ))}
                   <span className="text-xs text-gray-400 ml-1">Passo {wizardStep} di 3</span>
                 </div>
@@ -429,7 +429,7 @@ export default function SediPage() {
                         value={wizardSedeName}
                         onChange={(e) => setWizardSedeName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && wizardSedeName.trim() && setWizardStep(2)}
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                       />
                     </div>
 
@@ -474,7 +474,7 @@ export default function SediPage() {
                           <select
                             value={wizardCountryCode}
                             onChange={e => { setWizardCountryCode(e.target.value); setWizardGeoStatus('failed') }}
-                            className="appearance-none pl-7 pr-6 py-1 text-xs border border-current/20 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-[#1a3050]/30 cursor-pointer"
+                            className="appearance-none pl-7 pr-6 py-1 text-xs border border-current/20 rounded-lg bg-white/80 focus:outline-none focus:ring-2 focus:ring-accent/30 cursor-pointer"
                           >
                             {COUNTRY_OPTIONS.map(o => (
                               <option key={o.code} value={o.code}>{o.flag} {o.name}</option>
@@ -494,7 +494,7 @@ export default function SediPage() {
                       <button
                         onClick={() => setWizardStep(2)}
                         disabled={!wizardSedeName.trim()}
-                        className="px-5 py-2.5 bg-[#1a3050] hover:bg-[#122238] disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                        className="px-5 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
                       >
                         Avanti
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -529,7 +529,7 @@ export default function SediPage() {
                           }
                           setWizardImap({ ...wizardImap, imap_host: host, imap_port: portMap[host] ?? wizardImap.imap_port })
                         }}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                       />
                       <datalist id="wizard-imap-providers">
                         <option value="imap.gmail.com">Gmail</option>
@@ -553,7 +553,7 @@ export default function SediPage() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Porta</label>
                       <input type="number" placeholder="993" value={wizardImap.imap_port}
                         onChange={(e) => setWizardImap({ ...wizardImap, imap_port: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                       />
                     </div>
                   </div>
@@ -562,7 +562,7 @@ export default function SediPage() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Email account</label>
                       <input type="email" placeholder="email@esempio.it" value={wizardImap.imap_user}
                         onChange={(e) => setWizardImap({ ...wizardImap, imap_user: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                       />
                     </div>
                     <div>
@@ -570,7 +570,7 @@ export default function SediPage() {
                       <div className="relative">
                         <input type={wizardShowImap ? 'text' : 'password'} placeholder="Password…" value={wizardImap.imap_password}
                           onChange={(e) => setWizardImap({ ...wizardImap, imap_password: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white pr-9"
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white pr-9"
                         />
                         <button type="button" onClick={() => setWizardShowImap(!wizardShowImap)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -607,7 +607,7 @@ export default function SediPage() {
                         Salta
                       </button>
                       <button onClick={() => setWizardStep(3)}
-                        className="px-5 py-2 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+                        className="px-5 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
                         Avanti
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
@@ -657,7 +657,7 @@ export default function SediPage() {
                         <input type="text" placeholder="Mario Rossi" value={wizardNewOpName}
                           onChange={(e) => setWizardNewOpName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                         />
                       </div>
                       <div>
@@ -669,7 +669,7 @@ export default function SediPage() {
                             value={wizardNewOpPin}
                             onChange={(e) => setWizardNewOpPin(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white pr-9"
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white pr-9"
                           />
                           <button type="button" onClick={() => setWizardShowPin(!wizardShowPin)}
                             className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -685,7 +685,7 @@ export default function SediPage() {
                     </div>
                     <button type="button" onClick={addWizardOperator}
                       disabled={!wizardNewOpName.trim() || String(wizardNewOpPin).length < 4}
-                      className="w-full py-2 text-sm font-medium border-2 border-dashed border-gray-300 hover:border-[#1a3050] hover:text-[#1a3050] disabled:opacity-40 disabled:cursor-not-allowed text-gray-400 rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                      className="w-full py-2 text-sm font-medium border-2 border-dashed border-gray-300 hover:border-accent hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed text-gray-400 rounded-lg transition-colors flex items-center justify-center gap-1.5">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
                       </svg>
@@ -702,7 +702,7 @@ export default function SediPage() {
                       ← Indietro
                     </button>
                     <button onClick={handleWizardCreate} disabled={creatingWizard}
-                      className="px-6 py-2.5 bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
+                      className="px-6 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
                       {creatingWizard ? (
                         <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Creazione…</>
                       ) : (
@@ -736,15 +736,15 @@ export default function SediPage() {
                       <input
                         type="text" required autoFocus value={editingSede.nome}
                         onChange={(e) => setEditingSede({ ...editingSede, nome: e.target.value })}
-                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050]"
+                        className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                       />
-                      <button type="submit" className="px-3 py-1.5 text-xs bg-[#1a3050] text-white rounded-lg hover:bg-[#122238]">{t.common.save}</button>
+                      <button type="submit" className="px-3 py-1.5 text-xs bg-accent text-white rounded-lg hover:bg-accent-hover">{t.common.save}</button>
                       <button type="button" onClick={() => setEditingSede(null)} className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">✕</button>
                     </form>
                   ) : (
                     <>
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 bg-[#1a3050]/90 rounded-lg flex items-center justify-center shrink-0">
+                        <div className="w-9 h-9 bg-accent/90 rounded-lg flex items-center justify-center shrink-0">
                           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                           </svg>
@@ -804,7 +804,7 @@ export default function SediPage() {
                                       autoFocus
                                       value={editingProfile.full_name}
                                       onChange={(e) => setEditingProfile({ ...editingProfile, full_name: e.target.value })}
-                                      className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                                      className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                                     />
                                   </div>
                                   <div>
@@ -812,7 +812,7 @@ export default function SediPage() {
                                     <select
                                       value={editingProfile.role}
                                       onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
-                                      className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                                      className="w-full text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                                     >
                                       <option value="operatore">Operatore</option>
                                       <option value="admin">Admin</option>
@@ -821,7 +821,7 @@ export default function SediPage() {
                                 </div>
                                 <div className="flex gap-2 justify-end">
                                   <button type="button" onClick={() => setEditingProfile(null)} className="px-2.5 py-1 text-xs border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">Annulla</button>
-                                  <button type="button" onClick={handleSaveProfile} disabled={savingProfile} className="px-2.5 py-1 text-xs bg-[#1a3050] text-white rounded-lg hover:bg-[#122238] disabled:opacity-50">
+                                  <button type="button" onClick={handleSaveProfile} disabled={savingProfile} className="px-2.5 py-1 text-xs bg-accent text-white rounded-lg hover:bg-accent-hover disabled:opacity-50">
                                     {savingProfile ? 'Salvo…' : 'Salva'}
                                   </button>
                                 </div>
@@ -829,8 +829,8 @@ export default function SediPage() {
                             ) : (
                               <div className="flex items-center justify-between py-1.5 px-3 bg-gray-50 rounded-lg">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="w-6 h-6 rounded-full bg-[#1a3050]/10 flex items-center justify-center shrink-0">
-                                    <svg className="w-3 h-3 text-[#1a3050]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <div className="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                                    <svg className="w-3 h-3 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                   </div>
@@ -847,7 +847,7 @@ export default function SediPage() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingProfile({ id: p.id, full_name: p.full_name ?? '', role: p.role })}
-                                    className="p-1 text-gray-300 hover:text-[#1a3050] hover:bg-[#1a3050]/10 rounded transition-colors"
+                                    className="p-1 text-gray-300 hover:text-accent hover:bg-accent/10 rounded transition-colors"
                                     title="Modifica"
                                   >
                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -901,14 +901,14 @@ export default function SediPage() {
                           <label className="block text-xs font-medium text-gray-600 mb-1">Nome operatore</label>
                           <input type="text" placeholder="Mario Rossi" value={newUserName}
                             onChange={(e) => setNewUserName(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white" />
+                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white" />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">PIN (min. 4 caratteri)</label>
                           <div className="relative">
                             <input type={showNewUserPw ? 'text' : 'password'} placeholder="es. 1234" value={newUserPassword}
                               onChange={(e) => setNewUserPassword(e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white pr-9" />
+                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white pr-9" />
                             <button type="button" onClick={() => setShowNewUserPw(!showNewUserPw)}
                               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -931,7 +931,7 @@ export default function SediPage() {
                           className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">Annulla</button>
                         <button type="button" onClick={() => handleCreateUser(sede.id)}
                           disabled={creatingUser || !newUserName.trim() || newUserPassword.length < 4}
-                          className="flex-1 py-2 text-sm font-medium bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white rounded-lg transition-colors">
+                          className="flex-1 py-2 text-sm font-medium bg-accent hover:bg-accent-hover disabled:opacity-60 text-white rounded-lg transition-colors">
                           {creatingUser ? 'Creazione…' : 'Crea operatore'}
                         </button>
                       </div>
@@ -958,7 +958,7 @@ export default function SediPage() {
                       <div className="relative">
                         <input type={showAccessPw ? 'text' : 'password'} placeholder="PIN o password sede…" value={accessPwValue}
                           onChange={(e) => setAccessPwValue(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white pr-9" />
+                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white pr-9" />
                         <button type="button" onClick={() => setShowAccessPw(!showAccessPw)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -974,7 +974,7 @@ export default function SediPage() {
                         <button type="button" onClick={() => setAccessPwOpen(null)}
                           className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">Annulla</button>
                         <button type="button" onClick={() => handleSaveAccessPassword(sede.id)} disabled={savingAccessPw}
-                          className="flex-1 py-2 text-sm font-medium bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white rounded-lg transition-colors">
+                          className="flex-1 py-2 text-sm font-medium bg-accent hover:bg-accent-hover disabled:opacity-60 text-white rounded-lg transition-colors">
                           {savingAccessPw ? 'Salvataggio…' : 'Salva'}
                         </button>
                       </div>
@@ -1101,7 +1101,7 @@ export default function SediPage() {
                         <button type="button" onClick={() => setImapOpen(null)}
                           className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">{t.common.cancel}</button>
                         <button type="button" onClick={() => handleSaveImap(sede.id)} disabled={savingImap}
-                          className="flex-1 py-2 text-sm font-medium bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white rounded-lg transition-colors">
+                          className="flex-1 py-2 text-sm font-medium bg-accent hover:bg-accent-hover disabled:opacity-60 text-white rounded-lg transition-colors">
                           {savingImap ? t.common.loading : t.sedi.saveConfig}
                         </button>
                       </div>

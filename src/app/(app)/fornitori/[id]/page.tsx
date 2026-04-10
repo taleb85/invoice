@@ -197,7 +197,7 @@ function BolleTab({ fornitoreId }: { fornitoreId: string }) {
         </svg>
         <p className="text-sm text-gray-400 font-medium">Nessuna bolla registrata</p>
         <Link href={`/bolle/new?fornitore_id=${fornitoreId}`}
-          className="mt-3 inline-block text-sm text-[#1a3050] font-medium hover:underline">
+          className="mt-3 inline-block text-sm text-accent font-medium hover:underline">
           Crea la prima bolla →
         </Link>
       </div>
@@ -318,7 +318,7 @@ function FattureTab({ fornitoreId }: { fornitoreId: string }) {
         </svg>
         <p className="text-sm text-gray-400 font-medium">Nessuna fattura registrata</p>
         <Link href={`/fatture/new?fornitore_id=${fornitoreId}`}
-          className="mt-3 inline-block text-sm text-[#1a3050] font-medium hover:underline">
+          className="mt-3 inline-block text-sm text-accent font-medium hover:underline">
           Aggiungi fattura →
         </Link>
       </div>
@@ -459,7 +459,7 @@ function FornitoreDetailClient({
         <div className="flex items-center gap-2 shrink-0">
           <Link
             href={`/bolle/new?fornitore_id=${fornitore.id}`}
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -502,7 +502,7 @@ function FornitoreDetailClient({
               {t.badge !== undefined && t.badge > 0 && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
                   tab === t.id
-                    ? t.id === 'statements' ? 'bg-amber-100 text-amber-700' : 'bg-[#e8edf5] text-[#1a3050]'
+                    ? t.id === 'statements' ? 'bg-amber-100 text-amber-700' : 'bg-[#e8edf5] text-accent'
                     : 'bg-gray-200 text-gray-500'
                 }`}>
                   {t.badge}
@@ -589,7 +589,7 @@ export default function FornitoreDetailPage({
       <div className="p-4 md:p-8 max-w-5xl text-center py-20">
         <p className="text-gray-400 font-medium mb-3">Fornitore non trovato.</p>
         <button onClick={() => router.push('/fornitori')}
-          className="text-sm text-[#1a3050] font-medium hover:underline">
+          className="text-sm text-accent font-medium hover:underline">
           ← Torna ai fornitori
         </button>
       </div>

@@ -9,7 +9,7 @@ const geistSans = Geist({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#1a3050",
+  themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -48,7 +48,7 @@ export default function RootLayout({
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="application-name" content="FLUXO" />
-        <meta name="msapplication-TileColor" content="#1a3050" />
+        <meta name="msapplication-TileColor" content="#0f172a" />
         <meta name="msapplication-TileImage" content="/icons/icon-512.png" />
       </head>
       <body className="h-full bg-gray-50 text-gray-900">

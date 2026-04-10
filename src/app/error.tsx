@@ -20,7 +20,7 @@ export default function GlobalError({
         <div className="w-full max-w-md text-center space-y-6">
           {/* Logo */}
           <div className="flex justify-center">
-            <div className="w-14 h-14 bg-[#1a3050] rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center shadow-lg">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -48,7 +48,7 @@ export default function GlobalError({
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 onClick={reset}
-                className="flex-1 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-xl transition-colors"
+                className="flex-1 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-xl transition-colors"
               >
                 Riprova
               </button>

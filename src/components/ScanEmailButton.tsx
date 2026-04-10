@@ -70,7 +70,7 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
       <button
         onClick={handleClick}
         disabled={loading}
-        className="flex items-center gap-2 px-3 py-2.5 bg-[#1a3050] hover:bg-[#122238] active:bg-[#0d1e35] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+        className="flex items-center gap-2 px-3 py-2.5 bg-accent hover:bg-accent-hover active:bg-cyan-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
       >
         {loading ? (
           <>

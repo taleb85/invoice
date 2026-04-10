@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* ── Deep Ocean Design Tokens ────────────────────────────────────────────────
+   Registered via Tailwind v4 @theme so classes like bg-primary, text-accent
+   and bg-surface are available everywhere without arbitrary values.          */
+@theme {
+  --color-primary:      #0f172a;   /* Slate 950 — sidebar, deepest bg       */
+  --color-surface:      #1e293b;   /* Slate 800 — cards, hover areas        */
+  --color-accent:       #06b6d4;   /* Cyan 500  — CTAs, active states       */
+  --color-accent-hover: #0891b2;   /* Cyan 600  — button hover              */
+  --color-accent-dim:   #164e63;   /* Cyan 950  — muted accent bg           */
+  --color-foreground:   #f8fafc;   /* Slate 50  — text on dark             */
+  --color-muted:        #94a3b8;   /* Slate 400 — inactive nav links       */
+}
+
 * {
   box-sizing: border-box;
 }

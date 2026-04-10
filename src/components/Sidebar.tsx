@@ -141,13 +141,17 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
   // Shared icon-link style helpers
   const navLink = (isActive: boolean) =>
-    `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap overflow-hidden ${
-      isActive ? 'bg-white/15 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'
+    `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap overflow-hidden ${
+      isActive
+        ? 'bg-cyan-500/20 text-cyan-300 shadow-[inset_0_0_0_1px_rgba(6,182,212,0.15)]'
+        : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
     }`
 
   const iconOnly = (isActive: boolean) =>
-    `flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
-      isActive ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'
+    `flex items-center justify-center w-9 h-9 rounded-lg transition-all ${
+      isActive
+        ? 'bg-cyan-500/20 text-cyan-300 shadow-[inset_0_0_0_1px_rgba(6,182,212,0.15)]'
+        : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
     }`
 
   return (
@@ -169,18 +173,18 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           /* desktop: inline, width controlled by collapsed state */
           'md:relative md:z-auto md:translate-x-0 md:shrink-0',
           collapsed ? 'md:w-14' : 'md:w-52',
-          'bg-[#1a3050] flex flex-col min-h-screen',
+          'bg-primary flex flex-col min-h-screen',
           /* smooth width + slide transitions */
           'transition-all duration-200 ease-in-out',
-          /* soft right shadow instead of a hard border */
-          'shadow-[4px_0_24px_rgba(0,0,0,0.25)]',
+          /* deep shadow for depth */
+          'shadow-[4px_0_32px_rgba(0,0,0,0.45)]',
           mounted && open ? 'translate-x-0' : '-translate-x-full',
         ].join(' ')}
       >
         {/* Mobile close button — large tap target */}
         <button
           onClick={onClose}
-          className="md:hidden absolute top-3 right-3 p-2.5 text-white/60 hover:text-white hover:bg-white/10 active:bg-white/20 rounded-xl transition-colors touch-manipulation"
+          className="md:hidden absolute top-3 right-3 p-2.5 text-slate-500 hover:text-slate-100 hover:bg-slate-800/70 active:bg-slate-700 rounded-xl transition-colors touch-manipulation"
           aria-label="Chiudi menu"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,27 +193,27 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
         </button>
 
         {/* ── Logo / collapse toggle ── */}
-        <div className="relative border-b border-white/10 flex items-center">
+        <div className="relative border-b border-slate-800 flex items-center">
           {collapsed ? (
             /* Mini logo — just the wave mark */
             <button
               onClick={() => setCollapsed(false)}
-              className="w-full flex items-center justify-center py-3.5 hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-center py-3.5 hover:bg-slate-800/60 transition-colors"
               title="Espandi sidebar"
             >
               <svg viewBox="0 0 100 60" className="w-7 h-auto" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id="sb-grad-c" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="0%" stopColor="#06b6d4"/>
                     <stop offset="100%" stopColor="#22d3ee"/>
                   </linearGradient>
                 </defs>
-                <rect x="5" y="5" width="40" height="40" rx="10" fill="url(#sb-grad-c)" opacity="0.25"/>
+                <rect x="5" y="5" width="40" height="40" rx="10" fill="url(#sb-grad-c)" opacity="0.20"/>
                 <path d="M5 30 C15 15, 30 15, 45 30 S75 45, 90 30"
                       stroke="url(#sb-grad-c)" strokeWidth="4" fill="none" strokeLinecap="round"/>
-                <circle cx="5"  cy="30" r="4" fill="#3b82f6"/>
+                <circle cx="5"  cy="30" r="4" fill="#06b6d4"/>
                 <circle cx="45" cy="30" r="4" fill="#22d3ee"/>
-                <circle cx="90" cy="30" r="4" fill="#3b82f6"/>
+                <circle cx="90" cy="30" r="4" fill="#06b6d4"/>
               </svg>
             </button>
           ) : (
@@ -223,30 +227,30 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
               >
                 <defs>
                   <linearGradient id="sb-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#3b82f6"/>
+                    <stop offset="0%" stopColor="#06b6d4"/>
                     <stop offset="100%" stopColor="#22d3ee"/>
                   </linearGradient>
                   <linearGradient id="sb-textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#60a5fa"/>
+                    <stop offset="0%" stopColor="#22d3ee"/>
                     <stop offset="100%" stopColor="#67e8f9"/>
                   </linearGradient>
                 </defs>
                 <g transform="translate(52,10)">
-                  <rect x="0" y="15" width="42" height="42" rx="10" fill="url(#sb-grad)" opacity="0.25"/>
+                  <rect x="0" y="15" width="42" height="42" rx="10" fill="url(#sb-grad)" opacity="0.20"/>
                   <path d="M8 37 C17 20, 33 20, 42 37 S67 54, 76 37"
                         stroke="url(#sb-grad)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                  <circle cx="8"  cy="37" r="3.5" fill="#3b82f6"/>
+                  <circle cx="8"  cy="37" r="3.5" fill="#06b6d4"/>
                   <circle cx="42" cy="37" r="3.5" fill="#22d3ee"/>
-                  <circle cx="76" cy="37" r="3.5" fill="#3b82f6"/>
+                  <circle cx="76" cy="37" r="3.5" fill="#06b6d4"/>
                 </g>
                 <text x="148" y="52" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="36" fill="url(#sb-textGrad)">FLUXO</text>
-                <text x="150" y="76" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="15" fill="rgba(255,255,255,0.65)">Gestione Fatture</text>
+                <text x="150" y="76" fontFamily="Arial, Helvetica, sans-serif" fontWeight="400" fontSize="15" fill="rgba(148,163,184,0.80)">Gestione Fatture</text>
               </svg>
 
               {/* Desktop collapse toggle */}
               <button
                 onClick={() => setCollapsed(true)}
-                className="hidden md:flex absolute top-1/2 -translate-y-1/2 right-2 items-center justify-center w-6 h-6 rounded-md text-white/30 hover:text-white/70 hover:bg-white/10 transition-colors"
+                className="hidden md:flex absolute top-1/2 -translate-y-1/2 right-2 items-center justify-center w-6 h-6 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-800/70 transition-colors"
                 title="Comprimi sidebar"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -281,7 +285,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             <div>
               <button
                 onClick={() => setBranchesOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+                className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-colors"
               >
                 <span className="flex items-center gap-2.5">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -295,19 +299,19 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
               </button>
 
               {branchesOpen && (
-                <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-white/10 pl-2.5">
+                <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2.5">
                   {allSedi.map((s) => {
                     const isActive = pathname.startsWith(`/sedi/${s.id}`)
                     return (
                       <Link key={s.id} href={`/sedi/${s.id}`} onClick={onClose}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive ? 'bg-white/15 text-white' : 'text-white/45 hover:bg-white/10 hover:text-white'}`}>
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'}`}>
                         <span className="w-1 h-1 rounded-full bg-current shrink-0 opacity-60" />
                         <span className="truncate">{s.nome}</span>
                       </Link>
                     )
                   })}
                   <Link href="/sedi" onClick={onClose}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${pathname === '/sedi' ? 'bg-white/15 text-white' : 'text-white/35 hover:bg-white/10 hover:text-white/70'}`}>
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${pathname === '/sedi' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-600 hover:bg-slate-800/70 hover:text-slate-300'}`}>
                     <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -334,7 +338,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
             <div>
               <button
                 onClick={() => setFornitoriOpen(o => !o)}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${pathname.startsWith('/fornitori') ? 'bg-white/15 text-white' : 'text-white/60 hover:bg-white/10 hover:text-white'}`}
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${pathname.startsWith('/fornitori') ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'}`}
               >
                 <span className="flex items-center gap-2.5 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -342,7 +346,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                   </svg>
                   <span className="truncate">{t.nav.fornitori}</span>
                   {fornitori.length > 0 && (
-                    <span className="text-[10px] bg-white/10 text-white/40 px-1.5 py-0.5 rounded-full shrink-0">
+                    <span className="text-[10px] bg-slate-700/60 text-slate-500 px-1.5 py-0.5 rounded-full shrink-0">
                       {fornitori.length}
                     </span>
                   )}
@@ -353,7 +357,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
               </button>
 
               {fornitoriOpen && (
-                <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-white/10 pl-2.5">
+                <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2.5">
                   {/* Search */}
                   {fornitori.length > 5 && (
                     <div className="px-1 py-1">
@@ -362,14 +366,14 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                         value={fornitoriSearch}
                         onChange={e => setFornitoriSearch(e.target.value)}
                         placeholder="Cerca…"
-                        className="w-full text-[11px] bg-white/5 border border-white/10 text-white/70 placeholder-white/25 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400/40"
+                        className="w-full text-[11px] bg-slate-800 border border-slate-700 text-slate-300 placeholder-slate-600 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500/40"
                       />
                     </div>
                   )}
 
                   {/* All suppliers */}
                   <Link href="/fornitori" onClick={onClose}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${pathname === '/fornitori' ? 'bg-white/15 text-white' : 'text-white/35 hover:bg-white/10 hover:text-white/70'}`}>
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${pathname === '/fornitori' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-600 hover:bg-slate-800/70 hover:text-slate-300'}`}>
                     <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     </svg>
@@ -381,7 +385,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                     const isActive = pathname === `/fornitori/${f.id}`
                     return (
                       <Link key={f.id} href={`/fornitori/${f.id}`} onClick={onClose}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive ? 'bg-white/15 text-white' : 'text-white/45 hover:bg-white/10 hover:text-white'}`}>
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'}`}>
                         <span className="w-1 h-1 rounded-full bg-current shrink-0 opacity-50" />
                         <span className="truncate">{f.nome}</span>
                       </Link>
@@ -389,12 +393,12 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                   })}
 
                   {filteredFornitori.length > 30 && (
-                    <p className="px-2 py-1 text-[10px] text-white/25">
+                    <p className="px-2 py-1 text-[10px] text-slate-600">
                       +{filteredFornitori.length - 30} altri — cerca sopra
                     </p>
                   )}
                   {fornitoriSearch && filteredFornitori.length === 0 && (
-                    <p className="px-2 py-1.5 text-[10px] text-white/25">Nessun risultato</p>
+                    <p className="px-2 py-1.5 text-[10px] text-slate-600">Nessun risultato</p>
                   )}
                 </div>
               )}
@@ -441,10 +445,10 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                   <select
                     value={adminSedeId}
                     onChange={(e) => handleAdminSedeChange(e.target.value)}
-                    className="w-full text-[11px] bg-white/5 border border-white/10 text-white/60 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400/40 cursor-pointer"
+                    className="w-full text-[11px] bg-slate-800 border border-slate-700 text-slate-400 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-cyan-500/40 cursor-pointer"
                   >
                     {allSedi.map((s) => (
-                      <option key={s.id} value={s.id} className="bg-[#1a3050] text-white">
+                      <option key={s.id} value={s.id} className="bg-primary text-white">
                         {s.nome}
                       </option>
                     ))}
@@ -452,23 +456,23 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400/60 shrink-0" />
-                <span className="text-[11px] text-white/40 truncate">{sedeNome}</span>
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-slate-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/60 shrink-0" />
+                <span className="text-[11px] text-slate-500 truncate">{sedeNome}</span>
               </div>
             )}
           </div>
         )}
 
         {/* ── Footer ── */}
-        <div className={`border-t border-white/10 ${collapsed ? 'px-2 py-3 space-y-1' : 'px-3 py-3 space-y-1'}`}>
+        <div className={`border-t border-slate-800 ${collapsed ? 'px-2 py-3 space-y-1' : 'px-3 py-3 space-y-1'}`}>
 
           {/* Language switcher */}
           {!collapsed && (
             <div className="relative">
               <button
                 onClick={() => setLangOpen(o => !o)}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-white/40 hover:text-white/70 hover:bg-white/5 rounded-lg transition-colors text-[11px]"
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 rounded-lg transition-colors text-[11px]"
               >
                 <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}</span>
                 <span className="font-medium">{LOCALES.find(l => l.code === locale)?.label ?? locale}</span>
@@ -477,15 +481,15 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                 </svg>
               </button>
               {langOpen && (
-                <div className="absolute bottom-full mb-1 left-0 right-0 bg-[#0f2040] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50">
+                <div className="absolute bottom-full mb-1 left-0 right-0 bg-primary border border-slate-800 rounded-xl overflow-hidden shadow-2xl z-50">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
                       onClick={() => { setLocale(l.code); setLangOpen(false) }}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
                         locale === l.code
-                          ? 'bg-white/15 text-white'
-                          : 'text-white/50 hover:bg-white/10 hover:text-white'
+                          ? 'bg-cyan-500/20 text-cyan-300'
+                          : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
                       }`}
                     >
                       <span className="text-sm">{l.flag}</span>
@@ -508,20 +512,20 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
               <button
                 onClick={() => setLangOpen(o => !o)}
                 title="Lingua / Language"
-                className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors text-sm"
+                className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-slate-600 hover:text-slate-300 hover:bg-slate-800/70 transition-colors text-sm"
               >
                 {LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}
               </button>
               {langOpen && (
-                <div className="absolute bottom-0 left-full ml-2 bg-[#0f2040] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 w-40">
+                <div className="absolute bottom-0 left-full ml-2 bg-primary border border-slate-800 rounded-xl overflow-hidden shadow-2xl z-50 w-40">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
                       onClick={() => { setLocale(l.code); setLangOpen(false) }}
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
                         locale === l.code
-                          ? 'bg-white/15 text-white'
-                          : 'text-white/50 hover:bg-white/10 hover:text-white'
+                          ? 'bg-cyan-500/20 text-cyan-300'
+                          : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
                       }`}
                     >
                       <span className="text-sm">{l.flag}</span>
@@ -535,7 +539,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           {!isAdmin && !collapsed && (
             <Link
               href="/bolle/new"
-              className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-white text-[#1a3050] hover:bg-white/90 text-xs font-semibold rounded-lg transition-colors"
+              className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-accent hover:bg-accent-hover text-white text-xs font-semibold rounded-lg transition-colors shadow-[0_0_12px_rgba(6,182,212,0.25)]"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -547,7 +551,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
           {/* + icon when collapsed and operator */}
           {!isAdmin && collapsed && (
             <Link href="/bolle/new" onClick={onClose} title={t.nav.nuovaBolla}
-              className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors mx-auto">
+              className="flex items-center justify-center w-9 h-9 rounded-lg bg-accent/20 text-cyan-300 hover:bg-accent/30 transition-colors mx-auto shadow-[0_0_10px_rgba(6,182,212,0.2)]">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
@@ -564,7 +568,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
                 </svg>
               </Link>
               <button onClick={handleLogout} title={t.nav.esci}
-                className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+                className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-slate-500 hover:text-slate-100 hover:bg-slate-800/70 transition-colors">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -575,7 +579,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
               <Link
                 href="/impostazioni"
                 className={`flex items-center gap-2.5 w-full px-2.5 py-2 text-xs font-medium rounded-lg transition-colors ${
-                  pathname === '/impostazioni' ? 'bg-white/15 text-white' : 'text-white/55 hover:bg-white/10 hover:text-white'
+                  pathname === '/impostazioni' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
                 }`}
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -587,7 +591,7 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2.5 w-full px-2.5 py-2 text-white/55 hover:text-white hover:bg-white/10 text-xs font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2.5 w-full px-2.5 py-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 text-xs font-medium rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

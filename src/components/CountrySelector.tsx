@@ -50,7 +50,7 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
           value={code}
           onChange={e => save(e.target.value)}
           disabled={saving}
-          className="appearance-none pl-8 pr-7 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#1a3050]/30 focus:border-[#1a3050] disabled:opacity-50 cursor-pointer"
+          className="appearance-none pl-8 pr-7 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:opacity-50 cursor-pointer"
         >
           {COUNTRY_OPTIONS.map(o => (
             <option key={o.code} value={o.code}>

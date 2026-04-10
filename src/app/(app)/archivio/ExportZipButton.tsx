@@ -37,7 +37,7 @@ export default function ExportZipButton() {
       <select
         value={month}
         onChange={(e) => setMonth(Number(e.target.value))}
-        className="flex-1 md:flex-none text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+        className="flex-1 md:flex-none text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent bg-white"
       >
         {MESI.map((m, i) => (
           <option key={i + 1} value={i + 1}>{m}</option>
@@ -47,7 +47,7 @@ export default function ExportZipButton() {
       <select
         value={year}
         onChange={(e) => setYear(Number(e.target.value))}
-        className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white shrink-0"
+        className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent bg-white shrink-0"
       >
         {years.map((y) => (
           <option key={y} value={y}>{y}</option>
@@ -57,7 +57,7 @@ export default function ExportZipButton() {
       <button
         onClick={handleExport}
         disabled={loading}
-        className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1a3050] hover:bg-[#122238] disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+        className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
       >
         {loading ? (
           <>

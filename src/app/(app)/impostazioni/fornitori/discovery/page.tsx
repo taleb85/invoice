@@ -291,7 +291,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
         <button
           onClick={handleScan}
           disabled={scanning}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors whitespace-nowrap shrink-0"
         >
           {scanning ? (
             <>

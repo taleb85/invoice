@@ -92,13 +92,13 @@ export default function EditFornitore() {
     router.refresh()
   }
 
-  const inputCls = 'w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] focus:border-transparent bg-white'
+  const inputCls = 'w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent bg-white'
   const labelCls = 'block text-xs font-medium text-gray-600 mb-1'
 
   if (loading) {
     return (
       <div className="p-4 md:p-8 flex items-center justify-center">
-        <div className="animate-spin w-6 h-6 border-2 border-[#1a3050] border-t-transparent rounded-full" />
+        <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -158,7 +158,7 @@ export default function EditFornitore() {
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 py-2.5 text-sm font-medium bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white rounded-lg transition-colors"
+            className="flex-1 py-2.5 text-sm font-medium bg-accent hover:bg-accent-hover disabled:opacity-60 text-white rounded-lg transition-colors"
           >
             {saving ? t.fornitori.saving : t.fornitori.saveChanges}
           </button>
@@ -223,7 +223,7 @@ export default function EditFornitore() {
             type="button"
             onClick={handleAddAlias}
             disabled={addingAlias || !newAlias.email.trim()}
-            className="w-full py-2 text-sm font-medium border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-[#1a3050] hover:text-[#1a3050] transition-colors disabled:opacity-40"
+            className="w-full py-2 text-sm font-medium border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-accent hover:text-accent transition-colors disabled:opacity-40"
           >
             {addingAlias ? 'Aggiunta…' : '+ Aggiungi email'}
           </button>

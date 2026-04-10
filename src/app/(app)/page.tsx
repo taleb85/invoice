@@ -138,7 +138,7 @@ export default async function DashboardPage() {
 
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-gray-900">{t.dashboard.sedeOverview}</h2>
-          <Link href="/sedi" className="text-sm text-[#1a3050] font-medium hover:underline">
+          <Link href="/sedi" className="text-sm text-accent font-medium hover:underline">
             {t.dashboard.manageSedi}
           </Link>
         </div>
@@ -149,7 +149,7 @@ export default async function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             <p className="text-gray-400 text-sm">{t.sedi.noSedi}</p>
-            <Link href="/sedi" className="mt-3 inline-block text-sm text-[#1a3050] font-medium hover:underline">
+            <Link href="/sedi" className="mt-3 inline-block text-sm text-accent font-medium hover:underline">
               {t.dashboard.manageSedi}
             </Link>
           </div>
@@ -158,7 +158,7 @@ export default async function DashboardPage() {
             {sediStats.map((sede) => (
               <div key={sede.id} className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-[#1a3050] rounded-lg flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
@@ -293,14 +293,14 @@ export default async function DashboardPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/bolle/new"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1a3050] hover:bg-[#122238] text-white text-xs font-semibold rounded-lg transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-semibold rounded-lg transition-colors"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               {t.bolle.new}
             </Link>
-            <Link href="/bolle" className="text-sm text-[#1a3050] font-medium hover:underline">
+            <Link href="/bolle" className="text-sm text-accent font-medium hover:underline">
               {t.dashboard.viewAll} →
             </Link>
           </div>
@@ -312,7 +312,7 @@ export default async function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <p className="text-gray-400 text-sm">{t.bolle.noBills}</p>
-            <Link href="/bolle/new" className="mt-3 inline-block text-sm text-[#1a3050] font-medium hover:underline">
+            <Link href="/bolle/new" className="mt-3 inline-block text-sm text-accent font-medium hover:underline">
               {t.bolle.addFirst}
             </Link>
           </div>

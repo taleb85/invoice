@@ -148,7 +148,7 @@ function EditSupplierPopup({
         <input
           autoFocus value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Cerca fornitore…"
-          className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#1a3050]"
+          className="w-full text-sm px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
       <ul className="max-h-52 overflow-y-auto py-1">
@@ -157,8 +157,8 @@ function EditSupplierPopup({
         ) : filtered.map(f => (
           <li key={f.id}>
             <button disabled={saving} onClick={() => pick(f)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${f.id === current ? 'font-semibold text-[#1a3050]' : 'text-gray-700'}`}>
-              {f.nome}{f.id === current && <span className="ml-1 text-[10px] text-[#1a3050]">✓</span>}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${f.id === current ? 'font-semibold text-accent' : 'text-gray-700'}`}>
+              {f.nome}{f.id === current && <span className="ml-1 text-[10px] text-accent">✓</span>}
             </button>
           </li>
         ))}
@@ -591,7 +591,7 @@ function PendingMatchesTab({ sedeId, fornitoreId, countryCode }: { sedeId?: stri
                         {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (
                           <button onClick={() => setEditSupplier(editSupplier === doc.id ? null : doc.id)}
                             title="Modifica fornitore"
-                            className="shrink-0 p-1 rounded-md text-gray-400 hover:text-[#1a3050] hover:bg-gray-100 transition-colors">
+                            className="shrink-0 p-1 rounded-md text-gray-400 hover:text-accent hover:bg-gray-100 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
@@ -634,8 +634,8 @@ function PendingMatchesTab({ sedeId, fornitoreId, countryCode }: { sedeId?: stri
                     <p className="text-xs text-gray-400 truncate mb-0.5">{doc.oggetto_mail ?? doc.mittente}</p>
                     <div className="flex items-center gap-3 text-xs text-gray-400 flex-wrap">
                       <span>Ricevuto: {fmt(doc.created_at)}</span>
-                      {doc.data_documento && <span className="text-[#1a3050] font-medium">Data doc.: {fmt(doc.data_documento)}</span>}
-                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-[#1a3050] hover:underline">Apri file →</a>
+                      {doc.data_documento && <span className="text-accent font-medium">Data doc.: {fmt(doc.data_documento)}</span>}
+                      <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Apri file →</a>
                     </div>
                   </div>
                 </div>
@@ -660,7 +660,7 @@ function PendingMatchesTab({ sedeId, fornitoreId, countryCode }: { sedeId?: stri
                     <select
                       value={selezione[doc.id] ?? ''}
                       onChange={e => setSelezione(p => ({ ...p, [doc.id]: e.target.value }))}
-                      className="flex-1 min-w-0 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+                      className="flex-1 min-w-0 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent bg-white"
                     >
                       <option value="">{bolleAperte.length === 0 ? 'Nessuna bolla aperta' : 'Seleziona bolla da associare…'}</option>
                       {bolleSameSupplier.length > 0 && (
@@ -681,7 +681,7 @@ function PendingMatchesTab({ sedeId, fornitoreId, countryCode }: { sedeId?: stri
                     <button
                       onClick={() => associa(doc.id)}
                       disabled={!selezione[doc.id] || stato === 'loading'}
-                      className="px-4 py-2.5 min-h-[44px] bg-[#1a3050] hover:bg-[#122238] active:bg-[#0e1a2a] disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap touch-manipulation"
+                      className="px-4 py-2.5 min-h-[44px] bg-accent hover:bg-accent-hover active:bg-[#0e1a2a] disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap touch-manipulation"
                     >
                       {stato === 'loading' ? 'Associazione…' : stato === 'done' ? 'Completato ✓' : stato === 'error' ? 'Errore ✗' : 'Associa'}
                     </button>
@@ -793,11 +793,11 @@ function VerificationStatusTab({ sedeId, fornitoreId, countryCode: _countryCode 
       {/* Period selector */}
       <div className="flex flex-wrap gap-3 mb-5">
         <select value={mese} onChange={e => setMese(Number(e.target.value))}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white">
+          className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent bg-white">
           {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
         </select>
         <select value={anno} onChange={e => setAnno(Number(e.target.value))}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white">
+          className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent bg-white">
           {anni.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
@@ -837,7 +837,7 @@ function VerificationStatusTab({ sedeId, fornitoreId, countryCode: _countryCode 
 
       {!loading && mancanti > 0 && selezione.size === 0 && (
         <button onClick={() => setSelezione(new Set(mancantiIds))}
-          className="mb-4 text-sm text-[#1a3050] font-medium hover:opacity-75">
+          className="mb-4 text-sm text-accent font-medium hover:opacity-75">
           Seleziona tutte le fatture mancanti ({mancanti})
         </button>
       )}
@@ -905,7 +905,7 @@ function VerificationStatusTab({ sedeId, fornitoreId, countryCode: _countryCode 
                               if (n.has(bolla.id)) n.delete(bolla.id); else n.add(bolla.id)
                               return n
                             })}
-                            className="rounded border-gray-300 text-[#1a3050] focus:ring-[#1a3050]"
+                            className="rounded border-gray-300 text-accent focus:ring-accent"
                           />
                         )}
                         <span className="text-sm text-gray-700 font-medium">{fmt(bolla.data)}</span>
@@ -915,7 +915,7 @@ function VerificationStatusTab({ sedeId, fornitoreId, countryCode: _countryCode 
                             <span className="text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full font-medium">✓ Verificata</span>
                             {bolla.fattura.file_url && (
                               <a href={bolla.fattura.file_url} target="_blank" rel="noopener noreferrer"
-                                className="text-xs text-[#1a3050] hover:underline">{fmt(bolla.fattura.data)} →</a>
+                                className="text-xs text-accent hover:underline">{fmt(bolla.fattura.data)} →</a>
                             )}
                           </>
                         ) : (

@@ -7,13 +7,13 @@ export default function NotFound() {
 
         {/* Logo */}
         <Link href="/" className="inline-flex items-center justify-center gap-2.5 group">
-          <div className="w-10 h-10 bg-[#1a3050] rounded-xl flex items-center justify-center shadow group-hover:bg-[#122238] transition-colors">
+          <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center shadow group-hover:bg-accent-hover transition-colors">
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <span className="font-bold text-[#1a3050] text-lg tracking-tight">FLUXO</span>
+          <span className="font-bold text-accent text-lg tracking-tight">FLUXO</span>
         </Link>
 
         {/* 404 block */}
@@ -31,7 +31,7 @@ export default function NotFound() {
           <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
             <Link
               href="/"
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1a3050] hover:bg-[#122238] text-white text-sm font-medium rounded-xl transition-colors"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-xl transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />

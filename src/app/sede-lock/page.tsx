@@ -73,12 +73,12 @@ export default function SedeLockPage() {
 
   if (fatalError) {
     return (
-      <div className="min-h-screen bg-[#1a3050] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-accent flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center space-y-4">
           <p className="text-sm text-red-500 font-medium">{fatalError}</p>
           <button
             onClick={() => window.location.reload()}
-            className="w-full py-2.5 bg-[#1a3050] text-white text-sm font-semibold rounded-lg"
+            className="w-full py-2.5 bg-accent text-white text-sm font-semibold rounded-lg"
           >
             Ricarica
           </button>
@@ -88,7 +88,7 @@ export default function SedeLockPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a3050] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-accent flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-4">
@@ -112,7 +112,7 @@ export default function SedeLockPage() {
               placeholder="••••••••"
               autoFocus
               required
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a3050] bg-white"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white"
             />
             {error && (
               <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
@@ -127,7 +127,7 @@ export default function SedeLockPage() {
           <button
             type="submit"
             disabled={loading || !code}
-            className="w-full py-2.5 bg-[#1a3050] hover:bg-[#122238] disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors"
+            className="w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors"
           >
             {loading ? 'Verifica…' : 'Accedi'}
           </button>
