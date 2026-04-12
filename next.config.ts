@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
   // Rimuove l'header X-Powered-By: Next.js per non esporre il framework in produzione
   poweredByHeader: false,
 
+  /** Evita che il badge di sviluppo (N) copra la prima icona della bottom bar su mobile. */
+  devIndicators: {
+    position: "top-right",
+  },
+
   turbopack: {},
 
   // Aggiunge security headers a tutte le rotte

@@ -18,6 +18,8 @@ export interface Fornitore {
   id: string
   sede_id: string | null
   nome: string
+  /** Nome breve opzionale per UI compatte (barra mobile, elenchi). */
+  display_name?: string | null
   email: string | null
   piva: string | null
   created_at: string

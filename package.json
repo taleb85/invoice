@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "npm run lint && npm run build",
-    "deploy": "npm run build && npx vercel --prod --yes"
+    "deploy": "npm run build && npx vercel --prod --yes",
+    "db:apply-migrations": "node scripts/apply-supabase-migrations.mjs",
+    "db:apply-migrations:dry": "node scripts/apply-supabase-migrations.mjs --dry-run"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -17,6 +19,7 @@
     "@supabase/supabase-js": "^2.102.1",
     "imapflow": "^1.2.18",
     "jszip": "^3.10.1",
+    "lucide-react": "^0.468.0",
     "mailparser": "^3.9.6",
     "next": "16.2.2",
     "openai": "^6.33.0",

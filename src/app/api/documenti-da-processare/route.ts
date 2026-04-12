@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
   const statiParam   = searchParams.get('stati')
   const sedeId       = searchParams.get('sede_id')
   const fornitoreId  = searchParams.get('fornitore_id')
+  const fromDate     = searchParams.get('from')
+  const toDate       = searchParams.get('to')
 
   const stati: string[] = statiParam
     ? statiParam.split(',').map(s => s.trim()).filter(Boolean)
@@ -48,6 +50,13 @@ export async function GET(req: NextRequest) {
     query = query.eq('fornitore_id', fornitoreId) as typeof query
   }
 
+  if (fromDate) {
+    query = query.gte('created_at', fromDate) as typeof query
+  }
+  if (toDate) {
+    query = query.lt('created_at', toDate) as typeof query
+  }
+
   if (sedeId) {
     // Explicit sede filter (sede-specific pages)
     query = query.eq('sede_id', sedeId) as typeof query
@@ -74,13 +83,18 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient()
 
   const body = await req.json()
-  const { id, azione, bolla_id, fornitore_id, is_statement } = body as {
+  const { id, azione, bolla_id, bolla_ids, fornitore_id, is_statement } = body as {
     id: string
     azione: 'associa' | 'scarta' | 'aggiorna_fornitore' | 'mark_statement'
-    bolla_id?: string
+    bolla_id?: string          // legacy single-bolla
+    bolla_ids?: string[]       // new multi-bolla
     fornitore_id?: string
     is_statement?: boolean
   }
+  // Normalise: support both bolla_id (legacy) and bolla_ids (new)
+  const bollaIds: string[] = bolla_ids?.length
+    ? bolla_ids
+    : bolla_id ? [bolla_id] : []
 
   if (!id || !azione) return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 })
 
@@ -140,29 +154,41 @@ export async function POST(req: NextRequest) {
 
   // ── associa ───────────────────────────────────────────────────────────────
   if (azione === 'associa') {
-    if (!bolla_id) return NextResponse.json({ error: 'bolla_id richiesto per associare' }, { status: 400 })
+    if (!bollaIds.length) return NextResponse.json({ error: 'Nessuna bolla selezionata' }, { status: 400 })
 
-    const { data: bolla } = await supabase
+    // Fetch all selected bolle
+    const { data: bolleRows, error: bolleErr } = await supabase
       .from('bolle')
-      .select('id, data, stato, fornitore_id, sede_id')
-      .eq('id', bolla_id)
-      .single()
+      .select('id, data, stato, fornitore_id, sede_id, importo, numero_bolla')
+      .in('id', bollaIds)
 
-    if (!bolla) return NextResponse.json({ error: 'Bolla non trovata' }, { status: 404 })
-    if (bolla.stato !== 'in attesa') return NextResponse.json({ error: 'La bolla non è più in attesa' }, { status: 400 })
+    if (bolleErr || !bolleRows?.length) return NextResponse.json({ error: 'Bolle non trovate' }, { status: 404 })
 
-    const oggi = new Date().toISOString().split('T')[0]
-    // sede_id definitiva: priorità bolla → documento → null
-    const sedeDefinitiva = bolla.sede_id ?? doc.sede_id ?? null
+    // Validate each bolla is still in attesa
+    const notInAttesa = bolleRows.filter(b => b.stato !== 'in attesa')
+    if (notInAttesa.length) {
+      return NextResponse.json({
+        error: `Le seguenti bolle non sono più in attesa: ${notInAttesa.map(b => b.numero_bolla ?? b.id).join(', ')}`,
+      }, { status: 400 })
+    }
 
+    const primaBolla  = bolleRows[0]
+    const oggi        = new Date().toISOString().split('T')[0]
+    const sedeDefinitiva  = primaBolla.sede_id ?? doc.sede_id ?? null
+    const importoTotale   = bolleRows.reduce((s, b) => s + (b.importo ?? 0), 0)
+
+    // Create one fattura covering all selected bolle.
+    // bolla_id is set to the first bolla for backward-compatibility (schema has single FK).
     const { data: fattura, error: insertError } = await supabase
       .from('fatture')
       .insert([{
-        fornitore_id: bolla.fornitore_id,
-        bolla_id: bolla.id,
-        sede_id: sedeDefinitiva,
-        data: doc.data_documento ?? oggi,
-        file_url: doc.file_url,
+        fornitore_id:             primaBolla.fornitore_id,
+        bolla_id:                 primaBolla.id,
+        sede_id:                  sedeDefinitiva,
+        data:                     doc.data_documento ?? oggi,
+        file_url:                 doc.file_url,
+        importo:                  importoTotale > 0 ? importoTotale : null,
+        verificata_estratto_conto: false,
       }])
       .select('id')
       .single()
@@ -171,19 +197,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Errore inserimento fattura: ${insertError.message}` }, { status: 500 })
     }
 
-    // Aggiorna bolla e documento: porta il documento alla stessa sede della bolla
-    // (risolve il caso "documento senza sede adottato da una bolla con sede")
-    await supabase.from('bolle').update({ stato: 'completato' }).eq('id', bolla_id)
+    // Mark all bolle as completato
+    await supabase.from('bolle').update({ stato: 'completato' }).in('id', bollaIds)
+
+    // Update document
     await supabase.from('documenti_da_processare').update({
-      stato: 'associato',
-      bolla_id,
+      stato:      'associato',
+      bolla_id:   primaBolla.id,
       fattura_id: fattura.id,
-      // "adotta" fornitore e sede dalla bolla se il documento ne era privo
-      ...(doc.fornitore_id == null && { fornitore_id: bolla.fornitore_id }),
+      ...(doc.fornitore_id == null && { fornitore_id: primaBolla.fornitore_id }),
       ...(doc.sede_id == null && sedeDefinitiva && { sede_id: sedeDefinitiva }),
     }).eq('id', id)
 
-    return NextResponse.json({ ok: true, fattura_id: fattura.id })
+    return NextResponse.json({ ok: true, fattura_id: fattura.id, bolleCount: bollaIds.length })
   }
 
   return NextResponse.json({ error: 'Azione non valida' }, { status: 400 })

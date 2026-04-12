@@ -8,16 +8,17 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, sede_id, sedi(id, nome, country_code)')
+    .select('role, sede_id, sedi(id, nome, country_code, currency, timezone)')
     .eq('id', user.id)
     .single()
 
-  if (!profile) return NextResponse.json({ error: 'Profilo non trovato' }, { status: 404 })
+  if (!profile) return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
 
-  const isAdmin = profile.role === 'admin'
+  const isAdmin = String(profile.role ?? '').toLowerCase() === 'admin'
+  type SedeRow = { id: string; nome: string; country_code: string; currency: string | null; timezone: string | null }
   const sede = Array.isArray(profile.sedi)
-    ? profile.sedi[0] as { id: string; nome: string; country_code: string } | null
-    : profile.sedi as { id: string; nome: string; country_code: string } | null
+    ? profile.sedi[0] as SedeRow | null
+    : profile.sedi as SedeRow | null
 
   let allSedi: { id: string; nome: string }[] = []
   if (isAdmin) {
@@ -31,6 +32,8 @@ export async function GET() {
     sede_id:      profile.sede_id,
     sede_nome:    sede?.nome ?? null,
     country_code: sede?.country_code ?? 'UK',
+    currency:     sede?.currency ?? 'GBP',
+    timezone:     sede?.timezone ?? 'Europe/London',
     is_admin:     isAdmin,
     all_sedi:     allSedi,
   })

@@ -1,9 +1,10 @@
 'use client'
 
-import { use } from 'react'
+import { useParams } from 'next/navigation'
 import { DiscoveryContent } from '@/app/(app)/impostazioni/fornitori/discovery/page'
+import { segmentParam } from '@/lib/segment-param'
 
-export default function SedeDiscoveryPage({ params }: { params: Promise<{ sede_id: string }> }) {
-  const { sede_id } = use(params)
+export default function SedeDiscoveryPage() {
+  const sede_id = segmentParam(useParams().sede_id)
   return <DiscoveryContent sedeId={sede_id} />
 }

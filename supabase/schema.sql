@@ -21,8 +21,10 @@ create table if not exists public.fornitori (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users(id) on delete cascade,
   nome       text not null,
+  display_name text,
   email      text,
   piva       text,
+  language   char(2) default null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -130,3 +132,23 @@ create policy "Utente carica i propri allegati"
 create policy "Utente elimina i propri allegati"
   on storage.objects for delete
   using (auth.uid()::text = (storage.foldername(name))[1]);
+
+-- =============================================================
+-- LISTINO PREZZI (storico prezzi per prodotto per fornitore)
+-- Eseguire DOPO la creazione dello schema principale
+-- =============================================================
+CREATE TABLE IF NOT EXISTS public.listino_prezzi (
+  id           uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
+  fornitore_id uuid        NOT NULL REFERENCES public.fornitori(id)  ON DELETE CASCADE,
+  sede_id      uuid                 REFERENCES public.sedi(id)        ON DELETE SET NULL,
+  prodotto     text        NOT NULL,
+  prezzo       numeric(12,2) NOT NULL,
+  data_prezzo  date        NOT NULL,
+  note         text,
+  created_at   timestamptz DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_listino_fornitore ON public.listino_prezzi (fornitore_id);
+CREATE INDEX IF NOT EXISTS idx_listino_prodotto  ON public.listino_prezzi (prodotto, data_prezzo);
+ALTER TABLE public.listino_prezzi ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "listino_select" ON public.listino_prezzi
+  FOR SELECT USING (auth.role() IN ('authenticated','service_role'));

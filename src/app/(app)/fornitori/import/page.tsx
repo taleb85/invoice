@@ -92,26 +92,26 @@ export default function ImportFornitore() {
     router.refresh()
   }
 
-  const inputCls = 'w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white'
-  const labelCls = 'block text-xs font-medium text-gray-600 mb-1'
+  const inputCls = 'w-full rounded-lg border border-slate-600/50 bg-slate-900/90 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500'
+  const labelCls = 'block text-xs font-medium text-slate-400 mb-1'
 
   return (
     <div className="p-4 md:p-8 max-w-lg">
       <div className="flex items-center gap-3 mb-8">
-        <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
+        <button onClick={() => router.back()} className="text-slate-500 hover:text-slate-400 transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t.fornitori.importaDaFattura}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{t.bolle.ocrHint}</p>
+          <h1 className="text-2xl font-bold text-slate-100">{t.fornitori.importaDaFattura}</h1>
+          <p className="text-sm text-slate-400 mt-0.5">{t.bolle.ocrHint}</p>
         </div>
       </div>
 
       {/* Step: Upload */}
       {(step === 'upload' || step === 'loading') && (
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
+        <div className="bg-slate-900/90 rounded-xl border border-slate-700/50 p-6">
           <input
             ref={fileRef}
             type="file"
@@ -135,27 +135,27 @@ export default function ImportFornitore() {
                 <div className="absolute inset-0 flex items-center justify-center text-xl">🤖</div>
               </div>
               <div className="text-center">
-                <p className="font-medium text-gray-900">{t.bolle.ocrAnalyzing}</p>
-                <p className="text-sm text-gray-500 mt-1">{t.bolle.analyzingNote}</p>
+                <p className="font-medium text-slate-100">{t.bolle.ocrAnalyzing}</p>
+                <p className="text-sm text-slate-400 mt-1">{t.bolle.analyzingNote}</p>
               </div>
             </div>
           ) : (
-            <div className="w-full border-2 border-dashed border-gray-200 rounded-xl p-8 flex flex-col items-center gap-4">
-              <div className="w-14 h-14 bg-[#e8edf5] rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-full border-2 border-dashed border-slate-600/50 rounded-xl p-8 flex flex-col items-center gap-4">
+              <div className="w-14 h-14 bg-slate-800/80 rounded-xl flex items-center justify-center">
+                <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div className="text-center">
-                <p className="font-semibold text-gray-800">{t.fatture.caricaFatturaTitle}</p>
-                <p className="text-sm text-gray-500 mt-1">{t.bolle.takePhotoOrFile}</p>
+                <p className="font-semibold text-slate-100">{t.fatture.caricaFatturaTitle}</p>
+                <p className="text-sm text-slate-400 mt-1">{t.bolle.takePhotoOrFile}</p>
               </div>
               <div className="flex gap-3 w-full">
                 <button
                   onClick={() => cameraRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-600/50 hover:bg-slate-800/60 text-slate-200 text-sm font-medium rounded-lg transition-colors"
                 >
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -163,7 +163,7 @@ export default function ImportFornitore() {
                 </button>
                 <button
                   onClick={() => fileRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -175,7 +175,7 @@ export default function ImportFornitore() {
           )}
 
           {error && (
-            <p className="mt-4 text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{error}</p>
+            <p className="mt-4 text-sm text-red-300 bg-red-500/10 px-4 py-2.5 rounded-lg">{error}</p>
           )}
         </div>
       )}
@@ -185,21 +185,21 @@ export default function ImportFornitore() {
         <div className="space-y-4">
           {/* Preview documento */}
           {preview && (
-            <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
-              <img src={preview} alt="Documento" className="w-full max-h-48 object-contain p-2 bg-gray-50" />
+            <div className="bg-slate-900/90 rounded-xl border border-slate-700/50 overflow-hidden">
+              <img src={preview} alt="Documento" className="w-full max-h-48 object-contain p-2 bg-slate-800/60" />
             </div>
           )}
 
           {/* Badge campi estratti */}
           <div className="flex gap-2 flex-wrap">
-            {extracted.nome && <span className="text-xs px-2.5 py-1 bg-green-50 text-green-700 rounded-full font-medium">✓ {t.fornitori.nome}</span>}
-            {extracted.piva && <span className="text-xs px-2.5 py-1 bg-green-50 text-green-700 rounded-full font-medium">✓ {t.fornitori.piva}</span>}
-            {extracted.email && <span className="text-xs px-2.5 py-1 bg-green-50 text-green-700 rounded-full font-medium">✓ {t.fornitori.email}</span>}
-            {!extracted.nome && <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full font-medium">⚠ {t.bolle.ocrNotFound}</span>}
+            {extracted.nome && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.nome}</span>}
+            {extracted.piva && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.piva}</span>}
+            {extracted.email && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.email}</span>}
+            {!extracted.nome && <span className="text-xs px-2.5 py-1 border border-amber-500/35 bg-amber-500/15 text-amber-200 rounded-full font-medium">⚠ {t.bolle.ocrNotFound}</span>}
           </div>
 
-          <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
-            <p className="text-sm text-gray-600 font-medium">{t.bolle.ocrMatched}:</p>
+          <form onSubmit={handleSave} className="bg-slate-900/90 rounded-xl border border-slate-700/50 p-6 space-y-4">
+            <p className="text-sm text-slate-400 font-medium">{t.bolle.ocrMatched}:</p>
 
             <div>
               <label className={labelCls}>{t.fornitori.nome} *</label>
@@ -231,20 +231,20 @@ export default function ImportFornitore() {
               />
             </div>
 
-            {error && <p className="text-sm text-red-600 bg-red-50 px-4 py-2.5 rounded-lg">{error}</p>}
+            {error && <p className="text-sm text-red-300 bg-red-500/10 px-4 py-2.5 rounded-lg">{error}</p>}
 
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => { setStep('upload'); setPreview(null); if (fileRef.current) fileRef.current.value = '' }}
-                className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2.5 text-sm font-medium text-slate-400 border border-slate-600/50 rounded-lg hover:bg-slate-800/60 transition-colors"
               >
                 {t.log.retry}
               </button>
               <button
                 type="submit"
                 disabled={step === 'saving'}
-                className="flex-1 py-2.5 text-sm font-medium bg-accent hover:bg-accent-hover disabled:opacity-60 text-white rounded-lg transition-colors"
+                className="flex-1 py-2.5 text-sm font-medium bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors"
               >
                 {step === 'saving' ? t.fornitori.saving : t.fornitori.new}
               </button>

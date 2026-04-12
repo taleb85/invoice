@@ -1,0 +1,54 @@
+import Link from 'next/link'
+import { getT } from '@/lib/locale-server'
+
+const secondaryBtn =
+  'inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800'
+
+/**
+ * Bolla o fattura assente / non visibile (RLS): messaggio chiaro senza `notFound()` globale.
+ */
+export default async function DocumentUnavailable({ kind }: { kind: 'bolla' | 'fattura' }) {
+  const t = await getT()
+  const title =
+    kind === 'bolla' ? t.appStrings.docUnavailableBollaTitle : t.appStrings.docUnavailableFatturaTitle
+  const desc =
+    kind === 'bolla' ? t.appStrings.docUnavailableBollaDesc : t.appStrings.docUnavailableFatturaDesc
+
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center p-4 md:min-h-[60vh]">
+      <div className="w-full max-w-md space-y-5 text-center">
+        <div className="app-card-login space-y-4 px-6 py-8">
+          <div className="app-card-bar mb-2" aria-hidden />
+          <h1 className="text-xl font-bold text-slate-100">{title}</h1>
+          <p className="text-sm leading-relaxed text-slate-400">{desc}</p>
+          <div className="grid grid-cols-2 gap-2.5 pt-1">
+            <Link
+              href="/"
+              className="col-span-2 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
+            >
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
+              {t.appStrings.backToHome}
+            </Link>
+            <Link href="/fornitori" className={secondaryBtn}>
+              {t.nav.fornitori}
+            </Link>
+            <Link href="/bolle" className={secondaryBtn}>
+              {t.nav.bolle}
+            </Link>
+            <Link href="/fatture" className={`col-span-2 ${secondaryBtn}`}>
+              {t.nav.fatture}
+            </Link>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500">{t.appStrings.brandFooter}</p>
+      </div>
+    </div>
+  )
+}

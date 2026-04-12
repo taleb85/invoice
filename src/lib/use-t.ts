@@ -1,24 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { getTranslations, type Translations } from './translations'
+import { useLocale } from './locale-context'
+import type { Translations } from './translations'
 
-type Locale = Parameters<typeof getTranslations>[0]
-
-function readLocaleCookie(): Locale {
-  const match = document.cookie.match(/(?:^|;\s*)app-locale=([^;]*)/)
-  return (match ? match[1] : 'it') as Locale
-}
-
-// Always start with 'it' so server and client first render match,
-// then switch to the real locale after hydration.
+/** Same `t` as {@link LocaleProvider} — avoids cookie-only drift from `useT`. */
 export function useT(): Translations {
-  const [t, setT] = useState<Translations>(() => getTranslations('it'))
-
-  useEffect(() => {
-    const locale = readLocaleCookie()
-    setT(getTranslations(locale))
-  }, [])
-
+  const { t } = useLocale()
   return t
 }
+
+/** Alias di {@link useT} — stesso hook; non re-esportare da `translations.ts` (ciclo SSR con `locale-context`). */
+export const useTranslations = useT

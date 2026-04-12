@@ -1,23 +1,122 @@
 @import "tailwindcss";
 
-/* ── Deep Ocean Design Tokens ────────────────────────────────────────────────
-   Registered via Tailwind v4 @theme so classes like bg-primary, text-accent
-   and bg-surface are available everywhere without arbitrary values.          */
-@theme {
-  --color-primary:      #0f172a;   /* Slate 950 — sidebar, deepest bg       */
-  --color-surface:      #1e293b;   /* Slate 800 — cards, hover areas        */
-  --color-accent:       #06b6d4;   /* Cyan 500  — CTAs, active states       */
-  --color-accent-hover: #0891b2;   /* Cyan 600  — button hover              */
-  --color-accent-dim:   #164e63;   /* Cyan 950  — muted accent bg           */
-  --color-foreground:   #f8fafc;   /* Slate 50  — text on dark             */
-  --color-muted:        #94a3b8;   /* Slate 400 — inactive nav links       */
+/*
+  Deep Ocean Palette — implemented via native Tailwind classes:
+    Sidebar bg  → bg-slate-950  (#0f172a)
+    CTA buttons → bg-cyan-500   (#06b6d4)
+    Hover BTN   → bg-cyan-600   (#0891b2)
+    Active nav  → bg-cyan-500/20 text-cyan-300
+    Inactive    → text-slate-400
+*/
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@layer components {
+  /* Deep Ocean — stesso linguaggio della card login (vetro scuro + barra cyan) */
+  .app-card {
+    @apply relative overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/80 shadow-2xl shadow-black/40 backdrop-blur-xl;
+    -webkit-backdrop-filter: blur(24px);
+  }
+  /** Shell card login: come .app-card ma rounded-2xl (schermata /login) */
+  .app-card-login {
+    @apply relative overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900/80 shadow-2xl shadow-black/40 backdrop-blur-xl;
+    -webkit-backdrop-filter: blur(24px);
+  }
+  /**
+   * Safari iOS e browser senza backdrop-filter: evita vetro troppo trasparente.
+   * Con blur attivo restano valide le classi Tailwind sui componenti.
+   */
+  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .app-card,
+    .app-card-login {
+      @apply bg-slate-900/95;
+    }
+    .app-glass-dock {
+      @apply border-slate-700/70 bg-slate-900/92;
+    }
+  }
+  /** Barra superiore condivisa (login, app-card, modali Ocean) */
+  .app-card-bar {
+    @apply h-0.5 w-full shrink-0 bg-gradient-to-r from-blue-500 via-cyan-400 to-cyan-300;
+  }
+
+  /**
+   * CTA “neon”: pill cyan + testo scuro + alone diffuso (come riferimento UI).
+   * Usa: className="app-cta-pill-glow" (o componi .app-glow-cyan su altri bottoni).
+   */
+  .app-cta-pill-glow {
+    @apply inline-flex items-center justify-center rounded-full bg-cyan-500 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-slate-950 transition-colors;
+    @apply hover:bg-cyan-400 active:bg-cyan-600;
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.18),
+      0 0 32px rgba(6, 182, 212, 0.48),
+      0 0 64px rgba(34, 211, 238, 0.2),
+      0 12px 36px rgba(0, 0, 0, 0.5);
+  }
+  .app-cta-pill-glow:hover {
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.32),
+      0 0 44px rgba(6, 182, 212, 0.58),
+      0 0 88px rgba(34, 211, 238, 0.26),
+      0 12px 36px rgba(0, 0, 0, 0.5);
+  }
+  .app-cta-pill-glow:disabled {
+    box-shadow: none;
+    @apply opacity-50;
+  }
+}
+
+@layer utilities {
+  /**
+   * Alone cyan attorno a bottoni già `bg-cyan-500` (es. barra mobile, login).
+   * Mantieni `text-white` o passa a pill con `app-cta-pill-glow`.
+   */
+  .app-glow-cyan {
+    transition: box-shadow 0.35s ease, background-color 0.2s ease;
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.12),
+      0 0 28px rgba(6, 182, 212, 0.4),
+      0 0 52px rgba(34, 211, 238, 0.16),
+      0 10px 28px rgba(0, 0, 0, 0.45);
+  }
+  .app-glow-cyan:hover,
+  .app-glow-cyan:focus-visible {
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.22),
+      0 0 36px rgba(6, 182, 212, 0.52),
+      0 0 72px rgba(34, 211, 238, 0.2),
+      0 10px 28px rgba(0, 0, 0, 0.45);
+  }
+  .app-glow-cyan:disabled {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  /* Evita controlli form “chiari” (iOS/Safari) con testo illeggibile sul tema Deep Ocean */
+  color-scheme: dark;
+}
+
 html,
 body {
   height: 100%;
+}
+
+/* Link senza classi esplicite: leggibile su tema Deep Ocean */
+@layer base {
+  a[href]:not([class]) {
+    @apply text-cyan-400 transition-colors hover:text-cyan-300;
+  }
 }

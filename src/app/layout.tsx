@@ -1,7 +1,25 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import PWARegister from "@/components/PWARegister";
 import "./globals.css";
+
+const APP_LOCALE_BOOTSTRAP = `(function(){
+  try {
+    var SUPPORTED = ['it','en','fr','de','es'];
+    var m = document.cookie.match(/(?:^|; )app-locale=([^;]*)/);
+    if (m && SUPPORTED.indexOf(decodeURIComponent(m[1])) !== -1) return;
+    var langs = (navigator.languages && navigator.languages.length)
+      ? Array.from(navigator.languages) : [navigator.language || 'en'];
+    var detected = 'en';
+    for (var i = 0; i < langs.length; i++) {
+      var l = langs[i].split('-')[0].toLowerCase();
+      if (SUPPORTED.indexOf(l) !== -1) { detected = l; break; }
+    }
+    document.cookie = 'app-locale=' + encodeURIComponent(detected) +
+      '; path=/; max-age=31536000; SameSite=Lax';
+  } catch(e) {}
+})();`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,7 +69,12 @@ export default function RootLayout({
         <meta name="msapplication-TileColor" content="#0f172a" />
         <meta name="msapplication-TileImage" content="/icons/icon-512.png" />
       </head>
-      <body className="h-full bg-gray-50 text-gray-900">
+      <body className="h-full bg-slate-950 text-slate-100 antialiased">
+        <Script
+          id="fluxo-app-locale-bootstrap"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: APP_LOCALE_BOOTSTRAP }}
+        />
         <PWARegister />
         {children}
       </body>

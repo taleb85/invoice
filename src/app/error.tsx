@@ -1,69 +1,73 @@
 'use client'
 
 import { useEffect } from 'react'
+import { getTranslations } from '@/lib/translations'
+import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
 
-export default function GlobalError({
+/**
+ * Catches errors in the root layout’s child tree when no nested error boundary applies
+ * (e.g. login route). No <html>/<body> — those belong in global-error.tsx only.
+ */
+export default function RootErrorBoundary({
   error,
   reset,
 }: {
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const locale = useCookieLocaleFallback()
+  const t = getTranslations(locale)
+
   useEffect(() => {
-    // In produzione registrare l'errore in un servizio esterno (es. Sentry)
-    console.error('[GlobalError]', error)
+    console.error('[RootErrorBoundary]', error)
   }, [error])
 
   return (
-    <html lang="it">
-      <body className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center space-y-6">
-          {/* Logo */}
-          <div className="flex justify-center">
-            <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
+    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4" lang={locale}>
+      <div className="w-full max-w-md space-y-6 text-center">
+        <div className="flex justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500 shadow-lg">
+            <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-
-          {/* Message */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-8 space-y-4">
-            <h1 className="text-xl font-bold text-gray-900">
-              Si è verificato un errore
-            </h1>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              Un errore imprevisto ha interrotto l&apos;applicazione.
-              Il team è stato notificato automaticamente.
-            </p>
-
-            {/* Digest for support */}
-            {error.digest && (
-              <p className="text-[11px] font-mono text-gray-400 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
-                Codice errore: {error.digest}
-              </p>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
-                onClick={reset}
-                className="flex-1 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-xl transition-colors"
-              >
-                Riprova
-              </button>
-              <a
-                href="/"
-                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-xl transition-colors"
-              >
-                Torna alla home
-              </a>
-            </div>
-          </div>
-
-          <p className="text-xs text-gray-400">FLUXO · Gestione Fatture</p>
         </div>
-      </body>
-    </html>
+
+        <div className="app-card-login space-y-4 px-8 py-8">
+          <div className="app-card-bar mb-2" aria-hidden />
+          <h1 className="text-xl font-bold text-slate-100">
+            {t.appStrings.errorGenericTitle}
+          </h1>
+          <p className="text-sm leading-relaxed text-slate-400">
+            {t.appStrings.errorGenericBody}
+          </p>
+
+          {error.digest && (
+            <p className="rounded-lg border border-slate-700/50 bg-slate-800/60 px-3 py-2 font-mono text-[11px] text-slate-400">
+              {t.appStrings.errorCodeLabel} {error.digest}
+            </p>
+          )}
+
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={reset}
+              className="flex-1 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
+            >
+              {t.appStrings.tryAgain}
+            </button>
+            <a
+              href="/"
+              className="flex-1 rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-2.5 text-center text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
+            >
+              {t.appStrings.backToHome}
+            </a>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-500">{t.appStrings.brandFooter}</p>
+      </div>
+    </div>
   )
 }

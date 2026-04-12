@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
-
-function formatDate(d: string) {
-  return new Intl.DateTimeFormat('it-IT', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(d))
-}
+import type { Locale } from '@/lib/translations'
+import { buildSollecitoBollaEmail } from '@/lib/mail-sollecito-bolla'
 
 export async function POST() {
   try {
@@ -27,7 +21,7 @@ export async function POST() {
     // Bolle in attesa con data <= oggi, join con fornitori
     const { data: bolle, error: dbError } = await supabase
       .from('bolle')
-      .select('id, data, fornitori(nome, email)')
+      .select('id, data, fornitori(nome, email, language)')
       .eq('stato', 'in attesa')
       .lt('data', sogliaISO)
       .order('data', { ascending: true })
@@ -52,27 +46,20 @@ export async function POST() {
 
     for (const bolla of bolle) {
       const raw = bolla.fornitori
-      const fornitore = (Array.isArray(raw) ? raw[0] : raw) as { nome: string; email: string | null } | null
+      const fornitore = (Array.isArray(raw) ? raw[0] : raw) as { nome: string; email: string | null; language: string | null } | null
       const email = fornitore?.email
-      const nome = fornitore?.nome ?? 'Fornitore'
-      const dataFormattata = formatDate(bolla.data)
+      const nome = fornitore?.nome ?? 'Supplier'
+      const supported: Locale[] = ['it', 'en', 'es', 'fr', 'de']
+      const lang = supported.includes(fornitore?.language as Locale) ? (fornitore!.language as Locale) : 'en'
+      const { subject, html } = buildSollecitoBollaEmail({ nome, dataISO: bolla.data, lang })
 
       if (!email) continue
 
       const { error: mailError } = await resend.emails.send({
         from: 'onboarding@resend.dev',
         to: email,
-        subject: `Richiesta Fattura Mancante - Riferimento Bolla del ${dataFormattata}`,
-        html: `
-          <p>Buongiorno ${nome},</p>
-          <p>
-            siamo in attesa di ricevere la fattura relativa alla consegna effettuata in data
-            <strong>${dataFormattata}</strong>.
-          </p>
-          <p>Vi preghiamo di provvedere all'invio il prima possibile.</p>
-          <br>
-          <p>Cordiali saluti.</p>
-        `,
+        subject,
+        html,
       })
 
       if (mailError) {

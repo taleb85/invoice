@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { COUNTRY_OPTIONS } from '@/lib/localization'
+import { useT } from '@/lib/use-t'
 
 interface Props {
   sedeId: string
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function CountrySelector({ sedeId, initialCode }: Props) {
+  const t = useT()
   const [code, setCode]       = useState(initialCode)
   const [saving, setSaving]   = useState(false)
   const [saved, setSaved]     = useState(false)
@@ -29,14 +31,14 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
       })
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Si è verificato un errore.')
+        setError(d.error ?? t.ui.networkError)
         setCode(initialCode)
       } else {
         setSaved(true)
         setTimeout(() => setSaved(false), 2500)
       }
     } catch {
-      setError('Si è verificato un errore di rete.')
+      setError(t.ui.networkError)
       setCode(initialCode)
     } finally {
       setSaving(false)
@@ -50,7 +52,7 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
           value={code}
           onChange={e => save(e.target.value)}
           disabled={saving}
-          className="appearance-none pl-8 pr-7 py-1.5 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent disabled:opacity-50 cursor-pointer"
+          className="cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 py-1.5 pl-8 pr-7 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50 [color-scheme:dark]"
         >
           {COUNTRY_OPTIONS.map(o => (
             <option key={o.code} value={o.code}>
@@ -74,7 +76,7 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
           </svg>
-          Salvataggio…
+          {t.appStrings.countrySaving}
         </span>
       )}
       {saved && (
@@ -82,7 +84,7 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
           </svg>
-          Salvato
+          {t.appStrings.countrySaved}
         </span>
       )}
       {error && (

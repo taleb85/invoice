@@ -5,15 +5,28 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { ImapFlow } from 'imapflow'
 import { simpleParser } from 'mailparser'
 import { ocrInvoice, OcrResult } from '@/lib/ocr-invoice'
+import { ocrStatement } from '@/lib/ocr-statement'
+import { runTripleCheck } from '@/lib/triple-check'
+import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
+import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 
-/** Converte OcrResult in oggetto metadata da salvare in jsonb */
+/** Nessun `console.log` in produzione (log Vercel / dati sensibili). */
+const mailDebugLog =
+  process.env.NODE_ENV !== 'production' ? (...args: unknown[]) => console.log(...args) : () => {}
+
+/** Converte OcrResult in oggetto metadata da salvare in jsonb.
+ *  Includes raw amount string and format hint for UI validation badge. */
 function buildMetadata(ocr: OcrResult, matchedBy: 'email' | 'alias' | 'domain' | 'piva' | 'unknown') {
   return {
     ragione_sociale:    ocr.ragione_sociale,
     p_iva:              ocr.p_iva,
     data_fattura:       ocr.data_fattura,
     numero_fattura:     ocr.numero_fattura,
+    // Stored as a pure float — no formatting at rest
     totale_iva_inclusa: ocr.totale_iva_inclusa,
+    // Preserved for UI validation badge ("Parsed as UK format £1,234.56")
+    importo_raw:        ocr.importo_raw ?? null,
+    formato_importo:    ocr.formato_importo ?? null,
     matched_by:         matchedBy,
   }
 }
@@ -54,27 +67,19 @@ async function insertDocumento(
   supabase: SupabaseClient,
   payload: Record<string, unknown>
 ) {
-  console.log('DEBUG_INSERT_PAYLOAD:', JSON.stringify({
-    ...payload,
-    metadata: payload.metadata ? '(presente)' : null,
-  }, null, 2))
-
   const { error } = await supabase.from('documenti_da_processare').insert([payload])
 
   if (error) {
-    console.error('DEBUG_DB_ERROR (tentativo 1):', JSON.stringify(error, null, 2))
-
     // Fallback: colonna 'metadata' non ancora migrata
     if (error.code === '42703' || error.message?.includes('metadata') || error.message?.includes('is_statement')) {
-      console.warn('[INSERT] ⚠️  Colonna extra non trovata — retry senza metadata/is_statement')
+      console.warn('[INSERT] Colonna extra non trovata — retry senza metadata/is_statement')
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { metadata: _m, is_statement: _is, ...safePayload } = payload as Record<string, unknown>
       const { error: e2 } = await supabase.from('documenti_da_processare').insert([safePayload])
-      if (e2) {
-        console.error('DEBUG_DB_ERROR (tentativo 2 senza metadata):', JSON.stringify(e2, null, 2))
-      }
+      if (e2) console.error('[INSERT] Fallback insert error:', e2.message)
       return e2
     }
+    console.error('[INSERT] Errore inserimento documento:', error.message)
   }
 
   return error
@@ -99,8 +104,8 @@ async function insertLog(
 }
 
 /** Scansiona una casella IMAP e restituisce le email non lette con allegati. */
-async function fetchFromImap(host: string, port: number, user: string, password: string): Promise<ScannedEmail[]> {
-  console.log(`[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user}`)
+async function fetchFromImap(host: string, port: number, user: string, password: string, lookbackDays?: number | null): Promise<ScannedEmail[]> {
+  mailDebugLog(`[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackDays ?? 'illimitato'}gg`)
   const client = new ImapFlow({
     host,
     port,
@@ -110,14 +115,22 @@ async function fetchFromImap(host: string, port: number, user: string, password:
   })
 
   await client.connect()
-  console.log(`[IMAP] Connessione stabilita: ${host}`)
+  mailDebugLog(`[IMAP] Connessione stabilita: ${host}`)
   const emails: ScannedEmail[] = []
+
+  // Build search criteria: unseen + optional date filter
+  const sinceDate = lookbackDays && lookbackDays > 0
+    ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+    : undefined
+  const searchCriteria = sinceDate
+    ? { seen: false, since: sinceDate }
+    : { seen: false }
 
   try {
     await client.mailboxOpen('INBOX')
     let totalMsg = 0
     let withAttach = 0
-    for await (const msg of client.fetch({ seen: false }, { envelope: true, source: true })) {
+    for await (const msg of client.fetch(searchCriteria, { envelope: true, source: true })) {
       totalMsg++
       if (!msg.source) continue
       const parsed = await simpleParser(msg.source)
@@ -140,17 +153,29 @@ async function fetchFromImap(host: string, port: number, user: string, password:
       if (!attachments.length) continue
       withAttach++
 
+      const txt = parsed.text?.trim()
+        ? parsed.text
+        : typeof parsed.html === 'string'
+          ? parsed.html
+              .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+              .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+          : ''
+
       emails.push({
         uid: msg.uid,
         from: parsed.from?.value?.[0]?.address ?? '',
         subject: parsed.subject ?? null,
+        bodyText: txt || null,
         attachments,
       })
     }
-    console.log(`[IMAP] Messaggi non letti trovati: ${totalMsg} (con allegati validi: ${withAttach})`)
+    mailDebugLog(`[IMAP] Messaggi non letti trovati: ${totalMsg} (con allegati validi: ${withAttach})`)
   } finally {
     await client.logout()
-    console.log(`[IMAP] Logout da ${host}`)
+    mailDebugLog(`[IMAP] Logout da ${host}`)
   }
 
   return emails
@@ -174,41 +199,41 @@ async function markReadOnImap(host: string, port: number, user: string, password
   }
 }
 
-type Fornitore = { id: string; nome: string; sede_id: string | null }
+type Fornitore = { id: string; nome: string; sede_id: string | null; language?: string | null }
 
 async function resolveFornitore(
   supabase: SupabaseClient,
   senderEmail: string,
   sedeFilter?: string
 ): Promise<Fornitore | null> {
-  console.log(`[RLS] resolveFornitore: mittente="${senderEmail}" sedeFilter=${sedeFilter ?? 'nessuno'}`)
+  mailDebugLog(`[RLS] resolveFornitore: mittente="${senderEmail}" sedeFilter=${sedeFilter ?? 'nessuno'}`)
 
   // 1️⃣ Alias esatto
   const aliasQuery = supabase
     .from('fornitore_emails')
-    .select('fornitore_id, fornitori!inner(id, nome, sede_id)')
+    .select('fornitore_id, fornitori!inner(id, nome, sede_id, language)')
     .ilike('email', senderEmail)
     .limit(1)
   if (sedeFilter) aliasQuery.eq('fornitori.sede_id', sedeFilter)
   const { data: aliasRows, error: aliasErr } = await aliasQuery
-  console.log(`[RLS] alias query → righe=${aliasRows?.length ?? 0}${aliasErr ? ` errore="${aliasErr.message}"` : ''}`)
+  mailDebugLog(`[RLS] alias query → righe=${aliasRows?.length ?? 0}${aliasErr ? ` errore="${aliasErr.message}"` : ''}`)
   if (aliasRows?.length) {
     const found = (aliasRows[0] as unknown as { fornitori: Fornitore }).fornitori
-    console.log(`[RLS] trovato via alias: ${found.nome} (id=${found.id})`)
+    mailDebugLog(`[RLS] trovato via alias: ${found.nome} (id=${found.id})`)
     return found
   }
 
   // 2️⃣ Email principale
   const fornitoriQuery = supabase
     .from('fornitori')
-    .select('id, nome, sede_id')
+    .select('id, nome, sede_id, language')
     .ilike('email', senderEmail)
     .limit(1)
   if (sedeFilter) fornitoriQuery.eq('sede_id', sedeFilter)
   const { data: fornitori, error: fornErr } = await fornitoriQuery
-  console.log(`[RLS] email principale query → righe=${fornitori?.length ?? 0}${fornErr ? ` errore="${fornErr.message}"` : ''}`)
+  mailDebugLog(`[RLS] email principale query → righe=${fornitori?.length ?? 0}${fornErr ? ` errore="${fornErr.message}"` : ''}`)
   if (fornitori?.length) {
-    console.log(`[RLS] trovato via email principale: ${fornitori[0].nome}`)
+    mailDebugLog(`[RLS] trovato via email principale: ${fornitori[0].nome}`)
     return fornitori[0]
   }
 
@@ -218,21 +243,21 @@ async function resolveFornitore(
   if (domain && !genericDomains.includes(domain)) {
     const domainQuery = supabase
       .from('fornitori')
-      .select('id, nome, sede_id')
+      .select('id, nome, sede_id, language')
       .ilike('email', `%@${domain}`)
       .limit(1)
     if (sedeFilter) domainQuery.eq('sede_id', sedeFilter)
     const { data: byDomain, error: domErr } = await domainQuery
-    console.log(`[RLS] dominio "@${domain}" query → righe=${byDomain?.length ?? 0}${domErr ? ` errore="${domErr.message}"` : ''}`)
+    mailDebugLog(`[RLS] dominio "@${domain}" query → righe=${byDomain?.length ?? 0}${domErr ? ` errore="${domErr.message}"` : ''}`)
     if (byDomain?.length) {
-      console.log(`[RLS] trovato via dominio: ${byDomain[0].nome}`)
+      mailDebugLog(`[RLS] trovato via dominio: ${byDomain[0].nome}`)
       return byDomain[0]
     }
   } else {
-    console.log(`[RLS] dominio "@${domain}" saltato (generico o mancante)`)
+    mailDebugLog(`[RLS] dominio "@${domain}" saltato (generico o mancante)`)
   }
 
-  console.log(`[RLS] fornitore NON trovato per "${senderEmail}"`)
+  mailDebugLog(`[RLS] fornitore NON trovato per "${senderEmail}"`)
   return null
 }
 
@@ -248,20 +273,20 @@ async function resolveFornitoreByPIVA(
   const pivaNorm = piva.replace(/\D/g, '')
   if (pivaNorm.length < 7) return null   // troppo corto per essere una P.IVA
 
-  console.log(`[PIVA] Ricerca fornitore per P.IVA normalizzata: "${pivaNorm}"`)
+  mailDebugLog(`[PIVA] Ricerca fornitore per P.IVA normalizzata: "${pivaNorm}"`)
   const q = supabase
     .from('fornitori')
-    .select('id, nome, sede_id')
+    .select('id, nome, sede_id, language')
     .or(`piva.ilike.%${pivaNorm}%,piva.eq.${pivaNorm}`)
     .limit(1)
   if (sedeFilter) q.eq('sede_id', sedeFilter)
   const { data, error } = await q
   if (error) console.warn(`[PIVA] Errore query: ${error.message}`)
   if (data?.length) {
-    console.log(`[PIVA] ✅ Trovato via P.IVA: ${data[0].nome} (${data[0].id})`)
+    mailDebugLog(`[PIVA] ✅ Trovato via P.IVA: ${data[0].nome} (${data[0].id})`)
     return { fornitore: data[0], matchedBy: 'piva' }
   }
-  console.log(`[PIVA] Nessun fornitore per P.IVA "${pivaNorm}"`)
+  mailDebugLog(`[PIVA] Nessun fornitore per P.IVA "${pivaNorm}"`)
   return null
 }
 
@@ -270,14 +295,15 @@ async function processEmails(
   emails: ScannedEmail[],
   sedeFilter?: string,
   fallbackSedeId?: string    // usato solo per global IMAP quando sedeFilter è undefined
-): Promise<{ ricevuti: number; ignorate: number; toMarkRead: number[] }> {
+): Promise<{ ricevuti: number; ignorate: number; bozzaCreate: number; toMarkRead: number[] }> {
   let ricevuti = 0
   let ignorate = 0
   const uidsToMarkRead: number[] = []
+  const rekkiPersistedUids = new Set<number>()
 
   // La sede effettiva da usare: priorità sedeFilter (per-sede IMAP) → fallbackSedeId (global IMAP)
   const effectiveSede = sedeFilter ?? fallbackSedeId ?? null
-  console.log(`[PROCESS] Inizio processEmails: ${emails.length} email, sedeFilter=${sedeFilter ?? 'nessuno'} fallback=${fallbackSedeId ?? 'nessuno'} effective=${effectiveSede ?? 'NULL'}`)
+  mailDebugLog(`[PROCESS] Inizio processEmails: ${emails.length} email, sedeFilter=${sedeFilter ?? 'nessuno'} fallback=${fallbackSedeId ?? 'nessuno'} effective=${effectiveSede ?? 'NULL'}`)
 
   // ── FASE 1: raggruppa tutti gli allegati per fornitore ─────────────────
   // Item include anche l'OCR pre-computato (per i documenti risolti via P.IVA)
@@ -291,14 +317,14 @@ async function processEmails(
   const noFornitore: ScannedEmail[] = []
 
   for (const email of emails) {
-    console.log(`[PROCESS] Analisi email da: ${email.from} | allegati: ${email.attachments.length}`)
+    mailDebugLog(`[PROCESS] Analisi email da: ${email.from} | allegati: ${email.attachments.length}`)
     const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
     if (!fornitore) {
-      console.log(`[PROCESS] ⚠️  Fornitore non trovato per "${email.from}" — OCR+P.IVA verrà tentato`)
+      mailDebugLog(`[PROCESS] ⚠️  Fornitore non trovato per "${email.from}" — OCR+P.IVA verrà tentato`)
       noFornitore.push(email)
       continue
     }
-    console.log(`[PROCESS] ✅ Fornitore abbinato: ${fornitore.nome} (${fornitore.id})`)
+    mailDebugLog(`[PROCESS] ✅ Fornitore abbinato: ${fornitore.nome} (${fornitore.id})`)
     if (!groups.has(fornitore.id)) {
       groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'email' })
     }
@@ -307,16 +333,16 @@ async function processEmails(
     }
   }
 
-  console.log(`[PROCESS] Riepilogo fase 1: ${groups.size} fornitori abbinati via email, ${noFornitore.length} email senza fornitore`)
+  mailDebugLog(`[PROCESS] Riepilogo fase 1: ${groups.size} fornitori abbinati via email, ${noFornitore.length} email senza fornitore`)
 
   // ── Mittenti sconosciuti: OCR → tenta P.IVA match → salva in coda ─────
   for (const email of noFornitore) {
     for (const attachment of email.attachments) {
-      console.log(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso per tentare matching P.IVA`)
+      mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso per tentare matching P.IVA`)
 
-      // 1. OCR completo (5 campi)
-      const ocr = await ocrInvoice(attachment.content, attachment.contentType)
-      console.log(`[PROCESS] OCR sconosciuto: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'}`)
+      // 1. OCR completo — no supplier language hint available for unknown senders
+      const ocr = await ocrInvoice(attachment.content, attachment.contentType, undefined)
+      mailDebugLog(`[PROCESS] OCR sconosciuto: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'}`)
 
       // 2. Prova a trovare il fornitore via P.IVA estratta dal documento
       let pivaMatchResult: Awaited<ReturnType<typeof resolveFornitoreByPIVA>> = null
@@ -327,7 +353,7 @@ async function processEmails(
           const { fornitore } = pivaMatchResult
           if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'piva' })
           groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
-          console.log(`[PROCESS] ✅ Documento sconosciuto risolto via P.IVA → "${fornitore.nome}"`)
+          mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via P.IVA → "${fornitore.nome}"`)
           if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
           continue
         }
@@ -375,7 +401,7 @@ async function processEmails(
         })
         ignorate++
       } else {
-        console.log(`[PROCESS] ✅ Documento sconosciuto salvato — mittente="${email.from}" sede=${unknownDocSedeId ?? 'NULL'} piva_ocr="${ocr.p_iva ?? '—'}"`)
+        mailDebugLog(`[PROCESS] ✅ Documento sconosciuto salvato — mittente="${email.from}" sede=${unknownDocSedeId ?? 'NULL'} piva_ocr="${ocr.p_iva ?? '—'}"`)
         await insertLog(supabase, email, 'successo', { file_url: pub.publicUrl })
         ricevuti++
         if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
@@ -383,21 +409,26 @@ async function processEmails(
     }
   }
 
-  // ── FASE 2: per ogni fornitore, OCR e salva in coda con metadata ────────
+  // ── FASE 2: per ogni fornitore, OCR, salva in coda e crea Bolla/Fattura bozza ─
+  let bozzaCreate = 0
+
   for (const { fornitore, items, matchedBy } of groups.values()) {
-    // OCR in parallelo; se già pre-computato (da P.IVA match) lo riutilizza
+    // OCR in parallelo; se già pre-computato (da P.IVA match) lo riutilizza.
+    // Pass supplier language as a parsing hint (conflict-prevention rule:
+    // supplier language takes priority for parsing; sede currency used for display).
+    const langHint = fornitore.language ?? undefined
     const ocrResults: OcrResult[] = await Promise.all(
       items.map(({ attachment, ocr }) =>
-        ocr ? Promise.resolve(ocr) : ocrInvoice(attachment.content, attachment.contentType)
+        ocr ? Promise.resolve(ocr) : ocrInvoice(attachment.content, attachment.contentType, langHint)
       )
     )
-    console.log(`[PROCESS] OCR completato per "${fornitore.nome}" (matched_by=${matchedBy}): numeri fattura=[${ocrResults.map(r => r.numero_fattura ?? 'null').join(', ')}] totali=[${ocrResults.map(r => r.totale_iva_inclusa ?? 'null').join(', ')}]`)
+    mailDebugLog(`[PROCESS] OCR completato per "${fornitore.nome}" (matched_by=${matchedBy}): numeri fattura=[${ocrResults.map(r => r.numero_fattura ?? 'null').join(', ')}] totali=[${ocrResults.map(r => r.totale_iva_inclusa ?? 'null').join(', ')}]`)
 
     for (let i = 0; i < items.length; i++) {
       const { email, attachment } = items[i]
       const ocr = ocrResults[i]
 
-      console.log(`[PROCESS] Upload allegato "${attachment.filename}" (${attachment.contentType}) per "${fornitore.nome}"`)
+      mailDebugLog(`[PROCESS] Upload allegato "${attachment.filename}" (${attachment.contentType}) per "${fornitore.nome}"`)
       const uniqueName = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
       const { error: uploadError } = await supabase.storage
         .from('documenti')
@@ -414,10 +445,82 @@ async function processEmails(
 
       const { data: publicUrlData } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
       const file_url = publicUrlData.publicUrl
-      console.log(`[PROCESS] Upload OK → ${file_url}`)
+      mailDebugLog(`[PROCESS] Upload OK → ${file_url}`)
 
       // sede_id: priorità esplicita → sedeFilter (scansione corrente) > sede del fornitore > fallback
       const documentSedeId = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
+
+      // ── AUTO-CREAZIONE BOZZA ───────────────────────────────────────────────
+      // Tenta di creare automaticamente una Bolla o Fattura in stato 'bozza'
+      // basandosi sui dati OCR estratti. Il documento rimane in "Documenti da
+      // Elaborare" per la conferma finale dell'utente.
+      let bozzaId: string | null = null
+      let bozzaTipo: 'bolla' | 'fattura' | null = null
+
+      if (fornitore.id && documentSedeId) {
+        const dataDoc = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
+        const hasFattura = !!(ocr.numero_fattura && ocr.numero_fattura.trim())
+
+        if (hasFattura) {
+          // Ha numero fattura → creiamo una Fattura bozza
+          const { data: newFattura, error: fatturaErr } = await supabase
+            .from('fatture')
+            .insert([{
+              fornitore_id:             fornitore.id,
+              sede_id:                  documentSedeId,
+              data:                     dataDoc,
+              numero_fattura:           ocr.numero_fattura,
+              importo:                  ocr.totale_iva_inclusa ?? null,
+              verificata_estratto_conto: false,
+              file_url,
+            }])
+            .select('id')
+            .single()
+
+          if (fatturaErr) {
+            console.warn(`[BOZZA] Fattura bozza non creata per "${fornitore.nome}": ${fatturaErr.message}`)
+          } else if (newFattura) {
+            bozzaId = newFattura.id
+            bozzaTipo = 'fattura'
+            bozzaCreate++
+            mailDebugLog(`[BOZZA] ✅ Fattura bozza creata: id=${bozzaId} n.fattura=${ocr.numero_fattura}`)
+          }
+        } else {
+          // Nessun numero fattura → creiamo una Bolla bozza
+          const { data: newBolla, error: bollaErr } = await supabase
+            .from('bolle')
+            .insert([{
+              fornitore_id:  fornitore.id,
+              sede_id:       documentSedeId,
+              data:          dataDoc,
+              numero_bolla:  null,
+              importo:       ocr.totale_iva_inclusa ?? null,
+              stato:         'bozza',
+              file_url,
+            }])
+            .select('id')
+            .single()
+
+          if (bollaErr) {
+            console.warn(`[BOZZA] Bolla bozza non creata per "${fornitore.nome}": ${bollaErr.message}`)
+          } else if (newBolla) {
+            bozzaId = newBolla.id
+            bozzaTipo = 'bolla'
+            bozzaCreate++
+            mailDebugLog(`[BOZZA] ✅ Bolla bozza creata: id=${bozzaId} importo=${ocr.totale_iva_inclusa ?? '—'}`)
+          }
+        }
+      }
+
+      const metadata = {
+        ...buildMetadata(ocr, matchedBy),
+        // Riferimento alla bozza creata automaticamente
+        ...(bozzaId ? { bozza_id: bozzaId, bozza_tipo: bozzaTipo } : {}),
+      }
+
+      // Detect statement emails: mark with is_statement = true
+      const subjectLower  = (email.subject ?? '').toLowerCase()
+      const isStatementEmail = subjectLower.includes('statement') || subjectLower.includes('estratto conto') || subjectLower.includes('account statement')
 
       const knownPayload = {
         fornitore_id:   fornitore.id,
@@ -428,8 +531,9 @@ async function processEmails(
         file_name:      attachment.filename ?? null,
         content_type:   attachment.contentType ?? null,
         data_documento: safeDate(ocr.data_fattura),
-        stato:          'da_associare',
-        metadata:       buildMetadata(ocr, matchedBy),
+        stato:          isStatementEmail ? 'associato' : (bozzaId ? 'bozza_creata' : 'da_associare'),
+        is_statement:   isStatementEmail,
+        metadata,
       }
 
       const insertError = await insertDocumento(supabase, knownPayload)
@@ -445,16 +549,138 @@ async function processEmails(
         continue
       }
 
-      console.log(`[PROCESS] ✅ Documento salvato per "${fornitore.nome}" | stato=da_associare | sede=${documentSedeId ?? 'NULL'} | n.fattura=${ocr.numero_fattura ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'} matched_by=${matchedBy}`)
+      // ── AUTO-PROCESS STATEMENT EMAILS ──────────────────────────────────
+      if (isStatementEmail) {
+        mailDebugLog(`[PROCESS] 📋 Statement email rilevata per "${fornitore.nome}" — avvio parsing automatico righe`)
+        // Fire-and-forget in background (don't block the main loop)
+        processStatementInBackground(supabase, {
+          fornitoreId: fornitore.id,
+          sedeId:      documentSedeId,
+          fileUrl:     file_url,
+          subject:     email.subject ?? null,
+          buffer:      attachment.content,
+          contentType: attachment.contentType,
+        }).catch(err => console.error('[STMT] Errore background processing:', err))
+      } else {
+        mailDebugLog(`[PROCESS] ✅ Documento salvato per "${fornitore.nome}" | stato=${bozzaId ? 'bozza_creata' : 'da_associare'} | bozza_tipo=${bozzaTipo ?? 'nessuna'} | sede=${documentSedeId ?? 'NULL'}`)
+      }
+
       await insertLog(supabase, email, 'successo', { fornitore_id: fornitore.id, file_url })
 
       ricevuti++
       if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+
+      if (
+        !rekkiPersistedUids.has(email.uid) &&
+        email.bodyText &&
+        isLikelyRekkiEmail(email.subject, email.from, email.bodyText)
+      ) {
+        const rkLines = parseRekkiFromEmailParts({ subject: email.subject, text: email.bodyText })
+        if (rkLines.length) {
+          rekkiPersistedUids.add(email.uid)
+          persistRekkiOrderStatement(supabase, {
+            fornitoreId: fornitore.id,
+            sedeId: documentSedeId,
+            rekkiLines: rkLines,
+            emailSubject: email.subject ?? `Rekki — ${fornitore.nome}`,
+            fileUrl: file_url,
+          }).catch((err) => console.error('[REKKI] persist fallito:', err))
+        }
+      }
     }
   }
 
-  console.log(`[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate}`)
-  return { ricevuti, ignorate, toMarkRead: uidsToMarkRead }
+  mailDebugLog(`[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate}`)
+  return { ricevuti, ignorate, bozzaCreate, toMarkRead: uidsToMarkRead }
+}
+
+/**
+ * Parse a statement attachment, save rows to the `statements` + `statement_rows`
+ * tables, then run a triple-check on each row.
+ *
+ * Called in a fire-and-forget manner so it doesn't block the email scan loop.
+ */
+async function processStatementInBackground(
+  supabase: SupabaseClient,
+  opts: {
+    fornitoreId: string
+    sedeId:      string | null
+    fileUrl:     string
+    subject:     string | null
+    buffer:      Buffer | Uint8Array
+    contentType: string
+  }
+) {
+  const { fornitoreId, sedeId, fileUrl, subject, buffer, contentType } = opts
+
+  // 1️⃣ Create the statement record (status = processing)
+  const { data: stmtRow, error: stmtErr } = await supabase
+    .from('statements')
+    .insert([{
+      sede_id:       sedeId,
+      fornitore_id:  fornitoreId,
+      email_subject: subject,
+      file_url:      fileUrl,
+      status:        'processing',
+      total_rows:    0,
+      missing_rows:  0,
+    }])
+    .select('id')
+    .single()
+
+  if (stmtErr || !stmtRow) {
+    console.error('[STMT] Errore creazione statement record:', stmtErr?.message)
+    // Table might not exist yet — silently skip
+    return
+  }
+
+  const statementId = stmtRow.id
+  mailDebugLog(`[STMT] Statement record creato: ${statementId}`)
+
+  // 2️⃣ OCR — parse statement rows
+  const rows = await ocrStatement(buffer, contentType)
+
+  if (!rows.length) {
+    console.warn(`[STMT] Nessuna riga estratta dal PDF per statement ${statementId}`)
+    await supabase.from('statements').update({ status: 'error', total_rows: 0 }).eq('id', statementId)
+    return
+  }
+
+  mailDebugLog(`[STMT] ${rows.length} righe estratte — avvio triple-check`)
+
+  // 3️⃣ Run triple-check
+  const { results } = await runTripleCheck(supabase, rows, sedeId, fornitoreId)
+
+  // 4️⃣ Save statement_rows
+  const rowInserts = results.map(r => ({
+    statement_id:   statementId,
+    numero_doc:     r.numero,
+    importo:        r.importoStatement,
+    data_doc:       rows.find(row => row.numero === r.numero)?.data ?? null,
+    check_status:   r.status,
+    delta_importo:  r.deltaImporto,
+    fattura_id:     r.fattura?.id ?? null,
+    fattura_numero: r.fattura?.numero_fattura ?? null,
+    fornitore_id:   r.fornitore?.id ?? fornitoreId,
+    bolle_json:     r.bolle.length ? r.bolle : null,
+  }))
+
+  const { error: rowsErr } = await supabase.from('statement_rows').insert(rowInserts)
+  if (rowsErr) {
+    console.error('[STMT] Errore insert statement_rows:', rowsErr.message)
+    await supabase.from('statements').update({ status: 'error' }).eq('id', statementId)
+    return
+  }
+
+  // 5️⃣ Update statement record with counts
+  const missingRows = results.filter(r => r.status !== 'ok').length
+  await supabase.from('statements').update({
+    status:      'done',
+    total_rows:  results.length,
+    missing_rows: missingRows,
+  }).eq('id', statementId)
+
+  mailDebugLog(`[STMT] ✅ Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)
 }
 
 export async function GET(req: Request) {
@@ -506,18 +732,14 @@ async function runScan(userSedeId?: string, filterSedeId?: string) {
     const supabase = createServiceClient()
 
     // ── Verifica variabili d'ambiente globali ──────────────────────────────
-    console.log('[ENV] IMAP globale configurato?', {
-      IMAP_HOST: process.env.IMAP_HOST ?? '(non impostato)',
-      IMAP_PORT: process.env.IMAP_PORT ?? '(non impostato)',
-      IMAP_USER: process.env.IMAP_USER ?? '(non impostato)',
-      IMAP_PASSWORD: process.env.IMAP_PASSWORD ? '***' : '(non impostato)',
-    })
-
-    // ── Verifica identità: service_role bypassa RLS ────────────────────────
-    console.log('[AUTH] Client: service_role (bypassa RLS — nessun utente necessario)')
+    const hasGlobalImap = !!(process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD)
+    if (!hasGlobalImap) {
+      console.warn('[ENV] Casella IMAP globale non configurata (IMAP_HOST/IMAP_USER/IMAP_PASSWORD mancanti)')
+    }
 
     let totalRicevuti = 0
     let totalIgnorate = 0
+    let totalBozzeCreate = 0
     const avvisi: string[] = []
 
     // ── Sede di fallback (usata solo per global IMAP senza sedeFilter) ────────
@@ -527,12 +749,12 @@ async function runScan(userSedeId?: string, filterSedeId?: string) {
       const { data: firstSede } = await supabase.from('sedi').select('id').limit(1).single()
       systemFallbackSedeId = firstSede?.id ?? undefined
     }
-    console.log(`[POST] sede fallback: ${systemFallbackSedeId ?? 'NESSUNA'} (origine: ${userSedeId ? 'utente' : 'prima sede DB'})`)
+    mailDebugLog(`[POST] sede fallback: ${systemFallbackSedeId ?? 'NESSUNA'} (origine: ${userSedeId ? 'utente' : 'prima sede DB'})`)
 
     // ── Sedi con IMAP configurato ─────────────────────────────────────────
     let sediQuery = supabase
       .from('sedi')
-      .select('id, nome, imap_host, imap_port, imap_user, imap_password')
+      .select('id, nome, imap_host, imap_port, imap_user, imap_password, imap_lookback_days')
       .not('imap_host', 'is', null)
       .not('imap_user', 'is', null)
       .not('imap_password', 'is', null)
@@ -540,29 +762,30 @@ async function runScan(userSedeId?: string, filterSedeId?: string) {
     // When a specific branch is requested, restrict to that branch only
     if (filterSedeId) {
       sediQuery = sediQuery.eq('id', filterSedeId) as typeof sediQuery
-      console.log(`[POST] filter_sede_id=${filterSedeId} — scansione limitata a questa sede`)
+      mailDebugLog(`[POST] filter_sede_id=${filterSedeId} — scansione limitata a questa sede`)
     }
 
     const { data: sedi, error: sediErr } = await sediQuery
 
-    console.log(`[DB] Sedi con IMAP: ${sedi?.length ?? 0}${sediErr ? ` errore="${sediErr.message}"` : ''}`)
+    mailDebugLog(`[DB] Sedi con IMAP: ${sedi?.length ?? 0}${sediErr ? ` errore="${sediErr.message}"` : ''}`)
     if (sedi) {
-      sedi.forEach(s => console.log(`[DB]   → sede "${s.nome}" host=${s.imap_host} porta=${s.imap_port ?? 993} utente=${s.imap_user}`))
+      sedi.forEach(s => mailDebugLog(`[DB]   → sede "${s.nome}" porta=${s.imap_port ?? 993}`))
     }
 
     if (sedi && sedi.length > 0) {
       for (const sede of sedi) {
-        console.log(`\n[SEDE] ══ Inizio scansione sede "${sede.nome}" (${sede.id}) ══`)
+        mailDebugLog(`\n[SEDE] ══ Inizio scansione sede "${sede.nome}" (${sede.id}) ══`)
         try {
-          const emails = await fetchFromImap(sede.imap_host, sede.imap_port ?? 993, sede.imap_user, sede.imap_password)
-          console.log(`[SEDE] "${sede.nome}": ${emails.length} email con allegati trovate`)
-          if (emails.length === 0) { console.log(`[SEDE] Nessuna email — salto`); continue }
-          const { ricevuti, ignorate, toMarkRead } = await processEmails(supabase, emails, sede.id)
+          const emails = await fetchFromImap(sede.imap_host, sede.imap_port ?? 993, sede.imap_user, sede.imap_password, sede.imap_lookback_days)
+          mailDebugLog(`[SEDE] "${sede.nome}": ${emails.length} email con allegati trovate`)
+          if (emails.length === 0) { mailDebugLog(`[SEDE] Nessuna email — salto`); continue }
+          const { ricevuti, ignorate, bozzaCreate, toMarkRead } = await processEmails(supabase, emails, sede.id)
           totalRicevuti += ricevuti
           totalIgnorate += ignorate
+          totalBozzeCreate += bozzaCreate
           if (toMarkRead.length > 0) {
-            console.log(`[SEDE] Segno come lette ${toMarkRead.length} email`)
-            await markReadOnImap(sede.imap_host, sede.imap_port ?? 993, sede.imap_user, sede.imap_password, toMarkRead)
+            mailDebugLog(`[SEDE] Segno come lette ${toMarkRead.length} email`)
+            await markReadOnImap(sede.imap_host, sede.imap_port ?? 993, sede.imap_user, sede.imap_password, toMarkRead as number[])
           }
         } catch (err) {
           const avviso = imapErrorMessage(err, sede.nome)
@@ -574,14 +797,15 @@ async function runScan(userSedeId?: string, filterSedeId?: string) {
 
     // Skip global IMAP when scoped to a specific branch
     if (!filterSedeId && process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD) {
-      console.log('\n[GLOBALE] ══ Inizio scansione casella globale ══')
+      mailDebugLog('\n[GLOBALE] ══ Inizio scansione casella globale ══')
       try {
         const emails = await fetchUnseenEmails()
-        console.log(`[GLOBALE] Email trovate: ${emails.length}`)
+        mailDebugLog(`[GLOBALE] Email trovate: ${emails.length}`)
         if (emails.length > 0) {
-          const { ricevuti, ignorate, toMarkRead } = await processEmails(supabase, emails, undefined, systemFallbackSedeId)
+          const { ricevuti, ignorate, bozzaCreate, toMarkRead } = await processEmails(supabase, emails, undefined, systemFallbackSedeId)
           totalRicevuti += ricevuti
           totalIgnorate += ignorate
+          totalBozzeCreate += bozzaCreate
           await markEmailsAsRead(toMarkRead)
         }
       } catch (err) {
@@ -589,22 +813,28 @@ async function runScan(userSedeId?: string, filterSedeId?: string) {
         avvisi.push(imapErrorMessage(err, 'casella globale'))
       }
     } else {
-      console.log('[GLOBALE] Casella globale non configurata — salto')
+      mailDebugLog('[GLOBALE] Casella globale non configurata — salto')
     }
 
-    console.log(`\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} avvisi=${avvisi.length}`)
+    mailDebugLog(`\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} avvisi=${avvisi.length}`)
 
     if (avvisi.length > 0 && totalRicevuti === 0 && totalIgnorate === 0) {
-      return NextResponse.json({ ricevuti: 0, ignorate: 0, avvisi, messaggio: avvisi[0] })
+      return NextResponse.json({ ricevuti: 0, ignorate: 0, bozzeCreate: 0, avvisi, messaggio: avvisi[0] })
     }
 
-    const messaggio = totalRicevuti > 0
-      ? `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — salvati come "da associare" in Statements.`
-      : 'Nessuna nuova email con allegati.'
+    let messaggio: string
+    if (totalRicevuti === 0) {
+      messaggio = 'Nessuna nuova email con allegati.'
+    } else if (totalBozzeCreate > 0) {
+      messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — ${totalBozzeCreate} ${totalBozzeCreate === 1 ? 'bozza creata automaticamente' : 'bozze create automaticamente'}. Controlla in Statements → Documenti da Elaborare.`
+    } else {
+      messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — salvati in Documenti da Elaborare per la revisione.`
+    }
 
     return NextResponse.json({
       ricevuti: totalRicevuti,
       ignorate: totalIgnorate,
+      bozzeCreate: totalBozzeCreate,
       messaggio,
       ...(avvisi.length > 0 && { avvisi }),
     })

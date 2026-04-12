@@ -1,18 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
 const MobileTopbar = dynamic(() => import('./MobileTopbar'), { ssr: false })
 
+const MOBILE_BREAKPOINT = 768
+
 export default function SidebarController() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   return (
     <>
-      <MobileTopbar onOpen={() => setSidebarOpen(true)} />
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {isMobile && <MobileTopbar />}
+      <Sidebar />
     </>
   )
 }

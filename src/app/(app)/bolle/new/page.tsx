@@ -6,6 +6,22 @@ import { createClient } from '@/utils/supabase/client'
 import { Fornitore } from '@/types'
 import { useSedeId } from '@/lib/use-sede'
 import { useT } from '@/lib/use-t'
+import { useLocale } from '@/lib/locale-context'
+import { formatDate } from '@/lib/locale-shared'
+import { useActiveOperator } from '@/lib/active-operator-context'
+
+function ymdTodayInTimezone(tz: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+  const y = parts.find((p) => p.type === 'year')?.value ?? '1970'
+  const m = parts.find((p) => p.type === 'month')?.value ?? '01'
+  const d = parts.find((p) => p.type === 'day')?.value ?? '01'
+  return `${y}-${m}-${d}`
+}
 
 type OcrStatus = 'idle' | 'scanning' | 'matched' | 'not_found' | 'error'
 
@@ -49,16 +65,32 @@ function NuovaBollaForm() {
   const cameraRef = useRef<HTMLInputElement>(null)
   const { sedeId } = useSedeId()
   const t = useT()
+  const { locale, timezone } = useLocale()
+  const { activeOperator } = useActiveOperator()
+
+  const todayRegistrationLabel = formatDate(ymdTodayInTimezone(timezone), locale, timezone, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
 
   const [fornitori, setFornitori] = useState<Fornitore[]>([])
   const [fornitoreId, setFornitoreId] = useState('')
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
+  const [numeroBolla, setNumeroBolla] = useState('')
+  const [importo, setImporto] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registratoDa, setRegistratoDa] = useState('')
-  // 'idle' = mostra scelta, 'camera' = input fotocamera, 'file' = input file
+
+  // Auto-fill registratoDa dall'operatore attivo
+  useEffect(() => {
+    if (activeOperator?.full_name) {
+      setRegistratoDa(activeOperator.full_name)
+    }
+  }, [activeOperator])
   const [uploadMode, setUploadMode] = useState<'idle' | 'camera' | 'file'>('idle')
 
   // OCR state
@@ -186,6 +218,8 @@ function NuovaBollaForm() {
       file_url,
       stato: 'in attesa',
       registrato_da: registratoDa.trim() || null,
+      numero_bolla: numeroBolla.trim() || null,
+      importo: importo ? parseFloat(importo) : null,
     }])
 
     setSaving(false)
@@ -199,37 +233,41 @@ function NuovaBollaForm() {
     router.refresh()
   }
 
+  const fieldLabelCls =
+    'mb-3 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80'
+  const fieldInputCls =
+    'w-full rounded-xl border-0 bg-transparent py-1 -mx-1 text-base text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-0'
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header mobile */}
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
+    <div className="flex flex-col">
+      <div className="sticky top-14 z-10 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/90 px-4 py-3 backdrop-blur-md md:top-0">
         <button
           type="button"
           onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-cyan-300"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-gray-900">Nuova Bolla</h1>
+        <h1 className="text-lg font-bold tracking-tight text-slate-100">{t.bolle.new}</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4 p-4 max-w-lg mx-auto w-full">
+      <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
 
-        {/* Foto bolla — PRIMA del fornitore per trigger immediato dell'OCR */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        <div className="app-card">
+          <div className="app-card-bar" aria-hidden />
+          <div className="p-5">
+          <label className={fieldLabelCls}>
             {t.bolle.fotoLabel}
           </label>
 
-          {/* Scelta modalità upload */}
           {!preview && uploadMode === 'idle' && (
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => { setUploadMode('camera'); setTimeout(() => cameraRef.current?.click(), 50) }}
-                className="flex flex-col items-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-[#2a4a7f] hover:text-[#2a4a7f] transition-colors active:bg-[#e8edf5]"
+                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/70 py-8 text-slate-500 transition-colors hover:border-cyan-500/45 hover:text-cyan-300 active:bg-slate-800/50"
               >
                 <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -240,7 +278,7 @@ function NuovaBollaForm() {
               <button
                 type="button"
                 onClick={() => { setUploadMode('file'); setTimeout(() => fileRef.current?.click(), 50) }}
-                className="flex flex-col items-center gap-3 py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-[#2a4a7f] hover:text-[#2a4a7f] transition-colors active:bg-[#e8edf5]"
+                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/70 py-8 text-slate-500 transition-colors hover:border-cyan-500/45 hover:text-cyan-300 active:bg-slate-800/50"
               >
                 <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -279,7 +317,7 @@ function NuovaBollaForm() {
                 </div>
               )}
               {ocrStatus === 'matched' && (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-green-600 text-white text-xs px-3 py-1.5 rounded-full">
+                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-emerald-500/90 px-3 py-1.5 text-xs text-white shadow-lg shadow-emerald-900/40">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
                   </svg>
@@ -287,7 +325,7 @@ function NuovaBollaForm() {
                 </div>
               )}
               {ocrStatus === 'not_found' && (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-amber-500 text-white text-xs px-3 py-1.5 rounded-full">
+                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1.5 text-xs text-amber-950 shadow-lg">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
@@ -314,12 +352,14 @@ function NuovaBollaForm() {
             onChange={handleFile}
             className="hidden"
           />
+          </div>
         </div>
 
-        {/* Registrato da — appare dopo che il file è stato caricato */}
         {file && (
-          <div className="bg-white rounded-2xl border border-blue-100 p-5 ring-1 ring-blue-200/50">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+          <div className="app-card ring-1 ring-cyan-500/20">
+            <div className="app-card-bar" aria-hidden />
+            <div className="p-5">
+            <label className={fieldLabelCls}>
               Registrato da
             </label>
             <input
@@ -328,19 +368,21 @@ function NuovaBollaForm() {
               value={registratoDa}
               onChange={(e) => setRegistratoDa(e.target.value)}
               autoFocus
-              className="w-full text-base text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 py-1 -mx-1 placeholder:text-gray-300"
+              className={fieldInputCls}
             />
+            </div>
           </div>
         )}
 
-        {/* Fornitore */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="app-card">
+          <div className="app-card-bar" aria-hidden />
+          <div className="p-5">
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
               {t.bolle.fornitoreLabel}
             </label>
             {ocrStatus === 'scanning' && (
-              <span className="flex items-center gap-1 text-xs text-gray-400">
+              <span className="flex items-center gap-1 text-xs text-slate-500">
                 <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -349,7 +391,7 @@ function NuovaBollaForm() {
               </span>
             )}
             {ocrStatus === 'matched' && matchedFornitore && (
-              <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+              <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/30">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
                 </svg>
@@ -357,16 +399,18 @@ function NuovaBollaForm() {
               </span>
             )}
             {ocrStatus === 'not_found' && ocrNome && (
-              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-200 ring-1 ring-amber-500/25">
                 {t.bolle.ocrRead} &quot;{ocrNome.length > 20 ? ocrNome.slice(0, 20) + '…' : ocrNome}&quot;
               </span>
             )}
           </div>
 
           {fornitori.length === 0 ? (
-            <p className="text-sm text-amber-600">
+            <p className="text-sm text-amber-300">
               {t.fornitori.noSuppliers}{' '}
-              <a href="/fornitori/new" className="underline font-medium">{t.fornitori.addFirst}</a>
+              <a href="/fornitori/new" className="font-medium text-cyan-400 underline transition-colors hover:text-cyan-300">
+                {t.fornitori.addFirst}
+              </a>
             </p>
           ) : (
             <select
@@ -374,14 +418,13 @@ function NuovaBollaForm() {
               value={fornitoreId}
               onChange={(e) => {
                 setFornitoreId(e.target.value)
-                // Se l'utente sovrascrive la scelta OCR, resetta il badge
                 if (matchedFornitore && e.target.value !== matchedFornitore.id) {
                   setOcrStatus('idle')
                   setMatchedFornitore(null)
                 }
               }}
-              className={`w-full text-base text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 py-1 -mx-1 cursor-pointer ${
-                ocrStatus === 'matched' ? 'font-semibold' : ''
+              className={`mt-1 w-full cursor-pointer rounded-xl border border-slate-600/60 bg-slate-800/70 px-3 py-2.5 text-base text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
+                ocrStatus === 'matched' ? 'font-semibold text-cyan-100' : ''
               }`}
             >
               {fornitori.map((f) => (
@@ -389,25 +432,58 @@ function NuovaBollaForm() {
               ))}
             </select>
           )}
+          </div>
         </div>
 
-        {/* Date — documento + caricamento */}
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          {/* Data sul documento */}
-          <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-green-50/40' : ''}`}>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <div className="app-card overflow-hidden">
+          <div className="app-card-bar" aria-hidden />
+          <div className="border-b border-slate-700/50 p-5">
+            <label className={fieldLabelCls}>
+              N° Bolla / DDT <span className="font-normal normal-case text-slate-500">(opzionale)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="es. DDT-2025-001"
+              value={numeroBolla}
+              onChange={e => setNumeroBolla(e.target.value)}
+              className={fieldInputCls}
+            />
+          </div>
+          <div className="p-5">
+            <label className={fieldLabelCls}>
+              Importo totale <span className="font-normal normal-case text-slate-500">(IVA inclusa, opzionale)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-base text-slate-500">£</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={importo}
+                onChange={e => setImporto(e.target.value)}
+                className={`flex-1 ${fieldInputCls}`}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="app-card overflow-hidden">
+          <div className="app-card-bar" aria-hidden />
+          <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-emerald-500/5' : ''}`}>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
                 {t.bolle.dataLabel}
               </label>
               {dateFromOcr ? (
-                <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/30">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
                   </svg>
                   {t.bolle.ocrAutoRecognized}
                 </span>
               ) : (
-                <span className="text-[11px] text-gray-300">Dal documento</span>
+                <span className="text-[11px] text-slate-500">{t.bolle.dateFromDocumentHint}</span>
               )}
             </div>
             <input
@@ -415,28 +491,28 @@ function NuovaBollaForm() {
               required
               value={data}
               onChange={(e) => { setData(e.target.value); setDateFromOcr(false) }}
-              className="w-full text-base text-gray-900 border-0 bg-transparent focus:outline-none focus:ring-0 py-1 -mx-1"
+              className={`${fieldInputCls} [color-scheme:dark]`}
             />
           </div>
 
-          {/* Data di caricamento — automatica */}
-          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Data caricamento</span>
-            <span className="text-sm text-gray-500 font-medium">
-              {new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} — automatica
+          <div className="flex items-center justify-between border-t border-slate-700/50 bg-slate-800/30 px-5 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {t.appStrings.uploadDateLabel}
+            </span>
+            <span className="text-sm font-medium text-slate-400">
+              {todayRegistrationLabel} — {t.appStrings.uploadDateAutomatic}
             </span>
           </div>
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-xl">{error}</p>
+          <p className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300">{error}</p>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={saving || fornitori.length === 0 || ocrStatus === 'scanning'}
-          className="w-full py-4 bg-accent hover:bg-accent-hover active:bg-cyan-700 disabled:opacity-50 text-white text-base font-semibold rounded-2xl transition-colors mt-auto shadow-sm"
+          className="app-glow-cyan mt-auto w-full rounded-2xl bg-cyan-500 py-4 text-base font-semibold text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50"
         >
           {saving ? t.bolle.savingNote : ocrStatus === 'scanning' ? t.bolle.analyzingNote : t.bolle.saveNote}
         </button>
@@ -447,7 +523,13 @@ function NuovaBollaForm() {
 
 export default function NuovaBollaPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-gray-400">Caricamento…</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-slate-500">
+          <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+        </div>
+      }
+    >
       <NuovaBollaForm />
     </Suspense>
   )

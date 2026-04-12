@@ -1,45 +1,37 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { LOCALES, CURRENCIES, TIMEZONES } from '@/lib/translations'
+import Link from 'next/link'
+import { useState, useEffect, useId } from 'react'
+import { CURRENCIES, TIMEZONES } from '@/lib/translations'
 import { useLocale } from '@/lib/locale-context'
 
-const CURRENCY_COOKIE = 'app-currency'
-const TIMEZONE_COOKIE = 'app-timezone'
-
-function getCookie(name: string): string {
-  if (typeof document === 'undefined') return ''
-  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
-  return m ? decodeURIComponent(m[1]) : ''
-}
-
-function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${60 * 60 * 24 * 365}`
-}
-
 export default function ImpostazioniPage() {
-  const { locale, t, setLocale } = useLocale()
+  const { locale, t, currency, setCurrency, timezone, setTimezone } = useLocale()
   const [mounted, setMounted] = useState(false)
-  const [currency, setCurrency] = useState('EUR')
-  const [timezone, setTimezone] = useState('Europe/Rome')
   const [saved, setSaved] = useState(false)
+  const helpIconGradIdRaw = useId()
+  const helpIconGradId = `imp-fluxo-help-${helpIconGradIdRaw.replace(/[^a-zA-Z0-9_-]/g, '') || 'g'}`
+
+  // Local draft state — confirmed on Save
+  const [draftCurrency, setDraftCurrency] = useState(currency)
+  const [draftTimezone, setDraftTimezone] = useState(timezone)
 
   useEffect(() => {
-    setCurrency(getCookie(CURRENCY_COOKIE) || 'EUR')
-    setTimezone(getCookie(TIMEZONE_COOKIE) || 'Europe/Rome')
+    setDraftCurrency(currency)
+    setDraftTimezone(timezone)
     setMounted(true)
-  }, [])
+  }, [currency, timezone])
 
   const handleSave = () => {
-    setCookie(CURRENCY_COOKIE, currency)
-    setCookie(TIMEZONE_COOKIE, timezone)
+    setCurrency(draftCurrency)
+    setTimezone(draftTimezone)
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
-    // No page reload needed — locale changes propagate reactively via context
   }
 
-  const selectCls = 'w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent bg-white'
-  const labelCls = 'block text-sm font-medium text-gray-700 mb-1.5'
+  const selectCls =
+    'w-full rounded-xl border border-slate-600/60 bg-slate-800/70 px-3.5 py-2.5 text-sm text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
+  const labelCls = 'mb-1.5 block text-sm font-medium text-slate-300'
 
   const intlLocale =
     locale === 'it' ? 'it-IT'
@@ -48,129 +40,194 @@ export default function ImpostazioniPage() {
     : locale === 'fr' ? 'fr-FR'
     : 'de-DE'
 
-  // Valutate solo lato client dopo il mount per evitare hydration mismatch:
-  // server e browser possono avere locale di sistema diversi.
   const previewData = mounted
-    ? new Intl.DateTimeFormat(intlLocale, { day: '2-digit', month: 'long', year: 'numeric', timeZone: timezone }).format(new Date())
+    ? new Intl.DateTimeFormat(intlLocale, { day: '2-digit', month: 'long', year: 'numeric', timeZone: draftTimezone }).format(new Date())
     : '…'
   const previewValuta = mounted
-    ? new Intl.NumberFormat(intlLocale, { style: 'currency', currency }).format(1234.56)
+    ? (() => {
+        try {
+          return new Intl.NumberFormat(intlLocale, { style: 'currency', currency: draftCurrency }).format(1234.56)
+        } catch {
+          return `${draftCurrency} 1,234.56`
+        }
+      })()
     : '…'
 
-  return (
-    <div className="p-4 md:p-8 max-w-lg">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{t.impostazioni.title}</h1>
-        <p className="text-sm text-gray-500 mt-1">{t.impostazioni.subtitle}</p>
-      </div>
+  const sections = [
+    {
+      id: 'localisation',
+      label: t.impostazioni.sectionLocalisation,
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+  ]
 
-      <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-100">
-
-        {/* Lingua */}
-        <div className="p-5 flex items-start gap-4">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
-            <svg className="w-[18px] h-[18px] text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <label className={labelCls}>{t.impostazioni.lingua}</label>
-            <select value={locale} onChange={(e) => setLocale(e.target.value as 'it' | 'en' | 'es' | 'fr' | 'de')} className={selectCls}>
-              {LOCALES.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.flag} {l.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
+  const FormBody = () => (
+    <div className="space-y-6">
+      {/* Currency + Timezone — side by side on desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Valuta */}
-        <div className="p-5 flex items-start gap-4">
-          <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0 mt-0.5">
-            <svg className="w-[18px] h-[18px] text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15">
+              <svg className="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <label className={labelCls + ' mb-0'} suppressHydrationWarning>{t.impostazioni.valuta}</label>
           </div>
-          <div className="flex-1">
-            <label className={labelCls}>{t.impostazioni.valuta}</label>
-            <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectCls}>
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.symbol} — {c.label} ({c.code})
-                </option>
-              ))}
-            </select>
-          </div>
+          <select value={draftCurrency} onChange={(e) => setDraftCurrency(e.target.value)} className={selectCls}>
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.symbol} — {c.label} ({c.code})</option>
+            ))}
+          </select>
         </div>
 
         {/* Fuso orario */}
-        <div className="p-5 flex items-start gap-4">
-          <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center shrink-0 mt-0.5">
-            <svg className="w-[18px] h-[18px] text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <label className={labelCls}>{t.impostazioni.fuso}</label>
-            <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={selectCls}>
-              {TIMEZONES.map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Preview — renderizzato solo lato client per evitare hydration mismatch */}
-        <div className="p-5 flex items-start gap-4">
-          <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
-            <svg className="w-[18px] h-[18px] text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{t.impostazioni.preview}</p>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {previewData}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {previewValuta}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Salva */}
-        <div className="p-5 space-y-3">
-          {saved && (
-            <div className="flex items-center gap-2 px-4 py-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium">
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        <div>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/15">
+              <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              {t.impostazioni.saved}
             </div>
-          )}
-          <button
-            onClick={handleSave}
-            className="w-full py-2.5 text-sm font-semibold bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            {t.common.save}
-          </button>
+            <label className={labelCls + ' mb-0'} suppressHydrationWarning>{t.impostazioni.fuso}</label>
+          </div>
+          <select value={draftTimezone} onChange={(e) => setDraftTimezone(e.target.value)} className={selectCls}>
+            {TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Live preview */}
+      <div className="rounded-xl border border-slate-700/60 bg-slate-950/40 p-4">
+        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>{t.impostazioni.preview}</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Date</p>
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
+              <svg className="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span suppressHydrationWarning>{previewData}</span>
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Currency</p>
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
+              <svg className="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span suppressHydrationWarning>{previewValuta}</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  )
+
+  return (
+    <>
+      {/* ══ MOBILE layout (Help /guida: solo qui, non in MobileTopbar) ══ */}
+      <div className="md:hidden p-4 max-w-lg">
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl font-bold text-slate-100" suppressHydrationWarning>{mounted ? t.impostazioni.title : ''}</h1>
+            <p className="mt-1 text-sm text-slate-400" suppressHydrationWarning>{mounted ? t.impostazioni.subtitle : ''}</p>
+          </div>
+          <Link
+            href="/guida"
+            className="shrink-0 flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-slate-900/20 transition-all touch-manipulation hover:border-cyan-400/35 hover:brightness-110 active:scale-[0.98]"
+            aria-label={t.nav.guida}
+            title={t.nav.guida}
+          >
+            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden>
+              <defs>
+                <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#6b8ef5" />
+                  <stop offset="100%" stopColor="#22d3ee" />
+                </linearGradient>
+              </defs>
+              <path
+                stroke={`url(#${helpIconGradId})`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </Link>
+        </div>
+        <div className="app-card overflow-hidden">
+          <div className="app-card-bar" aria-hidden />
+          <div className="space-y-5 p-5">
+          <FormBody />
+          {saved && (
+            <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              <span suppressHydrationWarning>{t.impostazioni.saved}</span>
+            </div>
+          )}
+          <button onClick={handleSave}
+            className="flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-cyan-500 py-3 text-sm font-bold text-white transition-colors hover:bg-cyan-600 active:bg-cyan-700">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <span suppressHydrationWarning>{t.common.save}</span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ DESKTOP layout ═════════════════════════════════════════ */}
+      <div className="hidden md:flex min-h-screen">
+        {/* Left nav */}
+        <aside className="sticky top-0 max-h-screen w-44 shrink-0 self-start border-r border-slate-800 bg-slate-950/80 p-3">
+          <p className="mb-3 mt-2 px-2 text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>
+            {mounted ? t.impostazioni.title : ''}
+          </p>
+          {sections.map(s => (
+            <div key={s.id}
+              className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-2 text-xs font-semibold text-cyan-200">
+              {s.icon}
+              {s.label ?? 'Localisation'}
+            </div>
+          ))}
+        </aside>
+
+        {/* Right panel */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          {/* Header */}
+          <div className="border-b border-slate-800 px-8 pb-5 pt-8">
+            <h1 className="text-xl font-bold text-slate-100" suppressHydrationWarning>{mounted ? t.impostazioni.title : ''}</h1>
+            <p className="mt-0.5 text-sm text-slate-400" suppressHydrationWarning>{mounted ? t.impostazioni.subtitle : ''}</p>
+          </div>
+
+          {/* Form area */}
+          <div className="flex-1 px-8 py-6">
+            <FormBody />
+          </div>
+
+          {/* Sticky save bar */}
+          <div className="sticky bottom-0 flex items-center gap-3 border-t border-slate-800 bg-slate-950/95 px-8 py-4 backdrop-blur-sm">
+            {saved && (
+              <div className="flex items-center gap-2 text-sm font-semibold text-green-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                <span suppressHydrationWarning>{t.impostazioni.saved}</span>
+              </div>
+            )}
+            <div className="flex-1" />
+            <button onClick={handleSave}
+              className="flex items-center gap-2 px-6 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-bold rounded-xl transition-colors shadow-[0_0_12px_rgba(6,182,212,0.2)]">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              <span suppressHydrationWarning>{t.common.save}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }

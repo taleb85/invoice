@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { LocaleProvider, useLocale } from '@/lib/locale-context'
+import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
 import { LOCALES } from '@/lib/translations'
 
 type Message = { type: 'error' | 'success'; text: string }
@@ -54,11 +55,12 @@ function LoginFormInner() {
 
   /* ─── lookup nome → email interna ─────────────────── */
   const lookupSede = async (n: string) => {
-    if (!n.trim()) { setSedeNome(null); setNameReady(false); resolvedEmail.current = null; return }
+    const token = normalizeOperatorLoginName(n)
+    if (!token) { setSedeNome(null); setNameReady(false); resolvedEmail.current = null; return }
     setLookingUp(true)
     const res  = await fetch('/api/lookup-name', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: n.trim() }),
+      body: JSON.stringify({ name: token }),
     })
     const data = await res.json()
     setLookingUp(false)
@@ -174,45 +176,46 @@ function LoginFormInner() {
     router.push('/'); router.refresh()
   }
 
-  const inputCls = 'w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent bg-white placeholder:text-gray-300 transition'
+  const inputCls = 'w-full px-4 py-3 text-sm border border-slate-600/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 bg-slate-800/70 text-slate-100 placeholder:text-slate-500 transition'
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-xs">
 
-      {/* Logo */}
-      <div className="flex flex-col items-center mb-8 -mt-8">
-        <div className="flex items-center gap-3">
-          <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg" className="w-24 h-14 shrink-0">
-            <defs>
-              <linearGradient id="lg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#06b6d4"/>
-                <stop offset="100%" stopColor="#22d3ee"/>
-              </linearGradient>
-            </defs>
-            <rect x="0" y="5" width="50" height="50" rx="12" fill="url(#lg-grad)" opacity="0.18"/>
-            <path d="M5 35 C20 15, 45 15, 55 35 S80 55, 95 35" stroke="url(#lg-grad)" strokeWidth="4" fill="none" strokeLinecap="round"/>
-            <circle cx="5"  cy="35" r="4" fill="#06b6d4"/>
-            <circle cx="55" cy="35" r="4" fill="#22d3ee"/>
-            <circle cx="95" cy="35" r="4" fill="#06b6d4"/>
-          </svg>
-          <div>
-            <h1 className="text-4xl font-extrabold tracking-widest bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent leading-none">FLUXO</h1>
-            <p className="text-sm text-white/60 tracking-wide mt-1">Gestione Fatture</p>
-          </div>
-        </div>
-        <p className="text-sm text-white/50 mt-8">
+      {/* Logo — ingrandito, verticale */}
+      <div className="flex flex-col items-center mb-6 -mt-4">
+        <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="w-28 h-[68px] shrink-0 drop-shadow-[0_6px_24px_rgba(6,182,212,0.45)] mb-4">
+          <defs>
+            <linearGradient id="lg-card" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e3a5f"/>
+              <stop offset="100%" stopColor="#172554"/>
+            </linearGradient>
+            <linearGradient id="lg-wave" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   stopColor="#5b7cf9"/>
+              <stop offset="50%"  stopColor="#38bdf8"/>
+              <stop offset="100%" stopColor="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <rect width="56" height="56" rx="13" fill="url(#lg-card)" />
+          <path d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
+                stroke="url(#lg-wave)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+          <circle cx="7"  cy="28" r="3.5" fill="#5b7cf9"/>
+          <circle cx="48" cy="28" r="3.5" fill="#38bdf8"/>
+          <circle cx="88" cy="28" r="3.5" fill="#22d3ee"/>
+        </svg>
+        <h1 className="text-5xl font-extrabold tracking-widest bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent leading-none drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]">FLUXO</h1>
+        <p className="text-[11px] font-semibold tracking-[0.3em] uppercase mt-2 bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent opacity-80">Gestione Fatture</p>
+        <p className="text-xs text-white/90 mt-6">
           {mode === 'name' ? t.login.subtitle : t.login.adminSubtitle}
         </p>
       </div>
 
-      {/* Card */}
-      <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden">
-        {/* Barra colorata superiore */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-cyan-500 via-cyan-300 to-accent" />
+      {/* Card — tema Deep Ocean; shell + barra = globals .app-card-login / .app-card-bar */}
+      <div className="app-card-login">
+        <div className="app-card-bar" aria-hidden />
 
-        <div className="p-8 space-y-5">
+        <div className="p-6 space-y-4">
 
         {mode === 'name' ? (
           /* ── OPERATORE: Nome + PIN a 4 cifre ── */
@@ -220,22 +223,31 @@ function LoginFormInner() {
 
             {/* Nome */}
             <div>
-              <label className="block text-xs font-semibold text-accent/70 mb-1.5 uppercase tracking-wide">{t.login.nameLabel}</label>
+              <label className="block text-xs font-semibold text-cyan-400/80 mb-1.5 uppercase tracking-wide">{t.login.nameLabel}</label>
               <input
                 type="text"
-                autoComplete="name"
+                autoComplete="given-name"
                 placeholder={t.login.namePlaceholder}
                 value={name}
-                onChange={e => { setName(e.target.value); setSedeNome(null); setNameReady(false); resolvedEmail.current = null }}
-                onBlur={() => lookupSede(name)}
-                className={inputCls}
+                onChange={e => {
+                  setName(e.target.value.toUpperCase())
+                  setSedeNome(null)
+                  setNameReady(false)
+                  resolvedEmail.current = null
+                }}
+                onBlur={() => {
+                  const token = normalizeOperatorLoginName(name)
+                  setName(token)
+                  void lookupSede(token)
+                }}
+                className={inputCls + ' uppercase'}
                 autoFocus
                 disabled={loading}
               />
               {/* Badge sede */}
               <div className="mt-2 h-6 flex items-center">
                 {lookingUp && (
-                  <span className="text-xs text-gray-400 flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400 flex items-center gap-1.5">
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -244,7 +256,7 @@ function LoginFormInner() {
                   </span>
                 )}
                 {!lookingUp && sedeNome && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-100">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-300 text-xs font-semibold rounded-lg border border-cyan-500/20">
                     <svg className="w-3 h-3 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
@@ -252,14 +264,14 @@ function LoginFormInner() {
                   </span>
                 )}
                 {!lookingUp && !sedeNome && name.trim().length > 1 && !nameReady && (
-                  <span className="text-xs text-gray-400">{t.login.enterFullName}</span>
+                  <span className="text-xs text-slate-500">{t.login.enterFirstName}</span>
                 )}
               </div>
             </div>
 
             {/* PIN a 4 caselle */}
             <div>
-              <label className="block text-xs font-semibold text-accent/70 mb-3 uppercase tracking-wide">
+              <label className="block text-xs font-semibold text-cyan-400/80 mb-3 uppercase tracking-wide">
                 {t.login.pinLabel}
                 <span className="ml-1.5 font-normal text-gray-400 normal-case">{t.login.pinDigits}</span>
               </label>
@@ -279,12 +291,12 @@ function LoginFormInner() {
                       'w-14 h-14 text-center text-xl font-bold border-2 rounded-xl transition-all',
                       'focus:outline-none focus:ring-0',
                       loading
-                        ? 'border-gray-100 bg-gray-50 text-gray-300'
+                        ? 'border-slate-700 bg-slate-800/50 text-slate-600'
                         : pin[idx]
-                          ? 'border-cyan-400 bg-gradient-to-b from-cyan-50 to-cyan-100/60 text-cyan-900 shadow-sm shadow-cyan-100'
+                          ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
                           : nameReady
-                            ? 'border-gray-200 bg-white hover:border-cyan-300 focus:border-cyan-400 focus:bg-cyan-50/20'
-                            : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed',
+                            ? 'border-slate-600 bg-slate-800/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10'
+                            : 'border-slate-700/50 bg-slate-800/30 text-slate-600 cursor-not-allowed',
                     ].join(' ')}
                   />
                 ))}
@@ -295,7 +307,7 @@ function LoginFormInner() {
                 {Array.from({ length: PIN_LENGTH }).map((_, i) => (
                     <span key={i} className={[
                     'w-1.5 h-1.5 rounded-full transition-all duration-200',
-                    pin[i] ? 'bg-cyan-400 scale-110 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-gray-200',
+                    pin[i] ? 'bg-cyan-400 scale-110 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-slate-600',
                   ].join(' ')} />
                 ))}
               </div>
@@ -320,7 +332,7 @@ function LoginFormInner() {
           <form onSubmit={e => { e.preventDefault(); handleLoginByEmail() }} className="space-y-4">
 
             <div className="relative">
-              <label className="block text-xs font-semibold text-accent/70 mb-1.5 uppercase tracking-wide">{t.login.emailLabel}</label>
+              <label className="block text-xs font-semibold text-cyan-400/80 mb-1.5 uppercase tracking-wide">{t.login.emailLabel}</label>
               <input
                 type="email" autoComplete="email" placeholder={t.login.emailPlaceholder}
                 value={email}
@@ -330,15 +342,15 @@ function LoginFormInner() {
                 className={inputCls} autoFocus
               />
               {showSugg && (
-                <ul className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden text-sm">
+                <ul className="absolute z-10 left-0 right-0 mt-1 bg-slate-800 border border-slate-600/60 rounded-xl shadow-xl overflow-hidden text-sm">
                   {suggestions.map(s => {
                     const at = s.indexOf('@')
                     return (
                       <li key={s}>
                         <button type="button" onMouseDown={() => { setEmail(s); setSuggestions([]); setShowSugg(false) }}
-                          className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors flex items-center gap-1">
-                          <span className="text-gray-400">{s.slice(0, at + 1)}</span>
-                          <span className="text-gray-800 font-medium">{s.slice(at + 1)}</span>
+                          className="w-full text-left px-4 py-2.5 hover:bg-slate-700/60 transition-colors flex items-center gap-1">
+                          <span className="text-slate-400">{s.slice(0, at + 1)}</span>
+                          <span className="text-slate-100 font-medium">{s.slice(at + 1)}</span>
                         </button>
                       </li>
                     )
@@ -348,7 +360,7 @@ function LoginFormInner() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-accent/70 mb-1.5 uppercase tracking-wide">{t.login.passwordLabel}</label>
+              <label className="block text-xs font-semibold text-cyan-400/80 mb-1.5 uppercase tracking-wide">{t.login.passwordLabel}</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'} autoComplete="current-password"
@@ -356,7 +368,7 @@ function LoginFormInner() {
                   onChange={e => setAdminPw(e.target.value)} className={inputCls + ' pr-11'}
                 />
                 <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
                   {showPw ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
@@ -374,7 +386,7 @@ function LoginFormInner() {
             {message && <FeedbackMsg msg={message} />}
 
             <button type="submit" disabled={loading || !email || !adminPw}
-              className="w-full py-3 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
+              className="app-glow-cyan flex w-full items-center justify-center gap-2 rounded-full bg-cyan-500 py-3 text-sm font-bold uppercase tracking-wide text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50">
               {loading
                 ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                 : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
@@ -390,12 +402,12 @@ function LoginFormInner() {
       <div className="flex items-center justify-between mt-5 px-1">
         {mode === 'name' ? (
           <button type="button" onClick={() => { setMode('admin'); setMessage(null) }}
-            className="text-[11px] text-white/25 hover:text-white/50 transition-colors">
+            className="text-[11px] text-white/80 hover:text-white transition-colors">
             {t.login.adminLink}
           </button>
         ) : (
           <button type="button" onClick={() => { setMode('name'); setMessage(null) }}
-            className="text-[11px] text-white/25 hover:text-white/50 transition-colors">
+            className="text-[11px] text-white/50 hover:text-white/80 transition-colors">
             {t.login.operatorLink}
           </button>
         )}
@@ -405,7 +417,7 @@ function LoginFormInner() {
           <button
             type="button"
             onClick={() => setLangOpen(o => !o)}
-            className="flex items-center gap-1 text-[11px] text-white/25 hover:text-white/50 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white/80 transition-colors"
           >
             <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag}</span>
             <svg className={`w-2.5 h-2.5 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -443,7 +455,7 @@ function LoginFormInner() {
 function FeedbackMsg({ msg }: { msg: Message }) {
   return (
     <div className={`flex items-start gap-2 text-sm px-4 py-3 rounded-xl ${
-      msg.type === 'error' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'
+      msg.type === 'error' ? 'bg-red-500/10 text-red-300 border border-red-500/20' : 'bg-green-500/10 text-green-300 border border-green-500/20'
     }`}>
       {msg.type === 'error'
         ? <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

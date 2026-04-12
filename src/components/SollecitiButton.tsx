@@ -4,17 +4,16 @@ import { useState } from 'react'
 import { useT } from '@/lib/use-t'
 
 interface Props {
-  /** Numero di bolle senza fattura. Se 0 o undefined il pulsante non viene mostrato. */
-  bolleInAttesa?: number
+  /** Fornitori con bolle «in attesa» in scadenza (stessa logica di POST /api/solleciti). */
+  fornitoriInScadenza?: number
 }
 
-export default function SollecitiButton({ bolleInAttesa = 0 }: Props) {
+export default function SollecitiButton({ fornitoriInScadenza = 0 }: Props) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
   const t = useT()
 
-  // Non mostrare nulla se non ci sono bolle in attesa
-  if (bolleInAttesa === 0) return null
+  if (fornitoriInScadenza === 0) return null
 
   const handleClick = async () => {
     setLoading(true)
@@ -24,14 +23,18 @@ export default function SollecitiButton({ bolleInAttesa = 0 }: Props) {
       const json = await res.json()
 
       if (!res.ok) {
-        setToast({ type: 'error', text: json.error ?? 'Errore durante l\'invio.' })
+        setToast({ type: 'error', text: json.error ?? t.ui.reminderError })
       } else if (json.inviati === 0) {
-        setToast({ type: 'ok', text: 'Nessun sollecito da inviare (fornitori senza email?).' })
+        setToast({ type: 'ok', text: t.ui.noReminders })
       } else {
-        setToast({ type: 'ok', text: `${json.inviati} sollecit${json.inviati === 1 ? 'o inviato' : 'i inviati'} su ${json.totale}.` })
+        const tpl = json.inviati === 1 ? t.ui.remindersSentOne : t.ui.remindersSentMany
+        setToast({
+          type: 'ok',
+          text: tpl.replace(/\{n\}/g, String(json.inviati)).replace(/\{total\}/g, String(json.totale)),
+        })
       }
     } catch {
-      setToast({ type: 'error', text: 'Errore di rete. Riprova.' })
+      setToast({ type: 'error', text: t.ui.networkError })
     } finally {
       setLoading(false)
       setTimeout(() => setToast(null), 5000)
@@ -39,11 +42,11 @@ export default function SollecitiButton({ bolleInAttesa = 0 }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="flex shrink-0 flex-col items-end gap-1.5">
       <button
         onClick={handleClick}
         disabled={loading}
-        className="flex items-center gap-2 px-3 py-2.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+        className="inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg bg-orange-500 px-3.5 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation"
       >
         {loading ? (
           <>
@@ -55,13 +58,13 @@ export default function SollecitiButton({ bolleInAttesa = 0 }: Props) {
           </>
         ) : (
           <>
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            <span className="hidden md:inline">{t.dashboard.sendReminders}</span>
+            <span>{t.dashboard.sendReminders}</span>
             {/* Badge con conteggio */}
-            <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-white text-orange-600 rounded-full shrink-0">
-              {bolleInAttesa > 9 ? '9+' : bolleInAttesa}
+            <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-orange-500/40 bg-orange-500/20 px-0.5 text-[10px] font-bold tabular-nums text-orange-200">
+              {fornitoriInScadenza > 9 ? '9+' : fornitoriInScadenza}
             </span>
           </>
         )}
@@ -69,7 +72,7 @@ export default function SollecitiButton({ bolleInAttesa = 0 }: Props) {
 
       {toast && (
         <p className={`text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${
-          toast.type === 'ok' ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'
+          toast.type === 'ok' ? 'bg-slate-800/90 text-green-300' : 'bg-slate-800/90 text-red-300'
         }`}>
           {toast.text}
         </p>

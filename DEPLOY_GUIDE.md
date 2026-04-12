@@ -2,6 +2,11 @@
 
 Questa guida descrive i passaggi per portare **FLUXO** in produzione su Vercel in meno di 10 minuti.
 
+> **Supabase SQL Editor — errore `syntax error at or near "#"`**  
+> Stai incollando un file **Markdown** (`.md`), non SQL. I titoli con `#` non sono validi in PostgreSQL.  
+> **Non incollare `DEPLOY_GUIDE.md` nell’editor.** Apri i file **`*.sql`** elencati al **Passo 3** più sotto e incolla **solo il contenuto SQL** di ciascuno, uno alla volta.  
+> Opzionale: `supabase/sql-editor-reminder.sql` (commenti + `SELECT 1`) — incollalo per verificare l’editor senza modificare dati.
+
 ---
 
 ## Prerequisiti
@@ -68,6 +73,9 @@ vercel env add IMAP_PASSWORD
 
 Esegui gli script SQL nell'ordine sotto dalla **Supabase Dashboard → SQL Editor**.  
 Salta i file già applicati sul tuo progetto (la maggior parte usa `IF NOT EXISTS` / `DROP IF EXISTS` ed è idempotente).
+
+**Come fare:** in Cursor o nel file system apri ad es. `multi-sede.sql`, seleziona tutto il testo SQL, copia, incolla in Supabase → **Run**. Ripeti per ogni file nell’ordine.  
+Non usare questo file `.md` come query: servono i file `.sql` del progetto. Checklist in commenti SQL: `supabase/sql-editor-reminder.sql`.
 
 ### Fase A — Base (progetti nuovi o storici senza multi-sede)
 

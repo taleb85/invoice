@@ -1,10 +1,14 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/utils/supabase/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, getProfile } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import CountrySelector from '@/components/CountrySelector'
+import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import { getLocale } from '@/lib/localization'
+import { getT, getLocale as getAppLocale, getCurrency } from '@/lib/locale-server'
+import { fetchOperatorDashboardKpis, fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
+import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
 
 interface SedeProfile {
   id: string
@@ -52,6 +56,17 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
   const sede = await fetchSedeProfile(sede_id)
   if (!sede) redirect('/sedi')
 
+  const profile = await getProfile()
+  const isAdmin = profile?.role === 'admin'
+
+  const [tDashboard, appLocale, currency, fornitoreIds] = await Promise.all([
+    getT(),
+    getAppLocale(),
+    getCurrency(),
+    fornitoreIdsForSede(supabase, sede_id),
+  ])
+  const sedeKpis = await fetchOperatorDashboardKpis(supabase, sede_id, fornitoreIds)
+
   const imapConfigured = !!(sede.imap_host && sede.imap_user)
 
   return (
@@ -88,7 +103,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
                   Email configurata ({sede.imap_user})
                 </span>
               ) : (
-                <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                <span className="rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
                   Email non configurata
                 </span>
               )}
@@ -104,75 +119,87 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
       {(() => {
         const loc = getLocale(sede.country_code)
         return (
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 bg-white border border-slate-200 rounded-xl px-5 py-4 mb-6">
-            <div className="flex items-center gap-2 text-sm text-slate-500 shrink-0">
+          <div className="app-card mb-6 flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-6">
+            <div className="app-card-bar mb-3 sm:mb-0" aria-hidden />
+            <div className="flex shrink-0 items-center gap-2 text-sm text-slate-400">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21l18-9-18-9v7l12 2-12 2v7z" />
               </svg>
               Paese sede
             </div>
             <CountrySelector sedeId={sede.id} initialCode={sede.country_code} />
-            <div className="flex items-center gap-4 ml-auto flex-wrap text-xs text-slate-500">
-              <span><span className="font-medium text-slate-700">{loc.vat}</span> · etichetta imposta</span>
-              <span><span className="font-medium text-slate-700">{loc.vatLabel}</span> · n. partita {loc.vat}</span>
-              <span><span className="font-medium text-slate-700">{loc.currency}</span> · valuta ({loc.flag})</span>
+            <div className="ml-auto flex flex-wrap items-center gap-4 text-xs text-slate-400">
+              <span><span className="font-medium text-slate-200">{loc.vat}</span> · etichetta imposta</span>
+              <span><span className="font-medium text-slate-200">{loc.vatLabel}</span> · n. partita {loc.vat}</span>
+              <span><span className="font-medium text-slate-200">{loc.currency}</span> · valuta ({loc.flag})</span>
             </div>
           </div>
         )
       })()}
 
+      {isAdmin ? (
+        <section id="sede-operatori" className="scroll-mt-24">
+          <SedeAddOperatorForm sedeId={sede_id} />
+        </section>
+      ) : null}
+
+      <DashboardOperatorKpiGrid kpis={sedeKpis} t={tDashboard} locale={appLocale} currency={currency} />
+
       {/* Quick-action cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Link
           href={`/sedi/${sede_id}/statements`}
-          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-accent hover:shadow-sm transition-all"
+          className="app-card group flex flex-col gap-3 p-5 transition-all hover:border-cyan-500/40"
         >
-          <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="app-card-bar mb-1" aria-hidden />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500/15 transition-colors group-hover:bg-cyan-500/25">
+            <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           </div>
           <div>
-            <p className="font-semibold text-slate-800 text-sm">Estratti Conto</p>
-            <p className="text-xs text-slate-500 mt-0.5">Associa fatture alle bolle</p>
+            <p className="text-sm font-semibold text-slate-100">Estratti Conto</p>
+            <p className="mt-0.5 text-xs text-slate-400">Associa fatture alle bolle</p>
           </div>
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-accent mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
 
         <Link
           href={`/sedi/${sede_id}/discovery`}
-          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-accent hover:shadow-sm transition-all"
+          className="app-card group flex flex-col gap-3 p-5 transition-all hover:border-emerald-500/40"
         >
-          <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-            <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="app-card-bar mb-1" aria-hidden />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 transition-colors group-hover:bg-emerald-500/25">
+            <svg className="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
           <div>
-            <p className="font-semibold text-slate-800 text-sm">Scopri Fornitori</p>
-            <p className="text-xs text-slate-500 mt-0.5">Trova mittenti sconosciuti</p>
+            <p className="text-sm font-semibold text-slate-100">Scopri Fornitori</p>
+            <p className="mt-0.5 text-xs text-slate-400">Trova mittenti sconosciuti</p>
           </div>
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-accent mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>
 
         <Link
           href={`/sedi/${sede_id}/fornitori`}
-          className="group flex flex-col gap-3 p-5 bg-white border border-slate-200 rounded-xl hover:border-accent hover:shadow-sm transition-all"
+          className="app-card group flex flex-col gap-3 p-5 transition-all hover:border-violet-500/40"
         >
-          <div className="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center group-hover:bg-violet-200 transition-colors">
-            <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="app-card-bar mb-1" aria-hidden />
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 transition-colors group-hover:bg-violet-500/25">
+            <svg className="h-5 w-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
           <div>
-            <p className="font-semibold text-slate-800 text-sm">Fornitori</p>
-            <p className="text-xs text-slate-500 mt-0.5">{sede.fornitori_count} registrati</p>
+            <p className="text-sm font-semibold text-slate-100">Fornitori</p>
+            <p className="mt-0.5 text-xs text-slate-400">{sede.fornitori_count} registrati</p>
           </div>
-          <svg className="w-4 h-4 text-slate-400 group-hover:text-accent mt-auto self-end transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </Link>

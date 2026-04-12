@@ -16,6 +16,10 @@ export interface MeData {
   sede_id:      string | null
   sede_nome:    string | null
   country_code: string
+  /** ISO 4217 currency code from the active sede (e.g. 'GBP', 'EUR', 'USD') */
+  currency:     string
+  /** IANA timezone for the active sede (e.g. 'Europe/London') */
+  timezone:     string
   is_admin:     boolean
   all_sedi:     { id: string; nome: string }[]
 }
@@ -33,6 +37,8 @@ const DEFAULT_ME: MeData = {
   sede_id:      null,
   sede_nome:    null,
   country_code: 'UK',
+  currency:     'GBP',
+  timezone:     'Europe/London',
   is_admin:     false,
   all_sedi:     [],
 }
@@ -54,13 +60,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) { setMe(DEFAULT_ME); return }
+        const raw = String(data.role ?? '').toLowerCase()
+        const role: MeData['role'] | null =
+          raw === 'admin' ? 'admin' : raw === 'operatore' ? 'operatore' : null
+        const isAdmin = !!data.is_admin || role === 'admin'
         setMe({
           user:         data.user         ?? null,
-          role:         data.role         ?? null,
+          role,
           sede_id:      data.sede_id      ?? null,
           sede_nome:    data.sede_nome    ?? null,
           country_code: data.country_code ?? 'UK',
-          is_admin:     !!data.is_admin,
+          currency:     data.currency     ?? 'GBP',
+          timezone:     data.timezone     ?? 'Europe/London',
+          is_admin:     isAdmin,
           all_sedi:     data.all_sedi     ?? [],
         })
       })

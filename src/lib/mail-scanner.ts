@@ -12,7 +12,23 @@ export interface ScannedEmail {
   uid: number
   from: string
   subject: string | null
+  /** Testo email (plain o da HTML) per parsing Rekki / altre integrazioni */
+  bodyText?: string | null
   attachments: EmailAttachment[]
+}
+
+function emailBodyPlain(parsed: { text?: string; html?: string | false }): string | null {
+  const t = parsed.text?.trim()
+  if (t) return t
+  const h = typeof parsed.html === 'string' ? parsed.html : ''
+  if (!h) return null
+  const plain = h
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return plain || null
 }
 
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic']
@@ -88,6 +104,7 @@ export async function fetchUnseenEmails(): Promise<ScannedEmail[]> {
         uid: msg.uid,
         from: fromAddr,
         subject: parsed.subject ?? null,
+        bodyText: emailBodyPlain(parsed),
         attachments: validAttachments,
       })
     }

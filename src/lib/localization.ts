@@ -77,20 +77,49 @@ export function getLocale(countryCode: string | null | undefined): CountryLocale
   return LOCALES[(countryCode ?? 'UK') as CountryCode] ?? LOCALES.UK
 }
 
-/** Formatta un importo nella valuta e nel formato del paese. */
+/**
+ * Formatta un importo nella valuta e nel formato del paese.
+ *
+ * @param amount        - Importo numerico
+ * @param countryCode   - Codice paese ISO-2 usato per derivare locale e valuta di default
+ * @param currencyOverride - Codice valuta ISO-4217 esplicito (sovrascrive quello derivato dal paese)
+ */
 export function formatCurrency(
   amount: number | null | undefined,
   countryCode: string | null | undefined,
+  currencyOverride?: string | null,
+): string {
+  if (amount === null || amount === undefined) return '—'
+  const loc = getLocale(countryCode)
+  const currency = currencyOverride?.trim() || loc.currency
+  try {
+    return new Intl.NumberFormat(loc.currencyLocale, {
+      style:    'currency',
+      currency,
+    }).format(amount)
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`
+  }
+}
+
+/**
+ * Formatta un numero rispettando il separatore decimale/migliaia del paese.
+ * Utile quando si vuole mostrare un numero senza simbolo di valuta.
+ */
+export function formatNumber(
+  amount: number | null | undefined,
+  countryCode: string | null | undefined,
+  decimals = 2,
 ): string {
   if (amount === null || amount === undefined) return '—'
   const loc = getLocale(countryCode)
   try {
     return new Intl.NumberFormat(loc.currencyLocale, {
-      style:    'currency',
-      currency: loc.currency,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     }).format(amount)
   } catch {
-    return `${loc.currency} ${amount.toFixed(2)}`
+    return amount.toFixed(decimals)
   }
 }
 

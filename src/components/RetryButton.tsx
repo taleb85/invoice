@@ -26,7 +26,7 @@ export default function RetryButton({ logId }: { logId: string }) {
     <button
       onClick={handleRetry}
       disabled={loading}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-xs font-medium rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 active:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-manipulation"
     >
       {loading ? (
         <>

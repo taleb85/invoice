@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useId } from 'react'
 import Link from 'next/link'
+import { useT } from '@/lib/use-t'
 
 interface DiscoveredSender {
   email: string
@@ -97,13 +98,13 @@ function ScannerRow({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div className="bg-slate-900/90 rounded-xl border border-slate-600/50 overflow-hidden">
       {/* Main row */}
       <div className="flex items-center gap-3 p-4">
         <EmailAvatar email={sender.email} />
 
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-slate-800 truncate text-sm">{sender.email}</p>
+          <p className="font-medium text-slate-100 truncate text-sm">{sender.email}</p>
           {sender.display_name && (
             <p className="text-xs text-slate-500 truncate">{sender.display_name}</p>
           )}
@@ -111,7 +112,7 @@ function ScannerRow({
 
         <div className="flex items-center gap-2 shrink-0">
           {/* Attachment count badge */}
-          <span className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+          <span className="flex items-center gap-1 px-2 py-0.5 border border-cyan-500/35 bg-cyan-500/15 text-cyan-200 text-xs font-medium rounded-full">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
             </svg>
@@ -120,7 +121,7 @@ function ScannerRow({
 
           {/* Sede badge */}
           {sender.sede_nome && (
-            <span className="px-2 py-0.5 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">
+            <span className="px-2 py-0.5 border border-violet-500/35 bg-violet-500/15 text-violet-200 text-xs font-medium rounded-full">
               {sender.sede_nome}
             </span>
           )}
@@ -143,52 +144,52 @@ function ScannerRow({
 
       {/* Inline form */}
       {expanded && (
-        <div className="border-t border-slate-100 bg-slate-50 p-4">
+        <div className="border-t border-slate-700/50 bg-slate-800/70 p-4">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Create New Supplier</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Company name */}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Company Name *</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Company Name *</label>
               <input
                 type="text"
                 value={form.nome}
                 onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
                 placeholder="e.g. Acme S.r.l."
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             {/* Email (readonly) */}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Email (discovered)</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">Email (discovered)</label>
               <input
                 type="text"
                 value={form.email}
                 readOnly
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed"
+                className="w-full px-3 py-2 text-sm border border-slate-600/50 rounded-lg bg-slate-950/50 text-slate-400 cursor-not-allowed"
               />
             </div>
 
             {/* VAT */}
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">VAT</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">VAT</label>
               <input
                 type="text"
                 value={form.piva}
                 onChange={e => setForm(f => ({ ...f, piva: e.target.value }))}
                 placeholder="12345678901"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             {/* Sede */}
             {sedi.length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Branch (Sede)</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Branch (Sede)</label>
                 <select
                   value={form.sede_id}
                   onChange={e => setForm(f => ({ ...f, sede_id: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
                 >
                   <option value="">— No specific branch —</option>
                   {sedi.map(s => (
@@ -200,7 +201,7 @@ function ScannerRow({
           </div>
 
           {error && (
-            <p className="mt-2 text-xs text-red-600 bg-red-50 px-3 py-1.5 rounded-lg">{error}</p>
+            <p className="mt-2 text-xs text-red-300 bg-red-500/10 px-3 py-1.5 rounded-lg">{error}</p>
           )}
 
           <div className="mt-3 flex justify-end">
@@ -235,6 +236,9 @@ function ScannerRow({
 
 /** Named export so sede-specific wrapper pages can render with a fixed sedeId. */
 export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
+  const t = useT()
+  const helpIconGradIdRaw = useId()
+  const helpIconGradId = `disc-fluxo-help-${helpIconGradIdRaw.replace(/[^a-zA-Z0-9_-]/g, '') || 'g'}`
   const [scanning, setScanning] = useState(false)
   const [result, setResult] = useState<ScanResult | null>(null)
   const [sedi, setSedi] = useState<Sede[]>([])
@@ -274,15 +278,39 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
     <div className="p-4 md:p-8 max-w-4xl">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-8 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
-            <Link href="/impostazioni" className="hover:text-slate-700 transition-colors">Settings</Link>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <span>Supplier Discovery</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 text-sm text-slate-500 min-w-0">
+              <Link href="/impostazioni" className="hover:text-slate-700 transition-colors shrink-0">Settings</Link>
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span className="truncate">Supplier Discovery</span>
+            </div>
+            <Link
+              href="/guida"
+              className="md:hidden shrink-0 flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-slate-900/20 transition-all touch-manipulation hover:border-cyan-400/35 hover:brightness-110 active:scale-[0.98]"
+              aria-label={t.nav.guida}
+              title={t.nav.guida}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" aria-hidden>
+                <defs>
+                  <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#6b8ef5" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                </defs>
+                <path
+                  stroke={`url(#${helpIconGradId})`}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </Link>
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">Inbox Explorer</h1>
+          <h1 className="text-2xl font-bold text-slate-100">Inbox Explorer</h1>
           <p className="mt-1 text-sm text-slate-500">
             Scans your connected mailboxes (last 30 days) and surfaces senders with attachments who are not yet registered as suppliers.
           </p>
@@ -354,28 +382,28 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
         <>
           {/* Stats bar */}
           <div className="flex items-center gap-4 mb-5">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
-              <span className="text-xs font-medium text-slate-600">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-700/50 bg-slate-800/70 px-3 py-1.5">
+              <span className="text-xs font-medium text-slate-300">
                 {visibleSenders.length} unknown sender{visibleSenders.length !== 1 ? 's' : ''} found
               </span>
             </div>
             {added.size > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg">
-                <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-1.5">
+                <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-xs font-medium text-emerald-700">{added.size} added as supplier{added.size !== 1 ? 's' : ''}</span>
+                <span className="text-xs font-medium text-emerald-200">{added.size} added as supplier{added.size !== 1 ? 's' : ''}</span>
               </div>
             )}
           </div>
 
           {/* Empty state */}
           {visibleSenders.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl border border-slate-200">
+            <div className="text-center py-16 bg-slate-900/90 rounded-xl border border-slate-600/50">
               <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="font-medium text-slate-600">All senders are already registered</p>
+              <p className="font-medium text-slate-300">All senders are already registered</p>
               <p className="text-sm text-slate-400 mt-1">No unknown senders with attachments found in the last 30 days.</p>
             </div>
           ) : (
@@ -395,7 +423,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
 
       {/* Pre-scan state */}
       {!scanning && !result && !scanError && (
-        <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
+        <div className="rounded-xl border border-dashed border-slate-600/50 bg-slate-900/90 py-20 text-center">
           <svg className="w-14 h-14 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>

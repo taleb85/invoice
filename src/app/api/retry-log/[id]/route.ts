@@ -68,24 +68,20 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     metadata:       null,   // column added by migration — fallback below if missing
   }
 
-  console.log('DEBUG_INSERT_PAYLOAD (retry):', JSON.stringify(basePayload, null, 2))
-
   let { error: insertError } = await service.from('documenti_da_processare').insert([basePayload])
 
-  // Fallback: 'metadata' column not yet migrated in this environment
+  // Fallback: colonna 'metadata' non ancora migrata
   if (insertError && (insertError.code === '42703' || insertError.message?.includes('metadata') || insertError.message?.includes('is_statement'))) {
-    console.warn('[RETRY] ⚠️  Colonna extra mancante — retry senza metadata')
+    console.warn('[RETRY] Colonna extra mancante — retry senza metadata')
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { metadata: _m, is_statement: _is, ...safePayload } = basePayload as Record<string, unknown>
     const r2 = await service.from('documenti_da_processare').insert([safePayload])
     insertError = r2.error
-    if (insertError) {
-      console.error('DEBUG_DB_ERROR retry fallback:', JSON.stringify(insertError, null, 2))
-    }
+    if (insertError) console.error('[RETRY] Fallback insert error:', insertError.message)
   }
 
   if (insertError) {
-    console.error('DEBUG_DB_ERROR (retry):', JSON.stringify(insertError, null, 2))
+    console.error('[RETRY] Errore inserimento documento:', insertError.message)
     const detail = `[${insertError.code ?? 'ERR'}] ${insertError.message}${insertError.details ? ' | ' + insertError.details : ''}`
     // Write the real DB error into the log so it's visible in the UI
     await service
@@ -103,8 +99,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     .from('log_sincronizzazione')
     .update({ stato: 'successo', errore_dettaglio: null })
     .eq('id', id)
-
-  console.log(`[RETRY] Log ${id} → successo | fornitore=${log.fornitore_id ?? 'N/A'} sede=${sedeId ?? 'NULL'}`)
 
   return NextResponse.json({
     successo: true,

@@ -1,91 +1,128 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { openDocumentUrl } from '@/lib/open-document-url'
 import { createClient } from '@/utils/supabase/server'
+import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supabase-detail-for-viewer'
 import ToggleStato from './ToggleStato'
-import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale'
+import DocumentUnavailable from '@/components/DocumentUnavailable'
+import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 
-async function getBolla(id: string) {
+/** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
+async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
   const supabase = await createClient()
-  const { data } = await supabase
-    .from('bolle')
-    .select('*, fornitore:fornitori(nome, email, piva)')
-    .eq('id', id)
-    .single()
-  return data
-}
-
-async function getFatture(bollaId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('fatture')
-    .select('*')
-    .eq('bolla_id', bollaId)
-    .order('data', { ascending: false })
-  return data ?? []
+  const { data, error } = await supabase.rpc('bolla_has_rekki_prezzo_flag', { p_bolla_id: bollaId })
+  if (error) return false
+  return Boolean(data)
 }
 
 export default async function BollaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [bolla, fatture, t, locale, tz] = await Promise.all([getBolla(id), getFatture(id), getT(), getLocale(), getTimezone()])
-  if (!bolla) notFound()
+  const [bolla, t, locale, tz] = await Promise.all([getBollaForViewer(id), getT(), getLocale(), getTimezone()])
+  if (!bolla) return <DocumentUnavailable kind="bolla" />
+  const [fatture, rekkiPrezzoFlag] = await Promise.all([
+    getFattureRowsForBollaAuthorized(id),
+    getRekkiPrezzoFlag(id),
+  ])
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
-    <div className="p-4 md:p-8 max-w-2xl">
-      <div className="flex items-center gap-3 mb-8">
-        <Link href="/bolle" className="text-gray-400 hover:text-gray-600 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="max-w-2xl p-4 md:p-8">
+      <div className="mb-8 flex items-center gap-3">
+        <Link
+          href={`/fornitori/${bolla.fornitore_id}`}
+          className="text-slate-500 transition-colors hover:text-slate-300"
+          aria-label={t.appStrings.infoSupplierCard}
+          title={t.appStrings.infoSupplierCard}
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{bolla.fornitore?.nome}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{formatDate(bolla.data)}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold text-slate-100">{bolla.fornitore?.nome}</h1>
+            {rekkiPrezzoFlag && (
+              <span
+                className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-amber-400/45 bg-amber-950/50 px-2 py-1.5 text-[10px] font-semibold leading-snug text-amber-50 shadow-md shadow-amber-950/40 sm:px-2.5 sm:text-[11px]"
+                title={`${t.bolle.verificaPrezzoFornitore} — ${t.bolle.prezzoDaApp}`}
+              >
+                {t.bolle.rekkiPrezzoIndicativoBadge}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 text-sm text-slate-400">{formatDate(bolla.data)}</p>
         </div>
       </div>
 
       <div className="space-y-4">
         {/* Info + stato */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">{t.bolle.dettaglio}</h2>
+        <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
+          <div className="app-card-bar mb-4" aria-hidden />
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-100">{t.bolle.dettaglio}</h2>
             <ToggleStato id={bolla.id} stato={bolla.stato} />
           </div>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="text-gray-500 w-28 shrink-0">{t.common.supplier}</dt>
-              <dd className="font-medium text-gray-900">{bolla.fornitore?.nome}</dd>
+              <dt className="w-28 shrink-0 text-slate-400">{t.common.supplier}</dt>
+              <dd className="font-medium text-slate-100">{bolla.fornitore?.nome}</dd>
             </div>
+            {bolla.numero_bolla && (
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 text-slate-400">{t.appStrings.colDeliveryNoteNum}</dt>
+                <dd className="font-mono font-medium text-slate-100">{bolla.numero_bolla}</dd>
+              </div>
+            )}
             {bolla.fornitore?.email && (
               <div className="flex gap-2">
-                <dt className="text-gray-500 w-28 shrink-0">{t.fornitori.email}</dt>
-                <dd className="text-gray-700">{bolla.fornitore.email}</dd>
+                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.email}</dt>
+                <dd className="text-slate-300">{bolla.fornitore.email}</dd>
               </div>
             )}
             {bolla.fornitore?.piva && (
               <div className="flex gap-2">
-                <dt className="text-gray-500 w-28 shrink-0">{t.fornitori.piva}</dt>
-                <dd className="text-gray-700">{bolla.fornitore.piva}</dd>
+                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.piva}</dt>
+                <dd className="text-slate-300">{bolla.fornitore.piva}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="text-gray-500 w-28 shrink-0">{t.common.date}</dt>
-              <dd className="text-gray-700">{formatDate(bolla.data)}</dd>
+              <dt className="w-28 shrink-0 text-slate-400">{t.common.date}</dt>
+              <dd className="text-slate-300">{formatDate(bolla.data)}</dd>
+            </div>
+            {bolla.importo != null && (
+              <div className="flex gap-2">
+                <dt className="w-28 shrink-0 text-slate-400">{t.statements.colAmount}</dt>
+                <dd className="font-semibold text-slate-100">
+                  £ {Number(bolla.importo).toFixed(2)}
+                </dd>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <dt className="w-28 shrink-0 text-slate-400">{t.common.status}</dt>
+              <dd>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  bolla.stato === 'completato'
+                    ? 'border border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
+                    : 'border border-amber-500/30 bg-amber-500/15 text-amber-200'
+                }`}>
+                  {bolla.stato === 'completato' ? t.status.completato : t.status.inAttesa}
+                </span>
+              </dd>
             </div>
           </dl>
         </div>
 
         {/* Allegato */}
         {bolla.file_url && (
-          <div className="bg-white rounded-xl border border-gray-100 p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-3">{t.common.attachment}</h2>
+          <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
+            <div className="app-card-bar mb-3" aria-hidden />
+            <h2 className="mb-3 text-sm font-semibold text-slate-100">{t.common.attachment}</h2>
             <a
-              href={bolla.file_url}
+              href={openDocumentUrl({ bollaId: bolla.id })}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-accent hover:text-accent font-medium"
+              className="flex items-center gap-2 text-sm font-medium text-cyan-400 transition-colors hover:text-cyan-300"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
               {t.common.openAttachment}
@@ -94,29 +131,30 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
         )}
 
         {/* Fatture collegate */}
-        <div className="bg-white rounded-xl border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">{t.bolle.fattureCollegate}</h2>
+        <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
+          <div className="app-card-bar mb-4" aria-hidden />
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-100">{t.bolle.fattureCollegate}</h2>
             <Link
               href={`/fatture/new?bolla_id=${bolla.id}&fornitore_id=${bolla.fornitore_id}`}
-              className="text-xs text-accent hover:text-accent font-medium"
+              className="text-xs font-medium text-cyan-400 transition-colors hover:text-cyan-300"
             >
               {t.bolle.aggiungi}
             </Link>
           </div>
           {fatture.length === 0 ? (
-            <p className="text-sm text-gray-400">{t.bolle.nessunaFatturaCollegata}</p>
+            <p className="text-sm text-slate-500">{t.bolle.nessunaFatturaCollegata}</p>
           ) : (
             <div className="space-y-2">
-              {fatture.map((f: any) => (
+              {fatture.map((f: { id: string; data: string; file_url: string | null }) => (
                 <Link
                   key={f.id}
                   href={`/fatture/${f.id}`}
-                  className="flex items-center justify-between py-2 text-sm hover:bg-gray-50 rounded px-2 -mx-2 transition-colors"
+                  className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800/50"
                 >
-                  <span className="text-gray-700">{formatDate(f.data)}</span>
+                  <span>{formatDate(f.data)}</span>
                   {f.file_url && (
-                    <span className="text-xs text-accent font-medium">{t.bolle.allegatoLink}</span>
+                    <span className="text-xs font-medium text-cyan-400">{t.bolle.allegatoLink}</span>
                   )}
                 </Link>
               ))}

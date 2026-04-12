@@ -39,14 +39,14 @@ export async function GET(req: NextRequest) {
   // Effective sede: explicit override wins, otherwise use profile sede
   const effectiveSedeId = overrideSedeId ?? profileSedeId
 
-  console.log(`[bolle-aperte] user=${user.id} isAdmin=${isAdmin} sede=${effectiveSedeId ?? 'null'} override=${overrideSedeId ?? 'no'} profileErr=${profileErr?.message ?? 'ok'}`)
+  if (profileErr) console.error(`[bolle-aperte] Errore profilo: ${profileErr.message}`)
 
   // 4. Service client per bypassare RLS sulle bolle
   const service = createServiceClient()
 
   const baseQuery = service
     .from('bolle')
-    .select('id, data, fornitore_id, fornitori(nome)')
+    .select('id, data, importo, numero_bolla, fornitore_id, fornitori(nome)')
     .eq('stato', 'in attesa')
     .order('data', { ascending: true })
 
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query
 
-  console.log(`[bolle-aperte] risultato: ${data?.length ?? 0} bolle${error ? ` ERRORE="${error.message}"` : ''}`)
+  if (error) console.error(`[bolle-aperte] Errore query: ${error.message}`)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

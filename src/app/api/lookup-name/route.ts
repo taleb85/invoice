@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import {
+  normalizeOperatorLoginName,
+  profileFirstTokenEquals,
+} from '@/lib/operator-login-name'
 
 export async function POST(req: NextRequest) {
   const { name } = await req.json()
-  if (!name?.trim()) {
+  const token = normalizeOperatorLoginName(typeof name === 'string' ? name : '')
+  if (!token) {
     return NextResponse.json({ error: 'Nome obbligatorio.' }, { status: 400 })
   }
 
@@ -12,17 +17,19 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Cerca per full_name, case-insensitive, con sede associata
-  const { data, error } = await adminClient
+  // Prima parola del nome (come in login), prefisso su full_name poi filtro rigoroso
+  const { data: rows, error } = await adminClient
     .from('profiles')
     .select('email, full_name, role, sedi(nome)')
-    .ilike('full_name', name.trim())
-    .limit(2)
+    .ilike('full_name', `${token}%`)
+    .limit(50)
 
   if (error) {
     return NextResponse.json({ error: 'Errore del server.' }, { status: 500 })
   }
-  if (!data || data.length === 0) {
+  const data = (rows ?? []).filter(p => profileFirstTokenEquals(p.full_name, token))
+
+  if (data.length === 0) {
     return NextResponse.json({ error: 'Nessun utente trovato con questo nome.' }, { status: 404 })
   }
   if (data.length > 1) {

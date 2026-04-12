@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fluxo-v1'
+const CACHE_NAME = 'fluxo-v2'
 const OFFLINE_URL = '/offline'
 
 // Asset statici da pre-cachare all'installazione
@@ -54,19 +54,10 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Navigazione → Network first, fallback pagina offline
+  // Navigazione → solo rete (non cacheare HTML autenticato: evita risposte stale tipo /login su URL app)
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const clone = res.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
-          return res
-        })
-        .catch(async () => {
-          const cached = await caches.match(request)
-          return cached ?? (await caches.match(OFFLINE_URL))
-        })
+      fetch(request).catch(async () => (await caches.match(OFFLINE_URL)) ?? Response.error())
     )
     return
   }

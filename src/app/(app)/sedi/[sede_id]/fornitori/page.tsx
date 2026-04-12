@@ -1,9 +1,11 @@
 'use client'
 
-import { use, useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { getLocale } from '@/lib/localization'
+import { segmentParam } from '@/lib/segment-param'
 
 interface FornitoreRow {
   id: string
@@ -83,13 +85,13 @@ function AddFornitoreModal({
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-slate-900/90 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-900">Nuovo Fornitore</h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800/80 rounded-lg transition-colors"
             aria-label="Chiudi"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +122,7 @@ function AddFornitoreModal({
               value={nome}
               onChange={e => setNome(e.target.value)}
               placeholder="es. Mario Rossi S.r.l."
-              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 placeholder:text-gray-400"
               required
             />
           </div>
@@ -138,7 +140,7 @@ function AddFornitoreModal({
               placeholder="es. 01234567890"
               maxLength={11}
               inputMode="numeric"
-              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 placeholder:text-gray-400"
             />
           </div>
 
@@ -153,7 +155,7 @@ function AddFornitoreModal({
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="es. fatture@fornitore.it"
-              className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 placeholder:text-gray-400"
             />
             <p className="mt-1.5 text-xs text-gray-400">
               Questa email verrà usata per abbinare automaticamente le fatture ricevute.
@@ -166,14 +168,14 @@ function AddFornitoreModal({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 rounded-lg transition-colors disabled:opacity-50"
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -196,12 +198,8 @@ function AddFornitoreModal({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-export default function SedeFornitoriPage({
-  params,
-}: {
-  params: Promise<{ sede_id: string }>
-}) {
-  const { sede_id } = use(params)
+export default function SedeFornitoriPage() {
+  const sede_id = segmentParam(useParams().sede_id)
 
   const [fornitori, setFornitori] = useState<FornitoreRow[]>([])
   const [loading, setLoading]     = useState(true)
@@ -287,7 +285,7 @@ export default function SedeFornitoriPage({
             <h1 className="text-2xl font-bold text-gray-900">Fornitori</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {loading ? (
-                <span className="inline-block w-20 h-3.5 bg-gray-100 rounded animate-pulse" />
+                <span className="inline-block w-20 h-3.5 bg-slate-800/80 rounded animate-pulse" />
               ) : (
                 `${fornitori.length} fornitore${fornitori.length !== 1 ? 'i' : ''} in questa sede`
               )}
@@ -295,7 +293,7 @@ export default function SedeFornitoriPage({
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -305,16 +303,16 @@ export default function SedeFornitoriPage({
         </div>
 
         {/* Table / Empty state */}
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
+        <div className="bg-slate-900/90 rounded-xl border border-slate-700/50 overflow-hidden">
           {loading ? (
             <div className="divide-y divide-gray-50">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="px-6 py-4 flex gap-4 animate-pulse">
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-gray-100 rounded w-1/3" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    <div className="h-4 bg-slate-800/80 rounded w-1/3" />
+                    <div className="h-3 bg-slate-800/80 rounded w-1/2" />
                   </div>
-                  <div className="h-4 bg-gray-100 rounded w-24" />
+                  <div className="h-4 bg-slate-800/80 rounded w-24" />
                 </div>
               ))}
             </div>
@@ -327,7 +325,7 @@ export default function SedeFornitoriPage({
               <p className="text-gray-400 text-xs mb-4">Aggiungi il primo fornitore oppure usa il Discovery per importarli dalle email.</p>
               <button
                 onClick={() => setShowModal(true)}
-                className="inline-flex items-center gap-1.5 text-sm text-accent font-medium hover:underline"
+                className="inline-flex items-center gap-1.5 text-sm text-cyan-600 font-medium hover:underline"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -377,7 +375,7 @@ export default function SedeFornitoriPage({
               {/* Desktop table */}
               <table className="hidden md:table w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 text-xs text-gray-500 font-medium uppercase tracking-wide">
+                  <tr className="border-b border-slate-700/50 text-xs text-gray-500 font-medium uppercase tracking-wide">
                     <th className="text-left px-6 py-3">Ragione Sociale</th>
                     <th className="text-left px-6 py-3">{getLocale(countryCode).vatLabel}</th>
                     <th className="text-left px-6 py-3">Email Principale</th>
@@ -386,14 +384,14 @@ export default function SedeFornitoriPage({
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {fornitori.map((f) => (
-                    <tr key={f.id} className="hover:bg-gray-50 transition-colors group">
+                    <tr key={f.id} className="hover:bg-slate-800/70 transition-colors group">
                       <td className="px-6 py-4 font-medium text-gray-900">{f.nome}</td>
                       <td className="px-6 py-4 text-gray-500 tabular-nums">{f.piva ?? <span className="text-gray-300">—</span>}</td>
                       <td className="px-6 py-4 text-gray-500">
                         {f.email ? (
                           <a
                             href={`mailto:${f.email}`}
-                            className="hover:text-accent hover:underline transition-colors"
+                            className="hover:text-cyan-600 hover:underline transition-colors"
                           >
                             {f.email}
                           </a>
@@ -433,8 +431,8 @@ export default function SedeFornitoriPage({
         {!loading && fornitori.length > 0 && (
           <p className="mt-4 text-xs text-gray-400 text-center">
             Vuoi importare altri fornitori dalle email?{' '}
-            <Link href={`/sedi/${sede_id}/discovery`} className="text-accent hover:underline font-medium">
-              Vai al Supplier Discovery →
+            <Link href={`/sedi/${sede_id}/discovery`} className="text-cyan-600 hover:underline font-medium">
+              Vai al Rilevamento Fornitori →
             </Link>
           </p>
         )}

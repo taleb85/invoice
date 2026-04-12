@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { BollaStato } from '@/types'
+import { useT } from '@/lib/use-t'
 
 export default function ToggleStato({ id, stato }: { id: string; stato: BollaStato }) {
+  const t = useT()
   const [current, setCurrent] = useState<BollaStato>(stato)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -20,17 +22,21 @@ export default function ToggleStato({ id, stato }: { id: string; stato: BollaSta
     router.refresh()
   }
 
+  const label = current === 'completato' ? t.status.completato : t.status.inAttesa
+
   return (
     <button
+      type="button"
       onClick={toggle}
       disabled={loading}
-      className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors disabled:opacity-50 ${
+      aria-label={label}
+      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
         current === 'completato'
-          ? 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200'
-          : 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200'
+          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'
+          : 'border-amber-500/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25'
       }`}
     >
-      {current}
+      {label}
     </button>
   )
 }
