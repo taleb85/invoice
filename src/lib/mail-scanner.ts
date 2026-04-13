@@ -24,6 +24,20 @@ export function emailHasScannableBody(e: ScannedEmail): boolean {
   return (e.bodyText?.trim().length ?? 0) >= MIN_EMAIL_BODY_CHARS_FOR_SCAN
 }
 
+function imapMessageDate(
+  internalDate: Date | string | undefined,
+  envelopeDate: Date | undefined,
+  parsedDate: Date | undefined
+): Date | null {
+  if (internalDate != null) {
+    const d = internalDate instanceof Date ? internalDate : new Date(internalDate)
+    if (!Number.isNaN(d.getTime())) return d
+  }
+  if (envelopeDate && !Number.isNaN(envelopeDate.getTime())) return envelopeDate
+  if (parsedDate && !Number.isNaN(parsedDate.getTime())) return parsedDate
+  return null
+}
+
 function emailBodyPlain(parsed: { text?: string; html?: string | false }): string | null {
   const t = parsed.text?.trim()
   if (t) return t
@@ -63,7 +77,10 @@ export type FetchUnseenImapHooks = {
   afterInboxOpen?: () => void | Promise<void>
 }
 
-export async function fetchUnseenEmails(hooks?: FetchUnseenImapHooks): Promise<ScannedEmail[]> {
+export async function fetchUnseenEmails(
+  hooks?: FetchUnseenImapHooks,
+  fiscalRange?: { start: Date; endExclusive: Date } | null
+): Promise<ScannedEmail[]> {
   if (!process.env.IMAP_HOST || !process.env.IMAP_USER) {
     throw new Error('Variabili IMAP_HOST e IMAP_USER non configurate.')
   }
@@ -76,17 +93,37 @@ export async function fetchUnseenEmails(hooks?: FetchUnseenImapHooks): Promise<S
 
     try {
       await hooks?.afterInboxOpen?.()
-      const searchResult = await client.search({ seen: false }, { uid: true })
+      const searchResult = await client.search(
+        fiscalRange
+          ? { seen: false, since: fiscalRange.start, before: fiscalRange.endExclusive }
+          : { seen: false },
+        { uid: true }
+      )
       const uids = Array.isArray(searchResult) ? searchResult : []
       if (uids.length === 0) return results
 
-      for await (const msg of client.fetch(uids, { source: true }, { uid: true })) {
+      for await (const msg of client.fetch(
+        uids,
+        { source: true, internalDate: true, envelope: true },
+        { uid: true }
+      )) {
         if (!msg.source) continue
         let parsed
         try {
           parsed = await simpleParser(msg.source)
         } catch {
           continue
+        }
+
+        const msgDate = imapMessageDate(
+          msg.internalDate as Date | string | undefined,
+          msg.envelope?.date,
+          parsed.date ?? undefined
+        )
+        if (fiscalRange) {
+          if (!msgDate || msgDate < fiscalRange.start || msgDate >= fiscalRange.endExclusive) {
+            continue
+          }
         }
 
         const fromAddr = parsed.from?.value?.[0]?.address?.toLowerCase().trim() ?? ''

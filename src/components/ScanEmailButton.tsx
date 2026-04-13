@@ -1,10 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useT } from '@/lib/use-t'
 import { useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
+import {
+  readEmailSyncScopePrefs,
+  writeEmailSyncScopePrefs,
+  emailSyncScopeBodyFields,
+  type EmailSyncScopePrefs,
+} from '@/lib/email-sync-scope-prefs'
+import { defaultFiscalYearLabel } from '@/lib/fiscal-year'
 
 interface Props {
   /** Se true mostra sempre il testo (non solo su desktop) */
@@ -19,37 +26,73 @@ interface Props {
 export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propSedeId }: Props) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'ok' | 'warn' | 'error'; text: string } | null>(null)
+  const [scopePrefs, setScopePrefs] = useState<EmailSyncScopePrefs>(() => ({
+    mode: 'lookback',
+    fiscalYear: new Date().getUTCFullYear(),
+  }))
   const fallbackSedeIdRef = useRef<string | null>(null)
   const t = useT()
   const router = useRouter()
   const { me } = useMe()
   const emailSync = useEmailSyncProgressOptional()
+  /** Stringa stabile: evita dipendenze `useEffect` di lunghezza incoerente (strict / HMR). */
+  const countryCodeKey = me?.country_code ?? ''
+  const sedeIdKey = me?.sede_id ?? ''
+
+  const fiscalYearOptions = useMemo(() => {
+    const current = defaultFiscalYearLabel(countryCodeKey || 'UK', new Date())
+    return Array.from({ length: 8 }, (_, i) => current - i)
+  }, [countryCodeKey])
+
+  useEffect(() => {
+    setScopePrefs(readEmailSyncScopePrefs())
+  }, [])
+
+  useEffect(() => {
+    const p = readEmailSyncScopePrefs()
+    const current = defaultFiscalYearLabel(countryCodeKey || 'UK', new Date())
+    const oldest = current - 7
+    if (p.mode === 'fiscal_year') {
+      const y = Math.min(current, Math.max(oldest, p.fiscalYear))
+      if (y !== p.fiscalYear) {
+        const fixed = { mode: 'fiscal_year' as const, fiscalYear: y }
+        writeEmailSyncScopePrefs(fixed)
+        setScopePrefs(fixed)
+        return
+      }
+    }
+    setScopePrefs(p)
+  }, [countryCodeKey])
 
   // Populate fallback sede_id from shared context — no extra /api/me fetch
   useEffect(() => {
     if (propSedeId) return
-    if (me?.sede_id) fallbackSedeIdRef.current = me.sede_id
-  }, [propSedeId, me])
+    if (sedeIdKey) fallbackSedeIdRef.current = sedeIdKey
+  }, [propSedeId, sedeIdKey])
 
   const handleClick = async () => {
     setLoading(true)
     setToast(null)
     try {
       const effectiveSedeId = propSedeId ?? fallbackSedeIdRef.current
-      const payload = effectiveSedeId
-        ? {
-            user_sede_id: effectiveSedeId,
-            filter_sede_id: propSedeId ?? undefined,
-          }
-        : {}
+      const scopeFields = emailSyncScopeBodyFields(readEmailSyncScopePrefs())
+      const payload = {
+        ...scopeFields,
+        ...(effectiveSedeId
+          ? {
+              user_sede_id: effectiveSedeId,
+              filter_sede_id: propSedeId ?? undefined,
+            }
+          : {}),
+      }
 
       if (emailSync) {
         await emailSync.runEmailSync(payload)
       } else {
-        const body = Object.keys(payload).length ? JSON.stringify(payload) : undefined
+        const body = JSON.stringify(payload)
         const res = await fetch('/api/scan-emails', {
           method: 'POST',
-          headers: body ? { 'Content-Type': 'application/json' } : undefined,
+          headers: { 'Content-Type': 'application/json' },
           body,
         })
         const json = await res.json()
@@ -75,8 +118,54 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
     ? 'inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 px-3.5 py-0'
     : 'inline-flex items-center gap-1.5 px-3 py-1.5'
 
+  const selectValue = scopePrefs.mode === 'lookback' ? 'lb' : `fy:${scopePrefs.fiscalYear}`
+
   return (
     <div className={`flex flex-col gap-1.5 ${alwaysShowLabel ? 'min-w-0 shrink-0' : 'items-end'}`}>
+      <div
+        className={`flex flex-wrap items-center gap-1.5 ${alwaysShowLabel ? '' : 'justify-end'}`}
+      >
+      <div className="relative max-w-[min(100%,12.5rem)] min-w-0 shrink-0">
+        <select
+          value={selectValue}
+          disabled={loading || emailSync?.progress.active}
+          title={t.dashboard.emailSyncScopeHint}
+          aria-label={t.dashboard.emailSyncFiscalYearSelectAria}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v === 'lb') {
+              const n: EmailSyncScopePrefs = { mode: 'lookback', fiscalYear: scopePrefs.fiscalYear }
+              writeEmailSyncScopePrefs(n)
+              setScopePrefs(n)
+              return
+            }
+            const y = Number(v.replace(/^fy:/, ''))
+            if (!Number.isFinite(y)) return
+            const n: EmailSyncScopePrefs = { mode: 'fiscal_year', fiscalYear: y }
+            writeEmailSyncScopePrefs(n)
+            setScopePrefs(n)
+          }}
+          className="w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 py-1.5 pl-2 pr-7 text-left text-[11px] font-medium text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]"
+        >
+          <option className="bg-slate-900 text-slate-100" value="lb">
+            {t.dashboard.emailSyncScopeLookback}
+          </option>
+          {fiscalYearOptions.map((y) => (
+            <option key={y} className="bg-slate-900 text-slate-100" value={`fy:${y}`}>
+              {t.dashboard.emailSyncScopeFiscal}: {y}
+            </option>
+          ))}
+        </select>
+        <svg
+          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
       <button
         onClick={handleClick}
         disabled={loading || emailSync?.progress.active}
@@ -99,6 +188,7 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
           </>
         )}
       </button>
+      </div>
 
       {toast && (
         <p className={`text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${

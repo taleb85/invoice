@@ -14,6 +14,7 @@ import { formatDate as formatDateLib } from '@/lib/locale'
 import { segmentParam } from '@/lib/segment-param'
 import { useEmailSyncProgress } from '@/components/EmailSyncProgressProvider'
 import { useMe } from '@/lib/me-context'
+import { emailSyncScopeBodyFields, readEmailSyncScopePrefs } from '@/lib/email-sync-scope-prefs'
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'documenti' | 'verifica'
@@ -2040,6 +2041,7 @@ function FornitoreDetailClient({
   const supplierSyncDisabled = !fornitore.sede_id || emailSyncProgress.active
   const syncThisSupplier = () => {
     void runEmailSync({
+      ...emailSyncScopeBodyFields(readEmailSyncScopePrefs()),
       fornitore_id: fornitore.id,
       user_sede_id: me?.sede_id ?? fornitore.sede_id ?? undefined,
     })
