@@ -20,8 +20,13 @@ function NewFornitoreForm() {
   const { me } = useMe()
   const t = useT()
   const prefillSedeParam = searchParams.get('prefill_sede_id')
+  const preSede = prefillSedeParam?.trim() || ''
   const sedeId =
-    me?.is_admin && prefillSedeParam?.trim() ? prefillSedeParam.trim() : ctxSede
+    me?.is_admin && preSede
+      ? preSede
+      : me?.is_admin_sede && preSede && me?.sede_id && preSede === me.sede_id
+        ? preSede
+        : ctxSede
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({

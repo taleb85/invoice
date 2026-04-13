@@ -6,13 +6,18 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 
+const RECONNECTING_MS = 2800
+
 type NetworkContextValue = {
   /** navigator.onLine + ultimo probe HTTP riuscito (quando eseguito). */
   online: boolean
+  /** Subito dopo il ripristino da offline (UI: pallino arancione lampeggiante). */
+  reconnecting: boolean
   lastChangeAt: number
   /** Verifica reale verso l’app (best-effort). */
   probeReachable: () => Promise<boolean>
@@ -23,10 +28,33 @@ const NetworkContext = createContext<NetworkContextValue | null>(null)
 export function NetworkProvider({ children }: { children: ReactNode }) {
   /** Stesso valore su SSR e primo paint client → niente hydration mismatch (evita navigator “finto” su server). */
   const [online, setOnline] = useState(true)
+  const [reconnecting, setReconnecting] = useState(false)
   const [lastChangeAt, setLastChangeAt] = useState(0)
+  const wasOfflineRef = useRef(false)
+  const reconnectingClearRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const syncFromNavigator = useCallback(() => {
-    setOnline(navigator.onLine)
+    const nowOnline = navigator.onLine
+    if (!nowOnline) {
+      wasOfflineRef.current = true
+      if (reconnectingClearRef.current) {
+        clearTimeout(reconnectingClearRef.current)
+        reconnectingClearRef.current = null
+      }
+      setReconnecting(false)
+      setOnline(false)
+    } else {
+      setOnline(true)
+      if (wasOfflineRef.current) {
+        wasOfflineRef.current = false
+        setReconnecting(true)
+        if (reconnectingClearRef.current) clearTimeout(reconnectingClearRef.current)
+        reconnectingClearRef.current = setTimeout(() => {
+          setReconnecting(false)
+          reconnectingClearRef.current = null
+        }, RECONNECTING_MS)
+      }
+    }
     setLastChangeAt(Date.now())
   }, [])
 
@@ -37,6 +65,7 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('online', syncFromNavigator)
       window.removeEventListener('offline', syncFromNavigator)
+      if (reconnectingClearRef.current) clearTimeout(reconnectingClearRef.current)
     }
   }, [syncFromNavigator])
 
@@ -47,20 +76,22 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
       const t = window.setTimeout(() => ac.abort(), 4000)
       const r = await fetch('/api/me', { method: 'GET', cache: 'no-store', signal: ac.signal })
       window.clearTimeout(t)
-      const ok = r.ok
+      const ok = r.ok || r.status === 401 || r.status === 404
       setOnline(ok)
       setLastChangeAt(Date.now())
+      if (!ok) setReconnecting(false)
       return ok
     } catch {
       setOnline(false)
+      setReconnecting(false)
       setLastChangeAt(Date.now())
       return false
     }
   }, [])
 
   const value = useMemo(
-    () => ({ online, lastChangeAt, probeReachable }),
-    [online, lastChangeAt, probeReachable]
+    () => ({ online, reconnecting, lastChangeAt, probeReachable }),
+    [online, reconnecting, lastChangeAt, probeReachable]
   )
 
   return <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>

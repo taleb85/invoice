@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, sede_id')
     .eq('id', user.id)
     .single()
 
@@ -16,16 +16,23 @@ export async function GET() {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 
-  const { data: sedi, error } = await supabase
+  const scopedSedeId = profile.sede_id?.trim() || null
+  /** `global` = admin master senza sede; `sede` = admin assegnato a una filiale → solo quella sede, niente vista multi-sede/utenti orfani. */
+  const adminListScope: 'global' | 'sede' = scopedSedeId ? 'sede' : 'global'
+
+  const { data: sediRaw, error } = await supabase
     .from('sedi')
     .select('*')
     .order('nome')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  const sedi =
+    scopedSedeId ? (sediRaw ?? []).filter((s) => s.id === scopedSedeId) : (sediRaw ?? [])
+
   // Conta per ogni sede
   const sediWithCounts = await Promise.all(
-    (sedi ?? []).map(async (sede) => {
+    sedi.map(async (sede) => {
       const [{ count: fornitori_count }, { count: bolle_count }, { count: fatture_count }, { count: users_count }] =
         await Promise.all([
           supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
@@ -43,10 +50,15 @@ export async function GET() {
     })
   )
 
-  const { data: profiles } = await supabase
+  const { data: profilesRaw } = await supabase
     .from('profiles')
     .select('*, sedi(id, nome, created_at)')
     .order('email')
 
-  return NextResponse.json({ sedi: sediWithCounts, profiles: profiles ?? [] })
+  const profiles =
+    scopedSedeId
+      ? (profilesRaw ?? []).filter((p) => p.sede_id === scopedSedeId)
+      : (profilesRaw ?? [])
+
+  return NextResponse.json({ sedi: sediWithCounts, profiles, adminListScope })
 }

@@ -58,8 +58,11 @@ export async function POST(req: NextRequest) {
 
   const profile = profiles[0]
 
-  if (profile.role !== 'operatore') {
-    return NextResponse.json({ error: 'Questo account non è un operatore.' }, { status: 403 })
+  if (profile.role !== 'operatore' && profile.role !== 'admin_sede') {
+    return NextResponse.json(
+      { error: 'Questo account non è un operatore o un responsabile di sede.' },
+      { status: 403 }
+    )
   }
 
   const sede = Array.isArray(profile.sedi)
@@ -71,6 +74,7 @@ export async function POST(req: NextRequest) {
     full_name: profile.full_name,
     sede_id:   profile.sede_id,
     sede_nome: sede?.nome ?? null,
+    role:      profile.role as 'operatore' | 'admin_sede',
   }
 
   const out = NextResponse.json(payload)

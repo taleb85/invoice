@@ -12,7 +12,8 @@ async function probeApp(): Promise<boolean> {
     const to = window.setTimeout(() => ac.abort(), 4000)
     const r = await fetch('/api/me', { method: 'GET', cache: 'no-store', signal: ac.signal })
     window.clearTimeout(to)
-    return r.ok || r.status === 401
+    // 401/404 = server raggiungibile (non sessione valida o profilo assente); solo assenza risposta = offline.
+    return r.ok || r.status === 401 || r.status === 404
   } catch {
     return false
   }

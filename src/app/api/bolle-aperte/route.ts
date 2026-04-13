@@ -10,7 +10,7 @@ import { createClient, createServiceClient } from '@/utils/supabase/server'
  *
  * ?sede_id=xxx      → forza il filtro a una sede specifica (pagine sede-centric).
  * ?fornitore_id=yyy → restringe alle bolle di un fornitore specifico.
- * Admin (senza ?sede_id) → vede tutte le sedi.
+ * Admin Master (senza ?sede_id) → vede tutte le sedi.
  * Operatore → vede solo le bolle della propria sede (o quelle senza sede per retrocomp.).
  */
 export async function GET(req: NextRequest) {
@@ -33,8 +33,13 @@ export async function GET(req: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const isAdmin = profile?.role === 'admin'
+  const isMasterAdmin = profile?.role === 'admin'
+  const isAdminSede = profile?.role === 'admin_sede'
   const profileSedeId = profile?.sede_id ?? null
+
+  if (isAdminSede && overrideSedeId && profileSedeId && overrideSedeId !== profileSedeId) {
+    return NextResponse.json({ error: 'sede_id non consentito' }, { status: 403 })
+  }
 
   // Effective sede: explicit override wins, otherwise use profile sede
   const effectiveSedeId = overrideSedeId ?? profileSedeId
@@ -60,7 +65,7 @@ export async function GET(req: NextRequest) {
   if (overrideSedeId) {
     // Explicit sede filter from URL param (sede-centric pages)
     query = query.eq('sede_id', overrideSedeId) as typeof query
-  } else if (!isAdmin) {
+  } else if (!isMasterAdmin) {
     if (effectiveSedeId) {
       // Operatore con sede: vede le bolle della sua sede + quelle senza sede (retrocompatibilità)
       query = query.or(`sede_id.eq.${effectiveSedeId},sede_id.is.null`) as typeof query
@@ -69,7 +74,7 @@ export async function GET(req: NextRequest) {
       console.warn(`[bolle-aperte] Utente ${user.id} non ha sede_id nel profilo — restituisco tutto`)
     }
   }
-  // Admin (senza override): nessun filtro aggiuntivo → vede tutto
+  // Admin Master (senza override): nessun filtro aggiuntivo → vede tutto
 
   const { data, error } = await query
 

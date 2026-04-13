@@ -97,7 +97,7 @@ export function StatementsContent({ sedeId, fornitoreId, countryCode, currency }
   const t = useT()
 
   return (
-    <div className={fornitoreId ? '' : 'p-4 md:p-8 max-w-5xl'}>
+    <div className={fornitoreId ? '' : 'w-full min-w-0 p-4 md:p-8'}>
       {!fornitoreId && (
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-100">{t.statements.heading}</h1>

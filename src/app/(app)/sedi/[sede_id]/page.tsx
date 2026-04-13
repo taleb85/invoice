@@ -57,7 +57,9 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
   if (!sede) redirect('/sedi')
 
   const profile = await getProfile()
-  const isAdmin = profile?.role === 'admin'
+  const canManageSedeOperators =
+    profile?.role === 'admin' ||
+    (profile?.role === 'admin_sede' && profile?.sede_id === sede_id)
 
   const [tDashboard, appLocale, currency, fornitoreIds] = await Promise.all([
     getT(),
@@ -70,10 +72,15 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
   const imapConfigured = !!(sede.imap_host && sede.imap_user)
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
+    <div className="w-full min-w-0 p-4 md:p-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-        <Link href="/sedi" className="hover:text-slate-700 transition-colors">Sedi</Link>
+        <Link
+          href={profile?.role === 'admin' ? '/sedi' : '/'}
+          className="hover:text-slate-700 transition-colors"
+        >
+          {profile?.role === 'admin' ? 'Sedi' : 'Dashboard'}
+        </Link>
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
@@ -137,7 +144,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
         )
       })()}
 
-      {isAdmin ? (
+      {canManageSedeOperators ? (
         <section id="sede-operatori" className="scroll-mt-24">
           <SedeAddOperatorForm sedeId={sede_id} />
         </section>

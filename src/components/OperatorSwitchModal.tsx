@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useActiveOperator, ActiveOperator } from '@/lib/active-operator-context'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
@@ -11,11 +12,13 @@ const PIN_LENGTH = 4
 interface Operator {
   id:        string
   full_name: string
+  role:      'operatore' | 'admin_sede'
 }
 
 type Step = 'select' | 'pin' | 'success'
 
 export default function OperatorSwitchModal() {
+  const router = useRouter()
   const { me } = useMe()
   const t = useT()
   const {
@@ -85,7 +88,11 @@ export default function OperatorSwitchModal() {
           for (const o of d.operators ?? []) {
             if (!o?.id || seen.has(o.id)) continue
             seen.add(o.id)
-            merged.push({ id: o.id, full_name: o.full_name ?? '' })
+            merged.push({
+              id:        o.id,
+              full_name: o.full_name ?? '',
+              role:      o.role === 'admin_sede' ? 'admin_sede' : 'operatore',
+            })
           }
         }
         merged.sort((a, b) =>
@@ -175,8 +182,15 @@ export default function OperatorSwitchModal() {
         full_name: data.full_name,
         sede_id:   data.sede_id,
         sede_nome: data.sede_nome,
+        role:      data.role === 'admin_sede' ? 'admin_sede' : 'operatore',
       }
       setActiveOperator(op)
+      if (me?.is_admin && typeof data.sede_id === 'string' && data.sede_id) {
+        document.cookie = `admin-sede-id=${encodeURIComponent(data.sede_id)}; path=/; SameSite=Strict`
+        const ar = data.role === 'admin_sede' ? 'admin_sede' : 'operatore'
+        document.cookie = `fluxo-acting-role=${encodeURIComponent(ar)}; path=/; SameSite=Strict`
+        router.refresh()
+      }
       setStep('success')
       setTimeout(() => {
         handleClose()
@@ -186,7 +200,7 @@ export default function OperatorSwitchModal() {
       clearPin()
     }
     setLoading(false)
-  }, [selected, currentPin, setActiveOperator, handleClose, clearPin])
+  }, [selected, currentPin, setActiveOperator, handleClose, clearPin, me?.is_admin, router])
 
   /* ── Keyboard support ── */
   useEffect(() => {
@@ -211,21 +225,21 @@ export default function OperatorSwitchModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4 pt-4 backdrop-blur-sm max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
-      <div className="bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+      <div className="flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-cyan-500/15 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-4 py-4 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15">
+              <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-white">{t.ui.changeOperator}</p>
+            <div className="min-w-0">
+              <p className="text-base font-semibold text-white">{t.ui.changeOperator}</p>
               {activeOperator && (
                 <p className="text-[11px] text-slate-500">
                   {t.ui.currentlyActive}{' '}
@@ -237,17 +251,18 @@ export default function OperatorSwitchModal() {
             </div>
           </div>
           <button
+            type="button"
             onClick={handleClose}
-            className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 touch-manipulation"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
 
           {/* ─ Step: success ─ */}
           {step === 'success' && (
@@ -291,23 +306,31 @@ export default function OperatorSwitchModal() {
                     {operators.map(op => (
                       <button
                         key={op.id}
+                        type="button"
                         ref={op.id === operators[0].id ? firstBtnRef : undefined}
                         onClick={() => { setSelected(op); setStep('pin'); setPin(Array(PIN_LENGTH).fill('')); setError('') }}
                         className={[
-                          'w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border text-left transition-all min-h-[56px]',
+                          'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition-all touch-manipulation active:scale-[0.99]',
                           selected?.id === op.id
                             ? 'border-cyan-500/40 bg-cyan-500/10 text-white'
                             : 'border-slate-700/60 bg-slate-800/40 text-slate-300 hover:border-slate-600 hover:bg-slate-800/70',
                         ].join(' ')}
                       >
-                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300 shrink-0">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-bold text-slate-300">
                           {(op.full_name.trim().toUpperCase() || '?').charAt(0)}
                         </div>
-                        <span className="font-medium text-sm uppercase tracking-wide">
-                          {op.full_name.toUpperCase()}
-                        </span>
+                        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="text-sm font-semibold uppercase tracking-wide">
+                            {op.full_name.toUpperCase()}
+                          </span>
+                          {op.role === 'admin_sede' && (
+                            <span className="text-[10px] font-medium text-violet-300/90">
+                              {t.sedi.adminSedeRole}
+                            </span>
+                          )}
+                        </div>
                         {activeOperator?.id === op.id && (
-                          <span className="ml-auto text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-semibold">
+                          <span className="ml-auto shrink-0 text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-semibold">
                             {t.ui.activeOperator}
                           </span>
                         )}
@@ -377,7 +400,7 @@ export default function OperatorSwitchModal() {
                   </svg>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
                   {KEYS.flat().map((key, i) => {
                     const isDigit   = key >= '0' && key <= '9'
                     const isDelete  = key === '⌫'
@@ -393,7 +416,7 @@ export default function OperatorSwitchModal() {
                           if (isClear)  clearPin()
                         }}
                         className={[
-                          'h-16 rounded-2xl text-lg font-bold transition-all active:scale-95 select-none touch-manipulation',
+                          'min-h-[52px] rounded-2xl text-xl font-bold transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg',
                           isDigit
                             ? 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700/60 shadow-sm'
                             : isClear
@@ -413,23 +436,23 @@ export default function OperatorSwitchModal() {
 
         {/* Footer — inactivity setting */}
         {step !== 'success' && (
-          <div className="border-t border-slate-800 px-5 py-3 flex items-center justify-between">
-            <label className="text-[11px] text-slate-500 flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <label className="flex min-h-[44px] items-center gap-2 text-xs text-slate-500 sm:min-h-0">
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
-              Auto-lock dopo
+              <span>{t.ui.operatorAutoLockLabel}</span>
             </label>
             <select
               value={inactivityTimeout}
-              onChange={e => setInactivityTimeout(Number(e.target.value))}
-              className="text-[11px] bg-slate-800 border border-slate-700 text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500/40"
+              onChange={(e) => setInactivityTimeout(Number(e.target.value))}
+              className="min-h-[48px] w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 touch-manipulation sm:min-h-[44px] sm:w-auto sm:min-w-[8.5rem]"
             >
-              <option value={0}>Disabilitato</option>
-              <option value={5}>5 min</option>
-              <option value={10}>10 min</option>
-              <option value={15}>15 min</option>
-              <option value={30}>30 min</option>
+              <option value={0}>{t.ui.operatorAutoLockNever}</option>
+              <option value={5}>{t.ui.operatorAutoLockMinutes.replace('{n}', '5')}</option>
+              <option value={10}>{t.ui.operatorAutoLockMinutes.replace('{n}', '10')}</option>
+              <option value={15}>{t.ui.operatorAutoLockMinutes.replace('{n}', '15')}</option>
+              <option value={30}>{t.ui.operatorAutoLockMinutes.replace('{n}', '30')}</option>
             </select>
           </div>
         )}

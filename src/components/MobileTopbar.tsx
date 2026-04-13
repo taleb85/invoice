@@ -11,6 +11,7 @@ import { useLocale } from '@/lib/locale-context'
 import { LOCALES } from '@/lib/translations'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
+import ConnectionStatusDot from '@/components/ConnectionStatusDot'
 
 export default function MobileTopbar() {
   const pathname = usePathname()
@@ -59,121 +60,149 @@ export default function MobileTopbar() {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-30 h-14 bg-slate-950 flex items-center gap-2 px-3 border-b border-slate-800 shrink-0 shadow-[0_2px_16px_rgba(0,0,0,0.4)]">
-      {/* Logo — su scheda fornitore torna al riepilogo fornitore; altrimenti dashboard app (`/`). */}
-      <div className="flex min-w-0 flex-1 items-center gap-2.5 cursor-pointer pl-0.5" onClick={goLogoHome}>
-        <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="w-12 h-7 shrink-0">
-          <defs>
-            <linearGradient id="tb-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1e3a5f"/>
-              <stop offset="100%" stopColor="#172554"/>
-            </linearGradient>
-            <linearGradient id="tb-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#5b7cf9"/>
-              <stop offset="50%" stopColor="#38bdf8"/>
-              <stop offset="100%" stopColor="#22d3ee"/>
-            </linearGradient>
-          </defs>
-          {/* Card — metà sinistra */}
-          <rect width="56" height="56" rx="13" fill="url(#tb-card-bg)"/>
-          {/* Curva: parte dentro, esce a destra */}
-          <path d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
-                stroke="url(#tb-wave)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-          <circle cx="7"  cy="28" r="3.5" fill="#5b7cf9"/>
-          <circle cx="48" cy="28" r="3.5" fill="#38bdf8"/>
-          <circle cx="88" cy="28" r="3.5" fill="#22d3ee"/>
-        </svg>
-
-        <div className="flex flex-col gap-0.5 leading-none">
-          <svg viewBox="0 0 130 32" className="w-20 h-auto" xmlns="http://www.w3.org/2000/svg">
+    <header className="fixed top-0 left-0 right-0 z-30 border-b border-slate-800 bg-slate-950 shadow-[0_2px_16px_rgba(0,0,0,0.4)] md:hidden">
+      <div className="flex h-14 items-center gap-2 px-3">
+        <div className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 pl-0.5" onClick={goLogoHome}>
+          <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="h-7 w-12 shrink-0">
             <defs>
-              <linearGradient id="tb-text" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#6b8ef5"/>
-                <stop offset="100%" stopColor="#22d3ee"/>
+              <linearGradient id="tb-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#1e3a5f" />
+                <stop offset="100%" stopColor="#172554" />
+              </linearGradient>
+              <linearGradient id="tb-wave" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#5b7cf9" />
+                <stop offset="50%" stopColor="#38bdf8" />
+                <stop offset="100%" stopColor="#22d3ee" />
               </linearGradient>
             </defs>
-            <text x="0" y="24" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="26" fill="url(#tb-text)">FLUXO</text>
+            <rect width="56" height="56" rx="13" fill="url(#tb-card-bg)" />
+            <path
+              d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
+              stroke="url(#tb-wave)"
+              strokeWidth="3.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <circle cx="7" cy="28" r="3.5" fill="#5b7cf9" />
+            <circle cx="48" cy="28" r="3.5" fill="#38bdf8" />
+            <circle cx="88" cy="28" r="3.5" fill="#22d3ee" />
           </svg>
-          <span className="text-[9px] font-semibold text-slate-500 tracking-wider uppercase -mt-0.5">{t.ui.tagline}</span>
-        </div>
-      </div>
 
-      <div className="relative shrink-0" ref={langWrapRef}>
+          <div className="flex flex-col gap-0.5 leading-none">
+            <svg viewBox="0 0 130 32" className="h-auto w-20" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="tb-text" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#6b8ef5" />
+                  <stop offset="100%" stopColor="#22d3ee" />
+                </linearGradient>
+              </defs>
+              <text
+                x="0"
+                y="24"
+                fontFamily="Arial Black, Arial, sans-serif"
+                fontWeight="900"
+                fontSize="26"
+                fill="url(#tb-text)"
+              >
+                FLUXO
+              </text>
+            </svg>
+            <span className="-mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500">
+              {t.ui.tagline}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
+          <ConnectionStatusDot />
+        </div>
+
+        <div className="relative shrink-0" ref={langWrapRef}>
+          <button
+            type="button"
+            onClick={() => setLangOpen((o) => !o)}
+            className={`flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center gap-1 rounded-xl px-2 transition-colors ${
+              langOpen
+                ? 'bg-slate-800/80 text-slate-200'
+                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200 active:bg-slate-700'
+            }`}
+            aria-expanded={langOpen}
+            aria-haspopup="listbox"
+            aria-label={t.ui.languageTooltip}
+            title={currentLocale ? `${t.ui.languageTooltip}: ${currentLocale.label}` : t.ui.languageTooltip}
+          >
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-300">{locale}</span>
+            <svg
+              className={`h-3 w-3 shrink-0 text-slate-500 transition-transform ${langOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {langOpen && (
+            <div
+              className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 py-1 shadow-2xl"
+              role="listbox"
+            >
+              {LOCALES.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  role="option"
+                  aria-selected={locale === l.code}
+                  onClick={() => {
+                    if (l.code === locale) {
+                      setLangOpen(false)
+                      return
+                    }
+                    setLocale(l.code)
+                    setLangOpen(false)
+                  }}
+                  className={`flex w-full touch-manipulation items-center gap-2.5 px-3 py-2.5 text-left text-[11px] font-medium transition-colors ${
+                    locale === l.code
+                      ? 'bg-cyan-500/15 text-white'
+                      : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
+                  }`}
+                >
+                  <span className="text-base leading-none">{l.flag}</span>
+                  <span className="truncate">{l.label}</span>
+                  {locale === l.code && (
+                    <svg
+                      className="ml-auto h-3 w-3 shrink-0 text-cyan-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
-          onClick={() => setLangOpen((o) => !o)}
-          className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1 rounded-xl px-2 transition-colors touch-manipulation ${
-            langOpen
-              ? 'bg-slate-800/80 text-slate-200'
-              : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200 active:bg-slate-700'
-          }`}
-          aria-expanded={langOpen}
-          aria-haspopup="listbox"
-          aria-label={t.ui.languageTooltip}
-          title={currentLocale ? `${t.ui.languageTooltip}: ${currentLocale.label}` : t.ui.languageTooltip}
+          onClick={() => void handleLogout()}
+          className="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-800/70 hover:text-cyan-300 active:bg-slate-700"
+          aria-label={t.nav.esci}
+          title={t.nav.esci}
         >
-          <span className="text-xs font-bold uppercase tracking-wide text-slate-300">
-            {locale}
-          </span>
-          <svg
-            className={`h-3 w-3 shrink-0 text-slate-500 transition-transform ${langOpen ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <svg className="size-5 shrink-0 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+            />
           </svg>
         </button>
-        {langOpen && (
-          <div
-            className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 py-1 shadow-2xl"
-            role="listbox"
-          >
-            {LOCALES.map((l) => (
-              <button
-                key={l.code}
-                type="button"
-                role="option"
-                aria-selected={locale === l.code}
-                onClick={() => {
-                  if (l.code === locale) {
-                    setLangOpen(false)
-                    return
-                  }
-                  setLocale(l.code)
-                  setLangOpen(false)
-                }}
-                className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[11px] font-medium transition-colors touch-manipulation ${
-                  locale === l.code
-                    ? 'bg-cyan-500/15 text-white'
-                    : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
-                }`}
-              >
-                <span className="text-base leading-none">{l.flag}</span>
-                <span className="truncate">{l.label}</span>
-                {locale === l.code && (
-                  <svg className="ml-auto h-3 w-3 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
-
-      <button
-        type="button"
-        onClick={() => void handleLogout()}
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors touch-manipulation hover:bg-slate-800/90 hover:text-cyan-300 active:bg-slate-800"
-        aria-label={t.nav.esci}
-        title={t.nav.esci}
-      >
-        <svg className="size-5 shrink-0 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-        </svg>
-      </button>
-    </div>
+    </header>
   )
 }

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, getProfile } from '@/utils/supabase/server'
+import { createClient } from '@/utils/supabase/server'
 import {
   countPendingDocumentiForSede,
   countPendingDocumentiSessionScoped,
   countSyncLogErrors24h,
+  countSyncLogErrors24hForSede,
 } from '@/lib/dashboard-notification-counts'
 import type { NotificationBadgePayload } from '@/types/notification-badge'
 
@@ -20,13 +21,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const profile = await getProfile()
-  const isAdmin = profile?.role === 'admin'
+  /** Un solo round-trip: evita `getProfile()` che rifà `getUser()` + select pesante. */
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, sede_id')
+    .eq('id', user.id)
+    .maybeSingle()
 
-  const logErrors24h = isAdmin ? await countSyncLogErrors24h(supabase) : 0
+  const isMasterAdmin = profile?.role === 'admin'
+  const isAdminSede = profile?.role === 'admin_sede'
+
+  const logErrorsGlobal = isMasterAdmin ? await countSyncLogErrors24h(supabase) : 0
 
   let operatorPendingDocs = 0
-  if (!isAdmin) {
+  let operatorLogErrorsScoped = 0
+  if (!isMasterAdmin) {
     const sedeParam = req.nextUrl.searchParams.get('sede_id')?.trim()
     const sedeId = sedeParam || profile?.sede_id?.trim() || null
     if (sedeId) {
@@ -34,13 +43,16 @@ export async function GET(req: NextRequest) {
     } else {
       operatorPendingDocs = await countPendingDocumentiSessionScoped(supabase)
     }
+    if (isAdminSede && profile?.sede_id) {
+      operatorLogErrorsScoped = await countSyncLogErrors24hForSede(supabase, profile.sede_id)
+    }
   }
 
   const payload: NotificationBadgePayload = {
-    isAdmin,
-    adminLogErrors24h: logErrors24h,
+    isAdmin: isMasterAdmin,
+    adminLogErrors24h: logErrorsGlobal,
     operatorPendingDocs,
-    operatorLogErrors24h: 0,
+    operatorLogErrors24h: operatorLogErrorsScoped,
   }
   return NextResponse.json(payload)
 }

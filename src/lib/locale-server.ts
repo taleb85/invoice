@@ -33,9 +33,9 @@ export async function getT() {
   return getTranslations(locale)
 }
 
-/** Effective sede_id: for admins uses cookie admin-sede-id */
-export async function getEffectiveSedeId(userSedeId: string | null, isAdmin: boolean): Promise<string | null> {
-  if (!isAdmin) return userSedeId
+/** Effective sede_id: solo per Admin Master usa il cookie `admin-sede-id`. */
+export async function getEffectiveSedeId(userSedeId: string | null, isMasterAdmin: boolean): Promise<string | null> {
+  if (!isMasterAdmin) return userSedeId
   const store = await cookies()
   return store.get('admin-sede-id')?.value ?? null
 }

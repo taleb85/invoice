@@ -9,6 +9,7 @@ import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate } from '@/lib/locale-shared'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
 
 function ymdTodayInTimezone(tz: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -76,6 +77,13 @@ function NuovaBollaForm() {
   const t = useT()
   const { locale, timezone } = useLocale()
   const { activeOperator } = useActiveOperator()
+  const emailSyncCtx = useEmailSyncProgressOptional()
+  const emailSyncBannerVisible =
+    !!emailSyncCtx?.progress &&
+    (emailSyncCtx.progress.active ||
+      emailSyncCtx.progress.stalled ||
+      emailSyncCtx.progress.toast !== null ||
+      !!emailSyncCtx.progress.connectionWarning)
 
   const todayRegistrationLabel = formatDate(ymdTodayInTimezone(timezone), locale, timezone, {
     day: 'numeric',
@@ -378,7 +386,19 @@ function NuovaBollaForm() {
 
   return (
     <div className="flex flex-col">
-      <div className="sticky top-14 z-10 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/90 px-4 py-3 backdrop-blur-md md:top-0">
+      {/*
+        Su `/bolle/new` il main non ha più `pt-14` (evita doppio offset con sticky). Sotto il topbar
+        mobile serve spazio in flow solo quando la barra sync non è visibile (la sync bar ha già `mt-14`).
+      */}
+      {!emailSyncBannerVisible ? <div className="h-14 shrink-0 md:hidden" aria-hidden /> : null}
+      {/*
+        Mobile: `fixed` sotto topbar (o sotto topbar+sync). Desktop: sticky in cima al contenuto.
+      */}
+      <div
+        className={`z-10 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/90 px-4 py-3 backdrop-blur-md max-md:fixed max-md:left-0 max-md:right-0 md:sticky md:top-0 ${
+          emailSyncBannerVisible ? 'max-md:top-[calc(3.5rem+6.5rem)]' : 'max-md:top-14'
+        }`}
+      >
         <button
           type="button"
           onClick={() => router.back()}
@@ -395,6 +415,8 @@ function NuovaBollaForm() {
           </p>
         </div>
       </div>
+      {/* Riserva altezza dell’header fisso su mobile (≈ py-3 + riga titolo + bordo). */}
+      <div className="h-[4.375rem] shrink-0 md:hidden" aria-hidden />
 
       <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
 

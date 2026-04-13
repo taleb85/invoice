@@ -2,29 +2,47 @@
 
 import { useNetworkStatusOptional } from '@/lib/network-context'
 import { useLocale } from '@/lib/locale-context'
+import { getTranslations, type Locale } from '@/lib/translations'
 
 /**
  * Pallino verde/rosso stato connessione (navigator + probe opzionale).
  */
 export default function ConnectionStatusDot() {
   const net = useNetworkStatusOptional()
-  const { t } = useLocale()
+  const { locale } = useLocale()
   if (!net) return null
 
-  const label = net.online ? t.ui.connectionOnline : t.ui.connectionOffline
+  const mode: 'online' | 'reconnecting' | 'offline' = !net.online
+    ? 'offline'
+    : net.reconnecting
+      ? 'reconnecting'
+      : 'online'
+
+  // Derive copy from `locale` + `getTranslations` so SSR and first client paint match
+  // even if a stale/default `t` from context were briefly out of sync during hydration.
+  const tr = getTranslations(locale as Locale)
+  const label =
+    mode === 'offline'
+      ? tr.ui.connectionOffline
+      : mode === 'reconnecting'
+        ? tr.ui.connectionReconnecting
+        : tr.ui.connectionOnline
+
+  const dotClass =
+    mode === 'online'
+      ? 'connection-status-dot connection-status-dot--online h-2.5 w-2.5 shrink-0 md:h-2 md:w-2'
+      : mode === 'reconnecting'
+        ? 'connection-status-dot connection-status-dot--reconnecting h-2.5 w-2.5 shrink-0 md:h-2 md:w-2'
+        : 'connection-status-dot connection-status-dot--offline h-2.5 w-2.5 shrink-0 md:h-2 md:w-2'
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/50 bg-slate-900/80 px-2 py-0.5"
+      className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/50 bg-slate-900/80 px-2 py-1 md:py-0.5"
       title={label}
       role="status"
       aria-label={label}
     >
-      <span
-        className={`h-2 w-2 shrink-0 rounded-full ${
-          net.online ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'
-        }`}
-      />
+      <span className={dotClass} />
       <span className="hidden text-[10px] font-medium text-slate-400 sm:inline">{label}</span>
     </span>
   )

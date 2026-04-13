@@ -12,18 +12,20 @@ export function DashboardOperatorKpiSkeleton() {
       {[0, 1, 2, 3, 4, 5, 6].map((i) => (
         <div
           key={i}
-          className="app-card animate-pulse overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/45 p-4 backdrop-blur-md sm:p-5"
+          className="app-card flex animate-pulse flex-col overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/45 backdrop-blur-md"
           style={{ boxShadow: `0 0 24px -12px ${skeletonAccents[i]}55` }}
         >
-          <div className="app-card-bar mb-3" aria-hidden />
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="h-3 flex-1 rounded bg-slate-700/80" />
-            <div className="h-6 w-6 shrink-0 rounded-lg bg-slate-700/80" />
-          </div>
-          <div className="h-8 w-1/2 rounded bg-slate-700/80" />
-          <div className="mt-1 flex items-center justify-between gap-2">
-            <div className="h-3 w-2/3 rounded bg-slate-700/80" />
-            <div className="h-3.5 w-3.5 shrink-0 rounded bg-slate-700/80" />
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="flex flex-1 flex-col p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="h-3 flex-1 rounded bg-slate-700/80" />
+              <div className="h-6 w-6 shrink-0 rounded-lg bg-slate-700/80" />
+            </div>
+            <div className="h-8 w-1/2 rounded bg-slate-700/80" />
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <div className="h-3 w-2/3 rounded bg-slate-700/80" />
+              <div className="h-3.5 w-3.5 shrink-0 rounded bg-slate-700/80" />
+            </div>
           </div>
         </div>
       ))}
@@ -198,28 +200,30 @@ export default function DashboardOperatorKpiGrid({
         <Link
           key={`${item.href}-${item.label}`}
           href={item.href}
-          className={`app-card group overflow-hidden rounded-xl border ${item.borderClass} bg-slate-900/45 p-4 shadow-black/20 backdrop-blur-md transition-all hover:border-opacity-40 hover:shadow-lg active:scale-[0.99] sm:p-5`}
+          className={`app-card group flex flex-col overflow-hidden rounded-xl border ${item.borderClass} bg-slate-900/45 shadow-black/20 backdrop-blur-md transition-all hover:border-opacity-40 hover:shadow-lg active:scale-[0.99]`}
           style={{
             boxShadow: `0 0 28px -12px rgba(${item.glowRgb},0.45), 0 4px 24px -8px rgba(0,0,0,0.45)`,
           }}
         >
-          <div className="app-card-bar" aria-hidden />
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-400 sm:text-xs">{item.label}</p>
-            <span className="shrink-0">{item.icon}</span>
-          </div>
-          <p className="break-words text-2xl font-bold tabular-nums text-slate-100 sm:text-3xl">{item.value}</p>
-          <div className="mt-1 flex items-end justify-between gap-2">
-            <p className={`min-w-0 text-[10px] leading-snug sm:text-xs ${item.subClass}`}>{item.sub}</p>
-            <svg
-              className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="flex flex-1 flex-col p-4 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-400 sm:text-xs">{item.label}</p>
+              <span className="shrink-0">{item.icon}</span>
+            </div>
+            <p className="break-words text-2xl font-bold tabular-nums text-slate-100 sm:text-3xl">{item.value}</p>
+            <div className="mt-1 flex items-end justify-between gap-2">
+              <p className={`min-w-0 text-[10px] leading-snug sm:text-xs ${item.subClass}`}>{item.sub}</p>
+              <svg
+                className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
         </Link>
       ))}

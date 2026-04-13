@@ -1,19 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autenticato.' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
+  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const master = isMasterAdminRole(profile?.role)
+  const sedeAdmin = isAdminSedeRole(profile?.role)
+  if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
 
   const { name, pin, sedeId, role } = await req.json()
 
   if (!name?.trim() || !pin || !sedeId) {
     return NextResponse.json({ error: 'Nome, PIN e sede sono obbligatori.' }, { status: 400 })
+  }
+
+  if (sedeAdmin) {
+    if (!profile?.sede_id || sedeId !== profile.sede_id) {
+      return NextResponse.json({ error: 'Puoi creare operatori solo per la tua sede.' }, { status: 403 })
+    }
+    if ((role ?? 'operatore') !== 'operatore') {
+      return NextResponse.json({ error: 'Solo il ruolo operatore può essere assegnato.' }, { status: 403 })
+    }
   }
   if (String(pin).length < 4) {
     return NextResponse.json({ error: 'Il PIN deve essere di almeno 4 caratteri.' }, { status: 400 })

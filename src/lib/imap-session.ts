@@ -1,10 +1,30 @@
 import type { ConnectionOptions } from 'tls'
-import { AuthenticationFailure, ImapFlow, type ImapFlowOptions } from 'imapflow'
+import { ImapFlow, type ImapFlowOptions } from 'imapflow'
 
-/** Connessione IMAP: richiesta esplicita 60s (imapflow default 90s). */
-export const IMAP_CONNECTION_TIMEOUT_MS = 60_000
-/** Saluto server: evita chiusure premature su host lenti. */
-export const IMAP_GREETING_TIMEOUT_MS = 30_000
+/** imapflow definisce questa classe in `lib/tools.js` ma non la re-esporta dal `main` → spesso `undefined` in bundle. */
+function isImapAuthenticationFailure(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { authenticationFailed?: boolean }).authenticationFailed === true
+  )
+}
+
+function imapTimeoutFromEnv(key: string, fallback: number): number {
+  const raw = process.env[key]
+  if (raw == null || raw === '') return fallback
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 3_000 ? n : fallback
+}
+
+/**
+ * Timeout TCP/handshake verso l’host IMAP.
+ * Default più basso dei 60s precedenti: host irraggiungibili (ETIMEDOUT) non bloccano
+ * `scan-emails` e la coda dev per minuti. Override: `IMAP_CONNECTION_TIMEOUT_MS`.
+ */
+export const IMAP_CONNECTION_TIMEOUT_MS = imapTimeoutFromEnv('IMAP_CONNECTION_TIMEOUT_MS', 22_000)
+/** Saluto server IMAP. Override: `IMAP_GREETING_TIMEOUT_MS`. */
+export const IMAP_GREETING_TIMEOUT_MS = imapTimeoutFromEnv('IMAP_GREETING_TIMEOUT_MS', 14_000)
 /** Inattività socket durante FETCH lunghi (server sede spesso lenti). */
 export const IMAP_SOCKET_TIMEOUT_MS = 180_000
 
@@ -17,7 +37,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isRetryableImapError(err: unknown): boolean {
-  if (err instanceof AuthenticationFailure) return false
+  if (isImapAuthenticationFailure(err)) return false
   const msg = err instanceof Error ? err.message : String(err)
   if (/authentication failed|invalid credentials|login failed|AUTHENTICATIONFAILED/i.test(msg)) return false
   return /unexpected close|connection closed|ECONNRESET|ECONNABORTED|ETIMEDOUT|timeout|socket|ENOTFOUND|EAI_AGAIN/i.test(

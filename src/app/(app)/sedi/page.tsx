@@ -61,6 +61,8 @@ export default function SediPage() {
   const t = useT()
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  /** `sede` = admin con `profiles.sede_id`: solo quella sede, niente wizard / utenti senza sede. */
+  const [adminListScope, setAdminListScope] = useState<'global' | 'sede'>('global')
   const [sedi, setSedi] = useState<SedeWithCounts[]>([])
   const [profiles, setProfiles] = useState<ProfileWithSede[]>([])
   const [allSedi, setAllSedi] = useState<Sede[]>([])
@@ -84,6 +86,7 @@ export default function SediPage() {
   const [wizardGeoStatus, setWizardGeoStatus] = useState<'detecting' | 'detected' | 'failed'>('detecting')
 
   const openWizard = () => {
+    if (adminListScope === 'sede') return
     setWizardStep(1); setWizardSedeName(''); setWizardError(null)
     setWizardImap({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
     setWizardOperators([]); setWizardNewOpName(''); setWizardNewOpPin('')
@@ -103,6 +106,7 @@ export default function SediPage() {
   }
 
   const handleWizardCreate = async () => {
+    if (adminListScope === 'sede') return
     setCreatingWizard(true); setWizardError(null)
     const { data: newSede, error: sedeErr } = await supabase
       .from('sedi').insert([{ nome: wizardSedeName.trim(), country_code: wizardCountryCode }]).select().single()
@@ -278,6 +282,8 @@ export default function SediPage() {
 
     setIsAdmin(true)
     const data = await res.json()
+    const scope: 'global' | 'sede' = data.adminListScope === 'sede' ? 'sede' : 'global'
+    setAdminListScope(scope)
     setSedi(data.sedi ?? [])
     setAllSedi(data.sedi ?? [])
     setProfiles((data.profiles ?? []) as ProfileWithSede[])
@@ -286,8 +292,13 @@ export default function SediPage() {
 
   useEffect(() => { loadData() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (adminListScope === 'sede' && showWizard) setShowWizard(false)
+  }, [adminListScope, showWizard])
+
   const handleAddSede = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (adminListScope === 'sede') return
     if (!newSedeName.trim()) return
     setAddingSede(true)
     setError(null)
@@ -313,6 +324,7 @@ export default function SediPage() {
   }
 
   const handleDeleteSede = async (id: string, nome: string) => {
+    if (adminListScope === 'sede') return
     if (!confirm(`Elimina la sede "${nome}"? I dati collegati rimarranno ma perderanno il riferimento alla sede.`)) return
     setError(null)
     const { error: err } = await supabase.from('sedi').delete().eq('id', id)
@@ -410,25 +422,35 @@ export default function SediPage() {
 
   const inputCls = 'w-full rounded-lg border border-slate-600/50 bg-slate-900/95 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/35'
 
+  const isSedeScopedAdmin = adminListScope === 'sede'
+
   return (
-    <div className="p-4 md:p-8 max-w-5xl space-y-6 md:space-y-8">
+    <div className="w-full min-w-0 p-4 md:p-8 space-y-6 md:space-y-8">
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-slate-100">{t.sedi.title}</h1>
           <p className="text-sm text-slate-400 mt-1 hidden md:block">{t.sedi.subtitle}</p>
+          {isSedeScopedAdmin ? (
+            <p className="mt-2 text-xs leading-snug text-amber-200/90 md:text-sm border border-amber-500/25 rounded-lg px-3 py-2 bg-amber-500/10">
+              {t.sedi.adminScopedSediHint}
+            </p>
+          ) : null}
         </div>
-        <button
-          onClick={openWizard}
-          className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span className="hidden sm:inline">{t.sedi.newSede}</span>
-          <span className="sm:hidden">Nuova</span>
-        </button>
+        {!isSedeScopedAdmin ? (
+          <button
+            type="button"
+            onClick={openWizard}
+            className="flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="hidden sm:inline">{t.sedi.newSede}</span>
+            <span className="sm:hidden">Nuova</span>
+          </button>
+        ) : null}
       </div>
 
       {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
@@ -814,12 +836,18 @@ export default function SediPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                           </svg>
                         </button>
-                        <button onClick={() => handleDeleteSede(sede.id, sede.nome)}
-                          className="p-1.5 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title={t.sedi.deleteTitle}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        {!isSedeScopedAdmin ? (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSede(sede.id, sede.nome)}
+                            className="p-1.5 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title={t.sedi.deleteTitle}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        ) : null}
                       </div>
                     </>
                   )}
@@ -864,6 +892,7 @@ export default function SediPage() {
                                       className="w-full text-sm px-2.5 py-2 min-h-[44px] border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95"
                                     >
                                       <option value="operatore">Operatore</option>
+                                      <option value="admin_sede">Admin sede</option>
                                       <option value="admin">Admin</option>
                                     </select>
                                   </div>
@@ -899,9 +928,13 @@ export default function SediPage() {
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                                    p.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-blue-50 text-blue-600'
+                                    p.role === 'admin'
+                                      ? 'bg-violet-100 text-violet-700'
+                                      : p.role === 'admin_sede'
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-blue-50 text-blue-600'
                                   }`}>
-                                    {p.role === 'admin' ? 'Admin' : 'Op.'}
+                                    {p.role === 'admin' ? 'Admin' : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
                                   </span>
                                   <button
                                     type="button"
@@ -1243,8 +1276,9 @@ export default function SediPage() {
         )}
       </div>
 
-      {/* Utenti senza sede assegnata */}
-      {(() => {
+      {/* Utenti senza sede — solo amministratore principale (admin senza sede sul profilo) */}
+      {adminListScope === 'global'
+        ? (() => {
         const unassigned = profiles.filter(p => !p.sede_id)
         if (unassigned.length === 0) return null
         return (
@@ -1258,8 +1292,16 @@ export default function SediPage() {
                     <p className="text-sm text-slate-500">{p.email ?? '—'}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${p.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-blue-50 text-blue-600'}`}>
-                      {p.role === 'admin' ? 'Admin' : 'Op.'}
+                    <span
+                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                        p.role === 'admin'
+                          ? 'bg-violet-100 text-violet-700'
+                          : p.role === 'admin_sede'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-blue-50 text-blue-600'
+                      }`}
+                    >
+                      {p.role === 'admin' ? 'Admin' : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
                     </span>
                     <button
                       type="button"
@@ -1275,7 +1317,8 @@ export default function SediPage() {
             </div>
           </div>
         )
-      })()}
+      })()
+        : null}
 
     </div>
   )

@@ -31,7 +31,7 @@ export default function FornitoriCardsGrid({
   const supabase = createClient()
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
-  const isAdmin = !!(me?.is_admin || me?.role === 'admin')
+  const isAdmin = !!(me?.is_admin || me?.is_admin_sede)
   const net = useNetworkStatusOptional()
 
   const [rows, setRows] = useState<Fornitore[]>(fornitori)

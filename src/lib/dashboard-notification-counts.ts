@@ -19,6 +19,20 @@ export async function countSyncLogErrors24h(supabase: SupabaseClient): Promise<n
   return count ?? 0
 }
 
+/** Errori log ultime 24h limitati a una sede (admin_sede / badge). */
+export async function countSyncLogErrors24hForSede(
+  supabase: SupabaseClient,
+  sedeId: string
+): Promise<number> {
+  const { count } = await supabase
+    .from('log_sincronizzazione')
+    .select('*', { count: 'exact', head: true })
+    .eq('sede_id', sedeId)
+    .in('stato', [...LOG_ERROR_STATI])
+    .gte('data', since24hIso())
+  return count ?? 0
+}
+
 /**
  * Documenti in attesa visibili alla sessione (RLS / sede utente), senza filtro esplicito.
  * Allineato alla query aggregata della dashboard operatore.

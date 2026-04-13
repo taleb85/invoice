@@ -45,7 +45,9 @@ function sedeNomeFromLog(log: LogEntry): string | null {
 
 export default async function LogPage() {
   const profile = await getProfile()
-  if (profile?.role !== 'admin') redirect('/')
+  const isMasterAdmin = profile?.role === 'admin'
+  const isAdminSede = profile?.role === 'admin_sede'
+  if (!isMasterAdmin && !isAdminSede) redirect('/')
 
   const supabase = await createClient()
   const [t, locale, tz] = await Promise.all([getT(), getLocale(), getTimezone()])
@@ -69,11 +71,17 @@ export default async function LogPage() {
     },
   }
 
-  const { data: logs } = await supabase
+  let logQuery = supabase
     .from('log_sincronizzazione')
     .select('*, sedi ( nome )')
     .order('data', { ascending: false })
     .limit(200)
+
+  if (isAdminSede && profile?.sede_id) {
+    logQuery = logQuery.eq('sede_id', profile.sede_id) as typeof logQuery
+  }
+
+  const { data: logs } = await logQuery
 
   const entries: LogEntry[] = (logs ?? []) as LogEntry[]
 
@@ -198,7 +206,7 @@ export default async function LogPage() {
                           {t.log.vediFile}
                         </a>
                       )}
-                      {log.stato === 'fornitore_non_trovato' && log.file_url && (
+                      {isMasterAdmin && log.stato === 'fornitore_non_trovato' && log.file_url && (
                         <LogSupplierAiSuggest
                           logId={log.id}
                           fileUrl={log.file_url}
@@ -284,7 +292,7 @@ export default async function LogPage() {
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            {log.stato === 'fornitore_non_trovato' && log.file_url && (
+                            {isMasterAdmin && log.stato === 'fornitore_non_trovato' && log.file_url && (
                               <LogSupplierAiSuggest
                                 logId={log.id}
                                 fileUrl={log.file_url}

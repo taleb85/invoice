@@ -275,7 +275,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
   const visibleSenders = result?.unknown.filter(s => !added.has(s.email)) ?? []
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
+    <div className="w-full min-w-0 p-4 md:p-8">
       {/* Header */}
       <div className="flex flex-col gap-3 mb-8 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">

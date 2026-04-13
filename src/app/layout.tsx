@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import PWARegister from "@/components/PWARegister";
 import "./globals.css";
 
@@ -68,14 +69,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="h-full bg-slate-950 text-slate-100 antialiased">
-        {/*
-          Inline bootstrap in the server-rendered body (not next/script in head):
-          React 19 warns that <script> from next/script can misbehave when client-rendered;
-          this runs once before hydration like beforeInteractive.
-        */}
-        <script
+      <body
+        className="h-full min-h-dvh bg-slate-950 text-slate-100 antialiased"
+        style={{ backgroundColor: "#020617", color: "#e2e8f0" }}
+      >
+        <Script
           id="fluxo-app-locale-bootstrap"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: APP_LOCALE_BOOTSTRAP }}
         />
         <PWARegister />

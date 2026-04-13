@@ -15,12 +15,23 @@ const PUBLIC_PATHS = [
 
 const SEDE_LOCK_EXEMPT = ['/api/sede-lock']
 
-/** Solo amministratori (configurazione sedi, log sync globali, discovery IMAP, ecc.) */
-function isAdminOnlyPath(pathname: string): boolean {
-  if (pathname === '/sedi' || pathname.startsWith('/sedi/')) return true
-  if (pathname === '/log' || pathname.startsWith('/log/')) return true
+/** Lista sedi e pagine riservate al solo Admin Master. */
+function isMasterAdminOnlyPath(pathname: string): boolean {
+  if (pathname === '/sedi') return true
   if (pathname.startsWith('/impostazioni/fornitori')) return true
   return false
+}
+
+function isLogPath(pathname: string): boolean {
+  return pathname === '/log' || pathname.startsWith('/log/')
+}
+
+/** Sotto-route `/sedi/[id]/…` (non la lista `/sedi`). */
+function sedeDetailPathSedeId(pathname: string): string | null {
+  if (!pathname.startsWith('/sedi/')) return null
+  const rest = pathname.slice('/sedi/'.length)
+  const id = rest.split('/')[0]?.trim()
+  return id || null
 }
 
 export async function middleware(request: NextRequest) {
@@ -75,17 +86,44 @@ export async function middleware(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const isAdmin = profile?.role === 'admin'
+  const role = profile?.role ?? ''
+  const isMasterAdmin = role === 'admin'
+  const isAdminSede = role === 'admin_sede'
 
-  if (!isAdmin && isAdminOnlyPath(pathname)) {
-    if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    const homeUrl = request.nextUrl.clone()
-    homeUrl.pathname = '/'
-    return NextResponse.redirect(homeUrl)
+  if (isMasterAdminOnlyPath(pathname)) {
+    if (!isMasterAdmin) {
+      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/'
+      return NextResponse.redirect(homeUrl)
+    }
+  }
+
+  const sedeFromPath = sedeDetailPathSedeId(pathname)
+  if (sedeFromPath) {
+    if (isMasterAdmin) {
+      // ok
+    } else if (isAdminSede && profile?.sede_id && sedeFromPath === profile.sede_id) {
+      // ok: responsabile solo della propria sede
+    } else {
+      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/'
+      return NextResponse.redirect(homeUrl)
+    }
+  }
+
+  if (isLogPath(pathname)) {
+    if (!isMasterAdmin && !isAdminSede) {
+      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/'
+      return NextResponse.redirect(homeUrl)
+    }
   }
 
   const isSedeExempt = SEDE_LOCK_EXEMPT.some((p) => pathname.startsWith(p))
-  if (!isSedeExempt && !isAdmin && profile?.sede_id && pathname !== '/sede-lock') {
+  if (!isSedeExempt && !isMasterAdmin && profile?.sede_id && pathname !== '/sede-lock') {
     const verifiedCookie = request.cookies.get('sede-verified')?.value
     if (verifiedCookie !== profile.sede_id) {
       const { data: sede } = await supabase

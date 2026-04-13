@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 
 // ── POST /api/fornitori ────────────────────────────────────────────────────────
 // Creates a new fornitore for a given sede and registers its email in
@@ -27,6 +28,18 @@ export async function POST(req: NextRequest) {
   }
   if (!sede_id) {
     return NextResponse.json({ error: 'La Sede è obbligatoria' }, { status: 400 })
+  }
+
+  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const master = isMasterAdminRole(profile?.role)
+  const sedeAdmin = isAdminSedeRole(profile?.role)
+  if (!master && !sedeAdmin) {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+  }
+  if (sedeAdmin) {
+    if (!profile?.sede_id || profile.sede_id !== sede_id) {
+      return NextResponse.json({ error: 'Puoi creare fornitori solo per la tua sede' }, { status: 403 })
+    }
   }
 
   const service = createServiceClient()
@@ -66,7 +79,21 @@ export async function DELETE(req: NextRequest) {
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID mancante' }, { status: 400 })
 
+  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const master = isMasterAdminRole(profile?.role)
+  const sedeAdmin = isAdminSedeRole(profile?.role)
+  if (!master && !sedeAdmin) {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+  }
+
   const service = createServiceClient()
+
+  if (sedeAdmin) {
+    const { data: row } = await service.from('fornitori').select('sede_id').eq('id', id).maybeSingle()
+    if (!profile?.sede_id || row?.sede_id !== profile.sede_id) {
+      return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+    }
+  }
 
   // Remove email aliases first (avoid FK constraint if no cascade)
   await service.from('fornitore_emails').delete().eq('fornitore_id', id)

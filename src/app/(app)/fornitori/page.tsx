@@ -48,25 +48,23 @@ export default async function FornitoriPage() {
   return (
     <div className="p-4 md:p-8">
       {/* Header */}
-      <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between md:mb-8">
+      <div className="mb-6 flex flex-col gap-3 md:mb-8 md:flex-row md:items-start md:justify-between md:gap-4">
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <h1 className="text-2xl font-bold text-slate-100 min-w-0">{t.fornitori.title}</h1>
-            {sedeNome ? (
-              <span className="shrink-0 inline-flex max-w-[55%] items-center gap-1 rounded-full border border-cyan-500/35 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-medium text-cyan-200 sm:max-w-none">
-                <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                <span className="truncate" title={sedeNome}>{sedeNome}</span>
-              </span>
-            ) : null}
-          </div>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="min-w-0 text-2xl font-bold text-slate-100">{t.fornitori.title}</h1>
+          <p className="mt-1 text-sm text-slate-400">
             {fornitori.length} {t.fornitori.countLabel}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:shrink-0">
+          {sedeNome ? (
+            <span className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border border-cyan-500/35 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-medium text-cyan-200 sm:max-w-[min(100%,14rem)]">
+              <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              <span className="truncate" title={sedeNome}>{sedeNome}</span>
+            </span>
+          ) : null}
           <Link
             href="/fornitori/import"
             className="flex items-center gap-1.5 rounded-lg border border-slate-600/80 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-800"

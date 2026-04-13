@@ -12,7 +12,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 
 export interface MeData {
   user:         { id: string; email: string } | null
-  role:         'admin' | 'operatore' | null
+  role:         'admin' | 'admin_sede' | 'operatore' | null
   sede_id:      string | null
   sede_nome:    string | null
   country_code: string
@@ -20,7 +20,10 @@ export interface MeData {
   currency:     string
   /** IANA timezone for the active sede (e.g. 'Europe/London') */
   timezone:     string
+  /** Admin Master (tutte le sedi) */
   is_admin:     boolean
+  /** Responsabile di sede: permessi elevati solo su `sede_id` */
+  is_admin_sede: boolean
   all_sedi:     { id: string; nome: string }[]
 }
 
@@ -40,6 +43,7 @@ const DEFAULT_ME: MeData = {
   currency:     'GBP',
   timezone:     'Europe/London',
   is_admin:     false,
+  is_admin_sede: false,
   all_sedi:     [],
 }
 
@@ -49,31 +53,49 @@ const MeContext = createContext<MeContextValue>({
   refresh: () => {},
 })
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [me, setMe]           = useState<MeData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [tick, setTick]       = useState(0)
+export function UserProvider({
+  children,
+  initialMe = null,
+}: {
+  children: ReactNode
+  /** Da Server Component: stesso payload di `/api/me`, evita flash dock/padding in attesa del fetch. */
+  initialMe?: MeData | null
+}) {
+  const [me, setMe] = useState<MeData | null>(() => initialMe ?? null)
+  const [loading, setLoading] = useState(() => initialMe == null)
+  const [tick, setTick] = useState(0)
 
   useEffect(() => {
-    setLoading(true)
+    if (tick > 0) setLoading(true)
     fetch('/api/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!data) { setMe(DEFAULT_ME); return }
+        if (!data) {
+          setMe(DEFAULT_ME)
+          return
+        }
         const raw = String(data.role ?? '').toLowerCase()
         const role: MeData['role'] | null =
-          raw === 'admin' ? 'admin' : raw === 'operatore' ? 'operatore' : null
+          raw === 'admin'
+            ? 'admin'
+            : raw === 'admin_sede'
+              ? 'admin_sede'
+              : raw === 'operatore'
+                ? 'operatore'
+                : null
         const isAdmin = !!data.is_admin || role === 'admin'
+        const isAdminSede = !!data.is_admin_sede || role === 'admin_sede'
         setMe({
-          user:         data.user         ?? null,
+          user: data.user ?? null,
           role,
-          sede_id:      data.sede_id      ?? null,
-          sede_nome:    data.sede_nome    ?? null,
+          sede_id: data.sede_id ?? null,
+          sede_nome: data.sede_nome ?? null,
           country_code: data.country_code ?? 'UK',
-          currency:     data.currency     ?? 'GBP',
-          timezone:     data.timezone     ?? 'Europe/London',
-          is_admin:     isAdmin,
-          all_sedi:     data.all_sedi     ?? [],
+          currency: data.currency ?? 'GBP',
+          timezone: data.timezone ?? 'Europe/London',
+          is_admin: isAdmin,
+          is_admin_sede: isAdminSede,
+          all_sedi: data.all_sedi ?? [],
         })
       })
       .catch(() => setMe(DEFAULT_ME))

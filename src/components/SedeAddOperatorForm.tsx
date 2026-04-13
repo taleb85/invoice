@@ -4,7 +4,14 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useT } from '@/lib/use-t'
 
-export default function SedeAddOperatorForm({ sedeId }: { sedeId: string }) {
+export default function SedeAddOperatorForm({
+  sedeId,
+  embedded = false,
+}: {
+  sedeId: string
+  /** Scheda compatta (es. hub Impostazioni mobile) senza secondo `app-card`. */
+  embedded?: boolean
+}) {
   const t = useT()
   const router = useRouter()
   const [name, setName] = useState('')
@@ -64,24 +71,30 @@ export default function SedeAddOperatorForm({ sedeId }: { sedeId: string }) {
   const inputCls =
     'w-full rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
 
-  return (
-    <div className="app-card mb-8 p-5">
-      <div className="app-card-bar mb-4" aria-hidden />
-      <h2 className="text-sm font-semibold text-slate-100">{t.sedi.addOperatorSedeTitle}</h2>
-      <p className="mb-4 mt-1 text-xs text-slate-400">{t.sedi.addOperatorSedeDesc}</p>
+  const nameId = embedded ? 'imp-embedded-op-name' : 'sede-op-name'
+  const pinId = embedded ? 'imp-embedded-op-pin' : 'sede-op-pin'
 
-      {error && <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
+  const inner = (
+    <>
+      {error && <div className="mb-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
       {success && (
-        <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{success}</div>
+        <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{success}</div>
       )}
 
-      <form onSubmit={(e) => void handleSubmit(e)} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
-        <div className="flex-1 min-w-[10rem]">
-          <label htmlFor="sede-op-name" className="mb-1 block text-xs font-medium text-slate-400">
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className={
+          embedded
+            ? 'flex flex-col gap-3'
+            : 'flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3'
+        }
+      >
+        <div className={embedded ? 'w-full' : 'flex-1 min-w-[10rem]'}>
+          <label htmlFor={nameId} className="mb-1 block text-xs font-medium text-slate-400">
             {t.sedi.operatorDisplayNameLabel}
           </label>
           <input
-            id="sede-op-name"
+            id={nameId}
             type="text"
             autoComplete="off"
             value={name}
@@ -91,12 +104,12 @@ export default function SedeAddOperatorForm({ sedeId }: { sedeId: string }) {
             disabled={loading}
           />
         </div>
-        <div className="w-full sm:w-36">
-          <label htmlFor="sede-op-pin" className="mb-1 block text-xs font-medium text-slate-400">
+        <div className={embedded ? 'w-full' : 'w-full sm:w-36'}>
+          <label htmlFor={pinId} className="mb-1 block text-xs font-medium text-slate-400">
             {t.sedi.operatorPinMinLabel}
           </label>
           <input
-            id="sede-op-pin"
+            id={pinId}
             type="password"
             autoComplete="new-password"
             value={pin}
@@ -108,11 +121,34 @@ export default function SedeAddOperatorForm({ sedeId }: { sedeId: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full sm:w-auto px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors touch-manipulation"
+          className={
+            embedded
+              ? 'w-full touch-manipulation rounded-xl bg-cyan-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-cyan-600 disabled:opacity-60 active:scale-[0.99]'
+              : 'w-full sm:w-auto px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors touch-manipulation'
+          }
         >
           {loading ? t.sedi.creatingBtn : t.sedi.createBtn}
         </button>
       </form>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="space-y-2">
+        <p className="px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.sedi.addOperatorSedeTitle}</p>
+        <p className="px-0.5 text-xs leading-snug text-slate-400">{t.sedi.addOperatorSedeDesc}</p>
+        {inner}
+      </div>
+    )
+  }
+
+  return (
+    <div className="app-card mb-8 p-5">
+      <div className="app-card-bar mb-4" aria-hidden />
+      <h2 className="text-sm font-semibold text-slate-100">{t.sedi.addOperatorSedeTitle}</h2>
+      <p className="mb-4 mt-1 text-xs text-slate-400">{t.sedi.addOperatorSedeDesc}</p>
+      {inner}
     </div>
   )
 }

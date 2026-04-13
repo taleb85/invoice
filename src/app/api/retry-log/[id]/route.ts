@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 
 // States that can be retried (any error state, regardless of which version created the log)
 const RETRYABLE_STATES = ['bolla_non_trovata', 'fornitore_non_trovato'] as const
@@ -13,7 +14,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!user) return NextResponse.json({ error: 'Non autenticato.' }, { status: 401 })
 
   const prof = await getProfile()
-  if (prof?.role !== 'admin') {
+  const master = isMasterAdminRole(prof?.role)
+  const sedeAdmin = isAdminSedeRole(prof?.role)
+  if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Solo gli amministratori possono riprovare i log di sincronizzazione.' }, { status: 403 })
   }
 
@@ -27,6 +30,21 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   if (logError || !log) {
     return NextResponse.json({ error: 'Log non trovato.' }, { status: 404 })
+  }
+
+  if (sedeAdmin && prof?.sede_id) {
+    let logSede: string | null = (log as { sede_id?: string | null }).sede_id ?? null
+    if (!logSede && log.fornitore_id) {
+      const { data: fornitore } = await service
+        .from('fornitori')
+        .select('sede_id')
+        .eq('id', log.fornitore_id)
+        .maybeSingle()
+      logSede = fornitore?.sede_id ?? null
+    }
+    if (logSede !== prof.sede_id) {
+      return NextResponse.json({ error: 'Non autorizzato su questo log.' }, { status: 403 })
+    }
   }
 
   if (!RETRYABLE_STATES.includes(log.stato)) {

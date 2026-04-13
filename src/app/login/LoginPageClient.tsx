@@ -1,8 +1,6 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-
-const LoginForm = dynamic(() => import('./LoginForm'), { ssr: false })
+import LoginForm from './LoginForm'
 
 export default function LoginPageClient() {
   return <LoginForm />

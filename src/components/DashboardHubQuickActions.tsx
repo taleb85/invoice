@@ -1,10 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ExternalLink } from 'lucide-react'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
@@ -39,13 +37,13 @@ export default function DashboardHubQuickActions() {
 
   const closeReceipt = useCallback(() => setReceiptOpen(false), [])
 
-  const isAdminUser = !!(me?.is_admin || me?.role === 'admin')
-  const onNuovaBollaHub = normalized === '/bolle/new'
+  const isAdminUser = !!me?.is_admin
 
-  if (!onDash || (loading && !me)) return null
+  /** Solo operatore: tile «Ricevuto» (Scanner è il CTA in cima in `page.tsx`). */
+  if (!onDash || (loading && !me) || isAdminUser) return null
 
   const receiptSheet =
-    receiptOpen && !isAdminUser ? (
+    receiptOpen ? (
       <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
@@ -87,61 +85,32 @@ export default function DashboardHubQuickActions() {
   const tileBase =
     'flex min-h-[72px] min-w-0 touch-manipulation flex-col items-center justify-center gap-2 rounded-2xl px-3 py-3 text-center text-xs font-semibold leading-snug transition-colors active:scale-[0.99] sm:min-h-[76px] sm:text-sm'
 
+  /** Allineato al CTA «Scanner AI» in cima al dashboard operatore (`page.tsx`). */
+  const ricevutoTileCls = `${tileBase} border border-cyan-500/35 bg-gradient-to-r from-cyan-500/15 to-violet-500/10 text-sm font-bold text-cyan-100 shadow-[0_0_24px_-8px_rgba(6,182,212,0.45)] hover:border-cyan-400/50 hover:from-cyan-500/25`
+
   return (
     <>
-      <div
-        className={`mt-8 grid gap-3 border-t border-slate-700/50 pt-6 pb-1 md:hidden ${
-          isAdminUser ? 'grid-cols-1' : 'grid-cols-2'
-        }`}
-      >
-        <Link
-          href="/bolle/new"
-          className={`app-glow-cyan text-white shadow-lg shadow-cyan-900/20 ${tileBase} ${
-            onNuovaBollaHub
-              ? 'bg-cyan-600 ring-2 ring-white/30 ring-offset-2 ring-offset-slate-900'
-              : 'bg-cyan-500 hover:bg-cyan-600 active:bg-cyan-700'
-          }`}
-          aria-current={onNuovaBollaHub ? 'page' : undefined}
+      <div className="mt-8 grid grid-cols-1 gap-3 border-t border-slate-700/50 pt-6 pb-1 md:hidden">
+        <button
+          type="button"
+          onClick={() => setReceiptOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={receiptOpen}
+          aria-controls={receiptOpen ? receiptDialogId : undefined}
+          className={ricevutoTileCls}
+          aria-label={t.dashboard.digitalizzaRicevuto}
+          title={t.dashboard.digitalizzaRicevuto}
         >
-          <svg className="h-7 w-7 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <svg className="h-7 w-7 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
-          <span className="line-clamp-2 [overflow-wrap:anywhere]">{t.bolle.scannerTitle}</span>
-        </Link>
-        {!isAdminUser ? (
-          <button
-            type="button"
-            onClick={() => setReceiptOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={receiptOpen}
-            aria-controls={receiptOpen ? receiptDialogId : undefined}
-            className={`border border-slate-600/80 bg-slate-800/90 text-slate-100 shadow-lg shadow-black/20 hover:bg-slate-800 active:bg-slate-800/95 ${tileBase}`}
-            aria-label={t.dashboard.digitalizzaRicevuto}
-            title={t.dashboard.digitalizzaRicevuto}
-          >
-            <svg className="h-7 w-7 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <span className="line-clamp-2 text-slate-200 [overflow-wrap:anywhere]">{t.nav.ricevuto}</span>
-          </button>
-        ) : null}
-        {!isAdminUser ? (
-          <a
-            href="https://rekki.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`col-span-2 border border-violet-500/30 bg-violet-950/40 text-violet-100 shadow-lg shadow-violet-950/30 hover:bg-violet-950/55 active:bg-violet-950/65 ${tileBase}`}
-            aria-label={t.dashboard.rekkiOrder}
-          >
-            <ExternalLink className="h-7 w-7 shrink-0 text-violet-300" aria-hidden />
-            <span className="line-clamp-2 [overflow-wrap:anywhere]">{t.dashboard.rekkiOrder}</span>
-          </a>
-        ) : null}
+          <span className="line-clamp-2 [overflow-wrap:anywhere]">{t.nav.ricevuto}</span>
+        </button>
       </div>
       {typeof document !== 'undefined' && receiptSheet
         ? createPortal(receiptSheet, document.body)

@@ -58,24 +58,37 @@ function LoginFormInner() {
     const token = normalizeOperatorLoginName(n)
     if (!token) { setSedeNome(null); setNameReady(false); resolvedEmail.current = null; return }
     setLookingUp(true)
-    const res  = await fetch('/api/lookup-name', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: token }),
-    })
-    const data = await res.json()
-    setLookingUp(false)
-    if (res.ok) {
-      setSedeNome(data.sede_nome ?? null)
-      resolvedEmail.current = data.email ?? null
-      setNameReady(true)
-      if (pin.join('').length === PIN_LENGTH && data.email) {
-        doLoginByName(data.email, pin.join(''))
+    const ac = new AbortController()
+    const abortTimer = window.setTimeout(() => ac.abort(), 18_000)
+    try {
+      const res = await fetch('/api/lookup-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: token }),
+        signal: ac.signal,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setSedeNome(data.sede_nome ?? null)
+        resolvedEmail.current = data.email ?? null
+        setNameReady(true)
+        if (pin.join('').length === PIN_LENGTH && data.email) {
+          doLoginByName(data.email, pin.join(''))
+        }
+      } else {
+        setSedeNome(null)
+        setNameReady(false)
+        resolvedEmail.current = null
+        setMessage({ type: 'error', text: t.login.notFound })
       }
-    } else {
+    } catch {
       setSedeNome(null)
       setNameReady(false)
       resolvedEmail.current = null
-      setMessage({ type: 'error', text: t.login.notFound })
+      setMessage({ type: 'error', text: t.ui.networkError })
+    } finally {
+      window.clearTimeout(abortTimer)
+      setLookingUp(false)
     }
   }
 

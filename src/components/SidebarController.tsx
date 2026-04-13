@@ -1,26 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
+import MobileTopbar from './MobileTopbar'
 
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
-const MobileTopbar = dynamic(() => import('./MobileTopbar'), { ssr: false })
 
-const MOBILE_BREAKPOINT = 768
-
+/**
+ * Topbar mobile: sempre nel bundle (no dynamic) + `md:hidden` nel componente → niente primo paint senza logo/operatore/rete.
+ * La sidebar resta dynamic ssr:false (pesante).
+ */
 export default function SidebarController() {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
-
   return (
     <>
-      {isMobile && <MobileTopbar />}
+      <MobileTopbar />
       <Sidebar />
     </>
   )

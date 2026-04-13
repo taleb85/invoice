@@ -8,6 +8,7 @@ import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { createClient } from '@/utils/supabase/client'
+import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 
 function ProfileMobileHub() {
   const { me } = useMe()
@@ -17,6 +18,11 @@ function ProfileMobileHub() {
   const { t } = useLocale()
 
   const showChangeSede = (me?.all_sedi?.length ?? 0) > 1 && me?.is_admin
+  const canManageOperators = !!((me?.is_admin || me?.is_admin_sede) && me?.sede_id)
+  const isMasterAdmin = !!me?.is_admin
+  const sedeId = me?.sede_id ?? null
+  const showOperatorForm = canManageOperators
+  const showPickSedeForOperators = isMasterAdmin && !sedeId
 
   const rowCls =
     'flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-800/40 px-3 py-3 text-sm font-semibold text-slate-100 backdrop-blur-sm transition-colors hover:bg-slate-800/70 active:scale-[0.99]'
@@ -29,6 +35,27 @@ function ProfileMobileHub() {
 
   return (
     <div className="mb-4 rounded-2xl border border-white/10 bg-slate-900/50 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+      {showOperatorForm && sedeId ? <SedeAddOperatorForm sedeId={sedeId} embedded /> : null}
+      {showPickSedeForOperators ? (
+        <div className="space-y-2">
+          <p className="px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.sedi.addOperatorSedeTitle}</p>
+          <p className="px-0.5 text-xs leading-snug text-slate-400">{t.impostazioni.addOperatorsPickSede}</p>
+          <Link href="/sedi" className={rowCls}>
+            <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
+            </svg>
+            {t.nav.sediTitle}
+          </Link>
+        </div>
+      ) : null}
+      {showOperatorForm || showPickSedeForOperators ? (
+        <div className="my-3 border-t border-white/10" aria-hidden />
+      ) : null}
       <p className="mb-2 px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.impostazioni.accountSection}</p>
       <div className="flex flex-col gap-2">
         {showChangeSede && (

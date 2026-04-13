@@ -17,9 +17,9 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await adminClient
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, role')
     .eq('sede_id', sedeId)
-    .eq('role', 'operatore')
+    .in('role', ['operatore', 'admin_sede'])
     .order('full_name')
 
   if (error) {

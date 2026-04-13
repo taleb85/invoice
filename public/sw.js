@@ -34,6 +34,12 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
 
+  // Sviluppo locale: non intercettare (evita schermata «offline» quando il dev server va in timeout / riavvio)
+  const h = url.hostname
+  if (h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h.endsWith('.localhost')) {
+    return
+  }
+
   // Ignora richieste non-GET
   if (request.method !== 'GET') return
 

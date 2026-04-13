@@ -37,7 +37,12 @@ export async function GET(req: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const isAdmin = profile?.role === 'admin'
+  const isMasterAdmin = profile?.role === 'admin'
+  const isAdminSede = profile?.role === 'admin_sede'
+
+  if (isAdminSede && sedeId && profile?.sede_id && sedeId !== profile.sede_id) {
+    return NextResponse.json({ error: 'sede_id non consentito' }, { status: 403 })
+  }
 
   let query = service
     .from('documenti_da_processare')
@@ -61,11 +66,11 @@ export async function GET(req: NextRequest) {
   if (sedeId) {
     // Explicit sede filter (sede-specific pages)
     query = query.eq('sede_id', sedeId) as typeof query
-  } else if (!isAdmin && profile?.sede_id) {
+  } else if (!isMasterAdmin && profile?.sede_id) {
     // Operators only see their sede's docs + docs with no sede (NULL)
     query = query.or(`sede_id.eq.${profile.sede_id},sede_id.is.null`) as typeof query
   }
-  // Admins with no sedeId filter see everything
+  // Admin Master with no sedeId filter sees everything
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
