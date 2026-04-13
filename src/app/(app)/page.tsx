@@ -8,53 +8,19 @@ import NotificationBell from '@/components/NotificationBell'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getTimezone, getCurrency, formatDate as fmtDate } from '@/lib/locale-server'
-import { countPendingDocumentiForSede, countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
+import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
   countFornitoriWithOverdueBolle,
   fetchOperatorDashboardKpis,
   fetchRecentBolleScoped,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
-import { countOcrFailuresBySedeLast48h, sedeSyncUnhealthy } from '@/lib/dashboard-admin-sede-health'
 import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
+import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
-import type { Sede } from '@/types'
 
-async function getStatsBySede() {
-  const supabase = await createClient()
-  const [{ data: sedi }, ocrMap] = await Promise.all([
-    supabase.from('sedi').select('*').order('nome'),
-    countOcrFailuresBySedeLast48h(supabase),
-  ])
-
-  const sediWithStats = await Promise.all(
-    (sedi ?? []).map(async (sede: Sede) => {
-      const [{ count: fornitori }, { count: bolleInAttesa }, { count: fattureFirmate }, documentiPendingSede] =
-        await Promise.all([
-          supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
-          supabase
-            .from('bolle')
-            .select('*', { count: 'exact', head: true })
-            .eq('sede_id', sede.id)
-            .eq('stato', 'in attesa'),
-          supabase.from('fatture').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
-          countPendingDocumentiForSede(supabase, sede.id),
-        ])
-      const ext = sede as Sede & { last_imap_sync_error?: string | null }
-      const ocrN = ocrMap[sede.id] ?? 0
-      return {
-        ...sede,
-        fornitori:     fornitori ?? 0,
-        bolleInAttesa: bolleInAttesa ?? 0,
-        fatture:       (fattureFirmate ?? 0) + documentiPendingSede,
-        ocrFailures48h: ocrN,
-        syncUnhealthy: sedeSyncUnhealthy(ext.last_imap_sync_error, ocrN),
-      }
-    })
-  )
-  return sediWithStats
-}
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const cookieStore = await cookies()
@@ -65,13 +31,17 @@ export default async function DashboardPage() {
     getProfile(),
     getCurrency(),
   ])
-  const isAdmin = profile?.role === 'admin'
-  const adminPick = isAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
+  const isMasterAdmin = profile?.role === 'admin'
+  const isAdminSede = profile?.role === 'admin_sede'
+  const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
+  const actingRoleCookie = cookieStore.get('fluxo-acting-role')?.value?.trim()
+  const dashboardAdminSedeUi =
+    isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
 
   const supabase = await createClient()
   let adminViewSedeId: string | null = null
   let adminViewSedeNome: string | null = null
-  if (isAdmin && adminPick) {
+  if (isMasterAdmin && adminPick) {
     const { data } = await supabase.from('sedi').select('id, nome').eq('id', adminPick).maybeSingle()
     if (data?.id) {
       adminViewSedeId = data.id
@@ -79,16 +49,16 @@ export default async function DashboardPage() {
     }
   }
 
-  if (isAdmin && !adminViewSedeId) {
+  if (isMasterAdmin && !adminViewSedeId) {
     const [sediStats, erroriRecenti, sollecitiFornitori, emailBodySupplierHints] = await Promise.all([
-      getStatsBySede(),
+      fetchAdminDashboardSediWithStats(supabase),
       countSyncLogErrors24h(supabase),
       countFornitoriWithOverdueBolle(supabase, null),
       fetchRecurringEmailBodySupplierHints(supabase),
     ])
 
     return (
-      <div className="max-w-5xl p-4 md:p-8">
+      <div className="w-full min-w-0 p-4 md:p-8">
         <div className="mb-8 w-full">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3">
             <div className="min-w-0 sm:flex-1 sm:flex-initial">
@@ -96,27 +66,6 @@ export default async function DashboardPage() {
               <p className="mt-1 hidden text-sm text-slate-400 md:block">{t.sedi.subtitle}</p>
             </div>
             <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
-              <Link
-                href="/sedi"
-                className="md:hidden inline-flex touch-manipulation items-center gap-1.5 rounded-xl border border-cyan-500/35 bg-cyan-500/10 px-3 py-2.5 text-xs font-bold text-cyan-200 shadow-[0_0_20px_-8px_rgba(6,182,212,0.5)] backdrop-blur-sm transition-colors hover:bg-cyan-500/20 active:scale-[0.98]"
-              >
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-                {t.nav.sediTitle}
-              </Link>
-              <NotificationBell
-                variant="inline"
-                isAdmin
-                initialAdminErrors={erroriRecenti}
-                initialOperatorPending={0}
-                initialOperatorLogErrors={0}
-              />
               <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
               <ScanEmailButton alwaysShowLabel />
               <Link
@@ -142,6 +91,13 @@ export default async function DashboardPage() {
                   />
                 </svg>
               </Link>
+              <NotificationBell
+                variant="inline"
+                isAdmin
+                initialAdminErrors={erroriRecenti}
+                initialOperatorPending={0}
+                initialOperatorLogErrors={0}
+              />
             </div>
           </div>
         </div>
@@ -168,15 +124,8 @@ export default async function DashboardPage() {
           </div>
         ) : null}
 
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold text-slate-100">{t.dashboard.sedeOverview}</h2>
-          <Link href="/sedi" className="text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-            {t.dashboard.manageSedi}
-          </Link>
-        </div>
-
         {sediStats.length === 0 ? (
-          <div className="rounded-xl border border-slate-800 bg-slate-950/50 px-6 py-16 text-center">
+          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/50 px-6 py-16 text-center">
             <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path
                 strokeLinecap="round"
@@ -186,12 +135,9 @@ export default async function DashboardPage() {
               />
             </svg>
             <p className="text-sm text-slate-400">{t.sedi.noSedi}</p>
-            <Link href="/sedi" className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-              {t.dashboard.manageSedi}
-            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             {sediStats.map((sede) => {
               const unhealthy = 'syncUnhealthy' in sede && Boolean((sede as { syncUnhealthy?: boolean }).syncUnhealthy)
               const ocrN = 'ocrFailures48h' in sede ? Number((sede as { ocrFailures48h?: number }).ocrFailures48h ?? 0) : 0
@@ -276,7 +222,17 @@ export default async function DashboardPage() {
   }
 
   const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
-  const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
+  let dashboardSedeNome: string | null = adminViewSedeNome
+  const needSedeNome = Boolean(sedeId && dashboardSedeNome == null)
+  const [fornitoreIds, sedeNomeRow] = await Promise.all([
+    sedeId ? fornitoreIdsForSede(supabase, sedeId) : Promise.resolve([] as string[]),
+    needSedeNome && sedeId
+      ? supabase.from('sedi').select('nome').eq('id', sedeId).maybeSingle()
+      : Promise.resolve({ data: null as { nome: string | null } | null }),
+  ])
+  if (needSedeNome && sedeNomeRow.data) {
+    dashboardSedeNome = sedeNomeRow.data.nome ?? null
+  }
   const operatorScoped = !!sedeId
   const [kpis, bolle, sollecitiFornitori, supplierHint] = await Promise.all([
     operatorScoped
@@ -301,16 +257,20 @@ export default async function DashboardPage() {
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
-    <div className="w-full max-w-5xl p-4 md:p-8">
-      {isAdmin && adminViewSedeId && adminViewSedeNome ? (
+    <div className="w-full min-w-0 p-4 md:p-8">
+      {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
       <div className="mb-6 flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3 md:mb-8">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
-          <h1 className="text-xl font-bold text-slate-100 md:text-2xl">{t.dashboard.title}</h1>
+          <h1 className="text-xl font-bold text-slate-100 md:text-2xl">
+            {dashboardSedeNome ?? t.dashboard.title}
+          </h1>
           <p className="mt-0.5 hidden text-sm text-slate-400 md:block">{t.dashboard.subtitle}</p>
         </div>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
+          <ScanEmailButton alwaysShowLabel sedeId={adminViewSedeId ?? undefined} />
+          <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
           <NotificationBell
             variant="inline"
             isAdmin={false}
@@ -318,8 +278,6 @@ export default async function DashboardPage() {
             initialOperatorPending={kpis.documentiPending}
             initialOperatorLogErrors={0}
           />
-          <ScanEmailButton alwaysShowLabel sedeId={adminViewSedeId ?? undefined} />
-          <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
         </div>
       </div>
 
@@ -355,23 +313,74 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
-      {operatorScoped && (
-        <Link
-          href="/bolle/new"
-          className="mb-4 flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/15 to-violet-500/10 px-4 py-3 text-sm font-bold text-cyan-100 shadow-[0_0_24px_-8px_rgba(6,182,212,0.45)] transition-colors hover:border-cyan-400/50 hover:from-cyan-500/25 md:hidden"
-        >
-          <svg className="h-5 w-5 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-          </svg>
-          <span className="text-center leading-tight">{t.bolle.scannerTitle}</span>
-        </Link>
-      )}
-      <h2 className={`mb-3 text-sm font-semibold tracking-wide text-slate-300 ${operatorScoped ? 'hidden md:block' : ''}`}>{t.fornitori.tabRiepilogo}</h2>
-      <div className={operatorScoped ? 'hidden md:block' : ''}>
+      {operatorScoped ? (
+        <>
+          {isAdminSede && sedeId ? (
+            <div className="mb-4 hidden flex-wrap gap-2 rounded-xl border border-violet-500/30 bg-violet-950/20 px-3 py-3 md:flex md:items-center">
+              <Link
+                href={`/fornitori/new?prefill_sede_id=${encodeURIComponent(sedeId)}`}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-500"
+              >
+                {t.fornitori.new}
+              </Link>
+              <Link
+                href={`/sedi/${sedeId}#sede-operatori`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/40 px-3 py-2 text-xs font-semibold text-violet-200 transition-colors hover:bg-violet-950/40"
+              >
+                {t.sedi.addOperatorSedeTitle}
+              </Link>
+              <Link
+                href="/log"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800/60"
+              >
+                {t.nav.logEmail}
+              </Link>
+            </div>
+          ) : null}
+          <Link
+            href="/bolle/new"
+            className="mb-4 flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/15 to-violet-500/10 px-4 py-3 text-sm font-bold text-cyan-100 shadow-[0_0_24px_-8px_rgba(6,182,212,0.45)] transition-colors hover:border-cyan-400/50 hover:from-cyan-500/25 md:hidden"
+          >
+            <svg className="h-5 w-5 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+            </svg>
+            <span className="text-center leading-tight">{t.bolle.scannerTitle}</span>
+          </Link>
+          {dashboardAdminSedeUi && sedeId ? (
+            <div className="mb-4 grid grid-cols-1 gap-2 md:hidden">
+              <Link
+                href={`/fornitori/new?prefill_sede_id=${encodeURIComponent(sedeId)}`}
+                className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-violet-500/35 bg-violet-600/20 px-3 py-2.5 text-sm font-bold text-violet-100"
+              >
+                {t.fornitori.new}
+              </Link>
+              <Link
+                href={`/sedi/${sedeId}#sede-operatori`}
+                className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-violet-500/30 bg-violet-950/25 px-3 py-2.5 text-sm font-semibold text-violet-200"
+              >
+                {t.sedi.addOperatorSedeTitle}
+              </Link>
+              <Link
+                href="/log"
+                className="flex min-h-[44px] items-center justify-center rounded-xl border border-slate-600/60 px-3 py-2 text-xs font-medium text-slate-400"
+              >
+                {t.nav.logEmail}
+              </Link>
+            </div>
+          ) : null}
+          <DashboardHubQuickActions />
+        </>
+      ) : null}
+      <h2
+        className={`mb-3 text-sm font-semibold tracking-wide text-slate-300 ${operatorScoped ? 'operator-dash-hide-mobile' : ''}`}
+      >
+        {t.fornitori.tabRiepilogo}
+      </h2>
+      <div className={operatorScoped ? 'operator-dash-hide-mobile' : ''}>
         <DashboardOperatorKpiGrid kpis={kpis} t={t} locale={locale} currency={currency} />
       </div>
 
-      <div className={`app-card overflow-hidden ${operatorScoped ? 'hidden md:block' : ''}`}>
+      <div className={`app-card overflow-hidden ${operatorScoped ? 'operator-dash-hide-mobile' : ''}`}>
         <div className="app-card-bar" aria-hidden />
         <div className="flex flex-col gap-3 border-b border-slate-800/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <h2 className="font-semibold text-slate-100">{t.dashboard.recentBills}</h2>
@@ -433,8 +442,6 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Operatore (mobile): azioni rapide in DashboardHubQuickActions — incluso «Ordina su Rekki» */}
-      <DashboardHubQuickActions />
     </div>
   )
 }

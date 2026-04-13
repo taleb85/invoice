@@ -26,10 +26,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const supabase = createClient()
   const { me } = useMe()
   const { locale, t, setLocale } = useLocale()
-  const { activeOperator, openSwitchModal } = useActiveOperator()
+  const { activeOperator, openSwitchModal, clearActiveOperator } = useActiveOperator()
   const [sedeNome, setSedeNome] = useState<string | null>(null)
   const [sedeId, setSedeId] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
   const [allSedi, setAllSedi] = useState<{ id: string; nome: string }[]>([])
   const [adminSedeId, setAdminSedeId] = useState<string>('')
   const [branchesOpen, setBranchesOpen] = useState(true)
@@ -47,9 +46,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   useEffect(() => {
     if (!me) return
-    setIsAdmin(me.is_admin)
-    setSedeNome(me.sede_nome)
-    setSedeId(me.sede_id ?? null)
+
+    const actingAsStaff = Boolean(me.is_admin && activeOperator)
+    if (actingAsStaff && activeOperator) {
+      setSedeNome(activeOperator.sede_nome ?? me.sede_nome)
+      setSedeId(activeOperator.sede_id ?? me.sede_id ?? null)
+    } else {
+      setSedeNome(me.sede_nome)
+      setSedeId(me.sede_id ?? null)
+    }
 
     if (me.is_admin && me.all_sedi?.length > 0) {
       setAllSedi(me.all_sedi)
@@ -62,18 +67,31 @@ export default function Sidebar({ onClose }: SidebarProps) {
       }
     }
 
-    // Load suppliers for operators (filtered by their sede)
-    if (!me.is_admin) {
+    const sedeForFornitori =
+      actingAsStaff && activeOperator?.sede_id
+        ? activeOperator.sede_id
+        : !me.is_admin
+          ? me.sede_id ?? null
+          : null
+
+    if (sedeForFornitori) {
       const supabaseClient = createClient()
-      let q = supabaseClient.from('fornitori').select('id, nome').order('nome')
-      if (me.sede_id) q = q.eq('sede_id', me.sede_id) as typeof q
-      q.then(({ data: rows }: { data: { id: string; nome: string }[] | null }) => setFornitori(rows ?? []))
+      supabaseClient
+        .from('fornitori')
+        .select('id, nome')
+        .eq('sede_id', sedeForFornitori)
+        .order('nome')
+        .then(({ data: rows }: { data: { id: string; nome: string }[] | null }) => setFornitori(rows ?? []))
+    } else {
+      setFornitori([])
     }
-  }, [me])
+  }, [me, activeOperator])
 
 
   const handleAdminSedeChange = (value: string) => {
     setAdminSedeId(value)
+    if (me?.is_admin) clearActiveOperator()
+    document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
     if (!value) {
       document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
     } else {
@@ -125,7 +143,26 @@ export default function Sidebar({ onClose }: SidebarProps) {
     f.nome.toLowerCase().includes(fornitoriSearch.toLowerCase())
   )
 
+  /** Admin master: vista “piano” solo senza operatore PIN; con operatore attivo la UI segue il suo ruolo. */
+  const actingAsStaff = Boolean(me?.is_admin && activeOperator)
+  const isMasterAdmin = Boolean(me?.is_admin && !actingAsStaff)
+  const isAdminSede = Boolean(
+    (me?.is_admin_sede && !me?.is_admin) ||
+    (actingAsStaff && activeOperator?.role === 'admin_sede'),
+  )
+
   // Admin flat nav items — Branches is rendered as a custom expandable section inline.
+  const logEmailNavItem = {
+    label: t.nav.logEmail,
+    href: '/log',
+    badge: false,
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+  }
+
   const adminNavItems = [
     {
       label: t.nav.dashboard,
@@ -145,19 +182,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </svg>
       ),
     },
-    {
-      label: t.nav.logEmail,
-      href: '/log',
-      badge: false,
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-    },
+    logEmailNavItem,
   ]
 
-  const navItems = isAdmin ? adminNavItems : operatoreNavItems
+  const navItems = isMasterAdmin
+    ? adminNavItems
+    : isAdminSede
+      ? [operatoreNavItems[0], logEmailNavItem, ...operatoreNavItems.slice(1)]
+      : operatoreNavItems
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -303,7 +335,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           })}
 
           {/* ── Admin: Branches ── */}
-          {isAdmin && !collapsed && (
+          {isMasterAdmin && !collapsed && (
             <div>
               <button
                 onClick={() => setBranchesOpen(o => !o)}
@@ -346,7 +378,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
 
           {/* Admin collapsed: Branches icon → /sedi */}
-          {isAdmin && collapsed && (
+          {isMasterAdmin && collapsed && (
             <Link href="/sedi" onClick={onClose} title={t.appStrings.sidebarSediTitle}
               className={iconOnly(pathname.startsWith('/sedi'))}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,7 +388,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
 
           {/* ── Operator: Fornitori section ── */}
-          {!isAdmin && !collapsed && (
+          {!isMasterAdmin && !collapsed && (
             <div>
               <button
                 onClick={() => setFornitoriOpen(o => !o)}
@@ -368,7 +400,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   </svg>
                   <span className="truncate">{t.nav.fornitori}</span>
                   {fornitori.length > 0 && (
-                    <span className="text-[10px] bg-slate-700/60 text-slate-500 px-1.5 py-0.5 rounded-full shrink-0">
+                    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded border border-cyan-500/35 bg-cyan-500/15 px-1 text-[10px] font-medium tabular-nums text-cyan-200">
                       {fornitori.length}
                     </span>
                   )}
@@ -428,7 +460,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
 
           {/* Operator collapsed: Fornitori icon → /fornitori */}
-          {!isAdmin && collapsed && (
+          {!isMasterAdmin && collapsed && (
             <Link href="/fornitori" onClick={onClose} title={t.nav.fornitori}
               className={iconOnly(pathname.startsWith('/fornitori'))}>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -463,9 +495,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </nav>
 
         {/* ── Role / Sede badge ── */}
-        {!collapsed && (isAdmin || sedeNome) && (
+        {!collapsed && (isMasterAdmin || sedeNome || isAdminSede) && (
           <div className="px-3 pb-2">
-            {isAdmin ? (
+            {isMasterAdmin ? (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-amber-400/10 border border-amber-400/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
@@ -489,9 +521,19 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-slate-800">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500/60 shrink-0" />
-                <span className="text-[11px] text-slate-500 truncate">{sedeNome}</span>
+              <div className="space-y-1.5">
+                {isAdminSede ? (
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                    <span className="text-[11px] font-semibold text-violet-200/90">{t.sedi.adminSedeRole}</span>
+                  </div>
+                ) : null}
+                {sedeNome ? (
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-slate-800">
+                    <span className="h-2 w-2 shrink-0 rounded-full border border-cyan-500/35 bg-cyan-500/15" />
+                    <span className="text-[11px] text-white truncate">{sedeNome}</span>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>
@@ -500,29 +542,26 @@ export default function Sidebar({ onClose }: SidebarProps) {
         {/* ── Operatore attivo ── */}
         {!collapsed && (
           <div className="px-3 pb-2">
-            <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-slate-800/50 border border-slate-700/40 group">
-              <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-[10px] font-bold text-cyan-300 shrink-0">
-                {activeOperator
-                  ? activeOperator.full_name.charAt(0).toUpperCase()
-                  : '?'
-                }
+            <button
+              type="button"
+              onClick={openSwitchModal}
+              title={t.ui.changeOperator}
+              aria-label={activeOperator ? `${t.ui.changeOperator}: ${activeOperator.full_name}` : t.ui.selectOperator}
+              className="flex w-full min-h-[52px] items-center gap-3 rounded-xl border border-cyan-500/25 bg-slate-800/50 px-3 py-2.5 text-left transition-all hover:border-cyan-500/45 hover:bg-slate-800/75 active:scale-[0.99] touch-manipulation"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-bold text-cyan-300">
+                {activeOperator ? activeOperator.full_name.charAt(0).toUpperCase() : '?'}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-slate-600 leading-none mb-0.5 uppercase tracking-wide font-semibold">{t.ui.operatorLabel}</p>
-                <p className="text-[11px] text-slate-300 truncate font-medium leading-none">
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.ui.operatorLabel}</p>
+                <p className="truncate text-sm font-semibold text-slate-200">
                   {activeOperator ? activeOperator.full_name : t.ui.noOperator}
                 </p>
               </div>
-              <button
-                onClick={openSwitchModal}
-                title={t.ui.changeOperator}
-                className="p-1 text-slate-600 hover:text-cyan-400 hover:bg-slate-700/60 rounded-md transition-colors shrink-0"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                </svg>
-              </button>
-            </div>
+              <span className="shrink-0 rounded-lg bg-cyan-500/15 px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide text-cyan-300 ring-1 ring-cyan-500/30">
+                {t.ui.changeOperatorShort}
+              </span>
+            </button>
           </div>
         )}
 
@@ -530,15 +569,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
         {collapsed && (
           <div className="px-2 pb-2">
             <button
+              type="button"
               onClick={openSwitchModal}
               title={activeOperator ? `${t.ui.operatorLabel}: ${activeOperator.full_name}` : t.ui.selectOperator}
-              className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-slate-500 hover:text-cyan-300 hover:bg-slate-800/70 transition-colors relative"
+              aria-label={t.ui.changeOperator}
+              className="relative mx-auto flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-cyan-300 touch-manipulation"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-              </svg>
+              <span className="text-xs font-bold text-cyan-300">
+                {activeOperator ? activeOperator.full_name.charAt(0).toUpperCase() : '?'}
+              </span>
               {activeOperator && (
-                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-cyan-400 border border-slate-900" />
+                <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full border border-slate-900 bg-cyan-400" />
               )}
             </button>
           </div>
@@ -624,7 +665,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               )}
             </div>
           )}
-          {!isAdmin && !collapsed && (
+          {!isMasterAdmin && !collapsed && (
             <Link
               href="/bolle/new"
               className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-[0_0_12px_rgba(6,182,212,0.25)]"
@@ -637,7 +678,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
 
           {/* + icon when collapsed and operator */}
-          {!isAdmin && collapsed && (
+          {!isMasterAdmin && collapsed && (
             <Link href="/bolle/new" onClick={onClose} title={t.nav.nuovaBolla}
               className="flex items-center justify-center w-9 h-9 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition-colors mx-auto shadow-[0_0_10px_rgba(6,182,212,0.2)]">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

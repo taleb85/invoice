@@ -67,8 +67,8 @@ export default function NotificationBell({
 
   const buttonClass =
     variant === 'inline'
-      ? `relative inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-lg border border-slate-700/80 bg-slate-800/90 px-1 text-slate-200 transition-colors hover:border-slate-600 hover:bg-slate-800 touch-manipulation`
-      : `relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-slate-600/90 bg-slate-900/95 text-slate-100 shadow-lg shadow-black/40 backdrop-blur-sm transition-colors hover:border-cyan-500/40 hover:bg-slate-800/95 touch-manipulation`
+      ? `relative inline-flex h-10 min-w-10 shrink-0 items-center justify-center overflow-visible rounded-lg border border-slate-700/80 bg-slate-800/90 px-1 text-slate-200 transition-colors hover:border-slate-600 hover:bg-slate-800 touch-manipulation`
+      : `relative flex h-12 w-12 shrink-0 items-center justify-center overflow-visible rounded-full border border-slate-600/90 bg-slate-900/95 text-slate-100 shadow-lg shadow-black/40 backdrop-blur-sm transition-colors hover:border-cyan-500/40 hover:bg-slate-800/95 touch-manipulation`
 
   const menu = open ? (
     <div
@@ -135,7 +135,7 @@ export default function NotificationBell({
         <Bell className={variant === 'fab' ? 'h-6 w-6' : 'h-5 w-5'} aria-hidden />
         {showBadge ? (
           <span
-            className={`absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-0.5 text-[10px] font-bold leading-none ${badgeColor}`}
+            className={`pointer-events-none absolute right-0 top-0 z-10 flex h-4 min-w-4 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full px-0.5 text-[10px] font-bold leading-none ${badgeColor}`}
           >
             {badgeCount > 9 ? '9+' : badgeCount}
           </span>
@@ -147,7 +147,7 @@ export default function NotificationBell({
 
   if (variant === 'fab') {
     return (
-      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-[101] flex justify-end px-3 lg:hidden pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))]">
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-[101] flex justify-end px-3 md:hidden pb-[calc(10.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="pointer-events-auto">{inner}</div>
       </div>
     )
