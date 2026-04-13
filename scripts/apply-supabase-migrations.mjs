@@ -56,6 +56,10 @@ const MIGRATIONS = [
   'supabase/migrations/add-sede-currency-timezone-lang.sql',
   'supabase/migrations/fix-rls-bolle-fatture-via-fornitore-sede.sql',
   'supabase/migrations/fix-storage-documenti-public-read.sql',
+  'supabase/migrations/proactive-supplier-rekki.sql',
+  'supabase/migrations/admin-log-sede-sync-health-rekki-id.sql',
+  'supabase/migrations/tighten-rls-operator-isolation.sql',
+  'supabase/migrations/email-scan-attachment-fingerprint.sql',
 ]
 
 function loadEnvLocal() {

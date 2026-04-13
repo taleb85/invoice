@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "npm run lint && npm run build",
-    "deploy": "npm run build && npx vercel --prod --yes",
+    "deploy": "npm run build && vercel deploy --prod --yes --no-wait",
+    "deploy:sync": "npm run build && vercel deploy --prod --yes",
+    "deploy:debug": "npm run build && vercel deploy --prod --yes --debug",
+    "vercel:prod": "vercel deploy --prod --yes --no-wait",
     "db:apply-migrations": "node scripts/apply-supabase-migrations.mjs",
     "db:apply-migrations:dry": "node scripts/apply-supabase-migrations.mjs --dry-run"
   },
@@ -39,6 +42,7 @@
     "eslint-config-next": "16.2.2",
     "postgres": "^3.4.9",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^50.44.0"
   }
 }
