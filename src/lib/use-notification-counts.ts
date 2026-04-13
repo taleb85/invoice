@@ -59,17 +59,9 @@ export function useNotificationCounts({
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [load])
 
-  const badgeCount = isAdmin
-    ? adminLogErrors24h
-    : operatorPendingDocs + operatorLogErrors24h
+  const badgeCount = isAdmin ? adminLogErrors24h : operatorPendingDocs
   const badgeVariant: 'error' | 'pending' | 'none' =
-    badgeCount <= 0
-      ? 'none'
-      : isAdmin
-        ? 'error'
-        : operatorLogErrors24h > 0
-          ? 'error'
-          : 'pending'
+    badgeCount <= 0 ? 'none' : isAdmin ? 'error' : 'pending'
 
   return {
     adminLogErrors24h,

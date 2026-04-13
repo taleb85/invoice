@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 
 export async function GET() {
@@ -26,14 +27,38 @@ export async function GET() {
     allSedi = sediData ?? []
   }
 
+  let effectiveSedeId: string | null = profile.sede_id
+  let effectiveSedeNome: string | null = sede?.nome ?? null
+  let countryCode = sede?.country_code ?? 'UK'
+  let currency = sede?.currency ?? 'GBP'
+  let timezone = sede?.timezone ?? 'Europe/London'
+
+  if (isAdmin) {
+    const pick = (await cookies()).get('admin-sede-id')?.value?.trim()
+    if (pick) {
+      const { data: picked } = await supabase
+        .from('sedi')
+        .select('id, nome, country_code, currency, timezone')
+        .eq('id', pick)
+        .maybeSingle()
+      if (picked?.id) {
+        effectiveSedeId = picked.id
+        effectiveSedeNome = picked.nome ?? null
+        countryCode = picked.country_code ?? countryCode
+        currency = picked.currency ?? currency
+        timezone = picked.timezone ?? timezone
+      }
+    }
+  }
+
   return NextResponse.json({
     user:         { id: user.id, email: user.email },
     role:         profile.role,
-    sede_id:      profile.sede_id,
-    sede_nome:    sede?.nome ?? null,
-    country_code: sede?.country_code ?? 'UK',
-    currency:     sede?.currency ?? 'GBP',
-    timezone:     sede?.timezone ?? 'Europe/London',
+    sede_id:      effectiveSedeId,
+    sede_nome:    effectiveSedeNome,
+    country_code: countryCode,
+    currency:     currency ?? 'GBP',
+    timezone:     timezone ?? 'Europe/London',
     is_admin:     isAdmin,
     all_sedi:     allSedi,
   })

@@ -167,12 +167,27 @@ function LoginFormInner() {
     } else { setSuggestions([]); setShowSugg(false) }
   }
 
-  /* ─── login admin ─────────────────────────────────── */
+  /* ─── login admin (solo profilo role = admin) ─────── */
   const handleLoginByEmail = async () => {
     if (!email || !adminPw) return
     setLoading(true); setMessage(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password: adminPw })
     if (error) { setMessage({ type: 'error', text: t.login.invalidCredentials }); setLoading(false); return }
+
+    const { data: { user: signedUser } } = await supabase.auth.getUser()
+    if (!signedUser) {
+      setMessage({ type: 'error', text: t.login.invalidCredentials })
+      setLoading(false)
+      return
+    }
+    const { data: prof } = await supabase.from('profiles').select('role').eq('id', signedUser.id).maybeSingle()
+    if (String(prof?.role ?? '').toLowerCase() !== 'admin') {
+      await supabase.auth.signOut()
+      setMessage({ type: 'error', text: t.login.adminOnlyEmail })
+      setLoading(false)
+      return
+    }
+
     router.push('/'); router.refresh()
   }
 

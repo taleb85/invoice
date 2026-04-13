@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, FileText, Home, Plus, Receipt, Scan, User } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FileText, Home, Plus, Scan, User, Users } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
@@ -19,23 +20,27 @@ const navShell =
   'app-glass-dock fixed z-[100] bottom-0 left-0 right-0 mx-2 flex max-w-[100%] items-stretch rounded-t-2xl border border-white/15 border-b-0 bg-slate-900/70 shadow-2xl shadow-black/45 backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-3 sm:mx-4 lg:hidden'
 
 const navClsFornitore = `${navShell} justify-between gap-3 px-2 sm:gap-4 sm:px-4`
-const navClsHub = `${navShell} justify-around px-1`
+const navClsHub = `${navShell} justify-between gap-0.5 px-1 sm:justify-around sm:gap-1 sm:px-2`
+
+/** Landmark `aria-label` fissi (allineati a `lang="it"`); evita mismatch SSR/client su `t.nav.*`. */
+const BOTTOM_NAV_ARIA_MAIN = 'Navigazione principale'
+const BOTTOM_NAV_ARIA_ADMIN = 'Navigazione amministratore'
+const BOTTOM_NAV_ARIA_FORNITORE = 'Navigazione fornitore'
 
 function FornitoreProfileBottomNav({
   normalized,
   itemCls,
-  router,
 }: {
   normalized: string
   itemCls: (active: boolean) => string
-  router: ReturnType<typeof useRouter>
 }) {
+  const router = useRouter()
   const t = useT()
   const fid = fornitoreIdFromProfilePath(normalized)
   const nuovaBollaHref = fid ? `/bolle/new?fornitore_id=${encodeURIComponent(fid)}` : '/bolle/new'
 
   return (
-    <nav className={navClsFornitore} aria-label={t.nav.ariaFornitore}>
+    <nav className={navClsFornitore} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
       <button type="button" onClick={() => router.back()} className={itemCls(false)}>
         <ArrowLeft className="h-6 w-6 shrink-0" aria-hidden />
         <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.bottomNavBackToSede}</span>
@@ -43,7 +48,6 @@ function FornitoreProfileBottomNav({
       <Link
         href={nuovaBollaHref}
         className={itemCls(false)}
-        aria-label={t.nav.addNewDelivery}
         prefetch={false}
       >
         <Plus className="h-6 w-6 shrink-0" aria-hidden />
@@ -54,7 +58,6 @@ function FornitoreProfileBottomNav({
         target="_blank"
         rel="noopener noreferrer"
         className={itemCls(false)}
-        aria-label={t.nav.openRekki}
       >
         <ExternalLink className="h-6 w-6 shrink-0" aria-hidden />
         <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.openRekki}</span>
@@ -65,13 +68,21 @@ function FornitoreProfileBottomNav({
 
 export default function DashboardMobileBottomNav() {
   const pathname: string = usePathname() ?? ''
-  const router = useRouter()
   const t = useT()
-  const { me } = useMe()
+  const { me, loading } = useMe()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const role: 'admin' | 'operatore' | null = me?.role ?? null
 
   const normalized = normalizeAppPath(pathname)
+
+  if (!mounted || loading) {
+    return null
+  }
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === ''
@@ -79,19 +90,18 @@ export default function DashboardMobileBottomNav() {
       if (pathname === '/bolle/new') return false
       return pathname === '/bolle' || pathname.startsWith('/bolle/')
     }
-    if (href === '/fatture') {
-      return pathname === '/fatture' || pathname.startsWith('/fatture/')
+    if (href === '/fornitori') {
+      if (pathname === '/fornitori/import') return true
+      return pathname === '/fornitori' || pathname.startsWith('/fornitori/')
     }
     if (href === '/bolle/new') return pathname === '/bolle/new'
     if (href === '/impostazioni') return pathname === '/impostazioni' || pathname.startsWith('/impostazioni/')
     return pathname === href
   }
 
-  /** Su flusso fatture la terza voce diventa «Fatture» (es. errore /fatture/[id]). */
-  const fattureSection = normalized === '/fatture' || normalized.startsWith('/fatture/')
-
+  /** Voce compatta: Dashboard, Fornitori, Scanner, Bolle, Profilo */
   const itemCls = (active: boolean) =>
-    `flex min-h-[48px] min-w-0 max-w-[25%] flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-xs font-medium touch-manipulation transition-colors ${
+    `flex min-h-[48px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-2 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-xs touch-manipulation transition-colors ${
       active
         ? 'text-cyan-400'
         : 'text-slate-300 hover:bg-white/5 hover:text-white active:bg-white/10'
@@ -106,51 +116,68 @@ export default function DashboardMobileBottomNav() {
     } ${active ? 'bg-cyan-500/10' : ''}`
 
   if (isFornitoreProfileRoute(normalized)) {
-    return <FornitoreProfileBottomNav normalized={normalized} itemCls={fornitoreItemCls} router={router} />
+    return <FornitoreProfileBottomNav normalized={normalized} itemCls={fornitoreItemCls} />
   }
 
-  if (role === 'admin') {
-    return (
-      <nav className={navClsHub} aria-label={t.nav.ariaAdmin}>
-        <Link href="/" className={itemCls(isActive('/'))}>
-          <Home className="h-6 w-6 shrink-0" aria-hidden />
-          <span>{t.nav.sediTitle}</span>
-        </Link>
-        <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))}>
-          <User className="h-6 w-6 shrink-0" aria-hidden />
-          <span>{t.nav.bottomNavProfile}</span>
-        </Link>
-      </nav>
-    )
-  }
-
-  return (
-    <nav className={navClsHub} aria-label={t.nav.ariaMain}>
-      <Link href="/" className={itemCls(isActive('/'))}>
-        <Home className="h-6 w-6 shrink-0" aria-hidden />
-        <span>{t.nav.dashboard}</span>
+  const adminHubNav = () => (
+    <nav className={navClsHub} aria-label={BOTTOM_NAV_ARIA_ADMIN}>
+      <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
+        <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
       </Link>
-      <Link href="/bolle/new" className={itemCls(isActive('/bolle/new'))}>
-        <Scan className="h-6 w-6 shrink-0" aria-hidden />
-        <span>{t.nav.bottomNavScannerAi}</span>
+      <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
+        <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
       </Link>
-      <Link
-        href={fattureSection ? '/fatture' : '/bolle'}
-        className={itemCls(fattureSection ? isActive('/fatture') : isActive('/bolle'))}
-      >
-        {fattureSection ? (
-          <Receipt className="h-6 w-6 shrink-0" aria-hidden />
-        ) : (
-          <FileText className="h-6 w-6 shrink-0" aria-hidden />
-        )}
-        <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">
-          {fattureSection ? t.nav.fatture : t.nav.bolle}
-        </span>
+      <Link href="/bolle/new" className={itemCls(isActive('/bolle/new'))} prefetch={false}>
+        <Scan className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavScannerAi}</span>
       </Link>
-      <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))}>
-        <User className="h-6 w-6 shrink-0" aria-hidden />
-        <span>{t.nav.bottomNavProfile}</span>
+      <Link href="/bolle" className={itemCls(isActive('/bolle'))} prefetch={false}>
+        <FileText className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bolle}</span>
+      </Link>
+      <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
+        <User className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavProfile}</span>
       </Link>
     </nav>
   )
+
+  /** Mobile operatore: azioni urgenti (fornitori/bolle estesi restano su desktop / griglia KPI). */
+  const operatorHubNav = () => (
+    <nav className={navClsHub} aria-label={BOTTOM_NAV_ARIA_MAIN}>
+      <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
+        <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
+      </Link>
+      <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
+        <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
+      </Link>
+      <Link href="/bolle/new" className={itemCls(isActive('/bolle/new'))} prefetch={false}>
+        <Scan className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavScannerAi}</span>
+      </Link>
+      <a
+        href="https://rekki.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={itemCls(false)}
+      >
+        <ExternalLink className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.openRekki}</span>
+      </a>
+      <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
+        <User className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavProfile}</span>
+      </Link>
+    </nav>
+  )
+
+  if (role === 'admin') {
+    return adminHubNav()
+  }
+
+  return operatorHubNav()
 }

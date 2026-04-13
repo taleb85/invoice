@@ -1,9 +1,12 @@
 import Link from 'next/link'
+import { cookies } from 'next/headers'
 import { createClient, getProfile } from '@/utils/supabase/server'
 import SollecitiButton from '@/components/SollecitiButton'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import DashboardHubQuickActions from '@/components/DashboardHubQuickActions'
 import NotificationBell from '@/components/NotificationBell'
+import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
+import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getTimezone, getCurrency, formatDate as fmtDate } from '@/lib/locale-server'
 import { countPendingDocumentiForSede, countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
@@ -12,12 +15,18 @@ import {
   fetchRecentBolleScoped,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
+import { countOcrFailuresBySedeLast48h, sedeSyncUnhealthy } from '@/lib/dashboard-admin-sede-health'
+import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
+import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
 import type { Sede } from '@/types'
 
 async function getStatsBySede() {
   const supabase = await createClient()
-  const { data: sedi } = await supabase.from('sedi').select('*').order('nome')
+  const [{ data: sedi }, ocrMap] = await Promise.all([
+    supabase.from('sedi').select('*').order('nome'),
+    countOcrFailuresBySedeLast48h(supabase),
+  ])
 
   const sediWithStats = await Promise.all(
     (sedi ?? []).map(async (sede: Sede) => {
@@ -32,11 +41,15 @@ async function getStatsBySede() {
           supabase.from('fatture').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
           countPendingDocumentiForSede(supabase, sede.id),
         ])
+      const ext = sede as Sede & { last_imap_sync_error?: string | null }
+      const ocrN = ocrMap[sede.id] ?? 0
       return {
         ...sede,
         fornitori:     fornitori ?? 0,
         bolleInAttesa: bolleInAttesa ?? 0,
         fatture:       (fattureFirmate ?? 0) + documentiPendingSede,
+        ocrFailures48h: ocrN,
+        syncUnhealthy: sedeSyncUnhealthy(ext.last_imap_sync_error, ocrN),
       }
     })
   )
@@ -44,6 +57,7 @@ async function getStatsBySede() {
 }
 
 export default async function DashboardPage() {
+  const cookieStore = await cookies()
   const [t, locale, tz, profile, currency] = await Promise.all([
     getT(),
     getLocale(),
@@ -52,13 +66,25 @@ export default async function DashboardPage() {
     getCurrency(),
   ])
   const isAdmin = profile?.role === 'admin'
+  const adminPick = isAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
 
-  if (isAdmin) {
-    const supabase = await createClient()
-    const [sediStats, erroriRecenti, sollecitiFornitori] = await Promise.all([
+  const supabase = await createClient()
+  let adminViewSedeId: string | null = null
+  let adminViewSedeNome: string | null = null
+  if (isAdmin && adminPick) {
+    const { data } = await supabase.from('sedi').select('id, nome').eq('id', adminPick).maybeSingle()
+    if (data?.id) {
+      adminViewSedeId = data.id
+      adminViewSedeNome = data.nome ?? null
+    }
+  }
+
+  if (isAdmin && !adminViewSedeId) {
+    const [sediStats, erroriRecenti, sollecitiFornitori, emailBodySupplierHints] = await Promise.all([
       getStatsBySede(),
       countSyncLogErrors24h(supabase),
       countFornitoriWithOverdueBolle(supabase, null),
+      fetchRecurringEmailBodySupplierHints(supabase),
     ])
 
     return (
@@ -70,6 +96,20 @@ export default async function DashboardPage() {
               <p className="mt-1 hidden text-sm text-slate-400 md:block">{t.sedi.subtitle}</p>
             </div>
             <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
+              <Link
+                href="/sedi"
+                className="md:hidden inline-flex touch-manipulation items-center gap-1.5 rounded-xl border border-cyan-500/35 bg-cyan-500/10 px-3 py-2.5 text-xs font-bold text-cyan-200 shadow-[0_0_20px_-8px_rgba(6,182,212,0.5)] backdrop-blur-sm transition-colors hover:bg-cyan-500/20 active:scale-[0.98]"
+              >
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                  />
+                </svg>
+                {t.nav.sediTitle}
+              </Link>
               <NotificationBell
                 variant="inline"
                 isAdmin
@@ -106,6 +146,28 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {emailBodySupplierHints.length > 0 ? (
+          <div className="mb-4 flex flex-col gap-2">
+            {emailBodySupplierHints.map((h) => (
+              <div
+                key={`${h.sedeId ?? 'all'}-${h.displayName}`}
+                className="flex flex-col gap-2 rounded-xl border border-violet-500/35 bg-violet-950/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <p className="text-sm text-violet-100">
+                  {t.dashboard.potentialSupplierFromEmailBodyBanner.replace(/\{name\}/g, h.displayName)}
+                  <span className="ml-1.5 tabular-nums text-violet-300/85">×{h.hits}</span>
+                </p>
+                <Link
+                  href={h.newFornitoreHref}
+                  className="shrink-0 text-sm font-semibold text-violet-300 underline decoration-violet-400/50 hover:text-violet-200"
+                >
+                  {t.dashboard.potentialSupplierFromEmailBodyCta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold text-slate-100">{t.dashboard.sedeOverview}</h2>
           <Link href="/sedi" className="text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
@@ -130,64 +192,119 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {sediStats.map((sede) => (
+            {sediStats.map((sede) => {
+              const unhealthy = 'syncUnhealthy' in sede && Boolean((sede as { syncUnhealthy?: boolean }).syncUnhealthy)
+              const ocrN = 'ocrFailures48h' in sede ? Number((sede as { ocrFailures48h?: number }).ocrFailures48h ?? 0) : 0
+              const imapErr = (sede as { last_imap_sync_error?: string | null }).last_imap_sync_error
+              return (
               <div
                 key={sede.id}
-                className="rounded-xl border border-cyan-500/20 bg-slate-900/45 p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)]"
+                className={`rounded-xl border bg-slate-900/45 p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] ${
+                  unhealthy
+                    ? 'border-red-500/45 ring-1 ring-red-500/25'
+                    : 'border-cyan-500/20'
+                }`}
               >
-                <div className="mb-4 flex items-center gap-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/20">
-                    <svg className="h-4 w-4 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      />
-                    </svg>
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/20">
+                      <svg className="h-4 w-4 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        />
+                      </svg>
+                    </div>
+                    <span className="min-w-0 font-semibold text-slate-100">{sede.nome}</span>
                   </div>
-                  <span className="font-semibold text-slate-100">{sede.nome}</span>
+                  <AdminSelectSedeButton
+                    sedeId={sede.id}
+                    className="shrink-0 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:border-cyan-500/40 hover:bg-slate-800"
+                  >
+                    {t.dashboard.enterAsSede}
+                  </AdminSelectSedeButton>
                 </div>
+                {unhealthy && (
+                  <div className="mb-3 rounded-lg border border-red-500/35 bg-red-950/35 px-2.5 py-2 text-[11px] leading-snug text-red-100">
+                    <p className="font-semibold">{t.dashboard.syncHealthAlert}</p>
+                    {imapErr ? <p className="mt-1 font-mono text-red-200/90">{imapErr}</p> : null}
+                    {ocrN > 0 ? (
+                      <p className="mt-1 text-red-200/90">
+                        {t.dashboard.syncHealthOcrCount.replace(/\{n\}/g, String(ocrN))}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 py-2.5">
+                  <Link
+                    href={`/sedi/${sede.id}/fornitori`}
+                    className="rounded-lg border border-violet-500/20 bg-violet-500/5 py-2.5 transition-colors hover:border-violet-400/40 hover:bg-violet-500/15 active:scale-[0.98] touch-manipulation"
+                  >
                     <p className="text-xl font-bold text-violet-200">{sede.fornitori}</p>
                     <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-violet-400/80">
                       {t.dashboard.suppliers}
                     </p>
-                  </div>
-                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 py-2.5">
+                  </Link>
+                  <Link
+                    href="/bolle"
+                    className="rounded-lg border border-amber-500/20 bg-amber-500/5 py-2.5 transition-colors hover:border-amber-400/40 hover:bg-amber-500/15 active:scale-[0.98] touch-manipulation"
+                  >
                     <p className="text-xl font-bold text-amber-200">{sede.bolleInAttesa}</p>
                     <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400/80">
                       {t.dashboard.pendingBills}
                     </p>
-                  </div>
-                  <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 py-2.5">
+                  </Link>
+                  <Link
+                    href="/fatture"
+                    className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 py-2.5 transition-colors hover:border-emerald-400/40 hover:bg-emerald-500/15 active:scale-[0.98] touch-manipulation"
+                  >
                     <p className="text-xl font-bold text-emerald-200">{sede.fatture}</p>
                     <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-400/80">
                       {t.dashboard.invoices}
                     </p>
-                  </div>
+                  </Link>
                 </div>
               </div>
-            ))}
+            )
+          })}
           </div>
         )}
       </div>
     )
   }
 
-  const supabase = await createClient()
-  const sedeId = profile?.sede_id ?? null
-  const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : null
-  const [kpis, bolle, sollecitiFornitori] = await Promise.all([
-    fetchOperatorDashboardKpis(supabase, sedeId, sedeId ? fornitoreIds : undefined),
-    fetchRecentBolleScoped(supabase, fornitoreIds),
-    countFornitoriWithOverdueBolle(supabase, sedeId ? fornitoreIds : null),
+  const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
+  const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
+  const operatorScoped = !!sedeId
+  const [kpis, bolle, sollecitiFornitori, supplierHint] = await Promise.all([
+    operatorScoped
+      ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds)
+      : Promise.resolve({
+          bolleTotal: 0,
+          bolleInAttesa: 0,
+          fornitoriCount: 0,
+          fattureCount: 0,
+          documentiPending: 0,
+          documentiDaAssociare: 0,
+          totaleImporto: 0,
+          listinoRows: 0,
+          statementsTotal: 0,
+          statementsWithIssues: 0,
+          erroriRecenti: 0,
+        }),
+    operatorScoped ? fetchRecentBolleScoped(supabase, fornitoreIds) : Promise.resolve([]),
+    countFornitoriWithOverdueBolle(supabase, operatorScoped ? fornitoreIds : null),
+    operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
   ])
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
     <div className="w-full max-w-5xl p-4 md:p-8">
+      {isAdmin && adminViewSedeId && adminViewSedeNome ? (
+        <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
+      ) : null}
       <div className="mb-6 flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3 md:mb-8">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="text-xl font-bold text-slate-100 md:text-2xl">{t.dashboard.title}</h1>
@@ -199,40 +316,62 @@ export default async function DashboardPage() {
             isAdmin={false}
             initialAdminErrors={0}
             initialOperatorPending={kpis.documentiPending}
-            initialOperatorLogErrors={kpis.erroriRecenti}
+            initialOperatorLogErrors={0}
           />
-          <ScanEmailButton alwaysShowLabel />
-          <Link
-            href="/log"
-            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-              kpis.erroriRecenti > 0
-                ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
-                : 'bg-slate-800/90 text-slate-300 hover:bg-slate-800'
-            }`}
-          >
-            {kpis.erroriRecenti > 0 && (
-              <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-0.5 text-[10px] font-bold text-white">
-                {kpis.erroriRecenti > 9 ? '9+' : kpis.erroriRecenti}
-              </span>
-            )}
-            <span className="hidden md:inline">{t.dashboard.viewLog}</span>
-            <svg className="h-4 w-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-              />
-            </svg>
-          </Link>
+          <ScanEmailButton alwaysShowLabel sedeId={adminViewSedeId ?? undefined} />
           <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
         </div>
       </div>
 
-      <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-300">{t.fornitori.tabRiepilogo}</h2>
-      <DashboardOperatorKpiGrid kpis={kpis} t={t} locale={locale} currency={currency} />
+      {!operatorScoped && (
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+          {t.dashboard.operatorNoSede}
+        </div>
+      )}
+      {supplierHint && (
+        <div className="mb-4 rounded-xl border border-violet-500/35 bg-violet-950/30 px-4 py-3 text-sm text-violet-100">
+          <p className="font-medium leading-snug">
+            {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href={supplierHint.newFornitoreHref}
+              className="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-500"
+            >
+              {t.dashboard.suggestedSupplierAdd}
+            </Link>
+            <Link
+              href={supplierHint.importHref}
+              className="inline-flex items-center rounded-lg border border-violet-500/50 px-3 py-2 text-xs font-semibold text-violet-200 transition-colors hover:bg-violet-950/50"
+            >
+              {t.dashboard.suggestedSupplierImport}
+            </Link>
+            <Link
+              href="/statements"
+              className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+            >
+              {t.statements.tabDocumenti} →
+            </Link>
+          </div>
+        </div>
+      )}
+      {operatorScoped && (
+        <Link
+          href="/bolle/new"
+          className="mb-4 flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/15 to-violet-500/10 px-4 py-3 text-sm font-bold text-cyan-100 shadow-[0_0_24px_-8px_rgba(6,182,212,0.45)] transition-colors hover:border-cyan-400/50 hover:from-cyan-500/25 md:hidden"
+        >
+          <svg className="h-5 w-5 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+          </svg>
+          <span className="text-center leading-tight">{t.bolle.scannerTitle}</span>
+        </Link>
+      )}
+      <h2 className={`mb-3 text-sm font-semibold tracking-wide text-slate-300 ${operatorScoped ? 'hidden md:block' : ''}`}>{t.fornitori.tabRiepilogo}</h2>
+      <div className={operatorScoped ? 'hidden md:block' : ''}>
+        <DashboardOperatorKpiGrid kpis={kpis} t={t} locale={locale} currency={currency} />
+      </div>
 
-      <div className="app-card overflow-hidden">
+      <div className={`app-card overflow-hidden ${operatorScoped ? 'hidden md:block' : ''}`}>
         <div className="app-card-bar" aria-hidden />
         <div className="flex flex-col gap-3 border-b border-slate-800/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <h2 className="font-semibold text-slate-100">{t.dashboard.recentBills}</h2>

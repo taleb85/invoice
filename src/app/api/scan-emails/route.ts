@@ -1,18 +1,52 @@
 import { NextResponse } from 'next/server'
-import { fetchUnseenEmails, markEmailsAsRead, ScannedEmail } from '@/lib/mail-scanner'
+import { fetchUnseenEmails, markEmailsAsRead, ScannedEmail, type FetchUnseenImapHooks } from '@/lib/mail-scanner'
 import { createServiceClient } from '@/utils/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
-import { ImapFlow } from 'imapflow'
 import { simpleParser } from 'mailparser'
-import { ocrInvoice, OcrResult } from '@/lib/ocr-invoice'
+import { withImapSession } from '@/lib/imap-session'
+import {
+  ocrInvoice,
+  ocrInvoiceFromEmailBody,
+  ocrBodyOnlyWorthInserting,
+  ocrExtractedNothingUseful,
+  OcrResult,
+  EMPTY_OCR,
+  OcrInvoiceConfigurationError,
+} from '@/lib/ocr-invoice'
+import { MIN_EMAIL_BODY_CHARS_FOR_SCAN, emailHasScannableBody } from '@/lib/mail-scanner'
 import { ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
+import type { EmailScanStreamEvent } from '@/lib/email-scan-stream'
+import {
+  buildScanAttachmentFingerprint,
+  isScanUnitAlreadyCompleted,
+} from '@/lib/email-scan-checkpoint'
+
+/**
+ * Limite durata funzione su Vercel/hosting (secondi).
+ * Hobby: tipicamente max 60. Piano Pro: puoi alzare a 300 modificando questo valore o usando variabile d’ambiente lato build.
+ */
+export const maxDuration = 60
 
 /** Nessun `console.log` in produzione (log Vercel / dati sensibili). */
 const mailDebugLog =
   process.env.NODE_ENV !== 'production' ? (...args: unknown[]) => console.log(...args) : () => {}
+
+/** Messaggio stream NDJSON durante retry IMAP (barra rossa in UI). */
+const IMAP_CONNECTION_RETRY_USER_MESSAGE = 'Errore di connessione alla sede. Riprovo…'
+
+/** Serializza le scansioni sulla stessa istanza (riduce conflitti IMAP concorrenti). */
+let emailScanTail = Promise.resolve()
+function queueEmailScan<T>(fn: () => Promise<T>): Promise<T> {
+  const run = emailScanTail.then(() => fn())
+  emailScanTail = run.then(
+    () => undefined,
+    () => undefined
+  )
+  return run
+}
 
 /** Converte OcrResult in oggetto metadata da salvare in jsonb.
  *  Includes raw amount string and format hint for UI validation badge. */
@@ -20,6 +54,7 @@ function buildMetadata(ocr: OcrResult, matchedBy: 'email' | 'alias' | 'domain' |
   return {
     ragione_sociale:    ocr.ragione_sociale,
     p_iva:              ocr.p_iva,
+    indirizzo:          ocr.indirizzo ?? null,
     data_fattura:       ocr.data_fattura,
     numero_fattura:     ocr.numero_fattura,
     // Stored as a pure float — no formatting at rest
@@ -71,10 +106,10 @@ async function insertDocumento(
 
   if (error) {
     // Fallback: colonna 'metadata' non ancora migrata
-    if (error.code === '42703' || error.message?.includes('metadata') || error.message?.includes('is_statement')) {
-      console.warn('[INSERT] Colonna extra non trovata — retry senza metadata/is_statement')
+    if (error.code === '42703' || error.message?.includes('metadata') || error.message?.includes('is_statement') || error.message?.includes('note')) {
+      console.warn('[INSERT] Colonna extra non trovata — retry senza metadata/is_statement/note')
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { metadata: _m, is_statement: _is, ...safePayload } = payload as Record<string, unknown>
+      const { metadata: _m, is_statement: _is, note: _n, ...safePayload } = payload as Record<string, unknown>
       const { error: e2 } = await supabase.from('documenti_da_processare').insert([safePayload])
       if (e2) console.error('[INSERT] Fallback insert error:', e2.message)
       return e2
@@ -85,13 +120,21 @@ async function insertDocumento(
   return error
 }
 
-type LogStato = 'successo' | 'fornitore_non_trovato' | 'bolla_non_trovata'
+type LogStato = 'successo' | 'fornitore_non_trovato' | 'bolla_non_trovata' | 'fornitore_suggerito'
 
 async function insertLog(
   supabase: SupabaseClient,
   email: ScannedEmail,
   stato: LogStato,
-  opts: { fornitore_id?: string; file_url?: string; errore_dettaglio?: string } = {}
+  opts: {
+    fornitore_id?: string
+    file_url?: string
+    errore_dettaglio?: string
+    sede_id?: string | null
+    allegato_nome?: string | null
+    imap_uid?: number
+    scan_attachment_fingerprint?: string | null
+  } = {}
 ) {
   await supabase.from('log_sincronizzazione').insert([{
     mittente: email.from,
@@ -100,25 +143,30 @@ async function insertLog(
     fornitore_id: opts.fornitore_id ?? null,
     file_url: opts.file_url ?? null,
     errore_dettaglio: opts.errore_dettaglio ?? null,
+    sede_id: opts.sede_id ?? null,
+    allegato_nome: opts.allegato_nome ?? null,
+    imap_uid: opts.imap_uid ?? email.uid ?? null,
+    scan_attachment_fingerprint: opts.scan_attachment_fingerprint ?? null,
   }])
 }
 
-/** Scansiona una casella IMAP e restituisce le email non lette con allegati. */
-async function fetchFromImap(host: string, port: number, user: string, password: string, lookbackDays?: number | null): Promise<ScannedEmail[]> {
+type FetchImapHooks = {
+  onRetry?: (info: { attempt: number; maxAttempts: number; error: unknown }) => void | Promise<void>
+  beforeReconnect?: (info: { attempt: number; maxAttempts: number }) => void | Promise<void>
+  afterMailboxOpen?: () => void | Promise<void>
+}
+
+/** Scansiona una casella IMAP e restituisce le email non lette (allegati e/o corpo testuale). */
+async function fetchFromImap(
+  host: string,
+  port: number,
+  user: string,
+  password: string,
+  lookbackDays?: number | null,
+  hooks?: FetchImapHooks
+): Promise<ScannedEmail[]> {
   mailDebugLog(`[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackDays ?? 'illimitato'}gg`)
-  const client = new ImapFlow({
-    host,
-    port,
-    secure: true,
-    auth: { user, pass: password },
-    logger: false,
-  })
 
-  await client.connect()
-  mailDebugLog(`[IMAP] Connessione stabilita: ${host}`)
-  const emails: ScannedEmail[] = []
-
-  // Build search criteria: unseen + optional date filter
   const sinceDate = lookbackDays && lookbackDays > 0
     ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
     : undefined
@@ -126,80 +174,220 @@ async function fetchFromImap(host: string, port: number, user: string, password:
     ? { seen: false, since: sinceDate }
     : { seen: false }
 
-  try {
-    await client.mailboxOpen('INBOX')
-    let totalMsg = 0
-    let withAttach = 0
-    for await (const msg of client.fetch(searchCriteria, { envelope: true, source: true })) {
-      totalMsg++
-      if (!msg.source) continue
-      const parsed = await simpleParser(msg.source)
+  return withImapSession(
+    {
+      host,
+      port,
+      user,
+      password,
+      secure: port !== 143,
+      tls: { rejectUnauthorized: false },
+    },
+    async (client) => {
+      mailDebugLog(`[IMAP] Connessione stabilita: ${host}`)
+      const emails: ScannedEmail[] = []
+      await client.mailboxOpen('INBOX')
+      await hooks?.afterMailboxOpen?.()
 
-      const attachments = (parsed.attachments ?? [])
-        .filter(a => {
-          const ct = a.contentType ?? ''
-          return ct.startsWith('image/') || ct === 'application/pdf'
+      let totalMsg = 0
+      let withAttach = 0
+      for await (const msg of client.fetch(searchCriteria, { envelope: true, source: true })) {
+        totalMsg++
+        if (!msg.source) continue
+        const parsed = await simpleParser(msg.source)
+
+        const attachments = (parsed.attachments ?? [])
+          .filter(a => {
+            const ct = a.contentType ?? ''
+            return ct.startsWith('image/') || ct === 'application/pdf'
+          })
+          .map(a => {
+            const ext = a.filename?.split('.').pop() ?? (a.contentType === 'application/pdf' ? 'pdf' : 'jpg')
+            return {
+              filename: a.filename ?? `allegato.${ext}`,
+              content: a.content,
+              contentType: a.contentType,
+              extension: ext,
+            }
+          })
+
+        const txt = parsed.text?.trim()
+          ? parsed.text
+          : typeof parsed.html === 'string'
+            ? parsed.html
+                .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+                .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+            : ''
+
+        const bodyText = txt || null
+        const hasBody = (bodyText?.trim().length ?? 0) >= MIN_EMAIL_BODY_CHARS_FOR_SCAN
+
+        if (!attachments.length) {
+          if (!hasBody) continue
+          withAttach++
+          emails.push({
+            uid: msg.uid,
+            from: parsed.from?.value?.[0]?.address ?? '',
+            subject: parsed.subject ?? null,
+            bodyText,
+            attachments: [],
+          })
+          continue
+        }
+
+        withAttach++
+        emails.push({
+          uid: msg.uid,
+          from: parsed.from?.value?.[0]?.address ?? '',
+          subject: parsed.subject ?? null,
+          bodyText,
+          attachments,
         })
-        .map(a => {
-          const ext = a.filename?.split('.').pop() ?? (a.contentType === 'application/pdf' ? 'pdf' : 'jpg')
-          return {
-            filename: a.filename ?? `allegato.${ext}`,
-            content: a.content,
-            contentType: a.contentType,
-            extension: ext,
-          }
-        })
-
-      if (!attachments.length) continue
-      withAttach++
-
-      const txt = parsed.text?.trim()
-        ? parsed.text
-        : typeof parsed.html === 'string'
-          ? parsed.html
-              .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-              .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-              .replace(/<[^>]+>/g, ' ')
-              .replace(/\s+/g, ' ')
-              .trim()
-          : ''
-
-      emails.push({
-        uid: msg.uid,
-        from: parsed.from?.value?.[0]?.address ?? '',
-        subject: parsed.subject ?? null,
-        bodyText: txt || null,
-        attachments,
-      })
+      }
+      mailDebugLog(`[IMAP] Messaggi non letti trovati: ${totalMsg} (con allegati o testo analizzabile: ${withAttach})`)
+      mailDebugLog(`[IMAP] Sessione chiusa correttamente: ${host}`)
+      return emails
+    },
+    {
+      onRetry: hooks?.onRetry,
+      beforeReconnect: hooks?.beforeReconnect,
     }
-    mailDebugLog(`[IMAP] Messaggi non letti trovati: ${totalMsg} (con allegati validi: ${withAttach})`)
-  } finally {
-    await client.logout()
-    mailDebugLog(`[IMAP] Logout da ${host}`)
-  }
-
-  return emails
+  )
 }
 
-async function markReadOnImap(host: string, port: number, user: string, password: string, uids: number[]) {
+async function markReadOnImap(
+  host: string,
+  port: number,
+  user: string,
+  password: string,
+  uids: number[],
+  imapOpts?: { onRetry?: FetchImapHooks['onRetry']; beforeReconnect?: FetchImapHooks['beforeReconnect'] }
+) {
   if (!uids.length) return
-  const client = new ImapFlow({
-    host,
-    port,
-    secure: true,
-    auth: { user, pass: password },
-    logger: false,
-  })
-  await client.connect()
-  try {
-    await client.mailboxOpen('INBOX')
-    await client.messageFlagsAdd({ uid: uids as unknown as string }, ['\\Seen'], { uid: true })
-  } finally {
-    await client.logout()
-  }
+  await withImapSession(
+    {
+      host,
+      port,
+      user,
+      password,
+      secure: port !== 143,
+      tls: { rejectUnauthorized: false },
+    },
+    async (client) => {
+      await client.mailboxOpen('INBOX')
+      await client.messageFlagsAdd(uids, ['\\Seen'], { uid: true })
+    },
+    imapOpts ? { onRetry: imapOpts.onRetry, beforeReconnect: imapOpts.beforeReconnect } : undefined
+  )
 }
 
-type Fornitore = { id: string; nome: string; sede_id: string | null; language?: string | null }
+type Fornitore = {
+  id: string
+  nome: string
+  sede_id: string | null
+  language?: string | null
+  rekki_link?: string | null
+  rekki_supplier_id?: string | null
+  email?: string | null
+}
+
+type SupplierEmailScope = {
+  allowedEmails: Set<string>
+  allowedDomains: Set<string>
+}
+
+const GENERIC_EMAIL_DOMAINS = new Set([
+  'gmail.com',
+  'yahoo.com',
+  'hotmail.com',
+  'outlook.com',
+  'libero.it',
+  'pec.it',
+  'legalmail.it',
+  'aruba.it',
+])
+
+async function loadFornitoreScanContext(
+  supabase: SupabaseClient,
+  fornitoreId: string
+): Promise<{ fornitore: Fornitore; scope: SupplierEmailScope } | null> {
+  const { data: f, error } = await supabase
+    .from('fornitori')
+    .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id, email')
+    .eq('id', fornitoreId)
+    .single()
+  if (error || !f) return null
+
+  const { data: aliasRows } = await supabase
+    .from('fornitore_emails')
+    .select('email')
+    .eq('fornitore_id', fornitoreId)
+
+  const allowedEmails = new Set<string>()
+  if (f.email?.trim()) allowedEmails.add(f.email.trim().toLowerCase())
+  for (const row of aliasRows ?? []) {
+    const em = (row as { email?: string | null }).email
+    if (em?.trim()) allowedEmails.add(em.trim().toLowerCase())
+  }
+  const allowedDomains = new Set<string>()
+  for (const em of allowedEmails) {
+    const d = em.split('@')[1]?.toLowerCase()
+    if (d && !GENERIC_EMAIL_DOMAINS.has(d)) allowedDomains.add(d)
+  }
+
+  const fornitore: Fornitore = {
+    id: f.id,
+    nome: f.nome,
+    sede_id: f.sede_id,
+    language: f.language,
+    rekki_link: f.rekki_link,
+    rekki_supplier_id: f.rekki_supplier_id,
+    email: f.email,
+  }
+  return { fornitore, scope: { allowedEmails, allowedDomains } }
+}
+
+function emailMatchesSupplierScope(fromRaw: string, scope: SupplierEmailScope): boolean {
+  const from = (fromRaw || '').trim().toLowerCase()
+  if (!from.includes('@')) return false
+  if (scope.allowedEmails.has(from)) return true
+  const dom = from.split('@')[1]
+  return !!dom && scope.allowedDomains.has(dom)
+}
+
+/** Allegati + eventuali email solo-testo da processare come unità di lavoro. */
+function countScanEmailUnits(emails: ScannedEmail[]): number {
+  return emails.reduce((sum, e) => {
+    if (e.attachments.length) return sum + e.attachments.length
+    if (emailHasScannableBody(e)) return sum + 1
+    return sum
+  }, 0)
+}
+
+const SYNTHETIC_EMAIL_DOC_FILENAME = '[DA TESTO EMAIL] Documento sintetico.txt'
+
+async function uploadSyntheticEmailBodyDoc(
+  supabase: SupabaseClient,
+  email: ScannedEmail
+): Promise<{ publicUrl: string } | { error: string }> {
+  const header =
+    '[DA TESTO EMAIL] Documento sintetico generato dal corpo del messaggio\n' +
+    `Mittente: ${email.from}\n` +
+    `Oggetto: ${email.subject ?? '(nessuno)'}\n\n` +
+    '--- Corpo messaggio ---\n\n'
+  const raw = email.bodyText?.trim() ?? ''
+  const buf = Buffer.from(header + raw.slice(0, 200_000), 'utf8')
+  const uniqueName = `email_testo_${crypto.randomUUID()}.txt`
+  const { error: uploadError } = await supabase.storage
+    .from('documenti')
+    .upload(uniqueName, buf, { contentType: 'text/plain; charset=utf-8', upsert: false })
+  if (uploadError) return { error: uploadError.message }
+  const { data: pub } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
+  return { publicUrl: pub.publicUrl }
+}
 
 async function resolveFornitore(
   supabase: SupabaseClient,
@@ -211,7 +399,7 @@ async function resolveFornitore(
   // 1️⃣ Alias esatto
   const aliasQuery = supabase
     .from('fornitore_emails')
-    .select('fornitore_id, fornitori!inner(id, nome, sede_id, language)')
+    .select('fornitore_id, fornitori!inner(id, nome, sede_id, language, rekki_link, rekki_supplier_id)')
     .ilike('email', senderEmail)
     .limit(1)
   if (sedeFilter) aliasQuery.eq('fornitori.sede_id', sedeFilter)
@@ -226,7 +414,7 @@ async function resolveFornitore(
   // 2️⃣ Email principale
   const fornitoriQuery = supabase
     .from('fornitori')
-    .select('id, nome, sede_id, language')
+    .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id')
     .ilike('email', senderEmail)
     .limit(1)
   if (sedeFilter) fornitoriQuery.eq('sede_id', sedeFilter)
@@ -243,7 +431,7 @@ async function resolveFornitore(
   if (domain && !genericDomains.includes(domain)) {
     const domainQuery = supabase
       .from('fornitori')
-      .select('id, nome, sede_id, language')
+      .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id')
       .ilike('email', `%@${domain}`)
       .limit(1)
     if (sedeFilter) domainQuery.eq('sede_id', sedeFilter)
@@ -276,7 +464,7 @@ async function resolveFornitoreByPIVA(
   mailDebugLog(`[PIVA] Ricerca fornitore per P.IVA normalizzata: "${pivaNorm}"`)
   const q = supabase
     .from('fornitori')
-    .select('id, nome, sede_id, language')
+    .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id')
     .or(`piva.ilike.%${pivaNorm}%,piva.eq.${pivaNorm}`)
     .limit(1)
   if (sedeFilter) q.eq('sede_id', sedeFilter)
@@ -290,66 +478,228 @@ async function resolveFornitoreByPIVA(
   return null
 }
 
+async function runOcrEmailBodyOnly(
+  supabase: SupabaseClient,
+  email: ScannedEmail,
+  langHint: string | undefined,
+  fornitoreId: string | null,
+  logSedeId: string | null,
+  scanFingerprint?: string | null,
+): Promise<OcrResult> {
+  const body = email.bodyText?.trim()
+  if (!body) return { ...EMPTY_OCR, estrazione_utile: false }
+  const logContext = {
+    supabase,
+    mittente:     email.from || 'sconosciuto',
+    oggetto_mail: email.subject,
+    file_name:    SYNTHETIC_EMAIL_DOC_FILENAME,
+    fornitore_id: fornitoreId,
+    file_url:     null as string | null,
+    sede_id:      logSedeId,
+    scanAttachmentFingerprint: scanFingerprint ?? null,
+    imapUid:      email.uid,
+  }
+  try {
+    return await ocrInvoiceFromEmailBody(body, langHint, { logContext })
+  } catch (e) {
+    if (e instanceof OcrInvoiceConfigurationError) {
+      console.error('[PROCESS]', e.message)
+      return EMPTY_OCR
+    }
+    throw e
+  }
+}
+
+async function runOcrForEmail(
+  supabase: SupabaseClient,
+  buf: Buffer,
+  contentType: string,
+  langHint: string | undefined,
+  email: ScannedEmail,
+  attachment: ScannedEmail['attachments'][number],
+  fornitoreId: string | null,
+  logSedeId: string | null,
+  scanFingerprint?: string | null,
+): Promise<OcrResult> {
+  const logContext = {
+    supabase,
+    mittente:     email.from || 'sconosciuto',
+    oggetto_mail: email.subject,
+    file_name:    attachment.filename ?? null,
+    fornitore_id: fornitoreId,
+    file_url:     null as string | null,
+    sede_id:      logSedeId,
+    scanAttachmentFingerprint: scanFingerprint ?? null,
+    imapUid:      email.uid,
+  }
+  try {
+    return await ocrInvoice(buf, contentType, langHint, {
+      logContext,
+      emailBodyText: email.bodyText ?? null,
+    })
+  } catch (e) {
+    if (e instanceof OcrInvoiceConfigurationError) {
+      console.error('[PROCESS]', e.message)
+      return EMPTY_OCR
+    }
+    throw e
+  }
+}
+
+type ProcessEmailsOptions = {
+  onAttachmentProgress?: (p: { attachmentsProcessed: number; attachmentsTotal: number }) => void
+  /** Scansione mirata: tutte le email in input sono attribuite a questo fornitore. */
+  directFornitore?: Fornitore | null
+}
+
 async function processEmails(
   supabase: SupabaseClient,
   emails: ScannedEmail[],
   sedeFilter?: string,
-  fallbackSedeId?: string    // usato solo per global IMAP quando sedeFilter è undefined
-): Promise<{ ricevuti: number; ignorate: number; bozzaCreate: number; toMarkRead: number[] }> {
+  fallbackSedeId?: string,
+  options?: ProcessEmailsOptions
+): Promise<{
+  ricevuti: number
+  ignorate: number
+  bozzaCreate: number
+  toMarkRead: number[]
+  attachmentsTotal: number
+  attachmentsProcessed: number
+}> {
   let ricevuti = 0
   let ignorate = 0
   const uidsToMarkRead: number[] = []
   const rekkiPersistedUids = new Set<number>()
 
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    console.error(
+      '[PROCESS] OPENAI_API_KEY assente o vuota: l\'estrazione OCR produrrà campi vuoti per tutti i documenti finché non viene configurata.'
+    )
+  }
+
+  const attachmentsTotal = countScanEmailUnits(emails)
+  let attachmentsProcessed = 0
+  const bumpAttach = () => {
+    attachmentsProcessed++
+    options?.onAttachmentProgress?.({ attachmentsProcessed, attachmentsTotal })
+  }
+
   // La sede effettiva da usare: priorità sedeFilter (per-sede IMAP) → fallbackSedeId (global IMAP)
   const effectiveSede = sedeFilter ?? fallbackSedeId ?? null
   mailDebugLog(`[PROCESS] Inizio processEmails: ${emails.length} email, sedeFilter=${sedeFilter ?? 'nessuno'} fallback=${fallbackSedeId ?? 'nessuno'} effective=${effectiveSede ?? 'NULL'}`)
 
-  // ── FASE 1: raggruppa tutti gli allegati per fornitore ─────────────────
+  // ── FASE 1: raggruppa allegati (e messaggi solo-testo) per fornitore ────
   // Item include anche l'OCR pre-computato (per i documenti risolti via P.IVA)
   type Item = {
     email: ScannedEmail
-    attachment: ScannedEmail['attachments'][number]
+    attachment: ScannedEmail['attachments'][number] | null
     ocr?: OcrResult   // pre-computato se risolto via P.IVA
   }
   type GroupEntry = { fornitore: Fornitore; items: Item[]; matchedBy: 'email' | 'alias' | 'domain' | 'piva' }
   const groups = new Map<string, GroupEntry>()
   const noFornitore: ScannedEmail[] = []
+  const noFornitoreBodyOnly: ScannedEmail[] = []
 
-  for (const email of emails) {
-    mailDebugLog(`[PROCESS] Analisi email da: ${email.from} | allegati: ${email.attachments.length}`)
-    const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
-    if (!fornitore) {
-      mailDebugLog(`[PROCESS] ⚠️  Fornitore non trovato per "${email.from}" — OCR+P.IVA verrà tentato`)
-      noFornitore.push(email)
-      continue
+  const direct = options?.directFornitore ?? null
+  if (direct) {
+    if (!groups.has(direct.id)) {
+      groups.set(direct.id, { fornitore: direct, items: [], matchedBy: 'email' })
     }
-    mailDebugLog(`[PROCESS] ✅ Fornitore abbinato: ${fornitore.nome} (${fornitore.id})`)
-    if (!groups.has(fornitore.id)) {
-      groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'email' })
+    const g = groups.get(direct.id)!
+    for (const email of emails) {
+      for (const attachment of email.attachments) {
+        g.items.push({ email, attachment })
+      }
+      if (!email.attachments.length && emailHasScannableBody(email)) {
+        g.items.push({ email, attachment: null })
+      }
     }
-    for (const attachment of email.attachments) {
-      groups.get(fornitore.id)!.items.push({ email, attachment })
+    mailDebugLog(`[PROCESS] Fase 1 (fornitore mirato): ${emails.length} email → fornitore "${direct.nome}"`)
+  } else {
+    for (const email of emails) {
+      mailDebugLog(
+        `[PROCESS] Analisi email da: ${email.from} | allegati: ${email.attachments.length} | corpo utilizzabile: ${emailHasScannableBody(email)}`
+      )
+      if (email.attachments.length) {
+        const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
+        if (!fornitore) {
+          mailDebugLog(`[PROCESS] ⚠️  Fornitore non trovato per "${email.from}" — OCR+P.IVA verrà tentato`)
+          noFornitore.push(email)
+          continue
+        }
+        mailDebugLog(`[PROCESS] ✅ Fornitore abbinato: ${fornitore.nome} (${fornitore.id})`)
+        if (!groups.has(fornitore.id)) {
+          groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'email' })
+        }
+        for (const attachment of email.attachments) {
+          groups.get(fornitore.id)!.items.push({ email, attachment })
+        }
+      } else if (emailHasScannableBody(email)) {
+        const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
+        if (!fornitore) {
+          mailDebugLog(`[PROCESS] ⚠️  Solo testo, fornitore non trovato per "${email.from}" — estrazione+P.IVA`)
+          noFornitoreBodyOnly.push(email)
+          continue
+        }
+        mailDebugLog(`[PROCESS] ✅ Solo testo, fornitore: ${fornitore.nome} (${fornitore.id})`)
+        if (!groups.has(fornitore.id)) {
+          groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'email' })
+        }
+        groups.get(fornitore.id)!.items.push({ email, attachment: null })
+      }
     }
   }
 
-  mailDebugLog(`[PROCESS] Riepilogo fase 1: ${groups.size} fornitori abbinati via email, ${noFornitore.length} email senza fornitore`)
+  mailDebugLog(
+    `[PROCESS] Riepilogo fase 1: ${groups.size} fornitori via email, ${noFornitore.length} email con allegati senza fornitore, ${noFornitoreBodyOnly.length} email solo-testo senza fornitore`
+  )
 
   // ── Mittenti sconosciuti: OCR → tenta P.IVA match → salva in coda ─────
   for (const email of noFornitore) {
     for (const attachment of email.attachments) {
+      const fp = buildScanAttachmentFingerprint({
+        sedeId: effectiveSede,
+        imapUid: email.uid,
+        filename: attachment.filename,
+        content: attachment.content,
+        kind: 'attachment',
+      })
+      if (await isScanUnitAlreadyCompleted(supabase, fp)) {
+        if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+        bumpAttach()
+        continue
+      }
+
       mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso per tentare matching P.IVA`)
 
-      // 1. OCR completo — no supplier language hint available for unknown senders
-      const ocr = await ocrInvoice(attachment.content, attachment.contentType, undefined)
-      mailDebugLog(`[PROCESS] OCR sconosciuto: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'}`)
+      // 1. OCR allegato + corpo mail (runOcrForEmail passa già emailBodyText all'AI)
+      let ocr = await runOcrForEmail(
+        supabase,
+        attachment.content,
+        attachment.contentType,
+        undefined,
+        email,
+        attachment,
+        null,
+        effectiveSede,
+        fp,
+      )
+      let docFromBodyFallback = false
+      if (ocrExtractedNothingUseful(ocr) && emailHasScannableBody(email)) {
+        const bodyOcr = await runOcrEmailBodyOnly(supabase, email, undefined, null, effectiveSede, fp)
+        if (ocrBodyOnlyWorthInserting(bodyOcr)) {
+          ocr = bodyOcr
+          docFromBodyFallback = true
+          mailDebugLog(`[PROCESS] Allegato poco leggibile — uso dati estratti dal corpo email [DA TESTO EMAIL]`)
+        }
+      }
+      mailDebugLog(`[PROCESS] OCR sconosciuto: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'} bodyFallback=${docFromBodyFallback}`)
 
       // 2. Prova a trovare il fornitore via P.IVA estratta dal documento
       let pivaMatchResult: Awaited<ReturnType<typeof resolveFornitoreByPIVA>> = null
       if (ocr.p_iva) {
         pivaMatchResult = await resolveFornitoreByPIVA(supabase, ocr.p_iva, sedeFilter)
         if (pivaMatchResult) {
-          // Spostalo nel gruppo dei fornitori noti per evitare doppia elaborazione
           const { fornitore } = pivaMatchResult
           if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'piva' })
           groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
@@ -359,7 +709,71 @@ async function processEmails(
         }
       }
 
-      // 3. Nessun match → upload + salva come sconosciuto
+      // 3a. Nessun match, dati solo da testo → documento sintetico [DA TESTO EMAIL]
+      if (docFromBodyFallback) {
+        const syn = await uploadSyntheticEmailBodyDoc(supabase, email)
+        if ('error' in syn) {
+          console.error(`[PROCESS] Upload sintetico fallito (fallback corpo): ${syn.error}`)
+          await insertLog(supabase, email, 'fornitore_non_trovato', {
+            errore_dettaglio: `Allegato illeggibile, fallback testo email. Errore upload: ${syn.error}`,
+            sede_id: effectiveSede,
+            allegato_nome: attachment.filename ?? null,
+          })
+          ignorate++
+          bumpAttach()
+          continue
+        }
+        const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+        const unknownPayload = {
+          fornitore_id:   null,
+          sede_id:        unknownDocSedeId,
+          mittente:       email.from || 'sconosciuto',
+          oggetto_mail:   email.subject ?? null,
+          file_url:       syn.publicUrl,
+          file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
+          content_type:   'text/plain',
+          data_documento: safeDate(ocr.data_fattura),
+          stato:          'da_associare',
+          metadata:       { ...buildMetadata(ocr, 'unknown'), origine_testo_email: true },
+          note:           ocr.note_corpo_mail?.trim() || null,
+        }
+        const insErr = await insertDocumento(supabase, unknownPayload)
+        if (insErr) {
+          const detail = `[${insErr.code ?? 'ERR'}] ${insErr.message}${insErr.details ? ' | ' + insErr.details : ''}`
+          console.error(`[PROCESS] ❌ Insert sintetico sconosciuto fallito: ${detail}`)
+          await insertLog(supabase, email, 'fornitore_non_trovato', {
+            errore_dettaglio: detail,
+            sede_id: unknownDocSedeId,
+            allegato_nome: attachment.filename ?? null,
+            scan_attachment_fingerprint: fp,
+          })
+          ignorate++
+          bumpAttach()
+        } else {
+          mailDebugLog(`[PROCESS] ✅ Documento [DA TESTO EMAIL] salvato — mittente="${email.from}"`)
+          const hinted =
+            !!(ocr.ragione_sociale?.trim() || (ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7))
+          const sugLabel = ocr.ragione_sociale?.trim() || ocr.p_iva || '—'
+          await insertLog(supabase, email, hinted ? 'fornitore_suggerito' : 'successo', {
+            file_url: syn.publicUrl,
+            sede_id: unknownDocSedeId,
+            allegato_nome: attachment.filename ?? null,
+            scan_attachment_fingerprint: fp,
+            ...(hinted && {
+              errore_dettaglio:
+                `Fornitore Suggerito: ${sugLabel}` +
+                (ocr.p_iva ? ` | P.IVA estratta dal testo: ${ocr.p_iva}` : '') +
+                (email.from ? ` | Mittente: ${email.from}` : ''),
+            }),
+          })
+          ricevuti++
+          if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+          bumpAttach()
+        }
+        continue
+      }
+
+      // 3b. Nessun match → upload allegato + salva come sconosciuto
       const uniqueName = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
       const { error: uploadError } = await supabase.storage
         .from('documenti')
@@ -369,8 +783,11 @@ async function processEmails(
         console.error(`[PROCESS] Upload fallito (sconosciuto): ${uploadError.message}`)
         await insertLog(supabase, email, 'fornitore_non_trovato', {
           errore_dettaglio: `Mittente sconosciuto. Errore upload: ${uploadError.message}`,
+          sede_id: effectiveSede,
+          allegato_nome: attachment.filename ?? null,
         })
         ignorate++
+        bumpAttach()
         continue
       }
 
@@ -389,6 +806,7 @@ async function processEmails(
         data_documento: safeDate(ocr.data_fattura),
         stato:          'da_associare',
         metadata:       buildMetadata(ocr, 'unknown'),
+        note:           ocr.note_corpo_mail?.trim() || null,
       }
 
       const insErr = await insertDocumento(supabase, unknownPayload)
@@ -398,14 +816,144 @@ async function processEmails(
         console.error(`[PROCESS] ❌ Insert sconosciuto fallito: ${detail}`)
         await insertLog(supabase, email, 'fornitore_non_trovato', {
           errore_dettaglio: detail,
+          sede_id: unknownDocSedeId,
+          allegato_nome: attachment.filename ?? null,
+          scan_attachment_fingerprint: fp,
         })
         ignorate++
+        bumpAttach()
       } else {
         mailDebugLog(`[PROCESS] ✅ Documento sconosciuto salvato — mittente="${email.from}" sede=${unknownDocSedeId ?? 'NULL'} piva_ocr="${ocr.p_iva ?? '—'}"`)
-        await insertLog(supabase, email, 'successo', { file_url: pub.publicUrl })
+        const hinted =
+          !!(ocr.ragione_sociale?.trim() || (ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7))
+        const sugLabel = ocr.ragione_sociale?.trim() || ocr.p_iva || '—'
+        await insertLog(supabase, email, hinted ? 'fornitore_suggerito' : 'successo', {
+          file_url: pub.publicUrl,
+          sede_id: unknownDocSedeId,
+          allegato_nome: attachment.filename ?? null,
+          scan_attachment_fingerprint: fp,
+          ...(hinted && {
+            errore_dettaglio:
+              `Fornitore Suggerito: ${sugLabel}` +
+              (ocr.p_iva ? ` | P.IVA OCR: ${ocr.p_iva}` : '') +
+              (email.from ? ` | Mittente: ${email.from}` : ''),
+          }),
+        })
         ricevuti++
         if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+        bumpAttach()
       }
+    }
+  }
+
+  // ── Mittenti sconosciuti, solo corpo mail (nessun allegato) ───────────────
+  for (const email of noFornitoreBodyOnly) {
+    const fp = buildScanAttachmentFingerprint({
+      sedeId: effectiveSede,
+      imapUid: email.uid,
+      filename: null,
+      content: Buffer.from(email.bodyText ?? '', 'utf8'),
+      kind: 'body_only',
+    })
+    if (await isScanUnitAlreadyCompleted(supabase, fp)) {
+      if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+      bumpAttach()
+      continue
+    }
+
+    mailDebugLog(`[PROCESS] Solo testo, mittente sconosciuto "${email.from}" — estrazione AI sul corpo`)
+
+    const ocr = await runOcrEmailBodyOnly(supabase, email, undefined, null, effectiveSede, fp)
+    mailDebugLog(
+      `[PROCESS] Estrazione testo: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'} utile=${ocr.estrazione_utile}`
+    )
+
+    if (!ocrBodyOnlyWorthInserting(ocr)) {
+      await insertLog(supabase, email, 'fornitore_non_trovato', {
+        errore_dettaglio: 'Solo testo email: nessun dato fiscale o logistico rilevante estratto.',
+        sede_id: effectiveSede,
+        allegato_nome: null,
+        scan_attachment_fingerprint: fp,
+      })
+      ignorate++
+      bumpAttach()
+      continue
+    }
+
+    let pivaMatchResult: Awaited<ReturnType<typeof resolveFornitoreByPIVA>> = null
+    if (ocr.p_iva) {
+      pivaMatchResult = await resolveFornitoreByPIVA(supabase, ocr.p_iva, sedeFilter)
+      if (pivaMatchResult) {
+        const { fornitore } = pivaMatchResult
+        if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'piva' })
+        groups.get(fornitore.id)!.items.push({ email, attachment: null, ocr })
+        mailDebugLog(`[PROCESS] ✅ Testo email risolto via P.IVA → "${fornitore.nome}"`)
+        if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+        continue
+      }
+    }
+
+    const syn = await uploadSyntheticEmailBodyDoc(supabase, email)
+    if ('error' in syn) {
+      console.error(`[PROCESS] Upload sintetico fallito (sconosciuto solo-testo): ${syn.error}`)
+      await insertLog(supabase, email, 'fornitore_non_trovato', {
+        errore_dettaglio: `Solo testo, mittente sconosciuto. Errore upload: ${syn.error}`,
+        sede_id: effectiveSede,
+        allegato_nome: null,
+      })
+      ignorate++
+      bumpAttach()
+      continue
+    }
+
+    const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+    const unknownPayload = {
+      fornitore_id:   null,
+      sede_id:        unknownDocSedeId,
+      mittente:       email.from || 'sconosciuto',
+      oggetto_mail:   email.subject ?? null,
+      file_url:       syn.publicUrl,
+      file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
+      content_type:   'text/plain',
+      data_documento: safeDate(ocr.data_fattura),
+      stato:          'da_associare',
+      metadata:       { ...buildMetadata(ocr, 'unknown'), origine_testo_email: true },
+      note:           ocr.note_corpo_mail?.trim() || null,
+    }
+
+    const insErr = await insertDocumento(supabase, unknownPayload)
+
+    if (insErr) {
+      const detail = `[${insErr.code ?? 'ERR'}] ${insErr.message}${insErr.details ? ' | ' + insErr.details : ''}`
+      console.error(`[PROCESS] ❌ Insert solo-testo sconosciuto fallito: ${detail}`)
+      await insertLog(supabase, email, 'fornitore_non_trovato', {
+        errore_dettaglio: detail,
+        sede_id: unknownDocSedeId,
+        allegato_nome: null,
+        scan_attachment_fingerprint: fp,
+      })
+      ignorate++
+      bumpAttach()
+    } else {
+      mailDebugLog(`[PROCESS] ✅ Documento solo-testo salvato — mittente="${email.from}"`)
+      const hinted =
+        !!(ocr.ragione_sociale?.trim() || (ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7))
+      const sugLabel = ocr.ragione_sociale?.trim() || ocr.p_iva || '—'
+      await insertLog(supabase, email, hinted ? 'fornitore_suggerito' : 'successo', {
+        file_url: syn.publicUrl,
+        sede_id: unknownDocSedeId,
+        allegato_nome: null,
+        scan_attachment_fingerprint: fp,
+        ...(hinted && {
+          errore_dettaglio:
+            `Fornitore Suggerito: ${sugLabel}` +
+            (ocr.p_iva ? ` | P.IVA estratta: ${ocr.p_iva}` : '') +
+            (email.from ? ` | Mittente: ${email.from}` : ''),
+        }),
+      })
+      ricevuti++
+      if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+      bumpAttach()
     }
   }
 
@@ -417,38 +965,125 @@ async function processEmails(
     // Pass supplier language as a parsing hint (conflict-prevention rule:
     // supplier language takes priority for parsing; sede currency used for display).
     const langHint = fornitore.language ?? undefined
+    const logSedeForFornitore = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
+    const checkpointSede = logSedeForFornitore
+
+    const fpList: string[] = []
+    const skipped: boolean[] = []
+    for (let i = 0; i < items.length; i++) {
+      const { email, attachment } = items[i]
+      const fp = attachment
+        ? buildScanAttachmentFingerprint({
+            sedeId: checkpointSede,
+            imapUid: email.uid,
+            filename: attachment.filename,
+            content: attachment.content,
+            kind: 'attachment',
+          })
+        : buildScanAttachmentFingerprint({
+            sedeId: checkpointSede,
+            imapUid: email.uid,
+            filename: SYNTHETIC_EMAIL_DOC_FILENAME,
+            content: Buffer.from(email.bodyText ?? '', 'utf8'),
+            kind: 'body_only',
+          })
+      fpList[i] = fp
+      const done = await isScanUnitAlreadyCompleted(supabase, fp)
+      skipped[i] = done
+      if (done) {
+        if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
+        bumpAttach()
+      }
+    }
+
     const ocrResults: OcrResult[] = await Promise.all(
-      items.map(({ attachment, ocr }) =>
-        ocr ? Promise.resolve(ocr) : ocrInvoice(attachment.content, attachment.contentType, langHint)
-      )
+      items.map(({ attachment, ocr, email }, i) => {
+        if (skipped[i]) return Promise.resolve(EMPTY_OCR)
+        const fp = fpList[i]
+        return ocr
+          ? Promise.resolve(ocr)
+          : attachment
+            ? runOcrForEmail(
+                supabase,
+                attachment.content,
+                attachment.contentType,
+                langHint,
+                email,
+                attachment,
+                fornitore.id,
+                logSedeForFornitore,
+                fp,
+              )
+            : runOcrEmailBodyOnly(
+                supabase,
+                email,
+                langHint,
+                fornitore.id,
+                logSedeForFornitore,
+                fp,
+              )
+      }),
     )
     mailDebugLog(`[PROCESS] OCR completato per "${fornitore.nome}" (matched_by=${matchedBy}): numeri fattura=[${ocrResults.map(r => r.numero_fattura ?? 'null').join(', ')}] totali=[${ocrResults.map(r => r.totale_iva_inclusa ?? 'null').join(', ')}]`)
 
     for (let i = 0; i < items.length; i++) {
+      if (skipped[i]) continue
       const { email, attachment } = items[i]
       const ocr = ocrResults[i]
+      const fp = fpList[i]
+      const documentSedeId = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
 
-      mailDebugLog(`[PROCESS] Upload allegato "${attachment.filename}" (${attachment.contentType}) per "${fornitore.nome}"`)
-      const uniqueName = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
-      const { error: uploadError } = await supabase.storage
-        .from('documenti')
-        .upload(uniqueName, attachment.content, { contentType: attachment.contentType, upsert: false })
+      let file_url: string
+      let storedFileName: string | null
+      let storedContentType: string | null
+      let isSyntheticBodyDoc = false
 
-      if (uploadError) {
-        console.error(`[PROCESS] ❌ Upload fallito: ${uploadError.message}`)
-        await insertLog(supabase, email, 'fornitore_non_trovato', {
-          fornitore_id: fornitore.id,
-          errore_dettaglio: `Errore upload allegato: ${uploadError.message}`,
-        })
-        continue
+      if (attachment) {
+        mailDebugLog(`[PROCESS] Upload allegato "${attachment.filename}" (${attachment.contentType}) per "${fornitore.nome}"`)
+        const uniqueName = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
+        const { error: uploadError } = await supabase.storage
+          .from('documenti')
+          .upload(uniqueName, attachment.content, { contentType: attachment.contentType, upsert: false })
+
+        if (uploadError) {
+          console.error(`[PROCESS] ❌ Upload fallito: ${uploadError.message}`)
+          await insertLog(supabase, email, 'fornitore_non_trovato', {
+            fornitore_id: fornitore.id,
+            errore_dettaglio: `Errore upload allegato: ${uploadError.message}`,
+            sede_id: documentSedeId,
+            allegato_nome: attachment.filename ?? null,
+          })
+          bumpAttach()
+          continue
+        }
+
+        const { data: publicUrlData } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
+        file_url = publicUrlData.publicUrl
+        storedFileName = attachment.filename ?? null
+        storedContentType = attachment.contentType ?? null
+        mailDebugLog(`[PROCESS] Upload OK → ${file_url}`)
+      } else {
+        mailDebugLog(`[PROCESS] Documento sintetico da corpo mail per "${fornitore.nome}"`)
+        const syn = await uploadSyntheticEmailBodyDoc(supabase, email)
+        if ('error' in syn) {
+          console.error(`[PROCESS] ❌ Upload testo sintetico fallito: ${syn.error}`)
+          await insertLog(supabase, email, 'fornitore_non_trovato', {
+            fornitore_id: fornitore.id,
+            errore_dettaglio: `Errore upload documento da testo email: ${syn.error}`,
+            sede_id: documentSedeId,
+            allegato_nome: null,
+          })
+          bumpAttach()
+          continue
+        }
+        file_url = syn.publicUrl
+        storedFileName = SYNTHETIC_EMAIL_DOC_FILENAME
+        storedContentType = 'text/plain'
+        isSyntheticBodyDoc = true
+        mailDebugLog(`[PROCESS] Upload sintetico OK → ${file_url}`)
       }
 
-      const { data: publicUrlData } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
-      const file_url = publicUrlData.publicUrl
-      mailDebugLog(`[PROCESS] Upload OK → ${file_url}`)
-
-      // sede_id: priorità esplicita → sedeFilter (scansione corrente) > sede del fornitore > fallback
-      const documentSedeId = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
+      const noteFromEmailBody = ocr.note_corpo_mail?.trim() || null
 
       // ── AUTO-CREAZIONE BOZZA ───────────────────────────────────────────────
       // Tenta di creare automaticamente una Bolla o Fattura in stato 'bozza'
@@ -514,8 +1149,15 @@ async function processEmails(
 
       const metadata = {
         ...buildMetadata(ocr, matchedBy),
+        ...(isSyntheticBodyDoc ? { origine_testo_email: true } : {}),
         // Riferimento alla bozza creata automaticamente
         ...(bozzaId ? { bozza_id: bozzaId, bozza_tipo: bozzaTipo } : {}),
+        ...(fornitore.rekki_link?.trim()
+          ? { rekki_link: fornitore.rekki_link.trim() }
+          : {}),
+        ...(fornitore.rekki_supplier_id?.trim()
+          ? { rekki_supplier_id: fornitore.rekki_supplier_id.trim() }
+          : {}),
       }
 
       // Detect statement emails: mark with is_statement = true
@@ -528,12 +1170,13 @@ async function processEmails(
         mittente:       email.from || 'sconosciuto',
         oggetto_mail:   email.subject ?? null,
         file_url,
-        file_name:      attachment.filename ?? null,
-        content_type:   attachment.contentType ?? null,
+        file_name:      storedFileName,
+        content_type:   storedContentType,
         data_documento: safeDate(ocr.data_fattura),
         stato:          isStatementEmail ? 'associato' : (bozzaId ? 'bozza_creata' : 'da_associare'),
         is_statement:   isStatementEmail,
         metadata,
+        note:           noteFromEmailBody,
       }
 
       const insertError = await insertDocumento(supabase, knownPayload)
@@ -545,12 +1188,19 @@ async function processEmails(
           fornitore_id: fornitore.id,
           file_url,
           errore_dettaglio: detail,
+          sede_id: documentSedeId,
+          allegato_nome: attachment?.filename ?? null,
+          scan_attachment_fingerprint: fp,
         })
+        bumpAttach()
         continue
       }
 
       // ── AUTO-PROCESS STATEMENT EMAILS ──────────────────────────────────
-      if (isStatementEmail) {
+      const stmtPdf =
+        attachment &&
+        (attachment.contentType === 'application/pdf' || String(attachment.extension).toLowerCase() === 'pdf')
+      if (isStatementEmail && stmtPdf) {
         mailDebugLog(`[PROCESS] 📋 Statement email rilevata per "${fornitore.nome}" — avvio parsing automatico righe`)
         // Fire-and-forget in background (don't block the main loop)
         processStatementInBackground(supabase, {
@@ -565,12 +1215,22 @@ async function processEmails(
         mailDebugLog(`[PROCESS] ✅ Documento salvato per "${fornitore.nome}" | stato=${bozzaId ? 'bozza_creata' : 'da_associare'} | bozza_tipo=${bozzaTipo ?? 'nessuna'} | sede=${documentSedeId ?? 'NULL'}`)
       }
 
-      await insertLog(supabase, email, 'successo', { fornitore_id: fornitore.id, file_url })
+      await insertLog(supabase, email, 'successo', {
+        fornitore_id: fornitore.id,
+        file_url,
+        sede_id: documentSedeId,
+        allegato_nome: attachment?.filename ?? null,
+        scan_attachment_fingerprint: fp,
+      })
 
       ricevuti++
       if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
 
+      const rekkiMappingActive = !!(
+        fornitore.rekki_link?.trim() || fornitore.rekki_supplier_id?.trim()
+      )
       if (
+        rekkiMappingActive &&
         !rekkiPersistedUids.has(email.uid) &&
         email.bodyText &&
         isLikelyRekkiEmail(email.subject, email.from, email.bodyText)
@@ -587,11 +1247,19 @@ async function processEmails(
           }).catch((err) => console.error('[REKKI] persist fallito:', err))
         }
       }
+      bumpAttach()
     }
   }
 
   mailDebugLog(`[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate}`)
-  return { ricevuti, ignorate, bozzaCreate, toMarkRead: uidsToMarkRead }
+  return {
+    ricevuti,
+    ignorate,
+    bozzaCreate,
+    toMarkRead: uidsToMarkRead,
+    attachmentsTotal,
+    attachmentsProcessed,
+  }
 }
 
 /**
@@ -687,8 +1355,6 @@ export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
   if (!secret) return NextResponse.json({ error: 'CRON_SECRET non configurato' }, { status: 500 })
 
-  // Vercel Cron invia automaticamente: Authorization: Bearer <CRON_SECRET>
-  // Il trigger manuale può usare: ?secret=<CRON_SECRET>
   const authHeader = (req as Request & { headers: Headers }).headers.get('authorization')
   const bearerValid = authHeader === `Bearer ${secret}`
   const { searchParams } = new URL(req.url)
@@ -698,7 +1364,37 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  return runScan()
+  try {
+    const result = await queueEmailScan(() => runEmailScanCore({}))
+    if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {
+      return NextResponse.json({
+        ricevuti: 0,
+        ignorate: 0,
+        bozzeCreate: 0,
+        avvisi: result.avvisi,
+        messaggio: result.avvisi[0],
+        mailsFound: result.mailsFound,
+        mailsProcessed: result.mailsProcessed,
+        attachmentsTotal: result.attachmentsTotal,
+        attachmentsProcessed: result.attachmentsProcessed,
+      })
+    }
+    return NextResponse.json({
+      ricevuti: result.ricevuti,
+      ignorate: result.ignorate,
+      bozzeCreate: result.bozzeCreate,
+      messaggio: result.messaggio,
+      ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
+      mailsFound: result.mailsFound,
+      mailsProcessed: result.mailsProcessed,
+      attachmentsTotal: result.attachmentsTotal,
+      attachmentsProcessed: result.attachmentsProcessed,
+    })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Errore sconosciuto'
+    console.error('[FATAL] Errore inatteso in scan-emails GET:', err)
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
 }
 
 function imapErrorMessage(err: unknown, nome: string): string {
@@ -712,135 +1408,480 @@ function imapErrorMessage(err: unknown, nome: string): string {
   if (msg.includes('auth') || msg.includes('LOGIN') || msg.includes('AUTHENTICATE')) {
     return `Sede "${nome}": credenziali IMAP errate.`
   }
+  if (/unexpected close|connection closed|socket hang|ECONNRESET|ETIMEDOUT/i.test(msg)) {
+    return `Sede "${nome}": connessione interrotta (timeout o rete). Verifica rete/firewall o riprova. Dettaglio: ${msg.slice(0, 120)}`
+  }
   return `Sede "${nome}": ${msg}`
+}
+
+type RunEmailScanParams = {
+  userSedeId?: string
+  filterSedeId?: string
+  fornitoreId?: string
+  emit?: (e: EmailScanStreamEvent) => void | Promise<void>
+}
+
+type EmailScanCoreResult = {
+  ricevuti: number
+  ignorate: number
+  bozzeCreate: number
+  messaggio: string
+  avvisi?: string[]
+  mailsFound: number
+  mailsProcessed: number
+  attachmentsTotal: number
+  attachmentsProcessed: number
+}
+
+async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCoreResult> {
+  const emit = params.emit
+  const s = async (e: EmailScanStreamEvent) => {
+    if (emit) await emit(e)
+  }
+
+  await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null })
+
+  const supabase = createServiceClient()
+
+  const hasGlobalImap = !!(process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD)
+  if (!hasGlobalImap) {
+    console.warn('[ENV] Casella IMAP globale non configurata (IMAP_HOST/IMAP_USER/IMAP_PASSWORD mancanti)')
+  }
+
+  let directFornitore: Fornitore | null = null
+  let supplierScope: SupplierEmailScope | null = null
+  let filterSedeId = params.filterSedeId
+
+  if (params.fornitoreId) {
+    const ctx = await loadFornitoreScanContext(supabase, params.fornitoreId)
+    if (!ctx) throw new Error('Fornitore non trovato.')
+    if (!ctx.fornitore.sede_id) throw new Error('Assegnare una sede al fornitore per sincronizzare le email.')
+    if (ctx.scope.allowedEmails.size === 0) {
+      throw new Error('Aggiungi almeno un indirizzo email (o alias) al fornitore.')
+    }
+    directFornitore = ctx.fornitore
+    supplierScope = ctx.scope
+    filterSedeId = ctx.fornitore.sede_id
+    mailDebugLog(`[FORNITORE] Scansione mirata id=${params.fornitoreId} sede=${filterSedeId}`)
+  }
+
+  let totalRicevuti = 0
+  let totalIgnorate = 0
+  let totalBozzeCreate = 0
+  const avvisi: string[] = []
+
+  let mailsFound = 0
+  let mailsProcessed = 0
+  let attDoneRun = 0
+  let attTotalRun = 0
+
+  let systemFallbackSedeId: string | undefined = params.userSedeId
+  if (!systemFallbackSedeId) {
+    const { data: firstSede } = await supabase.from('sedi').select('id').limit(1).single()
+    systemFallbackSedeId = firstSede?.id ?? undefined
+  }
+  mailDebugLog(`[SCAN] sede fallback: ${systemFallbackSedeId ?? 'NESSUNA'}`)
+
+  let sediQuery = supabase
+    .from('sedi')
+    .select('id, nome, imap_host, imap_port, imap_user, imap_password, imap_lookback_days')
+    .not('imap_host', 'is', null)
+    .not('imap_user', 'is', null)
+    .not('imap_password', 'is', null)
+
+  if (filterSedeId) {
+    sediQuery = sediQuery.eq('id', filterSedeId) as typeof sediQuery
+    mailDebugLog(`[SCAN] filter_sede_id=${filterSedeId}`)
+  }
+
+  const { data: sedi, error: sediErr } = await sediQuery
+
+  mailDebugLog(`[DB] Sedi con IMAP: ${sedi?.length ?? 0}${sediErr ? ` errore="${sediErr.message}"` : ''}`)
+
+  const skipGlobalImap = !!params.fornitoreId || !!filterSedeId
+
+  const snap = () => ({
+    mailsFound,
+    mailsProcessed,
+    attachmentsTotal: attTotalRun,
+    attachmentsProcessed: attDoneRun,
+  })
+
+  /** Ogni retry IMAP: errore + dopo backoff un secondo evento (heartbeat NDJSON). */
+  const imapStreamRetryHooks: Pick<FetchImapHooks, 'onRetry' | 'beforeReconnect'> = {
+    onRetry: async ({ attempt }) => {
+      await s({
+        type: 'progress',
+        phase: 'connect',
+        percent: Math.min(24, 10 + attempt * 5),
+        connectionWarning: IMAP_CONNECTION_RETRY_USER_MESSAGE,
+        ...snap(),
+      })
+    },
+    beforeReconnect: async ({ attempt }) => {
+      await s({
+        type: 'progress',
+        phase: 'connect',
+        percent: Math.min(27, 12 + attempt * 4),
+        connectionWarning: null,
+        ...snap(),
+      })
+    },
+  }
+
+  if (sedi && sedi.length > 0) {
+    for (const sede of sedi) {
+      mailDebugLog(`\n[SEDE] ══ Inizio scansione sede "${sede.nome}" (${sede.id}) ══`)
+      try {
+        await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, ...snap() })
+        const emails = await fetchFromImap(
+          sede.imap_host,
+          sede.imap_port ?? 993,
+          sede.imap_user,
+          sede.imap_password,
+          sede.imap_lookback_days,
+          {
+            ...imapStreamRetryHooks,
+            afterMailboxOpen: async () => {
+              await s({
+                type: 'progress',
+                phase: 'search',
+                percent: 28,
+                connectionWarning: null,
+                ...snap(),
+              })
+            },
+          }
+        )
+        const filtered = supplierScope
+          ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope!))
+          : emails
+
+        const batchMails = filtered.length
+        const batchAtt = countScanEmailUnits(filtered)
+        mailsFound += batchMails
+        attTotalRun += batchAtt
+
+        await s({
+          type: 'progress',
+          phase: 'search',
+          percent: 38,
+          connectionWarning: null,
+          mailsFound,
+          mailsProcessed,
+          attachmentsTotal: attTotalRun,
+          attachmentsProcessed: attDoneRun,
+        })
+
+        mailDebugLog(`[SEDE] "${sede.nome}": ${emails.length} in inbox / ${batchMails} dopo filtro fornitore`)
+
+        if (filtered.length > 0) {
+          await s({
+            type: 'progress',
+            phase: 'process',
+            percent: 45,
+            connectionWarning: null,
+            mailsFound,
+            mailsProcessed,
+            attachmentsTotal: attTotalRun,
+            attachmentsProcessed: attDoneRun,
+          })
+          const onAttachmentProgress = (p: { attachmentsProcessed: number; attachmentsTotal: number }) => {
+            const done = attDoneRun + p.attachmentsProcessed
+            const total = Math.max(attTotalRun, 1)
+            const ratio = Math.min(1, done / total)
+            void s({
+              type: 'progress',
+              phase: 'process',
+              percent: 60 + Math.min(29, Math.floor(29 * ratio)),
+              connectionWarning: null,
+              mailsFound,
+              mailsProcessed,
+              attachmentsTotal: attTotalRun,
+              attachmentsProcessed: done,
+            })
+          }
+
+          const { ricevuti, ignorate, bozzaCreate, toMarkRead, attachmentsProcessed: peDone } =
+            await processEmails(supabase, filtered, sede.id, undefined, {
+              directFornitore: directFornitore ?? undefined,
+              onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
+            })
+
+          totalRicevuti += ricevuti
+          totalIgnorate += ignorate
+          totalBozzeCreate += bozzaCreate
+          attDoneRun += peDone
+          mailsProcessed += batchMails
+
+          await s({
+            type: 'progress',
+            phase: 'persist',
+            percent: 90,
+            connectionWarning: null,
+            mailsFound,
+            mailsProcessed,
+            attachmentsTotal: attTotalRun,
+            attachmentsProcessed: attDoneRun,
+          })
+
+          if (toMarkRead.length > 0) {
+            mailDebugLog(`[SEDE] Segno come lette ${toMarkRead.length} email`)
+            await markReadOnImap(
+              sede.imap_host,
+              sede.imap_port ?? 993,
+              sede.imap_user,
+              sede.imap_password,
+              toMarkRead as number[],
+              imapStreamRetryHooks
+            )
+          }
+        }
+
+        await supabase
+          .from('sedi')
+          .update({ last_imap_sync_at: new Date().toISOString(), last_imap_sync_error: null })
+          .eq('id', sede.id)
+      } catch (err) {
+        const avviso = imapErrorMessage(err, sede.nome)
+        console.error(`[SEDE] ❌ Errore sede "${sede.nome}":`, err)
+        avvisi.push(avviso)
+        await supabase
+          .from('sedi')
+          .update({ last_imap_sync_error: avviso.slice(0, 2000) })
+          .eq('id', sede.id)
+      }
+    }
+  }
+
+  if (!skipGlobalImap && process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD) {
+    mailDebugLog('\n[GLOBALE] ══ Inizio scansione casella globale ══')
+    try {
+      await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, ...snap() })
+      const globalHooks: FetchUnseenImapHooks = {
+        ...imapStreamRetryHooks,
+        afterInboxOpen: async () => {
+          await s({
+            type: 'progress',
+            phase: 'search',
+            percent: 28,
+            connectionWarning: null,
+            ...snap(),
+          })
+        },
+      }
+      const emails = await fetchUnseenEmails(globalHooks)
+      const filtered = supplierScope
+        ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope!))
+        : emails
+      const batchMails = filtered.length
+      const batchAtt = countScanEmailUnits(filtered)
+      mailsFound += batchMails
+      attTotalRun += batchAtt
+
+      await s({
+        type: 'progress',
+        phase: 'search',
+        percent: 38,
+        connectionWarning: null,
+        mailsFound,
+        mailsProcessed,
+        attachmentsTotal: attTotalRun,
+        attachmentsProcessed: attDoneRun,
+      })
+
+      mailDebugLog(`[GLOBALE] Email trovate: ${emails.length} / ${batchMails} dopo filtro`)
+      if (filtered.length > 0) {
+        await s({
+          type: 'progress',
+          phase: 'process',
+          percent: 45,
+          connectionWarning: null,
+          mailsFound,
+          mailsProcessed,
+          attachmentsTotal: attTotalRun,
+          attachmentsProcessed: attDoneRun,
+        })
+        const onAttachmentProgress = (p: { attachmentsProcessed: number; attachmentsTotal: number }) => {
+          const done = attDoneRun + p.attachmentsProcessed
+          const total = Math.max(attTotalRun, 1)
+          const ratio = Math.min(1, done / total)
+          void s({
+            type: 'progress',
+            phase: 'process',
+            percent: 60 + Math.min(29, Math.floor(29 * ratio)),
+            connectionWarning: null,
+            mailsFound,
+            mailsProcessed,
+            attachmentsTotal: attTotalRun,
+            attachmentsProcessed: done,
+          })
+        }
+
+        const { ricevuti, ignorate, bozzaCreate, toMarkRead, attachmentsProcessed: peDone } =
+          await processEmails(supabase, filtered, undefined, systemFallbackSedeId, {
+            directFornitore: directFornitore ?? undefined,
+            onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
+          })
+
+        totalRicevuti += ricevuti
+        totalIgnorate += ignorate
+        totalBozzeCreate += bozzaCreate
+        attDoneRun += peDone
+        mailsProcessed += batchMails
+
+        await s({
+          type: 'progress',
+          phase: 'persist',
+          percent: 90,
+          connectionWarning: null,
+          mailsFound,
+          mailsProcessed,
+          attachmentsTotal: attTotalRun,
+          attachmentsProcessed: attDoneRun,
+        })
+
+        await markEmailsAsRead(toMarkRead, imapStreamRetryHooks)
+      }
+    } catch (err) {
+      console.error('[GLOBALE] ❌ Errore casella globale:', err)
+      avvisi.push(imapErrorMessage(err, 'casella globale'))
+    }
+  } else if (!skipGlobalImap) {
+    mailDebugLog('[GLOBALE] Casella globale non configurata — salto')
+  }
+
+  await s({
+    type: 'progress',
+    phase: 'complete',
+    percent: 100,
+    connectionWarning: null,
+    mailsFound,
+    mailsProcessed,
+    attachmentsTotal: attTotalRun,
+    attachmentsProcessed: attDoneRun,
+  })
+
+  mailDebugLog(`\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} avvisi=${avvisi.length}`)
+
+  let messaggio: string
+  if (totalRicevuti === 0) {
+    messaggio = 'Nessuna nuova email con allegati o testo da elaborare.'
+  } else if (totalBozzeCreate > 0) {
+    messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — ${totalBozzeCreate} ${totalBozzeCreate === 1 ? 'bozza creata automaticamente' : 'bozze create automaticamente'}. Controlla in Statements → Documenti da Elaborare.`
+  } else {
+    messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — salvati in Documenti da Elaborare per la revisione.`
+  }
+
+  return {
+    ricevuti: totalRicevuti,
+    ignorate: totalIgnorate,
+    bozzeCreate: totalBozzeCreate,
+    messaggio,
+    ...(avvisi.length > 0 && { avvisi }),
+    mailsFound,
+    mailsProcessed,
+    attachmentsTotal: attTotalRun,
+    attachmentsProcessed: attDoneRun,
+  }
 }
 
 export async function POST(req: Request) {
   let userSedeId: string | undefined
   let filterSedeId: string | undefined
+  let fornitoreId: string | undefined
+  let wantStream = false
   try {
-    const body = await req.json() as { user_sede_id?: string; filter_sede_id?: string }
+    const body = await req.json() as {
+      user_sede_id?: string
+      filter_sede_id?: string
+      fornitore_id?: string
+      stream?: boolean
+    }
     userSedeId = body?.user_sede_id ?? undefined
-    // filter_sede_id: restrict the IMAP scan to one specific branch only
     filterSedeId = body?.filter_sede_id ?? undefined
-  } catch { /* no body or invalid JSON — ignore */ }
-  return runScan(userSedeId, filterSedeId)
-}
+    fornitoreId = body?.fornitore_id ?? undefined
+    wantStream = body?.stream === true
+  } catch { /* no body */ }
 
-async function runScan(userSedeId?: string, filterSedeId?: string) {
-  try {
-    const supabase = createServiceClient()
+  if (wantStream) {
+    const encoder = new TextEncoder()
+    const streamOut = new TransformStream()
+    const writer = streamOut.writable.getWriter()
 
-    // ── Verifica variabili d'ambiente globali ──────────────────────────────
-    const hasGlobalImap = !!(process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD)
-    if (!hasGlobalImap) {
-      console.warn('[ENV] Casella IMAP globale non configurata (IMAP_HOST/IMAP_USER/IMAP_PASSWORD mancanti)')
-    }
-
-    let totalRicevuti = 0
-    let totalIgnorate = 0
-    let totalBozzeCreate = 0
-    const avvisi: string[] = []
-
-    // ── Sede di fallback (usata solo per global IMAP senza sedeFilter) ────────
-    // Priorità: 1) sede dell'utente che ha avviato la sync  2) prima sede nel DB
-    let systemFallbackSedeId: string | undefined = userSedeId
-    if (!systemFallbackSedeId) {
-      const { data: firstSede } = await supabase.from('sedi').select('id').limit(1).single()
-      systemFallbackSedeId = firstSede?.id ?? undefined
-    }
-    mailDebugLog(`[POST] sede fallback: ${systemFallbackSedeId ?? 'NESSUNA'} (origine: ${userSedeId ? 'utente' : 'prima sede DB'})`)
-
-    // ── Sedi con IMAP configurato ─────────────────────────────────────────
-    let sediQuery = supabase
-      .from('sedi')
-      .select('id, nome, imap_host, imap_port, imap_user, imap_password, imap_lookback_days')
-      .not('imap_host', 'is', null)
-      .not('imap_user', 'is', null)
-      .not('imap_password', 'is', null)
-
-    // When a specific branch is requested, restrict to that branch only
-    if (filterSedeId) {
-      sediQuery = sediQuery.eq('id', filterSedeId) as typeof sediQuery
-      mailDebugLog(`[POST] filter_sede_id=${filterSedeId} — scansione limitata a questa sede`)
-    }
-
-    const { data: sedi, error: sediErr } = await sediQuery
-
-    mailDebugLog(`[DB] Sedi con IMAP: ${sedi?.length ?? 0}${sediErr ? ` errore="${sediErr.message}"` : ''}`)
-    if (sedi) {
-      sedi.forEach(s => mailDebugLog(`[DB]   → sede "${s.nome}" porta=${s.imap_port ?? 993}`))
-    }
-
-    if (sedi && sedi.length > 0) {
-      for (const sede of sedi) {
-        mailDebugLog(`\n[SEDE] ══ Inizio scansione sede "${sede.nome}" (${sede.id}) ══`)
-        try {
-          const emails = await fetchFromImap(sede.imap_host, sede.imap_port ?? 993, sede.imap_user, sede.imap_password, sede.imap_lookback_days)
-          mailDebugLog(`[SEDE] "${sede.nome}": ${emails.length} email con allegati trovate`)
-          if (emails.length === 0) { mailDebugLog(`[SEDE] Nessuna email — salto`); continue }
-          const { ricevuti, ignorate, bozzaCreate, toMarkRead } = await processEmails(supabase, emails, sede.id)
-          totalRicevuti += ricevuti
-          totalIgnorate += ignorate
-          totalBozzeCreate += bozzaCreate
-          if (toMarkRead.length > 0) {
-            mailDebugLog(`[SEDE] Segno come lette ${toMarkRead.length} email`)
-            await markReadOnImap(sede.imap_host, sede.imap_port ?? 993, sede.imap_user, sede.imap_password, toMarkRead as number[])
-          }
-        } catch (err) {
-          const avviso = imapErrorMessage(err, sede.nome)
-          console.error(`[SEDE] ❌ Errore sede "${sede.nome}":`, err)
-          avvisi.push(avviso)
-        }
+    void (async () => {
+      const write = async (obj: EmailScanStreamEvent) => {
+        await writer.write(encoder.encode(JSON.stringify(obj) + '\n'))
       }
-    }
-
-    // Skip global IMAP when scoped to a specific branch
-    if (!filterSedeId && process.env.IMAP_HOST && process.env.IMAP_USER && process.env.IMAP_PASSWORD) {
-      mailDebugLog('\n[GLOBALE] ══ Inizio scansione casella globale ══')
       try {
-        const emails = await fetchUnseenEmails()
-        mailDebugLog(`[GLOBALE] Email trovate: ${emails.length}`)
-        if (emails.length > 0) {
-          const { ricevuti, ignorate, bozzaCreate, toMarkRead } = await processEmails(supabase, emails, undefined, systemFallbackSedeId)
-          totalRicevuti += ricevuti
-          totalIgnorate += ignorate
-          totalBozzeCreate += bozzaCreate
-          await markEmailsAsRead(toMarkRead)
-        }
-      } catch (err) {
-        console.error('[GLOBALE] ❌ Errore casella globale:', err)
-        avvisi.push(imapErrorMessage(err, 'casella globale'))
+        await queueEmailScan(async () => {
+          await write({ type: 'progress', phase: 'queued', percent: 5, connectionWarning: null })
+          const result = await runEmailScanCore({ userSedeId, filterSedeId, fornitoreId, emit: write })
+          await write({
+            type: 'done',
+            ricevuti: result.ricevuti,
+            ignorate: result.ignorate,
+            bozzeCreate: result.bozzeCreate,
+            messaggio: result.messaggio,
+            avvisi: result.avvisi,
+            mailsFound: result.mailsFound,
+            mailsProcessed: result.mailsProcessed,
+            attachmentsTotal: result.attachmentsTotal,
+            attachmentsProcessed: result.attachmentsProcessed,
+          })
+        })
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Errore sconosciuto'
+        console.error('[scan-emails] stream error:', err)
+        try {
+          await write({ type: 'error', error: message })
+        } catch { /* ignore */ }
+      } finally {
+        try {
+          await writer.close()
+        } catch { /* ignore */ }
       }
-    } else {
-      mailDebugLog('[GLOBALE] Casella globale non configurata — salto')
+    })()
+
+    return new Response(streamOut.readable, {
+      headers: {
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Cache-Control': 'no-store',
+      },
+    })
+  }
+
+  try {
+    const result = await queueEmailScan(() => runEmailScanCore({ userSedeId, filterSedeId, fornitoreId }))
+    if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {
+      return NextResponse.json({
+        ricevuti: 0,
+        ignorate: 0,
+        bozzeCreate: 0,
+        avvisi: result.avvisi,
+        messaggio: result.avvisi[0],
+        mailsFound: result.mailsFound,
+        mailsProcessed: result.mailsProcessed,
+        attachmentsTotal: result.attachmentsTotal,
+        attachmentsProcessed: result.attachmentsProcessed,
+      })
     }
-
-    mailDebugLog(`\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} avvisi=${avvisi.length}`)
-
-    if (avvisi.length > 0 && totalRicevuti === 0 && totalIgnorate === 0) {
-      return NextResponse.json({ ricevuti: 0, ignorate: 0, bozzeCreate: 0, avvisi, messaggio: avvisi[0] })
-    }
-
-    let messaggio: string
-    if (totalRicevuti === 0) {
-      messaggio = 'Nessuna nuova email con allegati.'
-    } else if (totalBozzeCreate > 0) {
-      messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — ${totalBozzeCreate} ${totalBozzeCreate === 1 ? 'bozza creata automaticamente' : 'bozze create automaticamente'}. Controlla in Statements → Documenti da Elaborare.`
-    } else {
-      messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — salvati in Documenti da Elaborare per la revisione.`
-    }
-
     return NextResponse.json({
-      ricevuti: totalRicevuti,
-      ignorate: totalIgnorate,
-      bozzeCreate: totalBozzeCreate,
-      messaggio,
-      ...(avvisi.length > 0 && { avvisi }),
+      ricevuti: result.ricevuti,
+      ignorate: result.ignorate,
+      bozzeCreate: result.bozzeCreate,
+      messaggio: result.messaggio,
+      ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
+      mailsFound: result.mailsFound,
+      mailsProcessed: result.mailsProcessed,
+      attachmentsTotal: result.attachmentsTotal,
+      attachmentsProcessed: result.attachmentsProcessed,
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Errore sconosciuto'
-    console.error('[FATAL] Errore inatteso in scan-emails:', err)
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[FATAL] Errore inatteso in scan-emails POST:', err)
+    const isClient =
+      /Fornitore non trovato|Assegnare una sede|Aggiungi almeno un indirizzo/i.test(message)
+    return NextResponse.json({ error: message }, { status: isClient ? 400 : 500 })
   }
 }

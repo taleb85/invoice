@@ -8,6 +8,8 @@ import {
 export type OperatorDashboardKpis = {
   bolleTotal: number
   bolleInAttesa: number
+  /** Fornitori nella sede (o in scope RLS se senza sede). */
+  fornitoriCount: number
   fattureCount: number
   documentiPending: number
   /** Documenti con stato da_associare (da abbinare), allineato allo schema DB. */
@@ -96,6 +98,7 @@ export async function fetchOperatorDashboardKpis(
     return {
       bolleTotal: 0,
       bolleInAttesa: 0,
+      fornitoriCount: 0,
       fattureCount: 0,
       documentiPending,
       documentiDaAssociare: docDaAssoc ?? 0,
@@ -115,6 +118,10 @@ export async function fetchOperatorDashboardKpis(
     .eq('stato', 'da_associare')
   if (fid?.length) docDaAssocQ = docDaAssocQ.in('fornitore_id', fid)
 
+  const fornitoriCountQ = sedeId
+    ? supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
+    : supabase.from('fornitori').select('*', { count: 'exact', head: true })
+
   const [
     bolleRes,
     bolleAttesaRes,
@@ -124,6 +131,7 @@ export async function fetchOperatorDashboardKpis(
     stmtCountRes,
     stmtIssuesRes,
     docDaAssocRes,
+    fornitoriCountRes,
   ] = await Promise.all([
     fid
       ? supabase.from('bolle').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
@@ -155,6 +163,7 @@ export async function fetchOperatorDashboardKpis(
           .gt('missing_rows', 0)
       : supabase.from('statements').select('*', { count: 'exact', head: true }).gt('missing_rows', 0),
     docDaAssocQ,
+    fornitoriCountQ,
   ])
 
   const statementsTotal = stmtCountRes.count ?? 0
@@ -163,6 +172,7 @@ export async function fetchOperatorDashboardKpis(
   return {
     bolleTotal: bolleRes.count ?? 0,
     bolleInAttesa: bolleAttesaRes.count ?? 0,
+    fornitoriCount: fornitoriCountRes.count ?? 0,
     fattureCount: fattureCountRes.count ?? 0,
     documentiPending: documentiPendingGlobal,
     documentiDaAssociare: docDaAssocRes.count ?? 0,

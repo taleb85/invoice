@@ -24,6 +24,19 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
   ])
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
+  const fornitoreRekkiId = bolla.fornitore?.rekki_supplier_id?.trim()
+  let listinoRows: { prodotto: string; prezzo: number; data_prezzo: string }[] = []
+  if (fornitoreRekkiId) {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('listino_prezzi')
+      .select('prodotto, prezzo, data_prezzo')
+      .eq('fornitore_id', bolla.fornitore_id)
+      .order('data_prezzo', { ascending: false })
+      .limit(24)
+    listinoRows = (data ?? []) as typeof listinoRows
+  }
+
   return (
     <div className="max-w-2xl p-4 md:p-8">
       <div className="mb-8 flex items-center gap-3">
@@ -127,6 +140,40 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
               </svg>
               {t.common.openAttachment}
             </a>
+          </div>
+        )}
+
+        {fornitoreRekkiId && (
+          <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
+            <div className="app-card-bar mb-3" aria-hidden />
+            <h2 className="mb-2 text-sm font-semibold text-slate-100">{t.bolle.listinoRekkiRefTitle}</h2>
+            <p className="mb-3 text-[11px] leading-snug text-slate-500">{t.bolle.listinoRekkiRefHint}</p>
+            {listinoRows.length === 0 ? (
+              <p className="text-sm text-slate-500">{t.bolle.listinoRekkiRefEmpty}</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-700/60 text-slate-500">
+                      <th className="py-2 pr-3 font-medium">{t.fornitori.listinoProdotti}</th>
+                      <th className="py-2 pr-3 font-medium text-right">{t.fornitori.listinoColImporto}</th>
+                      <th className="py-2 font-medium">{t.fornitori.listinoColData}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/80">
+                    {listinoRows.map((row) => (
+                      <tr key={`${row.prodotto}-${row.data_prezzo}`}>
+                        <td className="max-w-[200px] truncate py-2 pr-3 text-slate-200">{row.prodotto}</td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums text-slate-100">
+                          {Number(row.prezzo).toFixed(2)}
+                        </td>
+                        <td className="whitespace-nowrap py-2 text-slate-500">{formatDate(row.data_prezzo)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 

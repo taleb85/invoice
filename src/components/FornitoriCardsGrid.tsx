@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import type { Fornitore } from '@/types'
 import OperatorPinStepUpModal from '@/components/OperatorPinStepUpModal'
@@ -10,16 +10,72 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
+import { cacheFornitoriList, readCachedFornitoriList } from '@/lib/app-data-cache'
+import { useNetworkStatusOptional } from '@/lib/network-context'
 
 type Gate = { action: 'detail' | 'edit' | 'delete' | 'unlock'; id: string; nome: string }
 
-export default function FornitoriCardsGrid({ fornitori }: { fornitori: Fornitore[] }) {
+export default function FornitoriCardsGrid({
+  fornitori,
+  sedeScope,
+  emptyState,
+  addFirstLabel,
+}: {
+  fornitori: Fornitore[]
+  sedeScope: string
+  emptyState: string
+  addFirstLabel: string
+}) {
   const t = useT()
   const router = useRouter()
   const supabase = createClient()
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
   const isAdmin = !!(me?.is_admin || me?.role === 'admin')
+  const net = useNetworkStatusOptional()
+
+  const [rows, setRows] = useState<Fornitore[]>(fornitori)
+  const [listSource, setListSource] = useState<'server' | 'cache'>('server')
+  const [cacheReady, setCacheReady] = useState(() => fornitori.length > 0)
+
+  useEffect(() => {
+    void cacheFornitoriList(sedeScope, fornitori)
+  }, [fornitori, sedeScope])
+
+  useEffect(() => {
+    if (fornitori.length > 0) {
+      setRows(fornitori)
+      setListSource('server')
+      setCacheReady(true)
+      return
+    }
+    if (typeof navigator === 'undefined') {
+      setCacheReady(true)
+      return
+    }
+    if (navigator.onLine) {
+      setRows(fornitori)
+      setListSource('server')
+      setCacheReady(true)
+      return
+    }
+    void readCachedFornitoriList(sedeScope).then((cached) => {
+      if (cached?.length) {
+        setRows(cached as Fornitore[])
+        setListSource('cache')
+      } else {
+        setRows(fornitori)
+        setListSource('server')
+      }
+      setCacheReady(true)
+    })
+  }, [fornitori, sedeScope])
+
+  useEffect(() => {
+    if (net?.online && listSource === 'cache') {
+      router.refresh()
+    }
+  }, [net?.online, listSource, router])
 
   const [gate, setGate] = useState<Gate | null>(null)
   const gateRef = useRef<Gate | null>(null)
@@ -27,6 +83,14 @@ export default function FornitoriCardsGrid({ fornitori }: { fornitori: Fornitore
 
   /** Per card: dopo PIN mostra etichette Dettaglio / Modifica / Elimina. */
   const [unlockedIds, setUnlockedIds] = useState<Set<string>>(() => new Set())
+
+  const allFornitoreIds = useMemo(() => new Set(rows.map((f) => f.id)), [rows])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setUnlockedIds(new Set(allFornitoreIds))
+    }
+  }, [isAdmin, allFornitoreIds])
 
   const deleteConfirmFor = useCallback(
     (nome: string) =>
@@ -90,6 +154,37 @@ export default function FornitoriCardsGrid({ fornitori }: { fornitori: Fornitore
   const editCls =
     'inline-flex items-center gap-1 rounded-lg p-1.5 text-[11px] font-semibold text-slate-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300'
 
+  if (!cacheReady) {
+    return (
+      <div className="app-card overflow-hidden">
+        <div className="app-card-bar" aria-hidden />
+        <div className="h-32 animate-pulse bg-slate-800/40" />
+      </div>
+    )
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="app-card overflow-hidden">
+        <div className="app-card-bar" aria-hidden />
+        <div className="px-6 py-16 text-center">
+          <svg className="mx-auto mb-4 h-14 w-14 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          <p className="text-sm font-medium text-slate-400">{emptyState}</p>
+          <Link href="/fornitori/new" className="mt-4 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
+            {addFirstLabel}
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <OperatorPinStepUpModal
@@ -99,10 +194,17 @@ export default function FornitoriCardsGrid({ fornitori }: { fornitori: Fornitore
         defaultOperatorName={activeOperator?.full_name}
       />
 
+      {listSource === 'cache' && (
+        <div className="mb-4 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+          {t.fornitori.rekkiCachedListBanner}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {fornitori.map((f) => {
+        {rows.map((f) => {
           const display = fornitoreDisplayLabel(f)
           const hasDisplayAlias = !!(f.display_name?.trim())
+          const rekkiMapped = !!(f.rekki_supplier_id?.trim())
           const initials = display
             .split(/\s+/)
             .slice(0, 2)
@@ -127,9 +229,16 @@ export default function FornitoriCardsGrid({ fornitori }: { fornitori: Fornitore
                       {initials}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-slate-100 truncate text-sm leading-tight group-hover:text-cyan-300 transition-colors">
-                        {display}
-                      </p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="min-w-0 flex-1 truncate font-bold text-sm leading-tight text-slate-100 transition-colors group-hover:text-cyan-300">
+                          {display}
+                        </p>
+                        {rekkiMapped && (
+                          <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-200">
+                            {t.fornitori.rekkiConnectedBadge}
+                          </span>
+                        )}
+                      </div>
                       {hasDisplayAlias && (
                         <p className="mt-0.5 truncate text-[11px] text-slate-500">{f.nome}</p>
                       )}
@@ -149,9 +258,16 @@ export default function FornitoriCardsGrid({ fornitori }: { fornitori: Fornitore
                       {initials}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-bold text-slate-100 truncate text-sm leading-tight group-hover:text-cyan-300 transition-colors">
-                        {display}
-                      </p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="min-w-0 flex-1 truncate font-bold text-sm leading-tight text-slate-100 transition-colors group-hover:text-cyan-300">
+                          {display}
+                        </p>
+                        {rekkiMapped && (
+                          <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-200">
+                            {t.fornitori.rekkiConnectedBadge}
+                          </span>
+                        )}
+                      </div>
                       {hasDisplayAlias && (
                         <p className="mt-0.5 truncate text-[11px] text-slate-500">{f.nome}</p>
                       )}

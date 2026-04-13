@@ -1,4 +1,6 @@
 import OpenAI from 'openai'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { parseAnyAmount } from '@/lib/ocr-amount'
 
 /* ─────────────────────────────────────────────────────────────
    Public interface — backward-compatible.
@@ -7,11 +9,24 @@ import OpenAI from 'openai'
 export interface OcrResult {
   ragione_sociale:    string | null
   p_iva:              string | null
+  /** Supplier address (street, CAP, city) when visible on document */
+  indirizzo:          string | null
   /** Document date normalised to YYYY-MM-DD */
   data_fattura:       string | null
   numero_fattura:     string | null
   /** Total amount as a pure float (no currency symbols) */
   totale_iva_inclusa: number | null
+
+  /**
+   * Logistics / operational notes taken from the email body (missing goods, time changes, etc.),
+   * not duplicated from the formal document when an attachment was parsed.
+   */
+  note_corpo_mail?: string | null
+  /**
+   * When parsing email text only: false if the message has nothing worth archiving.
+   * Omitted or true when a document attachment was analysed.
+   */
+  estrazione_utile?: boolean | null
 
   /**
    * The original raw amount string as returned by GPT before numeric parsing.
@@ -33,10 +48,38 @@ export interface OcrResult {
 }
 
 export const EMPTY_OCR: OcrResult = {
-  ragione_sociale: null, p_iva: null, data_fattura: null,
+  ragione_sociale: null, p_iva: null, indirizzo: null, data_fattura: null,
   numero_fattura: null, totale_iva_inclusa: null,
+  note_corpo_mail: null, estrazione_utile: undefined,
   importo_raw: null, formato_importo: null,
   nome: null, piva: null, data: null,
+}
+
+/** Lanciata quando `OPENAI_API_KEY` non è configurata (visibile in log / catch API). */
+export class OcrInvoiceConfigurationError extends Error {
+  override name = 'OcrInvoiceConfigurationError'
+  constructor(message = 'OPENAI_API_KEY non configurata: impossibile eseguire l\'estrazione OCR.') {
+    super(message)
+  }
+}
+
+export type OcrInvoiceLogContext = {
+  supabase: SupabaseClient
+  mittente: string
+  oggetto_mail: string | null
+  file_name?: string | null
+  fornitore_id?: string | null
+  file_url?: string | null
+  sede_id?: string | null
+  /** Idempotenza scan email (log_sincronizzazione.scan_attachment_fingerprint) */
+  scanAttachmentFingerprint?: string | null
+  imapUid?: number | null
+}
+
+export type OcrInvoiceOptions = {
+  logContext?: OcrInvoiceLogContext
+  /** Plain-text email body: fiscal hints + note_corpo_mail extraction */
+  emailBodyText?: string | null
 }
 
 /** @deprecated Use OcrResult */
@@ -57,46 +100,88 @@ function detectFormatoImporto(raw: string): 'dot' | 'comma' | 'plain' {
   return 'plain'
 }
 
-/**
- * Parse a raw amount string to a float, regardless of locale conventions.
- * Handles: "1.234,56" → 1234.56, "1,234.56" → 1234.56, "1234.56" → 1234.56
- */
-export function parseAnyAmount(s: string): number | null {
-  if (!s) return null
-  const cleaned = s.replace(/[£€$¥₹CHFkr\s]/g, '').trim()
-  if (!cleaned) return null
+/** @deprecated Import from `@/lib/ocr-amount` (client-safe). */
+export { parseAnyAmount } from '@/lib/ocr-amount'
 
-  // Determine decimal separator
-  const lastComma = cleaned.lastIndexOf(',')
-  const lastDot   = cleaned.lastIndexOf('.')
-  let normalized: string
+const VISION_MODEL = 'gpt-4o' as const
+const TEXT_MODEL = 'gpt-4o-mini' as const
 
-  if (lastComma > lastDot) {
-    // Comma is decimal separator: "1.234,56" → "1234.56"
-    normalized = cleaned.replace(/\./g, '').replace(',', '.')
-  } else if (lastDot > lastComma) {
-    // Dot is decimal separator: "1,234.56" → "1234.56"
-    normalized = cleaned.replace(/,/g, '')
-  } else {
-    // No separator or only one of them
-    normalized = cleaned.replace(/,/g, '')
+const OCR_VISION_CONCURRENCY = Math.min(
+  8,
+  Math.max(1, Number(process.env.OCR_VISION_CONCURRENCY ?? '3') || 3),
+)
+
+function createConcurrencyPool(limit: number) {
+  let active = 0
+  const queue: Array<() => void> = []
+  const pump = () => {
+    while (active < limit && queue.length > 0) {
+      const run = queue.shift()!
+      active++
+      run()
+    }
   }
-
-  const n = parseFloat(normalized)
-  return isNaN(n) ? null : n
+  return function runWithPool<T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      queue.push(() => {
+        fn()
+          .then(resolve, reject)
+          .finally(() => {
+            active--
+            pump()
+          })
+      })
+      pump()
+    })
+  }
 }
+
+const withVisionConcurrency = createConcurrencyPool(OCR_VISION_CONCURRENCY)
+
+
+/** Max chars of email body sent to the model (per request). */
+const EMAIL_BODY_MAX_CHARS = 8000
+
+function truncateEmailBody(text: string): string {
+  const t = text.trim()
+  if (t.length <= EMAIL_BODY_MAX_CHARS) return t
+  return `${t.slice(0, EMAIL_BODY_MAX_CHARS)}\n…[truncated]`
+}
+
+/** Appended to user messages when an email body accompanies a document. */
+function buildEmailBodyInstructionBlock(emailBodyText: string): string {
+  return [
+    '',
+    '--- EMAIL MESSAGE BODY (plain text; may contain totals, dates, product names, delivery notes) ---',
+    truncateEmailBody(emailBodyText),
+    '--- END EMAIL BODY ---',
+    '',
+    'If the attachment is missing, unreadable, or lacks fiscal fields, extract supplier name (ragione_sociale), gross total (totale), and document date (data) from the EMAIL BODY above — including order confirmations, Rekki-style lines, and plain-text invoices.',
+    'When BOTH attachment and body are present: prefer the formal document for ragione_sociale, p_iva, indirizzo, data_fattura, numero_fattura, totale_iva_inclusa; use the body to fill gaps only where the document does not show the value.',
+  ].join('\n')
+}
+
+type PromptMode = 'with_attachment' | 'email_body_only'
 
 /* ─────────────────────────────────────────────────────────────
    OCR system prompt — universal, all 5 languages
 ───────────────────────────────────────────────────────────── */
-function buildSystemPrompt(languageHint?: string): string {
+function buildSystemPrompt(languageHint?: string, mode: PromptMode = 'with_attachment'): string {
   const hint = languageHint
     ? `\nThe document is likely in ${languageHint.toUpperCase()}. Prioritise parsing conventions for that language.`
     : ''
 
-  return `You are a universal fiscal document parser that handles invoices, delivery notes, and commercial documents in any language.${hint}
+  const modeIntro =
+    mode === 'email_body_only'
+      ? `You are parsing the PLAIN TEXT of an email message (there is NO PDF or image). Suppliers often write totals, dates, DDT numbers, or product lists directly in the email. Extract every fiscal or delivery-commercial datapoint you can find. The app may create a synthetic queue document tagged "[DA TESTO EMAIL]" from your extraction — be precise.${hint}\n\n`
+      : `You are a universal fiscal document parser that handles invoices, delivery notes, and commercial documents in any language.${hint}\n\n`
 
-Supported document types (all treated equivalently):
+  const estrazioneRule =
+    mode === 'email_body_only'
+      ? `- estrazione_utile: set false only for pure pleasantries / unrelated content with no totals, dates, references, VAT, or delivery information. Otherwise true.\n`
+      : `- estrazione_utile: set true if useful data came from the attachment and/or the email body; false only if nothing business-relevant was found.\n`
+
+  return `${modeIntro}Supported document types (all treated equivalently):
 - Invoice (EN) = Fattura (IT) = Factura (ES) = Facture (FR) = Rechnung (DE)
 - Delivery note (EN) = Bolla/DDT (IT) = Albarán (ES) = Bon de livraison (FR) = Lieferschein (DE)
 - Credit note (EN) = Nota credito (IT) = Nota de crédito (ES) = Avoir (FR) = Gutschrift (DE)
@@ -105,33 +190,84 @@ Return ONLY valid JSON — no markdown, no explanation:
 {
   "ragione_sociale": "The party ISSUING the document (supplier/seller), not the recipient — or null",
   "p_iva": "Supplier VAT/tax number digits only, no country prefix — or null",
+  "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
-  "numero_fattura": "Document/invoice reference number — or null",
-  "totale_iva_inclusa": "The gross total amount as printed on the document — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format"
+  "numero_fattura": "Document/invoice/delivery reference number — or null",
+  "totale_iva_inclusa": "The gross total amount — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format",
+  "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",
+  "estrazione_utile": true
 }
 
 Rules:
 - ragione_sociale: look for "Vendor", "Supplier", "Fornitore", "Mittente", "Absender", "Fournisseur", "Proveedor" — the SELLER, not the buyer.
 - p_iva: accept VAT No., P.IVA, NIF/CIF, N° TVA, USt-IdNr., SIRET — strip all non-digit characters.
+- indirizzo: only the supplier/seller address, not the customer.
 - totale_iva_inclusa: return the raw amount string EXACTLY as printed (including any currency symbol and separators). Do NOT convert to a number.
+${estrazioneRule}- note_corpo_mail: never copy long generic email signatures or legal disclaimers; keep it concise.
 - If a field is absent, use null.`
 }
 
+/** Heuristic: should we create a synthetic documenti_da_processare row from email text only? */
+export function ocrBodyOnlyWorthInserting(ocr: OcrResult): boolean {
+  if (ocr.estrazione_utile === false) return false
+  const pivaOk = !!(ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7)
+  const noteOk = !!(ocr.note_corpo_mail && ocr.note_corpo_mail.trim().length >= 20)
+  return !!(
+    ocr.totale_iva_inclusa != null ||
+    (ocr.data_fattura && String(ocr.data_fattura).trim()) ||
+    ocr.numero_fattura?.trim() ||
+    pivaOk ||
+    ocr.ragione_sociale?.trim() ||
+    noteOk
+  )
+}
+
+/** True se l'estrazione da allegato (o da un primo passaggio) non ha prodotto dati utili. */
+export function ocrExtractedNothingUseful(ocr: OcrResult): boolean {
+  return !ocrBodyOnlyWorthInserting(ocr)
+}
+
+type ParseOcrOutcome =
+  | { ok: true; result: OcrResult }
+  | { ok: false; result: OcrResult; reason: string; rawPreview: string }
+
 /* ─────────────────────────────────────────────────────────────
-   Robust JSON parsing with format-aware amount handling
+   Robust JSON parsing — outcome + optional DB log on failure
 ───────────────────────────────────────────────────────────── */
-function parseOcrJson(raw: string): OcrResult {
+function parseOcrJson(raw: string): ParseOcrOutcome {
+  const rawPreview = (raw ?? '').slice(0, 2000)
+  if (!raw?.trim()) {
+    return { ok: false, result: EMPTY_OCR, reason: 'Risposta modello vuota', rawPreview: '' }
+  }
   try {
     const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
     const match = cleaned.match(/\{[\s\S]*\}/)
-    if (!match) return EMPTY_OCR
+    if (!match) {
+      return {
+        ok: false,
+        result: EMPTY_OCR,
+        reason: 'Nessun oggetto JSON nella risposta del modello',
+        rawPreview,
+      }
+    }
 
     const parsed = JSON.parse(match[0])
 
     const ragione_sociale = parsed.ragione_sociale ?? null
     const p_iva           = parsed.p_iva ? String(parsed.p_iva).replace(/\D/g, '') || null : null
+    const indirizzo       = typeof parsed.indirizzo === 'string' && parsed.indirizzo.trim()
+      ? String(parsed.indirizzo).trim()
+      : null
     const data_fattura    = parsed.data_fattura ?? null
     const numero_fattura  = parsed.numero_fattura ? String(parsed.numero_fattura) : null
+
+    const noteRaw = parsed.note_corpo_mail
+    const note_corpo_mail =
+      typeof noteRaw === 'string' && noteRaw.trim() ? noteRaw.trim() : null
+
+    let estrazione_utile: boolean | null | undefined
+    if (typeof parsed.estrazione_utile === 'boolean') estrazione_utile = parsed.estrazione_utile
+    else estrazione_utile = undefined
 
     // totale_iva_inclusa may now be a raw string or a number
     const rawTotale    = parsed.totale_iva_inclusa
@@ -142,13 +278,58 @@ function parseOcrJson(raw: string): OcrResult {
       : importo_raw ? parseAnyAmount(importo_raw) : null
 
     return {
-      ragione_sociale, p_iva, data_fattura, numero_fattura,
-      totale_iva_inclusa, importo_raw, formato_importo,
-      nome: ragione_sociale, piva: p_iva, data: data_fattura,
+      ok: true,
+      result: {
+        ragione_sociale, p_iva, indirizzo, data_fattura, numero_fattura,
+        totale_iva_inclusa, importo_raw, formato_importo,
+        note_corpo_mail, estrazione_utile,
+        nome: ragione_sociale, piva: p_iva, data: data_fattura,
+      },
     }
-  } catch {
-    return EMPTY_OCR
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'errore sconosciuto'
+    return {
+      ok: false,
+      result: EMPTY_OCR,
+      reason: `JSON non valido: ${msg}`,
+      rawPreview,
+    }
   }
+}
+
+async function finalizeParseOutcome(
+  outcome: ParseOcrOutcome,
+  logContext: OcrInvoiceLogContext | undefined,
+): Promise<OcrResult> {
+  if (outcome.ok) return outcome.result
+
+  const detail =
+    `[OCR parsing] ${outcome.reason}` +
+    (outcome.rawPreview ? ` | anteprima risposta: ${outcome.rawPreview.slice(0, 800)}` : '') +
+    (logContext?.file_name ? ` | file: ${logContext.file_name}` : '')
+
+  console.error(`[OCR] ${detail}`)
+
+  if (logContext) {
+    try {
+      await logContext.supabase.from('log_sincronizzazione').insert([{
+        mittente:         logContext.mittente || 'sconosciuto',
+        oggetto_mail:     logContext.oggetto_mail,
+        stato:            'bolla_non_trovata',
+        errore_dettaglio: detail,
+        fornitore_id:     logContext.fornitore_id ?? null,
+        file_url:         logContext.file_url ?? null,
+        sede_id:          logContext.sede_id ?? null,
+        allegato_nome:    logContext.file_name ?? null,
+        imap_uid:         logContext.imapUid ?? null,
+        scan_attachment_fingerprint: logContext.scanAttachmentFingerprint ?? null,
+      }])
+    } catch (logErr) {
+      console.error('[OCR] Scrittura log_sincronizzazione fallita:', logErr)
+    }
+  }
+
+  return outcome.result
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -166,50 +347,120 @@ async function extractPdfText(buffer: Buffer): Promise<string | null> {
   }
 }
 
+/** PDF scannerizzato: stesso approccio di ocr-statement (Files API + vision). */
+async function ocrInvoicePdfAsFile(
+  openai: OpenAI,
+  buf: Buffer,
+  systemPrompt: string,
+  logContext: OcrInvoiceLogContext | undefined,
+  emailBodyText?: string | null,
+): Promise<OcrResult> {
+  return withVisionConcurrency(async () => {
+    const textPrompt =
+      systemPrompt +
+      (emailBodyText?.trim() ? `\n${buildEmailBodyInstructionBlock(emailBodyText)}` : '')
+
+    const { tryRasterizePdfFirstPageForVision } = await import('@/lib/ocr-invoice-vision-prepare')
+    const raster = await tryRasterizePdfFirstPageForVision(buf)
+    if (raster) {
+      try {
+        const base64 = raster.toString('base64')
+        const imageUrl = `data:image/jpeg;base64,${base64}`
+        const response = await openai.chat.completions.create({
+          model: VISION_MODEL,
+          max_tokens: 550,
+          temperature: 0,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
+              { type: 'text', text: textPrompt },
+            ],
+          }],
+        })
+        const raw = response.choices[0]?.message?.content ?? ''
+        const outcome = parseOcrJson(raw)
+        return finalizeParseOutcome(outcome, logContext)
+      } catch (err) {
+        console.error('[OCR] Vision su PDF rasterizzato fallita, fallback Files API:', err)
+      }
+    }
+
+    try {
+      const file = new File([new Uint8Array(buf)], 'document.pdf', { type: 'application/pdf' })
+      const uploaded = await openai.files.create({ file, purpose: 'user_data' })
+      const content = [
+        { type: 'file' as const, file: { file_id: uploaded.id } },
+        { type: 'text' as const, text: textPrompt },
+      ]
+      const response = await openai.chat.completions.create({
+        model: VISION_MODEL,
+        max_tokens: 500,
+        temperature: 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        messages: [{ role: 'user', content: content as any }],
+      })
+      const raw = response.choices[0]?.message?.content ?? ''
+      const outcome = parseOcrJson(raw)
+      openai.files.delete(uploaded.id).catch(() => {})
+      return finalizeParseOutcome(outcome, logContext)
+    } catch (err) {
+      console.error('[OCR] Errore Files API / vision su PDF:', err)
+      return EMPTY_OCR
+    }
+  })
+}
+
 /* ─────────────────────────────────────────────────────────────
    Main OCR function
-   - PDF  → extract text + send to GPT-4o-mini (text mode)
-   - Image → vision (gpt-4o-mini)
-   - languageHint: ISO 639-1 code of the supplier's language (optional)
+   - PDF con testo → GPT testo (mini)
+   - PDF solo immagine → Files API + gpt-4o
+   - Immagine → vision gpt-4o
 ───────────────────────────────────────────────────────────── */
 export async function ocrInvoice(
   buffer: Buffer | Uint8Array,
   contentType: string,
   languageHint?: string,
+  options?: OcrInvoiceOptions,
 ): Promise<OcrResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('[OCR] OPENAI_API_KEY not configured — skipping OCR')
-    return EMPTY_OCR
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    const err = new OcrInvoiceConfigurationError()
+    console.error(`[OCR] ${err.message}`)
+    throw err
   }
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const buf = Buffer.from(buffer)
-  const SYSTEM_PROMPT = buildSystemPrompt(languageHint)
+  const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'with_attachment')
+  const logContext = options?.logContext
+  const emailBody = options?.emailBodyText
 
   if (contentType === 'application/pdf') {
     const text = await extractPdfText(buf)
-    if (!text) {
-      console.warn('[OCR] PDF has no extractable text — skipping OCR')
-      return EMPTY_OCR
+    if (text) {
+      const snippet = text.slice(0, 4000)
+      let userMsg = `Document text (extracted from PDF):\n${snippet}`
+      if (emailBody?.trim()) userMsg += `\n\n${buildEmailBodyInstructionBlock(emailBody)}`
+      try {
+        const response = await openai.chat.completions.create({
+          model: TEXT_MODEL,
+          max_tokens: 400,
+          temperature: 0,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user',   content: userMsg },
+          ],
+        })
+        const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
+        return finalizeParseOutcome(outcome, logContext)
+      } catch (err) {
+        console.error('[OCR] GPT error on PDF testo:', err)
+        return EMPTY_OCR
+      }
     }
 
-    const snippet = text.slice(0, 4000)
-    try {
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 300,
-        temperature: 0,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user',   content: snippet },
-        ],
-      })
-      const result = parseOcrJson(response.choices[0]?.message?.content ?? '')
-      return result
-    } catch (err) {
-      console.error('[OCR] GPT error on PDF:', err)
-      return EMPTY_OCR
-    }
+    console.warn('[OCR] PDF senza testo estraibile — fallback vision (gpt-4o + Files API)')
+    return ocrInvoicePdfAsFile(openai, buf, SYSTEM_PROMPT, logContext, emailBody)
   }
 
   const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -218,26 +469,74 @@ export async function ocrInvoice(
     return EMPTY_OCR
   }
 
-  try {
-    const base64   = buf.toString('base64')
-    const imageUrl = `data:${contentType};base64,${base64}`
+  return withVisionConcurrency(async () => {
+    try {
+      const { prepareImageBufferForVision } = await import('@/lib/ocr-invoice-vision-prepare')
+      const { buffer: visionBuf, contentType: visionMime } = await prepareImageBufferForVision(buf, contentType)
+      const base64 = visionBuf.toString('base64')
+      const imageUrl = `data:${visionMime};base64,${base64}`
 
+      const visionText =
+        SYSTEM_PROMPT +
+        (emailBody?.trim() ? `\n${buildEmailBodyInstructionBlock(emailBody)}` : '')
+
+      const response = await openai.chat.completions.create({
+        model: VISION_MODEL,
+        max_tokens: 550,
+        temperature: 0,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
+            { type: 'text', text: visionText },
+          ],
+        }],
+      })
+      const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
+      return finalizeParseOutcome(outcome, logContext)
+    } catch (err) {
+      console.error('[OCR] GPT error on image:', err)
+      return EMPTY_OCR
+    }
+  })
+}
+
+/**
+ * Parse fiscal / delivery-commercial fields from plain email text (no attachment).
+ * Use {@link ocrBodyOnlyWorthInserting} before inserting a synthetic queue row.
+ */
+export async function ocrInvoiceFromEmailBody(
+  emailBody: string,
+  languageHint?: string,
+  options?: OcrInvoiceOptions,
+): Promise<OcrResult> {
+  if (!process.env.OPENAI_API_KEY?.trim()) {
+    const err = new OcrInvoiceConfigurationError()
+    console.error(`[OCR] ${err.message}`)
+    throw err
+  }
+
+  const trimmed = emailBody?.trim()
+  if (!trimmed) return { ...EMPTY_OCR, estrazione_utile: false }
+
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'email_body_only')
+  const logContext = options?.logContext
+
+  try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 300,
+      model: TEXT_MODEL,
+      max_tokens: 450,
       temperature: 0,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
-          { type: 'text', text: SYSTEM_PROMPT },
-        ],
-      }],
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: `Email message to parse:\n\n${truncateEmailBody(trimmed)}` },
+      ],
     })
-    const result = parseOcrJson(response.choices[0]?.message?.content ?? '')
-    return result
+    const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
+    return finalizeParseOutcome(outcome, logContext)
   } catch (err) {
-    console.error('[OCR] GPT error on image:', err)
+    console.error('[OCR] GPT error on email-body-only parse:', err)
     return EMPTY_OCR
   }
 }

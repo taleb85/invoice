@@ -2,8 +2,73 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useId } from 'react'
+import { useRouter } from 'next/navigation'
 import { CURRENCIES, TIMEZONES } from '@/lib/translations'
 import { useLocale } from '@/lib/locale-context'
+import { useMe } from '@/lib/me-context'
+import { useActiveOperator } from '@/lib/active-operator-context'
+import { createClient } from '@/utils/supabase/client'
+
+function ProfileMobileHub() {
+  const { me } = useMe()
+  const { openSwitchModal } = useActiveOperator()
+  const router = useRouter()
+  const supabase = createClient()
+  const { t } = useLocale()
+
+  const showChangeSede = (me?.all_sedi?.length ?? 0) > 1 && me?.is_admin
+
+  const rowCls =
+    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-800/40 px-3 py-3 text-sm font-semibold text-slate-100 backdrop-blur-sm transition-colors hover:bg-slate-800/70 active:scale-[0.99]'
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
+  return (
+    <div className="mb-4 rounded-2xl border border-white/10 bg-slate-900/50 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+      <p className="mb-2 px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.impostazioni.accountSection}</p>
+      <div className="flex flex-col gap-2">
+        {showChangeSede && (
+          <Link href="/sedi" className={rowCls}>
+            <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+              />
+            </svg>
+            {t.impostazioni.changeSede}
+          </Link>
+        )}
+        <button type="button" onClick={() => openSwitchModal()} className={rowCls}>
+          <svg className="h-4 w-4 shrink-0 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          {t.ui.changeOperator}
+        </button>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className={`${rowCls} border-red-500/25 bg-red-950/20 text-red-200 hover:bg-red-950/40`}
+        >
+          <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          {t.nav.esci}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function ImpostazioniPage() {
   const { locale, t, currency, setCurrency, timezone, setTimezone } = useLocale()
@@ -163,6 +228,7 @@ export default function ImpostazioniPage() {
             </svg>
           </Link>
         </div>
+        <ProfileMobileHub />
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <div className="space-y-5 p-5">

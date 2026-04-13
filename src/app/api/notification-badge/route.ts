@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const profile = await getProfile()
   const isAdmin = profile?.role === 'admin'
 
-  const logErrors24h = await countSyncLogErrors24h(supabase)
+  const logErrors24h = isAdmin ? await countSyncLogErrors24h(supabase) : 0
 
   let operatorPendingDocs = 0
   if (!isAdmin) {
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     isAdmin,
     adminLogErrors24h: logErrors24h,
     operatorPendingDocs,
-    operatorLogErrors24h: isAdmin ? 0 : logErrors24h,
+    operatorLogErrors24h: 0,
   }
   return NextResponse.json(payload)
 }

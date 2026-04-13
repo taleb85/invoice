@@ -19,6 +19,7 @@ export function AdminSelectSedeButton({
       className={className}
       onClick={() => {
         document.cookie = `admin-sede-id=${sedeId}; path=/; SameSite=Strict`
+        router.push('/')
         router.refresh()
       }}
     >

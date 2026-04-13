@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useT } from '@/lib/use-t'
 import { useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
+import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
 
 interface Props {
   /** Se true mostra sempre il testo (non solo su desktop) */
@@ -22,6 +23,7 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
   const t = useT()
   const router = useRouter()
   const { me } = useMe()
+  const emailSync = useEmailSyncProgressOptional()
 
   // Populate fallback sede_id from shared context — no extra /api/me fetch
   useEffect(() => {
@@ -37,30 +39,34 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
       const payload = effectiveSedeId
         ? {
             user_sede_id: effectiveSedeId,
-            // filter_sede_id tells the API to restrict the IMAP scan to this branch only
             filter_sede_id: propSedeId ?? undefined,
           }
-        : undefined
-      const body = payload ? JSON.stringify(payload) : undefined
-      const res = await fetch('/api/scan-emails', {
-        method: 'POST',
-        headers: body ? { 'Content-Type': 'application/json' } : undefined,
-        body,
-      })
-      const json = await res.json()
+        : {}
 
-      if (!res.ok) {
-        setToast({ type: 'error', text: json.error ?? t.ui.syncError })
+      if (emailSync) {
+        await emailSync.runEmailSync(payload)
       } else {
-        const tipo = json.avvisi?.length ? 'warn' : 'ok'
-        setToast({ type: tipo, text: json.messaggio ?? t.ui.syncSuccess })
-        router.refresh()
+        const body = Object.keys(payload).length ? JSON.stringify(payload) : undefined
+        const res = await fetch('/api/scan-emails', {
+          method: 'POST',
+          headers: body ? { 'Content-Type': 'application/json' } : undefined,
+          body,
+        })
+        const json = await res.json()
+
+        if (!res.ok) {
+          setToast({ type: 'error', text: json.error ?? t.ui.syncError })
+        } else {
+          const tipo = json.avvisi?.length ? 'warn' : 'ok'
+          setToast({ type: tipo, text: json.messaggio ?? t.ui.syncSuccess })
+          router.refresh()
+        }
       }
     } catch {
       setToast({ type: 'error', text: t.ui.networkError })
     } finally {
       setLoading(false)
-      setTimeout(() => setToast(null), 5000)
+      if (!emailSync) setTimeout(() => setToast(null), 5000)
     }
   }
 
@@ -73,7 +79,7 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
     <div className={`flex flex-col gap-1.5 ${alwaysShowLabel ? 'min-w-0 shrink-0' : 'items-end'}`}>
       <button
         onClick={handleClick}
-        disabled={loading}
+        disabled={loading || emailSync?.progress.active}
         className={`${btnSize} rounded-lg bg-cyan-500 font-semibold text-xs text-white transition-colors hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 whitespace-nowrap touch-manipulation`}
       >
         {loading ? (

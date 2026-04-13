@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 
 // States that can be retried (any error state, regardless of which version created the log)
 const RETRYABLE_STATES = ['bolla_non_trovata', 'fornitore_non_trovato'] as const
@@ -11,6 +11,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autenticato.' }, { status: 401 })
+
+  const prof = await getProfile()
+  if (prof?.role !== 'admin') {
+    return NextResponse.json({ error: 'Solo gli amministratori possono riprovare i log di sincronizzazione.' }, { status: 403 })
+  }
 
   // 1. Fetch the log entry
   const service = createServiceClient()
@@ -39,10 +44,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     )
   }
 
-  // 2. Resolve sede_id from the fornitore if one is linked
-  //    Falls back to null — documenti_da_processare accepts a nullable sede_id
-  let sedeId: string | null = null
-  if (log.fornitore_id) {
+  // 2. sede_id: dal log (IMAP) oppure dal fornitore
+  let sedeId: string | null = (log as { sede_id?: string | null }).sede_id ?? null
+  if (!sedeId && log.fornitore_id) {
     const { data: fornitore } = await service
       .from('fornitori')
       .select('sede_id')

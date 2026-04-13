@@ -21,7 +21,7 @@ export async function createClient() {
             )
           } catch {
             // In Server Components setAll non è disponibile.
-            // Il proxy aggiorna i cookie di sessione.
+            // Il middleware aggiorna i cookie di sessione.
           }
         },
       },

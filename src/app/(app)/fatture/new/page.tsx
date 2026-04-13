@@ -33,6 +33,7 @@ function NuovaFatturaForm() {
 
   const bollaIdParam    = searchParams.get('bolla_id') ?? ''
   const fornitoreIdParam = searchParams.get('fornitore_id') ?? ''
+  const dataParam       = searchParams.get('data') ?? ''
 
   const [data, setData] = useState(new Date().toISOString().split('T')[0])
   const [numeroFattura, setNumeroFattura] = useState('')
@@ -73,6 +74,13 @@ function NuovaFatturaForm() {
   const importoFinale = bolleSelezionate.size > 0 && tutteConImporto
     ? importoCalcolato
     : importoManuale ? parseFloat(importoManuale) : null
+
+  useEffect(() => {
+    if (dataParam && /^\d{4}-\d{2}-\d{2}$/.test(dataParam)) {
+      setData(dataParam)
+      setDateFromOcr(true)
+    }
+  }, [dataParam])
 
   // Carica bolle aperte per il fornitore
   useEffect(() => {

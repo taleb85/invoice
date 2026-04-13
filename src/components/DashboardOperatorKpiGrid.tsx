@@ -8,8 +8,8 @@ const skeletonAccents = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#14b8a6', 
 
 export function DashboardOperatorKpiSkeleton() {
   return (
-    <div className="mb-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
-      {[0, 1, 2, 3, 4, 5].map((i) => (
+    <div className="mb-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
         <div
           key={i}
           className="app-card animate-pulse overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/45 p-4 backdrop-blur-md sm:p-5"
@@ -82,6 +82,25 @@ export default function DashboardOperatorKpiGrid({
             strokeLinejoin="round"
             strokeWidth={2}
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+      ),
+    },
+    {
+      href: '/fornitori',
+      label: t.nav.fornitori,
+      value: k.fornitoriCount,
+      sub: t.dashboard.kpiFornitoriSub,
+      subClass: 'text-slate-400',
+      borderClass: 'border-fuchsia-500/25',
+      glowRgb: '217,70,239',
+      icon: (
+        <svg className="h-5 w-5 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
           />
         </svg>
       ),
@@ -174,10 +193,10 @@ export default function DashboardOperatorKpiGrid({
   ]
 
   return (
-    <div className="mb-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
+    <div className="mb-10 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
       {items.map((item) => (
         <Link
-          key={item.label}
+          key={`${item.href}-${item.label}`}
           href={item.href}
           className={`app-card group overflow-hidden rounded-xl border ${item.borderClass} bg-slate-900/45 p-4 shadow-black/20 backdrop-blur-md transition-all hover:border-opacity-40 hover:shadow-lg active:scale-[0.99] sm:p-5`}
           style={{

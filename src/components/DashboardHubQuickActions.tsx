@@ -106,7 +106,7 @@ export default function DashboardHubQuickActions() {
           <svg className="h-7 w-7 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="line-clamp-2 [overflow-wrap:anywhere]">{t.nav.nuovaBolla}</span>
+          <span className="line-clamp-2 [overflow-wrap:anywhere]">{t.bolle.scannerTitle}</span>
         </Link>
         {!isAdminUser ? (
           <button

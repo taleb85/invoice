@@ -12,6 +12,9 @@ import { getLocale } from '@/lib/localization'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
 import { segmentParam } from '@/lib/segment-param'
+import { useEmailSyncProgress } from '@/components/EmailSyncProgressProvider'
+import { useMe } from '@/lib/me-context'
+import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'documenti' | 'verifica'
 
@@ -36,6 +39,8 @@ interface Fornitore {
   paese?: string | null
   note?: string | null
   contatto_nome?: string | null
+  rekki_supplier_id?: string | null
+  rekki_link?: string | null
 }
 
 interface Bolla {
@@ -343,6 +348,7 @@ function DashboardTab({
   periodStatsLoading,
   filterYear,
   filterMonth,
+  onFornitoreReload,
 }: {
   fornitoreId: string
   fornitore: Fornitore
@@ -350,6 +356,7 @@ function DashboardTab({
   periodStatsLoading: boolean
   filterYear: number
   filterMonth: number
+  onFornitoreReload?: () => void
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -784,6 +791,14 @@ function DashboardTab({
           </div>
         </div>
       </div>
+
+      <RekkiSupplierIntegration
+        fornitoreId={fornitoreId}
+        piva={fornitore.piva}
+        initialRekkiId={fornitore.rekki_supplier_id}
+        initialRekkiLink={fornitore.rekki_link}
+        onSaved={onFornitoreReload}
+      />
 
     </div>
   )
@@ -1975,6 +1990,7 @@ function FornitoreDetailClient({
   pendingCount,
   countryCode,
   currency,
+  reloadFornitore,
 }: {
   fornitore: Fornitore
   bolleCount: number
@@ -1982,6 +1998,7 @@ function FornitoreDetailClient({
   pendingCount: number
   countryCode: string
   currency?: string
+  reloadFornitore?: () => void
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -2018,6 +2035,15 @@ function FornitoreDetailClient({
   const t = useT()
   const { locale, timezone } = useLocale()
   const loc = getLocale(countryCode)
+  const { me } = useMe()
+  const { runEmailSync, progress: emailSyncProgress } = useEmailSyncProgress()
+  const supplierSyncDisabled = !fornitore.sede_id || emailSyncProgress.active
+  const syncThisSupplier = () => {
+    void runEmailSync({
+      fornitore_id: fornitore.id,
+      user_sede_id: me?.sede_id ?? fornitore.sede_id ?? undefined,
+    })
+  }
   // ── Shared month/year filter ───────────────────────────────────────
   const now = new Date()
   const [filterYear,  setFilterYear]  = useState(now.getFullYear())
@@ -2064,6 +2090,7 @@ function FornitoreDetailClient({
           periodStatsLoading={periodStatsLoading}
           filterYear={filterYear}
           filterMonth={filterMonth}
+          onFornitoreReload={reloadFornitore}
         />
       )}
       {tab === 'bolle'     && <BolleTab fornitoreId={fornitore.id} year={filterYear} month={filterMonth} />}
@@ -2082,8 +2109,27 @@ function FornitoreDetailClient({
       <div className="md:hidden px-4 pb-6">
         <div className="app-card mb-4 mt-2 overflow-hidden">
           <div className="app-card-bar" aria-hidden />
-          <div className="px-3 py-2.5">
+          <div className="flex flex-col gap-2 px-3 py-2.5">
             <h1 className="text-sm font-semibold leading-snug text-slate-100">{fornitore.nome}</h1>
+            <button
+              type="button"
+              onClick={syncThisSupplier}
+              disabled={supplierSyncDisabled}
+              title={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
+              className="inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-cyan-500/90 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {emailSyncProgress.active ? (
+                <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              )}
+              {t.dashboard.syncEmail}
+            </button>
           </div>
         </div>
 
@@ -2165,6 +2211,25 @@ function FornitoreDetailClient({
 
             {/* Action buttons */}
             <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={syncThisSupplier}
+                disabled={supplierSyncDisabled}
+                title={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
+                className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-2 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {emailSyncProgress.active ? (
+                  <svg className="h-3.5 w-3.5 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                {t.dashboard.syncEmail}
+              </button>
               <Link href={`/bolle/new?fornitore_id=${fornitore.id}`}
                 className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold rounded-lg transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -2306,6 +2371,7 @@ export default function FornitoreDetailPage() {
   return (
     <Suspense fallback={null}>
       <FornitoreDetailClient
+        reloadFornitore={load}
         fornitore={fornitore}
         bolleCount={bolleCount}
         fattureCount={fattureCount}

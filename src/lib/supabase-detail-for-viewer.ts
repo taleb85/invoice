@@ -7,7 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 
 const FATTURA_SELECT = '*, fornitore:fornitori(nome, email, piva), bolla:bolle(id, data, stato)'
-const BOLLA_SELECT = '*, fornitore:fornitori(nome, email, piva)'
+const BOLLA_SELECT = '*, fornitore:fornitori(nome, email, piva, rekki_supplier_id)'
 
 function isAdminProfile(profile: { role?: string } | null): boolean {
   return String(profile?.role ?? '').toLowerCase() === 'admin'

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useRef, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useSedeId } from '@/lib/use-sede'
 import { useT } from '@/lib/use-t'
@@ -14,26 +14,45 @@ interface ExtractedData {
 
 type Step = 'upload' | 'loading' | 'confirm' | 'saving'
 
-export default function ImportFornitore() {
+function ImportFornitoreInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
   const { sedeId } = useSedeId()
   const t = useT()
+  const prefillApplied = useRef(false)
 
   const [step, setStep] = useState<Step>('upload')
   const [preview, setPreview] = useState<string | null>(null)
   const [extracted, setExtracted] = useState<ExtractedData>({ nome: null, piva: null, email: null })
-  const [form, setForm] = useState({ nome: '', piva: '', email: '' })
+  const [form, setForm] = useState({ nome: '', piva: '', email: '', indirizzo: '' })
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (prefillApplied.current) return
+    const n = searchParams.get('prefill_nome')
+    const p = searchParams.get('prefill_piva')
+    const e = searchParams.get('prefill_email')
+    const a = searchParams.get('prefill_indirizzo')
+    if (!n && !p && !e && !a) return
+    prefillApplied.current = true
+    setExtracted({ nome: n, piva: p, email: e })
+    setForm({
+      nome: (n ?? '').trim(),
+      piva: (p ?? '').trim(),
+      email: (e ?? '').trim().toLowerCase(),
+      indirizzo: (a ?? '').trim(),
+    })
+    setStep('confirm')
+  }, [searchParams])
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setError(null)
 
-    // Preview
     if (file.type.startsWith('image/')) {
       setPreview(URL.createObjectURL(file))
     } else {
@@ -61,6 +80,7 @@ export default function ImportFornitore() {
         nome: result.nome ?? '',
         piva: result.piva ?? '',
         email: result.email ?? '',
+        indirizzo: '',
       })
       setStep('confirm')
     } catch {
@@ -75,17 +95,32 @@ export default function ImportFornitore() {
     setStep('saving')
     setError(null)
 
-    const { error: err } = await supabase.from('fornitori').insert([{
-      nome: form.nome.trim(),
-      email: form.email.trim() || null,
-      piva: form.piva.trim() || null,
-      sede_id: sedeId,
-    }])
+    // sede_id: stessa sede per tutti gli utenti Accesso Sede → visibile a tutti (RLS fornitori per sede)
+    const { data: ins, error: err } = await supabase
+      .from('fornitori')
+      .insert([{
+        nome: form.nome.trim(),
+        email: form.email.trim() || null,
+        piva: form.piva.trim() || null,
+        indirizzo: form.indirizzo.trim() || null,
+        sede_id: sedeId,
+      }])
+      .select('id')
+      .single()
 
     if (err) {
       setError(err.message)
       setStep('confirm')
       return
+    }
+
+    const emailNorm = form.email.trim().toLowerCase()
+    if (ins?.id && emailNorm.includes('@')) {
+      await fetch('/api/fornitore-emails/remember', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fornitore_id: ins.id, email: emailNorm }),
+      })
     }
 
     router.push('/fornitori')
@@ -109,7 +144,6 @@ export default function ImportFornitore() {
         </div>
       </div>
 
-      {/* Step: Upload */}
       {(step === 'upload' || step === 'loading') && (
         <div className="bg-slate-900/90 rounded-xl border border-slate-700/50 p-6">
           <input
@@ -180,17 +214,15 @@ export default function ImportFornitore() {
         </div>
       )}
 
-      {/* Step: Confirm */}
       {(step === 'confirm' || step === 'saving') && (
         <div className="space-y-4">
-          {/* Preview documento */}
           {preview && (
             <div className="bg-slate-900/90 rounded-xl border border-slate-700/50 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={preview} alt="Documento" className="w-full max-h-48 object-contain p-2 bg-slate-800/60" />
             </div>
           )}
 
-          {/* Badge campi estratti */}
           <div className="flex gap-2 flex-wrap">
             {extracted.nome && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.nome}</span>}
             {extracted.piva && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.piva}</span>}
@@ -230,13 +262,22 @@ export default function ImportFornitore() {
                 placeholder={t.fornitori.pivaPlaceholder}
               />
             </div>
+            <div>
+              <label className={labelCls}>{t.fornitori.addressLabel}</label>
+              <input
+                className={inputCls}
+                value={form.indirizzo}
+                onChange={(e) => setForm({ ...form, indirizzo: e.target.value })}
+                placeholder={t.fornitori.addressPlaceholder}
+              />
+            </div>
 
             {error && <p className="text-sm text-red-300 bg-red-500/10 px-4 py-2.5 rounded-lg">{error}</p>}
 
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => { setStep('upload'); setPreview(null); if (fileRef.current) fileRef.current.value = '' }}
+                onClick={() => { setStep('upload'); setPreview(null); prefillApplied.current = false; if (fileRef.current) fileRef.current.value = '' }}
                 className="flex-1 py-2.5 text-sm font-medium text-slate-400 border border-slate-600/50 rounded-lg hover:bg-slate-800/60 transition-colors"
               >
                 {t.log.retry}
@@ -253,5 +294,19 @@ export default function ImportFornitore() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ImportFornitorePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center p-8 text-slate-500">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+        </div>
+      }
+    >
+      <ImportFornitoreInner />
+    </Suspense>
   )
 }

@@ -25,7 +25,7 @@ export default function NotificationBell({
 }: Props) {
   const t = useT()
   const { effectiveSedeId } = useManualDeliverySede()
-  const { adminLogErrors24h, operatorPendingDocs, operatorLogErrors24h, badgeCount, badgeVariant } =
+  const { adminLogErrors24h, operatorPendingDocs, badgeCount, badgeVariant } =
     useNotificationCounts({
       isAdmin,
       effectiveSedeId,
@@ -99,34 +99,19 @@ export default function NotificationBell({
           ) : (
             <p className="px-2 py-2 text-sm text-slate-500">{t.nav.noNotifications}</p>
           )
-        ) : operatorPendingDocs > 0 || operatorLogErrors24h > 0 ? (
+        ) : operatorPendingDocs > 0 ? (
           <div className="flex flex-col gap-1 px-2 pt-2">
-            {operatorPendingDocs > 0 ? (
-              <Link
-                href="/archivio"
-                role="menuitem"
-                className="block rounded-lg px-2 py-2 text-sm text-amber-100 transition-colors hover:bg-amber-950/30"
-                onClick={() => setOpen(false)}
-              >
-                <span className="font-medium">{t.archivio.title}</span>
-                <span className="mt-0.5 block text-xs text-amber-200/70">
-                  {operatorPendingDocs > 9 ? '9+' : operatorPendingDocs}
-                </span>
-              </Link>
-            ) : null}
-            {operatorLogErrors24h > 0 ? (
-              <Link
-                href="/log"
-                role="menuitem"
-                className="block rounded-lg px-2 py-2 text-sm text-red-200 transition-colors hover:bg-red-950/40"
-                onClick={() => setOpen(false)}
-              >
-                <span className="font-medium">{t.nav.errorAlert}</span>
-                <span className="mt-0.5 block text-xs text-red-300/80">
-                  {operatorLogErrors24h > 9 ? '9+' : operatorLogErrors24h}
-                </span>
-              </Link>
-            ) : null}
+            <Link
+              href="/archivio"
+              role="menuitem"
+              className="block rounded-lg px-2 py-2 text-sm text-amber-100 transition-colors hover:bg-amber-950/30"
+              onClick={() => setOpen(false)}
+            >
+              <span className="font-medium">{t.archivio.title}</span>
+              <span className="mt-0.5 block text-xs text-amber-200/70">
+                {operatorPendingDocs > 9 ? '9+' : operatorPendingDocs}
+              </span>
+            </Link>
           </div>
         ) : (
           <p className="px-2 py-2 text-sm text-slate-500">{t.nav.noNotifications}</p>

@@ -9,7 +9,11 @@ import { ActiveOperatorProvider } from '@/lib/active-operator-context'
 import { ToastProvider } from '@/lib/toast-context'
 import { localeFromCountryCode, type Locale } from '@/lib/translations'
 import DashboardMobileBottomNav from './DashboardMobileBottomNav'
+import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
+import EmailSyncProgressBar from './EmailSyncProgressBar'
 import { normalizeAppPath, showsMobileBottomBar } from '@/lib/mobile-hub-routes'
+import { NetworkProvider } from '@/lib/network-context'
+import ConnectionStatusDot from '@/components/ConnectionStatusDot'
 
 const SidebarController   = dynamic(() => import('./SidebarController'),    { ssr: false })
 const OperatorSwitchModal = dynamic(() => import('./OperatorSwitchModal'), { ssr: false })
@@ -57,14 +61,18 @@ export default function AppShell({ children, initialLocale }: { children: React.
   return (
     <LocaleProvider initialLocale={initialLocale}>
       <UserProvider>
+        <NetworkProvider>
         <LocaleSyncFromSede />
         <ActiveOperatorProvider>
           <ToastProvider>
-            <AppShellMain>{children}</AppShellMain>
+            <EmailSyncProgressProvider>
+              <AppShellMain>{children}</AppShellMain>
+            </EmailSyncProgressProvider>
             <DashboardMobileBottomNav />
             <OperatorSwitchModal />
           </ToastProvider>
         </ActiveOperatorProvider>
+        </NetworkProvider>
       </UserProvider>
     </LocaleProvider>
   )
@@ -84,6 +92,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           hub ? `${hubBottomPad} md:pb-0` : ''
         }`}
       >
+        <div className="flex shrink-0 items-center justify-end border-b border-slate-800/30 bg-slate-950/40 px-3 py-1.5 backdrop-blur-sm md:sticky md:top-0 md:z-[30]">
+          <ConnectionStatusDot />
+        </div>
+        <EmailSyncProgressBar />
         {children}
       </main>
     </div>

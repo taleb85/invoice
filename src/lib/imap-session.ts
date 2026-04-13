@@ -1,0 +1,116 @@
+import type { ConnectionOptions } from 'tls'
+import { AuthenticationFailure, ImapFlow, type ImapFlowOptions } from 'imapflow'
+
+/** Connessione IMAP: richiesta esplicita 60s (imapflow default 90s). */
+export const IMAP_CONNECTION_TIMEOUT_MS = 60_000
+/** Saluto server: evita chiusure premature su host lenti. */
+export const IMAP_GREETING_TIMEOUT_MS = 30_000
+/** Inattività socket durante FETCH lunghi (server sede spesso lenti). */
+export const IMAP_SOCKET_TIMEOUT_MS = 180_000
+
+export const IMAP_CONNECT_MAX_ATTEMPTS = 3
+
+const RETRY_BASE_DELAY_MS = 1_200
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+export function isRetryableImapError(err: unknown): boolean {
+  if (err instanceof AuthenticationFailure) return false
+  const msg = err instanceof Error ? err.message : String(err)
+  if (/authentication failed|invalid credentials|login failed|AUTHENTICATIONFAILED/i.test(msg)) return false
+  return /unexpected close|connection closed|ECONNRESET|ECONNABORTED|ETIMEDOUT|timeout|socket|ENOTFOUND|EAI_AGAIN/i.test(
+    msg
+  )
+}
+
+export async function safeImapLogout(client: ImapFlow): Promise<void> {
+  try {
+    await client.logout()
+  } catch {
+    try {
+      client.close()
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+export type ImapCredentials = {
+  host: string
+  port: number
+  user: string
+  password: string
+  /** Default true (port 993). Usare false solo per STARTTLS su 143. */
+  secure?: boolean
+  tls?: ConnectionOptions
+}
+
+export function imapFlowOptionsFromCredentials(c: ImapCredentials): ImapFlowOptions {
+  const port = c.port
+  const secure = c.secure ?? port !== 143
+  return {
+    host: c.host,
+    port,
+    secure,
+    auth: { user: c.user, pass: c.password },
+    logger: false,
+    connectionTimeout: IMAP_CONNECTION_TIMEOUT_MS,
+    greetingTimeout: IMAP_GREETING_TIMEOUT_MS,
+    socketTimeout: IMAP_SOCKET_TIMEOUT_MS,
+    tls: c.tls ?? { rejectUnauthorized: false },
+  }
+}
+
+/**
+ * Una sessione IMAP per operazione: connect → work → logout sempre in finally-equivalente.
+ * Riprova su errori transitori (es. "Unexpected close") fino a {@link IMAP_CONNECT_MAX_ATTEMPTS}.
+ */
+export type ImapSessionRetryInfo = {
+  attempt: number
+  maxAttempts: number
+  error: unknown
+}
+
+export type ImapSessionReconnectInfo = {
+  /** Tentativo corrente (2 = seconda connessione, …). */
+  attempt: number
+  maxAttempts: number
+}
+
+export async function withImapSession<T>(
+  creds: ImapCredentials,
+  work: (client: ImapFlow) => Promise<T>,
+  opts?: {
+    onRetry?: (info: ImapSessionRetryInfo) => void | Promise<void>
+    /** Dopo il backoff e prima del nuovo connect: utile per inviare heartbeat allo stream NDJSON. */
+    beforeReconnect?: (info: ImapSessionReconnectInfo) => void | Promise<void>
+  }
+): Promise<T> {
+  const max = IMAP_CONNECT_MAX_ATTEMPTS
+  let lastErr: unknown
+  for (let attempt = 1; attempt <= max; attempt++) {
+    if (attempt > 1) {
+      await opts?.beforeReconnect?.({ attempt, maxAttempts: max })
+    }
+    const client = new ImapFlow(imapFlowOptionsFromCredentials(creds))
+    try {
+      await client.connect()
+      const out = await work(client)
+      await safeImapLogout(client)
+      return out
+    } catch (e) {
+      lastErr = e
+      await safeImapLogout(client)
+      const retry = attempt < max && isRetryableImapError(e)
+      if (retry) {
+        await opts?.onRetry?.({ attempt, maxAttempts: max, error: e })
+        await sleep(RETRY_BASE_DELAY_MS * attempt)
+        continue
+      }
+      throw e
+    }
+  }
+  throw lastErr
+}

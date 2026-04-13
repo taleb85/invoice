@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useSedeId } from '@/lib/use-sede'
+import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 
 const fieldBaseCls =
@@ -11,32 +12,84 @@ const fieldBaseCls =
 const inputCls = `${fieldBaseCls} appearance-none`
 const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80'
 
-export default function NewFornitore() {
+function NewFornitoreForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
-  const { sedeId } = useSedeId()
+  const { sedeId: ctxSede } = useSedeId()
+  const { me } = useMe()
   const t = useT()
+  const prefillSedeParam = searchParams.get('prefill_sede_id')
+  const sedeId =
+    me?.is_admin && prefillSedeParam?.trim() ? prefillSedeParam.trim() : ctxSede
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({ nome: '', display_name: '', email: '', piva: '' })
+  const [form, setForm] = useState({
+    nome: '',
+    display_name: '',
+    email: '',
+    piva: '',
+    indirizzo: '',
+  })
+
+  useEffect(() => {
+    const n = searchParams.get('prefill_nome')
+    const p = searchParams.get('prefill_piva')
+    const e = searchParams.get('prefill_email')
+    const a = searchParams.get('prefill_indirizzo')
+    setForm((prev) => ({
+      ...prev,
+      nome: n?.trim() || prev.nome,
+      piva: p?.trim() || prev.piva,
+      email: e?.trim().toLowerCase() || prev.email,
+      indirizzo: a?.trim() || prev.indirizzo,
+    }))
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
     setError(null)
 
-    const { error: err } = await supabase.from('fornitori').insert([
-      {
-        nome: form.nome,
-        display_name: form.display_name.trim() || null,
-        email: form.email || null,
-        piva: form.piva || null,
-        sede_id: sedeId,
-      },
-    ])
+    const { data: row, error: err } = await supabase
+      .from('fornitori')
+      .insert([
+        {
+          nome: form.nome,
+          display_name: form.display_name.trim() || null,
+          email: form.email || null,
+          piva: form.piva || null,
+          indirizzo: form.indirizzo.trim() || null,
+          sede_id: sedeId,
+        },
+      ])
+      .select('id')
+      .single()
+
+    if (err) {
+      setSaving(false)
+      setError(err.message)
+      return
+    }
+
+    const newId = row?.id
+    const rememberMittente = searchParams.get('remember_mittente')?.trim().toLowerCase()
+    const emailNorm = form.email?.trim().toLowerCase()
+    if (newId && rememberMittente?.includes('@')) {
+      await fetch('/api/fornitore-emails/remember', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fornitore_id: newId, email: rememberMittente }),
+      })
+    } else if (newId && emailNorm?.includes('@')) {
+      await fetch('/api/fornitore-emails/remember', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fornitore_id: newId, email: emailNorm }),
+      })
+    }
 
     setSaving(false)
-    if (err) { setError(err.message); return }
     router.push('/fornitori')
     router.refresh()
   }
@@ -98,6 +151,15 @@ export default function NewFornitore() {
               placeholder={t.fornitori.pivaPlaceholder}
             />
           </div>
+          <div>
+            <label className={labelCls}>{t.fornitori.addressLabel}</label>
+            <input
+              className={inputCls}
+              value={form.indirizzo}
+              onChange={(e) => setForm({ ...form, indirizzo: e.target.value })}
+              placeholder={t.fornitori.addressPlaceholder}
+            />
+          </div>
 
           {error && (
             <p className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-2.5 text-sm text-red-300">
@@ -124,5 +186,19 @@ export default function NewFornitore() {
         </div>
       </form>
     </div>
+  )
+}
+
+export default function NewFornitore() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-slate-500">
+          <div className="size-6 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent" />
+        </div>
+      }
+    >
+      <NewFornitoreForm />
+    </Suspense>
   )
 }

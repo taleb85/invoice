@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
-import Script from "next/script";
 import PWARegister from "@/components/PWARegister";
 import "./globals.css";
 
@@ -54,6 +53,12 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.svg",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "application-name": "FLUXO",
+    "msapplication-TileColor": "#0f172a",
+    "msapplication-TileImage": "/icons/icon-512.png",
+  },
 };
 
 export default function RootLayout({
@@ -63,16 +68,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" className={`${geistSans.variable} h-full antialiased`}>
-      <head>
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="application-name" content="FLUXO" />
-        <meta name="msapplication-TileColor" content="#0f172a" />
-        <meta name="msapplication-TileImage" content="/icons/icon-512.png" />
-      </head>
       <body className="h-full bg-slate-950 text-slate-100 antialiased">
-        <Script
+        {/*
+          Inline bootstrap in the server-rendered body (not next/script in head):
+          React 19 warns that <script> from next/script can misbehave when client-rendered;
+          this runs once before hydration like beforeInteractive.
+        */}
+        <script
           id="fluxo-app-locale-bootstrap"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: APP_LOCALE_BOOTSTRAP }}
         />
         <PWARegister />

@@ -22,6 +22,10 @@ export interface Fornitore {
   display_name?: string | null
   email: string | null
   piva: string | null
+  /** ID fornitore su Rekki (mapping / confronto listino). */
+  rekki_supplier_id?: string | null
+  /** Link profilo / ordine Rekki (opzionale). */
+  rekki_link?: string | null
   created_at: string
 }
 

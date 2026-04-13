@@ -5,7 +5,11 @@ import { Fornitore } from '@/types'
 import FornitoriCardsGrid from '@/components/FornitoriCardsGrid'
 import { getT } from '@/lib/locale-server'
 
-async function getFornitori(): Promise<{ fornitori: Fornitore[]; sedeNome: string | null }> {
+async function getFornitori(): Promise<{
+  fornitori: Fornitore[]
+  sedeNome: string | null
+  sedeScope: string
+}> {
   const supabase  = await createClient()
   const cookieStore = await cookies()
 
@@ -34,11 +38,12 @@ async function getFornitori(): Promise<{ fornitori: Fornitore[]; sedeNome: strin
   if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
 
   const { data } = await q
-  return { fornitori: (data as Fornitore[]) ?? [], sedeNome }
+  const sedeScope = sedeId ?? 'all'
+  return { fornitori: (data as Fornitore[]) ?? [], sedeNome, sedeScope }
 }
 
 export default async function FornitoriPage() {
-  const [{ fornitori, sedeNome }, t] = await Promise.all([getFornitori(), getT()])
+  const [{ fornitori, sedeNome, sedeScope }, t] = await Promise.all([getFornitori(), getT()])
 
   return (
     <div className="p-4 md:p-8">
@@ -83,22 +88,7 @@ export default async function FornitoriPage() {
         </div>
       </div>
 
-      {fornitori.length === 0 ? (
-        <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
-          <div className="px-6 py-16 text-center">
-            <svg className="mx-auto mb-4 h-14 w-14 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <p className="text-sm font-medium text-slate-400">{t.fornitori.noSuppliers}</p>
-            <Link href="/fornitori/new" className="mt-4 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-              {t.fornitori.addFirst}
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <FornitoriCardsGrid fornitori={fornitori} />
-      )}
+      <FornitoriCardsGrid fornitori={fornitori} sedeScope={sedeScope} emptyState={t.fornitori.noSuppliers} addFirstLabel={t.fornitori.addFirst} />
     </div>
   )
 }

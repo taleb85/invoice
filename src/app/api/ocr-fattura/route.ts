@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ocrInvoice } from '@/lib/ocr-invoice'
+import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 
 export async function POST(req: NextRequest) {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 503 })
-  }
-
   try {
     const formData = await req.formData()
     const file = formData.get('file') as File | null
@@ -33,6 +29,9 @@ export async function POST(req: NextRequest) {
       data: result.data,
     })
   } catch (err: unknown) {
+    if (err instanceof OcrInvoiceConfigurationError) {
+      return NextResponse.json({ error: err.message }, { status: 503 })
+    }
     const message = err instanceof Error ? err.message : 'Errore sconosciuto'
     return NextResponse.json({ error: `Errore OCR: ${message}` }, { status: 500 })
   }

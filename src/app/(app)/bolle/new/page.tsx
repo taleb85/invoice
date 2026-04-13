@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Fornitore } from '@/types'
@@ -25,6 +25,19 @@ function ymdTodayInTimezone(tz: string): string {
 
 type OcrStatus = 'idle' | 'scanning' | 'matched' | 'not_found' | 'error'
 
+type ScanIntent = 'auto' | 'bolla' | 'fattura' | 'nuovo_fornitore'
+
+type HubResponse = {
+  intent: string
+  document_kind: 'ddt' | 'fattura' | 'supplier_card' | 'unknown'
+  nome: string | null
+  piva: string | null
+  indirizzo?: string | null
+  data: string | null
+  numero_documento: string | null
+  importo: number | null
+}
+
 function normalizzaNome(s: string) {
   return s.toLowerCase().replace(/\s+/g, ' ').trim()
 }
@@ -32,20 +45,16 @@ function normalizzaNome(s: string) {
 function matchFornitore(fornitori: Fornitore[], nome: string | null, piva: string | null): Fornitore | null {
   if (!fornitori.length) return null
 
-  // 1. Match esatto su P.IVA (più affidabile)
   if (piva) {
     const pivaNorm = piva.replace(/\D/g, '')
     const byPiva = fornitori.find(f => f.piva && f.piva.replace(/\D/g, '') === pivaNorm)
     if (byPiva) return byPiva
   }
 
-  // 2. Match parziale sul nome (case-insensitive)
   if (nome) {
     const nomeNorm = normalizzaNome(nome)
-    // Match esatto normalizzato
     const exact = fornitori.find(f => normalizzaNome(f.nome) === nomeNorm)
     if (exact) return exact
-    // Match parziale: il nome OCR contiene il nome del fornitore o viceversa
     const partial = fornitori.find(f => {
       const fn = normalizzaNome(f.nome)
       return nomeNorm.includes(fn) || fn.includes(nomeNorm)
@@ -85,7 +94,6 @@ function NuovaBollaForm() {
   const [error, setError] = useState<string | null>(null)
   const [registratoDa, setRegistratoDa] = useState('')
 
-  // Auto-fill registratoDa dall'operatore attivo
   useEffect(() => {
     if (activeOperator?.full_name) {
       setRegistratoDa(activeOperator.full_name)
@@ -93,18 +101,24 @@ function NuovaBollaForm() {
   }, [activeOperator])
   const [uploadMode, setUploadMode] = useState<'idle' | 'camera' | 'file'>('idle')
 
-  // OCR state
+  const [scanIntent, setScanIntent] = useState<ScanIntent>('auto')
+  const [registrationTarget, setRegistrationTarget] = useState<'bolla' | 'fattura'>('bolla')
+
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>('idle')
   const [ocrNome, setOcrNome] = useState<string | null>(null)
   const [ocrPiva, setOcrPiva] = useState<string | null>(null)
+  const [ocrIndirizzo, setOcrIndirizzo] = useState<string | null>(null)
+  const [needsSupplierDeepExtract, setNeedsSupplierDeepExtract] = useState(false)
   const [matchedFornitore, setMatchedFornitore] = useState<Fornitore | null>(null)
   const [dateFromOcr, setDateFromOcr] = useState(false)
+
+  const lastHubRef = useRef<HubResponse | null>(null)
+  const lastIntentRef = useRef<ScanIntent>('auto')
 
   useEffect(() => {
     supabase.from('fornitori').select('id, nome, piva').order('nome').then(({ data }: { data: Fornitore[] | null }) => {
       const rows = (data as Fornitore[]) ?? []
       setFornitori(rows)
-      // Pre-select from URL param if valid, otherwise default to first supplier
       if (preselectedFornitoreId && rows.some(f => f.id === preselectedFornitoreId)) {
         setFornitoreId(preselectedFornitoreId)
       } else if (rows.length > 0) {
@@ -113,60 +127,151 @@ function NuovaBollaForm() {
     })
   }, [supabase, preselectedFornitoreId])
 
-  const runOcr = async (f: File) => {
-    // Solo immagini — PDF non supportato dall'OCR
-    if (!f.type.startsWith('image/')) return
+  const navigateToImport = useCallback((nome: string | null, piva: string | null, indirizzo?: string | null) => {
+    const q = new URLSearchParams()
+    if (nome?.trim()) q.set('prefill_nome', nome.trim())
+    if (piva?.trim()) q.set('prefill_piva', piva.trim())
+    if (indirizzo?.trim()) q.set('prefill_indirizzo', indirizzo.trim())
+    const qs = q.toString()
+    router.push(qs ? `/fornitori/import?${qs}` : '/fornitori/import')
+  }, [router])
 
+  const applyHubResult = useCallback((result: HubResponse, intent: ScanIntent, list: Fornitore[]) => {
+    const kind = result.document_kind
+    setOcrNome(result.nome)
+    setOcrPiva(result.piva)
+    setOcrIndirizzo(result.indirizzo ?? null)
+    setNeedsSupplierDeepExtract(false)
+
+    if (result.data) {
+      setData(result.data)
+      setDateFromOcr(true)
+    }
+    if (result.numero_documento) setNumeroBolla(result.numero_documento)
+    if (result.importo != null) setImporto(String(result.importo))
+
+    if (intent === 'nuovo_fornitore') {
+      navigateToImport(result.nome, result.piva, result.indirizzo ?? null)
+      setOcrStatus('idle')
+      return
+    }
+
+    if (list.length === 0) {
+      lastHubRef.current = result
+      lastIntentRef.current = intent
+      setOcrStatus('idle')
+      return
+    }
+
+    let effectiveKind = kind
+    if (intent === 'bolla') effectiveKind = 'ddt'
+    if (intent === 'fattura') effectiveKind = 'fattura'
+
+    if (effectiveKind === 'supplier_card') {
+      navigateToImport(result.nome, result.piva, result.indirizzo ?? null)
+      setOcrStatus('idle')
+      return
+    }
+
+    const match = matchFornitore(list, result.nome, result.piva)
+
+    if (!match) {
+      if (intent === 'auto' || intent === 'fattura') {
+        const emptyExtract =
+          effectiveKind === 'unknown' && !result.nome?.trim() && !result.piva?.trim()
+        if (emptyExtract) {
+          setMatchedFornitore(null)
+          setOcrStatus('not_found')
+          setRegistrationTarget('bolla')
+          setNeedsSupplierDeepExtract(true)
+          return
+        }
+        navigateToImport(result.nome, result.piva, result.indirizzo ?? null)
+        return
+      }
+      setMatchedFornitore(null)
+      setOcrStatus('not_found')
+      setRegistrationTarget('bolla')
+      return
+    }
+
+    setMatchedFornitore(match)
+    setFornitoreId(match.id)
+
+    if (effectiveKind === 'fattura') {
+      setRegistrationTarget('fattura')
+      setOcrStatus('matched')
+      return
+    }
+
+    setRegistrationTarget('bolla')
+    setOcrStatus('matched')
+  }, [navigateToImport])
+
+  useEffect(() => {
+    if (fornitori.length === 0 || !lastHubRef.current) return
+    const pending = lastHubRef.current
+    const intent = lastIntentRef.current
+    lastHubRef.current = null
+    applyHubResult(pending, intent, fornitori)
+  }, [fornitori, applyHubResult])
+
+  const runScannerHub = useCallback(async (f: File, intent: ScanIntent, list: Fornitore[]) => {
     setOcrStatus('scanning')
     setMatchedFornitore(null)
     setOcrNome(null)
     setOcrPiva(null)
+    setOcrIndirizzo(null)
+    setNeedsSupplierDeepExtract(false)
+    setError(null)
 
     try {
       const fd = new FormData()
       fd.append('file', f)
-      const res = await fetch('/api/ocr-bolla', { method: 'POST', body: fd })
-      const result = await res.json()
+      fd.append('intent', intent)
+      const res = await fetch('/api/ocr-scanner-hub', { method: 'POST', body: fd })
+      const result = (await res.json()) as HubResponse & { error?: string }
 
       if (!res.ok || result.error) {
         setOcrStatus('error')
+        if (result.error) setError(result.error)
         return
       }
 
-      const { nome, piva, data: dataOcr } = result as { nome: string | null; piva: string | null; data: string | null }
-      setOcrNome(nome)
-      setOcrPiva(piva)
-
-      // Auto-fill date if extracted
-      if (dataOcr) {
-        setData(dataOcr)
-        setDateFromOcr(true)
-      }
-
-      const match = matchFornitore(fornitori, nome, piva)
-      if (match) {
-        setMatchedFornitore(match)
-        setFornitoreId(match.id)
-        setOcrStatus('matched')
-      } else {
-        setOcrStatus('not_found')
-      }
+      applyHubResult(result, intent, list)
     } catch {
       setOcrStatus('error')
     }
-  }
+  }, [applyHubResult])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null
     setFile(f)
     setOcrStatus('idle')
     setMatchedFornitore(null)
+    setOcrNome(null)
+    setOcrPiva(null)
+    setOcrIndirizzo(null)
+    setNeedsSupplierDeepExtract(false)
     setDateFromOcr(false)
+    setRegistrationTarget('bolla')
     if (f) {
-      setPreview(URL.createObjectURL(f))
-      runOcr(f)
+      if (f.type.startsWith('image/')) {
+        setPreview(URL.createObjectURL(f))
+      } else {
+        setPreview(null)
+      }
+      void runScannerHub(f, scanIntent, fornitori)
     } else {
       setPreview(null)
+    }
+  }
+
+  const handleIntentChange = (next: ScanIntent) => {
+    setScanIntent(next)
+    setError(null)
+    if (file) {
+      void runScannerHub(file, next, fornitori)
     }
   }
 
@@ -177,7 +282,10 @@ function NuovaBollaForm() {
     setMatchedFornitore(null)
     setOcrNome(null)
     setOcrPiva(null)
+    setOcrIndirizzo(null)
+    setNeedsSupplierDeepExtract(false)
     setDateFromOcr(false)
+    setRegistrationTarget('bolla')
     setUploadMode('idle')
     if (fileRef.current) fileRef.current.value = ''
     if (cameraRef.current) cameraRef.current.value = ''
@@ -186,29 +294,52 @@ function NuovaBollaForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!fornitoreId) { setError('Seleziona un fornitore.'); return }
+    if (!file) { setError('Carica un documento.'); return }
     setSaving(true)
     setError(null)
 
-    let file_url: string | null = null
-    if (file) {
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const uniqueName = `${crypto.randomUUID()}.${ext}`
+    const ext = file.name.split('.').pop() ?? 'jpg'
+    const uniqueName = `${crypto.randomUUID()}.${ext}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('documenti')
-        .upload(uniqueName, file, { contentType: file.type, upsert: false })
+    const { error: uploadError } = await supabase.storage
+      .from('documenti')
+      .upload(uniqueName, file, { contentType: file.type, upsert: false })
 
-      if (uploadError) {
-        setError(`Errore durante il caricamento del file: ${uploadError.message}`)
-        setSaving(false)
+    if (uploadError) {
+      setError(`Errore durante il caricamento del file: ${uploadError.message}`)
+      setSaving(false)
+      return
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('documenti')
+      .getPublicUrl(uniqueName)
+
+    const file_url = publicUrlData.publicUrl
+
+    if (registrationTarget === 'fattura') {
+      const importoFinale = importo ? parseFloat(importo) : null
+      const { error: insertError } = await supabase.from('fatture').insert([{
+        fornitore_id: fornitoreId,
+        bolla_id: null,
+        sede_id: sedeId,
+        data,
+        file_url,
+        registrato_da: registratoDa.trim() || null,
+        numero_fattura: numeroBolla.trim() || null,
+        importo: importoFinale,
+      }])
+
+      setSaving(false)
+
+      if (insertError) {
+        setError(`Errore durante il salvataggio: ${insertError.message}`)
         return
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('documenti')
-        .getPublicUrl(uniqueName)
-
-      file_url = publicUrlData.publicUrl
+      router.push('/fatture')
+      router.refresh()
+      return
     }
 
     const { error: insertError } = await supabase.from('bolle').insert([{
@@ -238,6 +369,13 @@ function NuovaBollaForm() {
   const fieldInputCls =
     'w-full rounded-xl border-0 bg-transparent py-1 -mx-1 text-base text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-0'
 
+  const intentBtn = (active: boolean) =>
+    `rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-xs ${
+      active
+        ? 'bg-cyan-500/25 text-cyan-100 ring-1 ring-cyan-500/40'
+        : 'bg-slate-800/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+    }`
+
   return (
     <div className="flex flex-col">
       <div className="sticky top-14 z-10 flex items-center gap-3 border-b border-slate-800/80 bg-slate-950/90 px-4 py-3 backdrop-blur-md md:top-0">
@@ -250,10 +388,36 @@ function NuovaBollaForm() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold tracking-tight text-slate-100">{t.bolle.new}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold tracking-tight text-slate-100">{t.bolle.scannerTitle}</h1>
+          <p className="truncate text-[11px] text-slate-500 sm:text-xs">
+            {registrationTarget === 'fattura' ? t.bolle.scannerFlowFattura : t.bolle.scannerFlowBolla}
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
+
+        <div className="app-card">
+          <div className="app-card-bar" aria-hidden />
+          <div className="space-y-3 p-5">
+            <p className={fieldLabelCls}>{t.bolle.scannerWhatLabel}</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={intentBtn(scanIntent === 'auto')} onClick={() => handleIntentChange('auto')}>
+                {t.bolle.scannerModeAuto}
+              </button>
+              <button type="button" className={intentBtn(scanIntent === 'bolla')} onClick={() => handleIntentChange('bolla')}>
+                {t.bolle.scannerModeBolla}
+              </button>
+              <button type="button" className={intentBtn(scanIntent === 'fattura')} onClick={() => handleIntentChange('fattura')}>
+                {t.bolle.scannerModeFattura}
+              </button>
+              <button type="button" className={intentBtn(scanIntent === 'nuovo_fornitore')} onClick={() => handleIntentChange('nuovo_fornitore')}>
+                {t.bolle.scannerModeSupplier}
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="app-card">
           <div className="app-card-bar" aria-hidden />
@@ -262,7 +426,7 @@ function NuovaBollaForm() {
             {t.bolle.fotoLabel}
           </label>
 
-          {!preview && uploadMode === 'idle' && (
+          {!preview && !file?.type.startsWith('application/pdf') && uploadMode === 'idle' && (
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -293,7 +457,7 @@ function NuovaBollaForm() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={preview}
-                alt="Anteprima bolla"
+                alt="Anteprima"
                 className="w-full rounded-xl object-cover max-h-64"
               />
               <button
@@ -301,12 +465,11 @@ function NuovaBollaForm() {
                 onClick={handleRemoveFile}
                 className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
 
-              {/* Badge OCR sovrapposto */}
               {ocrStatus === 'scanning' && (
                 <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full">
                   <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -335,7 +498,29 @@ function NuovaBollaForm() {
             </div>
           ) : null}
 
-          {/* Input fotocamera */}
+          {file?.type === 'application/pdf' && (
+            <div className="relative rounded-xl border border-slate-600/60 bg-slate-800/50 px-4 py-8 text-center text-sm text-slate-400">
+              <p>{t.bolle.scannerPdfPreview}</p>
+              <p className="mt-2 truncate text-xs text-slate-500">{file.name}</p>
+              <button
+                type="button"
+                onClick={handleRemoveFile}
+                className="mt-4 text-xs font-semibold text-red-400 hover:text-red-300"
+              >
+                {t.common.delete}
+              </button>
+              {ocrStatus === 'scanning' && (
+                <p className="mt-3 flex items-center justify-center gap-2 text-xs text-cyan-300">
+                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  {t.bolle.ocrAnalyzing}
+                </p>
+              )}
+            </div>
+          )}
+
           <input
             ref={cameraRef}
             type="file"
@@ -344,7 +529,6 @@ function NuovaBollaForm() {
             onChange={handleFile}
             className="hidden"
           />
-          {/* Input file picker */}
           <input
             ref={fileRef}
             type="file"
@@ -432,6 +616,25 @@ function NuovaBollaForm() {
               ))}
             </select>
           )}
+
+          {ocrStatus === 'not_found' && (ocrNome || ocrPiva) && (
+            <button
+              type="button"
+              className="mt-3 w-full rounded-xl border border-violet-500/35 bg-violet-950/40 py-2.5 text-sm font-semibold text-violet-100 transition-colors hover:bg-violet-950/55"
+              onClick={() => navigateToImport(ocrNome, ocrPiva, ocrIndirizzo)}
+            >
+              {t.bolle.scannerCreateSupplierCta}
+            </button>
+          )}
+          {needsSupplierDeepExtract && file && ocrStatus === 'not_found' && (
+            <button
+              type="button"
+              className="mt-3 w-full rounded-xl border border-cyan-500/40 bg-cyan-950/35 py-2.5 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-950/50"
+              onClick={() => void runScannerHub(file, 'nuovo_fornitore', fornitori)}
+            >
+              {t.bolle.scannerCreateSupplierFromUnrecognized}
+            </button>
+          )}
           </div>
         </div>
 
@@ -439,11 +642,12 @@ function NuovaBollaForm() {
           <div className="app-card-bar" aria-hidden />
           <div className="border-b border-slate-700/50 p-5">
             <label className={fieldLabelCls}>
-              N° Bolla / DDT <span className="font-normal normal-case text-slate-500">(opzionale)</span>
+              {registrationTarget === 'fattura' ? t.fatture.colNumFattura : `N° Bolla / DDT`}{' '}
+              <span className="font-normal normal-case text-slate-500">(opzionale)</span>
             </label>
             <input
               type="text"
-              placeholder="es. DDT-2025-001"
+              placeholder={registrationTarget === 'fattura' ? 'es. FT-2025-042' : 'es. DDT-2025-001'}
               value={numeroBolla}
               onChange={e => setNumeroBolla(e.target.value)}
               className={fieldInputCls}
@@ -451,7 +655,8 @@ function NuovaBollaForm() {
           </div>
           <div className="p-5">
             <label className={fieldLabelCls}>
-              Importo totale <span className="font-normal normal-case text-slate-500">(IVA inclusa, opzionale)</span>
+              {t.appStrings.labelImportoTotale}{' '}
+              <span className="font-normal normal-case text-slate-500">(IVA inclusa, opzionale)</span>
             </label>
             <div className="flex items-center gap-2">
               <span className="text-base text-slate-500">£</span>
@@ -473,7 +678,7 @@ function NuovaBollaForm() {
           <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-emerald-500/5' : ''}`}>
             <div className="mb-2 flex items-center justify-between">
               <label className="text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
-                {t.bolle.dataLabel}
+                {registrationTarget === 'fattura' ? t.fatture.dataFattura : t.bolle.dataLabel}
               </label>
               {dateFromOcr ? (
                 <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/30">
@@ -511,10 +716,16 @@ function NuovaBollaForm() {
 
         <button
           type="submit"
-          disabled={saving || fornitori.length === 0 || ocrStatus === 'scanning'}
+          disabled={saving || fornitori.length === 0 || ocrStatus === 'scanning' || !file}
           className="app-glow-cyan mt-auto w-full rounded-2xl bg-cyan-500 py-4 text-base font-semibold text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50"
         >
-          {saving ? t.bolle.savingNote : ocrStatus === 'scanning' ? t.bolle.analyzingNote : t.bolle.saveNote}
+          {saving
+            ? (registrationTarget === 'fattura' ? t.bolle.scannerSavingFattura : t.bolle.savingNote)
+            : ocrStatus === 'scanning'
+              ? t.bolle.analyzingNote
+              : registrationTarget === 'fattura'
+                ? t.bolle.scannerSaveFattura
+                : t.bolle.saveNote}
         </button>
       </form>
     </div>

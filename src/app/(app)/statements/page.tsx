@@ -8,13 +8,14 @@ import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
-import { parseAnyAmount } from '@/lib/ocr-invoice'
+import { parseAnyAmount } from '@/lib/ocr-amount'
 import { openDocumentUrl } from '@/lib/open-document-url'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
   ragione_sociale:    string | null
   p_iva:              string | null
+  indirizzo?:         string | null
   data_fattura:       string | null
   numero_fattura:     string | null
   totale_iva_inclusa: number | null
@@ -25,6 +26,7 @@ type OcrMetadata = {
   matched_by:         'email' | 'alias' | 'domain' | 'piva' | 'unknown' | null
   bozza_id?:          string | null
   bozza_tipo?:        'bolla' | 'fattura' | null
+  rekki_link?:        string | null
 }
 
 type Documento = {
@@ -147,7 +149,11 @@ function EditSupplierPopup({
   docId: string
   current: string | null
   fornitori: Fornitore[]
-  onSaved: (fornitoreId: string, nome: string) => void
+  onSaved: (
+    fornitoreId: string,
+    nome: string,
+    extra?: { suggestRemember?: boolean; mittenteEmail?: string | null }
+  ) => void
   onClose: () => void
 }) {
   const t = useT()
@@ -172,8 +178,21 @@ function EditSupplierPopup({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: docId, azione: 'aggiorna_fornitore', fornitore_id: f.id }),
     })
+    let extra: { suggestRemember?: boolean; mittenteEmail?: string | null } | undefined
+    try {
+      const data = (await res.json()) as {
+        suggestRememberAssociation?: boolean
+        mittenteEmail?: string | null
+      }
+      if (data.suggestRememberAssociation && data.mittenteEmail) {
+        extra = { suggestRemember: true, mittenteEmail: data.mittenteEmail }
+      }
+    } catch { /* ignore */ }
     setSaving(false)
-    if (res.ok) { onSaved(f.id, f.nome); onClose() }
+    if (res.ok) {
+      onSaved(f.id, f.nome, extra)
+      onClose()
+    }
   }
 
   return (
@@ -274,6 +293,12 @@ function AiDataCard({ metadata, matchConfidence, countryCode, currency }: {
           <div>
             <span className="text-slate-500">{loc.vatLabel} · </span>
             <span className="font-mono font-medium text-slate-100">{metadata.p_iva}</span>
+          </div>
+        )}
+        {metadata.indirizzo?.trim() && (
+          <div className="col-span-2">
+            <span className="text-slate-500">{t.fornitori.addressLabel} · </span>
+            <span className="font-medium text-slate-100">{metadata.indirizzo}</span>
           </div>
         )}
         {metadata.numero_fattura && (
@@ -524,6 +549,10 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
   const [editSupplier, setEditSupplier]     = useState<string | null>(null)
   const [statementDocs, setStatementDocs]   = useState<Set<string>>(new Set())  // tracked locally
   const [markingStatement, setMarkingStatement] = useState<string | null>(null)
+  const [rememberBar, setRememberBar] = useState<{
+    fornitoreId: string
+    email: string
+  } | null>(null)
 
   const fetchDocs = useCallback(async () => {
     setLoading(true)
@@ -653,8 +682,16 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
     setMarkingStatement(null)
   }
 
-  function handleSupplierUpdated(docId: string, fornitoreId: string, nome: string) {
+  function handleSupplierUpdated(
+    docId: string,
+    fornitoreId: string,
+    nome: string,
+    extra?: { suggestRemember?: boolean; mittenteEmail?: string | null }
+  ) {
     setDocs(prev => prev.map(d => d.id === docId ? { ...d, fornitore_id: fornitoreId, fornitore: { nome } } : d))
+    if (extra?.suggestRemember && extra.mittenteEmail) {
+      setRememberBar({ fornitoreId, email: extra.mittenteEmail })
+    }
   }
 
   const isPdf = (url: string) => url.toLowerCase().includes('.pdf')
@@ -825,6 +862,27 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                             : doc.stato === 'associato' ? t.statements.tagAssociated
                             : t.statements.tagDiscarded}
                         </span>
+                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare' || doc.stato === 'bozza_creata') && (
+                          doc.fornitore_id ? (
+                            <span className="rounded-full bg-emerald-600/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-100 ring-1 ring-emerald-500/40" title={t.statements.badgeAiRecognized}>
+                              {t.statements.badgeAiRecognized}
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-orange-600/25 px-2 py-0.5 text-[10px] font-semibold text-orange-100 ring-1 ring-orange-500/40" title={t.statements.badgeNeedsHuman}>
+                              {t.statements.badgeNeedsHuman}
+                            </span>
+                          )
+                        )}
+                        {doc.metadata?.rekki_link && /^https?:\/\//i.test(doc.metadata.rekki_link) && (
+                          <a
+                            href={doc.metadata.rekki_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="rounded-full bg-fuchsia-600/20 px-2 py-0.5 text-[10px] font-semibold text-fuchsia-200 ring-1 ring-fuchsia-500/35 hover:bg-fuchsia-600/30"
+                          >
+                            {t.statements.rekkiDocumentLink} ↗
+                          </a>
+                        )}
                       </div>
                     </div>
 
@@ -1034,6 +1092,39 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
               </div>
             )
           })}
+        </div>
+      )}
+
+      {rememberBar && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-lg rounded-xl border border-cyan-500/40 bg-slate-900/95 p-4 shadow-xl backdrop-blur-md md:left-auto md:right-6 md:mx-0">
+          <p className="text-sm font-medium text-slate-100">{t.statements.rememberAssociationTitle}</p>
+          <p className="mt-1 truncate text-xs text-slate-400">{rememberBar.email}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-lg bg-cyan-500 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-cyan-400"
+              onClick={async () => {
+                const res = await fetch('/api/fornitore-emails/remember', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    fornitore_id: rememberBar.fornitoreId,
+                    email: rememberBar.email,
+                  }),
+                })
+                if (res.ok) setRememberBar(null)
+              }}
+            >
+              {t.statements.rememberAssociationSave}
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
+              onClick={() => setRememberBar(null)}
+            >
+              {t.statements.btnClose}
+            </button>
+          </div>
         </div>
       )}
     </>

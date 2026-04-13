@@ -28,7 +28,16 @@ export default function EditFornitore() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({ nome: '', display_name: '', email: '', piva: '', language: '' })
+  const [form, setForm] = useState({
+    nome: '',
+    display_name: '',
+    email: '',
+    piva: '',
+    indirizzo: '',
+    rekki_link: '',
+    rekki_supplier_id: '',
+    language: '',
+  })
 
   const [aliases, setAliases] = useState<AliasEmail[]>([])
   const [newAlias, setNewAlias] = useState({ email: '', label: '' })
@@ -54,11 +63,20 @@ export default function EditFornitore() {
       if (error || !data) {
         setError(t.fornitori.notFound)
       } else {
+        const row = data as {
+          display_name?: string | null
+          indirizzo?: string | null
+          rekki_link?: string | null
+          rekki_supplier_id?: string | null
+        }
         setForm({
           nome: data.nome ?? '',
-          display_name: (data as { display_name?: string | null }).display_name ?? '',
+          display_name: row.display_name ?? '',
           email: data.email ?? '',
           piva: data.piva ?? '',
+          indirizzo: row.indirizzo ?? '',
+          rekki_link: row.rekki_link ?? '',
+          rekki_supplier_id: row.rekki_supplier_id ?? '',
           language: data.language ?? '',
         })
       }
@@ -106,6 +124,9 @@ export default function EditFornitore() {
         display_name: form.display_name.trim() || null,
         email: form.email || null,
         piva: form.piva || null,
+        indirizzo: form.indirizzo.trim() || null,
+        rekki_link: form.rekki_link.trim() || null,
+        rekki_supplier_id: form.rekki_supplier_id.trim() || null,
         language: form.language || null,
       })
       .eq('id', id)
@@ -190,6 +211,34 @@ export default function EditFornitore() {
               value={form.piva}
               onChange={(e) => setForm({ ...form, piva: e.target.value })}
               placeholder={t.fornitori.pivaPlaceholder}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>{t.fornitori.addressLabel}</label>
+            <input
+              className={inputCls}
+              value={form.indirizzo}
+              onChange={(e) => setForm({ ...form, indirizzo: e.target.value })}
+              placeholder={t.fornitori.addressPlaceholder}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>{t.fornitori.rekkiLinkLabel}</label>
+            <input
+              type="url"
+              className={inputCls}
+              value={form.rekki_link}
+              onChange={(e) => setForm({ ...form, rekki_link: e.target.value })}
+              placeholder={t.fornitori.rekkiLinkPlaceholder}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>{t.fornitori.rekkiIdLabel}</label>
+            <input
+              className={inputCls}
+              value={form.rekki_supplier_id}
+              onChange={(e) => setForm({ ...form, rekki_supplier_id: e.target.value })}
+              placeholder={t.fornitori.rekkiIdPlaceholder}
             />
           </div>
           <div>

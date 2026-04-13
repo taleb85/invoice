@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { recordManualSupplierAssociation, senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
 
 // ── GET /api/documenti-da-processare ──────────────────────────────────────────
 // Returns pending documents using the service client to bypass RLS.
@@ -114,6 +115,11 @@ export async function POST(req: NextRequest) {
   // ── aggiorna_fornitore ────────────────────────────────────────────────────
   if (azione === 'aggiorna_fornitore') {
     if (!fornitore_id) return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
+    const { data: docRow } = await supabase
+      .from('documenti_da_processare')
+      .select('mittente')
+      .eq('id', id)
+      .maybeSingle()
     // Aggiorna anche sede_id prendendo quello del fornitore scelto
     const { data: fornitore } = await supabase
       .from('fornitori')
@@ -129,7 +135,24 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ ok: true })
+
+    let suggestRememberAssociation = false
+    let mittenteEmail: string | null = null
+    if (docRow?.mittente?.trim()) {
+      const norm = docRow.mittente.trim().toLowerCase()
+      mittenteEmail = norm.includes('@') ? norm : null
+      const { suggestRemember } = await recordManualSupplierAssociation(supabase, {
+        mittente: docRow.mittente,
+        fornitoreId: fornitore_id,
+      })
+      suggestRememberAssociation = suggestRemember
+    }
+
+    return NextResponse.json({
+      ok: true,
+      suggestRememberAssociation,
+      mittenteEmail,
+    })
   }
 
   // ── Recupera il documento ─────────────────────────────────────────────────
