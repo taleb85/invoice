@@ -53,7 +53,7 @@ export default function OfflinePage() {
   }, [router])
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f172a] px-6 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 px-6 text-center">
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="mb-8 h-24 w-24">
         <defs>
           <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -90,7 +90,7 @@ export default function OfflinePage() {
         <circle cx="85" cy="65" r="3" fill="#3b82f6" />
       </svg>
 
-      <h1 className="mb-2 text-2xl font-bold text-white">Sei offline</h1>
+      <h1 className="app-page-title mb-2 text-2xl font-bold">Sei offline</h1>
       <p className="max-w-sm text-sm text-white/50">
         Connettiti a internet per accedere a FLUXO. Riproveremo automaticamente ogni {INTERVAL_MS / 1000} secondi quando la
         connessione torna, oppure appena il browser segnala di essere di nuovo online.

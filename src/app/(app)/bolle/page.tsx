@@ -4,6 +4,8 @@ import { openDocumentUrl } from '@/lib/open-document-url'
 import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -98,60 +100,68 @@ export default async function BollePage({
 
   return (
     <div className="p-4 md:p-8">
-      <div className="mb-6 md:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-slate-100">{t.bolle.title}</h1>
-          <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold">
-            {!showAll ? (
-              <>
-                <Link href="/bolle?tutte=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
-                  {t.bolle.listShowAll}
-                </Link>
-                <span className="text-slate-600" aria-hidden>
-                  ·
-                </span>
-                <Link href="/bolle?tutte=1&pending=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
-                  {t.bolle.listAllPending}
-                </Link>
-              </>
-            ) : pendingOnly ? (
-              <>
-                <Link href="/bolle" className="text-cyan-400 transition-colors hover:text-cyan-300">
-                  {t.bolle.listShowToday}
-                </Link>
-                <span className="text-slate-600" aria-hidden>
-                  ·
-                </span>
-                <Link href="/bolle?tutte=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
-                  {t.bolle.listShowAll}
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/bolle" className="text-cyan-400 transition-colors hover:text-cyan-300">
-                  {t.bolle.listShowToday}
-                </Link>
-                <span className="text-slate-600" aria-hidden>
-                  ·
-                </span>
-                <Link href="/bolle?tutte=1&pending=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
-                  {t.bolle.listAllPending}
-                </Link>
-              </>
-            )}
-          </div>
+      <AppPageHeaderStrip>
+        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+          <h1 className="app-page-title text-2xl font-bold">{t.bolle.title}</h1>
         </div>
-        <Link
-          href="/bolle/new"
-          className="flex shrink-0 items-center gap-2 self-start rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
-        >
-          <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span className="hidden sm:inline">{t.bolle.new}</span>
-        </Link>
-      </div>
+        <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
+          <Link
+            href="/bolle/new"
+            className="flex shrink-0 items-center gap-2 self-start rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600 sm:self-center"
+          >
+            <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="hidden sm:inline">{t.bolle.new}</span>
+          </Link>
+        </div>
+      </AppPageHeaderStrip>
+
+      <AppSummaryHighlightCard
+        accent="blue"
+        label={t.common.total}
+        primary={bolle.length}
+        secondary={subtitle}
+        trailing={
+          !showAll ? (
+            <>
+              <Link href="/bolle?tutte=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+                {t.bolle.listShowAll}
+              </Link>
+              <span className="text-slate-600" aria-hidden>
+                ·
+              </span>
+              <Link href="/bolle?tutte=1&pending=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+                {t.bolle.listAllPending}
+              </Link>
+            </>
+          ) : pendingOnly ? (
+            <>
+              <Link href="/bolle" className="text-cyan-400 transition-colors hover:text-cyan-300">
+                {t.bolle.listShowToday}
+              </Link>
+              <span className="text-slate-600" aria-hidden>
+                ·
+              </span>
+              <Link href="/bolle?tutte=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+                {t.bolle.listShowAll}
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/bolle" className="text-cyan-400 transition-colors hover:text-cyan-300">
+                {t.bolle.listShowToday}
+              </Link>
+              <span className="text-slate-600" aria-hidden>
+                ·
+              </span>
+              <Link href="/bolle?tutte=1&pending=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+                {t.bolle.listAllPending}
+              </Link>
+            </>
+          )
+        }
+      />
 
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
@@ -166,7 +176,7 @@ export default async function BollePage({
                   d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
                 />
               </svg>
-              <p className="text-sm font-medium text-slate-400">{emptyMessage}</p>
+              <p className="text-sm font-medium text-slate-200">{emptyMessage}</p>
               {!showAll ? (
                 <Link href="/bolle?tutte=1" className="mt-4 inline-block text-sm font-semibold text-cyan-400 hover:text-cyan-300">
                   {t.bolle.listShowAll} →
@@ -184,7 +194,7 @@ export default async function BollePage({
                           <p className="truncate font-semibold text-slate-100">
                             {b.fornitori?.nome ?? <span className="text-slate-600">—</span>}
                           </p>
-                          <p className="mt-0.5 text-xs text-slate-400">{formatDate(b.data)}</p>
+                          <p className="mt-0.5 text-xs text-slate-200">{formatDate(b.data)}</p>
                         </div>
                         {b.stato === 'completato' ? (
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
@@ -233,25 +243,25 @@ export default async function BollePage({
 
               <table className="hidden w-full text-sm md:table">
                 <thead>
-                  <tr className="border-b border-slate-700/60 bg-slate-950/40">
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-slate-700/60 bg-slate-700/40">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">
                       {t.common.date}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">
                       {t.common.supplier}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">
                       {t.common.status}
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-200">
                       {t.common.actions}
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80">
                   {bolle.map((b: BollaListRow) => (
-                    <tr key={b.id} className="group transition-colors hover:bg-slate-800/40">
-                      <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-300">
+                    <tr key={b.id} className="group transition-colors hover:bg-slate-700/40">
+                      <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-200">
                         <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-cyan-300">
                           {formatDate(b.data)}
                         </Link>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 interface AliasEmail {
   id: string
@@ -12,7 +13,7 @@ interface AliasEmail {
 }
 
 const fieldBaseCls =
-  'w-full rounded-xl border border-slate-600/60 bg-slate-800 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition [color-scheme:dark] focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50'
+  'w-full rounded-xl border border-slate-600/60 bg-slate-700 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition [color-scheme:dark] focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50'
 /** `appearance-none` su input evita lo stile nativo chiaro su mobile; il select resta nativo per il menu. */
 const inputCls = `${fieldBaseCls} appearance-none`
 const selectCls = fieldBaseCls
@@ -159,19 +160,21 @@ export default function EditFornitore() {
 
   return (
     <div className="mx-auto max-w-lg p-4 md:p-8">
-      <div className="mb-8 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={handleCloseEdit}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-800/90 hover:text-white"
-          aria-label={t.statements.btnClose}
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <h1 className="min-w-0 flex-1 text-2xl font-bold tracking-tight text-white">{t.fornitori.editTitle}</h1>
-      </div>
+      <AppPageHeaderStrip>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <button
+            type="button"
+            onClick={handleCloseEdit}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-700/90 hover:text-white"
+            aria-label={t.statements.btnClose}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <h1 className="app-page-title min-w-0 flex-1 text-2xl font-bold tracking-tight">{t.fornitori.editTitle}</h1>
+        </div>
+      </AppPageHeaderStrip>
 
       <form onSubmit={handleSubmit} className="app-card mb-6">
         <div className="app-card-bar" aria-hidden />
@@ -197,7 +200,7 @@ export default function EditFornitore() {
               }
               placeholder={t.fornitori.displayNamePlaceholder}
             />
-            <p className="mt-1 text-[11px] text-slate-400">{t.fornitori.displayNameHint}</p>
+            <p className="mt-1 text-[11px] text-slate-200">{t.fornitori.displayNameHint}</p>
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.logoUrlLabel}</label>
@@ -210,7 +213,7 @@ export default function EditFornitore() {
               inputMode="url"
               autoComplete="off"
             />
-            <p className="mt-1 text-[11px] text-slate-400">{t.fornitori.logoUrlHint}</p>
+            <p className="mt-1 text-[11px] text-slate-200">{t.fornitori.logoUrlHint}</p>
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.email}</label>
@@ -285,7 +288,7 @@ export default function EditFornitore() {
             <button
               type="button"
               onClick={handleCloseEdit}
-              className="flex-1 rounded-xl border border-slate-600/80 bg-slate-800/80 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80"
+              className="flex-1 rounded-xl border border-slate-600/80 bg-slate-700/80 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80"
             >
               {t.common.cancel}
             </button>
@@ -313,7 +316,7 @@ export default function EditFornitore() {
               {aliases.map((a) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-800/50 px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-700/50 px-3 py-2"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-slate-200">{a.email}</p>
@@ -364,7 +367,7 @@ export default function EditFornitore() {
               type="button"
               onClick={handleAddAlias}
               disabled={addingAlias || !newAlias.email.trim()}
-              className="w-full rounded-xl border border-dashed border-slate-600 py-2 text-sm font-medium text-slate-400 transition-colors hover:border-cyan-500/50 hover:text-cyan-300 disabled:opacity-40"
+              className="w-full rounded-xl border border-dashed border-slate-600 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-cyan-500/50 hover:text-cyan-300 disabled:opacity-40"
             >
               {addingAlias ? t.appStrings.addingAlias : t.appStrings.addEmailAlias}
             </button>

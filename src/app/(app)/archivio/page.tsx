@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import ExportZipButton from './ExportZipButton'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 
 interface Bolla {
   id: string
@@ -73,7 +75,7 @@ export default async function ArchivioPage() {
     <div className="p-4 md:p-8">
       <Link
         href="/"
-        className="mb-5 inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-slate-400 transition-colors hover:bg-slate-800/60 hover:text-cyan-300 touch-manipulation md:min-h-0 md:py-0"
+        className="mb-5 inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/60 hover:text-cyan-300 touch-manipulation md:min-h-0 md:py-0"
       >
         <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -81,35 +83,29 @@ export default async function ArchivioPage() {
         {t.appStrings.backToHome}
       </Link>
 
-      {/* Header */}
-      <div className="mb-6 md:mb-8 space-y-3">
-        <div className="flex items-start justify-between gap-3">
+      <AppPageHeaderStrip>
+        <div className="flex w-full min-w-0 flex-col gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-100">{t.archivio.title}</h1>
-            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-400">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
-                {archivio.length} {t.archivio.subtitle}
-              </span>
-              <span className="select-none text-slate-600" aria-hidden>
-                ·
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" aria-hidden />
-                {totBolle} {t.archivio.bollaP}
-              </span>
-              <span className="select-none text-slate-600" aria-hidden>
-                ·
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" aria-hidden />
-                {totFatture} {t.archivio.fatturaP}
-              </span>
-            </p>
+            <h1 className="app-page-title text-2xl font-bold">{t.archivio.title}</h1>
           </div>
+          <ExportZipButton />
         </div>
-        <ExportZipButton />
-      </div>
+      </AppPageHeaderStrip>
+
+      <AppSummaryHighlightCard
+        accent="amber"
+        label={t.common.total}
+        primary={archivio.length}
+        secondary={
+          <>
+            {totBolle} {t.archivio.bollaP}
+            <span className="mx-1.5 text-slate-500" aria-hidden>
+              ·
+            </span>
+            {totFatture} {t.archivio.fatturaP}
+          </>
+        }
+      />
 
       {archivio.length === 0 ? (
         <div className="app-card overflow-hidden px-6 py-16 text-center">
@@ -126,18 +122,18 @@ export default async function ArchivioPage() {
               <div className="app-card-bar" aria-hidden />
 
               {/* Header fornitore */}
-              <div className="flex items-center gap-3 border-b border-slate-700/50 bg-slate-800/40 px-4 py-3">
+              <div className="flex items-center gap-3 border-b border-slate-700/50 bg-slate-700/40 px-4 py-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
                   <span className="text-sm font-bold text-white">{f.nome.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-slate-100">{f.nome}</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                    <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1 text-[11px] text-slate-200">
                       <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                       {f.bolle.length} {f.bolle.length === 1 ? t.archivio.bollaS : t.archivio.bollaP}
                     </span>
-                    <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <span className="flex items-center gap-1 text-[11px] text-slate-200">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                       {f.fatture.length + f.documenti.length}{' '}
                       {(f.fatture.length + f.documenti.length) === 1 ? t.archivio.fatturaS : t.archivio.fatturaP}
@@ -170,7 +166,7 @@ export default async function ArchivioPage() {
                 ) : (
                   <div className="space-y-1.5">
                     {f.bolle.map((b) => (
-                      <div key={b.id} className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2">
+                      <div key={b.id} className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <span
                             className={`h-2 w-2 shrink-0 rounded-full ${b.stato === 'completato' ? 'bg-emerald-400' : 'bg-amber-400'}`}
@@ -230,7 +226,7 @@ export default async function ArchivioPage() {
                   <div className="space-y-1.5">
                     {/* Confirmed invoices (linked to a GRN) */}
                     {f.fatture.map((fa) => (
-                      <div key={fa.id} className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2">
+                      <div key={fa.id} className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
                           <span className="whitespace-nowrap text-sm font-medium text-slate-200">{formatDate(fa.data)}</span>
@@ -239,7 +235,7 @@ export default async function ArchivioPage() {
                               {t.archivio.withBill}
                             </span>
                           ) : (
-                            <span className="whitespace-nowrap rounded-full border border-slate-600/60 bg-slate-800/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                            <span className="whitespace-nowrap rounded-full border border-slate-600/60 bg-slate-700/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
                               {t.fatture.statusSenzaBolla}
                             </span>
                           )}

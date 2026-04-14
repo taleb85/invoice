@@ -100,6 +100,49 @@ export async function fetchFattureRiepilogoRows(
   })
 }
 
+export type OrdineOverviewRow = {
+  id: string
+  fornitore_id: string
+  fornitore_nome: string
+  titolo: string | null
+  data_ordine: string | null
+  created_at: string
+  file_url: string
+  file_name: string | null
+}
+
+const ORDINI_OVERVIEW_LIMIT = 200
+
+/** Conferme ordine con nome fornitore, per la pagina /ordini. */
+export async function fetchOrdiniOverviewRows(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null
+): Promise<OrdineOverviewRow[]> {
+  let q = supabase
+    .from('conferme_ordine')
+    .select('id, fornitore_id, titolo, data_ordine, created_at, file_url, file_name, fornitori(nome, display_name)')
+    .order('created_at', { ascending: false })
+    .limit(ORDINI_OVERVIEW_LIMIT)
+  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  const { data, error } = await q
+  if (error || !data?.length) return []
+  type Fn = { nome?: string | null; display_name?: string | null }
+  return (data as Record<string, unknown>[]).map((r) => {
+    const fn = r.fornitori as Fn | null
+    const label = (fn?.display_name?.trim() || fn?.nome?.trim() || '—') as string
+    return {
+      id: r.id as string,
+      fornitore_id: r.fornitore_id as string,
+      fornitore_nome: label,
+      titolo: (r.titolo as string | null) ?? null,
+      data_ordine: r.data_ordine != null ? String(r.data_ordine) : null,
+      created_at: String(r.created_at ?? ''),
+      file_url: String(r.file_url ?? ''),
+      file_name: (r.file_name as string | null) ?? null,
+    }
+  })
+}
+
 export type OperatorDashboardKpis = {
   bolleTotal: number
   bolleInAttesa: number
@@ -111,6 +154,8 @@ export type OperatorDashboardKpis = {
   documentiDaAssociare: number
   totaleImporto: number
   listinoRows: number
+  /** Righe `conferme_ordine` nell’ambito fornitori (o tutte visibili via RLS). */
+  ordiniCount: number
   statementsTotal: number
   statementsWithIssues: number
   erroriRecenti: number
@@ -199,6 +244,7 @@ export async function fetchOperatorDashboardKpis(
       documentiDaAssociare: docDaAssoc ?? 0,
       totaleImporto: 0,
       listinoRows: 0,
+      ordiniCount: 0,
       statementsTotal: stmtTotal ?? 0,
       statementsWithIssues,
       erroriRecenti,
@@ -223,6 +269,7 @@ export async function fetchOperatorDashboardKpis(
     fattureCountRes,
     fattureImportiRes,
     listinoRes,
+    ordiniRes,
     stmtCountRes,
     stmtIssuesRes,
     docDaAssocRes,
@@ -247,6 +294,9 @@ export async function fetchOperatorDashboardKpis(
     fid
       ? supabase.from('listino_prezzi').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
       : supabase.from('listino_prezzi').select('*', { count: 'exact', head: true }),
+    fid
+      ? supabase.from('conferme_ordine').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
+      : supabase.from('conferme_ordine').select('*', { count: 'exact', head: true }),
     sedeId
       ? supabase.from('statements').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
       : supabase.from('statements').select('*', { count: 'exact', head: true }),
@@ -263,6 +313,7 @@ export async function fetchOperatorDashboardKpis(
 
   const statementsTotal = stmtCountRes.count ?? 0
   const statementsWithIssues = stmtIssuesRes.count ?? 0
+  const ordiniCount = ordiniRes.error ? 0 : ordiniRes.count ?? 0
 
   return {
     bolleTotal: bolleRes.count ?? 0,
@@ -273,6 +324,7 @@ export async function fetchOperatorDashboardKpis(
     documentiDaAssociare: docDaAssocRes.count ?? 0,
     totaleImporto: sumImporti(fattureImportiRes.data as { importo: number | null }[] | null),
     listinoRows: listinoRes.count ?? 0,
+    ordiniCount,
     statementsTotal,
     statementsWithIssues,
     erroriRecenti,

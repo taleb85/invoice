@@ -15,7 +15,7 @@ export default async function AppNotFound() {
   const t = getTranslations(locale)
 
   const secondary =
-    'inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800'
+    'inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-700/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700'
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
@@ -39,10 +39,10 @@ export default async function AppNotFound() {
           <div className="space-y-5 px-8 py-8">
           <div className="space-y-1">
             <p className="select-none text-7xl font-black leading-none text-slate-700">404</p>
-            <h1 className="text-xl font-bold text-slate-100">{t.appStrings.notFoundInAppTitle}</h1>
+            <h1 className="app-page-title text-xl font-bold">{t.appStrings.notFoundInAppTitle}</h1>
           </div>
 
-          <p className="text-sm leading-relaxed text-slate-400">{t.appStrings.notFoundInAppDesc}</p>
+          <p className="text-sm leading-relaxed text-slate-200">{t.appStrings.notFoundInAppDesc}</p>
 
           <div className="flex flex-col gap-2.5 pt-1 sm:flex-row sm:flex-wrap">
             <Link

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { getGuidaContent } from '@/lib/guida-content'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 const COLOR_MAP: Record<string, { bg: string; text: string; border: string; dot: string; chip: string }> = {
   blue:   { bg: 'bg-blue-500/10',   text: 'text-blue-200',   border: 'border-blue-500/30',   dot: 'bg-blue-500',   chip: 'bg-blue-500/20 text-blue-200' },
@@ -11,7 +12,7 @@ const COLOR_MAP: Record<string, { bg: string; text: string; border: string; dot:
   purple: { bg: 'bg-purple-500/10', text: 'text-purple-200', border: 'border-purple-500/30', dot: 'bg-purple-500', chip: 'bg-purple-500/20 text-purple-200' },
   orange: { bg: 'bg-orange-500/10', text: 'text-orange-200', border: 'border-orange-500/30', dot: 'bg-orange-500', chip: 'bg-orange-500/20 text-orange-200' },
   amber:  { bg: 'bg-amber-500/10',  text: 'text-amber-200',  border: 'border-amber-500/30',  dot: 'bg-amber-500',  chip: 'bg-amber-500/20 text-amber-200' },
-  slate:  { bg: 'bg-slate-800/60',  text: 'text-slate-100',  border: 'border-slate-600/50',  dot: 'bg-slate-500',  chip: 'bg-slate-700/80 text-slate-200' },
+  slate:  { bg: 'bg-slate-700/60',  text: 'text-slate-100',  border: 'border-slate-600/50',  dot: 'bg-slate-500',  chip: 'bg-slate-700/80 text-slate-200' },
 }
 
 const SECTION_ICONS: Record<string, React.ReactNode> = {
@@ -63,11 +64,12 @@ export default function GuidaPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-6xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-100">{content.pageTitle}</h1>
-        <p className="mt-1 text-sm text-slate-400">{content.pageSubtitle}</p>
-      </div>
+      <AppPageHeaderStrip>
+        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+          <h1 className="app-page-title text-2xl font-bold">{content.pageTitle}</h1>
+          <p className="mt-1 text-sm text-slate-200">{content.pageSubtitle}</p>
+        </div>
+      </AppPageHeaderStrip>
 
       <div className="flex flex-col md:flex-row gap-6">
 
@@ -84,7 +86,7 @@ export default function GuidaPage() {
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-all ${
                     isActive
                       ? `${sc.bg} ${sc.text} border ${sc.border}`
-                      : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-100'
+                      : 'text-slate-200 hover:bg-slate-700/70 hover:text-slate-100'
                   }`}
                 >
                   <span className={isActive ? sc.text : 'text-slate-500'}>
@@ -120,7 +122,7 @@ export default function GuidaPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="mb-1 text-sm font-semibold text-slate-100">{item.title}</p>
-                      <p className="text-sm leading-relaxed text-slate-400">{item.desc}</p>
+                      <p className="text-sm leading-relaxed text-slate-200">{item.desc}</p>
                       {item.tip && (
                         <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
                           <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

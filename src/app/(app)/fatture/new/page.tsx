@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useSedeId } from '@/lib/use-sede'
 import { useT } from '@/lib/use-t'
+import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
 import { useActiveOperator } from '@/lib/active-operator-context'
 
 type OcrStatus = 'idle' | 'scanning' | 'done' | 'error'
@@ -219,18 +220,20 @@ function NuovaFatturaForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800">
 
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-700/50 bg-slate-900/90 px-4 py-4 backdrop-blur-md">
+      <div
+        className={`sticky top-0 z-10 flex items-center gap-3 border-b px-4 py-4 backdrop-blur-md ${desktopHeaderBarDefaultBorderColor} ${desktopHeaderBarDefaultFill}`}
+      >
         <button type="button" onClick={() => router.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200">
+          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-700 hover:text-slate-200">
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
         <div>
-          <h1 className="text-lg font-bold text-slate-100">{t.fatture.caricaFatturaTitle}</h1>
+          <h1 className="app-page-title text-lg font-bold">{t.fatture.caricaFatturaTitle}</h1>
           {bolleSelezionate.size > 0 && (
             <p className="mt-0.5 text-xs text-cyan-400">
               {bolleSelezionate.size} bolla{bolleSelezionate.size > 1 ? 'e' : ''} selezionata{bolleSelezionate.size > 1 ? '' : ''}
@@ -246,7 +249,7 @@ function NuovaFatturaForm() {
           <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-cyan-500/20">
             <div className="app-card-bar shrink-0" aria-hidden />
             <div className="p-5">
-              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
                 Bolle da coprire con questa fattura
               </label>
               {loadingBolle ? (
@@ -259,7 +262,7 @@ function NuovaFatturaForm() {
                     const sel = bolleSelezionate.has(b.id)
                     return (
                       <label key={b.id}
-                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${sel ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-slate-700/50 hover:bg-slate-800/60'}`}>
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${sel ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-slate-700/50 hover:bg-slate-700/60'}`}>
                         <input type="checkbox" checked={sel} onChange={() => toggleBolla(b.id)}
                           className="rounded border-slate-600 text-cyan-500 focus:ring-cyan-500" />
                         <div className="min-w-0 flex-1">
@@ -267,10 +270,10 @@ function NuovaFatturaForm() {
                             {b.numero_bolla ? `${b.numero_bolla} · ` : ''}{fmt(b.data)}
                           </p>
                           {b.importo != null && (
-                            <p className="text-xs text-slate-400">£ {b.importo.toFixed(2)}</p>
+                            <p className="text-xs text-slate-200">£ {b.importo.toFixed(2)}</p>
                           )}
                         </div>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sel ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-500'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sel ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-700 text-slate-500'}`}>
                           {sel ? 'Inclusa' : 'Esclusa'}
                         </span>
                       </label>
@@ -295,7 +298,7 @@ function NuovaFatturaForm() {
         <div className="app-card-login overflow-hidden rounded-2xl">
           <div className="app-card-bar" aria-hidden />
           <div className="border-b border-slate-700/50 p-5">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
               N° Fattura <span className="font-normal normal-case text-slate-600">(opzionale)</span>
             </label>
             <input
@@ -307,7 +310,7 @@ function NuovaFatturaForm() {
             />
           </div>
           <div className="p-5">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
               {t.appStrings.labelImportoTotale}{' '}
               <span className="font-normal normal-case text-slate-600">
                 {bolleSelezionate.size > 0 && tutteConImporto ? '— calcolato automaticamente' : '(IVA inclusa)'}
@@ -333,7 +336,7 @@ function NuovaFatturaForm() {
         <div className="app-card-login flex flex-col overflow-hidden">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-5">
-          <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
             {t.fatture.fileFattura} <span className="text-red-400">*</span>
           </label>
 
@@ -349,7 +352,7 @@ function NuovaFatturaForm() {
           )}
 
           {file?.type === 'application/pdf' && (
-            <div className="flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-700/50 p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/15">
                 <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -376,7 +379,7 @@ function NuovaFatturaForm() {
           <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-cyan-500/20">
             <div className="app-card-bar shrink-0" aria-hidden />
             <div className="p-5">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
               Registrato da
             </label>
             <input type="text" placeholder="Nome di chi ha registrato la fattura…"
@@ -392,7 +395,7 @@ function NuovaFatturaForm() {
           <div className="app-card-bar" aria-hidden />
           <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : ''}`}>
             <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-200">
                 {t.fatture.dataFattura}
               </label>
               {ocrStatus === 'scanning' && (
@@ -418,9 +421,9 @@ function NuovaFatturaForm() {
               className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-slate-100 [color-scheme:dark] focus:outline-none focus:ring-0"
             />
           </div>
-          <div className="flex items-center justify-between border-t border-slate-700/50 bg-slate-800/40 px-5 py-3">
+          <div className="flex items-center justify-between border-t border-slate-700/50 bg-slate-700/40 px-5 py-3">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Data caricamento</span>
-            <span className="text-sm font-medium text-slate-400">
+            <span className="text-sm font-medium text-slate-200">
               {new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} — automatica
             </span>
           </div>

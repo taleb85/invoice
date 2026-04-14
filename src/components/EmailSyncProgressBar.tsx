@@ -71,15 +71,15 @@ function mailLineClass(
   if (variant === 'completionOk') {
     if (key === 'imported') return `${base} text-emerald-200/95`
     if (key === 'processed') return `${base} text-cyan-100/95`
-    if (key === 'already') return `${base} text-slate-300`
-    if (key === 'ignored' || key === 'drafts') return `${base} text-slate-300`
+    if (key === 'already') return `${base} text-slate-200`
+    if (key === 'ignored' || key === 'drafts') return `${base} text-slate-200`
     return `${base} text-cyan-100/95`
   }
   // live cyan box
   if (key === 'imported') return `${base} text-emerald-200/90 [text-shadow:0_0_20px_rgba(52,211,153,0.1)]`
   if (key === 'processed') return `${base} text-cyan-50/95 [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
-  if (key === 'already') return `${base} text-slate-400`
-  if (key === 'ignored' || key === 'drafts') return `${base} text-slate-400`
+  if (key === 'already') return `${base} text-slate-200`
+  if (key === 'ignored' || key === 'drafts') return `${base} text-slate-200`
   return `${base} text-cyan-100/95 [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
 }
 
@@ -167,12 +167,12 @@ export default function EmailSyncProgressBar() {
         barError
           ? 'border-red-500/40 bg-red-950/90 shadow-[0_4px_24px_-8px_rgba(239,68,68,0.35)]'
           : completionWarn
-            ? 'border-amber-500/35 bg-slate-950/95 shadow-[0_4px_24px_-8px_rgba(245,158,11,0.28)]'
+            ? 'border-amber-500/35 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(245,158,11,0.28)]'
             : showCompletionSummary
-              ? 'border-emerald-500/35 bg-slate-950/95 shadow-[0_4px_24px_-8px_rgba(16,185,129,0.3)]'
+              ? 'border-emerald-500/35 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(16,185,129,0.3)]'
               : stalledActive
-                ? 'border-amber-500/30 bg-slate-950/95 shadow-[0_4px_24px_-8px_rgba(245,158,11,0.2)]'
-                : 'border-cyan-500/25 bg-slate-950/95 shadow-[0_4px_24px_-8px_rgba(6,182,212,0.35)]'
+                ? 'border-amber-500/30 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(245,158,11,0.2)]'
+                : 'border-cyan-500/25 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(6,182,212,0.35)]'
       }`}
       role="status"
       aria-live="polite"
@@ -262,7 +262,7 @@ export default function EmailSyncProgressBar() {
         ) : null}
 
         {progress.stalled && progress.active && !barError ? (
-          <div className="rounded-xl border border-amber-500/35 bg-gradient-to-br from-amber-950/50 via-slate-950/40 to-slate-950/60 px-3 py-3 shadow-inner shadow-amber-950/20 sm:px-4">
+          <div className="rounded-xl border border-amber-500/35 bg-gradient-to-br from-amber-950/50 via-slate-800/45 to-slate-800/55 px-3 py-3 shadow-inner shadow-amber-950/20 sm:px-4">
             <div className="flex gap-3 sm:gap-4">
               <div className="flex shrink-0 flex-col items-center pt-1" aria-hidden>
                 <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-400/30">
@@ -293,8 +293,8 @@ export default function EmailSyncProgressBar() {
                   ? 'bg-amber-950/50 ring-1 ring-amber-500/20'
                   : 'bg-emerald-950/40 ring-1 ring-emerald-500/20'
                 : stalledActive
-                  ? 'bg-slate-800/90 ring-1 ring-amber-500/25'
-                  : 'bg-slate-800/90'
+                  ? 'bg-slate-700/90 ring-1 ring-amber-500/25'
+                  : 'bg-slate-700/90'
           }`}
         >
           <div
@@ -316,8 +316,8 @@ export default function EmailSyncProgressBar() {
           <div
             className={`rounded-xl border px-3 py-3 shadow-inner sm:px-4 ${
               completionWarn
-                ? 'border-amber-500/35 bg-gradient-to-br from-amber-950/40 via-slate-900/35 to-slate-950/50 shadow-amber-950/15'
-                : 'border-emerald-500/35 bg-gradient-to-br from-emerald-950/40 via-slate-900/35 to-slate-950/50 shadow-emerald-950/20'
+                ? 'border-amber-500/35 bg-gradient-to-br from-amber-950/40 via-slate-800/38 to-slate-800/50 shadow-amber-950/15'
+                : 'border-emerald-500/35 bg-gradient-to-br from-emerald-950/40 via-slate-800/38 to-slate-800/50 shadow-emerald-950/20'
             }`}
           >
             <div className="flex gap-3 sm:gap-4">
@@ -402,7 +402,7 @@ export default function EmailSyncProgressBar() {
           <>
             {showLiveStatsPanel && (
               <div
-                className="relative overflow-visible rounded-lg border border-cyan-500/25 bg-gradient-to-br from-cyan-950/35 via-slate-900/40 to-slate-950/50 shadow-inner shadow-cyan-950/20"
+                className="relative overflow-visible rounded-lg border border-cyan-500/25 bg-gradient-to-br from-cyan-950/35 via-slate-800/42 to-slate-800/52 shadow-inner shadow-cyan-950/20"
                 title={statsTitle || t.dashboard.emailSyncCountsHint}
               >
                 <div className="min-w-0 px-3 py-3 sm:px-4">

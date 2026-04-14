@@ -8,9 +8,10 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useT } from '@/lib/use-t'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 const fieldBaseCls =
-  'w-full rounded-xl border border-slate-600/60 bg-slate-800 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition [color-scheme:dark] focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50'
+  'w-full rounded-xl border border-slate-600/60 bg-slate-700 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition [color-scheme:dark] focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50'
 const inputCls = `${fieldBaseCls} appearance-none`
 const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80'
 
@@ -104,18 +105,20 @@ function NewFornitoreForm() {
 
   return (
     <div className="mx-auto max-w-lg p-4 md:p-8">
-      <div className="mb-8 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-slate-200 transition-colors hover:text-cyan-300"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </button>
-        <h1 className="text-2xl font-bold tracking-tight text-white">{t.fornitori.new}</h1>
-      </div>
+      <AppPageHeaderStrip>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="shrink-0 text-slate-200 transition-colors hover:text-cyan-300"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          <h1 className="app-page-title min-w-0 text-2xl font-bold tracking-tight">{t.fornitori.new}</h1>
+        </div>
+      </AppPageHeaderStrip>
 
       <form onSubmit={handleSubmit} className="app-card">
         <div className="app-card-bar" aria-hidden />
@@ -141,7 +144,7 @@ function NewFornitoreForm() {
               }
               placeholder={t.fornitori.displayNamePlaceholder}
             />
-            <p className="mt-1 text-[11px] text-slate-400">{t.fornitori.displayNameHint}</p>
+            <p className="mt-1 text-[11px] text-slate-200">{t.fornitori.displayNameHint}</p>
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.email}</label>
@@ -182,7 +185,7 @@ function NewFornitoreForm() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 rounded-xl border border-slate-600/80 bg-slate-800/80 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80"
+              className="flex-1 rounded-xl border border-slate-600/80 bg-slate-700/80 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80"
             >
               {t.common.cancel}
             </button>

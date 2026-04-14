@@ -37,7 +37,7 @@ export default function ConnectionStatusDot() {
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/50 bg-slate-900/80 px-2 py-1 md:py-0.5"
+      className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/20 bg-white/[0.06] px-2 py-1 shadow-[0_0_16px_-4px_rgba(34,211,238,0.12)] md:py-0.5"
       title={label}
       role="status"
       aria-label={label}

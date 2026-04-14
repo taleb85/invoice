@@ -227,13 +227,13 @@ export default function OperatorSwitchModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 px-4 pt-4 backdrop-blur-sm max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-900/40 px-4 pt-4 backdrop-blur-md max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
-      <div className="flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl">
+      <div className="flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-700 shadow-2xl">
 
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-4 py-4 sm:px-5">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-600/80 px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15">
               <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -245,7 +245,7 @@ export default function OperatorSwitchModal() {
               {activeOperator && (
                 <p className="text-[11px] text-slate-500">
                   {t.ui.currentlyActive}{' '}
-                  <span className="text-slate-400 uppercase tracking-wide">
+                  <span className="text-slate-200 uppercase tracking-wide">
                     {activeOperator.full_name.toUpperCase()}
                   </span>
                 </p>
@@ -255,7 +255,7 @@ export default function OperatorSwitchModal() {
           <button
             type="button"
             onClick={handleClose}
-            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 touch-manipulation"
+            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-700 hover:text-slate-200 touch-manipulation"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
@@ -286,7 +286,7 @@ export default function OperatorSwitchModal() {
                 </p>
               ) : (
                 <>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                  <p className="text-xs font-semibold text-slate-200 uppercase tracking-wide">
                     {t.ui.selectOperator}
                   </p>
                   <div className="space-y-2">
@@ -300,10 +300,10 @@ export default function OperatorSwitchModal() {
                           'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition-all touch-manipulation active:scale-[0.99]',
                           selected?.id === op.id
                             ? 'border-cyan-500/40 bg-cyan-500/10 text-white'
-                            : 'border-slate-700/60 bg-slate-800/40 text-slate-300 hover:border-slate-600 hover:bg-slate-800/70',
+                            : 'border-slate-700/60 bg-slate-700/40 text-slate-200 hover:border-slate-600 hover:bg-slate-700/70',
                         ].join(' ')}
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-bold text-slate-300">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-bold text-slate-200">
                           {(op.full_name.trim().toUpperCase() || '?').charAt(0)}
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -336,7 +336,7 @@ export default function OperatorSwitchModal() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => { setStep('select'); clearPin() }}
-                  className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700 rounded-lg transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
@@ -405,10 +405,10 @@ export default function OperatorSwitchModal() {
                         className={[
                           'min-h-[52px] rounded-2xl text-xl font-bold transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg',
                           isDigit
-                            ? 'bg-slate-800 hover:bg-slate-700 text-white border border-slate-700/60 shadow-sm'
+                            ? 'bg-slate-700 hover:bg-slate-700 text-white border border-slate-700/60 shadow-sm'
                             : isClear
-                              ? 'bg-slate-800/50 hover:bg-slate-800 text-slate-400 border border-slate-700/40'
-                              : 'bg-slate-800/50 hover:bg-slate-800 text-slate-400 border border-slate-700/40',
+                              ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700/40'
+                              : 'bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700/40',
                         ].join(' ')}
                       >
                         {key}
@@ -422,7 +422,7 @@ export default function OperatorSwitchModal() {
         </div>
 
         {/* Footer — inactivity setting */}
-        <div className="flex shrink-0 flex-col gap-2 border-t border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex shrink-0 flex-col gap-2 border-t border-slate-600/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <label className="flex min-h-[44px] items-center gap-2 text-xs text-slate-500 sm:min-h-0">
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -432,7 +432,7 @@ export default function OperatorSwitchModal() {
             <select
               value={inactivityTimeout}
               onChange={(e) => setInactivityTimeout(Number(e.target.value))}
-              className="min-h-[48px] w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 touch-manipulation sm:min-h-[44px] sm:w-auto sm:min-w-[8.5rem]"
+              className="min-h-[48px] w-full rounded-xl border border-slate-700 bg-slate-700 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 touch-manipulation sm:min-h-[44px] sm:w-auto sm:min-w-[8.5rem]"
             >
               <option value={0}>{t.ui.operatorAutoLockNever}</option>
               <option value={5}>{t.ui.operatorAutoLockMinutes.replace('{n}', '5')}</option>

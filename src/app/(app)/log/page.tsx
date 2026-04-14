@@ -7,6 +7,8 @@ import DeleteButton from '@/components/DeleteButton'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import LogSupplierAiSuggest from '@/components/LogSupplierAiSuggest'
 import { getT, getLocale, getTimezone } from '@/lib/locale-server'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 
 type LogStato = 'successo' | 'fornitore_non_trovato' | 'bolla_non_trovata' | 'fornitore_suggerito'
 
@@ -115,20 +117,35 @@ export default async function LogPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="mb-6 md:mb-8">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="min-w-0 flex-1 pr-1 text-2xl font-bold text-slate-100">{t.log.title}</h1>
-          <div className="shrink-0 pt-0.5">
-            <ScanEmailButton alwaysShowLabel />
-          </div>
+      <AppPageHeaderStrip>
+        <div className="min-w-0 flex-1">
+          <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
+          <p className="mt-1 text-xs leading-snug text-slate-200">{t.log.subtitle}</p>
         </div>
-        <p className="mt-1 text-xs leading-snug text-slate-400">{t.log.subtitle}</p>
-      </div>
+        <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 pt-0.5 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
+          <ScanEmailButton alwaysShowLabel />
+        </div>
+      </AppPageHeaderStrip>
+
+      <AppSummaryHighlightCard
+        accent="cyan"
+        label={t.log.totalLogs}
+        primary={entries.length}
+        secondary={
+          <>
+            {t.log.linkedInvoices}: {totaleSuccessi}
+            <span className="mx-1.5 text-slate-500" aria-hidden>
+              ·
+            </span>
+            {t.log.withErrors}: {totaleErrori}
+          </>
+        }
+      />
 
       <div className="mb-6 grid grid-cols-3 gap-3 md:mb-8 md:gap-4">
         {statCard(
           <>
-            <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-400 md:text-xs">{t.log.totalLogs}</p>
+            <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-200 md:text-xs">{t.log.totalLogs}</p>
             <p className="mt-1 text-2xl font-bold tabular-nums text-slate-100 md:text-3xl">{entries.length}</p>
           </>
         )}
@@ -153,7 +170,7 @@ export default async function LogPage() {
             <svg className="mx-auto h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="mt-4 font-medium text-slate-400">{t.log.noLogs}</p>
+            <p className="mt-4 font-medium text-slate-200">{t.log.noLogs}</p>
             <p className="text-sm text-slate-500">{t.log.emptyHint}</p>
           </div>
         </div>
@@ -179,7 +196,7 @@ export default async function LogPage() {
                     </div>
                     <p className="font-mono text-[10px] text-slate-600">{t.log.colLogId}: {log.id.slice(0, 8)}…</p>
                     <p className="truncate text-sm font-semibold text-slate-100">{log.mittente}</p>
-                    {log.oggetto_mail && <p className="truncate text-xs text-slate-400">{log.oggetto_mail}</p>}
+                    {log.oggetto_mail && <p className="truncate text-xs text-slate-200">{log.oggetto_mail}</p>}
                     {attach && <p className="truncate text-xs font-medium text-cyan-300/90">{t.log.colAttachment}: {attach}</p>}
                     {sedeNomeFromLog(log) && (
                       <p className="text-[11px] text-slate-500">
@@ -231,16 +248,16 @@ export default async function LogPage() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[960px] text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-700/60 bg-slate-950/40">
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.log.colLogId}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.common.date}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.log.colSede}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.log.sender}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.log.subject}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.log.colAttachment}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.common.status}</th>
-                    <th className="min-w-[200px] px-3 py-2 font-semibold text-slate-400">{t.common.detail}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-400">{t.common.actions}</th>
+                  <tr className="border-b border-slate-700/60 bg-slate-700/40">
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.log.colLogId}</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.common.date}</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.log.colSede}</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.log.sender}</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.log.subject}</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.log.colAttachment}</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.common.status}</th>
+                    <th className="min-w-[200px] px-3 py-2 font-semibold text-slate-200">{t.common.detail}</th>
+                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-slate-200">{t.common.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80">
@@ -251,7 +268,7 @@ export default async function LogPage() {
                     return (
                       <tr
                         key={log.id}
-                        className={`align-top transition-colors hover:bg-slate-800/40 ${
+                        className={`align-top transition-colors hover:bg-slate-700/40 ${
                           unknownHighlight ? 'bg-red-950/20' : ''
                         }`}
                       >
@@ -261,7 +278,7 @@ export default async function LogPage() {
                           {sedeNomeFromLog(log) ?? '—'}
                         </td>
                         <td className="max-w-[140px] truncate px-3 py-2 font-medium text-slate-100">{log.mittente}</td>
-                        <td className="max-w-[160px] truncate px-3 py-2 text-slate-400">
+                        <td className="max-w-[160px] truncate px-3 py-2 text-slate-200">
                           {log.oggetto_mail ?? <span className="italic text-slate-600">—</span>}
                         </td>
                         <td className="max-w-[160px] truncate px-3 py-2 font-mono text-[11px] text-cyan-300/85" title={attach}>
@@ -272,7 +289,7 @@ export default async function LogPage() {
                             {cfg.label}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-[11px] leading-snug text-slate-400">
+                        <td className="px-3 py-2 text-[11px] leading-snug text-slate-200">
                           {log.errore_dettaglio ? (
                             <span className="line-clamp-4" title={log.errore_dettaglio}>
                               {log.errore_dettaglio}

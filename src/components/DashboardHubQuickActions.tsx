@@ -50,7 +50,7 @@ export default function DashboardHubQuickActions() {
       <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
-          className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+          className="absolute inset-0 bg-slate-700/45 backdrop-blur-sm"
           aria-label={t.ui.closeMenu}
           onClick={closeReceipt}
         />
@@ -70,7 +70,7 @@ export default function DashboardHubQuickActions() {
             <button
               type="button"
               onClick={closeReceipt}
-              className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-slate-200"
+              className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-700/80 hover:text-slate-200"
               aria-label={t.ui.closeMenu}
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

@@ -79,7 +79,7 @@ function SedeLockPageInner() {
   }
 
   const shell = (children: ReactNode) => (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#020817] via-slate-950 to-[#0a1628] p-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 p-4">
       <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
       <div className="relative z-10 w-full max-w-sm">{children}</div>
@@ -90,10 +90,10 @@ function SedeLockPageInner() {
     const template = a.sedeLockDescription
     const parts = template.split('{name}')
     if (parts.length < 2) {
-      return <span className="text-slate-400">{template}</span>
+      return <span className="text-slate-200">{template}</span>
     }
     return (
-      <span className="text-slate-400">
+      <span className="text-slate-200">
         {parts[0]}
         <strong className="font-semibold text-slate-200">{sedeName}</strong>
         {parts.slice(1).join('{name}')}
@@ -103,7 +103,7 @@ function SedeLockPageInner() {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+      <div className="flex min-h-screen items-center justify-center bg-slate-700">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
       </div>
     )
@@ -130,12 +130,12 @@ function SedeLockPageInner() {
   return shell(
     <>
       <div className="mb-8 flex flex-col items-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-700/50 bg-slate-900/80 shadow-lg shadow-black/20">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-700/50 bg-slate-700/80 shadow-lg shadow-black/20">
           <svg className="h-8 w-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-slate-100">{a.sedeLockTitle}</h1>
+        <h1 className="app-page-title text-xl font-bold">{a.sedeLockTitle}</h1>
         <p className="mt-1 text-center text-sm leading-snug">{lockDescription}</p>
       </div>
 
@@ -143,7 +143,7 @@ function SedeLockPageInner() {
         <div className="app-card-bar shrink-0" aria-hidden />
         <div className="space-y-4 p-8">
         <div>
-          <label htmlFor="sede-access-code" className="mb-1.5 block text-sm font-medium text-slate-400">
+          <label htmlFor="sede-access-code" className="mb-1.5 block text-sm font-medium text-slate-200">
             {a.sedeLockCodeLabel}
           </label>
           <input
@@ -162,7 +162,7 @@ function SedeLockPageInner() {
             placeholder={a.sedeLockPlaceholder}
             autoFocus
             required
-            className="w-full rounded-lg border border-slate-600/50 bg-slate-950/50 px-3 py-2.5 text-center text-lg tracking-[0.35em] text-slate-100 placeholder:text-slate-500 placeholder:tracking-widest focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            className="w-full rounded-lg border border-slate-600/50 bg-slate-700/50 px-3 py-2.5 text-center text-lg tracking-[0.35em] text-slate-100 placeholder:text-slate-500 placeholder:tracking-widest focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
           />
           {error && (
             <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">

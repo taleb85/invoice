@@ -114,18 +114,6 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
   }, [me, activeOperator, pathname])
 
 
-  const listinoNavIcon = (
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
-    </svg>
-  )
-
-  const listinoNavItem = {
-    label: t.fornitori.tabListino,
-    href: '/listino',
-    icon: listinoNavIcon,
-  }
-
   const operatoreNavItems = [
     {
       label: t.nav.dashboard,
@@ -145,7 +133,6 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
         </svg>
       ),
     },
-    listinoNavItem,
   ]
 
   const fornitoriSearchLower = fornitoriSearch.toLowerCase()
@@ -204,7 +191,6 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
         </svg>
       ),
     },
-    listinoNavItem,
     logEmailNavItem,
   ]
 
@@ -228,17 +214,17 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
 
   // Shared icon-link style helpers
   const navLink = (isActive: boolean) =>
-    `flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap overflow-hidden ${
+    `flex items-center gap-2 px-2 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap overflow-hidden ${
       isActive
-        ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]'
-        : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'
+        ? 'border-l-2 border-cyan-300 bg-gradient-to-r from-cyan-500/32 to-cyan-400/14 pl-[7px] text-cyan-50 shadow-[inset_0_0_28px_rgba(34,211,238,0.14),0_0_36px_-6px_rgba(34,211,238,0.42)]'
+        : 'border-l-2 border-transparent pl-[7px] text-slate-200 hover:bg-slate-600/50 hover:text-white'
     }`
 
   const iconOnly = (isActive: boolean) =>
-    `flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${
+    `flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all ${
       isActive
-        ? 'bg-cyan-500/20 text-white shadow-[inset_0_0_0_1px_rgba(6,182,212,0.20)]'
-        : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100'
+        ? 'border border-slate-400/35 bg-slate-600/55 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]'
+        : 'border border-transparent text-slate-200 hover:border-slate-500/30 hover:bg-slate-600/50 hover:text-white'
     }`
 
   return (
@@ -249,9 +235,9 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
           /* Mobile: no sidebar — desktop only */
           'hidden md:flex md:h-full md:min-h-0 md:flex-col md:relative md:z-auto md:shrink-0 md:overflow-visible',
           collapsed ? 'md:w-14' : 'md:w-56',
-          'bg-slate-950',
+          'bg-slate-700',
           'transition-[width] duration-[600ms] ease-[cubic-bezier(0.08,0.82,0.17,1)]',
-          'shadow-[4px_0_32px_rgba(0,0,0,0.45)]',
+          'shadow-[4px_0_28px_rgba(0,0,0,0.35)]',
         ].join(' ')}
       >
         {/* ── Navigation: area voci scrollabile + riga Comprimi in fondo al nav */}
@@ -280,7 +266,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
             <div>
               <button
                 onClick={() => setBranchesOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-colors"
+                className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:bg-slate-600/50 hover:text-white transition-colors"
               >
                 <span className="flex items-center gap-2">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,19 +280,19 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
               </button>
 
               {branchesOpen && (
-                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2">
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-500/55 pl-2">
                   {allSedi.map((s) => {
                     const isActive = pathname.startsWith(`/sedi/${s.id}`)
                     return (
                       <Link key={s.id} href={`/sedi/${s.id}`} onClick={onClose}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive ? 'bg-cyan-500/15 text-white' : 'text-slate-500 hover:bg-slate-800/60 hover:text-slate-100'}`}>
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${isActive ? 'bg-cyan-500/22 text-cyan-50' : 'text-slate-200 hover:bg-slate-600/50 hover:text-white'}`}>
                         <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-cyan-400' : 'bg-current opacity-60'}`} />
                         <span className="truncate">{s.nome}</span>
                       </Link>
                     )
                   })}
                   <Link href="/sedi" onClick={onClose}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${pathname === '/sedi' ? 'bg-cyan-500/15 text-white' : 'text-slate-500 hover:bg-slate-800/60 hover:text-slate-300'}`}>
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${pathname === '/sedi' ? 'bg-cyan-500/22 text-cyan-50' : 'text-slate-200 hover:bg-slate-600/50 hover:text-white'}`}>
                     <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -359,7 +345,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
             <div>
               <button
                 onClick={() => setFornitoriOpen(o => !o)}
-                className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${pathname.startsWith('/fornitori') ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'}`}
+                className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors ${pathname.startsWith('/fornitori') ? 'bg-cyan-500/22 text-cyan-50 border-l-2 border-cyan-400 pl-[7px] shadow-[inset_0_0_20px_rgba(34,211,238,0.08)]' : 'text-slate-200 hover:bg-slate-600/50 hover:text-white border-l-2 border-transparent pl-[7px]'}`}
               >
                 <span className="flex items-center gap-2 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -367,7 +353,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                   </svg>
                   <span className="truncate">{t.nav.fornitori}</span>
                   {fornitori.length > 0 && (
-                    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded border border-cyan-500/35 bg-cyan-500/15 px-1 text-[10px] font-medium tabular-nums text-cyan-200">
+                    <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded border border-cyan-400/45 bg-cyan-500/25 px-1 text-[10px] font-semibold tabular-nums text-cyan-100">
                       {fornitori.length}
                     </span>
                   )}
@@ -378,7 +364,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
               </button>
 
               {fornitoriOpen && (
-                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2">
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-500/55 pl-2">
                   {/* Search */}
                   {fornitori.length > 5 && (
                     <div className="px-1 py-1">
@@ -387,14 +373,14 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                         value={fornitoriSearch}
                         onChange={e => setFornitoriSearch(e.target.value)}
                         placeholder={t.nav.cerca}
-                        className="w-full text-[11px] bg-slate-800 border border-slate-700 text-slate-300 placeholder-slate-600 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500/40"
+                        className="w-full text-[11px] bg-slate-600/80 border border-slate-500/45 text-slate-200 placeholder-slate-500 rounded-md px-2 py-1 focus:outline-none focus:ring-1 focus:ring-cyan-500/40"
                       />
                     </div>
                   )}
 
                   {/* All suppliers */}
                   <Link href="/fornitori" onClick={onClose}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${pathname === '/fornitori' ? 'bg-cyan-500/15 text-white' : 'text-slate-500 hover:bg-slate-800/60 hover:text-slate-300'}`}>
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${pathname === '/fornitori' ? 'bg-cyan-500/22 text-cyan-50' : 'text-slate-200 hover:bg-slate-600/50 hover:text-white'}`}>
                     <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     </svg>
@@ -407,7 +393,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                       pathname === `/fornitori/${f.id}` || pathname.startsWith(`/fornitori/${f.id}/`)
                     return (
                       <Link key={f.id} href={`/fornitori/${f.id}`} onClick={onClose}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive ? 'bg-cyan-500/15 text-white' : 'text-slate-500 hover:bg-slate-800/60 hover:text-slate-100'}`}>
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${isActive ? 'bg-cyan-500/22 text-cyan-50' : 'text-slate-200 hover:bg-slate-600/50 hover:text-white'}`}>
                         <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-cyan-400' : 'bg-current opacity-50'}`} />
                         <span className="min-w-0 flex-1 truncate">{fornitoreDisplayLabel(f)}</span>
                       </Link>
@@ -415,38 +401,26 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                   })}
 
                   {filteredFornitori.length > 30 && (
-                    <p className="px-2 py-1 text-[10px] text-slate-600">
+                    <p className="px-2 py-1 text-[10px] text-slate-500">
                       +{filteredFornitori.length - 30} {t.nav.altriRisultati}
                     </p>
                   )}
                   {fornitoriSearch && filteredFornitori.length === 0 && (
-                    <p className="px-2 py-1.5 text-[10px] text-slate-600">{t.nav.nessunRisultato}</p>
+                    <p className="px-2 py-1.5 text-[10px] text-slate-500">{t.nav.nessunRisultato}</p>
                   )}
                 </div>
               )}
             </div>
           )}
 
-          {/* Operator collapsed: Listino + Fornitori */}
+          {/* Operator collapsed: scorciatoia Fornitori */}
           {!isMasterAdmin && collapsed && (
-            <>
-              <Link
-                href="/listino"
-                onClick={onClose}
-                title={t.fornitori.tabListino}
-                className={iconOnly(pathname.startsWith('/listino'))}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
-                </svg>
-              </Link>
-              <Link href="/fornitori" onClick={onClose} title={t.nav.fornitori}
-                className={iconOnly(pathname.startsWith('/fornitori'))}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </Link>
-            </>
+            <Link href="/fornitori" onClick={onClose} title={t.nav.fornitori}
+              className={iconOnly(pathname.startsWith('/fornitori'))}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </Link>
           )}
 
           {/* Resto voci piatte. Fornitori: solo per master — operatori/admin sede hanno già il blocco espandibile sopra (o l’icona se sidebar compatta). */}
@@ -461,7 +435,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                   title={item.label} className={`${iconOnly(isActive)} relative`}>
                   {item.icon}
                   {hasBadge && (
-                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-1 ring-slate-950" />
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-1 ring-slate-700" />
                   )}
                 </Link>
               ) : (
@@ -478,12 +452,12 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
           </div>
 
           <div
-            className="flex w-full shrink-0 justify-center border-t border-slate-800/40 py-2"
+            className="flex w-full shrink-0 justify-center border-t border-slate-500/35 py-2"
           >
             <button
               type="button"
               onClick={() => onCollapsedChange(!collapsed)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-cyan-400/70 shadow-sm transition-[background-color,color,box-shadow] duration-[600ms] ease-[cubic-bezier(0.08,0.82,0.17,1)] hover:bg-slate-800/70 hover:text-cyan-300 hover:shadow-md hover:shadow-cyan-500/10 active:bg-slate-700/70 active:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-cyan-300 shadow-sm transition-[background-color,color,box-shadow] duration-[600ms] ease-[cubic-bezier(0.08,0.82,0.17,1)] hover:bg-slate-600/50 hover:text-cyan-200 hover:shadow-md hover:shadow-cyan-500/15 active:bg-slate-600/50 active:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-700"
               title={collapsed ? t.ui.expandSidebar : t.ui.collapseSidebar}
               aria-label={collapsed ? t.ui.expandSidebar : t.ui.collapseSidebar}
             >
@@ -541,7 +515,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
               ) : null}
               {!isMasterAdmin && sedeNome ? (
                 <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/80"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-600/80 bg-slate-600/70"
                   title={sedeNome}
                   role="status"
                   aria-label={sedeNome}
@@ -605,13 +579,13 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
               onClick={openSwitchModal}
               title={operatorDockAria}
               aria-label={operatorDockAria}
-              className="relative mx-auto flex h-8 w-8 touch-manipulation items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-cyan-300"
+              className="relative mx-auto flex h-8 w-8 touch-manipulation items-center justify-center rounded-lg text-slate-200 transition-colors hover:bg-slate-600/55 hover:text-cyan-200"
             >
               <span className="text-xs font-bold text-cyan-300">
                 {operatorDockInitial}
               </span>
               {operatorDockName !== t.ui.noOperator && (
-                <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full border border-slate-900 bg-cyan-400" />
+                <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full border border-slate-700 bg-cyan-400" />
               )}
             </button>
           </div>
@@ -619,7 +593,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
 
         {/* ── Footer ── */}
         <div
-          className={`border-t border-slate-800 ${collapsed ? 'space-y-0.5 px-1 py-2' : 'space-y-1 px-2 py-2.5'}`}
+          className={`border-t border-slate-500/55 ${collapsed ? 'space-y-0.5 px-1 py-2' : 'space-y-1 px-2 py-2.5'}`}
         >
 
           {/* Language switcher */}
@@ -627,7 +601,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
             <div className="relative z-[100]">
               <button
                 onClick={() => setLangOpen(o => !o)}
-                className="group w-full flex items-center gap-2 px-2 py-1.5 text-slate-500 hover:bg-slate-800/60 rounded-lg transition-colors text-[11px]"
+                className="group w-full flex items-center gap-2 px-2 py-1.5 text-slate-200 hover:bg-slate-600/50 rounded-lg transition-colors text-[11px]"
               >
                 <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}</span>
                 <span className="font-medium text-cyan-50 [text-shadow:0_0_12px_rgba(103,232,249,0.7),0_0_24px_rgba(6,182,212,0.35)] group-hover:text-cyan-100 group-hover:[text-shadow:0_0_14px_rgba(103,232,249,0.85),0_0_28px_rgba(6,182,212,0.4)]">
@@ -638,7 +612,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                 </svg>
               </button>
               {langOpen && (
-                <div className="absolute bottom-full mb-1 left-0 right-0 z-[100] max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
+                <div className="absolute bottom-full mb-1 left-0 right-0 z-[100] max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-xl border border-slate-500/55 bg-slate-600 shadow-2xl">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
@@ -650,7 +624,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
                         locale === l.code
                           ? 'bg-cyan-500/15 text-white'
-                          : 'text-slate-300 hover:bg-slate-800/70 hover:text-slate-100'
+                          : 'text-slate-200 hover:bg-slate-600/50 hover:text-slate-100'
                       }`}
                     >
                       <span className="text-sm">{l.flag}</span>
@@ -673,12 +647,12 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
               <button
                 onClick={() => setLangOpen(o => !o)}
                 title={t.ui.languageTooltip}
-                className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-sm text-slate-600 transition-colors hover:bg-slate-800/70 hover:text-slate-300"
+                className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-sm text-slate-200 transition-colors hover:bg-slate-600/50 hover:text-slate-200"
               >
                 {LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}
               </button>
               {langOpen && (
-                <div className="absolute bottom-0 left-full z-[100] ml-2 max-h-[min(240px,calc(100vh-6rem))] w-40 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
+                <div className="absolute bottom-0 left-full z-[100] ml-2 max-h-[min(240px,calc(100vh-6rem))] w-40 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-500/55 bg-slate-600 shadow-2xl">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
@@ -690,7 +664,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
                         locale === l.code
                           ? 'bg-cyan-500/15 text-white'
-                          : 'text-slate-300 hover:bg-slate-800/70 hover:text-slate-100'
+                          : 'text-slate-200 hover:bg-slate-600/50 hover:text-slate-100'
                       }`}
                     >
                       <span className="text-sm">{l.flag}</span>
@@ -718,7 +692,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                 </svg>
               </Link>
               <button onClick={handleLogout} title={t.nav.esci}
-                className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-800/70 hover:text-slate-100">
+                className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-slate-200 transition-colors hover:bg-slate-600/50 hover:text-white">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -728,8 +702,8 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
             <>
               <Link
                 href="/impostazioni"
-                className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  pathname === '/impostazioni' ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'
+                className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  pathname === '/impostazioni' ? 'bg-cyan-500/22 text-cyan-50 border-l-2 border-cyan-400 pl-[7px]' : 'text-slate-200 hover:bg-slate-600/50 hover:text-white border-l-2 border-transparent pl-[7px]'
                 }`}
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -741,8 +715,8 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
 
               <Link
                 href="/guida"
-                className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                  pathname === '/guida' ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'
+                className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  pathname === '/guida' ? 'bg-cyan-500/22 text-cyan-50 border-l-2 border-cyan-400 pl-[7px]' : 'text-slate-200 hover:bg-slate-600/50 hover:text-white border-l-2 border-transparent pl-[7px]'
                 }`}
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -753,7 +727,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 w-full px-2 py-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 text-xs font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-slate-200 hover:text-white hover:bg-slate-600/50 text-xs font-semibold rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

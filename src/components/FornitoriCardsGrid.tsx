@@ -21,11 +21,17 @@ export default function FornitoriCardsGrid({
   sedeScope,
   emptyState,
   addFirstLabel,
+  /** Lista completa per cache offline; se assente si usa `fornitori`. */
+  cacheSourceFornitori,
+  /** Se false, stato vuoto senza link «Aggiungi il primo». */
+  showAddWhenEmpty = true,
 }: {
   fornitori: Fornitore[]
   sedeScope: string
   emptyState: string
   addFirstLabel: string
+  cacheSourceFornitori?: Fornitore[]
+  showAddWhenEmpty?: boolean
 }) {
   const t = useT()
   const router = useRouter()
@@ -37,20 +43,24 @@ export default function FornitoriCardsGrid({
 
   const [rows, setRows] = useState<Fornitore[]>(fornitori)
   const [listSource, setListSource] = useState<'server' | 'cache'>('server')
-  const [cacheReady, setCacheReady] = useState(() => fornitori.length > 0)
+  const cacheSeed = cacheSourceFornitori ?? fornitori
+  const [cacheReady, setCacheReady] = useState(
+    () => fornitori.length > 0 || (cacheSourceFornitori?.length ?? 0) > 0,
+  )
 
   useEffect(() => {
-    void cacheFornitoriList(sedeScope, fornitori)
-  }, [fornitori, sedeScope])
+    void cacheFornitoriList(sedeScope, cacheSeed)
+  }, [cacheSeed, sedeScope])
 
   useEffect(() => {
-    if (fornitori.length > 0) {
+    if (cacheSeed.length > 0) {
       setRows(fornitori)
       setListSource('server')
       setCacheReady(true)
       return
     }
     if (typeof navigator === 'undefined') {
+      setRows(fornitori)
       setCacheReady(true)
       return
     }
@@ -70,7 +80,7 @@ export default function FornitoriCardsGrid({
       }
       setCacheReady(true)
     })
-  }, [fornitori, sedeScope])
+  }, [fornitori, cacheSeed, sedeScope])
 
   useEffect(() => {
     if (net?.online && listSource === 'cache') {
@@ -157,13 +167,13 @@ export default function FornitoriCardsGrid({
   const detailCls =
     'text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors'
   const editCls =
-    'inline-flex items-center gap-1 rounded-lg p-1.5 text-[11px] font-semibold text-slate-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300'
+    'inline-flex items-center gap-1 rounded-lg p-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300'
 
   if (!cacheReady) {
     return (
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
-        <div className="h-32 animate-pulse bg-slate-800/40" />
+        <div className="h-32 animate-pulse bg-slate-700/40" />
       </div>
     )
   }
@@ -181,10 +191,15 @@ export default function FornitoriCardsGrid({
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <p className="text-sm font-medium text-slate-400">{emptyState}</p>
-          <Link href="/fornitori/new" className="mt-4 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-            {addFirstLabel}
-          </Link>
+          <p className="text-sm font-medium text-slate-200">{emptyState}</p>
+          {showAddWhenEmpty ? (
+            <Link
+              href="/fornitori/new"
+              className="mt-4 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+            >
+              {addFirstLabel}
+            </Link>
+          ) : null}
         </div>
       </div>
     )
@@ -247,12 +262,12 @@ export default function FornitoriCardsGrid({
                       {hasDisplayAlias && (
                         <p className="mt-0.5 truncate text-[11px] text-slate-500">{f.nome}</p>
                       )}
-                      {f.email && <p className="text-xs text-slate-400 truncate mt-0.5">{f.email}</p>}
+                      {f.email && <p className="text-xs text-slate-200 truncate mt-0.5">{f.email}</p>}
                     </div>
                   </div>
                   <div className="mt-auto flex min-h-[2.75rem] items-end">
                     {f.piva ? (
-                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-800/80 px-2.5 py-1 font-mono text-[10px] text-slate-400">
+                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-700/80 px-2.5 py-1 font-mono text-[10px] text-slate-200">
                         {t.fornitori.pivaLabel} {f.piva}
                       </p>
                     ) : null}
@@ -278,12 +293,12 @@ export default function FornitoriCardsGrid({
                       {hasDisplayAlias && (
                         <p className="mt-0.5 truncate text-[11px] text-slate-500">{f.nome}</p>
                       )}
-                      {f.email && <p className="text-xs text-slate-400 truncate mt-0.5">{f.email}</p>}
+                      {f.email && <p className="text-xs text-slate-200 truncate mt-0.5">{f.email}</p>}
                     </div>
                   </div>
                   <div className="mt-auto flex min-h-[2.75rem] items-end">
                     {f.piva ? (
-                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-800/80 px-2.5 py-1 font-mono text-[10px] text-slate-400">
+                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-700/80 px-2.5 py-1 font-mono text-[10px] text-slate-200">
                         {t.fornitori.pivaLabel} {f.piva}
                       </p>
                     ) : null}
@@ -291,7 +306,7 @@ export default function FornitoriCardsGrid({
                 </Link>
               )}
 
-              <div className="mt-auto flex shrink-0 items-center justify-center border-t border-slate-700/60 bg-slate-950/40 px-4 py-2.5">
+              <div className="mt-auto flex shrink-0 items-center justify-center border-t border-slate-700/60 bg-slate-700/40 px-4 py-2.5">
                 {unlockedIds.has(f.id) ? (
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>

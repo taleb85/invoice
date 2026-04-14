@@ -14,6 +14,7 @@ export type AppActivity = { id: string; label: string }
 type Ctx = {
   activities: AppActivity[]
   setActivity: (id: string, label: string | null) => void
+  clearAllActivities: () => void
 }
 
 const AppActivitiesContext = createContext<Ctx | null>(null)
@@ -30,6 +31,10 @@ export function AppActivitiesProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const clearAllActivities = useCallback(() => {
+    setMap({})
+  }, [])
+
   const activities = useMemo(
     () =>
       Object.entries(map)
@@ -38,7 +43,10 @@ export function AppActivitiesProvider({ children }: { children: ReactNode }) {
     [map],
   )
 
-  const value = useMemo(() => ({ activities, setActivity }), [activities, setActivity])
+  const value = useMemo(
+    () => ({ activities, setActivity, clearAllActivities }),
+    [activities, setActivity, clearAllActivities],
+  )
 
   return <AppActivitiesContext.Provider value={value}>{children}</AppActivitiesContext.Provider>
 }

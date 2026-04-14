@@ -17,9 +17,9 @@ export function SidebarBrandHeader({
   const { t } = useLocale()
 
   return (
-    <div className="relative flex min-h-[50px] min-w-0 flex-1 items-center px-3">
+    <div className="relative flex min-h-[50px] min-w-0 flex-1 items-center gap-1.5 px-2">
       <div
-        className="flex min-w-0 cursor-pointer items-center gap-2"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
         onClick={() => {
           if (typeof window === 'undefined' || window.innerWidth < 768) return
           if (collapsed) {

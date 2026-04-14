@@ -5,6 +5,7 @@ import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supab
 import ToggleStato from './ToggleStato'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
 async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
@@ -39,32 +40,34 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
 
   return (
     <div className="max-w-2xl p-4 md:p-8">
-      <div className="mb-8 flex items-center gap-3">
-        <Link
-          href={`/fornitori/${bolla.fornitore_id}`}
-          className="text-slate-500 transition-colors hover:text-slate-300"
-          aria-label={t.appStrings.infoSupplierCard}
-          title={t.appStrings.infoSupplierCard}
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </Link>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-slate-100">{bolla.fornitore?.nome}</h1>
-            {rekkiPrezzoFlag && (
-              <span
-                className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-amber-400/45 bg-amber-950/50 px-2 py-1.5 text-[10px] font-semibold leading-snug text-amber-50 shadow-md shadow-amber-950/40 sm:px-2.5 sm:text-[11px]"
-                title={`${t.bolle.verificaPrezzoFornitore} — ${t.bolle.prezzoDaApp}`}
-              >
-                {t.bolle.rekkiPrezzoIndicativoBadge}
-              </span>
-            )}
+      <AppPageHeaderStrip>
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <Link
+            href={`/fornitori/${bolla.fornitore_id}`}
+            className="mt-1 shrink-0 text-slate-500 transition-colors hover:text-slate-200"
+            aria-label={t.appStrings.infoSupplierCard}
+            title={t.appStrings.infoSupplierCard}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </Link>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="app-page-title text-2xl font-bold">{bolla.fornitore?.nome}</h1>
+              {rekkiPrezzoFlag && (
+                <span
+                  className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-amber-400/45 bg-amber-950/50 px-2 py-1.5 text-[10px] font-semibold leading-snug text-amber-50 shadow-md shadow-amber-950/40 sm:px-2.5 sm:text-[11px]"
+                  title={`${t.bolle.verificaPrezzoFornitore} — ${t.bolle.prezzoDaApp}`}
+                >
+                  {t.bolle.rekkiPrezzoIndicativoBadge}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-sm text-slate-200">{formatDate(bolla.data)}</p>
           </div>
-          <p className="mt-0.5 text-sm text-slate-400">{formatDate(bolla.data)}</p>
         </div>
-      </div>
+      </AppPageHeaderStrip>
 
       <div className="space-y-4">
         {/* Info + stato */}
@@ -77,41 +80,41 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
           </div>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.supplier}</dt>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.supplier}</dt>
               <dd className="font-medium text-slate-100">{bolla.fornitore?.nome}</dd>
             </div>
             {bolla.numero_bolla && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.appStrings.colDeliveryNoteNum}</dt>
+                <dt className="w-28 shrink-0 text-slate-200">{t.appStrings.colDeliveryNoteNum}</dt>
                 <dd className="font-mono font-medium text-slate-100">{bolla.numero_bolla}</dd>
               </div>
             )}
             {bolla.fornitore?.email && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.email}</dt>
-                <dd className="text-slate-300">{bolla.fornitore.email}</dd>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.email}</dt>
+                <dd className="text-slate-200">{bolla.fornitore.email}</dd>
               </div>
             )}
             {bolla.fornitore?.piva && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.piva}</dt>
-                <dd className="text-slate-300">{bolla.fornitore.piva}</dd>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.piva}</dt>
+                <dd className="text-slate-200">{bolla.fornitore.piva}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.date}</dt>
-              <dd className="text-slate-300">{formatDate(bolla.data)}</dd>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.date}</dt>
+              <dd className="text-slate-200">{formatDate(bolla.data)}</dd>
             </div>
             {bolla.importo != null && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.statements.colAmount}</dt>
+                <dt className="w-28 shrink-0 text-slate-200">{t.statements.colAmount}</dt>
                 <dd className="font-semibold text-slate-100">
                   £ {Number(bolla.importo).toFixed(2)}
                 </dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.status}</dt>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.status}</dt>
               <dd>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                   bolla.stato === 'completato'
@@ -204,7 +207,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
                 <Link
                   key={f.id}
                   href={`/fatture/${f.id}`}
-                  className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800/50"
+                  className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-700/50"
                 >
                   <span>{formatDate(f.data)}</span>
                   {f.file_url && (

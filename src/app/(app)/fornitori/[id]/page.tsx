@@ -25,8 +25,9 @@ import { emailSyncApiBodyFields, readEmailSyncScopePrefs } from '@/lib/email-syn
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
+import FornitoreConfermeOrdineTab from '@/components/FornitoreConfermeOrdineTab'
 
-type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'documenti' | 'verifica'
+type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica'
 
 interface Fornitore {
   id: string
@@ -103,6 +104,7 @@ type SupplierPeriodStats = {
   bolleTotal: number
   bolleAperte: number
   fattureTotal: number
+  ordiniNelPeriodo: number
   pending: number
   totaleSpesa: number
   listinoRows: number
@@ -114,6 +116,7 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   bolleTotal: 0,
   bolleAperte: 0,
   fattureTotal: 0,
+  ordiniNelPeriodo: 0,
   pending: 0,
   totaleSpesa: 0,
   listinoRows: 0,
@@ -167,18 +170,26 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
         .eq('fornitore_id', fornitoreId)
         .gte('received_at', from)
         .lt('received_at', to),
+      supabase
+        .from('conferme_ordine')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .gte('created_at', from)
+        .lt('created_at', to),
     ])
-      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes]) => {
+      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes, ordiniRes]) => {
         if (cancelled) return
         const totaleSpesa = ((fattureRes.data ?? []) as { importo: number | null }[]).reduce((s, f) => s + (f.importo ?? 0), 0)
         const listinoRows = listinoRes.error ? 0 : (listinoRes.count ?? 0)
         const stmtData = stmtsRes.error ? [] : ((stmtsRes.data ?? []) as { missing_rows: number | null }[])
         const statementsInPeriod = stmtData.length
         const statementsWithIssues = stmtData.filter((s) => (s.missing_rows ?? 0) > 0).length
+        const ordiniNelPeriodo = ordiniRes.error ? 0 : (ordiniRes.count ?? 0)
         setStats({
           bolleTotal: bolleRes.count ?? 0,
           bolleAperte: bolleAperteRes.count ?? 0,
           fattureTotal: fattureRes.count ?? 0,
+          ordiniNelPeriodo,
           pending: pendingCount,
           totaleSpesa,
           listinoRows,
@@ -230,6 +241,20 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
 
   return [
     {
+      label: t.fornitori.kpiOrdini,
+      value: stats?.ordiniNelPeriodo ?? 0,
+      tab: 'conferme',
+      accent: 'border-l-fuchsia-500',
+      accentHex: '#d946ef',
+      icon: (
+        <svg className="h-5 w-5 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+      ),
+      sub: t.fornitori.subOrdiniPeriodo,
+      subColor: (stats?.ordiniNelPeriodo ?? 0) > 0 ? 'text-fuchsia-300' : 'text-slate-200',
+    },
+    {
       label: t.fornitori.kpiBolleTotal,
       value: stats?.bolleTotal ?? 0,
       tab: 'bolle',
@@ -258,18 +283,32 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
       subColor: 'text-slate-200',
     },
     {
-      label: t.fornitori.kpiPending,
-      value: stats?.pending ?? 0,
-      tab: 'documenti',
-      accent: 'border-l-amber-500',
-      accentHex: '#f59e0b',
+      label: t.statements.tabVerifica,
+      value: stats?.statementsInPeriod ?? 0,
+      tab: 'verifica',
+      accent: 'border-l-sky-500',
+      accentHex: '#0ea5e9',
       icon: (
-        <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <svg className="h-5 w-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
       ),
-      sub: t.fornitori.subDaAbbinare,
-      subColor: (stats?.pending ?? 0) > 0 ? 'text-amber-400' : 'text-slate-200',
+      sub: stmtSub,
+      subColor: stmtSubColor,
+    },
+    {
+      label: t.fornitori.tabListino,
+      value: stats?.listinoRows ?? 0,
+      tab: 'listino',
+      accent: 'border-l-teal-500',
+      accentHex: '#14b8a6',
+      icon: (
+        <svg className="h-5 w-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
+        </svg>
+      ),
+      sub: t.fornitori.subListinoRows,
+      subColor: (stats?.listinoRows ?? 0) > 0 ? 'text-slate-200' : 'text-slate-200',
     },
     {
       label: t.common.total,
@@ -289,32 +328,18 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
       subColor: 'text-slate-200',
     },
     {
-      label: t.fornitori.tabListino,
-      value: stats?.listinoRows ?? 0,
-      tab: 'listino',
-      accent: 'border-l-teal-500',
-      accentHex: '#14b8a6',
+      label: t.fornitori.kpiPending,
+      value: stats?.pending ?? 0,
+      tab: 'documenti',
+      accent: 'border-l-amber-500',
+      accentHex: '#f59e0b',
       icon: (
-        <svg className="h-5 w-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
+        <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
-      sub: t.fornitori.subListinoRows,
-      subColor: (stats?.listinoRows ?? 0) > 0 ? 'text-slate-200' : 'text-slate-300',
-    },
-    {
-      label: t.statements.tabVerifica,
-      value: stats?.statementsInPeriod ?? 0,
-      tab: 'verifica',
-      accent: 'border-l-sky-500',
-      accentHex: '#0ea5e9',
-      icon: (
-        <svg className="h-5 w-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-      ),
-      sub: stmtSub,
-      subColor: stmtSubColor,
+      sub: t.fornitori.subDaAbbinare,
+      subColor: (stats?.pending ?? 0) > 0 ? 'text-amber-400' : 'text-slate-200',
     },
   ]
 }
@@ -334,7 +359,7 @@ function SupplierDesktopKpiGrid({
   const kpis = buildSupplierKpiItems(displayStats, t)
   return (
     <div
-      className="mb-6 hidden gap-4 md:grid md:grid-cols-3 xl:grid-cols-6"
+      className="mb-6 hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7"
       aria-busy={loading}
       aria-live="polite"
     >
@@ -343,7 +368,7 @@ function SupplierDesktopKpiGrid({
           key={k.label}
           type="button"
           onClick={() => onTabChange(k.tab)}
-          className={`app-card group flex flex-col cursor-pointer overflow-hidden border-l-4 ${k.accent} text-left transition-all hover:border-cyan-500/30 active:scale-[0.98]`}
+          className={`app-card group flex flex-col cursor-pointer overflow-hidden border-l-4 ${k.accent} text-left transition-[transform,box-shadow,border-color] duration-200 hover:border-cyan-400/35 hover:shadow-[0_12px_40px_-12px_rgba(6,182,212,0.18)] active:scale-[0.98]`}
           style={{ borderLeftColor: k.accentHex }}
         >
           <div className="app-card-bar shrink-0" aria-hidden />
@@ -355,7 +380,7 @@ function SupplierDesktopKpiGrid({
             <p className="text-3xl font-bold text-slate-100">{k.value}</p>
             <div className="mt-1 flex items-center justify-between">
               <p className={`text-xs ${k.subColor}`}>{k.sub}</p>
-              <svg className="h-3.5 w-3.5 text-slate-200 transition-colors group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-3.5 w-3.5 text-slate-200 transition-colors group-hover:text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
@@ -586,7 +611,7 @@ function DashboardTab({
           className={`flex min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-sm font-semibold shadow-lg transition-colors touch-manipulation active:scale-[0.99] ${
             nuovaFatturaActive
               ? 'border-cyan-400/60 bg-white/15 text-cyan-200 ring-2 ring-cyan-500/30 ring-offset-2 ring-offset-slate-900'
-              : 'border-slate-600/80 bg-slate-800/90 text-slate-100 hover:bg-slate-800'
+              : 'border-slate-600/80 bg-slate-700/90 text-slate-100 hover:bg-slate-700'
           }`}
           aria-current={nuovaFatturaActive ? 'page' : undefined}
         >
@@ -603,10 +628,10 @@ function DashboardTab({
           <div className="app-card-bar" aria-hidden />
           <div className="flex items-center justify-between border-b border-slate-700/60 px-4 py-2.5 md:px-5 md:py-3">
             <div className="flex items-center gap-2">
-              <svg className="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <svg className="h-3.5 w-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.appStrings.contactsHeading}</p>
               {contatti.length > 0 && (
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-200">{contatti.length}</span>
+                <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-200">{contatti.length}</span>
               )}
             </div>
             <button onClick={openAdd}
@@ -622,24 +647,24 @@ function DashboardTab({
               <p className="mb-3 text-xs font-semibold text-cyan-200">{editingId ? t.appStrings.contactEdit : t.appStrings.contactNew}</p>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.fornitori.nome} *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.nome} *</label>
                   <input type="text" value={formNome} onChange={e => setFormNome(e.target.value)} placeholder="Marco Ferretti"
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.common.role}</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.common.role}</label>
                   <input type="text" value={formRuolo} onChange={e => setFormRuolo(e.target.value)} placeholder="Administration"
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.common.phone}</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.common.phone}</label>
                   <input type="tel" value={formTelefono} onChange={e => setFormTelefono(e.target.value)} placeholder="+44 20 1234 5678"
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
                 <div className="md:col-span-4">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.fornitori.email}</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.email}</label>
                   <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="marco@supplier.com"
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
               </div>
               <div className="mt-3 flex gap-2">
@@ -670,20 +695,20 @@ function DashboardTab({
             </div>
           ) : contatti.length === 0 && !showAddForm ? (
             <div className="px-4 py-8 text-center md:px-5">
-              <svg className="mx-auto mb-2 h-8 w-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              <p className="text-xs text-slate-300">{t.appStrings.noContactRegistered}</p>
+              <svg className="mx-auto mb-2 h-8 w-8 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <p className="text-xs text-slate-200">{t.appStrings.noContactRegistered}</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-800/80">
               {contatti.map(c => (
-                <div key={c.id} className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-800/30 md:px-5 md:py-3.5">
+                <div key={c.id} className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-700/30 md:px-5 md:py-3.5">
                   {/* Avatar */}
                   <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white ${getAvatarColor(c.nome)}`}>
                     {getInitials(c.nome)}
                   </div>
                   {/* Info */}
                   <div className="min-w-0 flex-1">
-                    {c.ruolo && <p className="text-[10px] leading-tight text-slate-300">{c.ruolo}</p>}
+                    {c.ruolo && <p className="text-[10px] leading-tight text-slate-200">{c.ruolo}</p>}
                     <p className="text-sm font-semibold leading-tight text-slate-100">{c.nome}</p>
                   </div>
                   {/* Actions */}
@@ -701,11 +726,11 @@ function DashboardTab({
                       </a>
                     )}
                     <button onClick={() => openEdit(c)} title={t.common.edit}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 opacity-0 transition-colors hover:bg-slate-800 hover:text-slate-200 group-hover:opacity-100">
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-200 opacity-0 transition-colors hover:bg-slate-700 hover:text-slate-200 group-hover:opacity-100">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
                     <button onClick={() => handleDeleteContatto(c.id)} disabled={deletingId === c.id} title={t.appStrings.contactRemove}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 opacity-0 transition-colors hover:bg-red-950/50 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40">
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-200 opacity-0 transition-colors hover:bg-red-950/50 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40">
                       {deletingId === c.id
                         ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                         : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -723,76 +748,76 @@ function DashboardTab({
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
         <div className="flex items-center gap-2 border-b border-slate-700/60 px-5 py-3">
-          <svg className="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+          <svg className="h-3.5 w-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.appStrings.infoSupplierCard}</p>
         </div>
         <div className="grid grid-cols-2 gap-0 divide-y divide-slate-800/80 md:grid-cols-3 md:divide-x md:divide-y-0 md:divide-slate-800/80">
 
           {/* Contact */}
           <div className="space-y-3 px-5 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{t.appStrings.contactsHeading}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-200">{t.appStrings.contactsHeading}</p>
             {fornitore.email && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 <a href={`mailto:${fornitore.email}`} className="truncate text-xs text-cyan-400 hover:text-cyan-300 hover:underline">{fornitore.email}</a>
               </div>
             )}
             {fornitore.telefono && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                <a href={`tel:${fornitore.telefono}`} className="text-xs text-slate-300 hover:text-cyan-300">{fornitore.telefono}</a>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                <a href={`tel:${fornitore.telefono}`} className="text-xs text-slate-200 hover:text-cyan-300">{fornitore.telefono}</a>
               </div>
             )}
             {fornitore.contatto_nome && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                <span className="text-xs text-slate-300">{fornitore.contatto_nome}</span>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <span className="text-xs text-slate-200">{fornitore.contatto_nome}</span>
               </div>
             )}
             {!fornitore.email && !fornitore.telefono && !fornitore.contatto_nome && (
-              <p className="text-xs italic text-slate-300">{t.appStrings.noContactRegistered}</p>
+              <p className="text-xs italic text-slate-200">{t.appStrings.noContactRegistered}</p>
             )}
           </div>
 
           {/* Address */}
           <div className="space-y-3 px-5 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{t.appStrings.contactsLegal}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-200">{t.appStrings.contactsLegal}</p>
             {(fornitore.indirizzo || fornitore.citta || fornitore.paese) ? (
               <div className="flex items-start gap-2">
-                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                <div className="text-xs leading-relaxed text-slate-300">
+                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <div className="text-xs leading-relaxed text-slate-200">
                   {fornitore.indirizzo && <p>{fornitore.indirizzo}</p>}
                   {(fornitore.citta || fornitore.paese) && <p>{[fornitore.citta, fornitore.paese].filter(Boolean).join(', ')}</p>}
                 </div>
               </div>
             ) : (
-              <p className="text-xs italic text-slate-300">{t.appStrings.noAddressRegistered}</p>
+              <p className="text-xs italic text-slate-200">{t.appStrings.noAddressRegistered}</p>
             )}
           </div>
 
           {/* Fiscal info */}
           <div className="space-y-3 px-5 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{t.appStrings.contactsFiscal}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-200">{t.appStrings.contactsFiscal}</p>
             {fornitore.piva && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                <span className="font-mono text-xs text-slate-300">{fornitore.piva}</span>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span className="font-mono text-xs text-slate-200">{fornitore.piva}</span>
               </div>
             )}
             {Number.isFinite(new Date(fornitore.created_at).getTime()) && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                <span className="text-xs text-slate-300">{t.appStrings.clientSince} {formatDateLib(fornitore.created_at, locale, timezone, { month: 'long', year: 'numeric' })}</span>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <span className="text-xs text-slate-200">{t.appStrings.clientSince} {formatDateLib(fornitore.created_at, locale, timezone, { month: 'long', year: 'numeric' })}</span>
               </div>
             )}
             {fornitore.note && (
               <div className="mt-1 flex items-start gap-2">
-                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
                 <p className="text-xs italic leading-relaxed text-slate-200">{fornitore.note}</p>
               </div>
             )}
             {!fornitore.piva && !fornitore.note && (
-              <p className="text-xs italic text-slate-300">{t.appStrings.noFiscalRegistered}</p>
+              <p className="text-xs italic text-slate-200">{t.appStrings.noFiscalRegistered}</p>
             )}
           </div>
         </div>
@@ -814,7 +839,7 @@ function attachmentKindPillClass(kind: AttachmentKind): string {
   const base = 'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums'
   if (kind === 'pdf') return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-200`
   if (kind === 'image') return `${base} border-violet-500/35 bg-violet-500/10 text-violet-200`
-  return `${base} border-slate-600/50 bg-slate-800/70 text-slate-400`
+  return `${base} border-slate-600/50 bg-slate-700/70 text-slate-200`
 }
 
 /** Etichetta link “apri file”: foto → apri allegato; PDF → vedi documento (bolle/fatture). */
@@ -940,7 +965,7 @@ function BolleTab({
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
         <div className="px-6 py-16 text-center">
-        <svg className="mx-auto mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="mx-auto mb-3 h-12 w-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
         <p className="text-sm font-medium text-slate-200">{t.bolle.nessunaBollaRegistrata}</p>
@@ -969,7 +994,7 @@ function BolleTab({
             onKeyDown={e => {
               if (e.key === 'Enter' || e.key === ' ') router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })
             }}
-            className="flex min-h-[56px] cursor-pointer items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-slate-800/40 active:bg-slate-800/60 touch-manipulation"
+            className="flex min-h-[56px] cursor-pointer items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-slate-700/40 active:bg-slate-700/60 touch-manipulation"
           >
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -981,7 +1006,7 @@ function BolleTab({
                 ) : null}
               </div>
               {numeroInElenco(b) && <p className="mt-0.5 text-xs text-slate-200">#{numeroInElenco(b)}</p>}
-              {b.importo != null && <p className="mt-0.5 text-xs font-semibold text-slate-300">£{b.importo.toFixed(2)}</p>}
+              {b.importo != null && <p className="mt-0.5 text-xs font-semibold text-slate-200">£{b.importo.toFixed(2)}</p>}
             </div>
             <div className="flex items-center gap-2">
                 {b.stato === 'completato' ? (
@@ -1013,7 +1038,7 @@ function BolleTab({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[500px] text-sm">
           <thead>
-            <tr className="border-b border-slate-700/60 bg-slate-950/40">
+            <tr className="border-b border-slate-700/60 bg-slate-700/40">
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.common.date}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.bolle.colNumero}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.bolle.colAttachmentKind}</th>
@@ -1028,11 +1053,11 @@ function BolleTab({
               return (
               <tr
                 key={b.id}
-                className="cursor-pointer transition-colors hover:bg-slate-800/40"
+                className="cursor-pointer transition-colors hover:bg-slate-700/40"
                 onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
               >
-                <td className="px-5 py-3 font-medium text-slate-300">{formatDate(b.data)}</td>
-                <td className="px-5 py-3 font-mono text-xs text-slate-300">{numeroInElenco(b) || '—'}</td>
+                <td className="px-5 py-3 font-medium text-slate-200">{formatDate(b.data)}</td>
+                <td className="px-5 py-3 font-mono text-xs text-slate-200">{numeroInElenco(b) || '—'}</td>
                 <td className="px-5 py-3">
                   {!fileKind ? (
                     <span className="text-slate-600">—</span>
@@ -1147,7 +1172,7 @@ function FattureTab({
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
         <div className="px-6 py-16 text-center">
-        <svg className="mx-auto mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="mx-auto mb-3 h-12 w-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
         <p className="text-sm font-medium text-slate-200">{t.fatture.nessunaFatturaRegistrata}</p>
@@ -1168,7 +1193,7 @@ function FattureTab({
         {fatture.map((f) => {
           const fileKind = attachmentKindFromFileUrl(f.file_url)
           return (
-          <div key={f.id} className="min-h-[56px] px-4 py-4 transition-colors hover:bg-slate-800/40 active:bg-slate-800/60 touch-manipulation">
+          <div key={f.id} className="min-h-[56px] px-4 py-4 transition-colors hover:bg-slate-700/40 active:bg-slate-700/60 touch-manipulation">
             <Link href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)} scroll={false} className="block">
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -1181,7 +1206,7 @@ function FattureTab({
                     ) : null}
                   </div>
                   {f.numero_fattura && <p className="mt-0.5 text-xs text-slate-200">#{f.numero_fattura}</p>}
-                  {f.importo != null && <p className="mt-0.5 text-xs font-semibold text-slate-300">£{f.importo.toFixed(2)}</p>}
+                  {f.importo != null && <p className="mt-0.5 text-xs font-semibold text-slate-200">£{f.importo.toFixed(2)}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   {f.bolla_id ? (
@@ -1189,7 +1214,7 @@ function FattureTab({
                       {t.fatture.statusAssociata}
                     </span>
                   ) : (
-                    <span className="rounded-full border border-slate-600/60 bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-200">
+                    <span className="rounded-full border border-slate-600/60 bg-slate-700/80 px-2 py-0.5 text-[11px] font-medium text-slate-200">
                       {t.fatture.statusSenzaBolla}
                     </span>
                   )}
@@ -1204,7 +1229,7 @@ function FattureTab({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[520px] text-sm">
           <thead>
-            <tr className="border-b border-slate-700/60 bg-slate-950/40">
+            <tr className="border-b border-slate-700/60 bg-slate-700/40">
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.common.date}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.fatture.colNumFattura}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.bolle.colAttachmentKind}</th>
@@ -1217,9 +1242,9 @@ function FattureTab({
             {fatture.map((f) => {
               const fileKind = attachmentKindFromFileUrl(f.file_url)
               return (
-              <tr key={f.id} className="transition-colors hover:bg-slate-800/40">
-                <td className="px-5 py-3 font-medium text-slate-300">{formatDate(f.data)}</td>
-                <td className="px-5 py-3 font-mono text-xs text-slate-300">{f.numero_fattura ?? '—'}</td>
+              <tr key={f.id} className="transition-colors hover:bg-slate-700/40">
+                <td className="px-5 py-3 font-medium text-slate-200">{formatDate(f.data)}</td>
+                <td className="px-5 py-3 font-mono text-xs text-slate-200">{f.numero_fattura ?? '—'}</td>
                 <td className="px-5 py-3">
                   {!fileKind ? (
                     <span className="text-slate-600">—</span>
@@ -1236,7 +1261,7 @@ function FattureTab({
                       {t.fatture.statusAssociata}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/60 bg-slate-800/80 px-2 py-0.5 text-[11px] font-semibold text-slate-200">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/60 bg-slate-700/80 px-2 py-0.5 text-[11px] font-semibold text-slate-200">
                       {t.fatture.statusSenzaBolla}
                     </span>
                   )}
@@ -1682,7 +1707,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
               <p className="text-xs text-amber-200/80 mt-0.5 leading-relaxed">
                 {t.fornitori.listinoSetupSubtitle}
               </p>
-              <ol className="mt-2 space-y-1 text-xs text-amber-100/90 [&_a]:text-amber-200 [&_a]:underline [&_a]:decoration-amber-200/50 [&_a]:transition-colors [&_a:hover]:text-slate-100 [&_strong]:font-bold [&_strong]:text-slate-100 [&_code]:rounded [&_code]:bg-slate-950/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-slate-300">
+              <ol className="mt-2 space-y-1 text-xs text-amber-100/90 [&_a]:text-amber-200 [&_a]:underline [&_a]:decoration-amber-200/50 [&_a]:transition-colors [&_a:hover]:text-slate-100 [&_strong]:font-bold [&_strong]:text-slate-100 [&_code]:rounded [&_code]:bg-slate-700/50 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-slate-200">
                 <li className="flex items-center gap-2">
                   <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500/30 text-[10px] font-bold text-amber-100">1</span>
                   <span dangerouslySetInnerHTML={{ __html: t.fornitori.listinoSetupStep1 }} />
@@ -1712,7 +1737,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
             <summary className="px-5 py-2 text-[11px] text-amber-300/90 cursor-pointer hover:bg-amber-500/10 select-none">
               {t.fornitori.listinoSetupShowSQL}
             </summary>
-            <pre className="text-[10px] text-amber-100/90 bg-slate-950/60 px-5 py-3 overflow-x-auto whitespace-pre font-mono border-t border-amber-500/15">
+            <pre className="text-[10px] text-amber-100/90 bg-slate-700/60 px-5 py-3 overflow-x-auto whitespace-pre font-mono border-t border-amber-500/15">
               {MIGRATION_SQL}
             </pre>
           </details>
@@ -1725,7 +1750,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoProdotti}</p>
             <div className="flex items-center gap-2">
               {Object.keys(listinoByProduct).length > 0 && (
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-200">
+                <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-200">
                   {Object.keys(listinoByProduct).length} {t.fornitori.listinoProdottiTracked}
                 </span>
               )}
@@ -1766,11 +1791,11 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                 <>
                   <div className="mb-3 flex items-end gap-3">
                     <div className="flex-1">
-                      <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.appStrings.listinoImportSelectInvoiceLabel}</label>
+                      <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.appStrings.listinoImportSelectInvoiceLabel}</label>
                       <select
                         value={selectedFatturaId}
                         onChange={e => { setSelectedFatturaId(e.target.value); setImportItems([]); setImportError(null) }}
-                        className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                        className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                       >
                         {importFattureList.map(f => (
                           <option key={f.id} value={f.id}>{f.label}</option>
@@ -1800,18 +1825,18 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   {importItems.length > 0 && (
                     <div className="mt-2">
                       <div className="mb-2 flex items-center justify-between">
-                        <p className="text-[10px] font-semibold uppercase text-slate-300">
+                        <p className="text-[10px] font-semibold uppercase text-slate-200">
                           {t.appStrings.listinoImportProductsSelected
                             .replace(/\{selected\}/g, String(importItems.filter(i => i.selected).length))
                             .replace(/\{total\}/g, String(importItems.length))}
                         </p>
                         <div className="flex items-center gap-2">
-                          <label className="text-[10px] font-semibold uppercase text-slate-300">{t.appStrings.listinoImportPriceListDateLabel}</label>
+                          <label className="text-[10px] font-semibold uppercase text-slate-200">{t.appStrings.listinoImportPriceListDateLabel}</label>
                           <input
                             type="date"
                             value={importDate}
                             onChange={e => setImportDate(e.target.value)}
-                            className="rounded-lg border border-slate-600/60 bg-slate-800/70 px-2 py-1 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+                            className="rounded-lg border border-slate-600/60 bg-slate-700/70 px-2 py-1 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                           />
                         </div>
                       </div>
@@ -1842,21 +1867,21 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                 {nuovi.length} nuovo{nuovi.length > 1 ? 'i' : ''}
                               </span>
                             )}
-                            <span className="text-[10px] text-slate-300">rispetto all&apos;ultimo listino registrato</span>
+                            <span className="text-[10px] text-slate-200">rispetto all&apos;ultimo listino registrato</span>
                           </div>
                         )
                       })()}
 
-                      <div className="mb-3 overflow-x-auto rounded-lg border border-slate-700/60 bg-slate-900/40">
+                      <div className="mb-3 overflow-x-auto rounded-lg border border-slate-700/60 bg-slate-700/40">
                         <table className="w-full min-w-[780px] text-xs">
                           <thead>
-                            <tr className="border-b border-slate-700/60 bg-slate-800/80">
+                            <tr className="border-b border-slate-700/60 bg-slate-700/80">
                               <th className="w-8 px-3 py-2"></th>
                               <th className="min-w-[10rem] w-[10.5rem] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-200">Cod.</th>
-                              <th className="min-w-[14rem] px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-300">Prodotto</th>
-                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-300">Ult. prezzo</th>
-                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-300">In fattura</th>
-                              <th className="w-24 px-3 py-2 text-center text-[10px] font-semibold uppercase text-slate-300">Δ variaz.</th>
+                              <th className="min-w-[14rem] px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-200">Prodotto</th>
+                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-200">Ult. prezzo</th>
+                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-200">In fattura</th>
+                              <th className="w-24 px-3 py-2 text-center text-[10px] font-semibold uppercase text-slate-200">Δ variaz.</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-700/50">
@@ -1891,7 +1916,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                         )
                                       }
                                       placeholder="—"
-                                      className="w-full min-w-0 border-0 bg-transparent px-1 py-1.5 font-mono text-[13px] font-medium leading-snug tracking-wide text-slate-100 placeholder:text-slate-500 focus:bg-slate-800/35 focus:outline-none focus:ring-0"
+                                      className="w-full min-w-0 border-0 bg-transparent px-1 py-1.5 font-mono text-[13px] font-medium leading-snug tracking-wide text-slate-100 placeholder:text-slate-500 focus:bg-slate-700/35 focus:outline-none focus:ring-0"
                                     />
                                   </td>
                                   <td className="min-w-0 px-3 py-2.5 align-top">
@@ -1901,7 +1926,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                           type="text"
                                           value={item.prodotto}
                                           onChange={e => setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, prodotto: e.target.value } : it))}
-                                          className="-mx-1 min-h-[1.25rem] min-w-0 flex-1 rounded bg-transparent px-1 font-medium leading-snug text-slate-100 focus:bg-slate-800/80 focus:outline-none"
+                                          className="-mx-1 min-h-[1.25rem] min-w-0 flex-1 rounded bg-transparent px-1 font-medium leading-snug text-slate-100 focus:bg-slate-700/80 focus:outline-none"
                                         />
                                         {item.isNew && (
                                           <span className="shrink-0 rounded-full bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-300">
@@ -1910,15 +1935,15 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                         )}
                                       </div>
                                       {item.matchedProdotto && item.matchedProdotto !== item.prodotto && (
-                                        <p className="break-words text-[9px] italic leading-snug text-slate-300">≈ {item.matchedProdotto}</p>
+                                        <p className="break-words text-[9px] italic leading-snug text-slate-200">≈ {item.matchedProdotto}</p>
                                       )}
                                       {item.note && (
-                                        <p className="break-words text-[10px] italic leading-snug text-slate-300">{item.note}</p>
+                                        <p className="break-words text-[10px] italic leading-snug text-slate-200">{item.note}</p>
                                       )}
                                     </div>
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums text-slate-200">
-                                    {item.prezzoAttuale != null ? `£${item.prezzoAttuale.toFixed(2)}` : <span className="text-slate-300">—</span>}
+                                    {item.prezzoAttuale != null ? `£${item.prezzoAttuale.toFixed(2)}` : <span className="text-slate-200">—</span>}
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums">
                                     <input
@@ -1926,7 +1951,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                       step="0.01"
                                       value={item.prezzo}
                                       onChange={e => setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, prezzo: parseFloat(e.target.value) || 0 } : it))}
-                                      className={`w-20 rounded bg-transparent px-1 text-right font-bold focus:bg-slate-800/80 focus:outline-none ${isRincaro ? 'text-red-300' : isRibasso ? 'text-emerald-300' : 'text-slate-100'}`}
+                                      className={`w-20 rounded bg-transparent px-1 text-right font-bold focus:bg-slate-700/80 focus:outline-none ${isRincaro ? 'text-red-300' : isRibasso ? 'text-emerald-300' : 'text-slate-100'}`}
                                     />
                                   </td>
                                   <td className="px-3 py-2.5 text-center">
@@ -1941,7 +1966,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                     ) : item.isNew ? (
                                       <span className="text-[10px] font-semibold text-cyan-400/90">—</span>
                                     ) : (
-                                      <span className="text-[10px] text-slate-300">—</span>
+                                      <span className="text-[10px] text-slate-200">—</span>
                                     )}
                                   </td>
                                 </tr>
@@ -1978,17 +2003,17 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
               <p className="mb-3 text-xs font-semibold text-cyan-100">Nuovo prodotto / aggiornamento prezzo</p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Prodotto *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">Prodotto *</label>
                   <input
                     type="text"
                     value={formProdotto}
                     onChange={e => setFormProdotto(e.target.value)}
                     placeholder="es. Pomodori San Marzano"
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Prezzo *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">Prezzo *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1996,26 +2021,26 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                     value={formPrezzo}
                     onChange={e => setFormPrezzo(e.target.value)}
                     placeholder="0.00"
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Data prezzo *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">Data prezzo *</label>
                   <input
                     type="date"
                     value={formData}
                     onChange={e => setFormData(e.target.value)}
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                   />
                 </div>
                 <div className="md:col-span-4">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Note (opzionale)</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">Note (opzionale)</label>
                   <input
                     type="text"
                     value={formNote}
                     onChange={e => setFormNote(e.target.value)}
                     placeholder="es. prezzo stagionale, promo, ecc."
-                    className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                    className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                   />
                 </div>
               </div>
@@ -2045,11 +2070,11 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           {/* Empty state */}
           {Object.keys(listinoByProduct).length === 0 && !showForm && (
             <div className="px-5 py-10 text-center">
-              <svg className="mx-auto mb-2 h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mx-auto mb-2 h-10 w-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               <p className="text-sm font-medium text-slate-200">{t.fornitori.listinoNoData}</p>
-              <p className="mt-1 text-xs text-slate-300">{t.appStrings.clickAddFirst}</p>
+              <p className="mt-1 text-xs text-slate-200">{t.appStrings.clickAddFirst}</p>
             </div>
           )}
 
@@ -2073,7 +2098,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                           <p className="text-sm font-semibold text-slate-100">{prodotto}</p>
                           {penultimo && (
                             <div className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              isRincaro ? 'bg-red-500/15 text-red-300' : isRibasso ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-800 text-slate-300'
+                              isRincaro ? 'bg-red-500/15 text-red-300' : isRibasso ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-700 text-slate-200'
                             }`}>
                               {isRincaro ? '▲' : isRibasso ? '▼' : '='} {Math.abs(pct).toFixed(1)}%
                             </div>
@@ -2082,21 +2107,21 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                           {sorted.map((p, i) => (
                             <span key={p.id} className="flex items-center gap-1">
-                              <span className="text-[10px] text-slate-300">
+                              <span className="text-[10px] text-slate-200">
                                 {formatDateLib(p.data_prezzo, locale, timezone, { month: 'short', year: '2-digit' })}
                               </span>
                               <span className={`text-xs font-bold ${
                                 i === sorted.length - 1 && isRincaro ? 'text-red-300' :
                                 i === sorted.length - 1 && isRibasso ? 'text-emerald-300' :
-                                'text-slate-300'
+                                'text-slate-200'
                               }`}>
                                 £{p.prezzo.toFixed(2)}
                               </span>
-                              {i < sorted.length - 1 && <span className="text-[10px] text-slate-300">→</span>}
+                              {i < sorted.length - 1 && <span className="text-[10px] text-slate-200">→</span>}
                             </span>
                           ))}
                         </div>
-                        {ultimo.note && <p className="mt-0.5 text-[10px] italic text-slate-300">{ultimo.note}</p>}
+                        {ultimo.note && <p className="mt-0.5 text-[10px] italic text-slate-200">{ultimo.note}</p>}
                       </div>
 
                       {/* Delete last entry button */}
@@ -2105,7 +2130,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                         onClick={() => handleDelete(ultimo.id)}
                         disabled={deletingId === ultimo.id}
                         title="Rimuovi ultimo prezzo"
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-red-500/15 hover:text-red-400 disabled:opacity-40"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-200 transition-colors hover:bg-red-500/15 hover:text-red-400 disabled:opacity-40"
                       >
                         {deletingId === ultimo.id
                           ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -2125,7 +2150,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
       {rows.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
-            { label: t.fornitori.listinoTotale, value: totale, cls: 'border-slate-700/50 bg-slate-900/90 text-slate-100' },
+            { label: t.fornitori.listinoTotale, value: totale, cls: 'border-slate-700/50 bg-slate-700/90 text-slate-100' },
             { label: t.fornitori.listinoDaBolle, value: totBolle, cls: 'border-blue-500/30 bg-blue-500/10 text-blue-200' },
             { label: t.fornitori.listinoDaFatture, value: totFatture, cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' },
           ].map(({ label, value, cls }) => (
@@ -2148,7 +2173,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
         <div className="app-card flex flex-col overflow-hidden text-center">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="px-6 py-16">
-          <svg className="mx-auto mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mx-auto mb-3 h-12 w-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
           <p className="text-sm font-medium text-slate-200">{t.fornitori.listinoNoDocs}</p>
@@ -2159,7 +2184,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           <div className="app-card-bar" aria-hidden />
           <div className="flex items-center justify-between border-b border-slate-700/60 px-5 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoStorico}</p>
-            <p className="text-xs text-slate-300">{rows.length} {t.fornitori.listinoDocs}</p>
+            <p className="text-xs text-slate-200">{rows.length} {t.fornitori.listinoDocs}</p>
           </div>
 
           {/* Mobile */}
@@ -2170,7 +2195,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   <span className={`h-2 w-2 shrink-0 rounded-full ${r.tipo === 'fattura' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-slate-100">{formatDate(r.data)}</p>
-                    {r.numero && <p className="text-[11px] text-slate-300">#{r.numero}</p>}
+                    {r.numero && <p className="text-[11px] text-slate-200">#{r.numero}</p>}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -2190,15 +2215,15 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-700/60">
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColData}</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColTipo}</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColNumero}</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColImporto}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoColData}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoColTipo}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoColNumero}</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoColImporto}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/50">
               {rows.map((r) => (
-                <tr key={`${r.tipo}-${r.id}`} className="transition-colors hover:bg-slate-800/40">
+                <tr key={`${r.tipo}-${r.id}`} className="transition-colors hover:bg-slate-700/40">
                   <td className="px-5 py-3.5 font-medium text-slate-200">{formatDate(r.data)}</td>
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
@@ -2210,12 +2235,12 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                       {r.tipo === 'fattura' ? t.fatture.title : t.bolle.title}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-slate-300">{r.numero ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-slate-200">{r.numero ?? '—'}</td>
                   <td className="px-5 py-3.5 text-right text-base font-bold tabular-nums text-slate-100">£{(r.importo ?? 0).toFixed(2)}</td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-slate-700/60 bg-slate-800/30">
-                <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColTotale}</td>
+              <tr className="border-t-2 border-slate-700/60 bg-slate-700/30">
+                <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoColTotale}</td>
                 <td className="px-5 py-3 text-right text-base font-bold tabular-nums text-slate-100">£{totale.toFixed(2)}</td>
               </tr>
             </tbody>
@@ -2255,6 +2280,7 @@ function FornitoreDetailClient({
       tabParam === 'bolle' ||
       tabParam === 'fatture' ||
       tabParam === 'listino' ||
+      tabParam === 'conferme' ||
       tabParam === 'documenti' ||
       tabParam === 'verifica'
     ) {
@@ -2312,17 +2338,18 @@ function FornitoreDetailClient({
   )
   const isCurrentMonth = filterYear === now.getFullYear() && filterMonth === now.getMonth() + 1
 
+  const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(fornitore.id, filterYear, filterMonth)
+
+  const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
   const tabs: { id: Tab; label: string; badge?: number }[] = [
     { id: 'dashboard', label: t.fornitori.tabRiepilogo },
-    { id: 'bolle',     label: t.nav.bolle,              badge: bolleCount },
-    { id: 'fatture',   label: t.nav.fatture,            badge: fattureCount },
-    { id: 'listino',   label: t.fornitori.tabListino },
+    { id: 'conferme', label: t.fornitori.kpiOrdini, badge: ordiniCount > 0 ? ordiniCount : undefined },
+    { id: 'bolle', label: t.nav.bolle, badge: bolleCount },
+    { id: 'fatture', label: t.nav.fatture, badge: fattureCount },
+    { id: 'verifica', label: t.statements.tabVerifica },
+    { id: 'listino', label: t.fornitori.tabListino },
     { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
-    { id: 'verifica',  label: t.statements.tabVerifica },
   ]
-
-  // Initials for avatar
-  const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(fornitore.id, filterYear, filterMonth)
 
   const TabContent = () => (
     <>
@@ -2356,6 +2383,9 @@ function FornitoreDetailClient({
         />
       )}
       {tab === 'listino'   && <ListinoTab fornitoreId={fornitore.id} />}
+      {tab === 'conferme' && (
+        <FornitoreConfermeOrdineTab fornitoreId={fornitore.id} sedeId={fornitore.sede_id ?? null} />
+      )}
       {tab === 'documenti' && (
         <PendingMatchesTab
           sedeId={fornitore.sede_id ?? undefined}
@@ -2395,7 +2425,7 @@ function FornitoreDetailClient({
           <div className="flex items-start gap-3 px-3 py-2.5">
             <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <h1 className="text-sm font-semibold leading-snug text-slate-100">{fornitore.nome}</h1>
+              <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitore.nome}</h1>
               <button
                 type="button"
                 onClick={syncThisSupplier}
@@ -2419,13 +2449,13 @@ function FornitoreDetailClient({
           </div>
         </div>
 
-        <header className="sticky top-0 z-[5] -mx-4 mb-3 border-b border-slate-700/70 bg-slate-950/90 px-4 py-3 backdrop-blur-md supports-backdrop-filter:bg-slate-950/80">
+        <header className="sticky top-0 z-[5] -mx-4 mb-3 border-b border-slate-700/70 bg-slate-700/90 px-4 py-3 backdrop-blur-md supports-backdrop-filter:bg-slate-700/80">
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="mobile-supplier-tab-title" className="text-lg font-bold leading-tight tracking-tight text-slate-100">
               {activeTabInfo.label}
             </h2>
             {activeTabInfo.badge != null && activeTabInfo.badge > 0 && (
-              <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-bold tabular-nums text-slate-300">
+              <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs font-bold tabular-nums text-slate-200">
                 {activeTabInfo.badge > 99 ? '99+' : activeTabInfo.badge}
               </span>
             )}
@@ -2439,22 +2469,23 @@ function FornitoreDetailClient({
       <div className="hidden md:block">
 
         {/* ── Horizontal header bar ── */}
-        <div className="bg-slate-950 px-6 pt-3 pb-0">
+        <div className="bg-slate-700 px-6 pt-3 pb-0">
           {/* Identity + stats + actions — all in one row */}
           <div className="flex items-center gap-4 pb-3 border-b border-white/10">
             <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} />
 
             {/* Name / email */}
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-bold text-white truncate leading-tight">{fornitore.nome}</h1>
+              <h1 className="app-page-title text-sm font-bold truncate leading-tight">{fornitore.nome}</h1>
               {fornitore.email && <p className="text-[11px] text-slate-200 truncate mt-0.5">{fornitore.email}</p>}
             </div>
 
             {/* Stat pills */}
             <div className="flex items-center gap-1.5 shrink-0">
               {[
-                { label: t.nav.bolle,           value: bolleCount },
-                { label: t.nav.fatture,          value: fattureCount },
+                { label: t.fornitori.kpiOrdini, value: ordiniCount },
+                { label: t.nav.bolle, value: bolleCount },
+                { label: t.nav.fatture, value: fattureCount },
                 { label: t.fornitori.kpiPending, value: pendingCount, warn: pendingCount > 0 },
               ].map(k => (
                 <div key={k.label} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold ${k.warn ? 'bg-amber-400/10 border-amber-400/20 text-amber-300' : 'bg-white/5 border-white/10 text-slate-100'}`}>
@@ -2513,13 +2544,17 @@ function FornitoreDetailClient({
                 )}
                 {t.dashboard.syncEmail}
               </button>
-              <Link href={`/bolle/new?fornitore_id=${fornitore.id}`}
-                className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-bold rounded-lg transition-colors">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              <Link
+                href={`/bolle/new?fornitore_id=${fornitore.id}`}
+                className="app-glow-cyan flex items-center gap-1.5 rounded-xl bg-cyan-500 px-3 py-2 text-xs font-bold text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 {t.nav.nuovaBolla}
               </Link>
-              <Link href={`/fatture/new?fornitore_id=${fornitore.id}`}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition-colors hover:bg-white/10 hover:text-white">
+              <Link
+                href={`/fatture/new?fornitore_id=${fornitore.id}`}
+                className="flex items-center gap-1.5 rounded-xl border border-cyan-500/45 bg-slate-700/50 px-3 py-2 text-xs font-semibold text-cyan-100 shadow-[0_0_20px_-8px_rgba(34,211,238,0.25)] transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/10 hover:text-white"
+              >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 {t.fatture.new}
               </Link>
@@ -2536,8 +2571,8 @@ function FornitoreDetailClient({
               <button key={tb.id} onClick={() => setTab(tb.id)}
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-all border-b-2 -mb-px ${
                   tab === tb.id
-                    ? 'text-white border-cyan-400'
-                    : 'border-transparent text-slate-300 hover:text-white'
+                    ? 'border-cyan-400 text-white shadow-[0_6px_24px_-8px_rgba(34,211,238,0.35)]'
+                    : 'border-transparent text-slate-200 hover:text-white'
                 }`}
               >
                 {tb.label}

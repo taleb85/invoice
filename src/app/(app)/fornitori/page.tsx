@@ -2,8 +2,9 @@ import Link from 'next/link'
 import { getRequestAuth } from '@/utils/supabase/server'
 import { getCookieStore } from '@/lib/locale-server'
 import { Fornitore } from '@/types'
-import FornitoriCardsGrid from '@/components/FornitoriCardsGrid'
+import FornitoriListSection from '@/components/FornitoriListSection'
 import { getT } from '@/lib/locale-server'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 async function getFornitori(): Promise<{
   fornitori: Fornitore[]
@@ -27,7 +28,6 @@ async function getFornitori(): Promise<{
     sedeId = profile.sede_id
   }
 
-  // Risolvi il nome della sede attiva
   if (sedeId) {
     const { data: sede } = await supabase.from('sedi').select('nome').eq('id', sedeId).single()
     sedeNome = sede?.nome ?? null
@@ -46,15 +46,11 @@ export default async function FornitoriPage() {
 
   return (
     <div className="p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-6 flex flex-col gap-3 md:mb-8 md:flex-row md:items-start md:justify-between md:gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="min-w-0 text-2xl font-bold text-slate-100">{t.fornitori.title}</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            {fornitori.length} {t.fornitori.countLabel}
-          </p>
+      <AppPageHeaderStrip>
+        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+          <h1 className="app-page-title min-w-0 text-2xl font-bold">{t.fornitori.title}</h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2 md:shrink-0">
+        <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 md:shrink-0">
           {sedeNome ? (
             <span className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border border-cyan-500/35 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-medium text-cyan-200 sm:max-w-[min(100%,14rem)]">
               <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,7 +62,7 @@ export default async function FornitoriPage() {
           ) : null}
           <Link
             href="/fornitori/import"
-            className="flex items-center gap-1.5 rounded-lg border border-slate-600/80 bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-600/80 bg-slate-700/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700"
           >
             <svg className="w-3.5 h-3.5 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -75,7 +71,7 @@ export default async function FornitoriPage() {
           </Link>
           <Link
             href="/fornitori/new"
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-semibold rounded-lg transition-colors"
+            className="flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-cyan-600"
           >
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -83,9 +79,9 @@ export default async function FornitoriPage() {
             {t.fornitori.new}
           </Link>
         </div>
-      </div>
+      </AppPageHeaderStrip>
 
-      <FornitoriCardsGrid fornitori={fornitori} sedeScope={sedeScope} emptyState={t.fornitori.noSuppliers} addFirstLabel={t.fornitori.addFirst} />
+      <FornitoriListSection fornitori={fornitori} sedeScope={sedeScope} />
     </div>
   )
 }

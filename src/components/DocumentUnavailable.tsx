@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getT } from '@/lib/locale-server'
 
 const secondaryBtn =
-  'inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-600/50 bg-slate-800/60 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800'
+  'inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-600/50 bg-slate-700/60 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700'
 
 /**
  * Bolla o fattura assente / non visibile (RLS): messaggio chiaro senza `notFound()` globale.
@@ -20,8 +20,8 @@ export default async function DocumentUnavailable({ kind }: { kind: 'bolla' | 'f
         <div className="app-card-login flex flex-col overflow-hidden">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="space-y-4 px-6 py-8">
-          <h1 className="text-xl font-bold text-slate-100">{title}</h1>
-          <p className="text-sm leading-relaxed text-slate-400">{desc}</p>
+          <h1 className="app-page-title text-xl font-bold">{title}</h1>
+          <p className="text-sm leading-relaxed text-slate-200">{desc}</p>
           <div className="grid grid-cols-2 gap-2.5 pt-1">
             <Link
               href="/"

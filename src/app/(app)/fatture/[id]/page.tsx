@@ -3,6 +3,7 @@ import { openDocumentUrl } from '@/lib/open-document-url'
 import { getFatturaForViewer } from '@/lib/supabase-detail-for-viewer'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import ReplaceFileButton from './ReplaceFileButton'
 
 export default async function FatturaDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,17 +14,24 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="max-w-2xl p-4 md:p-8">
-      <div className="mb-8 flex items-center gap-3">
-        <Link href="/fatture" className="text-slate-500 transition-colors hover:text-slate-300">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-100">{t.fatture.invoice} – {fattura.fornitore?.nome}</h1>
-          <p className="mt-0.5 text-sm text-slate-400">{formatDate(fattura.data)}</p>
+      <AppPageHeaderStrip>
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <Link
+            href="/fatture"
+            className="mt-1 shrink-0 text-slate-500 transition-colors hover:text-slate-200"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="app-page-title text-2xl font-bold">
+              {t.fatture.invoice} – {fattura.fornitore?.nome}
+            </h1>
+            <p className="mt-0.5 text-sm text-slate-200">{formatDate(fattura.data)}</p>
+          </div>
         </div>
-      </div>
+      </AppPageHeaderStrip>
 
       <div className="space-y-4">
         <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
@@ -32,28 +40,28 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
           <h2 className="mb-4 text-sm font-semibold text-slate-100">{t.fatture.dettaglio}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.supplier}</dt>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.supplier}</dt>
               <dd className="font-medium text-slate-100">{fattura.fornitore?.nome}</dd>
             </div>
             {fattura.fornitore?.email && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.email}</dt>
-                <dd className="text-slate-300">{fattura.fornitore.email}</dd>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.email}</dt>
+                <dd className="text-slate-200">{fattura.fornitore.email}</dd>
               </div>
             )}
             {fattura.fornitore?.piva && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.piva}</dt>
-                <dd className="text-slate-300">{fattura.fornitore.piva}</dd>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.piva}</dt>
+                <dd className="text-slate-200">{fattura.fornitore.piva}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.date}</dt>
-              <dd className="text-slate-300">{formatDate(fattura.data)}</dd>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.date}</dt>
+              <dd className="text-slate-200">{formatDate(fattura.data)}</dd>
             </div>
             {fattura.bolla && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fatture.bollaCollegata}</dt>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fatture.bollaCollegata}</dt>
                 <dd>
                   <Link href={`/bolle/${fattura.bolla.id}`} className="font-medium text-cyan-400 transition-colors hover:text-cyan-300">
                     {formatDate(fattura.bolla.data)} →

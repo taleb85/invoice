@@ -134,7 +134,7 @@ export default function DashboardKpiListSheet({
             <div className="fixed inset-0 z-[210] flex items-center justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 type="button"
-                className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+                className="absolute inset-0 bg-slate-700/45 backdrop-blur-sm"
                 aria-label={t.ui.closeMenu}
                 onClick={close}
               />
@@ -163,7 +163,7 @@ export default function DashboardKpiListSheet({
                       <button
                         type="button"
                         onClick={close}
-                        className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-800/80 hover:text-white"
+                        className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-700/80 hover:text-white"
                         aria-label={t.ui.closeMenu}
                       >
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -180,7 +180,7 @@ export default function DashboardKpiListSheet({
                     <button
                       type="button"
                       onClick={close}
-                      className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-800/80 hover:text-white"
+                      className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-700/80 hover:text-white"
                       aria-label={t.ui.closeMenu}
                     >
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -205,7 +205,7 @@ export default function DashboardKpiListSheet({
                           <Link
                             href={row.href}
                             onClick={close}
-                            className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-slate-800/40"
+                            className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-slate-700/40"
                           >
                             <div className="min-w-0 pr-3">
                               <p className="truncate text-sm font-semibold text-slate-100">{row.title}</p>
@@ -235,7 +235,7 @@ export default function DashboardKpiListSheet({
                           <Link
                             href={row.href}
                             onClick={close}
-                            className="block rounded-lg px-3 py-3 text-left transition-colors hover:bg-slate-800/70"
+                            className="block rounded-lg px-3 py-3 text-left transition-colors hover:bg-slate-700/70"
                           >
                             <span className="block truncate text-sm font-medium text-slate-100 hover:text-cyan-300">
                               {row.title}

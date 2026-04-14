@@ -24,7 +24,7 @@ export default function RootErrorBoundary({
   }, [error])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4" lang={locale}>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 p-4" lang={locale}>
       <div className="w-full max-w-md space-y-6 text-center">
         <div className="flex justify-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500 shadow-lg">
@@ -38,15 +38,15 @@ export default function RootErrorBoundary({
         <div className="app-card-login flex flex-col overflow-hidden">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="space-y-4 px-8 py-8">
-          <h1 className="text-xl font-bold text-slate-100">
+          <h1 className="app-page-title text-xl font-bold">
             {t.appStrings.errorGenericTitle}
           </h1>
-          <p className="text-sm leading-relaxed text-slate-400">
+          <p className="text-sm leading-relaxed text-slate-200">
             {t.appStrings.errorGenericBody}
           </p>
 
           {error.digest && (
-            <p className="rounded-lg border border-slate-700/50 bg-slate-800/60 px-3 py-2 font-mono text-[11px] text-slate-400">
+            <p className="rounded-lg border border-slate-700/50 bg-slate-700/60 px-3 py-2 font-mono text-[11px] text-slate-200">
               {t.appStrings.errorCodeLabel} {error.digest}
             </p>
           )}
@@ -61,7 +61,7 @@ export default function RootErrorBoundary({
             </button>
             <Link
               href="/"
-              className="flex-1 rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-2.5 text-center text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
+              className="flex-1 rounded-xl border border-slate-600/50 bg-slate-700/60 px-4 py-2.5 text-center text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
             >
               {t.appStrings.backToHome}
             </Link>

@@ -8,16 +8,19 @@ import {
   normalizeAppPath,
 } from '@/lib/mobile-hub-routes'
 import { useLocale } from '@/lib/locale-context'
+import { useMe } from '@/lib/me-context'
 import { LOCALES } from '@/lib/translations'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import ConnectionStatusDot from '@/components/ConnectionStatusDot'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function MobileTopbar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const t = useT()
+  const { me } = useMe()
   const { locale, setLocale } = useLocale()
   const [langOpen, setLangOpen] = useState(false)
   const langWrapRef = useRef<HTMLDivElement>(null)
@@ -66,7 +69,7 @@ export default function MobileTopbar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-30 border-b border-slate-800 bg-slate-950 shadow-[0_2px_16px_rgba(0,0,0,0.4)] md:hidden">
+    <header className="fixed top-0 left-0 right-0 z-30 border-b border-slate-500/40 bg-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-6px_rgba(0,0,0,0.22)] md:hidden">
       <div className="flex h-14 items-center gap-2 px-3">
         <div className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 pl-0.5" onClick={goLogoHome}>
           <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="h-7 w-12 shrink-0">
@@ -113,7 +116,7 @@ export default function MobileTopbar() {
                 FLUXO
               </text>
             </svg>
-            <span className="-mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-500">
+            <span className="-mt-0.5 text-[9px] font-semibold uppercase tracking-wider text-slate-200">
               {t.ui.tagline}
             </span>
           </div>
@@ -121,6 +124,13 @@ export default function MobileTopbar() {
 
         <div className="flex shrink-0 items-center gap-1">
           <ConnectionStatusDot />
+          <NotificationBell
+            variant="header"
+            isAdmin={Boolean(me?.is_admin)}
+            initialAdminErrors={0}
+            initialOperatorPending={0}
+            initialOperatorLogErrors={0}
+          />
         </div>
 
         <div className="relative shrink-0" ref={langWrapRef}>
@@ -129,15 +139,15 @@ export default function MobileTopbar() {
             onClick={() => setLangOpen((o) => !o)}
             className={`flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center gap-1 rounded-xl px-2 transition-colors ${
               langOpen
-                ? 'bg-slate-800/80 text-slate-200'
-                : 'text-slate-400 hover:bg-slate-800/70 hover:text-slate-200 active:bg-slate-700'
+                ? 'bg-white/12 text-slate-100'
+                : 'text-slate-200 hover:bg-white/10 hover:text-white active:bg-white/15'
             }`}
             aria-expanded={langOpen}
             aria-haspopup="listbox"
             aria-label={t.ui.languageTooltip}
             title={currentLocale ? `${t.ui.languageTooltip}: ${currentLocale.label}` : t.ui.languageTooltip}
           >
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-300">{locale}</span>
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-200">{locale}</span>
             <svg
               className={`h-3 w-3 shrink-0 text-slate-500 transition-transform ${langOpen ? 'rotate-180' : ''}`}
               fill="none"
@@ -150,7 +160,7 @@ export default function MobileTopbar() {
           </button>
           {langOpen && (
             <div
-              className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 py-1 shadow-2xl"
+              className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-slate-500/50 bg-slate-600 py-1 shadow-2xl shadow-black/40"
               role="listbox"
             >
               {LOCALES.map((l) => (
@@ -170,7 +180,7 @@ export default function MobileTopbar() {
                   className={`flex w-full touch-manipulation items-center gap-2.5 px-3 py-2.5 text-left text-[11px] font-medium transition-colors ${
                     locale === l.code
                       ? 'bg-cyan-500/15 text-white'
-                      : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
+                      : 'text-slate-200 hover:bg-white/10 hover:text-slate-100'
                   }`}
                 >
                   <span className="text-base leading-none">{l.flag}</span>
@@ -195,7 +205,7 @@ export default function MobileTopbar() {
         <button
           type="button"
           onClick={() => void handleLogout()}
-          className="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-800/70 hover:text-cyan-300 active:bg-slate-700"
+          className="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl text-slate-200 transition-colors hover:bg-white/10 hover:text-cyan-300 active:bg-white/15"
           aria-label={t.nav.esci}
           title={t.nav.esci}
         >

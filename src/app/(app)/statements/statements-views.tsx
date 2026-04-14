@@ -17,6 +17,9 @@ import {
   greedyBollaIdsForTotal,
   normalizeAddressKey,
 } from '@/lib/auto-resolve-pending-doc'
+import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
@@ -31,8 +34,8 @@ type OcrMetadata = {
   /** Numeric format detected: 'dot' | 'comma' | 'plain' */
   formato_importo?:   'dot' | 'comma' | 'plain' | null
   matched_by:         'email' | 'alias' | 'domain' | 'piva' | 'unknown' | null
-  /** User-selected tipo documento in coda (estratto vs bolla vs fattura) */
-  pending_kind?:      'statement' | 'bolla' | 'fattura' | null
+  /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
+  pending_kind?:      'statement' | 'bolla' | 'fattura' | 'ordine' | null
   bozza_id?:          string | null
   bozza_tipo?:        'bolla' | 'fattura' | null
   rekki_link?:        string | null
@@ -135,12 +138,19 @@ export function StatementsContent({
   return (
     <div className={wrapperClass}>
       {showPageHeader && (
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-100">{t.statements.heading}</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {t.nav.fornitori} · {t.statements.tabDocumenti} · {t.statements.tabVerifica}
-          </p>
-        </div>
+        <>
+          <AppPageHeaderStrip>
+            <div className="min-w-0 sm:flex-1 sm:flex-initial">
+              <h1 className="app-page-title text-2xl font-bold">{t.statements.heading}</h1>
+            </div>
+          </AppPageHeaderStrip>
+          <StatementsSummaryHighlight
+            sedeId={sedeId}
+            tabMode="tabs"
+            activeTab={active}
+            onTabChange={setTab}
+          />
+        </>
       )}
 
       {showSwitcher && (
@@ -151,8 +161,8 @@ export function StatementsContent({
               onClick={() => setTab('pending')}
               className={`min-h-[44px] rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap touch-manipulation ${
                 tab === 'pending'
-                  ? 'border-slate-500/50 bg-slate-900/95 text-slate-100 shadow-sm'
-                  : 'border-slate-700/60 bg-slate-800/70 text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200 active:bg-slate-800/90'
+                  ? 'border-slate-500/50 bg-slate-700/95 text-slate-100 shadow-sm'
+                  : 'border-slate-700/60 bg-slate-700/70 text-slate-200 hover:border-slate-600 hover:bg-slate-700 hover:text-slate-200 active:bg-slate-700/90'
               }`}
             >
               {t.statements.tabDocumenti}
@@ -162,8 +172,8 @@ export function StatementsContent({
               onClick={() => setTab('status')}
               className={`min-h-[44px] rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors whitespace-nowrap touch-manipulation ${
                 tab === 'status'
-                  ? 'border-slate-500/50 bg-slate-900/95 text-slate-100 shadow-sm'
-                  : 'border-slate-700/60 bg-slate-800/70 text-slate-400 hover:border-slate-600 hover:bg-slate-800 hover:text-slate-200 active:bg-slate-800/90'
+                  ? 'border-slate-500/50 bg-slate-700/95 text-slate-100 shadow-sm'
+                  : 'border-slate-700/60 bg-slate-700/70 text-slate-200 hover:border-slate-600 hover:bg-slate-700 hover:text-slate-200 active:bg-slate-700/90'
               }`}
             >
               {t.statements.tabVerifica}
@@ -237,22 +247,22 @@ function EditSupplierPopup({
   }
 
   return (
-    <div ref={ref} className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-slate-600/50 bg-slate-900/95 shadow-lg backdrop-blur-md">
+    <div ref={ref} className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-slate-600/50 bg-slate-700/95 shadow-lg backdrop-blur-md">
       <div className="app-card-bar" aria-hidden />
       <div className="border-b border-slate-700/50 p-2">
         <input
           autoFocus value={search} onChange={e => setSearch(e.target.value)}
           placeholder={t.nav.cerca}
-          className="w-full rounded-lg border border-slate-600/50 bg-slate-950/50 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="w-full rounded-lg border border-slate-600/50 bg-slate-700/50 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
       </div>
       <ul className="max-h-52 overflow-y-auto py-1">
         {filtered.length === 0 ? (
-          <li className="px-3 py-2 text-xs text-slate-500">{t.nav.nessunRisultato}</li>
+          <li className="px-3 py-2 text-xs text-slate-400">{t.nav.nessunRisultato}</li>
         ) : filtered.map(f => (
           <li key={f.id}>
             <button disabled={saving} onClick={() => pick(f)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-800/60 transition-colors ${f.id === current ? 'font-semibold text-cyan-400' : 'text-slate-200'}`}>
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700/60 transition-colors ${f.id === current ? 'font-semibold text-cyan-400' : 'text-slate-200'}`}>
               {f.nome}{f.id === current && <span className="ml-1 text-[10px] text-cyan-400">✓</span>}
             </button>
           </li>
@@ -385,8 +395,8 @@ function AiDataCard({
   )
 
   return (
-    <div className="mx-1 mt-2 overflow-hidden rounded-xl border border-violet-500/35 bg-slate-900/75">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-violet-500/25 bg-violet-950/45 px-3 py-2">
+    <div className="mx-1 mt-2 overflow-hidden rounded-xl border border-violet-400/40 bg-slate-800/85 ring-1 ring-inset ring-violet-500/15">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-violet-500/30 bg-violet-950/50 px-3 py-2">
         <svg className="h-3.5 w-3.5 shrink-0 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
@@ -407,37 +417,37 @@ function AiDataCard({
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 px-3 py-2.5 text-xs">
         {metadata.ragione_sociale && (
           <div className="col-span-2">
-            <span className="text-slate-500">{t.common.company} · </span>
+            <span className="text-slate-300">{t.common.company} · </span>
             <span className="font-medium text-slate-100">{metadata.ragione_sociale}</span>
           </div>
         )}
         {metadata.p_iva && (
           <div>
-            <span className="text-slate-500">{loc.vatLabel} · </span>
+            <span className="text-slate-300">{loc.vatLabel} · </span>
             <span className="font-mono font-medium text-slate-100">{metadata.p_iva}</span>
           </div>
         )}
         {metadata.indirizzo?.trim() && (
           <div className="col-span-2">
-            <span className="text-slate-500">{t.fornitori.addressLabel} · </span>
+            <span className="text-slate-300">{t.fornitori.addressLabel} · </span>
             <span className="font-medium text-slate-100">{metadata.indirizzo}</span>
           </div>
         )}
         {metadata.numero_fattura && (
           <div>
-            <span className="text-slate-500">{t.common.invoiceNum} · </span>
+            <span className="text-slate-300">{t.common.invoiceNum} · </span>
             <span className="font-medium text-slate-100">{metadata.numero_fattura}</span>
           </div>
         )}
         {metadata.data_fattura && (
           <div>
-            <span className="text-slate-500">{t.statements.colDate} · </span>
+            <span className="text-slate-300">{t.statements.colDate} · </span>
             <span className="font-medium text-slate-100">{formatD(metadata.data_fattura)}</span>
           </div>
         )}
         {displayedAmount !== null && displayedAmount !== undefined && (
           <div className="col-span-2">
-            <span className="text-slate-500">{t.common.total} ({loc.vat} incl.) · </span>
+            <span className="text-slate-300">{t.common.total} ({loc.vat} incl.) · </span>
             <span className="font-semibold text-slate-50">
               {formatCurrency(displayedAmount, countryCode, resolvedCurrency)}
             </span>
@@ -447,7 +457,7 @@ function AiDataCard({
                 <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
                   forcedFormat
                     ? 'border-amber-500/40 bg-amber-500/15 text-amber-200'
-                    : 'border-slate-600 bg-slate-800 text-slate-300'
+                    : 'border-slate-600 bg-slate-700 text-slate-200'
                 }`}>
                   {fmtBadgeLabel}
                 </span>
@@ -466,7 +476,7 @@ function AiDataCard({
             )}
             {/* Raw string hint (greyed out) */}
             {metadata.importo_raw && (
-              <span className="ml-1 font-mono text-[9px] text-slate-500">({metadata.importo_raw})</span>
+              <span className="ml-1 font-mono text-[9px] text-slate-400/90">({metadata.importo_raw})</span>
             )}
           </div>
         )}
@@ -527,52 +537,52 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
   const supplierEmail = (doc.fornitore as { email?: string } | null)?.email ?? null
 
   return (
-    <div className="mx-1 mt-3 overflow-hidden rounded-xl border border-cyan-500/30 bg-slate-900/80">
+    <div className="mx-1 mt-3 overflow-hidden rounded-xl border border-cyan-400/35 bg-slate-800/85 ring-1 ring-inset ring-cyan-500/12">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-500/20 bg-slate-950/60 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-500/25 bg-slate-900/40 px-4 py-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {/* ClipboardCheck icon */}
           <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
           <span className="text-sm font-semibold text-slate-100">{t.statements.statementVerifyBanner}</span>
-          <span className="truncate text-xs text-slate-400">
+          <span className="truncate text-xs text-slate-200">
             — {(doc.fornitore as { nome: string } | null)?.nome ?? t.statements.unknownSupplier}
           </span>
         </div>
         {/* Month picker */}
         <div className="flex items-center gap-1.5">
           <select value={month.month} onChange={e => setMonth(p => ({ ...p, month: Number(e.target.value) }))}
-            className="rounded-lg border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-100 [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
+            className="rounded-lg border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-slate-100 [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
             {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
           </select>
           <select value={month.year} onChange={e => setMonth(p => ({ ...p, year: Number(e.target.value) }))}
-            className="rounded-lg border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-slate-100 [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
+            className="rounded-lg border border-slate-600 bg-slate-700 px-2 py-1 text-xs text-slate-100 [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40">
             {Array.from({ length: 3 }, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-3 gap-px bg-slate-700/80">
+      <div className="grid grid-cols-3 gap-px bg-slate-900/50">
         {[
           { label: 'Bolle', value: bolle.length, color: 'text-slate-100' },
           { label: 'Fatture', value: matched.length, color: 'text-emerald-400' },
           { label: 'Differenza', value: missing.length, color: missing.length > 0 ? 'text-red-400' : 'text-emerald-400' },
         ].map(c => (
-          <div key={c.label} className="bg-slate-900/90 px-4 py-3 text-center">
+          <div key={c.label} className="bg-slate-800/90 px-4 py-3 text-center">
             <p className={`text-xl font-bold ${c.color}`}>{loading ? '—' : c.value}</p>
-            <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-500">{c.label}</p>
+            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-300">{c.label}</p>
           </div>
         ))}
       </div>
 
       {/* Checklist */}
-      <div className="divide-y divide-slate-700/60 bg-slate-900/70">
+      <div className="divide-y divide-slate-600/45 bg-slate-800/60">
         {loading ? (
-          <p className="py-4 text-center text-xs text-slate-500">{t.common.loading}</p>
+          <p className="py-4 text-center text-xs text-slate-300">{t.common.loading}</p>
         ) : bolle.length === 0 ? (
-          <p className="py-4 text-center text-xs text-slate-500">
+          <p className="py-4 text-center text-xs text-slate-300">
             {t.fornitori.listinoNoDocs} — {t.statements.months[month.month-1]} {month.year}
           </p>
         ) : bolle.map(bolla => (
@@ -769,6 +779,16 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
 
   useEffect(() => { fetchDocs(); fetchBolleAperte(); fetchFornitori() }, [fetchDocs, fetchBolleAperte, fetchFornitori])
 
+  useEffect(() => {
+    const onLayoutRefresh = () => {
+      void fetchDocs()
+      void fetchBolleAperte()
+      void fetchFornitori()
+    }
+    window.addEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, onLayoutRefresh)
+    return () => window.removeEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, onLayoutRefresh)
+  }, [fetchDocs, fetchBolleAperte, fetchFornitori])
+
   // Auto-link fornitore from OCR / mittente when unambiguous in sede scope
   useEffect(() => {
     if (loading || !docs.length) return
@@ -827,6 +847,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
         if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
         if (!doc.fornitore_id) continue
         if (doc.is_statement) continue
+        if (doc.metadata?.pending_kind === 'ordine') continue
         const ocr = doc.metadata?.totale_iva_inclusa ?? null
         if (ocr == null || ocr <= 0) continue
         if (autoAssocTriedRef.current.has(doc.id)) continue
@@ -873,6 +894,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
   useEffect(() => {
     if (loading || !bolleAperte.length || !docs.length) return
     docs.forEach(doc => {
+      if (doc.metadata?.pending_kind === 'ordine') return
       const ocrTotal = doc.metadata?.totale_iva_inclusa ?? null
       if (ocrTotal === null) return
       if ((selezione[doc.id] ?? []).length > 0) return  // already has selection
@@ -939,7 +961,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
     }
   }
 
-  async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura') {
+  async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura' | 'ordine') {
     setMarkingStatement(docId)
     try {
       // Usa mark_statement + kind: compatibile con API vecchie (solo is_statement) e nuove (metadata.pending_kind).
@@ -980,10 +1002,10 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
     }
   }
 
-  function pendingKindForDoc(doc: Documento): 'statement' | 'bolla' | 'fattura' | null {
+  function pendingKindForDoc(doc: Documento): 'statement' | 'bolla' | 'fattura' | 'ordine' | null {
     if (statementDocs.has(doc.id) || doc.is_statement) return 'statement'
     const pk = doc.metadata?.pending_kind
-    if (pk === 'bolla' || pk === 'fattura') return pk
+    if (pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return pk
     return null
   }
 
@@ -1055,26 +1077,26 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
           <button onClick={() => setFilter('in_attesa')}
             className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
               filter === 'in_attesa'
-                ? 'border border-amber-500/40 bg-amber-500/15 text-amber-100'
-                : 'border border-transparent bg-slate-800/80 text-slate-500 hover:bg-slate-800'
+                ? 'border border-orange-500/45 bg-orange-500/15 text-orange-50 shadow-[0_0_20px_-8px_rgba(249,115,22,0.35)]'
+                : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}>
-            {t.statements.tabPending} {inAttesa > 0 && <span className="ml-1 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-bold text-slate-950">{inAttesa}</span>}
+            {t.statements.tabPending} {inAttesa > 0 && <span className="ml-1 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950">{inAttesa}</span>}
           </button>
           <button onClick={() => setFilter('tutti')}
             className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
               filter === 'tutti'
-                ? 'border border-slate-500 bg-slate-800 text-slate-100'
-                : 'border border-transparent bg-slate-800/80 text-slate-500 hover:bg-slate-800'
+                ? 'border border-slate-500/55 bg-slate-800/90 text-slate-50 ring-1 ring-white/5'
+                : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}>
             {t.statements.tabAll}
           </button>
         </div>
-        <p className="text-xs text-slate-500">{bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}</p>
+        <p className="text-xs font-medium text-slate-300">{bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}</p>
       </div>
 
       {/* Preview modal */}
       {preview && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setPreview(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-md" onClick={() => setPreview(null)}>
           <div className="max-w-2xl w-full" onClick={e => e.stopPropagation()}>
             {isPdf(preview)
               ? <iframe src={preview} className="w-full h-[80vh] rounded-xl" />
@@ -1094,15 +1116,15 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
       )}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-700/60 bg-slate-900/80 px-6 py-16 text-center">
-          <p className="text-sm text-slate-500">{t.common.loading}</p>
+        <div className="rounded-xl border border-slate-600/45 bg-slate-800/50 px-6 py-16 text-center">
+          <p className="text-sm text-slate-300">{t.common.loading}</p>
         </div>
       ) : docs.length === 0 ? (
-        <div className="rounded-xl border border-slate-700/60 bg-slate-900/80 px-6 py-16 text-center">
-          <svg className="mx-auto mb-4 h-14 w-14 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="rounded-xl border border-slate-600/45 bg-slate-800/50 px-6 py-16 text-center">
+          <svg className="mx-auto mb-4 h-14 w-14 text-slate-400 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <p className="text-sm font-medium text-slate-500">
+          <p className="text-sm font-medium text-slate-300">
             {filter === 'in_attesa' ? t.statements.noPendingDocs : t.statements.noDocsFound}
           </p>
         </div>
@@ -1122,13 +1144,13 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
               <div
                 key={doc.id}
                 className={`overflow-hidden rounded-xl border transition-opacity ${
-                  stato === 'done' ? 'opacity-40' : ''
+                  stato === 'done' ? 'opacity-[0.58] saturate-[0.85]' : ''
                 } ${
                   doc.stato === 'associato'
-                    ? 'border-emerald-500/35 bg-slate-900/85'
+                    ? 'border-emerald-500/40 bg-slate-800/70 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]'
                     : doc.stato === 'da_associare'
-                      ? 'border-cyan-500/25 bg-slate-900/85'
-                      : 'border-slate-700/55 bg-slate-900/85'
+                      ? 'border-cyan-500/35 bg-slate-800/65 shadow-[0_0_24px_-12px_rgba(34,211,238,0.12)]'
+                      : 'border-slate-600/40 bg-slate-800/55 shadow-sm'
                 }`}
               >
                 <div className="flex gap-3 p-3 md:gap-3 md:p-3">
@@ -1143,7 +1165,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                         /* ignore */
                       }
                     }}
-                    className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-600/60 bg-slate-800/80 transition-opacity hover:opacity-80 md:h-10 md:w-10"
+                    className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-600/50 bg-slate-900/40 transition-opacity hover:opacity-80 md:h-10 md:w-10"
                   >
                     {thumb
                       ? (
@@ -1156,20 +1178,20 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                           className="h-full w-full object-cover"
                         />
                       )
-                      : <svg className="h-7 w-7 text-slate-600 md:h-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+                      : <svg className="h-7 w-7 text-slate-400 md:h-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
                   </button>
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-start justify-between gap-2">
                       <div className="relative flex min-w-0 items-center gap-1.5">
-                        <p className={`truncate text-sm font-semibold ${isUnknown ? 'text-amber-300' : 'text-slate-100'}`}>
+                        <p className={`truncate text-sm font-semibold ${isUnknown ? 'text-orange-200' : 'text-slate-100'}`}>
                           {nomeFornitore ?? `⚠ ${t.statements.unknownSender}`}
                         </p>
                         {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (
                           <button onClick={() => setEditSupplier(editSupplier === doc.id ? null : doc.id)}
                             title={t.statements.editSupplierTitle}
-                            className="shrink-0 rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-800 hover:text-cyan-400">
+                            className="shrink-0 rounded-md p-1 text-slate-300 transition-colors hover:bg-slate-700/80 hover:text-cyan-200">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
@@ -1186,21 +1208,21 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                       </div>
 
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                        {/* Tipo documento: estratto / bolla / fattura (mutua esclusione, persistito su DB) */}
+                        {/* Tipo documento: ordine / bolla / fattura / estratto (mutua esclusione, persistito su DB) */}
                         {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (() => {
                           const pk = pendingKindForDoc(doc)
                           const busy = markingStatement === doc.id
                           const chips: {
-                            kind: 'statement' | 'bolla' | 'fattura'
+                            kind: 'statement' | 'bolla' | 'fattura' | 'ordine'
                             label: string
                             title: string
                             activeCls: string
                           }[] = [
                             {
-                              kind: 'statement',
-                              label: t.statements.docKindEstratto,
-                              title: t.statements.toggleAddStatement,
-                              activeCls: 'border-cyan-500/40 bg-cyan-500/15 text-cyan-200',
+                              kind: 'ordine',
+                              label: t.statements.docKindOrdine,
+                              title: t.statements.docKindHintOrdine,
+                              activeCls: 'border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-200',
                             },
                             {
                               kind: 'bolla',
@@ -1213,6 +1235,12 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                               label: t.statements.docKindFattura,
                               title: t.statements.docKindHintFattura,
                               activeCls: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200',
+                            },
+                            {
+                              kind: 'statement',
+                              label: t.statements.docKindEstratto,
+                              title: t.statements.toggleAddStatement,
+                              activeCls: 'border-cyan-500/40 bg-cyan-500/15 text-cyan-200',
                             },
                           ]
                           return (
@@ -1228,7 +1256,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                                   title={title}
                                   aria-pressed={pk === kind}
                                   className={`min-h-[28px] rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors touch-manipulation disabled:opacity-50 ${
-                                    pk === kind ? activeCls : 'border-slate-600 bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                    pk === kind ? activeCls : 'border-slate-500/55 bg-slate-900/45 text-slate-100 hover:border-slate-400/50 hover:bg-slate-800/90'
                                   }`}
                                 >
                                   {label}
@@ -1241,10 +1269,10 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                           doc.stato === 'bozza_creata'
                             ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/35'
                             : (doc.stato === 'in_attesa' || doc.stato === 'da_associare')
-                              ? 'bg-amber-500/20 text-amber-200 ring-amber-500/35'
+                              ? 'bg-orange-500/20 text-orange-100 ring-orange-500/40'
                               : doc.stato === 'associato'
                                 ? 'bg-emerald-500/25 text-emerald-100 ring-emerald-500/40'
-                                : 'bg-slate-700 text-slate-400 ring-slate-600'
+                                : 'bg-slate-800/90 text-slate-200 ring-slate-600/60'
                         }`}>
                           {doc.stato === 'bozza_creata' ? t.statements.tagBozzaCreata
                             : (doc.stato === 'in_attesa' || doc.stato === 'da_associare') ? t.statements.tagPending
@@ -1278,13 +1306,17 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                     {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc) !== null && (
                       <div className="mb-2 mt-1 flex flex-wrap items-center gap-2">
                         {!doc.fornitore_id ? (
-                          <p className="text-[11px] text-amber-200/90">{t.statements.finalizeNeedsSupplier}</p>
+                          <p className="text-[11px] text-orange-200/95">{t.statements.finalizeNeedsSupplier}</p>
                         ) : (
                           <button
                             type="button"
                             disabled={finalizingTipoId === doc.id || (actions[doc.id] ?? 'idle') === 'loading'}
                             onClick={() => void finalizzaTipo(doc.id)}
-                            className="min-h-[36px] rounded-lg border border-emerald-500/45 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/25 disabled:opacity-40 touch-manipulation"
+                            className={`min-h-[36px] rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
+                              pendingKindForDoc(doc) === 'ordine'
+                                ? 'border-fuchsia-500/45 bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
+                                : 'border-emerald-500/45 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
+                            }`}
                           >
                             {finalizingTipoId === doc.id
                               ? t.statements.btnFinalizing
@@ -1292,17 +1324,19 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                                 ? t.statements.btnFinalizeFattura
                                 : pendingKindForDoc(doc) === 'bolla'
                                   ? t.statements.btnFinalizeBolla
-                                  : t.statements.btnFinalizeStatement}
+                                  : pendingKindForDoc(doc) === 'ordine'
+                                    ? t.statements.btnFinalizeOrdine
+                                    : t.statements.btnFinalizeStatement}
                           </button>
                         )}
                       </div>
                     )}
 
-                    <p className="mb-0.5 truncate text-xs text-slate-500">{doc.oggetto_mail ?? doc.mittente}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <p className="mb-0.5 truncate text-xs text-slate-300">{doc.oggetto_mail ?? doc.mittente}</p>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
                       <span>{t.statements.labelReceived} {fmt(doc.created_at)}</span>
-                      {doc.data_documento && <span className="font-medium text-cyan-400">{t.statements.labelDocDate} {fmt(doc.data_documento)}</span>}
-                      <a href={openDocumentUrl({ documentoId: doc.id })} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 hover:underline">{t.statements.openFile}</a>
+                      {doc.data_documento && <span className="font-medium text-cyan-300">{t.statements.labelDocDate} {fmt(doc.data_documento)}</span>}
+                      <a href={openDocumentUrl({ documentoId: doc.id })} target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:text-cyan-200 hover:underline">{t.statements.openFile}</a>
                       {doc.stato === 'bozza_creata' && doc.metadata?.bozza_id && (
                         <a
                           href={`/${doc.metadata.bozza_tipo === 'fattura' ? 'fatture' : 'bolle'}/${doc.metadata.bozza_id}`}
@@ -1320,8 +1354,8 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
 
                 {addressClusterPeersByDocId.has(doc.id) &&
                   (doc.stato === 'in_attesa' || doc.stato === 'da_associare' || doc.stato === 'bozza_creata') && (
-                  <div className="mx-3 mb-2 rounded-lg border border-cyan-500/30 bg-cyan-950/35 px-3 py-2">
-                    <p className="text-[11px] leading-snug text-cyan-100/95">
+                  <div className="mx-3 mb-2 rounded-lg border border-cyan-500/35 bg-cyan-950/40 px-3 py-2 ring-1 ring-inset ring-cyan-400/10">
+                    <p className="text-[11px] leading-snug text-cyan-50/95">
                       {t.statements.sameAddressClusterHint.replace(
                         /\{names\}/g,
                         addressClusterPeersByDocId.get(doc.id)!.join(' · '),
@@ -1356,8 +1390,11 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                   </div>
                 )}
 
-                {/* Match actions — multi-select. Se è «estratto» ma fornitore mancante, mostra comunque le bolle per poter associare e fissare il fornitore. */}
-                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (!isStmt || !doc.fornitore_id) && (() => {
+                {/* Match actions — multi-select. Se è «estratto» ma fornitore mancante, mostra comunque le bolle per poter associare e fissare il fornitore. Ordine: solo finalizza in header, niente bolle. */}
+                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') &&
+                  pendingKindForDoc(doc) !== 'ordine' &&
+                  (!isStmt || !doc.fornitore_id) &&
+                  (() => {
                   const selIds       = selezione[doc.id] ?? []
                   const ocrTotal     = doc.metadata?.totale_iva_inclusa ?? null
                   const selSum       = selIds.reduce((s, bid) => {
@@ -1380,13 +1417,13 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                     <div className="px-3 pb-3 space-y-1.5">
                       {/* Bolle checkboxes grouped by supplier */}
                       {bolleAperte.length === 0 ? (
-                        <p className="py-2 text-xs text-slate-500">{t.statements.noBolleAttesa}</p>
+                        <p className="py-2 text-xs text-slate-400">{t.statements.noBolleAttesa}</p>
                       ) : (
-                        <div className="divide-y divide-slate-700/70 overflow-hidden rounded-lg border border-slate-600/60">
+                        <div className="divide-y divide-slate-600/45 overflow-hidden rounded-lg border border-slate-600/45 bg-slate-900/25">
                           {/* Auto-suggest button */}
                           {ocrTotal !== null && (bolleSameSupplier.length > 0 || bolleOther.length > 0) && (
-                            <div className="flex items-center justify-between gap-2 bg-slate-800/70 px-3 py-2">
-                              <span className="text-[11px] text-slate-400">
+                            <div className="flex items-center justify-between gap-2 bg-slate-900/40 px-3 py-2">
+                              <span className="text-[11px] text-slate-200">
                                 {t.statements.docTotalLabel} <span className="font-semibold text-slate-100">{formatCurrency(ocrTotal, countryCode, rowCurrency)}</span>
                               </span>
                               <button
@@ -1401,23 +1438,23 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                           {/* Same supplier bolle */}
                           {bolleSameSupplier.length > 0 && (
                             <>
-                              <div className="bg-slate-800/90 px-3 py-1.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                              <div className="bg-slate-900/55 px-3 py-1.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                   {nomeFornitore ?? 'Stesso fornitore'} · {bolleSameSupplier.length} bolla{bolleSameSupplier.length !== 1 ? 'e' : ''}
                                 </span>
                               </div>
                               {bolleSameSupplier.map(b => {
                                 const checked = selIds.includes(b.id)
                                 return (
-                                  <label key={b.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-800/50 ${checked ? 'bg-cyan-500/10' : ''}`}>
+                                  <label key={b.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-800/55 ${checked ? 'bg-cyan-500/12' : ''}`}>
                                     <input type="checkbox" checked={checked} onChange={() => toggleBolla(b.id)}
-                                      className="h-4 w-4 cursor-pointer rounded border-slate-500 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40" />
+                                      className="h-4 w-4 cursor-pointer rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40" />
                                     <span className="flex-1 text-sm text-slate-200">
                                       {b.numero_bolla ? <span className="font-mono font-medium">#{b.numero_bolla}</span> : '—'}{' '}
-                                      <span className="text-xs text-slate-500">· {fmt(b.data)}</span>
+                                      <span className="text-xs text-slate-400">· {fmt(b.data)}</span>
                                     </span>
                                     {b.importo !== null && (
-                                      <span className={`text-sm font-semibold tabular-nums ${checked ? 'text-cyan-300' : 'text-slate-300'}`}>
+                                      <span className={`text-sm font-semibold tabular-nums ${checked ? 'text-cyan-300' : 'text-slate-200'}`}>
                                         {formatCurrency(b.importo, countryCode, rowCurrency)}
                                       </span>
                                     )}
@@ -1430,24 +1467,24 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                           {/* Other supplier bolle */}
                           {bolleOther.length > 0 && (
                             <>
-                              <div className="bg-slate-800/90 px-3 py-1.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                              <div className="bg-slate-900/55 px-3 py-1.5">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                   Altri fornitori · {bolleOther.length}
                                 </span>
                               </div>
                               {bolleOther.map(b => {
                                 const checked = selIds.includes(b.id)
                                 return (
-                                  <label key={b.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-800/50 ${checked ? 'bg-cyan-500/10' : ''}`}>
+                                  <label key={b.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-800/55 ${checked ? 'bg-cyan-500/12' : ''}`}>
                                     <input type="checkbox" checked={checked} onChange={() => toggleBolla(b.id)}
-                                      className="h-4 w-4 cursor-pointer rounded border-slate-500 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40" />
-                                    <span className="flex-1 text-sm text-slate-400">
-                                      <span className="text-[11px] text-slate-500">{b.fornitore_nome} · </span>
+                                      className="h-4 w-4 cursor-pointer rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40" />
+                                    <span className="flex-1 text-sm text-slate-200">
+                                      <span className="text-[11px] text-slate-400">{b.fornitore_nome} · </span>
                                       {b.numero_bolla ? <span className="font-mono font-medium">#{b.numero_bolla}</span> : '—'}{' '}
-                                      <span className="text-xs text-slate-500">· {fmt(b.data)}</span>
+                                      <span className="text-xs text-slate-400">· {fmt(b.data)}</span>
                                     </span>
                                     {b.importo !== null && (
-                                      <span className="text-sm font-semibold tabular-nums text-slate-400">
+                                      <span className="text-sm font-semibold tabular-nums text-slate-200">
                                         {formatCurrency(b.importo, countryCode, rowCurrency)}
                                       </span>
                                     )}
@@ -1463,7 +1500,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* Selected sum */}
                         {hasSel && (
-                          <span className="text-xs font-medium text-slate-500">
+                          <span className="text-xs font-medium text-slate-400">
                             {t.statements.selectedSumLabel}{' '}
                             <span className="font-bold text-slate-100">{formatCurrency(selSum, countryCode, rowCurrency)}</span>
                             {' '}
@@ -1503,7 +1540,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                           <button
                             onClick={() => scarta(doc.id)}
                             disabled={stato === 'loading'}
-                            className="min-h-[44px] rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 touch-manipulation md:min-h-0 md:py-1.5 md:text-xs"
+                            className="min-h-[44px] rounded-lg border border-slate-600/70 bg-slate-800/80 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/90 active:bg-slate-800 disabled:opacity-40 touch-manipulation md:min-h-0 md:py-1.5 md:text-xs"
                           >
                             {t.statements.btnDiscard}
                           </button>
@@ -1513,13 +1550,25 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
                   )
                 })()}
 
+                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc) === 'ordine' && (
+                  <div className="flex justify-end px-3 pb-3">
+                    <button
+                      onClick={() => scarta(doc.id)}
+                      disabled={stato === 'loading'}
+                      className="min-h-[44px] rounded-lg border border-slate-600/70 bg-slate-800/80 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/90 active:bg-slate-800 disabled:opacity-40 touch-manipulation md:min-h-0 md:py-1.5 md:text-xs"
+                    >
+                      {t.statements.btnDiscard}
+                    </button>
+                  </div>
+                )}
+
                 {/* Statement actions (separate from match actions) */}
                 {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && isStmt && (
                   <div className="flex items-center gap-2 px-3 pb-3">
                     <button
                       onClick={() => scarta(doc.id)}
                       disabled={stato === 'loading'}
-                      className="min-h-[44px] rounded-lg border border-slate-600 bg-slate-800 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 active:bg-slate-600 disabled:opacity-40 touch-manipulation md:min-h-0 md:py-1.5 md:text-xs"
+                      className="min-h-[44px] rounded-lg border border-slate-600/70 bg-slate-800/80 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/90 active:bg-slate-800 disabled:opacity-40 touch-manipulation md:min-h-0 md:py-1.5 md:text-xs"
                     >
                       {t.statements.btnDiscard}
                     </button>
@@ -1532,9 +1581,9 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
       )}
 
       {rememberBar && (
-        <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-lg rounded-xl border border-cyan-500/40 bg-slate-900/95 p-4 shadow-xl backdrop-blur-md md:left-auto md:right-6 md:mx-0">
+        <div className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-lg rounded-xl border border-cyan-500/40 bg-slate-800/95 p-4 shadow-xl backdrop-blur-md md:left-auto md:right-6 md:mx-0">
           <p className="text-sm font-medium text-slate-100">{t.statements.rememberAssociationTitle}</p>
-          <p className="mt-1 truncate text-xs text-slate-400">{rememberBar.email}</p>
+          <p className="mt-1 truncate text-xs text-slate-200">{rememberBar.email}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
@@ -1555,7 +1604,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
             </button>
             <button
               type="button"
-              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
+              className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700"
               onClick={() => setRememberBar(null)}
             >
               {t.statements.btnClose}
@@ -1601,7 +1650,7 @@ function normalizeCheckStatus(raw: unknown): CheckStatus {
 }
 
 const STATUS_STYLE: Record<CheckStatus, { cls: string; dot: string; icon: string }> = {
-  pending:                   { cls: 'border border-slate-500/40 bg-slate-700/25 text-slate-300',        dot: 'bg-slate-500',  icon: '…' },
+  pending:                   { cls: 'border border-slate-400/45 bg-slate-800/50 text-slate-100',        dot: 'bg-slate-400',  icon: '…' },
   ok:                        { cls: 'border border-emerald-500/35 bg-emerald-500/15 text-emerald-200',   dot: 'bg-green-500',  icon: '✓' },
   fattura_mancante:          { cls: 'border border-yellow-500/35 bg-yellow-500/15 text-yellow-200', dot: 'bg-yellow-400', icon: '!' },
   bolle_mancanti:            { cls: 'border border-orange-500/35 bg-orange-500/15 text-orange-200', dot: 'bg-orange-500', icon: '⚠' },
@@ -1700,8 +1749,8 @@ function MigrationCard() {
         </button>
       </div>
       <details className="border-t border-amber-500/25">
-        <summary className="cursor-pointer select-none px-5 py-2 text-[11px] text-amber-300/90 transition-colors hover:bg-slate-800/50">{t.statements.migrationShowSQL}</summary>
-        <pre className="overflow-x-auto whitespace-pre bg-slate-950/50 px-5 py-3 font-mono text-[10px] text-amber-100/90">{STMT_MIGRATION_SQL}</pre>
+        <summary className="cursor-pointer select-none px-5 py-2 text-[11px] text-amber-300/90 transition-colors hover:bg-slate-700/50">{t.statements.migrationShowSQL}</summary>
+        <pre className="overflow-x-auto whitespace-pre bg-slate-700/50 px-5 py-3 font-mono text-[10px] text-amber-100/90">{STMT_MIGRATION_SQL}</pre>
       </details>
     </div>
   )
@@ -1868,6 +1917,15 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
 
   useEffect(() => { fetchStmts(true) }, [fetchStmts])
 
+  useEffect(() => {
+    const onLayoutRefresh = () => {
+      void fetchStmts(false)
+      void fetchData()
+    }
+    window.addEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, onLayoutRefresh)
+    return () => window.removeEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, onLayoutRefresh)
+  }, [fetchStmts, fetchData])
+
   /* ── Load rows for a specific statement ─────────────────────────────── */
   async function loadStatementRows(stmt: StmtRecord) {
     setSelectedStmt(stmt)
@@ -1959,25 +2017,25 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
       <div className="app-card mb-6 overflow-hidden">
         <div className="app-card-bar" aria-hidden />
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-800/70 px-5 py-4">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-700/70 px-5 py-4">
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-cyan-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
             <p className="text-sm font-semibold text-slate-100">{t.statements.stmtReceived}</p>
             {stmts.length > 0 && (
-              <span className="text-xs text-slate-500 font-normal">{t.statements.stmtClickHint}</span>
+              <span className="text-xs text-slate-300 font-normal">{t.statements.stmtClickHint}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
             {selectedStmt && (
               <button onClick={() => { setSelectedStmt(null); setCheckResults(null); setCheckError(null) }}
-                className="text-xs text-slate-400 hover:text-slate-200 font-medium">
+                className="text-xs text-slate-200 hover:text-slate-200 font-medium">
                 ← {t.statements.stmtBackToList}
               </button>
             )}
             <button onClick={() => fetchStmts(false)}
-              className="text-xs text-slate-500 hover:text-slate-300 font-medium">
+              className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline">
               {t.statements.btnRefresh} ↺
             </button>
           </div>
@@ -2002,7 +2060,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
         {!needsMigration && !selectedStmt && (
           stmtsLoading ? (
             <div className="px-5 py-10 text-center">
-              <div className="inline-flex items-center gap-2 text-sm text-slate-500">
+              <div className="inline-flex items-center gap-2 text-sm text-slate-300">
                 <svg className="w-4 h-4 animate-spin text-cyan-500" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -2012,8 +2070,8 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
             </div>
           ) : stmts.length === 0 ? (
             <div className="px-5 py-10 text-center">
-              <p className="text-sm font-medium text-slate-400">{t.statements.stmtEmpty}</p>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed max-w-xs mx-auto">
+              <p className="text-sm font-medium text-slate-200">{t.statements.stmtEmpty}</p>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-xs mx-auto">
                 {t.statements.stmtInboxEmptyDetail}
               </p>
             </div>
@@ -2021,7 +2079,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
             <div className="divide-y divide-slate-800/60">
               {stmts.map(s => (
                 <button key={s.id} onClick={() => loadStatementRows(s)}
-                  className="w-full text-left flex items-center gap-4 px-5 py-4 hover:bg-slate-800/60 active:bg-slate-800/90 transition-colors">
+                  className="w-full text-left flex items-center gap-4 px-5 py-4 hover:bg-slate-700/60 active:bg-slate-700/90 transition-colors">
                   {/* Status dot */}
                   <div className={`w-2 h-2 rounded-full shrink-0 ${
                     s.status === 'processing' ? 'bg-blue-400 animate-pulse' :
@@ -2033,9 +2091,9 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                       {s.fornitore_nome ?? s.email_subject ?? 'Statement'}
                     </p>
                     {s.email_subject && s.fornitore_nome && (
-                      <p className="text-xs text-slate-500 truncate">{s.email_subject}</p>
+                      <p className="text-xs text-slate-300 truncate">{s.email_subject}</p>
                     )}
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-slate-300 mt-0.5">
                       {formatStmtDate(s.received_at)}
                     </p>
                   </div>
@@ -2056,7 +2114,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                       )}
                     </div>
                   )}
-                  <svg className="w-4 h-4 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 shrink-0 text-slate-300 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -2067,18 +2125,18 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
 
         {/* Selected statement — loading rows */}
         {selectedStmt && checkLoading && (
-          <div className="px-5 py-10 text-center text-sm text-slate-500">{t.statements.loadingResults}</div>
+          <div className="px-5 py-10 text-center text-sm text-slate-300">{t.statements.loadingResults}</div>
         )}
         {/* errors are shown as toasts — no inline error block needed */}
 
         {/* Selected statement header */}
         {selectedStmt && checkResults && (
-          <div className="px-5 py-3 bg-slate-800/70 border-b border-slate-700/50 flex items-center gap-3">
+          <div className="px-5 py-3 bg-slate-700/70 border-b border-slate-700/50 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <p className="truncate text-xs font-semibold text-slate-200">
                 {selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement'}
               </p>
-              <p className="text-[10px] text-slate-500">
+              <p className="text-[10px] text-slate-300">
                 {t.statements.receivedOn} {formatStmtDate(selectedStmt.received_at)}
                 {selectedStmt.file_url && (
                   <> · <a href={openDocumentUrl({ statementId: selectedStmt.id })} target="_blank" rel="noopener noreferrer"
@@ -2088,7 +2146,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
             </div>
             <button
               onClick={() => fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`).then(() => loadStatementRows(selectedStmt))}
-              className="text-xs text-slate-500 hover:text-slate-300 font-medium"
+              className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline"
             >
               ↺ {t.statements.reanalyze}
             </button>
@@ -2121,7 +2179,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                         className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
                           checkFilter === chip.id
                             ? 'bg-gray-900 text-white border-gray-900'
-                            : 'bg-slate-900/90 text-slate-400 border-slate-600/50 hover:border-slate-500'
+                            : 'bg-slate-700/90 text-slate-200 border-slate-600/50 hover:border-slate-500'
                         }`}>
                         <span className={`w-2 h-2 rounded-full ${chip.dot} ${checkFilter === chip.id ? 'opacity-80' : ''}`} />
                         {chip.label}
@@ -2131,7 +2189,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                   </div>
                   {checkFilter !== 'all' && (
                     <button onClick={() => setCheckFilter('all')}
-                      className="text-xs text-slate-500 hover:text-slate-200 font-medium shrink-0 transition-colors">
+                      className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline shrink-0">
                       {t.statements.clearFilter}
                     </button>
                   )}
@@ -2153,15 +2211,15 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
               const hasEmail   = !!(r.fornitore?.email)
 
               return (
-                <div key={r.numero} className={`flex items-start gap-4 px-5 py-4 border-b border-slate-800/60 last:border-0 ${
+                <div key={r.numero} className={`flex items-start gap-4 px-5 py-4 border-b border-slate-600/50 last:border-0 ${
                   r.status === 'rekki_prezzo_discordanza'
                     ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
                     : r.status === 'errore_importo'
                       ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15'
                       : r.status === 'pending'
-                        ? 'bg-slate-800/40'
+                        ? 'bg-slate-700/40'
                         : r.status !== 'ok'
-                          ? 'bg-slate-800/50'
+                          ? 'bg-slate-700/50'
                           : ''
                 }`}>
                   <div className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
@@ -2173,13 +2231,13 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                         <span className="text-xs font-medium text-emerald-400">{formatCurrency(r.importoStatement, countryCode, resolvedCurrency)} ✓</span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-400 space-y-0.5">
+                    <div className="text-xs text-slate-200 space-y-0.5">
                       <p>{t.statements.reconcileStatement} <span className="font-semibold text-slate-200">{formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}</span>
                         {r.fattura?.importo !== null && r.fattura?.importo !== undefined && (
                           <> · {t.statements.reconcileDB}{' '}
                             <span className={`font-semibold ${
                               r.status === 'errore_importo'
-                                ? 'text-red-600'
+                                ? 'text-red-300'
                                 : r.status === 'rekki_prezzo_discordanza'
                                   ? 'text-amber-400'
                                   : 'text-slate-200'
@@ -2188,7 +2246,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                               <span className="ml-1 block text-[10px] font-medium text-amber-100">{t.bolle.verificaPrezzoFornitore} · {t.bolle.prezzoDaApp}</span>
                             )}
                             {(r.status === 'errore_importo' || r.status === 'rekki_prezzo_discordanza') && r.deltaImporto !== null && (
-                              <span className={`ml-1 font-bold ${r.status === 'rekki_prezzo_discordanza' ? 'text-amber-400' : 'text-red-600'}`}>
+                              <span className={`ml-1 font-bold ${r.status === 'rekki_prezzo_discordanza' ? 'text-amber-400' : 'text-red-300'}`}>
                                 (Δ {r.deltaImporto > 0 ? '+' : ''}{formatCurrency(Math.abs(r.deltaImporto), countryCode, resolvedCurrency)})
                               </span>
                             )}
@@ -2204,13 +2262,13 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                         <p>{t.nav.bolle}: {r.bolle.map(b => (
                           <span key={b.id} className="inline-flex items-center gap-1 mr-1.5">
                             <span className="font-mono text-slate-200">{b.numero_bolla ?? '—'}</span>
-                            {b.importo !== null && <span className="text-slate-400">({formatCurrency(b.importo, countryCode, resolvedCurrency)})</span>}
+                            {b.importo !== null && <span className="text-slate-200">({formatCurrency(b.importo, countryCode, resolvedCurrency)})</span>}
                           </span>
                         ))}</p>
                       )}
-                      {r.status === 'bolle_mancanti' && <p className="text-orange-600 font-medium">{t.statements.noBolleDelivery}</p>}
+                      {r.status === 'bolle_mancanti' && <p className="text-orange-300 font-medium">{t.statements.noBolleDelivery}</p>}
                       {r.fornitore && (
-                        <p className="text-slate-500">{r.fornitore.nome}{r.fornitore.email && <span> · {r.fornitore.email}</span>}</p>
+                        <p className="text-slate-300">{r.fornitore.nome}{r.fornitore.email && <span> · {r.fornitore.email}</span>}</p>
                       )}
                     </div>
                   </div>
@@ -2221,13 +2279,13 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                           {t.statements.btnSent}
                         </span>
-                        {sollEntry.sentAt && <span className="text-[10px] text-slate-500">{new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(sollEntry.sentAt))}</span>}
-                        <button onClick={() => inviaSollecito(r)} className="text-[10px] text-slate-500 hover:text-slate-300 underline underline-offset-2 mt-0.5">{t.statements.btnSendReminder}</button>
+                        {sollEntry.sentAt && <span className="text-[10px] text-slate-300">{new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(sollEntry.sentAt))}</span>}
+                        <button onClick={() => inviaSollecito(r)} className="text-[10px] font-medium text-slate-300 hover:text-white underline underline-offset-2 mt-0.5">{t.statements.btnSendReminder}</button>
                       </div>
                     ) : (
                       <button onClick={() => inviaSollecito(r)} disabled={!hasEmail || sollecitoState === 'loading'} title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
                         className={`shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors min-h-[38px] touch-manipulation ${
-                          !hasEmail ? 'cursor-not-allowed border-slate-600/50 bg-slate-800/60 text-slate-500'
+                          !hasEmail ? 'cursor-not-allowed border-slate-600/50 bg-slate-700/60 text-slate-400'
                           : r.status === 'fattura_mancante' ? 'border-yellow-500/40 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
                           : 'border-orange-500/40 bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'}`}>
                         {sollecitoState === 'loading' ? (
@@ -2261,14 +2319,14 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                 <thead>
                   <tr className="border-b border-slate-700/50">
                     <th className="px-2 py-2.5" />
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.colRef}</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.colStatus}</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.tripleColStmtDate}</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.tripleColSysDate}</th>
-                    <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.tripleColStmtAmount}</th>
-                    <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.tripleColSysAmount}</th>
-                    <th className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.tripleColChecks}</th>
-                    <th className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t.statements.colAction}</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.colRef}</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.colStatus}</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColStmtDate}</th>
+                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColSysDate}</th>
+                    <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColStmtAmount}</th>
+                    <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColSysAmount}</th>
+                    <th className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColChecks}</th>
+                    <th className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.colAction}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
@@ -2294,7 +2352,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                     ]
 
                     return (
-                      <tr key={r.numero} className={`hover:bg-slate-800/60 transition-colors group ${
+                      <tr key={r.numero} className={`hover:bg-slate-700/60 transition-colors group ${
                         r.status === 'rekki_prezzo_discordanza'
                           ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
                           : r.status === 'errore_importo'
@@ -2303,7 +2361,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                       }`}>
                         {/* Chevron */}
                         <td className="pl-4 pr-0 py-3.5">
-                          <svg className="w-3 h-3 text-slate-600 group-hover:text-slate-400 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3 h-3 text-slate-300 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M7 10l5 5 5-5z" />
                           </svg>
                         </td>
@@ -2322,10 +2380,10 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                         </td>
 
                         {/* Stmt Date */}
-                        <td className="px-4 py-3.5 text-xs text-slate-400 whitespace-nowrap">{fmtDate(r.data_doc)}</td>
+                        <td className="px-4 py-3.5 text-xs text-slate-200 whitespace-nowrap">{fmtDate(r.data_doc)}</td>
 
                         {/* Sys Date (fattura date) */}
-                        <td className="px-4 py-3.5 text-xs text-slate-400 whitespace-nowrap">{fmtDate(r.fattura?.data)}</td>
+                        <td className="px-4 py-3.5 text-xs text-slate-200 whitespace-nowrap">{fmtDate(r.fattura?.data)}</td>
 
                         {/* Stmt Amount */}
                         <td className={`px-4 py-3.5 text-right font-bold tabular-nums text-sm whitespace-nowrap ${r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-slate-100'}`}>
@@ -2338,10 +2396,10 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                             <div className="inline-flex flex-col items-end gap-0.5">
                               <span className={
                                 r.status === 'errore_importo'
-                                  ? 'text-red-600 font-bold'
+                                  ? 'text-red-300 font-bold'
                                   : r.status === 'rekki_prezzo_discordanza'
                                     ? 'text-amber-400 font-bold'
-                                    : 'text-slate-400'
+                                    : 'text-slate-200'
                               }>
                                 {formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)}
                               </span>
@@ -2356,7 +2414,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                                 </span>
                               )}
                             </div>
-                          ) : <span className="text-slate-600">—</span>}
+                          ) : <span className="text-slate-400">—</span>}
                         </td>
 
                         {/* Checks — 4 colored segments */}
@@ -2381,13 +2439,13 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                                   {t.statements.btnSent}
                                 </span>
-                                {sollEntry.sentAt && <span className="text-[9px] text-slate-500 mt-0.5">{new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short' }).format(new Date(sollEntry.sentAt))}</span>}
+                                {sollEntry.sentAt && <span className="text-[9px] text-slate-400 mt-0.5">{new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short' }).format(new Date(sollEntry.sentAt))}</span>}
                               </div>
                             ) : (
                               <button onClick={() => inviaSollecito(r)} disabled={!hasEmail || sollecitoState === 'loading'}
                                 title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
                                 className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
-                                  !hasEmail ? 'cursor-not-allowed border-slate-600/50 bg-slate-800/60 text-slate-500'
+                                  !hasEmail ? 'cursor-not-allowed border-slate-600/50 bg-slate-700/60 text-slate-400'
                                   : 'border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
                                 }`}>
                                 {sollecitoState === 'loading' ? (
@@ -2417,17 +2475,17 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
 
       {/* ════════ SECTION 2 — Classic bolla/fattura overview ════════ */}
       <div className="mb-3">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t.statements.bolleSummaryByPeriod}</p>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t.statements.bolleSummaryByPeriod}</p>
       </div>
 
       {/* Period selector */}
       <div className="flex flex-wrap gap-3 mb-5">
         <select value={mese} onChange={e => setMese(Number(e.target.value))}
-          className="rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
+          className="rounded-lg border border-slate-600/50 bg-slate-700/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
           {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
         </select>
         <select value={anno} onChange={e => setAnno(Number(e.target.value))}
-          className="rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
+          className="rounded-lg border border-slate-600/50 bg-slate-700/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
           {anni.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
@@ -2444,7 +2502,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
               <div className="app-card-bar shrink-0" aria-hidden />
               <div className="p-4">
                 <p className={`text-2xl font-bold ${c.cls}`}>{c.value}</p>
-                <p className="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">{c.label}</p>
+                <p className="text-xs text-slate-200 mt-0.5 uppercase tracking-wide">{c.label}</p>
               </div>
             </div>
           ))}
@@ -2464,7 +2522,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
             </svg>
             {invioMultiplo === 'loading' ? t.statements.classicRequesting : invioMultiplo === 'sent' ? t.statements.classicSent : t.statements.classicRequestAll}
           </button>
-          <button onClick={() => setSelezione(new Set())} className="text-xs text-slate-500 hover:text-slate-300">{t.common.cancel}</button>
+          <button onClick={() => setSelezione(new Set())} className="text-xs text-slate-400 hover:text-slate-200">{t.common.cancel}</button>
         </div>
       )}
 
@@ -2479,14 +2537,14 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
         <div className="app-card flex flex-col overflow-hidden text-center">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="px-6 py-16">
-            <p className="text-sm text-slate-400">{t.common.loading}</p>
+            <p className="text-sm text-slate-200">{t.common.loading}</p>
           </div>
         </div>
       ) : gruppi.length === 0 ? (
         <div className="app-card flex flex-col overflow-hidden text-center">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="px-6 py-16">
-            <p className="text-sm font-medium text-slate-400">{t.statements.stmtEmpty} — {t.statements.months[mese-1]} {anno}</p>
+            <p className="text-sm font-medium text-slate-200">{t.statements.stmtEmpty} — {t.statements.months[mese-1]} {anno}</p>
           </div>
         </div>
       ) : (
@@ -2501,26 +2559,26 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
               <div key={g.fornitore_id} className="app-card overflow-hidden">
                 <div className="app-card-bar" aria-hidden />
                 {/* Supplier header with Verification Triangle */}
-                <div className="border-b border-slate-700/50 bg-slate-800/60 px-5 py-4">
+                <div className="border-b border-slate-700/50 bg-slate-700/60 px-5 py-4">
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     <div>
                       <h2 className="font-semibold text-slate-100">{g.nome}</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">{gTotal} bolla{gTotal !== 1 ? 'e' : ''} nel periodo</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{gTotal} bolla{gTotal !== 1 ? 'e' : ''} nel periodo</p>
                     </div>
                     {/* Verification Triangle */}
                     <div className="flex items-center gap-2">
-                      <div className="flex flex-col items-center px-3 py-1.5 bg-slate-900/90 border border-slate-600/50 rounded-lg min-w-[60px]">
+                      <div className="flex flex-col items-center px-3 py-1.5 bg-slate-700/90 border border-slate-600/50 rounded-lg min-w-[60px]">
                         <span className="text-xs font-bold text-slate-200">{gTotal}</span>
-                        <span className="text-[9px] text-slate-500 uppercase tracking-wide">Bolle</span>
+                        <span className="text-[9px] text-slate-400 uppercase tracking-wide">Bolle</span>
                       </div>
-                      <svg className="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
-                      <div className="flex flex-col items-center px-3 py-1.5 bg-slate-900/90 border border-slate-600/50 rounded-lg min-w-[60px]">
+                      <div className="flex flex-col items-center px-3 py-1.5 bg-slate-700/90 border border-slate-600/50 rounded-lg min-w-[60px]">
                         <span className="text-xs font-bold text-emerald-400">{gVerified}</span>
-                        <span className="text-[9px] text-slate-500 uppercase tracking-wide">Fatture</span>
+                        <span className="text-[9px] text-slate-400 uppercase tracking-wide">Fatture</span>
                       </div>
-                      <svg className="w-3 h-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                       <div className={`flex min-w-[60px] flex-col items-center rounded-lg border px-3 py-1.5 ${allGood ? 'border-emerald-500/35 bg-emerald-500/10' : 'border-red-500/35 bg-red-500/10'}`}>

@@ -9,6 +9,7 @@ import { getLocale } from '@/lib/localization'
 import { getT, getLocale as getAppLocale, getCurrency } from '@/lib/locale-server'
 import { fetchOperatorDashboardKpis, fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
 import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 interface SedeProfile {
   id: string
@@ -85,40 +86,45 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
         <span className="text-slate-800 font-medium">{sede.nome}</span>
       </div>
 
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center shrink-0">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">{sede.nome}</h1>
-            <div className="flex items-center gap-3 mt-1 flex-wrap">
-              <span className="text-sm text-slate-500">{sede.operators_count} operatore{sede.operators_count !== 1 ? 'i' : ''}</span>
-              <span className="text-slate-300">·</span>
-              <span className="text-sm text-slate-500">{sede.fornitori_count} fornitore{sede.fornitori_count !== 1 ? 'i' : ''}</span>
-              <span className="text-slate-300">·</span>
-              {imapConfigured ? (
-                <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Email configurata ({sede.imap_user})
+      <AppPageHeaderStrip>
+        <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent">
+              <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <h1 className="app-page-title text-2xl font-bold">{sede.nome}</h1>
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+                <span className="text-sm text-slate-500">
+                  {sede.operators_count} operatore{sede.operators_count !== 1 ? 'i' : ''}
                 </span>
-              ) : (
-                <span className="rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
-                  Email non configurata
+                <span className="text-slate-200">·</span>
+                <span className="text-sm text-slate-500">
+                  {sede.fornitori_count} fornitore{sede.fornitori_count !== 1 ? 'i' : ''}
                 </span>
-              )}
+                <span className="text-slate-200">·</span>
+                {imapConfigured ? (
+                  <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Email configurata ({sede.imap_user})
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-amber-500/35 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
+                    Email non configurata
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+          <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
+            <ScanEmailButton sedeId={sede_id} alwaysShowLabel />
+          </div>
         </div>
-
-        {/* Scan button — reads sede_id from URL */}
-        <ScanEmailButton sedeId={sede_id} alwaysShowLabel />
-      </div>
+      </AppPageHeaderStrip>
 
       {/* Paese / Localizzazione */}
       {(() => {
@@ -127,14 +133,14 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
           <div className="app-card mb-6 flex flex-col overflow-hidden">
             <div className="app-card-bar shrink-0" aria-hidden />
             <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-6">
-            <div className="flex shrink-0 items-center gap-2 text-sm text-slate-400">
+            <div className="flex shrink-0 items-center gap-2 text-sm text-slate-200">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21l18-9-18-9v7l12 2-12 2v7z" />
               </svg>
               Paese sede
             </div>
             <CountrySelector sedeId={sede.id} initialCode={sede.country_code} />
-            <div className="ml-auto flex flex-wrap items-center gap-4 text-xs text-slate-400">
+            <div className="ml-auto flex flex-wrap items-center gap-4 text-xs text-slate-200">
               <span><span className="font-medium text-slate-200">{loc.vat}</span> · etichetta imposta</span>
               <span><span className="font-medium text-slate-200">{loc.vatLabel}</span> · n. partita {loc.vat}</span>
               <span><span className="font-medium text-slate-200">{loc.currency}</span> · valuta ({loc.flag})</span>
@@ -167,7 +173,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-100">Estratti Conto</p>
-            <p className="mt-0.5 text-xs text-slate-400">Associa fatture alle bolle</p>
+            <p className="mt-0.5 text-xs text-slate-200">Associa fatture alle bolle</p>
           </div>
           <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -188,7 +194,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-100">Scopri Fornitori</p>
-            <p className="mt-0.5 text-xs text-slate-400">Trova mittenti sconosciuti</p>
+            <p className="mt-0.5 text-xs text-slate-200">Trova mittenti sconosciuti</p>
           </div>
           <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -209,7 +215,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-100">Fornitori</p>
-            <p className="mt-0.5 text-xs text-slate-400">{sede.fornitori_count} registrati</p>
+            <p className="mt-0.5 text-xs text-slate-200">{sede.fornitori_count} registrati</p>
           </div>
           <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

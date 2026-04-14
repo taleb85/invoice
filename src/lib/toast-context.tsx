@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '@/lib/use-t'
+import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
 
 export type ToastType = 'success' | 'error' | 'info'
 
@@ -37,7 +38,7 @@ export function useDesktopHeaderToastBanner(): DesktopHeaderToastBanner {
 /** Barra `#app-desktop-header-nav-progress` e riga logo sidebar: stesso bordo/sfondo (toast inclusi). */
 export function desktopHeaderBarSurfaceClass(banner: DesktopHeaderToastBanner): string {
   if (!banner) {
-    return 'border-b border-slate-800/30 bg-slate-950/40 shadow-none'
+    return `border-b ${desktopHeaderBarDefaultBorderColor} ${desktopHeaderBarDefaultFill}`
   }
   if (banner.type === 'success') {
     return 'border-b border-emerald-400/55 bg-gradient-to-r from-[#042f23]/98 via-emerald-950/92 to-[#042f23]/98 shadow-[0_6px_36px_rgba(16,185,129,0.22),inset_0_1px_0_rgba(52,211,153,0.16)]'
@@ -45,7 +46,7 @@ export function desktopHeaderBarSurfaceClass(banner: DesktopHeaderToastBanner): 
   if (banner.type === 'error') {
     return 'border-b border-red-400/55 bg-gradient-to-r from-[#3a0a0f]/98 via-red-950/92 to-[#3a0a0f]/98 shadow-[0_6px_36px_rgba(239,68,68,0.24),inset_0_1px_0_rgba(248,113,113,0.14)]'
   }
-  return 'border-b border-cyan-500/40 bg-gradient-to-r from-slate-950/95 via-slate-900/90 to-slate-950/95 shadow-[0_6px_28px_rgba(6,182,212,0.14),inset_0_1px_0_rgba(34,211,238,0.1)]'
+  return 'border-b border-cyan-400/40 bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 shadow-[0_1px_0_rgba(34,211,238,0.14),inset_0_1px_0_rgba(255,255,255,0.05)]'
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -124,7 +125,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
               ? 'border-emerald-500/35 bg-emerald-950/90 text-emerald-50'
               : toast.type === 'error'
               ? 'border-red-500/35 bg-red-950/90 text-red-50'
-              : 'border-slate-600/70 bg-slate-900/95 text-slate-100'
+              : 'border-slate-600/70 bg-slate-700/95 text-slate-100'
           }`}
         >
           {toast.type === 'success' && (
@@ -152,7 +153,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
                 ? 'text-emerald-200/80'
                 : toast.type === 'error'
                   ? 'text-red-200/80'
-                  : 'text-slate-400'
+                  : 'text-slate-200'
             }`}
             aria-label={tr.appStrings.toastDismiss}
           >

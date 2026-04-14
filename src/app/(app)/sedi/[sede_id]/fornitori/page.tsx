@@ -6,6 +6,9 @@ import { useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { getLocale } from '@/lib/localization'
 import { segmentParam } from '@/lib/segment-param'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import { useT } from '@/lib/use-t'
 
 interface FornitoreRow {
   id: string
@@ -79,19 +82,19 @@ function AddFornitoreModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-800/35 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md bg-slate-900/90 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-slate-700/90 rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-900">Nuovo Fornitore</h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-500 hover:text-slate-300 hover:bg-slate-800/80 rounded-lg transition-colors"
+            className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700/80 rounded-lg transition-colors"
             aria-label="Chiudi"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,7 +171,7 @@ function AddFornitoreModal({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-slate-200 hover:text-slate-200 hover:bg-slate-700/80 rounded-lg transition-colors disabled:opacity-50"
             >
               Annulla
             </button>
@@ -200,6 +203,7 @@ function AddFornitoreModal({
 
 export default function SedeFornitoriPage() {
   const sede_id = segmentParam(useParams().sede_id)
+  const t = useT()
 
   const [fornitori, setFornitori] = useState<FornitoreRow[]>([])
   const [loading, setLoading]     = useState(true)
@@ -279,40 +283,42 @@ export default function SedeFornitoriPage() {
           <span className="text-gray-600 font-medium">Fornitori</span>
         </nav>
 
-        {/* Header */}
-        <div className="flex flex-col gap-3 mb-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Fornitori</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {loading ? (
-                <span className="inline-block w-20 h-3.5 bg-slate-800/80 rounded animate-pulse" />
-              ) : (
-                `${fornitori.length} fornitore${fornitori.length !== 1 ? 'i' : ''} in questa sede`
-              )}
-            </p>
+        <AppPageHeaderStrip>
+          <div className="min-w-0 sm:flex-1 sm:flex-initial">
+            <h1 className="app-page-title text-2xl font-bold">Fornitori</h1>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nuovo Fornitore
-          </button>
-        </div>
+          <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nuovo Fornitore
+            </button>
+          </div>
+        </AppPageHeaderStrip>
+
+        <AppSummaryHighlightCard
+          accent="indigo"
+          label={t.common.total}
+          primary={fornitori.length}
+          secondary={t.fornitori.countLabel}
+        />
 
         {/* Table / Empty state */}
-        <div className="bg-slate-900/90 rounded-xl border border-slate-700/50 overflow-hidden">
+        <div className="bg-slate-700/90 rounded-xl border border-slate-700/50 overflow-hidden">
           {loading ? (
             <div className="divide-y divide-gray-50">
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="px-6 py-4 flex gap-4 animate-pulse">
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-800/80 rounded w-1/3" />
-                    <div className="h-3 bg-slate-800/80 rounded w-1/2" />
+                    <div className="h-4 bg-slate-700/80 rounded w-1/3" />
+                    <div className="h-3 bg-slate-700/80 rounded w-1/2" />
                   </div>
-                  <div className="h-4 bg-slate-800/80 rounded w-24" />
+                  <div className="h-4 bg-slate-700/80 rounded w-24" />
                 </div>
               ))}
             </div>
@@ -384,7 +390,7 @@ export default function SedeFornitoriPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {fornitori.map((f) => (
-                    <tr key={f.id} className="hover:bg-slate-800/70 transition-colors group">
+                    <tr key={f.id} className="hover:bg-slate-700/70 transition-colors group">
                       <td className="px-6 py-4 font-medium text-gray-900">{f.nome}</td>
                       <td className="px-6 py-4 text-gray-500 tabular-nums">{f.piva ?? <span className="text-gray-300">—</span>}</td>
                       <td className="px-6 py-4 text-gray-500">

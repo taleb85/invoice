@@ -10,6 +10,7 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { createClient } from '@/utils/supabase/client'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 function ProfileMobileHub() {
   const { me } = useMe()
@@ -29,7 +30,7 @@ function ProfileMobileHub() {
   const showPickSedeForOperators = masterPlane && !sedeId
 
   const rowCls =
-    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-800/40 px-3 py-3 text-sm font-semibold text-slate-100 backdrop-blur-sm transition-colors hover:bg-slate-800/70 active:scale-[0.99]'
+    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-700/40 px-3 py-3 text-sm font-semibold text-slate-100 backdrop-blur-sm transition-colors hover:bg-slate-700/70 active:scale-[0.99]'
 
   const handleLogout = async () => {
     try {
@@ -44,12 +45,12 @@ function ProfileMobileHub() {
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-white/10 bg-slate-900/50 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+    <div className="mb-4 rounded-2xl border border-white/10 bg-slate-700/50 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
       {showOperatorForm && sedeId ? <SedeAddOperatorForm sedeId={sedeId} embedded /> : null}
       {showPickSedeForOperators ? (
         <div className="space-y-2">
           <p className="px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.sedi.addOperatorSedeTitle}</p>
-          <p className="px-0.5 text-xs leading-snug text-slate-400">{t.impostazioni.addOperatorsPickSede}</p>
+          <p className="px-0.5 text-xs leading-snug text-slate-200">{t.impostazioni.addOperatorsPickSede}</p>
           <Link href="/sedi" className={rowCls}>
             <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path
@@ -132,8 +133,8 @@ export default function ImpostazioniPage() {
   }
 
   const selectCls =
-    'w-full rounded-xl border border-slate-600/60 bg-slate-800/70 px-3.5 py-2.5 text-sm text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
-  const labelCls = 'mb-1.5 block text-sm font-medium text-slate-300'
+    'w-full rounded-xl border border-slate-600/60 bg-slate-700/70 px-3.5 py-2.5 text-sm text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
+  const labelCls = 'mb-1.5 block text-sm font-medium text-slate-200'
 
   const intlLocale =
     locale === 'it' ? 'it-IT'
@@ -195,7 +196,7 @@ export default function ImpostazioniPage() {
       </div>
 
       {/* Live preview */}
-      <div className="rounded-xl border border-slate-700/60 bg-slate-950/40 p-4">
+      <div className="rounded-xl border border-slate-700/60 bg-slate-700/40 p-4">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>{t.impostazioni.preview}</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -225,34 +226,40 @@ export default function ImpostazioniPage() {
     <>
       {/* ══ MOBILE layout (Help /guida: solo qui, non in MobileTopbar) ══ */}
       <div className="md:hidden p-4 max-w-lg">
-        <div className="mb-6 flex items-start justify-between gap-3">
+        <AppPageHeaderStrip>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-slate-100" suppressHydrationWarning>{mounted ? t.impostazioni.title : ''}</h1>
-            <p className="mt-1 text-sm text-slate-400" suppressHydrationWarning>{mounted ? t.impostazioni.subtitle : ''}</p>
+            <h1 className="app-page-title text-xl font-bold" suppressHydrationWarning>
+              {mounted ? t.impostazioni.title : ''}
+            </h1>
+            <p className="mt-1 text-sm text-slate-200" suppressHydrationWarning>
+              {mounted ? t.impostazioni.subtitle : ''}
+            </p>
           </div>
-          <Link
-            href="/guida"
-            className="shrink-0 flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-slate-900/20 transition-all touch-manipulation hover:border-cyan-400/35 hover:brightness-110 active:scale-[0.98]"
-            aria-label={t.nav.guida}
-            title={t.nav.guida}
-          >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden>
-              <defs>
-                <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#6b8ef5" />
-                  <stop offset="100%" stopColor="#22d3ee" />
-                </linearGradient>
-              </defs>
-              <path
-                stroke={`url(#${helpIconGradId})`}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </Link>
-        </div>
+          <div className="flex shrink-0 items-start justify-end">
+            <Link
+              href="/guida"
+              className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-slate-900/20 transition-all hover:border-cyan-400/35 hover:brightness-110 active:scale-[0.98]"
+              aria-label={t.nav.guida}
+              title={t.nav.guida}
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden>
+                <defs>
+                  <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#6b8ef5" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                </defs>
+                <path
+                  stroke={`url(#${helpIconGradId})`}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </Link>
+          </div>
+        </AppPageHeaderStrip>
         <ProfileMobileHub />
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
@@ -278,7 +285,7 @@ export default function ImpostazioniPage() {
         <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 lg:px-8">
           <div className="app-card overflow-hidden">
             <div className="app-card-bar" aria-hidden />
-            <div className="border-b border-slate-800/80 px-6 py-5 sm:px-8">
+            <div className="border-b border-slate-600/80/80 px-6 py-5 sm:px-8">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15">
                   <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -289,10 +296,10 @@ export default function ImpostazioniPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>
                     {mounted ? t.impostazioni.sectionLocalisation : ''}
                   </p>
-                  <h1 className="mt-0.5 text-xl font-bold text-slate-100" suppressHydrationWarning>
+                  <h1 className="app-page-title mt-0.5 text-xl font-bold" suppressHydrationWarning>
                     {mounted ? t.impostazioni.title : ''}
                   </h1>
-                  <p className="mt-1 text-sm text-slate-400" suppressHydrationWarning>
+                  <p className="mt-1 text-sm text-slate-200" suppressHydrationWarning>
                     {mounted ? t.impostazioni.subtitle : ''}
                   </p>
                 </div>
@@ -309,7 +316,7 @@ export default function ImpostazioniPage() {
                 </div>
               )}
             </div>
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-800/80 bg-slate-950/40 px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+            <div className="flex flex-col-reverse gap-3 border-t border-slate-600/80/80 bg-slate-700/40 px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
               <button
                 type="button"
                 onClick={handleSave}

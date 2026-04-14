@@ -18,7 +18,7 @@ import {
  * Padding basso: 2rem (≈ pb-8) + safe-area per ergonomia sopra la gesture bar.
  */
 const navShell =
-  'app-glass-dock fixed z-[100] bottom-0 left-0 right-0 mx-2 flex max-w-[100%] items-stretch rounded-t-2xl border border-white/15 border-b-0 bg-slate-900/70 shadow-2xl shadow-black/45 backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-3 sm:mx-4 md:hidden'
+  'app-glass-dock fixed z-[100] bottom-0 left-0 right-0 mx-2 flex max-w-[100%] items-stretch rounded-t-2xl border border-white/15 border-b-0 bg-slate-700/70 shadow-2xl shadow-black/45 backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-3 sm:mx-4 md:hidden'
 
 const navClsFornitore = `${navShell} flex-col gap-2 px-2 sm:gap-3 sm:px-4`
 const navClsHub = `${navShell} flex-col gap-2 px-2 sm:px-2`
@@ -45,7 +45,7 @@ function BottomNavOperatorRow() {
       <button
         type="button"
         onClick={() => openSwitchModal()}
-        className="flex w-full min-h-[44px] touch-manipulation items-center gap-2 rounded-xl border border-cyan-500/35 bg-slate-800/45 px-2 py-1.5 text-left transition-all active:scale-[0.99] hover:border-cyan-400/55 hover:bg-slate-800/75"
+        className="flex w-full min-h-[44px] touch-manipulation items-center gap-2 rounded-xl border border-cyan-500/35 bg-slate-700/45 px-2 py-1.5 text-left transition-all active:scale-[0.99] hover:border-cyan-400/55 hover:bg-slate-700/75"
         aria-label={aria}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-bold text-cyan-200">
@@ -112,6 +112,10 @@ function FornitoreProfileBottomNav({
     <nav className={navClsFornitore} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
       {!masterAdminNoOperator && <BottomNavOperatorRow />}
       <div className={fornitoreIconsRow}>
+        <Link href="/fornitori" className={itemCls(false)} prefetch={false}>
+          <Users className="h-6 w-6 shrink-0" aria-hidden />
+          <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
+        </Link>
         <button type="button" onClick={() => router.back()} className={itemCls(false)}>
           <ArrowLeft className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.bottomNavBackToSede}</span>
@@ -163,7 +167,7 @@ export default function DashboardMobileBottomNav() {
     `flex min-h-[48px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-2 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-xs touch-manipulation transition-colors ${
       active
         ? 'text-cyan-400'
-        : 'text-slate-300 hover:bg-white/5 hover:text-white active:bg-white/10'
+        : 'text-slate-200 hover:bg-white/5 hover:text-white active:bg-white/10'
     } ${active ? 'bg-cyan-500/10' : ''}`
 
   /** Tre colonne uguali sulla scheda fornitore (niente max-w 25%). */
@@ -171,7 +175,7 @@ export default function DashboardMobileBottomNav() {
     `flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-medium touch-manipulation transition-colors ${
       active
         ? 'text-cyan-400'
-        : 'text-slate-300 hover:bg-white/5 hover:text-white active:bg-white/10'
+        : 'text-slate-200 hover:bg-white/5 hover:text-white active:bg-white/10'
     } ${active ? 'bg-cyan-500/10' : ''}`
 
   if (isFornitoreProfileRoute(normalized)) {

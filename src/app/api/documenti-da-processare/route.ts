@@ -8,6 +8,8 @@ type DocRowFinalizza = {
   sede_id: string | null
   data_documento: string | null
   file_url: string
+  file_name?: string | null
+  oggetto_mail?: string | null
   is_statement: boolean
   metadata: unknown
 }
@@ -23,11 +25,14 @@ async function finalizePendingByTipo(
       ? (doc.metadata as Record<string, unknown>)
       : {}
   let tipo = meta.pending_kind as string | undefined
-  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement') {
+  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement' && tipo !== 'ordine') {
     tipo = doc.is_statement ? 'statement' : undefined
   }
-  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement') {
-    return NextResponse.json({ error: 'Imposta il tipo di documento (estratto, bolla o fattura).' }, { status: 400 })
+  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement' && tipo !== 'ordine') {
+    return NextResponse.json(
+      { error: 'Imposta il tipo di documento (estratto, bolla, fattura o ordine).' },
+      { status: 400 },
+    )
   }
   if (!doc.fornitore_id) {
     return NextResponse.json({ error: 'Associa un fornitore prima di finalizzare.' }, { status: 400 })
@@ -74,6 +79,39 @@ async function finalizePendingByTipo(
       })
       .eq('id', id)
     return NextResponse.json({ ok: true, fattura_id: fattura.id })
+  }
+
+  if (tipo === 'ordine') {
+    const titoloOrdine =
+      (typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null) ||
+      (typeof doc.oggetto_mail === 'string' && doc.oggetto_mail.trim() ? doc.oggetto_mail.trim() : null)
+    const { error: coErr } = await supabase.from('conferme_ordine').insert([
+      {
+        fornitore_id: doc.fornitore_id,
+        sede_id: sedeDefinitiva,
+        file_url: doc.file_url,
+        file_name: doc.file_name ?? null,
+        titolo: titoloOrdine,
+        data_ordine: dataDoc,
+        note: null,
+      },
+    ])
+    if (coErr) {
+      return NextResponse.json(
+        { error: `Errore archiviazione ordine (tabella conferme_ordine): ${coErr.message}` },
+        { status: 500 },
+      )
+    }
+    await supabase
+      .from('documenti_da_processare')
+      .update({
+        stato: 'associato',
+        bolla_id: null,
+        fattura_id: null,
+        ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+      })
+      .eq('id', id)
+    return NextResponse.json({ ok: true })
   }
 
   if (tipo === 'bolla') {
@@ -210,8 +248,8 @@ export async function POST(req: NextRequest) {
     bolla_ids?: string[]       // new multi-bolla
     fornitore_id?: string
     is_statement?: boolean
-    /** document classification: statement vs delivery note vs invoice (pending queue UI) */
-    kind?: 'statement' | 'bolla' | 'fattura'
+    /** document classification: statement vs delivery note vs invoice vs order (pending queue UI) */
+    kind?: 'statement' | 'bolla' | 'fattura' | 'ordine'
     /** Usato con azione `associa` per finalizzare senza bolle (stesso handler già deployato ovunque). */
     finalizza_da_tipo?: boolean
   }
@@ -228,7 +266,7 @@ export async function POST(req: NextRequest) {
     // Classificazione Estratto / Bolla / Fattura: stessa logica di set_pending_kind così
     // funziona anche su deploy che non espongono ancora l’azione dedicata (evita «Azione non valida»).
     const classifies =
-      kind === 'statement' || kind === 'bolla' || kind === 'fattura'
+      kind === 'statement' || kind === 'bolla' || kind === 'fattura' || kind === 'ordine'
     if (classifies) {
       const { data: row, error: readErr } = await supabase
         .from('documenti_da_processare')
@@ -268,7 +306,7 @@ export async function POST(req: NextRequest) {
 
   // ── set_pending_kind — estratto / bolla / fattura (metadata + is_statement) ──
   if (azioneNorm === 'set_pending_kind') {
-    if (kind !== 'statement' && kind !== 'bolla' && kind !== 'fattura') {
+    if (kind !== 'statement' && kind !== 'bolla' && kind !== 'fattura' && kind !== 'ordine') {
       return NextResponse.json({ error: 'kind non valido' }, { status: 400 })
     }
     const { data: row, error: readErr } = await supabase

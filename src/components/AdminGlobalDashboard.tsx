@@ -3,6 +3,7 @@ import type { Translations } from '@/lib/translations'
 import { getLocale as getCountryLocale } from '@/lib/localization'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import { dashboardManageSediLabel } from '@/lib/gestisci-sede-label'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 export type AdminGlobalSedeCard = {
   id: string
@@ -36,11 +37,11 @@ export function AdminGlobalDashboard({
   const manageSediText = dashboardManageSediLabel(t, associatedSedeNome ?? '')
   return (
     <div className="max-w-5xl p-4 md:p-8">
-      <div className="mb-8">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold text-slate-100 md:text-2xl">{t.dashboard.adminGlobalTitle}</h1>
-            <p className="mt-1 hidden text-sm text-slate-400 md:block">{t.dashboard.adminGlobalSubtitle}</p>
+      <div className="mb-8 w-full">
+        <AppPageHeaderStrip embedded>
+          <div className="min-w-0 sm:flex-1 sm:flex-initial">
+            <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.adminGlobalTitle}</h1>
+            <p className="mt-1 hidden text-sm text-slate-200 md:block">{t.dashboard.adminGlobalSubtitle}</p>
             <p className="mt-1 text-xs text-slate-500 md:hidden">{t.dashboard.adminGlobalSubtitle}</p>
           </div>
           <div className="-mx-4 flex w-[calc(100%+2rem)] min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto px-4 py-2.5 md:mx-0 md:w-auto md:overflow-visible md:px-0 md:py-0">
@@ -49,7 +50,7 @@ export function AdminGlobalDashboard({
               className={`inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 py-0 text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${
                 erroriRecenti > 0
                   ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
-                  : 'bg-slate-800/90 text-slate-200 hover:bg-slate-800'
+                  : 'bg-slate-700/90 text-slate-200 hover:bg-slate-700'
               }`}
             >
               {erroriRecenti > 0 && (
@@ -74,11 +75,11 @@ export function AdminGlobalDashboard({
               {manageSediText}
             </Link>
           </div>
-        </div>
+        </AppPageHeaderStrip>
       </div>
 
       {/* Aggregati globali (nessun filtro sede — RLS) */}
-      <div className="mb-8 rounded-xl border border-cyan-500/20 bg-slate-900/50 p-4 shadow-[0_0_24px_-8px_rgba(6,182,212,0.25)] md:p-5">
+      <div className="mb-8 rounded-xl border border-cyan-500/20 bg-slate-700/50 p-4 shadow-[0_0_24px_-8px_rgba(6,182,212,0.25)] md:p-5">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-cyan-400/90">{t.dashboard.adminGlobalTotalsLabel}</p>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-3 text-center">
@@ -108,7 +109,7 @@ export function AdminGlobalDashboard({
       </div>
 
       {sediCards.length === 0 ? (
-        <div className="rounded-xl border border-cyan-500/20 bg-slate-900/40">
+        <div className="rounded-xl border border-cyan-500/20 bg-slate-700/40">
           <div className="h-1 rounded-t-xl bg-gradient-to-r from-cyan-500/40 via-cyan-400/20 to-transparent" aria-hidden />
           <div className="px-6 py-16 text-center">
             <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -119,7 +120,7 @@ export function AdminGlobalDashboard({
                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
               />
             </svg>
-            <p className="text-sm text-slate-400">{t.sedi.noSedi}</p>
+            <p className="text-sm text-slate-200">{t.sedi.noSedi}</p>
             <Link href="/sedi" className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
               {manageSediText}
             </Link>
@@ -135,14 +136,14 @@ export function AdminGlobalDashboard({
             return (
               <div
                 key={sede.id}
-                className="flex flex-col overflow-hidden rounded-xl border border-cyan-500/20 bg-slate-900/45 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] transition-colors hover:border-cyan-500/35"
+                className="flex flex-col overflow-hidden rounded-xl border border-cyan-500/20 bg-slate-700/45 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] transition-colors hover:border-cyan-500/35"
               >
                 <div className="h-1 shrink-0 bg-gradient-to-r from-cyan-500/50 via-cyan-400/25 to-transparent" aria-hidden />
                 <div className="flex flex-1 flex-col p-5">
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="block truncate font-semibold text-slate-100">{sede.nome}</span>
-                      {metaLine ? <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-400">{metaLine}</p> : null}
+                      {metaLine ? <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-200">{metaLine}</p> : null}
                     </div>
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
@@ -156,7 +157,7 @@ export function AdminGlobalDashboard({
                   <div className="mb-4 flex flex-wrap gap-2">
                     <span
                       className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold ${
-                        imapOk ? 'bg-green-500/15 text-green-300' : 'bg-slate-700/80 text-slate-400'
+                        imapOk ? 'bg-green-500/15 text-green-300' : 'bg-slate-700/80 text-slate-200'
                       }`}
                     >
                       {imapOk ? t.dashboard.sedeImapOn : t.sedi.notConfigured}
@@ -178,7 +179,7 @@ export function AdminGlobalDashboard({
                     </AdminSelectSedeButton>
                     <Link
                       href={`/sedi/${sede.id}`}
-                      className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-lg border border-slate-600/80 bg-slate-800/80 px-3 py-2.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-800"
+                      className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-lg border border-slate-600/80 bg-slate-700/80 px-3 py-2.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700"
                     >
                       {t.dashboard.adminSedeSettingsLink}
                     </Link>

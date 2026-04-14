@@ -3,7 +3,6 @@ import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import SollecitiButton from '@/components/SollecitiButton'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import DashboardHubQuickActions from '@/components/DashboardHubQuickActions'
-import NotificationBell from '@/components/NotificationBell'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getTimezone, getCurrency, getCookieStore, formatDate as fmtDate } from '@/lib/locale-server'
@@ -18,6 +17,7 @@ import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,9 +59,9 @@ export default async function DashboardPage() {
     return (
       <div className="w-full min-w-0 p-4 md:p-8">
         <div className="mb-8 w-full">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3">
+          <AppPageHeaderStrip embedded>
             <div className="min-w-0 sm:flex-1 sm:flex-initial">
-              <h1 className="text-xl font-bold text-slate-100 md:text-2xl">{t.dashboard.title}</h1>
+              <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.title}</h1>
               <p className="mt-1 hidden text-sm text-slate-100/90 md:block">{t.sedi.subtitleGlobalAdmin}</p>
             </div>
             <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
                 className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-medium transition-colors ${
                   erroriRecenti > 0
                     ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
-                    : 'bg-slate-800/90 text-slate-200 hover:bg-slate-800'
+                    : 'bg-slate-700/90 text-slate-200 hover:bg-slate-700'
                 }`}
               >
                 {erroriRecenti > 0 && (
@@ -90,15 +90,8 @@ export default async function DashboardPage() {
                   />
                 </svg>
               </Link>
-              <NotificationBell
-                variant="inline"
-                isAdmin
-                initialAdminErrors={erroriRecenti}
-                initialOperatorPending={0}
-                initialOperatorLogErrors={0}
-              />
             </div>
-          </div>
+          </AppPageHeaderStrip>
         </div>
 
         {emailBodySupplierHints.length > 0 ? (
@@ -124,7 +117,7 @@ export default async function DashboardPage() {
         ) : null}
 
         {sediStats.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-950/50 px-6 py-16 text-center">
+          <div className="mt-4 rounded-xl border border-slate-600/80 bg-slate-700/50 px-6 py-16 text-center">
             <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path
                 strokeLinecap="round"
@@ -133,7 +126,7 @@ export default async function DashboardPage() {
                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
               />
             </svg>
-            <p className="text-sm text-slate-400">{t.sedi.noSedi}</p>
+            <p className="text-sm text-slate-200">{t.sedi.noSedi}</p>
           </div>
         ) : (
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -144,7 +137,7 @@ export default async function DashboardPage() {
               return (
               <div
                 key={sede.id}
-                className={`rounded-xl border bg-slate-900/45 p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] ${
+                className={`rounded-xl border bg-slate-700/45 p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] ${
                   unhealthy
                     ? 'border-red-500/45 ring-1 ring-red-500/25'
                     : 'border-cyan-500/20'
@@ -166,7 +159,7 @@ export default async function DashboardPage() {
                   </div>
                   <AdminSelectSedeButton
                     sedeId={sede.id}
-                    className="shrink-0 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:border-cyan-500/40 hover:bg-slate-800"
+                    className="shrink-0 rounded-lg border border-slate-600/80 bg-slate-700/90 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:border-cyan-500/40 hover:bg-slate-700"
                   >
                     {t.dashboard.enterAsSede}
                   </AdminSelectSedeButton>
@@ -245,6 +238,7 @@ export default async function DashboardPage() {
           documentiDaAssociare: 0,
           totaleImporto: 0,
           listinoRows: 0,
+          ordiniCount: 0,
           statementsTotal: 0,
           statementsWithIssues: 0,
           erroriRecenti: 0,
@@ -260,25 +254,18 @@ export default async function DashboardPage() {
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
-      <div className="mb-6 flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3 md:mb-8">
+      <AppPageHeaderStrip>
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
-          <h1 className="text-xl font-bold text-slate-100 md:text-2xl">
+          <h1 className="app-page-title text-xl font-bold md:text-2xl">
             {dashboardSedeNome ?? t.dashboard.title}
           </h1>
-          <p className="mt-0.5 hidden text-sm text-slate-400 md:block">{t.dashboard.subtitle}</p>
+          <p className="mt-0.5 hidden text-sm text-slate-200 md:block">{t.dashboard.subtitle}</p>
         </div>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
           <ScanEmailButton alwaysShowLabel sedeId={adminViewSedeId ?? undefined} />
           <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
-          <NotificationBell
-            variant="inline"
-            isAdmin={false}
-            initialAdminErrors={0}
-            initialOperatorPending={kpis.documentiPending}
-            initialOperatorLogErrors={0}
-          />
         </div>
-      </div>
+      </AppPageHeaderStrip>
 
       {!operatorScoped && (
         <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
@@ -286,26 +273,26 @@ export default async function DashboardPage() {
         </div>
       )}
       {supplierHint && (
-        <div className="mb-4 rounded-xl border border-violet-500/35 bg-violet-950/30 px-4 py-3 text-sm text-violet-100">
-          <p className="font-medium leading-snug">
+        <div className="mb-4 rounded-xl border border-violet-400/55 bg-gradient-to-br from-violet-900/70 via-violet-800/55 to-fuchsia-950/60 px-4 py-3 text-sm shadow-[0_8px_32px_-8px_rgba(91,33,182,0.45),inset_0_1px_0_rgba(196,181,253,0.12)] ring-1 ring-violet-400/25">
+          <p className="font-semibold leading-snug text-violet-50 [text-shadow:0_0_28px_rgba(167,139,250,0.4)]">
             {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               href={supplierHint.newFornitoreHref}
-              className="inline-flex items-center rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-500"
+              className="inline-flex items-center rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-violet-950/40 ring-1 ring-violet-300/35 transition-colors hover:bg-violet-400 hover:ring-violet-200/40"
             >
               {t.dashboard.suggestedSupplierAdd}
             </Link>
             <Link
               href={supplierHint.importHref}
-              className="inline-flex items-center rounded-lg border border-violet-500/50 px-3 py-2 text-xs font-semibold text-violet-200 transition-colors hover:bg-violet-950/50"
+              className="inline-flex items-center rounded-lg border border-violet-400/60 bg-violet-800/45 px-3 py-2 text-xs font-semibold text-violet-100 transition-colors hover:border-violet-300/70 hover:bg-violet-700/50 hover:text-white"
             >
               {t.dashboard.suggestedSupplierImport}
             </Link>
             <Link
               href="/statements/da-processare"
-              className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
+              className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-violet-300 underline decoration-violet-400/60 underline-offset-2 transition-colors hover:text-violet-100 hover:decoration-violet-200"
             >
               {t.statements.tabDocumenti} →
             </Link>
@@ -330,7 +317,7 @@ export default async function DashboardPage() {
               </Link>
               <Link
                 href="/log"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-slate-800/60"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-700/60"
               >
                 {t.nav.logEmail}
               </Link>
@@ -361,7 +348,7 @@ export default async function DashboardPage() {
               </Link>
               <Link
                 href="/log"
-                className="flex min-h-[44px] items-center justify-center rounded-xl border border-slate-600/60 px-3 py-2 text-xs font-medium text-slate-400"
+                className="flex min-h-[44px] items-center justify-center rounded-xl border border-slate-600/60 px-3 py-2 text-xs font-medium text-slate-200"
               >
                 {t.nav.logEmail}
               </Link>
@@ -371,7 +358,7 @@ export default async function DashboardPage() {
         </>
       ) : null}
       <h2
-        className={`mb-3 text-sm font-semibold tracking-wide text-slate-300 ${operatorScoped ? 'operator-dash-hide-mobile' : ''}`}
+        className={`mb-3 text-sm font-semibold tracking-wide text-slate-200 ${operatorScoped ? 'operator-dash-hide-mobile' : ''}`}
       >
         {t.fornitori.tabRiepilogo}
       </h2>
@@ -381,7 +368,7 @@ export default async function DashboardPage() {
 
       <div className={`app-card overflow-hidden ${operatorScoped ? 'operator-dash-hide-mobile' : ''}`}>
         <div className="app-card-bar" aria-hidden />
-        <div className="flex flex-col gap-3 border-b border-slate-800/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-3 border-b border-slate-600/80/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <h2 className="font-semibold text-slate-100">{t.dashboard.recentBills}</h2>
           <div className="flex flex-wrap items-center gap-3">
             <Link
@@ -409,7 +396,7 @@ export default async function DashboardPage() {
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <p className="text-sm text-slate-400">{t.bolle.noBills}</p>
+            <p className="text-sm text-slate-200">{t.bolle.noBills}</p>
             <Link href="/bolle/new" className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
               {t.bolle.addFirst}
             </Link>
@@ -420,7 +407,7 @@ export default async function DashboardPage() {
               <Link
                 key={b.id}
                 href={`/bolle/${b.id}`}
-                className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-800/40"
+                className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-700/40"
               >
                 <div>
                   <p className="text-sm font-medium text-slate-100">{b.fornitori?.nome ?? '—'}</p>

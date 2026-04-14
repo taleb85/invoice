@@ -11,7 +11,7 @@ export default async function NotFound() {
   const t = getTranslations(locale)
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 p-4">
       <div className="w-full max-w-md space-y-6 text-center">
 
         <Link href="/" className="group inline-flex items-center justify-center gap-2.5">
@@ -29,10 +29,10 @@ export default async function NotFound() {
           <div className="space-y-5 px-8 py-8">
           <div className="space-y-1">
             <p className="select-none text-7xl font-black leading-none text-slate-700">404</p>
-            <h1 className="text-xl font-bold text-slate-100">{t.appStrings.pageNotFoundTitle}</h1>
+            <h1 className="app-page-title text-xl font-bold">{t.appStrings.pageNotFoundTitle}</h1>
           </div>
 
-          <p className="text-sm leading-relaxed text-slate-400">
+          <p className="text-sm leading-relaxed text-slate-200">
             {t.appStrings.pageNotFoundDesc}
           </p>
 
@@ -48,7 +48,7 @@ export default async function NotFound() {
             </Link>
             <Link
               href="/fornitori"
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-700/60 px-4 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />

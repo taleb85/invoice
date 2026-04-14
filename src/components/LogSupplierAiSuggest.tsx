@@ -71,10 +71,10 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
         {t.log.aiSuggest}
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center" role="dialog">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 p-4 backdrop-blur-sm sm:items-center" role="dialog">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-slate-700 bg-slate-700 p-5 shadow-xl">
             <h3 className="text-sm font-semibold text-slate-100">{t.log.aiSuggestTitle}</h3>
-            {loading && <p className="mt-3 text-xs text-slate-400">{t.log.aiSuggestLoading}</p>}
+            {loading && <p className="mt-3 text-xs text-slate-200">{t.log.aiSuggestLoading}</p>}
             {err && (
               <p className="mt-3 rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-xs text-red-200">{err}</p>
             )}
@@ -99,7 +99,7 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800"
+                className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700"
               >
                 {t.statements.btnClose}
               </button>

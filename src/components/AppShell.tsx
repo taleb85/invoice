@@ -25,11 +25,14 @@ import EmailSyncProgressBar from './EmailSyncProgressBar'
 import { isFornitoreProfileRoute, normalizeAppPath, showsMobileBottomBar } from '@/lib/mobile-hub-routes'
 import { NetworkProvider } from '@/lib/network-context'
 import ConnectionStatusDot from '@/components/ConnectionStatusDot'
+import DesktopHeaderToolbar from '@/components/DesktopHeaderToolbar'
 import AppShellActivityStrip from '@/components/AppShellActivityStrip'
 import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
 import { SidebarBrandHeader } from '@/components/SidebarBrandHeader'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { useNotificationCounts } from '@/lib/use-notification-counts'
 
 const SidebarController   = dynamic(() => import('./SidebarController'),    { ssr: false })
 const OperatorSwitchModal = dynamic(() => import('./OperatorSwitchModal'), { ssr: false })
@@ -179,6 +182,15 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const hub = showsMobileBottomBar()
   const { me, loading } = useMe()
   const { activeOperator } = useActiveOperator()
+  const { effectiveSedeId } = useManualDeliverySede()
+  const isAdmin = Boolean(me?.is_admin)
+  const { badgeCount: headerNotificationBadgeCount } = useNotificationCounts({
+    isAdmin,
+    effectiveSedeId,
+    initialAdminErrors: 0,
+    initialOperatorPending: 0,
+    initialOperatorLogErrors: 0,
+  })
   const headerToastBanner = useDesktopHeaderToastBanner()
   const headerNavBarSurface = desktopHeaderBarSurfaceClass(headerToastBanner)
   const headerBannerTextCls = desktopToastBannerTextClass(headerToastBanner)
@@ -228,7 +240,8 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               </span>
             </div>
           ) : null}
-          <div className="relative z-[2] shrink-0">
+          <div className="relative z-[2] flex shrink-0 items-center gap-2">
+            <DesktopHeaderToolbar workspaceAlert={headerNotificationBadgeCount > 0} />
             <ConnectionStatusDot />
           </div>
         </div>
@@ -241,7 +254,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
         />
         <main
           data-app-main-scroll
-          className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] text-slate-200 md:pt-0 ${
+          className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 text-slate-100 md:pt-0 ${
             normalized === '/bolle/new' ? 'pt-0' : 'pt-14'
           } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
         >
