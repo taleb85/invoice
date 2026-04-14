@@ -12,6 +12,7 @@ import { useMe } from '@/lib/me-context'
 import { LOCALES } from '@/lib/translations'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
+import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import ConnectionStatusDot from '@/components/ConnectionStatusDot'
 import NotificationBell from '@/components/NotificationBell'
 
@@ -51,6 +52,7 @@ export default function MobileTopbar() {
     } catch {
       /* ignore */
     }
+    clearSessionOperatorGate()
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

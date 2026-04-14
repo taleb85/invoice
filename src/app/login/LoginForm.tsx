@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { LocaleProvider, useLocale } from '@/lib/locale-context'
 import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
 import { LOCALES } from '@/lib/translations'
+import { markSessionOperatorGateOk } from '@/lib/session-operator-gate'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -120,6 +121,7 @@ function LoginFormInner() {
     } catch {
       /* ignore */
     }
+    markSessionOperatorGateOk()
     router.push('/'); router.refresh()
   }, [loading, supabase, router, t.login.pinIncorrect])
 

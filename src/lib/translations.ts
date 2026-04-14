@@ -136,6 +136,10 @@ type Translations = {
     adminGateLabel: string
     adminGateHint: string
     adminGateWrong: string
+    /** Schermata /accesso: nuova sessione browser */
+    sessionGateTitle: string
+    sessionGateSubtitle: string
+    sessionGateWrongUser: string
   }
   nav: {
     dashboard: string
@@ -1163,6 +1167,10 @@ const it: Translations = {
     adminGateLabel: 'Codice accesso schermata admin',
     adminGateHint: 'Inserisci il PIN per sbloccare email e password.',
     adminGateWrong: 'Codice non valido.',
+    sessionGateTitle: 'Conferma accesso',
+    sessionGateSubtitle:
+      'Nuova sessione: inserisci di nuovo il tuo nome e il PIN a 4 cifre per continuare.',
+    sessionGateWrongUser: 'Questo nome non corrisponde all’account con cui hai effettuato l’accesso.',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -2049,6 +2057,9 @@ const en: Translations = {
     adminGateLabel: 'Admin screen unlock code',
     adminGateHint: 'Enter the PIN to unlock email and password.',
     adminGateWrong: 'Invalid code.',
+    sessionGateTitle: 'Confirm access',
+    sessionGateSubtitle: 'New browser session: enter your name and 4-digit PIN again to continue.',
+    sessionGateWrongUser: 'This name does not match the account you signed in with.',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -2458,6 +2469,9 @@ const es: Translations = {
     adminGateLabel: 'Código de desbloqueo (admin)',
     adminGateHint: 'Introduce el PIN para desbloquear correo y contraseña.',
     adminGateWrong: 'Código no válido.',
+    sessionGateTitle: 'Confirmar acceso',
+    sessionGateSubtitle: 'Nueva sesión: introduce de nuevo tu nombre y el PIN de 4 dígitos para continuar.',
+    sessionGateWrongUser: 'Este nombre no coincide con la cuenta con la que iniciaste sesión.',
   },
   nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Log Email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)' },
   common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', phone: 'Teléfono', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: 'Añadir', rename: 'Renombrar', role: 'Rol', aiExtracted: 'Datos extraídos por IA', matched: 'Asociado', notMatched: 'No asociado', recordSupplierLinked: 'Vinculado', company: 'Empresa', invoiceNum: 'N.º Factura', total: 'Total' },
@@ -2822,6 +2836,9 @@ const fr: Translations = {
     adminGateLabel: 'Code de déverrouillage admin',
     adminGateHint: 'Saisissez le PIN pour déverrouiller e-mail et mot de passe.',
     adminGateWrong: 'Code invalide.',
+    sessionGateTitle: 'Confirmer l’accès',
+    sessionGateSubtitle: 'Nouvelle session : saisissez à nouveau votre nom et le PIN à 4 chiffres pour continuer.',
+    sessionGateWrongUser: 'Ce nom ne correspond pas au compte avec lequel vous êtes connecté.',
   },
   nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Log Email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)' },
   common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', phone: 'Téléphone', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: 'Ajouter', rename: 'Renommer', role: 'Rôle', aiExtracted: 'Données extraites par IA', matched: 'Associé', notMatched: 'Non associé', recordSupplierLinked: 'Lié', company: 'Société', invoiceNum: 'N° Facture', total: 'Total' },
@@ -3186,6 +3203,9 @@ const de: Translations = {
     adminGateLabel: 'Admin-Entsperrcode',
     adminGateHint: 'PIN eingeben, um E-Mail und Passwort freizuschalten.',
     adminGateWrong: 'Ungültiger Code.',
+    sessionGateTitle: 'Zugang bestätigen',
+    sessionGateSubtitle: 'Neue Sitzung: geben Sie erneut Ihren Namen und die 4-stellige PIN ein.',
+    sessionGateWrongUser: 'Dieser Name passt nicht zum angemeldeten Konto.',
   },
   nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', ordini: 'Bestellungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standort & Nutzer', sediTitle: 'Standort', sediNavGroupMaster: 'Standorte', gestisciSedeNamed: '{name} verwalten', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)' },
   common: { save: 'Speichern', cancel: 'Abbrechen', delete: 'Löschen', edit: 'Bearbeiten', new: 'Neu', loading: 'Laden...', error: 'Fehler', success: 'Erfolg', noData: 'Keine Daten', document: 'Dokument', actions: 'Aktionen', date: 'Datum', status: 'Status', supplier: 'Lieferant', notes: 'Notizen', phone: 'Telefon', saving: 'Speichern...', attachment: 'Anhang', openAttachment: 'Anhang öffnen', detail: 'Detail', add: 'Hinzufügen', rename: 'Umbenennen', role: 'Rolle', aiExtracted: 'KI-extrahierte Daten', matched: 'Zugeordnet', notMatched: 'Nicht zugeordnet', recordSupplierLinked: 'Verknüpft', company: 'Unternehmen', invoiceNum: 'Rechnungs-Nr.', total: 'Gesamt' },

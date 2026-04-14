@@ -9,6 +9,7 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { createClient } from '@/utils/supabase/client'
+import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
@@ -39,6 +40,7 @@ function ProfileMobileHub() {
     } catch {
       /* ignore */
     }
+    clearSessionOperatorGate()
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

@@ -12,6 +12,7 @@ import { getAssociatedSedeNome, navGestisciSediLabel } from '@/lib/gestisci-sede
 import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
 import { effectiveIsAdminSedeUi, profileCanAccessSediListPage } from '@/lib/effective-operator-ui'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
+import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 
 function getCookie(name: string): string {
   if (typeof document === 'undefined') return ''
@@ -207,6 +208,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
     } catch {
       /* ignore */
     }
+    clearSessionOperatorGate()
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
