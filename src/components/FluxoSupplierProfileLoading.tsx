@@ -75,9 +75,9 @@ export default function FluxoSupplierProfileLoading({
         </div>
 
         <div className="w-full space-y-4" role="status" aria-live="polite">
-          <p className="text-sm font-medium leading-relaxed text-slate-300 sm:text-base">{message}</p>
+          <p className="text-sm font-medium leading-relaxed text-slate-200 sm:text-base">{message}</p>
           <div
-            className="relative mx-auto h-1 w-40 overflow-hidden rounded-full bg-slate-800/90 sm:w-48"
+            className="relative mx-auto h-1 w-40 overflow-hidden rounded-full bg-slate-700/90 sm:w-48"
             aria-hidden
           >
             <div className="animate-fluxo-supplier-profile-loading-bar absolute inset-y-0 w-2/5 rounded-full bg-gradient-to-r from-cyan-500/85 via-cyan-400 to-emerald-400/90 shadow-[0_0_12px_rgba(34,211,238,0.28)]" />

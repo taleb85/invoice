@@ -67,11 +67,11 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
   }, [visible, effectiveSedeId, preferredFornitoreId])
 
   if (meLoading && !me) {
-    return <p className="text-sm text-slate-400">{t.common.loading}</p>
+    return <p className="text-sm text-slate-200">{t.common.loading}</p>
   }
 
   if (!visible) {
-    return <p className="text-sm text-slate-400">{t.dashboard.manualDeliveryNeedSede}</p>
+    return <p className="text-sm text-slate-200">{t.dashboard.manualDeliveryNeedSede}</p>
   }
 
   return (
@@ -86,7 +86,7 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <div className="px-4 py-5 text-center">
-            <p className="text-sm text-slate-400">{t.fornitori.noSuppliers}</p>
+            <p className="text-sm text-slate-200">{t.fornitori.noSuppliers}</p>
             <Link
               href="/fornitori/new"
               className="mt-3 inline-block text-sm font-semibold text-cyan-400 hover:text-cyan-300"
@@ -110,7 +110,7 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
                 id="dashboard-manual-fornitore"
                 value={fornitoreId}
                 onChange={(e) => setFornitoreId(e.target.value)}
-                className="w-full rounded-xl border border-slate-600/60 bg-slate-800/70 px-3.5 py-2.5 text-sm text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                className="w-full rounded-xl border border-slate-600/60 bg-slate-700/70 px-3.5 py-2.5 text-sm text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
               >
                 {fornitori.map((f) => (
                   <option key={f.id} value={f.id}>

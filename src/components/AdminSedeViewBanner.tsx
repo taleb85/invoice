@@ -23,7 +23,7 @@ export default function AdminSedeViewBanner({ sedeNome }: { sedeNome: string }) 
           document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
           router.refresh()
         }}
-        className="shrink-0 rounded-lg border border-slate-600 bg-slate-800/90 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-800"
+        className="shrink-0 rounded-lg border border-slate-600 bg-slate-700/90 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700"
       >
         {t.dashboard.exitSedeView}
       </button>

@@ -16,7 +16,7 @@ export type ManualDeliveryFormProps = {
 }
 
 const inputCls =
-  'mb-3 w-full resize-y rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-shadow disabled:opacity-60'
+  'mb-3 w-full resize-y rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-shadow disabled:opacity-60'
 
 /** Mobile-first: testo libero e/o foto + "Registra Consegna". */
 export default function ManualDeliveryForm({
@@ -157,7 +157,7 @@ export default function ManualDeliveryForm({
       <div className="p-4 md:p-5">
         <label
           htmlFor="manual-delivery-text"
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-200"
         >
           {t.dashboard.manualReceiptLabel}
         </label>
@@ -203,7 +203,7 @@ export default function ManualDeliveryForm({
             type="button"
             disabled={loading}
             onClick={() => cameraRef.current?.click()}
-            className="touch-manipulation rounded-lg border border-slate-600/70 bg-slate-800/80 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
+            className="touch-manipulation rounded-lg border border-slate-600/70 bg-slate-700/80 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
           >
             {t.bolle.cameraBtn}
           </button>
@@ -211,7 +211,7 @@ export default function ManualDeliveryForm({
             type="button"
             disabled={loading}
             onClick={() => fileRef.current?.click()}
-            className="touch-manipulation rounded-lg border border-slate-600/70 bg-slate-800/80 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
+            className="touch-manipulation rounded-lg border border-slate-600/70 bg-slate-700/80 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
           >
             {t.bolle.fileBtn}
           </button>
@@ -229,7 +229,7 @@ export default function ManualDeliveryForm({
         {preview ? (
           <div className="mb-3 overflow-hidden rounded-lg border border-slate-600/50">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="" className="max-h-40 w-full object-contain bg-slate-900/50" />
+            <img src={preview} alt="" className="max-h-40 w-full object-contain bg-slate-700/50" />
           </div>
         ) : null}
 
@@ -237,7 +237,7 @@ export default function ManualDeliveryForm({
           className={`mb-3 flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left text-xs leading-snug transition-colors ${
             supplierEmail?.trim()
               ? 'border-cyan-500/25 bg-cyan-500/5 text-slate-200'
-              : 'cursor-not-allowed border-slate-700/60 bg-slate-800/40 text-slate-500'
+              : 'cursor-not-allowed border-slate-700/60 bg-slate-700/40 text-slate-500'
           }`}
         >
           <input
@@ -245,7 +245,7 @@ export default function ManualDeliveryForm({
             checked={Boolean(supplierEmail?.trim() && emailSupplier)}
             disabled={loading || !supplierEmail?.trim()}
             onChange={(e) => setEmailSupplier(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-500 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40 disabled:opacity-40"
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500/40 disabled:opacity-40"
           />
           <span>
             <span className="font-semibold text-slate-100">{t.dashboard.manualReceiptEmailSupplierLabel}</span>

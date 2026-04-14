@@ -69,7 +69,7 @@ export default function SedeAddOperatorForm({
   }
 
   const inputCls =
-    'w-full rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
+    'w-full rounded-lg border border-slate-600/50 bg-slate-700/90 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
 
   const nameId = embedded ? 'imp-embedded-op-name' : 'sede-op-name'
   const pinId = embedded ? 'imp-embedded-op-pin' : 'sede-op-pin'
@@ -90,7 +90,7 @@ export default function SedeAddOperatorForm({
         }
       >
         <div className={embedded ? 'w-full' : 'flex-1 min-w-[10rem]'}>
-          <label htmlFor={nameId} className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor={nameId} className="mb-1 block text-xs font-medium text-slate-200">
             {t.sedi.operatorDisplayNameLabel}
           </label>
           <input
@@ -106,7 +106,7 @@ export default function SedeAddOperatorForm({
           />
         </div>
         <div className={embedded ? 'w-full' : 'w-full sm:w-36'}>
-          <label htmlFor={pinId} className="mb-1 block text-xs font-medium text-slate-400">
+          <label htmlFor={pinId} className="mb-1 block text-xs font-medium text-slate-200">
             {t.sedi.operatorPinMinLabel}
           </label>
           <input
@@ -138,7 +138,7 @@ export default function SedeAddOperatorForm({
     return (
       <div className="space-y-2">
         <p className="px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.sedi.addOperatorSedeTitle}</p>
-        <p className="px-0.5 text-xs leading-snug text-slate-400">{t.sedi.addOperatorSedeDesc}</p>
+        <p className="px-0.5 text-xs leading-snug text-slate-200">{t.sedi.addOperatorSedeDesc}</p>
         {inner}
       </div>
     )
@@ -149,7 +149,7 @@ export default function SedeAddOperatorForm({
       <div className="app-card-bar shrink-0" aria-hidden />
       <div className="p-5">
         <h2 className="text-sm font-semibold text-slate-100">{t.sedi.addOperatorSedeTitle}</h2>
-        <p className="mb-4 mt-1 text-xs text-slate-400">{t.sedi.addOperatorSedeDesc}</p>
+        <p className="mb-4 mt-1 text-xs text-slate-200">{t.sedi.addOperatorSedeDesc}</p>
         {inner}
       </div>
     </div>

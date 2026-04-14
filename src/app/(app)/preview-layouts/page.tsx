@@ -377,15 +377,15 @@ function MockSidebar({ active }: { active: string }) {
     `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap border-l-2 pl-[9px] ${
       isActive
         ? 'bg-cyan-500/15 text-white border-cyan-500'
-        : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-transparent'
+        : 'text-slate-200 hover:bg-slate-700/60 hover:text-slate-100 border-transparent'
     }`
 
   const suppliers = ['Amalfi Produce London', 'Oral-B UK']
 
   return (
-    <aside className="w-52 bg-slate-950 flex flex-col flex-shrink-0 min-h-full shadow-[4px_0_32px_rgba(0,0,0,0.45)]">
+    <aside className="w-52 bg-slate-700 flex flex-col flex-shrink-0 min-h-full shadow-[4px_0_32px_rgba(0,0,0,0.45)]">
       {/* Logo */}
-      <div className="border-b border-slate-800/60 px-3 py-2.5">
+      <div className="border-b border-slate-600/80/60 px-3 py-2.5">
         <div className="flex items-center gap-3">
           <svg viewBox="0 0 96 56" className="w-12 h-[30px] shrink-0" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -415,7 +415,7 @@ function MockSidebar({ active }: { active: string }) {
               </defs>
               <text x="0" y="24" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="24" fill="url(#px-text)">FLUXO</text>
             </svg>
-            <p className="text-[9px] font-semibold text-slate-400 tracking-wider uppercase -mt-1">Gestione Acquisti</p>
+            <p className="text-[9px] font-semibold text-slate-200 tracking-wider uppercase -mt-1">Gestione Acquisti</p>
           </div>
         </div>
       </div>
@@ -437,7 +437,7 @@ function MockSidebar({ active }: { active: string }) {
             className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors border-l-2 pl-[9px] ${
               active === 'suppliers'
                 ? 'bg-cyan-500/15 text-white border-cyan-500'
-                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-transparent'
+                : 'text-slate-200 hover:bg-slate-700/60 hover:text-slate-100 border-transparent'
             }`}
           >
             <span className="flex items-center gap-2.5 min-w-0">
@@ -453,9 +453,9 @@ function MockSidebar({ active }: { active: string }) {
           </button>
 
           {fornitoriOpen && (
-            <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2.5">
+            <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-slate-600/80 pl-2.5">
               {/* Tutti i fornitori */}
-              <a href="#" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium text-slate-500 hover:bg-slate-800/60 hover:text-slate-300 transition-colors">
+              <a href="#" className="flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium text-slate-500 hover:bg-slate-700/60 hover:text-slate-200 transition-colors">
                 <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
@@ -463,7 +463,7 @@ function MockSidebar({ active }: { active: string }) {
               </a>
               {/* Individual suppliers */}
               {suppliers.map((s, i) => (
-                <a key={s} href="#" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${i === 0 && active === 'suppliers' ? 'bg-cyan-500/15 text-white' : 'text-slate-500 hover:bg-slate-800/60 hover:text-slate-100'}`}>
+                <a key={s} href="#" className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${i === 0 && active === 'suppliers' ? 'bg-cyan-500/15 text-white' : 'text-slate-500 hover:bg-slate-700/60 hover:text-slate-100'}`}>
                   <span className={`w-1 h-1 rounded-full shrink-0 ${i === 0 && active === 'suppliers' ? 'bg-cyan-400' : 'bg-current opacity-50'}`} />
                   <span className="truncate">{s}</span>
                 </a>
@@ -483,11 +483,11 @@ function MockSidebar({ active }: { active: string }) {
 
       {/* Operator row */}
       <div className="px-3 pb-2">
-        <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-slate-800/50 border border-slate-700/40">
+        <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-slate-700/50 border border-slate-700/40">
           <div className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-[10px] font-bold text-cyan-300 shrink-0">S</div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-slate-600 leading-none mb-0.5 uppercase tracking-wide font-semibold">Operatore</p>
-            <p className="text-[11px] text-slate-300 truncate font-medium leading-none">Staff Mediterran…</p>
+            <p className="text-[11px] text-slate-200 truncate font-medium leading-none">Staff Mediterran…</p>
           </div>
           <button className="p-1 text-slate-600 hover:text-cyan-400 rounded-md transition-colors shrink-0">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -498,9 +498,9 @@ function MockSidebar({ active }: { active: string }) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-slate-800 px-3 py-3 space-y-1">
+      <div className="border-t border-slate-600/80 px-3 py-3 space-y-1">
         {/* Language */}
-        <button className="w-full flex items-center gap-2 px-2.5 py-1.5 text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 rounded-lg transition-colors text-[11px]">
+        <button className="w-full flex items-center gap-2 px-2.5 py-1.5 text-slate-600 hover:text-slate-200 hover:bg-slate-700/60 rounded-lg transition-colors text-[11px]">
           <span className="text-sm leading-none">🇮🇹</span>
           <span className="font-medium">Italiano</span>
           <svg className="w-3 h-3 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
@@ -513,7 +513,7 @@ function MockSidebar({ active }: { active: string }) {
           Nuova Bolla
         </a>
         {/* Settings */}
-        <a href="#" className="flex items-center gap-2.5 w-full px-2.5 py-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800/60 text-xs font-medium rounded-lg transition-colors border-l-2 border-transparent pl-[9px]">
+        <a href="#" className="flex items-center gap-2.5 w-full px-2.5 py-2 text-slate-200 hover:text-slate-100 hover:bg-slate-700/60 text-xs font-medium rounded-lg transition-colors border-l-2 border-transparent pl-[9px]">
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -521,7 +521,7 @@ function MockSidebar({ active }: { active: string }) {
           <span>Impostazioni</span>
         </a>
         {/* Logout */}
-        <button className="flex items-center gap-2.5 w-full px-2.5 py-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 text-xs font-medium rounded-lg transition-colors">
+        <button className="flex items-center gap-2.5 w-full px-2.5 py-2 text-slate-200 hover:text-slate-100 hover:bg-slate-700/70 text-xs font-medium rounded-lg transition-colors">
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>

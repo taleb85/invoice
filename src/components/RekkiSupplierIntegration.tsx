@@ -155,13 +155,13 @@ export default function RekkiSupplierIntegration({
         </div>
         {lookupMsg && <p className="text-xs text-slate-200">{lookupMsg}</p>}
         {hits.length > 0 && (
-          <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-700/60 bg-slate-900/50 p-2">
+          <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-700/60 bg-slate-700/50 p-2">
             {hits.map((h) => (
               <li key={h.id}>
                 <button
                   type="button"
                   onClick={() => setRekkiId(h.id)}
-                  className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-200 transition-colors hover:bg-slate-800/80"
+                  className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-200 transition-colors hover:bg-slate-700/80"
                 >
                   <span className="font-mono text-violet-300">{h.id}</span>
                   <span className="ml-2 text-slate-200">{h.name}</span>
@@ -178,7 +178,7 @@ export default function RekkiSupplierIntegration({
               value={rekkiId}
               onChange={(e) => setRekkiId(e.target.value)}
               placeholder={t.fornitori.rekkiIdPlaceholder}
-              className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 font-mono text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+              className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 font-mono text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />
           </div>
           <div>
@@ -189,7 +189,7 @@ export default function RekkiSupplierIntegration({
               onChange={(e) => setRekkiLink(e.target.value)}
               onBlur={() => applyIdFromLink()}
               placeholder={t.fornitori.rekkiLinkPlaceholder}
-              className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+              className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />
           </div>
         </div>

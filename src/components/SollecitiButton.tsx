@@ -72,7 +72,7 @@ export default function SollecitiButton({ fornitoriInScadenza = 0 }: Props) {
 
       {toast && (
         <p className={`text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${
-          toast.type === 'ok' ? 'bg-slate-800/90 text-green-300' : 'bg-slate-800/90 text-red-300'
+          toast.type === 'ok' ? 'bg-slate-700/90 text-green-300' : 'bg-slate-700/90 text-red-300'
         }`}>
           {toast.text}
         </p>

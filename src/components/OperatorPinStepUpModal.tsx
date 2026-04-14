@@ -114,7 +114,7 @@ export default function OperatorPinStepUpModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-700/75 backdrop-blur-sm"
       role="dialog"
       aria-modal
       aria-labelledby="operator-pin-stepup-title"
@@ -123,7 +123,7 @@ export default function OperatorPinStepUpModal({
       }}
     >
       <div
-        className="pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-900/80 shadow-2xl shadow-black/40 backdrop-blur-xl sm:max-h-[90vh]"
+        className="pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-700/80 shadow-2xl shadow-black/40 backdrop-blur-xl sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="h-0.5 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-cyan-300" />
@@ -132,7 +132,7 @@ export default function OperatorPinStepUpModal({
           <h2 id="operator-pin-stepup-title" className="text-lg font-bold tracking-tight text-slate-100">
             {t.ui.operatorPinStepUpTitle}
           </h2>
-          <p className="mt-1 text-xs leading-relaxed text-slate-400">{t.ui.operatorPinStepUpHint}</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-200">{t.ui.operatorPinStepUpHint}</p>
           {canEnterPin ? (
             <p className="mt-2 text-sm font-medium text-cyan-300/90">
               <span className="text-slate-500">{t.ui.currentlyActive}</span>{' '}
@@ -176,10 +176,10 @@ export default function OperatorPinStepUpModal({
                     className={[
                       'h-14 w-14 rounded-xl border-2 text-center text-xl font-bold transition-all focus:outline-none focus:ring-0',
                       loading || !canEnterPin
-                        ? 'border-slate-700 bg-slate-800/50 text-slate-600'
+                        ? 'border-slate-700 bg-slate-700/50 text-slate-600'
                         : pin[idx]
                           ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
-                          : 'border-slate-600 bg-slate-800/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10',
+                          : 'border-slate-600 bg-slate-700/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10',
                     ].join(' ')}
                     aria-label={`${t.login.pinLabel} ${idx + 1}/${PIN_LENGTH}`}
                   />
@@ -218,7 +218,7 @@ export default function OperatorPinStepUpModal({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="w-full rounded-xl border border-slate-600/80 bg-slate-800/80 px-3 py-3 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
+                className="w-full rounded-xl border border-slate-600/80 bg-slate-700/80 px-3 py-3 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
               >
                 {t.common.cancel}
               </button>

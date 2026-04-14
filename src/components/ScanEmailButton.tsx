@@ -167,19 +167,19 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
             writeEmailSyncScopePrefs(n)
             setScopePrefs(n)
           }}
-          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
         >
-          <option className="bg-slate-900 text-slate-100" value="lb">
+          <option className="bg-slate-700 text-slate-100" value="lb">
             {t.dashboard.emailSyncScopeLookback}
           </option>
           {fiscalYearOptions.map((y) => (
-            <option key={y} className="bg-slate-900 text-slate-100" value={`fy:${y}`}>
+            <option key={y} className="bg-slate-700 text-slate-100" value={`fy:${y}`}>
               {t.dashboard.emailSyncScopeFiscal}: {y}
             </option>
           ))}
         </select>
         <svg
-          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-200"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -212,19 +212,19 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
               writeEmailSyncScopePrefs(n)
               setScopePrefs(n)
             }}
-            className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+            className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
           >
-            <option className="bg-slate-900 text-slate-100" value="def">
+            <option className="bg-slate-700 text-slate-100" value="def">
               {t.dashboard.emailSyncLookbackSedeDefault}
             </option>
             {LOOKBACK_DAY_PRESETS.map((d) => (
-              <option key={d} className="bg-slate-900 text-slate-100" value={String(d)}>
+              <option key={d} className="bg-slate-700 text-slate-100" value={String(d)}>
                 {t.dashboard.emailSyncLookbackDaysN.replace('{n}', String(d))}
               </option>
             ))}
           </select>
           <svg
-            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-200"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -255,26 +255,26 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
             writeEmailSyncScopePrefs(n)
             setScopePrefs(n)
           }}
-          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
         >
-          <option className="bg-slate-900 text-slate-100" value="all">
+          <option className="bg-slate-700 text-slate-100" value="all">
             {t.dashboard.emailSyncDocumentKindAll}
           </option>
-          <option className="bg-slate-900 text-slate-100" value="fornitore">
+          <option className="bg-slate-700 text-slate-100" value="fornitore">
             {t.dashboard.emailSyncDocumentKindFornitore}
           </option>
-          <option className="bg-slate-900 text-slate-100" value="bolla">
+          <option className="bg-slate-700 text-slate-100" value="bolla">
             {t.dashboard.emailSyncDocumentKindBolla}
           </option>
-          <option className="bg-slate-900 text-slate-100" value="fattura">
+          <option className="bg-slate-700 text-slate-100" value="fattura">
             {t.dashboard.emailSyncDocumentKindFattura}
           </option>
-          <option className="bg-slate-900 text-slate-100" value="estratto_conto">
+          <option className="bg-slate-700 text-slate-100" value="estratto_conto">
             {t.dashboard.emailSyncDocumentKindEstratto}
           </option>
         </select>
         <svg
-          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-200"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -309,9 +309,9 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
 
       {toast && (
         <p className={`text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${
-          toast.type === 'ok' ? 'bg-slate-800/90 text-green-300' :
-          toast.type === 'warn' ? 'bg-slate-800/90 text-amber-200' :
-          'bg-slate-800/90 text-red-300'
+          toast.type === 'ok' ? 'bg-slate-700/90 text-green-300' :
+          toast.type === 'warn' ? 'bg-slate-700/90 text-amber-200' :
+          'bg-slate-700/90 text-red-300'
         }`}>
           {toast.text}
         </p>

@@ -37,7 +37,7 @@ export default function ExportZipButton() {
       <select
         value={month}
         onChange={(e) => setMonth(Number(e.target.value))}
-        className="flex-1 rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 md:flex-none [color-scheme:dark]"
+        className="flex-1 rounded-lg border border-slate-600/50 bg-slate-700/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 md:flex-none [color-scheme:dark]"
       >
         {MESI.map((m, i) => (
           <option key={i + 1} value={i + 1}>{m}</option>
@@ -47,7 +47,7 @@ export default function ExportZipButton() {
       <select
         value={year}
         onChange={(e) => setYear(Number(e.target.value))}
-        className="shrink-0 rounded-lg border border-slate-600/50 bg-slate-900/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]"
+        className="shrink-0 rounded-lg border border-slate-600/50 bg-slate-700/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]"
       >
         {years.map((y) => (
           <option key={y} value={y}>{y}</option>

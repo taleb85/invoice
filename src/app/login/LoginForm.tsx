@@ -353,7 +353,7 @@ function LoginFormInner() {
     router.push('/'); router.refresh()
   }
 
-  const inputCls = 'w-full px-4 py-3 text-sm border border-slate-600/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 bg-slate-800/70 text-slate-100 placeholder:text-slate-500 transition'
+  const inputCls = 'w-full px-4 py-3 text-sm border border-slate-600/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 bg-slate-700/70 text-slate-100 placeholder:text-slate-500 transition'
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
@@ -392,7 +392,7 @@ function LoginFormInner() {
             <p className="text-[0.8125rem] font-semibold leading-snug tracking-tight text-cyan-200/95 text-balance">
               {t.login.adminSubtitle}
             </p>
-            <p className="text-[11px] leading-relaxed text-slate-400 text-balance">
+            <p className="text-[11px] leading-relaxed text-slate-200 text-balance">
               {t.login.adminSubtitleHint}
             </p>
           </div>
@@ -443,7 +443,7 @@ function LoginFormInner() {
               {/* Badge sede */}
               <div className="mt-2 flex h-6 min-h-6 items-center justify-center">
                 {lookingUp && (
-                  <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                  <span className="text-xs text-slate-200 flex items-center gap-1.5">
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -489,12 +489,12 @@ function LoginFormInner() {
                       'w-14 h-14 text-center text-xl font-bold border-2 rounded-xl transition-all',
                       'focus:outline-none focus:ring-0',
                       loading
-                        ? 'border-slate-700 bg-slate-800/50 text-slate-600'
+                        ? 'border-slate-700 bg-slate-700/50 text-slate-600'
                         : pin[idx]
                           ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
                           : nameReady
-                            ? 'border-slate-600 bg-slate-800/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10'
-                            : 'border-slate-700/50 bg-slate-800/30 text-slate-600 cursor-not-allowed',
+                            ? 'border-slate-600 bg-slate-700/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10'
+                            : 'border-slate-700/50 bg-slate-700/30 text-slate-600 cursor-not-allowed',
                     ].join(' ')}
                   />
                 ))}
@@ -572,10 +572,10 @@ function LoginFormInner() {
                           'border-2 text-center font-bold transition-all',
                           'rounded-xl focus:outline-none focus:ring-0',
                           adminGateVerifying
-                            ? 'border-slate-700 bg-slate-800/50 text-slate-600'
+                            ? 'border-slate-700 bg-slate-700/50 text-slate-600'
                             : adminGatePin[idx]
                               ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
-                              : 'border-slate-600 bg-slate-800/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10',
+                              : 'border-slate-600 bg-slate-700/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10',
                         ].join(' ')}
                       />
                     )
@@ -609,14 +609,14 @@ function LoginFormInner() {
                     className={inputCls}
                   />
                   {showSugg && (
-                    <ul className="absolute left-0 right-0 z-10 mt-1 overflow-hidden rounded-xl border border-slate-600/60 bg-slate-800 text-sm shadow-xl">
+                    <ul className="absolute left-0 right-0 z-10 mt-1 overflow-hidden rounded-xl border border-slate-600/60 bg-slate-700 text-sm shadow-xl">
                       {suggestions.map(s => {
                         const at = s.indexOf('@')
                         return (
                           <li key={s}>
                             <button type="button" onMouseDown={() => { setEmail(s); setSuggestions([]); setShowSugg(false) }}
                               className="flex w-full items-center gap-1 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/60">
-                              <span className="text-slate-400">{s.slice(0, at + 1)}</span>
+                              <span className="text-slate-200">{s.slice(0, at + 1)}</span>
                               <span className="font-medium text-slate-100">{s.slice(at + 1)}</span>
                             </button>
                           </li>
@@ -637,7 +637,7 @@ function LoginFormInner() {
                       onChange={e => setAdminPw(e.target.value)} className={inputCls + ' pr-11'}
                     />
                     <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200 hover:text-slate-200">
                       {showPw ? (
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>

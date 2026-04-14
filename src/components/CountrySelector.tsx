@@ -52,7 +52,7 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
           value={code}
           onChange={e => save(e.target.value)}
           disabled={saving}
-          className="cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 py-1.5 pl-8 pr-7 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50 [color-scheme:dark]"
+          className="cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 py-1.5 pl-8 pr-7 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50 [color-scheme:dark]"
         >
           {COUNTRY_OPTIONS.map(o => (
             <option key={o.code} value={o.code}>
@@ -65,7 +65,7 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
           {current.flag}
         </span>
         {/* Chevron */}
-        <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>

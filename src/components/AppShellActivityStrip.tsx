@@ -56,7 +56,7 @@ export default function AppShellActivityStrip() {
             className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-cyan-500/25 border-t-cyan-400 shadow-[0_0_10px_rgba(103,232,249,0.55),0_0_20px_rgba(6,182,212,0.32)]"
             aria-hidden
           />
-          <span className="truncate text-xs font-medium text-slate-400">{t.common.loading}</span>
+          <span className="truncate text-xs font-medium text-slate-200">{t.common.loading}</span>
         </div>
       ) : null}
       {showEmail && p ? (
@@ -98,7 +98,7 @@ export default function AppShellActivityStrip() {
                   emailSyncProgressPhaseTitle(p.phase, p.connectStep, t.dashboard)}
               </span>
               {!p.connectionWarning ? (
-                <span className="shrink-0 tabular-nums text-slate-400">
+                <span className="shrink-0 tabular-nums text-slate-200">
                   {Math.round(Math.min(100, Math.max(0, p.percent)))}%
                 </span>
               ) : null}

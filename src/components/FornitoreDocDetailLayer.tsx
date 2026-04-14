@@ -103,8 +103,8 @@ function FornitoreInlineDocPreview({
 
   const frameFixed = 'h-[min(58vh,560px)]'
   const shell = fill
-    ? 'flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950'
-    : 'overflow-hidden rounded-xl border border-slate-700/60 bg-slate-950'
+    ? 'flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-700'
+    : 'overflow-hidden rounded-xl border border-slate-700/60 bg-slate-700'
   const frameLoading = fill ? 'flex flex-1 items-center justify-center' : `flex ${frameFixed} items-center justify-center`
   const frameFallback = fill ? 'flex flex-1 items-center justify-center p-4' : `flex ${frameFixed} items-center justify-center p-4`
 
@@ -133,8 +133,8 @@ function FornitoreInlineDocPreview({
           src={signedUrl}
           className={
             fill
-              ? 'min-h-0 w-full flex-1 border-0 bg-slate-950'
-              : `${frameFixed} w-full border-0 bg-slate-950`
+              ? 'min-h-0 w-full flex-1 border-0 bg-slate-700'
+              : `${frameFixed} w-full border-0 bg-slate-700`
           }
         />
       )}
@@ -188,7 +188,7 @@ export default function FornitoreDocDetailLayer({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-stretch justify-center bg-slate-950/80 p-0 backdrop-blur-sm md:p-6"
+      className="fixed inset-0 z-[80] flex items-stretch justify-center bg-slate-700/80 p-0 backdrop-blur-sm md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fornitore-doc-detail-title"
@@ -207,7 +207,7 @@ export default function FornitoreDocDetailLayer({
           <button
             type="button"
             onClick={close}
-            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-slate-100"
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-700/80 hover:text-slate-100"
           >
             {t.statements.btnClose}
           </button>
@@ -298,14 +298,14 @@ function FatturaLayerBody({
   if (loading) {
     return (
       <div className={scrollPad}>
-        <p className="text-sm text-slate-400">{t.common.loading}</p>
+        <p className="text-sm text-slate-200">{t.common.loading}</p>
       </div>
     )
   }
   if (err || !fattura) {
     return (
       <div className={`${scrollPad} space-y-3 text-center`}>
-        <p className="text-sm text-slate-400">{t.appStrings.docUnavailableFatturaDesc}</p>
+        <p className="text-sm text-slate-200">{t.appStrings.docUnavailableFatturaDesc}</p>
         <Link href={`/fatture/${fatturaId}`} className="text-sm font-medium text-cyan-400 hover:text-cyan-300">
           {t.fatture.dettaglio} →
         </Link>
@@ -330,7 +330,7 @@ function FatturaLayerBody({
         <h3 className="text-lg font-bold text-slate-100">
           {t.fatture.invoice} – {fattura.fornitore?.nome}
         </h3>
-        <p className="mt-0.5 text-sm text-slate-400">{formatDate(fattura.data)}</p>
+        <p className="mt-0.5 text-sm text-slate-200">{formatDate(fattura.data)}</p>
       </div>
 
       <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
@@ -339,28 +339,28 @@ function FatturaLayerBody({
           <h4 className="mb-3 text-sm font-semibold text-slate-100">{t.fatture.dettaglio}</h4>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.supplier}</dt>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.supplier}</dt>
               <dd className="font-medium text-slate-100">{fattura.fornitore?.nome}</dd>
             </div>
             {fattura.fornitore?.email && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.email}</dt>
-                <dd className="text-slate-300">{fattura.fornitore.email}</dd>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.email}</dt>
+                <dd className="text-slate-200">{fattura.fornitore.email}</dd>
               </div>
             )}
             {fattura.fornitore?.piva && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fornitori.piva}</dt>
-                <dd className="text-slate-300">{fattura.fornitore.piva}</dd>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.piva}</dt>
+                <dd className="text-slate-200">{fattura.fornitore.piva}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.date}</dt>
-              <dd className="text-slate-300">{formatDate(fattura.data)}</dd>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.date}</dt>
+              <dd className="text-slate-200">{formatDate(fattura.data)}</dd>
             </div>
             {fattura.bolla && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.fatture.bollaCollegata}</dt>
+                <dt className="w-28 shrink-0 text-slate-200">{t.fatture.bollaCollegata}</dt>
                 <dd>
                   <Link
                     href={fornitoreBollaDeepLink(pathname, searchParams, fattura.bolla.id)}
@@ -386,7 +386,7 @@ function FatturaLayerBody({
       </div>
 
       <p className="text-center">
-        <Link href={`/fatture/${fattura.id}`} className="text-xs text-slate-500 underline hover:text-slate-300">
+        <Link href={`/fatture/${fattura.id}`} className="text-xs text-slate-500 underline hover:text-slate-200">
           {t.common.detail} — {t.nav.fatture}
         </Link>
       </p>
@@ -464,14 +464,14 @@ function BollaLayerBody({
   if (loading) {
     return (
       <div className={scrollPad}>
-        <p className="text-sm text-slate-400">{t.common.loading}</p>
+        <p className="text-sm text-slate-200">{t.common.loading}</p>
       </div>
     )
   }
   if (err || !bolla) {
     return (
       <div className={`${scrollPad} space-y-3 text-center`}>
-        <p className="text-sm text-slate-400">{t.appStrings.docUnavailableBollaDesc}</p>
+        <p className="text-sm text-slate-200">{t.appStrings.docUnavailableBollaDesc}</p>
         <Link href={`/bolle/${bollaId}`} className="text-sm font-medium text-cyan-400 hover:text-cyan-300">
           {t.bolle.dettaglio} →
         </Link>
@@ -498,7 +498,7 @@ function BollaLayerBody({
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-sm text-slate-400">{formatDate(bolla.data)}</p>
+        <p className="mt-0.5 text-sm text-slate-200">{formatDate(bolla.data)}</p>
       </div>
 
       <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
@@ -510,22 +510,22 @@ function BollaLayerBody({
           </div>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.supplier}</dt>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.supplier}</dt>
               <dd className="font-medium text-slate-100">{bolla.fornitore?.nome}</dd>
             </div>
             {bolla.numero_bolla && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.appStrings.colDeliveryNoteNum}</dt>
+                <dt className="w-28 shrink-0 text-slate-200">{t.appStrings.colDeliveryNoteNum}</dt>
                 <dd className="font-mono font-medium text-slate-100">{bolla.numero_bolla}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-400">{t.common.date}</dt>
-              <dd className="text-slate-300">{formatDate(bolla.data)}</dd>
+              <dt className="w-28 shrink-0 text-slate-200">{t.common.date}</dt>
+              <dd className="text-slate-200">{formatDate(bolla.data)}</dd>
             </div>
             {bolla.importo != null && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-400">{t.statements.colAmount}</dt>
+                <dt className="w-28 shrink-0 text-slate-200">{t.statements.colAmount}</dt>
                 <dd className="font-semibold text-slate-100">£ {Number(bolla.importo).toFixed(2)}</dd>
               </div>
             )}
@@ -590,7 +590,7 @@ function BollaLayerBody({
                   key={f.id}
                   href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)}
                   scroll={false}
-                  className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800/50"
+                  className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-700/50"
                 >
                   <span>{formatDate(f.data)}</span>
                   {f.file_url && <span className="text-xs font-medium text-cyan-400">{t.bolle.allegatoLink}</span>}
@@ -602,7 +602,7 @@ function BollaLayerBody({
       </div>
 
       <p className="text-center">
-        <Link href={`/bolle/${bolla.id}`} className="text-xs text-slate-500 underline hover:text-slate-300">
+        <Link href={`/bolle/${bolla.id}`} className="text-xs text-slate-500 underline hover:text-slate-200">
           {t.common.detail} — {t.nav.bolle}
         </Link>
       </p>
