@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { openDocumentUrl } from '@/lib/open-document-url'
-import { attachmentKindFromFileUrl } from '@/lib/attachment-kind'
+import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useT } from '@/lib/use-t'
 import { CYAN_TABLE_PILL_LINK_CLASSNAME } from '@/components/CyanTablePillLink'
 
@@ -147,12 +147,12 @@ export function OpenDocumentInAppButton({
       </button>
       {open ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
           onClick={() => setOpen(false)}
           role="presentation"
         >
           <div
-            className="relative flex h-[min(92vh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-slate-950 shadow-2xl"
+            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -165,14 +165,14 @@ export function OpenDocumentInAppButton({
             >
               {t.statements.btnClose}
             </button>
-            <div className="min-h-0 flex-1 overflow-hidden bg-slate-950">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 pt-12">
               {loading ? (
-                <div className="flex h-full items-center justify-center">
+                <div className="flex min-h-0 flex-1 items-center justify-center">
                   <p className="text-sm text-slate-400">{t.common.loading}</p>
                 </div>
               ) : null}
               {!loading && signedUrl && kind === 'image' ? (
-                <div className="flex h-full items-center justify-center overflow-auto p-1">
+                <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-1">
                   <Image
                     src={signedUrl}
                     alt=""
@@ -186,15 +186,15 @@ export function OpenDocumentInAppButton({
               {!loading && signedUrl && kind !== 'image' ? (
                 <iframe
                   title={t.common.attachment}
-                  src={signedUrl}
-                  className="h-full w-full border-0 bg-slate-950"
+                  src={embedSrcForInlineViewer(signedUrl, kind)}
+                  className="min-h-0 w-full flex-1 border-0 bg-slate-950"
                 />
               ) : null}
               {!loading && !signedUrl ? (
                 <iframe
                   title={t.common.attachment}
-                  src={tabHref}
-                  className="h-full w-full min-h-[50vh] border-0 bg-slate-950"
+                  src={embedSrcForInlineViewer(tabHref, kind)}
+                  className="min-h-0 w-full min-h-[50vh] flex-1 border-0 bg-slate-950"
                 />
               ) : null}
             </div>

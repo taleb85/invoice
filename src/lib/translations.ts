@@ -936,6 +936,14 @@ type Translations = {
     autoLinkedSupplierOne: string
     /** Toast se più documenti collegati in un solo passaggio (placeholder `{count}`) */
     autoLinkedSupplierMany: string
+    /** Toast dopo Refresh: abbinamento massivo (`{linked}` fornitori, `{associated}` fatture da bolle) */
+    bulkAutoMatchSummary: string
+    /** Toast se nessun abbinamento automatico applicabile */
+    bulkAutoMatchNone: string
+    /** Testo visibile pulsante abbinamento massivo (coda documenti) */
+    bulkAutoMatchButtonLabel: string
+    /** Title / descrizione lunga (tooltip) */
+    bulkAutoMatchButtonTitle: string
     ocrFormatToggleTitle: string
     allBolleInvoicedOk: string
     aiStatementTotalLabel: string
@@ -1834,6 +1842,12 @@ const it: Translations = {
     assignFailed: 'Associazione alle bolle non riuscita.',
     autoLinkedSupplierOne: 'Fornitore collegato automaticamente: {name}.',
     autoLinkedSupplierMany: '{count} documenti collegati automaticamente ai fornitori.',
+    bulkAutoMatchSummary:
+      'Analisi completata: {linked} fornitore/i collegati, {associated} documento/i associati alle bolle.',
+    bulkAutoMatchNone: 'Nessun abbinamento automatico applicabile ai documenti in elenco.',
+    bulkAutoMatchButtonLabel: 'Abbina tutto',
+    bulkAutoMatchButtonTitle:
+      'Ricarica l’elenco e collega fornitori univoci; associa alle bolle quando l’importo del documento coincide con una o più bolle aperte.',
     ocrFormatToggleTitle: 'Forza interpretazione numerica alternativa',
     allBolleInvoicedOk: 'Tutte le bolle hanno una fattura corrispondente — estratto verificato ✓',
     aiStatementTotalLabel: 'Totale estratto (IA):',
@@ -2246,6 +2260,12 @@ const en: Translations = {
     assignFailed: 'Could not assign to delivery notes.',
     autoLinkedSupplierOne: 'Supplier linked automatically: {name}.',
     autoLinkedSupplierMany: '{count} documents linked to suppliers automatically.',
+    bulkAutoMatchSummary:
+      'Analysis complete: {linked} supplier(s) linked, {associated} document(s) matched to delivery notes.',
+    bulkAutoMatchNone: 'No automatic matches applied to the documents in this list.',
+    bulkAutoMatchButtonLabel: 'Match all',
+    bulkAutoMatchButtonTitle:
+      'Reload the list, link unique suppliers, and match delivery notes when the document total equals one or more open notes.',
     ocrFormatToggleTitle: 'Force alternate numeric format interpretation',
     allBolleInvoicedOk: 'Every delivery note has a matching invoice — statement verified ✓',
     aiStatementTotalLabel: 'AI-extracted statement total:',
@@ -2613,6 +2633,12 @@ const es: Translations = {
     assignFailed: 'No se pudo asignar a los albaranes.',
     autoLinkedSupplierOne: 'Proveedor vinculado automáticamente: {name}.',
     autoLinkedSupplierMany: '{count} documentos vinculados automáticamente a proveedores.',
+    bulkAutoMatchSummary:
+      'Análisis completado: {linked} proveedor(es) vinculado(s), {associated} documento(s) asociado(s) a albaranes.',
+    bulkAutoMatchNone: 'No se pudo aplicar ningún emparejamiento automático a los documentos de la lista.',
+    bulkAutoMatchButtonLabel: 'Emparejar todo',
+    bulkAutoMatchButtonTitle:
+      'Recarga la lista, vincula proveedores únicos y asocia albaranes cuando el total del documento coincide con uno o más albaranes abiertos.',
     ocrFormatToggleTitle: 'Forzar interpretación numérica alternativa',
     allBolleInvoicedOk: 'Todos los albaranes tienen factura correspondiente — extracto verificado ✓',
     aiStatementTotalLabel: 'Total del extracto (IA):',
@@ -2980,6 +3006,12 @@ const fr: Translations = {
     assignFailed: 'Échec de l’association aux bons de livraison.',
     autoLinkedSupplierOne: 'Fournisseur associé automatiquement : {name}.',
     autoLinkedSupplierMany: '{count} documents associés automatiquement à des fournisseurs.',
+    bulkAutoMatchSummary:
+      'Analyse terminée : {linked} fournisseur(s) lié(s), {associated} document(s) associé(s) aux bons de livraison.',
+    bulkAutoMatchNone: 'Aucun rapprochement automatique applicable aux documents de la liste.',
+    bulkAutoMatchButtonLabel: 'Tout rapprocher',
+    bulkAutoMatchButtonTitle:
+      'Recharge la liste, lie les fournisseurs uniques et associe les bons de livraison lorsque le total du document correspond à un ou plusieurs BL ouverts.',
     ocrFormatToggleTitle: 'Forcer l’interprétation numérique alternative',
     allBolleInvoicedOk: 'Tous les bons de livraison ont une facture correspondante — relevé vérifié ✓',
     aiStatementTotalLabel: 'Total extrait du relevé (IA) :',
@@ -3347,6 +3379,12 @@ const de: Translations = {
     assignFailed: 'Zuordnung zu Lieferscheinen fehlgeschlagen.',
     autoLinkedSupplierOne: 'Lieferant automatisch verknüpft: {name}.',
     autoLinkedSupplierMany: '{count} Dokumente automatisch mit Lieferanten verknüpft.',
+    bulkAutoMatchSummary:
+      'Analyse abgeschlossen: {linked} Lieferant(en) verknüpft, {associated} Dokument(e) mit Lieferscheinen abgeglichen.',
+    bulkAutoMatchNone: 'Für die Dokumente in der Liste war kein automatischer Abgleich möglich.',
+    bulkAutoMatchButtonLabel: 'Alles abgleichen',
+    bulkAutoMatchButtonTitle:
+      'Liste neu laden, eindeutige Lieferanten verknüpfen und Lieferscheine zuordnen, wenn der Dokumentenbetrag einem oder mehreren offenen Lieferscheinen entspricht.',
     ocrFormatToggleTitle: 'Alternative Zahleninterpretation erzwingen',
     allBolleInvoicedOk: 'Alle Lieferscheine haben eine passende Rechnung — Auszug geprüft ✓',
     aiStatementTotalLabel: 'Auszugssumme (KI):',

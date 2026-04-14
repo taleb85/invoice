@@ -19,10 +19,12 @@ import {
   greedyBollaIdsForTotal,
   normalizeAddressKey,
 } from '@/lib/auto-resolve-pending-doc'
+import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { SUMMARY_HIGHLIGHT_ACCENTS, type SummaryHighlightAccent } from '@/lib/summary-highlight-accent'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
+import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
@@ -37,6 +39,8 @@ type OcrMetadata = {
   /** Numeric format detected: 'dot' | 'comma' | 'plain' */
   formato_importo?:   'dot' | 'comma' | 'plain' | null
   matched_by:         'email' | 'alias' | 'domain' | 'piva' | 'unknown' | null
+  tipo_documento?:    'fattura' | 'bolla' | 'altro' | null
+  note_corpo_mail?:   string | null
   /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
   pending_kind?:      'statement' | 'bolla' | 'fattura' | 'ordine' | null
   bozza_id?:          string | null
@@ -108,6 +112,14 @@ function normalizeOcrCompanyKey(s: string | null | undefined): string {
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
     .replace(/\s+/g, ' ')
+}
+
+/** Nessun chip tipo ancora persistito (né flag estratto legacy). */
+function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>): boolean {
+  const pk = doc.metadata?.pending_kind
+  if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return false
+  if (statementDocs.has(doc.id) || doc.is_statement) return false
+  return true
 }
 
 /* ── Tab selector ───────────────────────────────────────────── */
@@ -701,7 +713,7 @@ export function PendingMatchesTab({
 }) {
   const t = useT()
   const router = useRouter()
-  const [layoutRefreshPending, startLayoutRefresh] = useTransition()
+  const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
   const { me } = useMe()
   const { showToast } = useToast()
   const [docs, setDocs]                     = useState<Documento[]>([])
@@ -723,16 +735,7 @@ export function PendingMatchesTab({
 
   const autoLinkTriedRef = useRef(new Set<string>())
   const autoAssocTriedRef = useRef(new Set<string>())
-
-  /** Svuota le cache dei tentativi automatici così, dopo il fetch, i effect ricalcolano fornitore + subset bolle. */
-  const refreshQueueAndRetryAutoMatch = useCallback(() => {
-    autoLinkTriedRef.current = new Set()
-    autoAssocTriedRef.current = new Set()
-    startLayoutRefresh(() => {
-      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
-      router.refresh()
-    })
-  }, [router, startLayoutRefresh])
+  const autoPendingKindTriedRef = useRef(new Set<string>())
 
   const addressClusterPeersByDocId = useMemo(() => {
     const pendingLike = docs.filter(
@@ -820,7 +823,162 @@ export function PendingMatchesTab({
     setFornitori(data ?? [])
   }, [sedeId, fornitoreId])
 
+  /**
+   * Ricarica documenti e bolle, poi per ogni voce in elenco:
+   * collega il fornitore se l’abbinamento è univoco (P.IVA / email / indirizzo / ragione sociale),
+   * associa alle bolle se l’importo OCR coincide con un sottoinsieme greedy di bolle aperte dello stesso fornitore.
+   */
+  const runRefreshAndBulkAutoMatch = useCallback(async () => {
+    setBulkAnalyzing(true)
+    autoLinkTriedRef.current = new Set()
+    autoAssocTriedRef.current = new Set()
+    autoPendingKindTriedRef.current = new Set()
+    try {
+      const params = new URLSearchParams()
+      if (filter === 'in_attesa') params.set('stati', 'in_attesa,da_associare,bozza_creata')
+      if (sedeId) params.set('sede_id', sedeId)
+      if (fornitoreId) params.set('fornitore_id', fornitoreId)
+      if (year && month) {
+        params.set('from', `${year}-${String(month).padStart(2, '0')}-01`)
+        params.set('to', new Date(year, month, 1).toISOString().split('T')[0])
+      }
+      const bolleParts: string[] = []
+      if (sedeId) bolleParts.push(`sede_id=${sedeId}`)
+      if (fornitoreId) bolleParts.push(`fornitore_id=${fornitoreId}`)
+      const bolleUrl = '/api/bolle-aperte' + (bolleParts.length ? `?${bolleParts.join('&')}` : '')
+
+      const [docRes, bolleRes] = await Promise.all([
+        fetch(`/api/documenti-da-processare?${params}`),
+        fetch(bolleUrl),
+      ])
+      const rawDocs = docRes.ok ? await docRes.json() : []
+      const rawBolle = bolleRes.ok ? await bolleRes.json() : []
+
+      const freshDocs = (rawDocs ?? []).map(
+        (d: Record<string, unknown>) =>
+          ({ ...d, is_statement: (d.is_statement as boolean | null) ?? false }) as Documento,
+      )
+      const freshBolle: BollaAperta[] = (rawBolle ?? []).map(
+        (b: {
+          id: string
+          data: string
+          importo: number | null
+          numero_bolla: string | null
+          fornitore_id: string
+          fornitori: { nome: string } | { nome: string }[] | null
+        }) => ({
+          id: b.id,
+          data: b.data,
+          importo: b.importo ?? null,
+          numero_bolla: b.numero_bolla ?? null,
+          fornitore_id: b.fornitore_id,
+          fornitore_nome: (Array.isArray(b.fornitori) ? b.fornitori[0] : b.fornitori)?.nome ?? '—',
+        }),
+      )
+
+      const processable = (d: Documento) =>
+        d.stato === 'in_attesa' || d.stato === 'da_associare' || d.stato === 'bozza_creata'
+      const working = freshDocs.filter(processable).map((d: Documento) => ({ ...d }))
+
+      const supabase = createClient()
+      let linked = 0
+      let associated = 0
+
+      for (const doc of working) {
+        if (doc.fornitore_id) continue
+        const match = await findUniqueFornitoreForPendingDoc(supabase, {
+          docSedeId: doc.sede_id,
+          fallbackSedeId: sedeId ?? null,
+          profileSedeId: me?.sede_id ?? null,
+          fornitoreFilterId: fornitoreId ?? null,
+          metadata: doc.metadata,
+          mittente: doc.mittente,
+        })
+        if (!match) continue
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: doc.id, azione: 'aggiorna_fornitore', fornitore_id: match.id }),
+        })
+        if (res.ok) {
+          doc.fornitore_id = match.id
+          doc.fornitore = { nome: match.nome }
+          linked++
+        }
+      }
+
+      const usedBollaIds = new Set<string>()
+      for (const doc of working) {
+        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        if (!doc.fornitore_id) continue
+        if (doc.is_statement || doc.metadata?.pending_kind === 'statement') continue
+        if (doc.metadata?.pending_kind === 'ordine') continue
+        const ocr = doc.metadata?.totale_iva_inclusa ?? null
+        if (ocr == null || ocr <= 0) continue
+        const relevant = freshBolle.filter(
+          (b) =>
+            b.fornitore_id === doc.fornitore_id &&
+            b.importo != null &&
+            b.importo > 0 &&
+            !usedBollaIds.has(b.id),
+        )
+        if (!relevant.length) continue
+        const ids = greedyBollaIdsForTotal(relevant, ocr)
+        if (!ids?.length) continue
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: doc.id, azione: 'associa', bolla_ids: ids }),
+        })
+        if (res.ok) {
+          associated++
+          for (const id of ids) usedBollaIds.add(id)
+        }
+      }
+
+      await fetchDocs()
+      await fetchBolleAperte()
+      await fetchFornitori()
+      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+      router.refresh()
+
+      if (linked === 0 && associated === 0) {
+        showToast(t.statements.bulkAutoMatchNone, 'success')
+      } else {
+        showToast(
+          t.statements.bulkAutoMatchSummary
+            .replace(/\{linked\}/g, String(linked))
+            .replace(/\{associated\}/g, String(associated)),
+          'success',
+        )
+      }
+    } catch {
+      showToast(t.statements.assignFailed, 'error')
+    } finally {
+      setBulkAnalyzing(false)
+    }
+  }, [
+    filter,
+    sedeId,
+    fornitoreId,
+    year,
+    month,
+    me?.sede_id,
+    fetchDocs,
+    fetchBolleAperte,
+    fetchFornitori,
+    router,
+    showToast,
+    t.statements.assignFailed,
+    t.statements.bulkAutoMatchNone,
+    t.statements.bulkAutoMatchSummary,
+  ])
+
   useEffect(() => { fetchDocs(); fetchBolleAperte(); fetchFornitori() }, [fetchDocs, fetchBolleAperte, fetchFornitori])
+
+  useEffect(() => {
+    autoPendingKindTriedRef.current = new Set()
+  }, [filter, sedeId, fornitoreId, year, month])
 
   useEffect(() => {
     const onLayoutRefresh = () => {
@@ -887,6 +1045,66 @@ export function PendingMatchesTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when queue changes; avoid re-running on every callback identity
   }, [loading, docs, sedeId, fornitoreId, me?.sede_id])
 
+  // Pre-seleziona chip tipo documento (stesse euristiche della scan email + OCR) se manca pending_kind; conferma utente con Finalizza.
+  useEffect(() => {
+    if (loading || !docs.length) return
+    void (async () => {
+      for (const doc of docs) {
+        if (
+          doc.stato !== 'in_attesa' &&
+          doc.stato !== 'da_associare' &&
+          doc.stato !== 'bozza_creata'
+        ) {
+          continue
+        }
+        if (autoPendingKindTriedRef.current.has(doc.id)) continue
+        if (!docLacksPersistedPendingKind(doc, statementDocs)) {
+          autoPendingKindTriedRef.current.add(doc.id)
+          continue
+        }
+
+        const kind = inferPendingDocumentKindForQueueRow({
+          oggetto_mail: doc.oggetto_mail,
+          file_name: doc.file_name,
+          metadata: doc.metadata,
+        })
+        if (!kind) {
+          autoPendingKindTriedRef.current.add(doc.id)
+          continue
+        }
+
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: doc.id,
+            azione: 'mark_statement',
+            is_statement: kind === 'statement',
+            kind,
+          }),
+        })
+        autoPendingKindTriedRef.current.add(doc.id)
+        if (!res.ok) continue
+
+        setDocs((prev) =>
+          prev.map((d) =>
+            d.id !== doc.id
+              ? d
+              : {
+                  ...d,
+                  is_statement: kind === 'statement',
+                  metadata: { ...(d.metadata ?? {}), pending_kind: kind } as OcrMetadata,
+                },
+          ),
+        )
+        if (kind === 'statement') {
+          setStatementDocs((prev) => new Set(prev).add(doc.id))
+        }
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- statementDocs: re-run quando cambia set locale estratti
+  }, [loading, docs, statementDocs])
+
   // Auto-associa bolle when totale OCR matches a unique greedy subset (same heuristic as checkbox suggest)
   useEffect(() => {
     if (loading || !bolleAperte.length || !docs.length) return
@@ -895,7 +1113,7 @@ export function PendingMatchesTab({
       for (const doc of docs) {
         if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
         if (!doc.fornitore_id) continue
-        if (doc.is_statement) continue
+        if (doc.is_statement || doc.metadata?.pending_kind === 'statement') continue
         if (doc.metadata?.pending_kind === 'ordine') continue
         const ocr = doc.metadata?.totale_iva_inclusa ?? null
         if (ocr == null || ocr <= 0) continue
@@ -1052,9 +1270,10 @@ export function PendingMatchesTab({
   }
 
   function pendingKindForDoc(doc: Documento): 'statement' | 'bolla' | 'fattura' | 'ordine' | null {
-    if (statementDocs.has(doc.id) || doc.is_statement) return 'statement'
     const pk = doc.metadata?.pending_kind
+    if (pk === 'statement') return 'statement'
     if (pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return pk
+    if (statementDocs.has(doc.id) || doc.is_statement) return 'statement'
     return null
   }
 
@@ -1160,48 +1379,84 @@ export function PendingMatchesTab({
           </p>
           <button
             type="button"
-            onClick={refreshQueueAndRetryAutoMatch}
-            disabled={layoutRefreshPending}
-            className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-transparent bg-slate-800/70 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:border-slate-500/50 hover:bg-slate-800 hover:text-white disabled:pointer-events-none disabled:opacity-50"
-            aria-label={t.statements.btnRefresh}
-            aria-busy={layoutRefreshPending}
+            onClick={() => void runRefreshAndBulkAutoMatch()}
+            disabled={bulkAnalyzing}
+            title={t.statements.bulkAutoMatchButtonTitle}
+            className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-gradient-to-r from-cyan-500/15 to-teal-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-50 shadow-[0_0_24px_-12px_rgba(34,211,238,0.55)] ring-1 ring-cyan-500/20 transition-colors hover:border-cyan-400/55 hover:from-cyan-500/22 hover:to-teal-500/14 hover:ring-cyan-400/30 disabled:pointer-events-none disabled:opacity-45"
+            aria-label={t.statements.bulkAutoMatchButtonLabel}
+            aria-busy={bulkAnalyzing}
           >
-            <svg
-              className={`h-4 w-4 shrink-0 ${layoutRefreshPending ? 'animate-spin text-cyan-400' : 'text-slate-400'}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            <span>{t.statements.btnRefresh}</span>
+            {bulkAnalyzing ? (
+              <svg
+                className="h-4 w-4 shrink-0 animate-spin text-cyan-200"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-4 w-4 shrink-0 text-cyan-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+            )}
+            <span className="whitespace-nowrap">{t.statements.bulkAutoMatchButtonLabel}</span>
           </button>
         </div>
       </div>
 
       {/* Preview modal */}
       {preview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-md" onClick={() => setPreview(null)}>
-          <div className="max-w-2xl w-full" onClick={e => e.stopPropagation()}>
-            {isPdf(preview)
-              ? <iframe src={preview} className="w-full h-[80vh] rounded-xl" />
-              : (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-2 backdrop-blur-md sm:p-3"
+          onClick={() => setPreview(null)}
+        >
+          <div
+            className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1200px)] flex-col gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {isPdf(preview) ? (
+              <iframe
+                title=""
+                src={embedSrcForInlineViewer(preview, attachmentKindFromFileUrl(preview))}
+                className="min-h-0 w-full flex-1 rounded-xl border border-slate-600/40 bg-white"
+              />
+            ) : (
+              <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto">
                 <Image
                   src={preview}
                   alt=""
                   width={1200}
                   height={1600}
                   unoptimized
-                  className="h-auto max-h-[80vh] w-full object-contain rounded-xl"
+                  className="h-auto max-h-[calc(100dvh-4rem)] w-full object-contain rounded-xl"
                 />
-              )}
-            <button onClick={() => setPreview(null)} className="mt-3 w-full text-sm text-white/70 hover:text-white">{t.statements.btnClose}</button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => setPreview(null)}
+              className="shrink-0 rounded-lg py-2 text-sm text-white/80 hover:text-white"
+            >
+              {t.statements.btnClose}
+            </button>
           </div>
         </div>
       )}

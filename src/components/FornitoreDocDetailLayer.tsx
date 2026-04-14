@@ -16,7 +16,7 @@ import type { Locale } from '@/lib/translations'
 import ToggleStato from '@/app/(app)/bolle/[id]/ToggleStato'
 import ReplaceFileButton from '@/app/(app)/fatture/[id]/ReplaceFileButton'
 import type { BollaStato } from '@/types'
-import { attachmentKindFromFileUrl } from '@/lib/attachment-kind'
+import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 
 type BollaPayload = {
   id: string
@@ -101,7 +101,7 @@ function FornitoreInlineDocPreview({
 
   if (!fileUrl?.trim()) return null
 
-  const frameFixed = 'h-[min(58vh,560px)]'
+  const frameFixed = 'h-[min(78vh,880px)]'
   const shell = fill
     ? 'flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-700'
     : 'overflow-hidden rounded-xl border border-slate-700/60 bg-slate-700'
@@ -123,14 +123,14 @@ function FornitoreInlineDocPreview({
           className={
             fill
               ? 'mx-auto max-h-full min-h-0 w-auto max-w-full flex-1 object-contain'
-              : 'mx-auto max-h-[min(55vh,520px)] w-auto max-w-full object-contain'
+              : 'mx-auto max-h-[min(72vh,820px)] w-auto max-w-full object-contain'
           }
         />
       )}
       {!loading && signedUrl && kind !== 'image' && (
         <iframe
           title={previewTitle}
-          src={signedUrl}
+          src={embedSrcForInlineViewer(signedUrl, kind)}
           className={
             fill
               ? 'min-h-0 w-full flex-1 border-0 bg-slate-700'
@@ -200,7 +200,7 @@ export default function FornitoreDocDetailLayer({
         className="absolute inset-0 z-0 cursor-default md:hidden"
         onClick={close}
       />
-      <div className="relative z-10 flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none border border-slate-700/60 bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] shadow-2xl md:max-h-[min(92vh,900px)] md:max-w-[min(96vw,1280px)] md:rounded-xl">
+      <div className="relative z-10 flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none border border-slate-700/60 bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] shadow-2xl md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:rounded-xl">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/60 px-3 py-2.5 md:px-4">
           <h2 id="fornitore-doc-detail-title" className="min-w-0 truncate text-sm font-semibold text-slate-100">
             {showFattura ? t.fatture.invoice : t.bolle.dettaglio}

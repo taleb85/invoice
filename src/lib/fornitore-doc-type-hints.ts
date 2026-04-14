@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { normalizeTipoDocumento } from '@/lib/ocr-invoice'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
 export type LearnedPendingKind = 'statement' | 'bolla' | 'fattura' | 'ordine'
 

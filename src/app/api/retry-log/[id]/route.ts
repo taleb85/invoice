@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import {
+  emailSubjectLooksLikeStatement,
+  inferAutoPendingKindFromEmailScan,
+} from '@/lib/document-bozza-routing'
 
 // States that can be retried (any error state, regardless of which version created the log)
 const RETRYABLE_STATES = ['bolla_non_trovata', 'fornitore_non_trovato'] as const
@@ -73,21 +77,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     sedeId = fornitore?.sede_id ?? null
   }
 
-  // 3. Save to documenti_da_processare with stato 'da_associare'
+  // 3. Save to documenti_da_processare — stesse euristiche oggetto/allegato della scan (retry non ha corpo mail).
   //    mittente is NOT NULL in the schema — fall back to a placeholder if missing.
-  //    metadata column may not be migrated yet — use fallback insert without it.
-  //    Never block on missing bolla — the user will associate it manually in Statements.
+  const allegatoNome = (log as { allegato_nome?: string | null }).allegato_nome ?? null
+  const autoKind = inferAutoPendingKindFromEmailScan(log.oggetto_mail, allegatoNome, null, null)
+  const isStmtRow = autoKind === 'statement'
+  const statoDoc =
+    emailSubjectLooksLikeStatement(log.oggetto_mail) ? 'associato' : 'da_associare'
+
   const basePayload = {
     fornitore_id:   log.fornitore_id ?? null,
     sede_id:        sedeId,
     mittente:       log.mittente || 'sconosciuto',   // NOT NULL — no null allowed
     oggetto_mail:   log.oggetto_mail ?? null,
     file_url:       log.file_url,
-    file_name:      null,
+    file_name:      allegatoNome,
     content_type:   null,
     data_documento: null,
-    stato:          'da_associare',
-    metadata:       null,   // column added by migration — fallback below if missing
+    stato:          statoDoc,
+    is_statement:   isStmtRow,
+    metadata:       autoKind ? { pending_kind: autoKind } : null,
   }
 
   let { error: insertError } = await service.from('documenti_da_processare').insert([basePayload])

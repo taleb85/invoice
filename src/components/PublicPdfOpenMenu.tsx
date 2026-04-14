@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { useT } from '@/lib/use-t'
+import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 
 export type PublicPdfOpenMenuLabels = {
   preview: string
@@ -31,6 +32,8 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
 
   const url = fileUrl?.trim()
   if (!url) return null
+  const attachKind = attachmentKindFromFileUrl(url)
+  const previewSrc = embedSrcForInlineViewer(url, attachKind)
 
   const closeMenu = useCallback(() => setMenuOpen(false), [])
 
@@ -122,12 +125,12 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
       </div>
       {previewOpen ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
           onClick={() => setPreviewOpen(false)}
           role="presentation"
         >
           <div
-            className="relative flex h-[min(92vh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-slate-950 shadow-2xl"
+            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -140,7 +143,13 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
             >
               {t.statements.btnClose}
             </button>
-            <iframe title={t.common.document} src={url} className="h-full w-full min-h-[50vh] border-0 bg-slate-950" />
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-12">
+              <iframe
+                title={t.common.document}
+                src={previewSrc}
+                className="min-h-0 w-full flex-1 border-0 bg-slate-950"
+              />
+            </div>
           </div>
         </div>
       ) : null}

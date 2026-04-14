@@ -26,6 +26,7 @@ import {
 import { defaultFiscalYearLabel, fiscalYearRangeUtc, isValidFiscalYear } from '@/lib/fiscal-year'
 import {
   emailSubjectLooksLikeStatement,
+  inferAutoPendingKindFromEmailScan,
   scanContextSuggestsBolla,
   scanContextSuggestsFattura,
 } from '@/lib/document-bozza-routing'
@@ -58,7 +59,16 @@ function filterEmailsForSyncDocumentKind(
   kind: EmailSyncDocumentKind,
 ): ScannedEmail[] {
   if (kind !== 'estratto_conto') return emails
-  return emails.filter((e) => emailSubjectLooksLikeStatement(e.subject))
+  const snip = (t: string | null | undefined) => (t ?? '').slice(0, 12_000)
+  return emails.filter(
+    (e) =>
+      inferAutoPendingKindFromEmailScan(
+        e.subject,
+        e.attachments[0]?.filename ?? null,
+        snip(e.bodyText),
+        null,
+      ) === 'statement',
+  )
 }
 
 /** Heartbeat NDJSON durante OCR: evita timeout UI client (~30s) tra un allegato e l’altro. */
@@ -818,6 +828,13 @@ async function processEmails(
           continue
         }
         const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+        const bodySnipU = email.bodyText?.slice(0, 12_000) ?? null
+        const autoKindU = inferAutoPendingKindFromEmailScan(
+          email.subject,
+          attachment.filename ?? null,
+          bodySnipU,
+          ocr,
+        )
         const unknownPayload = {
           fornitore_id:   null,
           sede_id:        unknownDocSedeId,
@@ -828,7 +845,12 @@ async function processEmails(
           content_type:   'text/plain',
           data_documento: safeDate(ocr.data_fattura),
           stato:          'da_associare',
-          metadata:       { ...buildMetadata(ocr, 'unknown'), origine_testo_email: true },
+          metadata:       {
+            ...buildMetadata(ocr, 'unknown'),
+            origine_testo_email: true,
+            ...(autoKindU ? { pending_kind: autoKindU } : {}),
+          },
+          ...(autoKindU === 'statement' ? { is_statement: true } : {}),
           note:           ocr.note_corpo_mail?.trim() || null,
         }
         const insErr = await insertDocumento(supabase, unknownPayload)
@@ -887,6 +909,13 @@ async function processEmails(
       const { data: pub } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
       // sede_id: usa sempre sedeFilter (scansione corrente) come priorità massima
       const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+      const bodySnipAtt = email.bodyText?.slice(0, 12_000) ?? null
+      const autoKindAtt = inferAutoPendingKindFromEmailScan(
+        email.subject,
+        attachment.filename ?? null,
+        bodySnipAtt,
+        ocr,
+      )
 
       const unknownPayload = {
         fornitore_id:   null,
@@ -898,7 +927,11 @@ async function processEmails(
         content_type:   attachment.contentType ?? null,
         data_documento: safeDate(ocr.data_fattura),
         stato:          'da_associare',
-        metadata:       buildMetadata(ocr, 'unknown'),
+        metadata:       {
+          ...buildMetadata(ocr, 'unknown'),
+          ...(autoKindAtt ? { pending_kind: autoKindAtt } : {}),
+        },
+        ...(autoKindAtt === 'statement' ? { is_statement: true } : {}),
         note:           ocr.note_corpo_mail?.trim() || null,
       }
 
@@ -998,6 +1031,13 @@ async function processEmails(
     }
 
     const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+    const bodySnipOnly = email.bodyText?.slice(0, 12_000) ?? null
+    const autoKindOnly = inferAutoPendingKindFromEmailScan(
+      email.subject,
+      SYNTHETIC_EMAIL_DOC_FILENAME,
+      bodySnipOnly,
+      ocr,
+    )
     const unknownPayload = {
       fornitore_id:   null,
       sede_id:        unknownDocSedeId,
@@ -1008,7 +1048,12 @@ async function processEmails(
       content_type:   'text/plain',
       data_documento: safeDate(ocr.data_fattura),
       stato:          'da_associare',
-      metadata:       { ...buildMetadata(ocr, 'unknown'), origine_testo_email: true },
+      metadata:       {
+        ...buildMetadata(ocr, 'unknown'),
+        origine_testo_email: true,
+        ...(autoKindOnly ? { pending_kind: autoKindOnly } : {}),
+      },
+      ...(autoKindOnly === 'statement' ? { is_statement: true } : {}),
       note:           ocr.note_corpo_mail?.trim() || null,
     }
 
@@ -1175,10 +1220,23 @@ async function processEmails(
 
       const noteFromEmailBody = ocr.note_corpo_mail?.trim() || null
 
+      const bodySnippet = email.bodyText?.slice(0, 12_000) ?? null
+      const autoPendingKind = inferAutoPendingKindFromEmailScan(
+        email.subject,
+        storedFileName,
+        bodySnippet,
+        ocr,
+      )
+
       const ocrTipoKey = ocrTipoHintKey(ocr.tipo_documento)
       const learnedPendingKind = fornitore.id
         ? await fetchFornitorePendingKindHint(supabase, fornitore.id, ocrTipoKey)
         : null
+
+      /** L’oggetto/corpo che dicono “estratto” o “ordine” vincono sull’hint appreso (es. fattura) per quel fornitore. */
+      const effectivePendingKind = autoPendingKind ?? learnedPendingKind
+
+      const treatAsStatement = effectivePendingKind === 'statement'
 
       // ── AUTO-CREAZIONE BOZZA ───────────────────────────────────────────────
       // Tenta di creare automaticamente una Bolla o Fattura in stato 'bozza'
@@ -1187,8 +1245,7 @@ async function processEmails(
       let bozzaId: string | null = null
       let bozzaTipo: 'bolla' | 'fattura' | null = null
 
-      const skipAutoBozza =
-        learnedPendingKind === 'statement' || learnedPendingKind === 'ordine'
+      const skipAutoBozza = treatAsStatement || effectivePendingKind === 'ordine'
 
       if (fornitore.id && documentSedeId && !skipAutoBozza) {
         const dataDoc = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
@@ -1276,7 +1333,7 @@ async function processEmails(
       const metadata = {
         ...buildMetadata(ocr, matchedBy),
         ...(isSyntheticBodyDoc ? { origine_testo_email: true } : {}),
-        ...(learnedPendingKind ? { pending_kind: learnedPendingKind } : {}),
+        ...(effectivePendingKind ? { pending_kind: effectivePendingKind } : {}),
         // Riferimento alla bozza creata automaticamente
         ...(bozzaId ? { bozza_id: bozzaId, bozza_tipo: bozzaTipo } : {}),
         ...(fornitore.rekki_link?.trim()
@@ -1287,9 +1344,9 @@ async function processEmails(
           : {}),
       }
 
-      // Detect statement emails: mark with is_statement = true
+      // Estratto classico (oggetto): marca associato + parsing; altri “statement-like” restano in coda con tipo Estratto.
       const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
-      const isStatementDoc = isStatementEmail || learnedPendingKind === 'statement'
+      const isStatementDoc = effectivePendingKind === 'statement'
 
       const knownPayload = {
         fornitore_id:   fornitore.id,
@@ -1323,12 +1380,14 @@ async function processEmails(
         continue
       }
 
-      // ── AUTO-PROCESS STATEMENT EMAILS ──────────────────────────────────
+      // ── AUTO-PROCESS STATEMENT / PAYMENT-RECEIPT PDF (stesso parser righe) ──
       const stmtPdf =
         attachment &&
         (attachment.contentType === 'application/pdf' || String(attachment.extension).toLowerCase() === 'pdf')
-      if (isStatementEmail && stmtPdf) {
-        mailDebugLog(`[PROCESS] 📋 Statement email rilevata per "${fornitore.nome}" — avvio parsing automatico righe`)
+      if (treatAsStatement && stmtPdf) {
+        mailDebugLog(
+          `[PROCESS] 📋 Documento estratto/receipt rilevato per "${fornitore.nome}" — avvio parsing automatico righe`,
+        )
         // Fire-and-forget in background (don't block the main loop)
         processStatementInBackground(supabase, {
           fornitoreId: fornitore.id,
