@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { getLocale } from '@/lib/localization'
 import { segmentParam } from '@/lib/segment-param'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { useT } from '@/lib/use-t'
 
@@ -284,9 +285,9 @@ export default function SedeFornitoriPage() {
         </nav>
 
         <AppPageHeaderStrip accent="sky">
-          <div className="min-w-0 sm:flex-1 sm:flex-initial">
+          <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
             <h1 className="app-page-title text-2xl font-bold">Fornitori</h1>
-          </div>
+          </AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
             <button
               type="button"

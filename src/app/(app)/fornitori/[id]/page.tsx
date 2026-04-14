@@ -736,34 +736,35 @@ function SupplierDesktopMonthlyDocSummary({
       aria-busy={loading}
       aria-live="polite"
     >
-      <div className="app-card-bar" aria-hidden />
+      <div className={`app-card-bar ${tabHi.bar}`} aria-hidden />
       <div className="border-b border-slate-700/60 bg-slate-800/30 px-5 py-3">
-        <div className="flex items-start gap-2">
-          <svg
-            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-200"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-200">
-              {t.fornitori.supplierMonthlyDocTitle}
-            </h3>
-            <p className="mt-1.5 text-xs leading-snug text-slate-400">{t.fornitori.supplierMonthlyDocHint}</p>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-              <p className="min-w-0 text-xs font-medium tabular-nums text-slate-300">{fiscalSelectedLine}</p>
-              {periodNav && (
+        <div className="min-w-0">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-slate-100 md:text-sm">
+            {t.fornitori.supplierMonthlyDocTitle}
+          </h3>
+          <div className="mt-2 flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <p className="min-w-0 text-sm font-semibold tabular-nums text-slate-200 md:text-base">
+              {fiscalSelectedLine}
+            </p>
+            {periodNav && (
+              <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+                <svg
+                  className="h-5 w-5 shrink-0 text-slate-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
                 <div
                   role="group"
-                  className="flex shrink-0 flex-wrap items-center gap-0.5 self-start rounded-md border border-slate-600/70 bg-slate-900/45 px-0.5 py-0.5 sm:self-auto"
+                  className={`flex flex-wrap items-center gap-0.5 rounded-md border px-0.5 py-0.5 ${tabTable.periodNavWrap}`}
                   aria-label={`${t.fornitori.supplierMonthlyDocTitle} · ${fiscalTableEndDisplay}`}
                 >
                   <button
@@ -771,13 +772,15 @@ function SupplierDesktopMonthlyDocSummary({
                     onClick={periodNav.onPrevYear}
                     title={t.appStrings.monthNavPrevYearTitle}
                     aria-label={t.appStrings.monthNavPrevYearTitle}
-                    className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+                    className={`flex h-6 w-6 items-center justify-center rounded transition-colors ${tabTable.periodNavIconBtn}`}
                   >
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
                     </svg>
                   </button>
-                  <span className="min-w-[3.25rem] px-1 text-center text-[10px] font-semibold tabular-nums text-slate-100 sm:min-w-[3.5rem]">
+                  <span
+                    className={`min-w-[3.25rem] px-1 text-center text-[10px] font-semibold tabular-nums sm:min-w-[3.5rem] ${tabTable.monthSelected}`}
+                  >
                     {fiscalTableEndDisplay}
                   </span>
                   <button
@@ -786,7 +789,7 @@ function SupplierDesktopMonthlyDocSummary({
                     disabled={periodNav.disableNextYear}
                     title={t.appStrings.monthNavNextYearTitle}
                     aria-label={t.appStrings.monthNavNextYearTitle}
-                    className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                    className={`flex h-6 w-6 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${tabTable.periodNavIconBtn}`}
                   >
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
@@ -798,7 +801,7 @@ function SupplierDesktopMonthlyDocSummary({
                       onClick={periodNav.onResetToNow}
                       title={t.appStrings.monthNavResetTitle}
                       aria-label={t.appStrings.monthNavResetTitle}
-                      className={`flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-white/10 ${tabTable.resetNav}`}
+                      className={`flex h-6 w-6 items-center justify-center rounded transition-colors ${tabTable.resetNav}`}
                     >
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
@@ -806,8 +809,8 @@ function SupplierDesktopMonthlyDocSummary({
                     </button>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1198,11 +1201,16 @@ function DashboardTab({
         </Link>
       </div>
 
+      {/* Desktop md+: tre tessere quadrate (contatti | scheda | Rekki); senza contatti → 2 colonne. */}
+      <div
+        className={`grid grid-cols-1 gap-6 md:gap-4 ${contattiError ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}
+      >
       {/* ── Contacts section ── */}
       {!contattiError && (
-        <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+        <div className="min-w-0 md:aspect-square">
+        <div className={`app-card h-full overflow-hidden md:flex md:min-h-0 md:flex-col ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
           <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
-          <div className="flex items-center justify-between border-b border-slate-700/60 px-4 py-2.5 md:px-5 md:py-3">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-700/60 px-4 py-2.5 md:px-5 md:py-3">
             <div className="flex items-center gap-2">
               <svg className="h-3.5 w-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.appStrings.contactsHeading}</p>
@@ -1217,6 +1225,7 @@ function DashboardTab({
             </button>
           </div>
 
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {/* Add / edit form */}
           {showAddForm && (
             <div className="border-b border-cyan-500/25 bg-cyan-500/10 px-4 py-4 md:px-5">
@@ -1317,17 +1326,20 @@ function DashboardTab({
               ))}
             </div>
           )}
+          </div>
+        </div>
         </div>
       )}
 
       {/* Supplier info card */}
-      <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+      <div className="min-w-0 md:aspect-square">
+      <div className={`app-card h-full overflow-hidden md:flex md:min-h-0 md:flex-col ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
         <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
-        <div className="flex items-center gap-2 border-b border-slate-700/60 px-5 py-3">
+        <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
           <svg className="h-3.5 w-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.appStrings.infoSupplierCard}</p>
         </div>
-        <div className="grid grid-cols-2 gap-0 divide-y divide-slate-800/80 md:grid-cols-3 md:divide-x md:divide-y-0 md:divide-slate-800/80">
+        <div className="flex min-h-0 flex-1 flex-col divide-y divide-slate-800/80 overflow-y-auto">
 
           {/* Contact */}
           <div className="space-y-3 px-5 py-4">
@@ -1398,14 +1410,20 @@ function DashboardTab({
           </div>
         </div>
       </div>
+      </div>
 
+      <div className="min-w-0 md:aspect-square">
       <RekkiSupplierIntegration
         fornitoreId={fornitoreId}
         piva={fornitore.piva}
         initialRekkiId={fornitore.rekki_supplier_id}
         initialRekkiLink={fornitore.rekki_link}
         onSaved={onFornitoreReload}
+        className="h-full min-h-0 flex flex-col"
+        compactFields
       />
+      </div>
+      </div>
 
     </div>
   )
@@ -3107,8 +3125,8 @@ function FornitoreDetailClient({
         <div className="w-full bg-slate-700 pt-2 pb-1">
         <div className="fornitore-desktop-main-x mx-auto w-full max-w-[83rem]">
           {/*
-            Sotto xl: identità, poi mese+sync, poi CTA documenti.
-            Da xl in su: identità | mese+sync (verso destra) | CTA.
+            Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
+            Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
           <div className="flex flex-col gap-2 border-b border-white/10 pb-2 xl:flex-row xl:items-center xl:gap-3 xl:min-h-9">
             <div className="flex min-w-0 items-start gap-2.5 xl:min-w-0 xl:max-w-[min(100%,40rem)] xl:shrink-0 xl:items-center">
@@ -3132,77 +3150,6 @@ function FornitoreDetailClient({
             </div>
 
             <div className="flex min-w-0 w-full flex-wrap items-center gap-x-2 gap-y-2 xl:h-9 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:items-center xl:justify-end xl:gap-x-3">
-            {/* Month/year navigator: sotto xl h-6; da xl h-9 come colonna identità / sync */}
-            <div className="flex h-6 w-max shrink-0 items-center gap-0.5 rounded-md border border-white/10 bg-white/5 px-0.5 xl:h-9 xl:px-1">
-              <button
-                type="button"
-                onClick={() => shiftYear(-1)}
-                title={t.appStrings.monthNavPrevYearTitle}
-                aria-label={t.appStrings.monthNavPrevYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:h-7 xl:w-7"
-              >
-                <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => shiftMonth(-1)}
-                title={t.appStrings.monthNavPrevMonthTitle}
-                aria-label={t.appStrings.monthNavPrevMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:h-7 xl:w-7"
-              >
-                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <span className="min-w-0 whitespace-nowrap px-0.5 text-center text-[11px] font-semibold tabular-nums leading-6 text-white xl:leading-9">
-                {monthYearLabel}
-              </span>
-              <button
-                type="button"
-                onClick={() => shiftMonth(1)}
-                disabled={isCurrentMonth}
-                title={t.appStrings.monthNavNextMonthTitle}
-                aria-label={t.appStrings.monthNavNextMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 xl:h-7 xl:w-7"
-              >
-                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => shiftYear(1)}
-                disabled={!canShiftYearForward}
-                title={t.appStrings.monthNavNextYearTitle}
-                aria-label={t.appStrings.monthNavNextYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 xl:h-7 xl:w-7"
-              >
-                <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
-                </svg>
-              </button>
-              {!isCurrentMonth && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterYear(now.getFullYear())
-                    setFilterMonth(now.getMonth() + 1)
-                  }}
-                  title={t.appStrings.monthNavResetTitle}
-                  aria-label={t.appStrings.monthNavResetTitle}
-                  className="flex h-5 w-5 items-center justify-center rounded-sm text-cyan-400 transition-colors hover:bg-white/10 hover:text-cyan-300 xl:h-7 xl:w-7"
-                >
-                  <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
-                  </svg>
-                </button>
-              )}
-            </div>
-
-            <div className="hidden h-6 w-px shrink-0 bg-white/10 xl:block xl:h-9" aria-hidden />
-
             <div className="min-w-0 w-full xl:min-w-[12rem] xl:flex-1 xl:max-w-none">
               <ScanEmailButton
                 variant="supplier"
@@ -3246,15 +3193,15 @@ function FornitoreDetailClient({
             </div>
           </div>
 
-          {/* Tab bar: altezza tab = h-6 come navigatore mese / CTA */}
-          <div className="flex w-full min-w-0 items-center border-t border-white/10 bg-black/[0.06] py-1">
-            <div className="flex min-h-6 min-w-0 flex-1 items-center gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+          {/* Tab bar + navigatore mese: tab e mese ancorati in basso (self-end sul mese, stessa h delle tab) */}
+          <div className="flex w-full min-w-0 items-stretch gap-2 border-t border-white/10 bg-black/[0.06] pt-0.5 pb-0 xl:gap-3 xl:pt-1 xl:pb-0">
+            <div className="flex min-h-6 min-w-0 flex-1 items-end gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-9">
               {tabs.map((tb) => (
                 <button
                   key={tb.id}
                   type="button"
                   onClick={() => setTab(tb.id)}
-                  className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[11px] font-semibold leading-none transition-colors border-b-2 -mb-px ${
+                  className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[11px] font-semibold leading-none transition-colors border-b-2 -mb-px xl:min-h-9 xl:px-2.5 ${
                     tab === tb.id
                       ? 'border-b-cyan-400 bg-white/[0.06] text-white shadow-[0_6px_24px_-8px_rgba(34,211,238,0.35)]'
                       : 'border-b-transparent text-slate-200 hover:bg-white/[0.04] hover:text-white'
@@ -3276,6 +3223,74 @@ function FornitoreDetailClient({
                   )}
                 </button>
               ))}
+            </div>
+
+            <div className="-mb-px flex h-6 w-max shrink-0 items-center gap-px self-end rounded-md border border-white/10 bg-white/5 px-0.5 xl:h-9 xl:px-1">
+              <button
+                type="button"
+                onClick={() => shiftYear(-1)}
+                title={t.appStrings.monthNavPrevYearTitle}
+                aria-label={t.appStrings.monthNavPrevYearTitle}
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:h-7 xl:w-7"
+              >
+                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => shiftMonth(-1)}
+                title={t.appStrings.monthNavPrevMonthTitle}
+                aria-label={t.appStrings.monthNavPrevMonthTitle}
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:h-7 xl:w-7"
+              >
+                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="min-w-0 whitespace-nowrap px-0.5 text-center text-[11px] font-semibold tabular-nums leading-none text-white xl:leading-9">
+                {monthYearLabel}
+              </span>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                disabled={isCurrentMonth}
+                title={t.appStrings.monthNavNextMonthTitle}
+                aria-label={t.appStrings.monthNavNextMonthTitle}
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 xl:h-7 xl:w-7"
+              >
+                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => shiftYear(1)}
+                disabled={!canShiftYearForward}
+                title={t.appStrings.monthNavNextYearTitle}
+                aria-label={t.appStrings.monthNavNextYearTitle}
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 xl:h-7 xl:w-7"
+              >
+                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
+                </svg>
+              </button>
+              {!isCurrentMonth && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterYear(now.getFullYear())
+                    setFilterMonth(now.getMonth() + 1)
+                  }}
+                  title={t.appStrings.monthNavResetTitle}
+                  aria-label={t.appStrings.monthNavResetTitle}
+                  className="flex h-5 w-5 items-center justify-center rounded-sm text-cyan-400 transition-colors hover:bg-white/10 hover:text-cyan-300 xl:h-7 xl:w-7"
+                >
+                  <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         </div>

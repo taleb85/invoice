@@ -4,6 +4,7 @@ import { useState, useCallback, useId } from 'react'
 import Link from 'next/link'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 interface DiscoveredSender {
   email: string
@@ -278,7 +279,10 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip>
-        <div className="min-w-0 flex-1">
+        <AppPageHeaderTitleWithDashboardShortcut
+          dashboardLabel={t.nav.dashboard}
+          className="min-w-0 flex-1 items-start gap-3"
+        >
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2 text-sm text-slate-400">
               <Link href="/impostazioni" className="shrink-0 transition-colors hover:text-slate-200">
@@ -317,7 +321,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
             Scans your connected mailboxes (last 30 days) and surfaces senders with attachments who are not yet
             registered as suppliers.
           </p>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
           <button
             type="button"

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 interface AliasEmail {
   id: string
@@ -162,6 +163,7 @@ export default function EditFornitore() {
     <div className="mx-auto max-w-lg app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-center gap-3">
+          <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <button
             type="button"
             onClick={handleCloseEdit}

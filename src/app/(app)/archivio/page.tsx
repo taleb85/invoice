@@ -4,6 +4,7 @@ import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import ExportZipButton from './ExportZipButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 
 interface Bolla {
@@ -85,9 +86,9 @@ export default async function ArchivioPage() {
 
       <AppPageHeaderStrip>
         <div className="flex w-full min-w-0 flex-col gap-3">
-          <div>
+          <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
             <h1 className="app-page-title text-2xl font-bold">{t.archivio.title}</h1>
-          </div>
+          </AppPageHeaderTitleWithDashboardShortcut>
           <ExportZipButton />
         </div>
       </AppPageHeaderStrip>

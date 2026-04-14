@@ -31,8 +31,6 @@ import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
 import { SidebarBrandHeader } from '@/components/SidebarBrandHeader'
-import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
-import { useNotificationCounts } from '@/lib/use-notification-counts'
 import BranchSessionGate from '@/components/BranchSessionGate'
 
 const SidebarController   = dynamic(() => import('./SidebarController'),    { ssr: false })
@@ -183,15 +181,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const hub = showsMobileBottomBar()
   const { me, loading } = useMe()
   const { activeOperator } = useActiveOperator()
-  const { effectiveSedeId } = useManualDeliverySede()
   const isAdmin = Boolean(me?.is_admin)
-  const { badgeCount: headerNotificationBadgeCount } = useNotificationCounts({
-    isAdmin,
-    effectiveSedeId,
-    initialAdminErrors: 0,
-    initialOperatorPending: 0,
-    initialOperatorLogErrors: 0,
-  })
   const headerToastBanner = useDesktopHeaderToastBanner()
   const headerNavBarSurface = desktopHeaderBarSurfaceClass(headerToastBanner)
   const headerBannerTextCls = desktopToastBannerTextClass(headerToastBanner)
@@ -215,17 +205,17 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
         <div
           ref={bindDesktopNavHost}
           id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-          className={`relative z-30 hidden w-full shrink-0 items-stretch overflow-visible backdrop-blur-sm transition-[background,box-shadow,border-color] duration-300 md:flex md:min-h-[50px] ${headerNavBarSurface}`}
+          className={`relative z-30 hidden w-full shrink-0 items-stretch overflow-visible backdrop-blur-sm transition-[background,box-shadow,border-color] duration-300 md:flex md:min-h-[48px] ${headerNavBarSurface}`}
         >
           <div className="relative z-20 w-52 shrink-0 overflow-x-hidden lg:w-56">
-            <div className="flex h-full min-h-[50px] min-w-0 items-stretch">
+            <div className="flex h-full min-h-[48px] min-w-0 items-stretch">
               <SidebarBrandHeader
                 collapsed={sidebarCollapsed}
                 onExpand={() => setSidebarCollapsed(false)}
               />
             </div>
           </div>
-          <div className="app-shell-page-padding-x relative z-10 flex min-h-[50px] min-w-0 flex-1 items-center gap-2 overflow-visible py-2.5 sm:gap-3 lg:gap-4">
+          <div className="app-shell-page-padding-x relative z-10 flex min-h-[48px] min-w-0 flex-1 items-center gap-2 overflow-visible py-2 sm:gap-3 lg:gap-4">
             <div className="relative z-[2] min-w-0 flex-1 overflow-hidden">
               <AppShellActivityStrip />
             </div>
@@ -243,7 +233,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               </div>
             ) : null}
             <div className="relative z-[2] flex shrink-0 items-center gap-2">
-              <DesktopHeaderToolbar workspaceAlert={headerNotificationBadgeCount > 0} />
+              <DesktopHeaderToolbar />
               <ConnectionStatusDot />
             </div>
           </div>

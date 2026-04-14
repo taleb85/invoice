@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useT } from '@/lib/use-t'
 import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
+import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
 type RekkiHit = { id: string; name: string }
 
@@ -12,12 +13,18 @@ export default function RekkiSupplierIntegration({
   initialRekkiId,
   initialRekkiLink,
   onSaved,
+  className,
+  compactFields,
 }: {
   fornitoreId: string
   piva: string | null
   initialRekkiId?: string | null
   initialRekkiLink?: string | null
   onSaved?: () => void
+  /** Es. `h-full min-h-0 flex flex-col` dentro griglia a tessere. */
+  className?: string
+  /** Campi ID/link in colonna singola (tile stretti). */
+  compactFields?: boolean
 }) {
   const t = useT()
   const [rekkiId, setRekkiId] = useState(initialRekkiId?.trim() ?? '')
@@ -128,16 +135,18 @@ export default function RekkiSupplierIntegration({
     }
   }
 
+  const shell = SUMMARY_HIGHLIGHT_ACCENTS.cyan
+
   return (
-    <div className="app-card overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
-      <div className="flex items-center gap-2 border-b border-slate-700/60 px-5 py-3">
+    <div className={`app-card overflow-hidden ${shell.border} ${className ?? ''}`}>
+      <div className={`app-card-bar ${shell.bar}`} aria-hidden />
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
         <svg className="h-3.5 w-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
         </svg>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-100">{t.fornitori.rekkiIntegrationTitle}</p>
       </div>
-      <div className="space-y-4 px-5 py-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -170,7 +179,7 @@ export default function RekkiSupplierIntegration({
             ))}
           </ul>
         )}
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`grid gap-3 ${compactFields ? 'grid-cols-1' : 'sm:grid-cols-2'}`}>
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.rekkiIdLabel}</label>
             <input

@@ -18,6 +18,8 @@ import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,10 +62,13 @@ export default async function DashboardPage() {
       <div className="w-full min-w-0 app-shell-page-padding">
         <div className="mb-8 w-full">
           <AppPageHeaderStrip embedded>
-            <div className="min-w-0 sm:flex-1 sm:flex-initial">
+            <AppPageHeaderTitleWithDashboardShortcut
+              dashboardLabel={t.nav.dashboard}
+              showDashboardShortcut={false}
+            >
               <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.title}</h1>
               <p className="mt-1 hidden text-sm text-slate-100/90 md:block">{t.sedi.subtitleGlobalAdmin}</p>
-            </div>
+            </AppPageHeaderTitleWithDashboardShortcut>
             <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
               <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
               <ScanEmailButton alwaysShowLabel />
@@ -255,12 +260,15 @@ export default async function DashboardPage() {
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
       <AppPageHeaderStrip>
-        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut
+          dashboardLabel={t.nav.dashboard}
+          showDashboardShortcut={false}
+        >
           <h1 className="app-page-title text-xl font-bold md:text-2xl">
             {dashboardSedeNome ?? t.dashboard.title}
           </h1>
           <p className="mt-0.5 hidden text-sm text-slate-200 md:block">{t.dashboard.subtitle}</p>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
           <ScanEmailButton alwaysShowLabel sedeId={adminViewSedeId ?? undefined} />
           <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
@@ -366,8 +374,10 @@ export default async function DashboardPage() {
         <DashboardOperatorKpiGrid kpis={kpis} t={t} locale={locale} currency={currency} />
       </div>
 
-      <div className={`app-card overflow-hidden ${operatorScoped ? 'operator-dash-hide-mobile' : ''}`}>
-        <div className="app-card-bar" aria-hidden />
+      <div
+        className={`app-card overflow-hidden ${SUMMARY_HIGHLIGHT_ACCENTS.cyan.border} ${operatorScoped ? 'operator-dash-hide-mobile' : ''}`}
+      >
+        <div className={`app-card-bar ${SUMMARY_HIGHLIGHT_ACCENTS.cyan.bar}`} aria-hidden />
         <div className="flex flex-col gap-3 border-b border-slate-600/80/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <h2 className="font-semibold text-slate-100">{t.dashboard.recentBills}</h2>
           <div className="flex flex-wrap items-center gap-3">

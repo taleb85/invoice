@@ -8,6 +8,7 @@ import {
 } from '@/lib/summary-highlight-accent'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 
 export default function StatementsLayout({ children }: { children: React.ReactNode }) {
@@ -39,11 +40,14 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip accent={statementsPageAccent}>
-        <div className="min-w-0 flex-1">
+        <AppPageHeaderTitleWithDashboardShortcut
+          dashboardLabel={t.nav.dashboard}
+          className="min-w-0 flex-1 items-start gap-3"
+        >
           <h1 className="app-page-title text-2xl font-bold">
             {isVerifica ? t.statements.heading : t.statements.tabDocumenti}
           </h1>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 
       <StatementsSummaryHighlight />

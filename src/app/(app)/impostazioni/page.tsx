@@ -12,6 +12,7 @@ import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 function ProfileMobileHub() {
   const { me } = useMe()
@@ -229,14 +230,17 @@ export default function ImpostazioniPage() {
       {/* ══ MOBILE layout (Help /guida: solo qui, non in MobileTopbar) ══ */}
       <div className="md:hidden p-4 max-w-lg">
         <AppPageHeaderStrip>
-          <div className="min-w-0 flex-1">
+          <AppPageHeaderTitleWithDashboardShortcut
+            dashboardLabel={t.nav.dashboard}
+            className="min-w-0 flex-1 items-start gap-3"
+          >
             <h1 className="app-page-title text-xl font-bold" suppressHydrationWarning>
               {mounted ? t.impostazioni.title : ''}
             </h1>
             <p className="mt-1 text-sm text-slate-200" suppressHydrationWarning>
               {mounted ? t.impostazioni.subtitle : ''}
             </p>
-          </div>
+          </AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex shrink-0 items-start justify-end">
             <Link
               href="/guida"

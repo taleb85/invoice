@@ -16,6 +16,7 @@ import {
 } from '@/lib/locale-server'
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
@@ -70,9 +71,9 @@ export default async function FattureRiepilogoPage() {
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip accent="violet">
-        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.fattureRiepilogoTitle}</h1>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (

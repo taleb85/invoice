@@ -8,6 +8,7 @@ import ScanEmailButton from '@/components/ScanEmailButton'
 import LogSupplierAiSuggest from '@/components/LogSupplierAiSuggest'
 import { getT, getLocale, getTimezone } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 
 type LogStato = 'successo' | 'fornitore_non_trovato' | 'bolla_non_trovata' | 'fornitore_suggerito'
@@ -118,10 +119,13 @@ export default async function LogPage() {
   return (
     <div className="app-shell-page-padding">
       <AppPageHeaderStrip>
-        <div className="min-w-0 flex-1">
+        <AppPageHeaderTitleWithDashboardShortcut
+          dashboardLabel={t.nav.dashboard}
+          className="min-w-0 flex-1 items-start gap-3"
+        >
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
           <p className="mt-1 text-xs leading-snug text-slate-200">{t.log.subtitle}</p>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 pt-0.5 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
           <ScanEmailButton alwaysShowLabel />
         </div>

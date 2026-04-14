@@ -191,8 +191,9 @@
   }
   /** Barra superiore condivisa (login, app-card, modali Ocean) — glow neon sotto il gradient */
 
+  /* Altezza minima ~4px: sotto i 4px un gradiente Tailwind “/40” sul tema scuro risulta illeggibile. */
   .app-card-bar {
-    height: 0.22rem;
+    height: 0.25rem;
     width: 100%;
     flex-shrink: 0;
     background: linear-gradient(90deg, #3b82f6, #22d3ee, #5eead4);

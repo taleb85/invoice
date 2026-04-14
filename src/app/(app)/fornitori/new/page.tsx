@@ -9,6 +9,7 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 const fieldBaseCls =
   'w-full rounded-xl border border-slate-600/60 bg-slate-700 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition [color-scheme:dark] focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50'
@@ -107,6 +108,7 @@ function NewFornitoreForm() {
     <div className="mx-auto max-w-lg app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-center gap-3">
+          <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <button
             type="button"
             onClick={() => router.back()}

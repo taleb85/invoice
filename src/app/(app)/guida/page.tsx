@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { getGuidaContent } from '@/lib/guida-content'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 const COLOR_MAP: Record<string, { bg: string; text: string; border: string; dot: string; chip: string }> = {
   blue:   { bg: 'bg-blue-500/10',   text: 'text-blue-200',   border: 'border-blue-500/30',   dot: 'bg-blue-500',   chip: 'bg-blue-500/20 text-blue-200' },
@@ -55,7 +56,7 @@ const SECTION_ICONS: Record<string, React.ReactNode> = {
 }
 
 export default function GuidaPage() {
-  const { locale } = useLocale()
+  const { locale, t } = useLocale()
   const content = getGuidaContent(locale)
   const [active, setActive] = useState<string>(content.sections[0].id)
 
@@ -65,10 +66,10 @@ export default function GuidaPage() {
   return (
     <div className="app-shell-page-padding max-w-6xl">
       <AppPageHeaderStrip>
-        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-2xl font-bold">{content.pageTitle}</h1>
           <p className="mt-1 text-sm text-slate-200">{content.pageSubtitle}</p>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 
       <div className="flex flex-col md:flex-row gap-6">

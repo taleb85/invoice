@@ -4,6 +4,7 @@ import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
@@ -105,9 +106,9 @@ export default async function BollePage({
   return (
     <div className="app-shell-page-padding">
       <AppPageHeaderStrip accent="indigo">
-        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-2xl font-bold">{t.bolle.title}</h1>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
           <Link
             href="/bolle/new"

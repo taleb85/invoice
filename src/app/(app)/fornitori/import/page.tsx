@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useSedeId } from '@/lib/use-sede'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 interface ExtractedData {
   nome: string | null
@@ -135,6 +136,7 @@ function ImportFornitoreInner() {
     <div className="app-shell-page-padding max-w-lg">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-start gap-3">
+          <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <button
             onClick={() => router.back()}
             className="mt-0.5 shrink-0 text-slate-500 transition-colors hover:text-slate-200"

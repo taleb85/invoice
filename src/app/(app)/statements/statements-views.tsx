@@ -23,6 +23,7 @@ import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routin
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import { SUMMARY_HIGHLIGHT_ACCENTS, type SummaryHighlightAccent } from '@/lib/summary-highlight-accent'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 
@@ -272,9 +273,9 @@ export function StatementsContent({
       {showPageHeader && (
         <>
           <AppPageHeaderStrip accent={active === 'pending' ? 'amber' : 'cyan'}>
-            <div className="min-w-0 sm:flex-1 sm:flex-initial">
+            <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
               <h1 className="app-page-title text-2xl font-bold">{t.statements.heading}</h1>
-            </div>
+            </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
           <StatementsSummaryHighlight
             sedeId={sedeId}

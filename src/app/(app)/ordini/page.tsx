@@ -9,6 +9,7 @@ import {
   formatDate as fmtDate,
 } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
@@ -53,9 +54,9 @@ export default async function OrdiniOverviewPage() {
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip accent="rose">
-        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.nav.ordini}</h1>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (

@@ -17,7 +17,7 @@ export function SidebarBrandHeader({
   const { t } = useLocale()
 
   return (
-    <div className="relative flex min-h-[50px] min-w-0 flex-1 items-center gap-1.5 px-2.5 lg:px-3">
+    <div className="relative flex min-h-[48px] min-w-0 flex-1 items-center gap-1.5 pl-3.5 pr-2.5 lg:pl-5 lg:pr-3">
       <div
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
         onClick={() => {
@@ -39,7 +39,7 @@ export function SidebarBrandHeader({
         }}
         title={collapsed ? t.ui.expandSidebar : undefined}
       >
-        <svg viewBox="0 0 96 56" className="h-[30px] w-12 shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <svg viewBox="0 0 96 56" className="h-[28px] w-[2.9rem] shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden>
           <defs>
             <linearGradient id="fx-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#1e3a5f"/>
@@ -75,7 +75,7 @@ export function SidebarBrandHeader({
         </svg>
 
         <div className="min-w-0">
-          <svg viewBox="0 0 130 32" className="h-auto w-[6rem] max-w-full" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+          <svg viewBox="0 0 130 32" className="h-auto w-[5.6rem] max-w-full" xmlns="http://www.w3.org/2000/svg" aria-hidden>
             <defs>
               <linearGradient id="fx-text" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#6b8ef5"/>

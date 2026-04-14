@@ -52,7 +52,7 @@ export const SUMMARY_HIGHLIGHT_ACCENTS = {
   },
   cyan: {
     border: 'border-cyan-500/20',
-    bar: 'bg-gradient-to-r from-cyan-600/40 to-transparent',
+    bar: 'bg-gradient-to-r from-cyan-400/75 via-cyan-500/40 to-transparent [box-shadow:0_0_14px_rgba(34,211,238,0.35),0_2px_8px_rgba(34,211,238,0.22)]',
     label: 'text-cyan-300/90',
   },
   /** Estratti / accenti azzurri (non usato come default tab Verifica fornitore). */

@@ -6,6 +6,7 @@ import ToggleStato from './ToggleStato'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
 async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
@@ -42,6 +43,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
     <div className="max-w-2xl app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-start gap-3">
+          <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <Link
             href={`/fornitori/${bolla.fornitore_id}`}
             className="mt-1 shrink-0 text-slate-500 transition-colors hover:text-slate-200"

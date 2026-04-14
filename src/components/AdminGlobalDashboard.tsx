@@ -4,6 +4,7 @@ import { getLocale as getCountryLocale } from '@/lib/localization'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import { dashboardManageSediLabel } from '@/lib/gestisci-sede-label'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 export type AdminGlobalSedeCard = {
   id: string
@@ -39,11 +40,11 @@ export function AdminGlobalDashboard({
     <div className="max-w-5xl app-shell-page-padding">
       <div className="mb-8 w-full">
         <AppPageHeaderStrip embedded>
-          <div className="min-w-0 sm:flex-1 sm:flex-initial">
+          <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
             <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.adminGlobalTitle}</h1>
             <p className="mt-1 hidden text-sm text-slate-200 md:block">{t.dashboard.adminGlobalSubtitle}</p>
             <p className="mt-1 text-xs text-slate-500 md:hidden">{t.dashboard.adminGlobalSubtitle}</p>
-          </div>
+          </AppPageHeaderTitleWithDashboardShortcut>
           <div className="-mx-4 flex w-[calc(100%+2rem)] min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto px-4 py-2.5 md:mx-0 md:w-auto md:overflow-visible md:px-0 md:py-0">
             <Link
               href="/log"

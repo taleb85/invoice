@@ -5,6 +5,7 @@ import { Fornitore } from '@/types'
 import FornitoriListSection from '@/components/FornitoriListSection'
 import { getT } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 async function getFornitori(): Promise<{
   fornitori: Fornitore[]
@@ -47,9 +48,12 @@ export default async function FornitoriPage() {
   return (
     <div className="app-shell-page-padding">
       <AppPageHeaderStrip accent="sky">
-        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut
+          dashboardLabel={t.nav.dashboard}
+          className="min-w-0 items-center gap-3 sm:flex-1 sm:flex-initial"
+        >
           <h1 className="app-page-title min-w-0 text-2xl font-bold">{t.fornitori.title}</h1>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 md:shrink-0">
           {sedeNome ? (
             <span className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border border-cyan-500/35 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-medium text-cyan-200 sm:max-w-[min(100%,14rem)]">

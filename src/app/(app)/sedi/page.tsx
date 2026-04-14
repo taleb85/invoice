@@ -9,6 +9,7 @@ import { useMe } from '@/lib/me-context'
 import { getLocale, COUNTRY_OPTIONS } from '@/lib/localization'
 import { CURRENCIES, TIMEZONES } from '@/lib/translations'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 /* ─── IP geo-detection ─────────────────────────────────────────────────────
    Maps the ISO-2 country code returned by ipapi.co to our internal codes.
@@ -434,10 +435,10 @@ export default function SediPage() {
     <div className="w-full min-w-0 app-shell-page-padding space-y-6 md:space-y-8">
 
       <AppPageHeaderStrip>
-        <div className="min-w-0 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.sedi.titleGlobalAdmin}</h1>
           <p className="mt-1 hidden text-sm text-slate-200 md:block">{t.sedi.subtitleGlobalAdmin}</p>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
         {!isSedeScopedAdmin ? (
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
             <button
