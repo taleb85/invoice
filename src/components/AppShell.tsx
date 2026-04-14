@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { UserProvider, useMe, type MeData } from '@/lib/me-context'
@@ -250,7 +250,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               normalized === '/bolle/new' ? 'pt-0' : 'pt-14'
             } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
           >
-            <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
+            <Suspense fallback={null}>
+              <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
+            </Suspense>
             <EmailSyncProgressBar />
             <BranchSessionGate>{children}</BranchSessionGate>
           </main>
