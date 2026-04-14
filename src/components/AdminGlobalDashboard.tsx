@@ -36,7 +36,7 @@ export function AdminGlobalDashboard({
 }) {
   const manageSediText = dashboardManageSediLabel(t, associatedSedeNome ?? '')
   return (
-    <div className="max-w-5xl p-4 md:p-8">
+    <div className="max-w-5xl app-shell-page-padding">
       <div className="mb-8 w-full">
         <AppPageHeaderStrip embedded>
           <div className="min-w-0 sm:flex-1 sm:flex-initial">

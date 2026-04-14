@@ -116,7 +116,7 @@ export default async function LogPage() {
   )
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="min-w-0 flex-1">
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>

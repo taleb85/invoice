@@ -103,7 +103,7 @@ export default async function BollePage({
   const bolleListTheme = SUMMARY_HIGHLIGHT_ACCENTS.indigo
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="app-shell-page-padding">
       <AppPageHeaderStrip accent="indigo">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-2xl font-bold">{t.bolle.title}</h1>

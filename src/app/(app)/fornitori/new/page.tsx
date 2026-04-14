@@ -104,7 +104,7 @@ function NewFornitoreForm() {
   }
 
   return (
-    <div className="mx-auto max-w-lg p-4 md:p-8">
+    <div className="mx-auto max-w-lg app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <button

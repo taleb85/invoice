@@ -39,7 +39,7 @@ export default async function FatturePage() {
   const totaleImporto = fatture.reduce((s, f) => s + (Number(f.importo) || 0), 0)
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="app-shell-page-padding">
       <AppPageHeaderStrip accent="emerald">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-2xl font-bold">{t.fatture.title}</h1>

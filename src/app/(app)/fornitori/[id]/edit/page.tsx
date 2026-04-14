@@ -141,7 +141,7 @@ export default function EditFornitore() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg p-4 md:p-8">
+      <div className="mx-auto max-w-lg app-shell-page-padding">
         <div
           className="flex min-h-[12rem] items-center justify-center"
           role="status"
@@ -159,7 +159,7 @@ export default function EditFornitore() {
   }
 
   return (
-    <div className="mx-auto max-w-lg p-4 md:p-8">
+    <div className="mx-auto max-w-lg app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <button

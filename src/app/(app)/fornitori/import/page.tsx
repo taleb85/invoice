@@ -132,7 +132,7 @@ function ImportFornitoreInner() {
   const labelCls = 'block text-xs font-medium text-slate-200 mb-1'
 
   return (
-    <div className="p-4 md:p-8 max-w-lg">
+    <div className="app-shell-page-padding max-w-lg">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <button

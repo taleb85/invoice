@@ -72,7 +72,7 @@ export default async function ArchivioPage() {
   const totFatture  = (fatture?.length ?? 0) + (documentiInCoda?.length ?? 0)
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="app-shell-page-padding">
       <Link
         href="/"
         className="mb-5 inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/60 hover:text-cyan-300 touch-manipulation md:min-h-0 md:py-0"

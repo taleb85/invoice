@@ -431,7 +431,7 @@ export default function SediPage() {
   const isSedeScopedAdmin = adminListScope === 'sede'
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-8 space-y-6 md:space-y-8">
+    <div className="w-full min-w-0 app-shell-page-padding space-y-6 md:space-y-8">
 
       <AppPageHeaderStrip>
         <div className="min-w-0 sm:flex-1 sm:flex-initial">

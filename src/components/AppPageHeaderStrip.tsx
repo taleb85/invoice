@@ -5,7 +5,7 @@ import {
 } from '@/lib/summary-highlight-accent'
 
 const innerCls =
-  'flex w-full min-w-0 flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3 md:px-5 md:py-4'
+  'flex w-full min-w-0 flex-col gap-3 px-3 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3 sm:px-4 sm:py-4 md:px-6 md:py-4 lg:px-8'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` (vetro, ring cyan, ombre neon) + `app-card-bar`.

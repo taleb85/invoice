@@ -276,7 +276,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
   const visibleSenders = result?.unknown.filter(s => !added.has(s.email)) ?? []
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-8">
+    <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">

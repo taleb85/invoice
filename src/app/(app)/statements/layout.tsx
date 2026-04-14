@@ -37,7 +37,7 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
   const statementsMainTheme = SUMMARY_HIGHLIGHT_ACCENTS[statementsPageAccent]
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-8">
+    <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip accent={statementsPageAccent}>
         <div className="min-w-0 flex-1">
           <h1 className="app-page-title text-2xl font-bold">
@@ -50,7 +50,7 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
 
       <div className={`app-card mb-6 overflow-hidden ${statementsMainTheme.border}`}>
         <div className={`app-card-bar ${statementsMainTheme.bar}`} aria-hidden />
-        <div className="min-h-[12rem] px-5 py-4 sm:px-6 sm:py-5">{children}</div>
+        <div className="min-h-[12rem] px-3 py-4 sm:px-5 sm:py-5 md:px-6 lg:px-8">{children}</div>
       </div>
     </div>
   )

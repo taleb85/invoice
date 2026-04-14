@@ -57,7 +57,7 @@ export default async function DashboardPage() {
     ])
 
     return (
-      <div className="w-full min-w-0 p-4 md:p-8">
+      <div className="w-full min-w-0 app-shell-page-padding">
         <div className="mb-8 w-full">
           <AppPageHeaderStrip embedded>
             <div className="min-w-0 sm:flex-1 sm:flex-initial">
@@ -250,7 +250,7 @@ export default async function DashboardPage() {
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-8">
+    <div className="w-full min-w-0 app-shell-page-padding">
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}

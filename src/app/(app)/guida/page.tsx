@@ -63,7 +63,7 @@ export default function GuidaPage() {
   const c = COLOR_MAP[current.color]
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl">
+    <div className="app-shell-page-padding max-w-6xl">
       <AppPageHeaderStrip>
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-2xl font-bold">{content.pageTitle}</h1>

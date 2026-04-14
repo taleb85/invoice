@@ -71,8 +71,8 @@ export default function MobileTopbar() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-30 border-b border-slate-500/40 bg-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-6px_rgba(0,0,0,0.22)] md:hidden">
-      <div className="flex h-14 items-center gap-2 px-3">
+    <header className="fixed top-0 left-1/2 z-30 w-[min(100vw-1rem,var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 border-b border-slate-500/40 bg-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_20px_-6px_rgba(0,0,0,0.22)] md:hidden">
+      <div className="flex h-14 items-center gap-2 px-2.5 ps-[max(0.625rem,env(safe-area-inset-left,0px))] pe-[max(0.625rem,env(safe-area-inset-right,0px))] sm:px-3">
         <div className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 pl-0.5" onClick={goLogoHome}>
           <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="h-7 w-12 shrink-0">
             <defs>

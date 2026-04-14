@@ -139,14 +139,18 @@ export default function ScanEmailButton({
   const isSupplierVariant = variant === 'supplier'
   const btnSize = alwaysShowLabel
     ? isSupplierVariant
-      ? 'inline-flex min-h-[44px] w-full items-center justify-center gap-1 px-2.5 py-0 md:h-7 md:min-h-0 md:w-auto md:gap-1.5 md:px-3'
+      ? 'inline-flex min-h-[44px] w-full items-center justify-center gap-1 px-2 py-0 md:h-6 md:min-h-0 md:w-auto md:gap-1 md:px-2 xl:h-9 xl:gap-1.5 xl:px-2.5'
       : 'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 px-3 py-0'
     : 'inline-flex items-center gap-1.5 px-3 py-1.5'
   const selectSize =
     'h-8 py-0 pl-2 pr-7 text-left text-[11px] font-medium leading-8'
   const selectSizeSupplier =
-    'h-7 py-0 pl-1.5 pr-6 text-left text-[10px] font-medium leading-7 md:pl-2 md:pr-7'
+    'h-6 py-0 pl-1 pr-5 text-left text-[10px] font-medium leading-6 md:pl-1.5 md:pr-6 md:text-[11px] xl:h-9 xl:pl-2 xl:pr-8 xl:text-[11px] xl:leading-9'
+  const selectSizeSupplierLookback =
+    'h-6 py-0 pl-0.5 pr-4 text-left text-[10px] font-medium leading-6 md:pl-1 md:pr-5 md:text-[11px] xl:h-9 xl:pl-1.5 xl:pr-7 xl:text-[11px] xl:leading-9'
   const selectSizeEffective = isSupplierVariant ? selectSizeSupplier : selectSize
+  const fiscalSelectSize = isSupplierVariant ? selectSizeSupplierLookback : selectSize
+  const lookbackSelectSize = isSupplierVariant ? selectSizeSupplierLookback : selectSize
   const selectRound = isSupplierVariant ? 'rounded-md' : 'rounded-lg'
   const selectFocusRing = isSupplierVariant
     ? 'focus:ring-1 focus:ring-cyan-500/30'
@@ -157,10 +161,13 @@ export default function ScanEmailButton({
   const selectOptionSurface = isSupplierVariant ? 'bg-slate-700 text-slate-100' : 'bg-slate-700 text-slate-100'
   const selectChevronCls = isSupplierVariant ? 'text-slate-300' : 'text-slate-200'
   const selectChevronAbs = isSupplierVariant
-    ? 'right-1.5 h-2.5 w-2.5 md:right-2 md:h-3 md:w-3'
+    ? 'right-1 h-2 w-2 md:right-1.5 md:h-2.5 md:w-2.5 xl:right-2 xl:h-3 xl:w-3'
     : 'right-2 h-3 w-3'
+  const supplierNarrowChevronAbs =
+    'right-0.5 h-1.5 w-1.5 md:right-1 md:h-2 md:w-2 xl:right-1.5 xl:h-2.5 xl:w-2.5'
+  const narrowRowChevronAbs = isSupplierVariant ? supplierNarrowChevronAbs : selectChevronAbs
   const btnPrimaryCls = isSupplierVariant
-    ? `${btnSize} rounded-lg border border-cyan-500/40 bg-cyan-500/15 font-bold text-[11px] text-cyan-100 transition-colors hover:bg-cyan-500/25 active:bg-cyan-500/30 whitespace-nowrap touch-manipulation md:text-xs`
+    ? `${btnSize} rounded-md border border-cyan-500/40 bg-cyan-500/15 text-[10px] font-bold text-cyan-100 transition-colors hover:bg-cyan-500/25 active:bg-cyan-500/30 whitespace-nowrap touch-manipulation md:text-[11px]`
     : `${btnSize} rounded-lg bg-cyan-500 font-semibold text-xs text-white transition-colors hover:bg-cyan-600 active:bg-cyan-700 whitespace-nowrap touch-manipulation`
   const controlsDisabled = loading || emailSync?.progress.active || !!disabledProp
 
@@ -173,17 +180,17 @@ export default function ScanEmailButton({
   return (
     <div
       title={disabledProp && disabledReasonTitle ? disabledReasonTitle : undefined}
-      className={`flex flex-col ${isSupplierVariant ? 'gap-1' : 'gap-1.5'} ${alwaysShowLabel ? 'min-w-0 shrink-0' : 'items-end'} ${isSupplierVariant ? 'w-full min-w-0 md:w-auto' : ''}`}
+      className={`flex flex-col ${isSupplierVariant ? 'gap-1' : 'gap-1.5'} ${alwaysShowLabel ? 'min-w-0' : 'items-end'} ${alwaysShowLabel && !isSupplierVariant ? 'shrink-0' : ''} ${isSupplierVariant ? 'w-full min-w-0 md:w-auto xl:min-w-0 xl:flex-1 xl:max-w-none' : ''}`}
     >
       <div
         className={
           isSupplierVariant
-            ? 'flex w-full flex-col gap-1 md:w-auto md:flex-row md:flex-nowrap md:items-center md:gap-1.5'
+            ? 'flex w-full flex-col gap-1 md:w-auto md:flex-row md:flex-wrap md:items-center md:gap-x-2 md:gap-y-1.5 xl:h-9 xl:w-full xl:flex-nowrap xl:items-center xl:justify-end'
             : `flex flex-wrap items-center gap-1.5 ${alwaysShowLabel ? '' : 'justify-end'}`
         }
       >
       <div
-        className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[10.5rem]' : 'max-w-[min(100%,12.5rem)]'}`}
+        className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[8.75rem]' : 'max-w-[min(100%,12.5rem)]'}`}
       >
         <select
           value={selectValue}
@@ -214,7 +221,7 @@ export default function ScanEmailButton({
             writeEmailSyncScopePrefs(n)
             setScopePrefs(n)
           }}
-          className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${selectSizeEffective} backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+          className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${fiscalSelectSize} backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
         >
           <option className={selectOptionSurface} value="lb">
             {t.dashboard.emailSyncScopeLookback}
@@ -226,7 +233,7 @@ export default function ScanEmailButton({
           ))}
         </select>
         <svg
-          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${selectChevronAbs} ${selectChevronCls}`}
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${narrowRowChevronAbs} ${selectChevronCls}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -237,7 +244,7 @@ export default function ScanEmailButton({
       </div>
       {scopePrefs.mode === 'lookback' ? (
         <div
-          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[8.25rem]' : 'max-w-[min(100%,11rem)]'}`}
+          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[7rem]' : 'max-w-[min(100%,11rem)]'}`}
         >
           <select
             value={lookbackSelectValue}
@@ -261,7 +268,7 @@ export default function ScanEmailButton({
               writeEmailSyncScopePrefs(n)
               setScopePrefs(n)
             }}
-            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${selectSizeEffective} backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${lookbackSelectSize} backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
           >
             <option className={selectOptionSurface} value="def">
               {t.dashboard.emailSyncLookbackSedeDefault}
@@ -273,7 +280,7 @@ export default function ScanEmailButton({
             ))}
           </select>
           <svg
-            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${selectChevronAbs} ${selectChevronCls}`}
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${narrowRowChevronAbs} ${selectChevronCls}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -344,7 +351,7 @@ export default function ScanEmailButton({
         {loading ? (
           <>
             <svg
-              className={`shrink-0 animate-spin ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5' : 'h-4 w-4'}`}
+              className={`shrink-0 animate-spin ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5 xl:h-4 xl:w-4' : 'h-4 w-4'}`}
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -356,7 +363,7 @@ export default function ScanEmailButton({
         ) : (
           <>
             <svg
-              className={`shrink-0 ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5' : 'h-4 w-4'}`}
+              className={`shrink-0 ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5 xl:h-4 xl:w-4' : 'h-4 w-4'}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

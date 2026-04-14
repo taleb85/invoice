@@ -1,9 +1,45 @@
 @import "tailwindcss";
 
+/*
+  Larghezze di riferimento UI:
+  - smartphone: 320px–480px
+  - tablet: 768px–1024px
+  - desktop Full HD: fino a 1920px (cap contenuto app)
+*/
+:root {
+  --app-layout-max-width: 1920px;
+  --app-design-phone-min: 320px;
+  --app-design-phone-max: 480px;
+  --app-design-tablet-min: 768px;
+  --app-design-tablet-max: 1024px;
+}
+
+/* `sm:` = sopra la fascia smartphone larga (480px); md/lg allineati a tablet. */
+@theme {
+  --breakpoint-sm: 480px;
+}
+
 @layer base {
+  /* Larghezza minima supportata (smartphone stretti). */
+  html {
+    min-width: var(--app-design-phone-min);
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   /* Puntatore di sistema sui pulsanti. */
   button:not(:disabled) {
     cursor: pointer;
+  }
+}
+
+/* Smartphone stretti: testo leggermente più arioso senza toccare i breakpoint Tailwind. */
+@media (max-width: 480px) {
+  body {
+    line-height: 1.55;
   }
 }
 
@@ -12,6 +48,7 @@
   Usiamo media query pura così non dipende dal momento in cui Tailwind applica `hidden md:block`
   (evita un frame con griglia KPI sopra i CTA Scanner / Ricevuto).
  */
+/* Sotto tablet (768px): allineato a --app-design-tablet-min */
 @media (max-width: 767px) {
   .operator-dash-hide-mobile {
     display: none !important;
@@ -97,6 +134,26 @@
   .supplier-desktop-kpi-card {
     @apply relative overflow-hidden rounded-2xl border border-slate-600/55 bg-slate-700/95 backdrop-blur-xl;
     -webkit-backdrop-filter: blur(24px);
+  }
+
+  /**
+   * Solo orizzontale: stesso allineamento tra header interni (es. scheda fornitore) e corpo pagina.
+   */
+  .app-shell-page-padding-x {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10;
+  }
+
+  /** Scheda fornitore desktop: meno margine laterale → più larghezza utile per KPI / tabella / tab. */
+  .fornitore-desktop-main-x {
+    @apply px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6;
+  }
+
+  /**
+   * Padding orizzontale/verticale per le pagine sotto `AppShell`: ottimizzato 320→480 (p-3, sm:p-4),
+   * tablet (md:p-6), desktop e Full HD (lg/xl).
+   */
+  .app-shell-page-padding {
+    @apply px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 xl:px-10 xl:py-10;
   }
 
   .app-card {

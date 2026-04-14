@@ -18,7 +18,7 @@ import {
  * Padding basso: 2rem (≈ pb-8) + safe-area per ergonomia sopra la gesture bar.
  */
 const navShell =
-  'app-glass-dock fixed z-[100] bottom-0 left-0 right-0 mx-2 flex max-w-[100%] items-stretch rounded-t-2xl border border-white/15 border-b-0 bg-slate-700/70 shadow-2xl shadow-black/45 backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-3 sm:mx-4 md:hidden'
+  'app-glass-dock fixed bottom-0 left-1/2 z-[100] flex w-[min(100vw-1rem,var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch rounded-t-2xl border border-white/15 border-b-0 bg-slate-700/70 shadow-2xl shadow-black/45 backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-3 ps-[max(0.25rem,env(safe-area-inset-left,0px))] pe-[max(0.25rem,env(safe-area-inset-right,0px))] md:hidden'
 
 const navClsFornitore = `${navShell} flex-col gap-2 px-2 sm:gap-3 sm:px-4`
 const navClsHub = `${navShell} flex-col gap-2 px-2 sm:px-2`

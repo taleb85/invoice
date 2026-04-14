@@ -45,7 +45,7 @@ export default async function FornitoriPage() {
   const [{ fornitori, sedeNome, sedeScope }, t] = await Promise.all([getFornitori(), getT()])
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="app-shell-page-padding">
       <AppPageHeaderStrip accent="sky">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title min-w-0 text-2xl font-bold">{t.fornitori.title}</h1>

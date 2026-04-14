@@ -428,7 +428,7 @@ function SupplierDesktopKpiGrid({
   const kpis = buildSupplierKpiItems(displayStats, t)
   return (
     <div
-      className="mb-6 hidden gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7"
+      className="mb-6 hidden w-full max-w-none gap-3 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-3 xl:grid-cols-7 xl:gap-2.5"
       aria-busy={loading}
       aria-live="polite"
     >
@@ -736,7 +736,7 @@ function SupplierDesktopMonthlyDocSummary({
       aria-busy={loading}
       aria-live="polite"
     >
-      <div className={`app-card-bar ${tabHi.bar}`} aria-hidden />
+      <div className="app-card-bar" aria-hidden />
       <div className="border-b border-slate-700/60 bg-slate-800/30 px-5 py-3">
         <div className="flex items-start gap-2">
           <svg
@@ -2977,7 +2977,7 @@ function FornitoreDetailClient({
     `${filterYear}-${String(filterMonth).padStart(2, '0')}-15`,
     locale,
     timezone,
-    { month: 'long', year: 'numeric' }
+    { month: 'short', year: 'numeric' }
   )
   const isCurrentMonth = filterYear === now.getFullYear() && filterMonth === now.getMonth() + 1
 
@@ -3103,29 +3103,45 @@ function FornitoreDetailClient({
 
       {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
       <div className="hidden md:block">
+        {/* Barra grigia full-bleed nel main; contenuto allineato al corpo (83rem + fornitore-desktop-main-x). */}
+        <div className="w-full bg-slate-700 pt-2 pb-1">
+        <div className="fornitore-desktop-main-x mx-auto w-full max-w-[83rem]">
+          {/*
+            Sotto xl: identità, poi mese+sync, poi CTA documenti.
+            Da xl in su: identità | mese+sync (verso destra) | CTA.
+          */}
+          <div className="flex flex-col gap-2 border-b border-white/10 pb-2 xl:flex-row xl:items-center xl:gap-3 xl:min-h-9">
+            <div className="flex min-w-0 items-start gap-2.5 xl:min-w-0 xl:max-w-[min(100%,40rem)] xl:shrink-0 xl:items-center">
+              <FornitoreAvatar
+                nome={fornitore.nome}
+                logoUrl={fornitore.logo_url}
+                sizeClass="h-9 w-9"
+                className="mt-0.5 shrink-0 xl:mt-0"
+              />
 
-        {/* ── Horizontal header bar ── */}
-        <div className="bg-slate-700 px-6 pt-2 pb-0">
-          {/* Identity + period + actions — one row */}
-          <div className="flex min-h-0 items-center gap-3 border-b border-white/10 pb-2">
-            <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} />
-
-            {/* Name / email */}
-            <div className="min-w-0 flex-1">
-              <h1 className="app-page-title text-sm font-bold truncate leading-tight">{fornitore.nome}</h1>
-              {fornitore.email && <p className="text-[11px] text-slate-200 truncate mt-0.5">{fornitore.email}</p>}
+              <div className="min-w-0 flex-1 pr-1">
+                <h1 className="app-page-title text-[13px] font-bold leading-tight text-slate-100 break-words [overflow-wrap:anywhere] xl:text-sm xl:leading-snug">
+                  {fornitore.nome}
+                </h1>
+                {fornitore.email && (
+                  <p className="mt-0.5 break-words text-[11px] leading-snug text-slate-200 [overflow-wrap:anywhere]">
+                    {fornitore.email}
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* Month/year navigator: «« / « = anno / mese; » / »» con limite al mese corrente */}
-            <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-white/10 bg-white/5 px-0.5 py-0.5">
+            <div className="flex min-w-0 w-full flex-wrap items-center gap-x-2 gap-y-2 xl:h-9 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:items-center xl:justify-end xl:gap-x-3">
+            {/* Month/year navigator: sotto xl h-6; da xl h-9 come colonna identità / sync */}
+            <div className="flex h-6 w-max shrink-0 items-center gap-0.5 rounded-md border border-white/10 bg-white/5 px-0.5 xl:h-9 xl:px-1">
               <button
                 type="button"
                 onClick={() => shiftYear(-1)}
                 title={t.appStrings.monthNavPrevYearTitle}
                 aria-label={t.appStrings.monthNavPrevYearTitle}
-                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:h-7 xl:w-7"
               >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
                 </svg>
               </button>
@@ -3134,13 +3150,13 @@ function FornitoreDetailClient({
                 onClick={() => shiftMonth(-1)}
                 title={t.appStrings.monthNavPrevMonthTitle}
                 aria-label={t.appStrings.monthNavPrevMonthTitle}
-                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white xl:h-7 xl:w-7"
               >
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <span className="min-w-[5.75rem] text-center text-[11px] font-semibold tabular-nums text-white sm:min-w-[6.5rem]">
+              <span className="min-w-0 whitespace-nowrap px-0.5 text-center text-[11px] font-semibold tabular-nums leading-6 text-white xl:leading-9">
                 {monthYearLabel}
               </span>
               <button
@@ -3149,9 +3165,9 @@ function FornitoreDetailClient({
                 disabled={isCurrentMonth}
                 title={t.appStrings.monthNavNextMonthTitle}
                 aria-label={t.appStrings.monthNavNextMonthTitle}
-                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 xl:h-7 xl:w-7"
               >
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -3161,9 +3177,9 @@ function FornitoreDetailClient({
                 disabled={!canShiftYearForward}
                 title={t.appStrings.monthNavNextYearTitle}
                 aria-label={t.appStrings.monthNavNextYearTitle}
-                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30 xl:h-7 xl:w-7"
               >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
                 </svg>
               </button>
@@ -3176,20 +3192,18 @@ function FornitoreDetailClient({
                   }}
                   title={t.appStrings.monthNavResetTitle}
                   aria-label={t.appStrings.monthNavResetTitle}
-                  className="flex h-6 w-6 items-center justify-center rounded text-cyan-400 transition-colors hover:bg-white/10 hover:text-cyan-300"
+                  className="flex h-5 w-5 items-center justify-center rounded-sm text-cyan-400 transition-colors hover:bg-white/10 hover:text-cyan-300 xl:h-7 xl:w-7"
                 >
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg className="h-3 w-3 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
                   </svg>
                 </button>
               )}
             </div>
 
-            {/* Divider */}
-            <div className="w-px h-6 bg-white/10 shrink-0" />
+            <div className="hidden h-6 w-px shrink-0 bg-white/10 xl:block xl:h-9" aria-hidden />
 
-            {/* Action buttons */}
-            <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:thin]">
+            <div className="min-w-0 w-full xl:min-w-[12rem] xl:flex-1 xl:max-w-none">
               <ScanEmailButton
                 variant="supplier"
                 alwaysShowLabel
@@ -3198,55 +3212,79 @@ function FornitoreDetailClient({
                 disabled={!fornitore.sede_id}
                 disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
               />
+            </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-1 max-xl:w-full max-xl:justify-end xl:ml-auto xl:h-9 xl:items-center">
               <Link
                 href={`/bolle/new?fornitore_id=${fornitore.id}`}
-                className="app-glow-cyan flex shrink-0 items-center gap-1.5 rounded-lg bg-cyan-500 px-2.5 py-1.5 text-[11px] font-bold text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600"
+                className="app-glow-cyan inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-cyan-500 px-2 text-[11px] font-bold leading-none text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 xl:h-9 xl:gap-1.5 xl:px-2.5"
               >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
                 {t.nav.nuovaBolla}
               </Link>
               <Link
                 href={`/fatture/new?fornitore_id=${fornitore.id}`}
-                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-500/45 bg-slate-700/50 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-100 shadow-[0_0_20px_-8px_rgba(34,211,238,0.25)] transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/10 hover:text-white"
+                className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md border border-cyan-500/45 bg-slate-700/50 px-2 text-[11px] font-semibold leading-none text-cyan-100 shadow-[0_0_20px_-8px_rgba(34,211,238,0.25)] transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/10 hover:text-white xl:h-9 xl:gap-1.5 xl:px-2.5"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
                 {t.fatture.new}
               </Link>
-              <Link href={`/fornitori/${fornitore.id}/edit`} title={t.fornitori.editTitle}
-                className="shrink-0 rounded-lg border border-white/10 p-1.5 text-slate-100 transition-colors hover:bg-white/10 hover:text-white">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+              <Link
+                href={`/fornitori/${fornitore.id}/edit`}
+                title={t.fornitori.editTitle}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-white/10 text-slate-100 transition-colors hover:bg-white/10 hover:text-white xl:h-9 xl:w-9"
+              >
+                <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
               </Link>
             </div>
           </div>
 
-          {/* Tab bar */}
-          <div className="flex gap-0.5">
-            {tabs.map(tb => (
-              <button key={tb.id} onClick={() => setTab(tb.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all border-b-2 -mb-px ${
-                  tab === tb.id
-                    ? 'border-cyan-400 text-white shadow-[0_6px_24px_-8px_rgba(34,211,238,0.35)]'
-                    : 'border-transparent text-slate-200 hover:text-white'
-                }`}
-              >
-                {tb.label}
-                {tb.badge !== undefined && tb.badge > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+          {/* Tab bar: altezza tab = h-6 come navigatore mese / CTA */}
+          <div className="flex w-full min-w-0 items-center border-t border-white/10 bg-black/[0.06] py-1">
+            <div className="flex min-h-6 min-w-0 flex-1 items-center gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:thin]">
+              {tabs.map((tb) => (
+                <button
+                  key={tb.id}
+                  type="button"
+                  onClick={() => setTab(tb.id)}
+                  className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[11px] font-semibold leading-none transition-colors border-b-2 -mb-px ${
                     tab === tb.id
-                      ? tb.id === 'documenti' ? 'bg-amber-400/20 text-amber-300' : 'bg-cyan-400/20 text-cyan-300'
-                      : 'bg-white/10 text-slate-200'
-                  }`}>
-                    {tb.badge}
-                  </span>
-                )}
-              </button>
-            ))}
+                      ? 'border-b-cyan-400 bg-white/[0.06] text-white shadow-[0_6px_24px_-8px_rgba(34,211,238,0.35)]'
+                      : 'border-b-transparent text-slate-200 hover:bg-white/[0.04] hover:text-white'
+                  }`}
+                >
+                  {tb.label}
+                  {tb.badge !== undefined && tb.badge > 0 && (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        tab === tb.id
+                          ? tb.id === 'documenti'
+                            ? 'bg-amber-400/20 text-amber-300'
+                            : 'bg-cyan-400/20 text-cyan-300'
+                          : 'bg-white/10 text-slate-200'
+                      }`}
+                    >
+                      {tb.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
         </div>
 
         {/* Tab content — KPI desktop sempre visibili (stesso periodo del navigatore mese) */}
+        <div className="fornitore-desktop-main-x mx-auto w-full max-w-[83rem]">
         <div className="min-h-[calc(100vh-8rem)]">
-          <div className="mx-auto w-full max-w-screen-2xl px-5 py-5 md:px-8">
+          <div className="w-full min-w-0 py-3 sm:py-4 md:py-6 lg:py-8 xl:py-10">
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
             <SupplierDesktopMonthlyDocSummary
               fornitoreId={fornitore.id}
@@ -3275,6 +3313,7 @@ function FornitoreDetailClient({
               <TabContent />
             </div>
           </div>
+        </div>
         </div>
       </div>
     </>

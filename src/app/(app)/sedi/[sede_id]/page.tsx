@@ -71,7 +71,7 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
   const imapConfigured = !!(sede.imap_host && sede.imap_user)
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-8">
+    <div className="w-full min-w-0 app-shell-page-padding">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
         <Link

@@ -1050,7 +1050,7 @@ export default function PreviewLayoutsPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-gray-200">
       {/* Top bar */}
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-2">
+        <div className="mx-auto flex max-w-[var(--app-layout-max-width)] flex-col gap-2 px-4 py-3">
           <div className="flex items-center gap-3">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Layout Previews</p>
             {/* Mode toggle */}
@@ -1075,7 +1075,7 @@ export default function PreviewLayoutsPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-[var(--app-layout-max-width)] px-4 py-8">
         {mode === 'mobile' ? (
           <div className="grid md:grid-cols-[1fr_375px] gap-10 items-start">
             {/* Description */}

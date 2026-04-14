@@ -68,7 +68,7 @@ export default async function FattureRiepilogoPage() {
   const riepilogoTheme = SUMMARY_HIGHLIGHT_ACCENTS.violet
 
   return (
-    <div className="w-full min-w-0 p-4 md:p-8">
+    <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip accent="violet">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.fattureRiepilogoTitle}</h1>

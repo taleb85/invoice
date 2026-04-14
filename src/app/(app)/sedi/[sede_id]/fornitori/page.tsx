@@ -269,7 +269,7 @@ export default function SedeFornitoriPage() {
         />
       )}
 
-      <div className="p-4 md:p-8 max-w-5xl">
+      <div className="app-shell-page-padding max-w-5xl">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-6">
           <Link href="/sedi" className="hover:text-gray-600 transition-colors">Sedi</Link>

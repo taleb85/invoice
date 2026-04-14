@@ -265,7 +265,7 @@ export function StatementsContent({
   const active: Tab = section ?? tab
 
   const wrapperClass =
-    fornitoreId ? '' : section !== undefined ? 'w-full min-w-0' : 'w-full min-w-0 p-4 md:p-8'
+    fornitoreId ? '' : section !== undefined ? 'w-full min-w-0' : 'w-full min-w-0 app-shell-page-padding'
 
   return (
     <div className={wrapperClass}>

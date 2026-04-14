@@ -13,7 +13,7 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
-    <div className="max-w-2xl p-4 md:p-8">
+    <div className="max-w-2xl app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <Link
