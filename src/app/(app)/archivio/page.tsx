@@ -1,6 +1,6 @@
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import Link from 'next/link'
-import { openDocumentUrl } from '@/lib/open-document-url'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import ExportZipButton from './ExportZipButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -184,14 +184,13 @@ export default async function ArchivioPage() {
                         </div>
                         <div className="ml-2 flex shrink-0 items-center gap-2">
                           {b.file_url && (
-                            <a
-                              href={openDocumentUrl({ bollaId: b.id })}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <OpenDocumentInAppButton
+                              bollaId={b.id}
+                              fileUrl={b.file_url}
                               className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
                             >
                               {t.archivio.documento}
-                            </a>
+                            </OpenDocumentInAppButton>
                           )}
                           {b.stato === 'in attesa' && (
                             <Link
@@ -241,14 +240,13 @@ export default async function ArchivioPage() {
                           )}
                         </div>
                         {fa.file_url && (
-                          <a
-                            href={openDocumentUrl({ fatturaId: fa.id })}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <OpenDocumentInAppButton
+                            fatturaId={fa.id}
+                            fileUrl={fa.file_url}
                             className="ml-2 shrink-0 text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
                           >
                             {t.archivio.documento}
-                          </a>
+                          </OpenDocumentInAppButton>
                         )}
                       </div>
                     ))}
@@ -270,14 +268,13 @@ export default async function ArchivioPage() {
                         </div>
                         <div className="ml-2 flex shrink-0 items-center gap-2">
                           {doc.file_url && (
-                            <a
-                              href={openDocumentUrl({ documentoId: doc.id })}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <OpenDocumentInAppButton
+                              documentoId={doc.id}
+                              fileUrl={doc.file_url}
                               className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
                             >
                               {t.archivio.documento}
-                            </a>
+                            </OpenDocumentInAppButton>
                           )}
                           <Link
                             href="/statements"

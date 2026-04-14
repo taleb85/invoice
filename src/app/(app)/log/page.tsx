@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
-import { openDocumentUrl } from '@/lib/open-document-url'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import RetryButton from '@/components/RetryButton'
 import DeleteButton from '@/components/DeleteButton'
@@ -214,14 +214,13 @@ export default async function LogPage() {
                     )}
                     <div className="flex flex-wrap items-center gap-2 pt-0.5">
                       {log.file_url && (
-                        <a
-                          href={openDocumentUrl({ logId: log.id })}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <OpenDocumentInAppButton
+                          logId={log.id}
+                          fileUrl={log.file_url}
                           className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
                         >
                           {t.log.vediFile}
-                        </a>
+                        </OpenDocumentInAppButton>
                       )}
                       {isMasterAdmin && log.stato === 'fornitore_non_trovato' && log.file_url && (
                         <LogSupplierAiSuggest
@@ -295,14 +294,13 @@ export default async function LogPage() {
                               {log.errore_dettaglio}
                             </span>
                           ) : log.file_url ? (
-                            <a
-                              href={openDocumentUrl({ logId: log.id })}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-cyan-400 hover:text-cyan-300 hover:underline"
+                            <OpenDocumentInAppButton
+                              logId={log.id}
+                              fileUrl={log.file_url}
+                              className="border-0 bg-transparent p-0 text-left font-inherit text-cyan-400 hover:text-cyan-300 hover:underline"
                             >
                               {t.log.vediFile}
-                            </a>
+                            </OpenDocumentInAppButton>
                           ) : (
                             <span className="italic text-slate-600">—</span>
                           )}

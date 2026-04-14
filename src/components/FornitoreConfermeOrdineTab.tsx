@@ -71,7 +71,6 @@ export default function FornitoreConfermeOrdineTab({
 
   const pdfOpenMenuLabels = {
     preview: t.dashboard.ordiniPdfPreview,
-    openNewTab: t.dashboard.ordiniPdfOpenNewTab,
     copyLink: t.dashboard.ordiniPdfCopyLink,
     linkCopied: t.dashboard.ordiniPdfLinkCopied,
   }

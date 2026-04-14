@@ -10,33 +10,88 @@ import { CYAN_TABLE_PILL_LINK_CLASSNAME } from '@/components/CyanTablePillLink'
 type Props = {
   bollaId?: string
   fatturaId?: string
+  logId?: string
+  documentoId?: string
+  statementId?: string
   fileUrl: string | null | undefined
   children: React.ReactNode
   /** Default: pill cyan da tabella bolle/fatture. */
   className?: string
+  /** Es. righe tabella con `onClick` di navigazione. */
+  stopTriggerPropagation?: boolean
+  title?: string
+}
+
+function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId'>): {
+  jsonHref: string
+  tabHref: string
+} | null {
+  const b = p.bollaId?.trim()
+  const f = p.fatturaId?.trim()
+  const l = p.logId?.trim()
+  const d = p.documentoId?.trim()
+  const s = p.statementId?.trim()
+  const count = [b, f, l, d, s].filter(Boolean).length
+  if (count !== 1) return null
+  if (b) {
+    return {
+      jsonHref: openDocumentUrl({ bollaId: b, json: true }),
+      tabHref: openDocumentUrl({ bollaId: b }),
+    }
+  }
+  if (f) {
+    return {
+      jsonHref: openDocumentUrl({ fatturaId: f, json: true }),
+      tabHref: openDocumentUrl({ fatturaId: f }),
+    }
+  }
+  if (l) {
+    return {
+      jsonHref: openDocumentUrl({ logId: l, json: true }),
+      tabHref: openDocumentUrl({ logId: l }),
+    }
+  }
+  if (d) {
+    return {
+      jsonHref: openDocumentUrl({ documentoId: d, json: true }),
+      tabHref: openDocumentUrl({ documentoId: d }),
+    }
+  }
+  if (s) {
+    return {
+      jsonHref: openDocumentUrl({ statementId: s, json: true }),
+      tabHref: openDocumentUrl({ statementId: s }),
+    }
+  }
+  return null
 }
 
 /**
  * Apre PDF/immagine in un overlay in-app (URL firmato via `/api/open-document?json=1`).
  * Per tipi non PDF/immagine usa iframe come fallback (come nel layer fornitore).
  */
-export function OpenDocumentInAppButton({ bollaId, fatturaId, fileUrl, children, className }: Props) {
+export function OpenDocumentInAppButton({
+  bollaId,
+  fatturaId,
+  logId,
+  documentoId,
+  statementId,
+  fileUrl,
+  children,
+  className,
+  stopTriggerPropagation,
+  title,
+}: Props) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const hasBolla = Boolean(bollaId?.trim())
-  const hasFattura = Boolean(fatturaId?.trim())
-  if (!hasBolla && !hasFattura) return null
-  if (hasBolla && hasFattura) return null
+  const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId })
+  if (!hrefs) return null
   if (!fileUrl?.trim()) return null
 
-  const docId = (bollaId ?? fatturaId)!.trim()
-  const jsonHref = hasBolla
-    ? openDocumentUrl({ bollaId: docId, json: true })
-    : openDocumentUrl({ fatturaId: docId, json: true })
-  const tabHref = hasBolla ? openDocumentUrl({ bollaId: docId }) : openDocumentUrl({ fatturaId: docId })
+  const { jsonHref, tabHref } = hrefs
   const kind = attachmentKindFromFileUrl(fileUrl)
   const triggerClass = className ?? CYAN_TABLE_PILL_LINK_CLASSNAME
 
@@ -79,7 +134,15 @@ export function OpenDocumentInAppButton({ bollaId, fatturaId, fileUrl, children,
 
   return (
     <>
-      <button type="button" className={triggerClass} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        title={title}
+        className={triggerClass}
+        onClick={(e) => {
+          if (stopTriggerPropagation) e.stopPropagation()
+          setOpen(true)
+        }}
+      >
         {children}
       </button>
       {open ? (
@@ -128,17 +191,11 @@ export function OpenDocumentInAppButton({ bollaId, fatturaId, fileUrl, children,
                 />
               ) : null}
               {!loading && !signedUrl ? (
-                <div className="flex h-full flex-col items-center justify-center gap-3 px-4">
-                  <p className="text-sm text-slate-400">{t.common.error}</p>
-                  <a
-                    href={tabHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
-                  >
-                    {t.common.openAttachment}
-                  </a>
-                </div>
+                <iframe
+                  title={t.common.attachment}
+                  src={tabHref}
+                  className="h-full w-full min-h-[50vh] border-0 bg-slate-950"
+                />
               ) : null}
             </div>
           </div>

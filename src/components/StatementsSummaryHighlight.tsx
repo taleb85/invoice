@@ -113,7 +113,7 @@ export default function StatementsSummaryHighlight({
           {t.statements.tabVerifica}
         </button>
       </>
-    ) : undefined
+    ) : null
 
   const summaryAccent = isVerifica ? 'cyan' : 'amber'
 
@@ -123,7 +123,8 @@ export default function StatementsSummaryHighlight({
       label={t.common.total}
       primary={primary}
       secondary={secondary}
-      trailing={trailingTabs}
+      trailing={trailingTabs ?? undefined}
+      trailingAlign={trailingTabs ? 'with-label' : 'with-metrics'}
     />
   )
 }

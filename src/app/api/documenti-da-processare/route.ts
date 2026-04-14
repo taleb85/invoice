@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { recordManualSupplierAssociation } from '@/lib/mittente-fornitore-assoc'
+import { mergeFornitoreMissingFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
+import { recordLearnedKindFromDocMetadata } from '@/lib/fornitore-doc-type-hints'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 type DocRowFinalizza = {
@@ -10,6 +12,7 @@ type DocRowFinalizza = {
   file_url: string
   file_name?: string | null
   oggetto_mail?: string | null
+  mittente?: string | null
   is_statement: boolean
   metadata: unknown
 }
@@ -94,6 +97,12 @@ async function finalizePendingByTipo(
         ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
       })
       .eq('id', id)
+    await mergeFornitoreMissingFromDocMetadata(supabase, doc.fornitore_id, doc.metadata, doc.mittente)
+    await recordLearnedKindFromDocMetadata(supabase, {
+      fornitoreId: doc.fornitore_id,
+      metadata: doc.metadata,
+      pendingKind: 'fattura',
+    })
     return NextResponse.json({ ok: true, fattura_id: fattura.id })
   }
 
@@ -127,6 +136,11 @@ async function finalizePendingByTipo(
         ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
       })
       .eq('id', id)
+    await recordLearnedKindFromDocMetadata(supabase, {
+      fornitoreId: doc.fornitore_id,
+      metadata: doc.metadata,
+      pendingKind: 'ordine',
+    })
     return NextResponse.json({ ok: true })
   }
 
@@ -157,6 +171,12 @@ async function finalizePendingByTipo(
         ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
       })
       .eq('id', id)
+    await mergeFornitoreMissingFromDocMetadata(supabase, doc.fornitore_id, doc.metadata, doc.mittente)
+    await recordLearnedKindFromDocMetadata(supabase, {
+      fornitoreId: doc.fornitore_id,
+      metadata: doc.metadata,
+      pendingKind: 'bolla',
+    })
     return NextResponse.json({ ok: true, bolla_id: bolla.id })
   }
 
@@ -167,6 +187,11 @@ async function finalizePendingByTipo(
       ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
     })
     .eq('id', id)
+  await recordLearnedKindFromDocMetadata(supabase, {
+    fornitoreId: doc.fornitore_id,
+    metadata: doc.metadata,
+    pendingKind: 'statement',
+  })
   return NextResponse.json({ ok: true })
 }
 
@@ -476,6 +501,14 @@ export async function POST(req: NextRequest) {
       ...(doc.fornitore_id == null && { fornitore_id: primaBolla.fornitore_id }),
       ...(doc.sede_id == null && sedeDefinitiva && { sede_id: sedeDefinitiva }),
     }).eq('id', id)
+
+    const fornitoreMergeId = doc.fornitore_id ?? primaBolla.fornitore_id
+    await mergeFornitoreMissingFromDocMetadata(supabase, fornitoreMergeId, doc.metadata, doc.mittente)
+    await recordLearnedKindFromDocMetadata(supabase, {
+      fornitoreId: fornitoreMergeId,
+      metadata: doc.metadata,
+      pendingKind: 'fattura',
+    })
 
     return NextResponse.json({ ok: true, fattura_id: fattura.id, bolleCount: bollaIds.length })
   }

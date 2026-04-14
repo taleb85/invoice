@@ -29,6 +29,7 @@ import {
   scanContextSuggestsBolla,
   scanContextSuggestsFattura,
 } from '@/lib/document-bozza-routing'
+import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
 
 /**
@@ -1174,6 +1175,11 @@ async function processEmails(
 
       const noteFromEmailBody = ocr.note_corpo_mail?.trim() || null
 
+      const ocrTipoKey = ocrTipoHintKey(ocr.tipo_documento)
+      const learnedPendingKind = fornitore.id
+        ? await fetchFornitorePendingKindHint(supabase, fornitore.id, ocrTipoKey)
+        : null
+
       // ── AUTO-CREAZIONE BOZZA ───────────────────────────────────────────────
       // Tenta di creare automaticamente una Bolla o Fattura in stato 'bozza'
       // basandosi sui dati OCR estratti. Il documento rimane in "Documenti da
@@ -1181,7 +1187,10 @@ async function processEmails(
       let bozzaId: string | null = null
       let bozzaTipo: 'bolla' | 'fattura' | null = null
 
-      if (fornitore.id && documentSedeId) {
+      const skipAutoBozza =
+        learnedPendingKind === 'statement' || learnedPendingKind === 'ordine'
+
+      if (fornitore.id && documentSedeId && !skipAutoBozza) {
         const dataDoc = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
         const numRef = ocr.numero_fattura?.trim() || null
         const tipo = ocr.tipo_documento ?? null
@@ -1203,6 +1212,12 @@ async function processEmails(
         if (docKind === 'fattura') {
           createFatturaBozza = true
         } else if (docKind === 'bolla') {
+          createFatturaBozza = false
+        }
+
+        if (learnedPendingKind === 'fattura' && docKind !== 'bolla') {
+          createFatturaBozza = true
+        } else if (learnedPendingKind === 'bolla' && docKind !== 'fattura') {
           createFatturaBozza = false
         }
 
@@ -1261,6 +1276,7 @@ async function processEmails(
       const metadata = {
         ...buildMetadata(ocr, matchedBy),
         ...(isSyntheticBodyDoc ? { origine_testo_email: true } : {}),
+        ...(learnedPendingKind ? { pending_kind: learnedPendingKind } : {}),
         // Riferimento alla bozza creata automaticamente
         ...(bozzaId ? { bozza_id: bozzaId, bozza_tipo: bozzaTipo } : {}),
         ...(fornitore.rekki_link?.trim()
@@ -1273,6 +1289,7 @@ async function processEmails(
 
       // Detect statement emails: mark with is_statement = true
       const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
+      const isStatementDoc = isStatementEmail || learnedPendingKind === 'statement'
 
       const knownPayload = {
         fornitore_id:   fornitore.id,
@@ -1284,7 +1301,7 @@ async function processEmails(
         content_type:   storedContentType,
         data_documento: safeDate(ocr.data_fattura),
         stato:          isStatementEmail ? 'associato' : (bozzaId ? 'bozza_creata' : 'da_associare'),
-        is_statement:   isStatementEmail,
+        is_statement:   isStatementDoc,
         metadata,
         note:           noteFromEmailBody,
       }

@@ -229,7 +229,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           </div>
           {headerToastBanner ? (
             <div
-              className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center px-28 sm:px-36"
+              className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-28 sm:px-36"
               aria-live="polite"
               role="status"
             >

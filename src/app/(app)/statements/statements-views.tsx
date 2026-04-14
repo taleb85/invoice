@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { thumbnailUrl } from '@/lib/storage-transform'
 import { getLocale, formatCurrency } from '@/lib/localization'
@@ -12,6 +13,7 @@ import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
 import { parseAnyAmount } from '@/lib/ocr-amount'
 import { openDocumentUrl } from '@/lib/open-document-url'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import {
   findUniqueFornitoreForPendingDoc,
   greedyBollaIdsForTotal,
@@ -595,7 +597,18 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
               <p className="text-sm font-medium text-slate-200">{t.nav.bolle} · {formatD(bolla.data)}</p>
               {bolla.fattura ? (
                 <p className="text-xs text-emerald-400/90">{t.fatture.title} {formatD(bolla.fattura.data)}
-                  {bolla.fattura.file_url && <> · <a href={openDocumentUrl({ fatturaId: bolla.fattura.id })} target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline hover:text-cyan-300">{t.fatture.apri}</a></>}
+                  {bolla.fattura.file_url && (
+                    <>
+                      {' · '}
+                      <OpenDocumentInAppButton
+                        fatturaId={bolla.fattura.id}
+                        fileUrl={bolla.fattura.file_url}
+                        className="inline border-0 bg-transparent p-0 font-inherit text-xs text-cyan-400 underline hover:text-cyan-300"
+                      >
+                        {t.fatture.apri}
+                      </OpenDocumentInAppButton>
+                    </>
+                  )}
                 </p>
               ) : (
                 <p className="text-xs text-red-400">Fattura mancante</p>
@@ -687,6 +700,8 @@ export function PendingMatchesTab({
   cardAccent?: SummaryHighlightAccent
 }) {
   const t = useT()
+  const router = useRouter()
+  const [layoutRefreshPending, startLayoutRefresh] = useTransition()
   const { me } = useMe()
   const { showToast } = useToast()
   const [docs, setDocs]                     = useState<Documento[]>([])
@@ -708,6 +723,16 @@ export function PendingMatchesTab({
 
   const autoLinkTriedRef = useRef(new Set<string>())
   const autoAssocTriedRef = useRef(new Set<string>())
+
+  /** Svuota le cache dei tentativi automatici così, dopo il fetch, i effect ricalcolano fornitore + subset bolle. */
+  const refreshQueueAndRetryAutoMatch = useCallback(() => {
+    autoLinkTriedRef.current = new Set()
+    autoAssocTriedRef.current = new Set()
+    startLayoutRefresh(() => {
+      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+      router.refresh()
+    })
+  }, [router, startLayoutRefresh])
 
   const addressClusterPeersByDocId = useMemo(() => {
     const pendingLike = docs.filter(
@@ -814,7 +839,13 @@ export function PendingMatchesTab({
       const supabase = createClient()
       const linkedSupplierNames: string[] = []
       for (const doc of docs) {
-        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        if (
+          doc.stato !== 'in_attesa' &&
+          doc.stato !== 'da_associare' &&
+          doc.stato !== 'bozza_creata'
+        ) {
+          continue
+        }
         if (doc.fornitore_id) continue
         if (autoLinkTriedRef.current.has(doc.id)) continue
 
@@ -1123,7 +1154,35 @@ export function PendingMatchesTab({
             {t.statements.tabAll}
           </button>
         </div>
-        <p className="text-xs font-medium text-slate-300">{bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}</p>
+        <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-x-2 gap-y-1">
+          <p className="text-xs font-medium text-slate-300">
+            {bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}
+          </p>
+          <button
+            type="button"
+            onClick={refreshQueueAndRetryAutoMatch}
+            disabled={layoutRefreshPending}
+            className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-transparent bg-slate-800/70 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:border-slate-500/50 hover:bg-slate-800 hover:text-white disabled:pointer-events-none disabled:opacity-50"
+            aria-label={t.statements.btnRefresh}
+            aria-busy={layoutRefreshPending}
+          >
+            <svg
+              className={`h-4 w-4 shrink-0 ${layoutRefreshPending ? 'animate-spin text-cyan-400' : 'text-slate-400'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>{t.statements.btnRefresh}</span>
+          </button>
+        </div>
       </div>
 
       {/* Preview modal */}
@@ -1241,7 +1300,7 @@ export function PendingMatchesTab({
                         )}
                       </div>
 
-                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1.5">
                         {/* Tipo documento: ordine / bolla / fattura / estratto (mutua esclusione, persistito su DB) */}
                         {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (() => {
                           const pk = pendingKindForDoc(doc)
@@ -1299,6 +1358,34 @@ export function PendingMatchesTab({
                             </div>
                           )
                         })()}
+                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc) !== null && (
+                          !doc.fornitore_id ? (
+                            <p className="max-w-[11rem] text-right text-[11px] leading-snug text-orange-200/95 sm:max-w-none sm:text-left">
+                              {t.statements.finalizeNeedsSupplier}
+                            </p>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={finalizingTipoId === doc.id || (actions[doc.id] ?? 'idle') === 'loading'}
+                              onClick={() => void finalizzaTipo(doc.id)}
+                              className={`min-h-[36px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
+                                pendingKindForDoc(doc) === 'ordine'
+                                  ? 'border-fuchsia-500/45 bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
+                                  : 'border-emerald-500/45 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
+                              }`}
+                            >
+                              {finalizingTipoId === doc.id
+                                ? t.statements.btnFinalizing
+                                : pendingKindForDoc(doc) === 'fattura'
+                                  ? t.statements.btnFinalizeFattura
+                                  : pendingKindForDoc(doc) === 'bolla'
+                                    ? t.statements.btnFinalizeBolla
+                                    : pendingKindForDoc(doc) === 'ordine'
+                                      ? t.statements.btnFinalizeOrdine
+                                      : t.statements.btnFinalizeStatement}
+                            </button>
+                          )
+                        )}
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                           doc.stato === 'bozza_creata'
                             ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/35'
@@ -1337,40 +1424,17 @@ export function PendingMatchesTab({
                       </div>
                     </div>
 
-                    {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc) !== null && (
-                      <div className="mb-2 mt-1 flex flex-wrap items-center gap-2">
-                        {!doc.fornitore_id ? (
-                          <p className="text-[11px] text-orange-200/95">{t.statements.finalizeNeedsSupplier}</p>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={finalizingTipoId === doc.id || (actions[doc.id] ?? 'idle') === 'loading'}
-                            onClick={() => void finalizzaTipo(doc.id)}
-                            className={`min-h-[36px] rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
-                              pendingKindForDoc(doc) === 'ordine'
-                                ? 'border-fuchsia-500/45 bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
-                                : 'border-emerald-500/45 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
-                            }`}
-                          >
-                            {finalizingTipoId === doc.id
-                              ? t.statements.btnFinalizing
-                              : pendingKindForDoc(doc) === 'fattura'
-                                ? t.statements.btnFinalizeFattura
-                                : pendingKindForDoc(doc) === 'bolla'
-                                  ? t.statements.btnFinalizeBolla
-                                  : pendingKindForDoc(doc) === 'ordine'
-                                    ? t.statements.btnFinalizeOrdine
-                                    : t.statements.btnFinalizeStatement}
-                          </button>
-                        )}
-                      </div>
-                    )}
-
                     <p className="mb-0.5 truncate text-xs text-slate-300">{doc.oggetto_mail ?? doc.mittente}</p>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
                       <span>{t.statements.labelReceived} {fmt(doc.created_at)}</span>
                       {doc.data_documento && <span className="font-medium text-cyan-300">{t.statements.labelDocDate} {fmt(doc.data_documento)}</span>}
-                      <a href={openDocumentUrl({ documentoId: doc.id })} target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:text-cyan-200 hover:underline">{t.statements.openFile}</a>
+                      <OpenDocumentInAppButton
+                        documentoId={doc.id}
+                        fileUrl={doc.file_url}
+                        className="border-0 bg-transparent p-0 text-left text-xs font-inherit text-cyan-300 hover:text-cyan-200 hover:underline"
+                      >
+                        {t.statements.openFile}
+                      </OpenDocumentInAppButton>
                       {doc.stato === 'bozza_creata' && doc.metadata?.bozza_id && (
                         <a
                           href={`/${doc.metadata.bozza_tipo === 'fattura' ? 'fatture' : 'bolle'}/${doc.metadata.bozza_id}`}
@@ -1808,6 +1872,8 @@ export function VerificationStatusTab({
   /** Scheda fornitore: allinea barra/bordo al tab (es. `cyan` per «Verifica»). */
   cardAccent?: SummaryHighlightAccent
 }) {
+  const router = useRouter()
+  const [stmtHeaderRefreshPending, startStmtHeaderRefresh] = useTransition()
   const now = new Date()
   const loc = getLocale(countryCode)
   const resolvedCurrency = currency ?? loc.currency ?? 'EUR'
@@ -2086,8 +2152,19 @@ export function VerificationStatusTab({
                 ← {t.statements.stmtBackToList}
               </button>
             )}
-            <button onClick={() => fetchStmts(false)}
-              className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline">
+            <button
+              type="button"
+              disabled={stmtHeaderRefreshPending}
+              aria-busy={stmtHeaderRefreshPending}
+              onClick={() =>
+                startStmtHeaderRefresh(() => {
+                  window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+                  router.refresh()
+                  void fetchStmts(false)
+                })
+              }
+              className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline disabled:pointer-events-none disabled:opacity-50"
+            >
               {t.statements.btnRefresh} ↺
             </button>
           </div>
@@ -2191,8 +2268,16 @@ export function VerificationStatusTab({
               <p className="text-[10px] text-slate-300">
                 {t.statements.receivedOn} {formatStmtDate(selectedStmt.received_at)}
                 {selectedStmt.file_url && (
-                  <> · <a href={openDocumentUrl({ statementId: selectedStmt.id })} target="_blank" rel="noopener noreferrer"
-                    className="text-cyan-400 transition-colors hover:text-cyan-300 hover:underline">{t.statements.openPdf}</a></>
+                  <>
+                    {' · '}
+                    <OpenDocumentInAppButton
+                      statementId={selectedStmt.id}
+                      fileUrl={selectedStmt.file_url}
+                      className="inline border-0 bg-transparent p-0 text-[10px] font-inherit text-cyan-400 transition-colors hover:text-cyan-300 hover:underline"
+                    >
+                      {t.statements.openPdf}
+                    </OpenDocumentInAppButton>
+                  </>
                 )}
               </p>
             </div>
@@ -2307,7 +2392,15 @@ export function VerificationStatusTab({
                       </p>
                       {r.fattura && (
                         <p>{t.fatture.invoice}: <span className="font-medium text-slate-200">{r.fattura.numero_fattura ?? '—'}</span>
-                          {r.fattura.file_url && <a href={openDocumentUrl({ fatturaId: r.fattura.id })} target="_blank" rel="noopener noreferrer" className="ml-1 text-cyan-400 transition-colors hover:text-cyan-300 hover:underline">PDF →</a>}
+                          {r.fattura.file_url && (
+                            <OpenDocumentInAppButton
+                              fatturaId={r.fattura.id}
+                              fileUrl={r.fattura.file_url}
+                              className="ml-1 inline border-0 bg-transparent p-0 font-inherit text-cyan-400 transition-colors hover:text-cyan-300 hover:underline"
+                            >
+                              PDF →
+                            </OpenDocumentInAppButton>
+                          )}
                         </p>
                       )}
                       {r.bolle.length > 0 && (
@@ -2664,8 +2757,13 @@ export function VerificationStatusTab({
                           <>
                             <span className="rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-200">✓ Verificata</span>
                             {bolla.fattura.file_url && (
-                              <a href={openDocumentUrl({ fatturaId: bolla.fattura.id })} target="_blank" rel="noopener noreferrer"
-                                className="text-xs text-cyan-400 transition-colors hover:text-cyan-300 hover:underline">{fmt(bolla.fattura.data)} →</a>
+                              <OpenDocumentInAppButton
+                                fatturaId={bolla.fattura.id}
+                                fileUrl={bolla.fattura.file_url}
+                                className="border-0 bg-transparent p-0 text-xs font-inherit text-cyan-400 transition-colors hover:text-cyan-300 hover:underline"
+                              >
+                                {fmt(bolla.fattura.data)} →
+                              </OpenDocumentInAppButton>
                             )}
                           </>
                         ) : (

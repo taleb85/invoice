@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { openDocumentUrl } from '@/lib/open-document-url'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getFatturaForViewer } from '@/lib/supabase-detail-for-viewer'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
@@ -78,17 +78,16 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
           <div className="p-6">
           <h2 className="mb-3 text-sm font-semibold text-slate-100">{t.common.attachment}</h2>
           {fattura.file_url ? (
-            <a
-              href={openDocumentUrl({ fatturaId: fattura.id })}
-              target="_blank"
-              rel="noopener noreferrer"
+            <OpenDocumentInAppButton
+              fatturaId={fattura.id}
+              fileUrl={fattura.file_url}
               className="flex items-center gap-2 text-sm font-medium text-cyan-400 transition-colors hover:text-cyan-300"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
               {t.common.openAttachment}
-            </a>
+            </OpenDocumentInAppButton>
           ) : (
             <p className="text-sm text-slate-500">Nessun allegato</p>
           )}

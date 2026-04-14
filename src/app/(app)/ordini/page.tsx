@@ -151,7 +151,6 @@ export default async function OrdiniOverviewPage() {
                           triggerClassName="text-xs font-semibold text-slate-200 transition-colors hover:text-cyan-300"
                           labels={{
                             preview: t.dashboard.ordiniPdfPreview,
-                            openNewTab: t.dashboard.ordiniPdfOpenNewTab,
                             copyLink: t.dashboard.ordiniPdfCopyLink,
                             linkCopied: t.dashboard.ordiniPdfLinkCopied,
                           }}

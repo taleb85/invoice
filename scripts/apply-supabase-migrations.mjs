@@ -65,6 +65,7 @@ const MIGRATIONS = [
   'supabase/migrations/add-fornitore-logo-url.sql',
   'supabase/migrations/listino-prezzi-rls-authenticated-write.sql',
   'supabase/migrations/add-conferme-ordine.sql',
+  'supabase/migrations/fornitore-ocr-tipo-pending-kind-hints.sql',
 ]
 
 function loadEnvLocal() {

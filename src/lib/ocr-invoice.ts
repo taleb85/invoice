@@ -239,7 +239,8 @@ type ParseOcrOutcome =
   | { ok: true; result: OcrResult }
   | { ok: false; result: OcrResult; reason: string; rawPreview: string }
 
-function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'altro' | null {
+/** Normalizza il tipo documento dall’OCR (stessi valori in metadata `tipo_documento`). */
+export function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'altro' | null {
   if (raw == null || raw === '') return null
   const s = String(raw).toLowerCase().replace(/\s+/g, ' ').trim()
 

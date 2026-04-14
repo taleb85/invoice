@@ -140,14 +140,15 @@ function FornitoreInlineDocPreview({
       )}
       {!loading && !signedUrl && (
         <div className={frameFallback}>
-          <a
-            href={hrefTab}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-cyan-400 hover:text-cyan-300"
-          >
-            {t.common.openAttachment}
-          </a>
+          <iframe
+            title={previewTitle}
+            src={hrefTab}
+            className={
+              fill
+                ? 'min-h-0 w-full flex-1 border-0 bg-slate-700'
+                : `${frameFixed} w-full border-0 bg-slate-700`
+            }
+          />
         </div>
       )}
     </div>

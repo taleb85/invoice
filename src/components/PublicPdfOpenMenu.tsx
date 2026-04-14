@@ -5,7 +5,6 @@ import { useT } from '@/lib/use-t'
 
 export type PublicPdfOpenMenuLabels = {
   preview: string
-  openNewTab: string
   copyLink: string
   linkCopied: string
 }
@@ -20,7 +19,7 @@ type Props = {
 }
 
 /**
- * Trigger opens a small menu: in-app PDF preview (public URL), new tab, copy link.
+ * Trigger opens a small menu: anteprima in popup e copia link (nessuna nuova scheda).
  */
 export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, labels, children }: Props) {
   const t = useT()
@@ -76,11 +75,6 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
     setPreviewOpen(true)
   }
 
-  const openTab = () => {
-    closeMenu()
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }
-
   return (
     <>
       <div ref={wrapRef} className="relative inline-block text-left">
@@ -114,14 +108,6 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
               onClick={openPreview}
             >
               {labels.preview}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-100 transition-colors hover:bg-slate-700/80"
-              onClick={openTab}
-            >
-              {labels.openNewTab}
             </button>
             <button
               type="button"

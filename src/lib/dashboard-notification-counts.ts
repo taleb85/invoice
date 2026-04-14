@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-/** Stati “in coda” su `documenti_da_processare` (come in dashboard / archivio). */
-export const PENDING_DOCUMENTI_STATI = ['in_attesa', 'da_associare'] as const
+/** Stati “in coda” su `documenti_da_processare` (allineato a Statements / KPI). */
+export const PENDING_DOCUMENTI_STATI = ['in_attesa', 'da_associare', 'bozza_creata'] as const
 
 const LOG_ERROR_STATI = ['fornitore_non_trovato', 'bolla_non_trovata'] as const
 
@@ -45,7 +45,11 @@ export async function countPendingDocumentiSessionScoped(supabase: SupabaseClien
   return count ?? 0
 }
 
-/** Conteggio per sede operativa (operatore con switch / cookie admin). */
+/**
+ * Conteggio per sede operativa (operatore con switch / cookie admin).
+ * Include `sede_id` della sede **e** `sede_id` NULL (IMAP globale / mittente sconosciuto),
+ * come RLS `documenti_processare: select` e lista `/api/documenti-da-processare`.
+ */
 export async function countPendingDocumentiForSede(
   supabase: SupabaseClient,
   sedeId: string
@@ -53,7 +57,7 @@ export async function countPendingDocumentiForSede(
   const { count } = await supabase
     .from('documenti_da_processare')
     .select('*', { count: 'exact', head: true })
-    .eq('sede_id', sedeId)
+    .or(`sede_id.eq.${sedeId},sede_id.is.null`)
     .in('stato', [...PENDING_DOCUMENTI_STATI])
   return count ?? 0
 }
