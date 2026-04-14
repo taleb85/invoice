@@ -147,7 +147,7 @@ export function OpenDocumentInAppButton({
       </button>
       {open ? (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/70 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
           onClick={() => setOpen(false)}
           role="presentation"
         >

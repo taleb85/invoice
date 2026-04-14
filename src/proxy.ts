@@ -133,7 +133,15 @@ export async function proxy(request: NextRequest) {
   }
 
   const isSedeExempt = SEDE_LOCK_EXEMPT.some((p) => pathname.startsWith(p))
-  if (!isSedeExempt && !isMasterAdmin && profile?.sede_id && pathname !== '/sede-lock') {
+  /** Gate nome+PIN in sessione: deve essere raggiungibile prima del blocco codice sede (navigazione full-page). */
+  const isBranchSessionPath = pathname === '/accesso' || pathname.startsWith('/accesso/')
+  if (
+    !isSedeExempt &&
+    !isMasterAdmin &&
+    profile?.sede_id &&
+    pathname !== '/sede-lock' &&
+    !isBranchSessionPath
+  ) {
     const verifiedCookie = request.cookies.get('sede-verified')?.value
     if (verifiedCookie !== profile.sede_id) {
       const { data: sede } = await supabase

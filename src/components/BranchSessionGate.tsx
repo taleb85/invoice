@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import {
@@ -23,7 +23,6 @@ function safeNextPath(raw: string | null | undefined): string {
  */
 export default function BranchSessionGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
   const { me, loading } = useMe()
   const { t } = useLocale()
   const [allowed, setAllowed] = useState(
@@ -54,8 +53,14 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
     }
 
     const next = safeNextPath(pathname)
-    router.replace(`${ACCESSO_PATH}?next=${encodeURIComponent(next)}`)
-  }, [loading, me?.user, me?.role, pathname, router])
+    /* Navigazione completa: evita spinner infinito se il client router non aggiorna il path verso /accesso. */
+    if (typeof window !== 'undefined') {
+      const url = `${ACCESSO_PATH}?next=${encodeURIComponent(next)}`
+      if (window.location.pathname !== ACCESSO_PATH) {
+        window.location.assign(url)
+      }
+    }
+  }, [loading, me?.user, me?.role, pathname])
 
   if (!allowed) {
     return (

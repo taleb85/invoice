@@ -1,13 +1,13 @@
 import { Suspense } from 'react'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
-import LoginProviders from './LoginProviders'
-import LoginPageClient from './LoginPageClient'
+import LoginProviders from '@/app/login/LoginProviders'
+import AccessoLoginClient from './AccessoLoginClient'
 
 /**
- * Nessuna lettura `cookies()` qui: evita 500 RSC in ambienti dove il login deve restare statico.
- * Lingua e `/api/me` arrivano dal client (cookie + UserProvider).
+ * Stesso motivo di `/login`: niente `getAppMeShellResult`/`cookies()` in RSC (evita Internal Server Error).
+ * La sessione e il profilo si caricano via `UserProvider` → `/api/me` sul client.
  */
-export default function LoginPage() {
+export default function AccessoPage() {
   return (
     <LoginBrandedShell>
       <LoginProviders>
@@ -18,7 +18,7 @@ export default function LoginPage() {
             </div>
           }
         >
-          <LoginPageClient />
+          <AccessoLoginClient />
         </Suspense>
       </LoginProviders>
     </LoginBrandedShell>

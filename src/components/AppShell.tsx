@@ -255,7 +255,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
         />
         <main
           data-app-main-scroll
-          className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 text-slate-100 md:pt-0 ${
+          className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-slate-800 via-blue-900/75 to-indigo-950 text-slate-100 md:pt-0 ${
             normalized === '/bolle/new' ? 'pt-0' : 'pt-14'
           } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
         >

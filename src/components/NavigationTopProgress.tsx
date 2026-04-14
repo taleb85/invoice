@@ -61,7 +61,11 @@ export default function NavigationTopProgress({
   const [progress, setProgress] = useState(0)
   const [portalsReady, setPortalsReady] = useState(false)
 
-  const onLoginRoute = pathname === '/login' || pathname.startsWith('/login/')
+  const onLoginRoute =
+    pathname === '/login' ||
+    pathname.startsWith('/login/') ||
+    pathname === '/accesso' ||
+    pathname.startsWith('/accesso/')
 
   useLayoutEffect(() => {
     setPortalsReady(true)

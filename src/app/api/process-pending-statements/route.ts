@@ -17,7 +17,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { ocrStatement } from '@/lib/ocr-statement'
+import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 
 export async function POST(req: NextRequest) {
@@ -101,8 +101,10 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    // ── 2. OCR — extract statement rows ────────────────────────────────────
-    const rows = await ocrStatement(buffer, contentType)
+    // ── 2. OCR — extract statement rows + optional PDF header dates ─────────
+    const ocr = await ocrStatement(buffer, contentType)
+    const rows = ocr.rows
+    const extractedPdfDates = extractedPdfDatesToJson(ocr.extractedPdfDates)
     if (!rows.length) {
       const msg = `Nessuna riga estratta dal PDF per doc ${doc.id}`
       console.warn(`[PENDING-STMT] ${msg}`)
@@ -117,14 +119,15 @@ export async function POST(req: NextRequest) {
     const { data: stmtRow, error: stmtErr } = await supabase
       .from('statements')
       .insert([{
-        sede_id:       sedeId,
-        fornitore_id:  fornitoreId,
-        email_subject: doc.oggetto_mail,
-        received_at:   doc.created_at,
-        file_url:      doc.file_url,
-        status:        rows.length ? 'processing' : 'error',
-        total_rows:    rows.length,
-        missing_rows:  0,
+        sede_id:              sedeId,
+        fornitore_id:         fornitoreId,
+        email_subject:        doc.oggetto_mail,
+        received_at:          doc.created_at,
+        file_url:             doc.file_url,
+        status:               rows.length ? 'processing' : 'error',
+        total_rows:           rows.length,
+        missing_rows:         0,
+        extracted_pdf_dates:  extractedPdfDates,
       }])
       .select('id')
       .single()

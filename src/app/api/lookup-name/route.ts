@@ -11,6 +11,11 @@ export async function POST(req: NextRequest) {
   if (!token) {
     return NextResponse.json({ error: 'Nome obbligatorio.' }, { status: 400 })
   }
+  /* `%` e `_` sono wildcard in ILIKE: togliamoli dal pattern per evitare match errati / errori. */
+  const likePrefix = token.replace(/[%_\\]/g, '')
+  if (!likePrefix) {
+    return NextResponse.json({ error: 'Nome obbligatorio.' }, { status: 400 })
+  }
 
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +26,7 @@ export async function POST(req: NextRequest) {
   const { data: rows, error } = await adminClient
     .from('profiles')
     .select('email, full_name, role, sedi(nome)')
-    .ilike('full_name', `${token}%`)
+    .ilike('full_name', `${likePrefix}%`)
     .limit(50)
 
   if (error) {

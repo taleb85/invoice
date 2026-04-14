@@ -600,7 +600,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
 
           {/* Language switcher */}
           {!collapsed && (
-            <div className="relative z-[100]">
+            <div className="relative z-10">
               <button
                 onClick={() => setLangOpen(o => !o)}
                 className="group w-full flex items-center gap-2 px-2 py-1.5 text-slate-200 hover:bg-slate-600/50 rounded-lg transition-colors text-[11px]"
@@ -614,7 +614,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                 </svg>
               </button>
               {langOpen && (
-                <div className="absolute bottom-full mb-1 left-0 right-0 z-[100] max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-xl border border-slate-500/55 bg-slate-600 shadow-2xl">
+                <div className="absolute bottom-full z-20 mb-1 left-0 right-0 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-xl border border-slate-500/55 bg-slate-600 shadow-2xl">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
@@ -645,7 +645,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
 
           {/* Collapsed: globe icon → opens lang popover */}
           {collapsed && (
-            <div className="relative z-[100]">
+            <div className="relative z-10">
               <button
                 onClick={() => setLangOpen(o => !o)}
                 title={t.ui.languageTooltip}
@@ -654,7 +654,7 @@ export default function Sidebar({ onClose, collapsed, onCollapsedChange }: Sideb
                 {LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}
               </button>
               {langOpen && (
-                <div className="absolute bottom-0 left-full z-[100] ml-2 max-h-[min(240px,calc(100vh-6rem))] w-40 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-500/55 bg-slate-600 shadow-2xl">
+                <div className="absolute bottom-0 left-full z-20 ml-2 max-h-[min(240px,calc(100vh-6rem))] w-40 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-500/55 bg-slate-600 shadow-2xl">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}

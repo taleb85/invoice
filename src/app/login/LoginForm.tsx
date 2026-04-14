@@ -3,10 +3,16 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { LocaleProvider, useLocale } from '@/lib/locale-context'
+import { useLocale } from '@/lib/locale-context'
+import { useMe } from '@/lib/me-context'
 import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
 import { LOCALES } from '@/lib/translations'
-import { markSessionOperatorGateOk } from '@/lib/session-operator-gate'
+import {
+  branchSessionGateRequiredRole,
+  isSessionOperatorGateOk,
+  markSessionOperatorGateOk,
+} from '@/lib/session-operator-gate'
+import LoginBrandedHero from '@/components/LoginBrandedHero'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -18,19 +24,19 @@ const EMAIL_DOMAINS = [
 
 const PIN_LENGTH = 4
 
-export default function LoginForm() {
-  return (
-    <LocaleProvider>
-      <LoginFormInner />
-    </LocaleProvider>
-  )
+type LoginFormProps = { sessionGateNext?: string }
+
+export default function LoginForm({ sessionGateNext }: LoginFormProps) {
+  return <LoginFormInner sessionGateNext={sessionGateNext} />
 }
 
-function LoginFormInner() {
+function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const router   = useRouter()
   const supabase = createClient()
   const { locale, t, setLocale } = useLocale()
+  const { me, loading: meLoading } = useMe()
   const [langOpen, setLangOpen] = useState(false)
+  const [gateUiReady, setGateUiReady] = useState(() => !sessionGateNext)
 
   const [mode, setMode]     = useState<'name' | 'admin'>('name')
   const [loading, setLoading] = useState(false)
@@ -62,45 +68,33 @@ function LoginFormInner() {
   const [adminGateVerifying, setAdminGateVerifying] = useState(false)
   const adminGatePinRefs = useRef<(HTMLInputElement | null)[]>([])
   const emailRef         = useRef<HTMLInputElement | null>(null)
+  /** Evita toUpperCase durante composizione IME (accenti) e conflitti caret su Safari. */
+  const nameComposingRef = useRef(false)
+  const nameLookupDebounceRef = useRef<number | null>(null)
+  /** Incrementato a ogni lookup: ignora risposte obsolete se l’utente continua a digitare. */
+  const nameLookupSeqRef = useRef(0)
 
-  /* ─── lookup nome → email interna ─────────────────── */
-  const lookupSede = async (n: string) => {
-    const token = normalizeOperatorLoginName(n)
-    if (!token) { setSedeNome(null); setNameReady(false); resolvedEmail.current = null; return }
-    setLookingUp(true)
-    const ac = new AbortController()
-    const abortTimer = window.setTimeout(() => ac.abort(), 18_000)
-    try {
-      const res = await fetch('/api/lookup-name', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: token }),
-        signal: ac.signal,
-      })
-      const data = await res.json().catch(() => ({}))
-      if (res.ok) {
-        setSedeNome(data.sede_nome ?? null)
-        resolvedEmail.current = data.email ?? null
-        setNameReady(true)
-        if (pin.join('').length === PIN_LENGTH && data.email) {
-          doLoginByName(data.email, pin.join(''))
-        }
-      } else {
-        setSedeNome(null)
-        setNameReady(false)
-        resolvedEmail.current = null
-        setMessage({ type: 'error', text: t.login.notFound })
-      }
-    } catch {
-      setSedeNome(null)
-      setNameReady(false)
-      resolvedEmail.current = null
-      setMessage({ type: 'error', text: t.ui.networkError })
-    } finally {
-      window.clearTimeout(abortTimer)
-      setLookingUp(false)
+  useEffect(() => {
+    if (sessionGateNext) setMode('name')
+  }, [sessionGateNext])
+
+  useEffect(() => {
+    if (!sessionGateNext) return
+    if (meLoading) return
+    if (!me?.user) {
+      router.replace('/login')
+      return
     }
-  }
+    if (!branchSessionGateRequiredRole(me.role)) {
+      router.replace('/')
+      return
+    }
+    if (isSessionOperatorGateOk()) {
+      router.replace(sessionGateNext)
+      return
+    }
+    setGateUiReady(true)
+  }, [sessionGateNext, meLoading, me?.user, me?.role, router])
 
   /* ─── login operatore ─────────────────────────────── */
   const doLoginByName = useCallback(async (internalEmail: string, pinStr: string) => {
@@ -122,8 +116,120 @@ function LoginFormInner() {
       /* ignore */
     }
     markSessionOperatorGateOk()
-    router.push('/'); router.refresh()
-  }, [loading, supabase, router, t.login.pinIncorrect])
+    if (sessionGateNext) {
+      router.replace(sessionGateNext)
+    } else {
+      router.push('/')
+    }
+    router.refresh()
+  }, [loading, sessionGateNext, supabase, router, t.login.pinIncorrect])
+
+  /* ─── lookup nome → email interna ─────────────────── */
+  const lookupSede = useCallback(async (n: string, opts?: { silentNotFound?: boolean }) => {
+    const token = normalizeOperatorLoginName(n)
+    if (!token) {
+      setLookingUp(false)
+      setSedeNome(null)
+      setNameReady(false)
+      resolvedEmail.current = null
+      return
+    }
+    const seq = ++nameLookupSeqRef.current
+    setLookingUp(true)
+    const ac = new AbortController()
+    const abortTimer = window.setTimeout(() => ac.abort(), 18_000)
+    try {
+      const res = await fetch('/api/lookup-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: token }),
+        signal: ac.signal,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (seq !== nameLookupSeqRef.current) return
+      if (res.ok) {
+        if (sessionGateNext) {
+          const emailNorm = String(data.email ?? '')
+            .trim()
+            .toLowerCase()
+          const sessionEmail = String(me?.user?.email ?? '')
+            .trim()
+            .toLowerCase()
+          if (emailNorm && sessionEmail && emailNorm !== sessionEmail) {
+            setSedeNome(null)
+            setNameReady(false)
+            resolvedEmail.current = null
+            setMessage({ type: 'error', text: t.login.sessionGateWrongUser })
+            return
+          }
+        }
+        setSedeNome(data.sede_nome ?? null)
+        resolvedEmail.current = data.email ?? null
+        setNameReady(true)
+        if (pin.join('').length === PIN_LENGTH && data.email) {
+          doLoginByName(data.email, pin.join(''))
+        }
+      } else {
+        setSedeNome(null)
+        setNameReady(false)
+        resolvedEmail.current = null
+        if (!opts?.silentNotFound) {
+          setMessage({ type: 'error', text: t.login.notFound })
+        }
+      }
+    } catch (err) {
+      if (seq !== nameLookupSeqRef.current) return
+      if (err instanceof Error && err.name === 'AbortError') return
+      setSedeNome(null)
+      setNameReady(false)
+      resolvedEmail.current = null
+      if (!opts?.silentNotFound) {
+        setMessage({ type: 'error', text: t.ui.networkError })
+      }
+    } finally {
+      window.clearTimeout(abortTimer)
+      if (seq === nameLookupSeqRef.current) {
+        setLookingUp(false)
+      }
+    }
+  }, [
+    doLoginByName,
+    me?.user?.email,
+    pin,
+    sessionGateNext,
+    t.login.notFound,
+    t.login.sessionGateWrongUser,
+    t.ui.networkError,
+  ])
+
+  const scheduleDebouncedNameLookup = useCallback((rawSnapshot: string) => {
+    if (nameLookupDebounceRef.current) {
+      clearTimeout(nameLookupDebounceRef.current)
+      nameLookupDebounceRef.current = null
+    }
+    const token = normalizeOperatorLoginName(rawSnapshot)
+    if (token.length < 2) {
+      nameLookupSeqRef.current += 1
+      setLookingUp(false)
+      setSedeNome(null)
+      setNameReady(false)
+      resolvedEmail.current = null
+      return
+    }
+    nameLookupDebounceRef.current = window.setTimeout(() => {
+      nameLookupDebounceRef.current = null
+      void lookupSede(token, { silentNotFound: true })
+    }, 400)
+  }, [lookupSede])
+
+  useEffect(() => {
+    return () => {
+      if (nameLookupDebounceRef.current) {
+        clearTimeout(nameLookupDebounceRef.current)
+        nameLookupDebounceRef.current = null
+      }
+    }
+  }, [])
 
   /* ─── gestione digitazione PIN ────────────────────── */
   const handlePinChange = (idx: number, val: string) => {
@@ -359,47 +465,19 @@ function LoginFormInner() {
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
+  if (sessionGateNext && (!gateUiReady || meLoading)) {
+    return (
+      <div className="mx-auto flex min-h-[50vh] w-full max-w-xs flex-col items-center justify-center gap-3 px-4">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+        <p className="text-sm text-slate-300">{t.common.loading}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto w-full max-w-xs">
 
-      {/* Logo — ingrandito, verticale */}
-      <div className="flex flex-col items-center text-center mb-6 -mt-4">
-        <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="w-28 h-[68px] shrink-0 drop-shadow-[0_6px_24px_rgba(6,182,212,0.45)] mb-4">
-          <defs>
-            <linearGradient id="lg-card" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1e3a5f"/>
-              <stop offset="100%" stopColor="#172554"/>
-            </linearGradient>
-            <linearGradient id="lg-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stopColor="#5b7cf9"/>
-              <stop offset="50%"  stopColor="#38bdf8"/>
-              <stop offset="100%" stopColor="#22d3ee"/>
-            </linearGradient>
-          </defs>
-          <rect width="56" height="56" rx="13" fill="url(#lg-card)" />
-          <path d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
-                stroke="url(#lg-wave)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-          <circle cx="7"  cy="28" r="3.5" fill="#5b7cf9"/>
-          <circle cx="48" cy="28" r="3.5" fill="#38bdf8"/>
-          <circle cx="88" cy="28" r="3.5" fill="#22d3ee"/>
-        </svg>
-        <h1 className="text-5xl font-extrabold tracking-widest bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent leading-none drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]">FLUXO</h1>
-        <p className="text-[11px] font-semibold tracking-[0.3em] uppercase mt-2 bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent opacity-80">{t.login.brandTagline}</p>
-        {mode === 'name' ? (
-          <p className="mt-6 max-w-[20rem] px-1 text-xs leading-snug text-white/90 text-balance">
-            {t.login.subtitle}
-          </p>
-        ) : (
-          <div className="mt-6 flex max-w-[20rem] flex-col items-center gap-1.5 px-1 text-center">
-            <p className="text-[0.8125rem] font-semibold leading-snug tracking-tight text-cyan-200/95 text-balance">
-              {t.login.adminSubtitle}
-            </p>
-            <p className="text-[11px] leading-relaxed text-slate-200 text-balance">
-              {t.login.adminSubtitleHint}
-            </p>
-          </div>
-        )}
-      </div>
+      <LoginBrandedHero mode={mode} />
 
       {/* Card — tema Deep Ocean; shell + barra = globals .app-card-login / .app-card-bar */}
       <div className="app-card-login">
@@ -425,20 +503,48 @@ function LoginFormInner() {
                 type="text"
                 name="fluxo-branch-display"
                 autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="characters"
+                spellCheck={false}
                 placeholder={t.login.namePlaceholder}
                 value={name}
-                onChange={e => {
-                  setName(e.target.value.toUpperCase())
+                onCompositionStart={() => {
+                  nameComposingRef.current = true
+                }}
+                onCompositionEnd={e => {
+                  nameComposingRef.current = false
+                  const v = e.currentTarget.value.toUpperCase()
+                  setName(v)
                   setSedeNome(null)
                   setNameReady(false)
                   resolvedEmail.current = null
+                  scheduleDebouncedNameLookup(v)
                 }}
-                onBlur={() => {
-                  const token = normalizeOperatorLoginName(name)
+                onChange={e => {
+                  const raw = e.target.value
+                  const next =
+                    nameComposingRef.current ? raw : raw.toUpperCase()
+                  if (nameComposingRef.current) {
+                    setName(raw)
+                  } else {
+                    setName(raw.toUpperCase())
+                  }
+                  setSedeNome(null)
+                  setNameReady(false)
+                  resolvedEmail.current = null
+                  scheduleDebouncedNameLookup(next)
+                }}
+                onBlur={e => {
+                  nameComposingRef.current = false
+                  if (nameLookupDebounceRef.current) {
+                    clearTimeout(nameLookupDebounceRef.current)
+                    nameLookupDebounceRef.current = null
+                  }
+                  const token = normalizeOperatorLoginName(e.currentTarget.value)
                   setName(token)
-                  void lookupSede(token)
+                  void lookupSede(token, { silentNotFound: false })
                 }}
-                className={`${inputCls} text-center uppercase`}
+                className={`${inputCls} text-center`}
                 autoFocus
                 disabled={loading}
               />
@@ -473,7 +579,10 @@ function LoginFormInner() {
                 <span>{t.login.pinLabel}</span>
                 <span className="font-normal normal-case text-gray-400"> {t.login.pinDigits}</span>
               </label>
-              <div className="flex gap-3 justify-center" onPaste={handlePinPaste}>
+              <div
+                className="flex gap-3 justify-center rounded-xl border border-cyan-500/35 bg-slate-800/30 px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+                onPaste={handlePinPaste}
+              >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
                   <input
                     key={idx}
@@ -551,7 +660,7 @@ function LoginFormInner() {
                 </label>
                 <p className="px-0.5 text-[11px] leading-relaxed text-slate-500">{t.login.adminGateHint}</p>
                 <div
-                  className="flex flex-wrap justify-center gap-2"
+                  className="flex flex-wrap justify-center gap-2 rounded-xl border border-cyan-500/35 bg-slate-800/30 px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
                   onPaste={handleAdminGatePinPaste}
                 >
                   {Array.from({ length: adminGatePinLen }).map((_, idx) => {
@@ -672,42 +781,51 @@ function LoginFormInner() {
       </div>{/* fine card */}
 
       {/* Toggle admin + language selector row */}
-      <div className="mt-5 flex w-full items-center justify-between px-1">
-        {mode === 'name' ? (
-          <button type="button" onClick={() => {
-            setMode('admin')
-            setMessage(null)
-            setName('')
-            setSedeNome(null)
-            setNameReady(false)
-            resolvedEmail.current = null
-            setPin(Array(PIN_LENGTH).fill(''))
-            setEmail('')
-            setAdminPw('')
-            setSuggestions([])
-            setShowSugg(false)
-          }}
-            className="text-[11px] text-white/80 hover:text-white transition-colors">
-            {t.login.adminLink}
-          </button>
-        ) : (
-          <button type="button" onClick={() => {
-            setMode('name')
-            setMessage(null)
-            setEmail('')
-            setAdminPw('')
-            setSuggestions([])
-            setShowSugg(false)
-            setName('')
-            setSedeNome(null)
-            setNameReady(false)
-            resolvedEmail.current = null
-            setPin(Array(PIN_LENGTH).fill(''))
-          }}
-            className="text-[11px] text-white/50 hover:text-white/80 transition-colors">
-            {t.login.operatorLink}
-          </button>
-        )}
+      <div
+        className={`mt-5 flex w-full items-center px-1 ${sessionGateNext ? 'justify-end' : 'justify-between'}`}
+      >
+        {!sessionGateNext &&
+          (mode === 'name' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMode('admin')
+                setMessage(null)
+                setName('')
+                setSedeNome(null)
+                setNameReady(false)
+                resolvedEmail.current = null
+                setPin(Array(PIN_LENGTH).fill(''))
+                setEmail('')
+                setAdminPw('')
+                setSuggestions([])
+                setShowSugg(false)
+              }}
+              className="text-[11px] text-white/80 transition-colors hover:text-white"
+            >
+              {t.login.adminLink}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setMode('name')
+                setMessage(null)
+                setEmail('')
+                setAdminPw('')
+                setSuggestions([])
+                setShowSugg(false)
+                setName('')
+                setSedeNome(null)
+                setNameReady(false)
+                resolvedEmail.current = null
+                setPin(Array(PIN_LENGTH).fill(''))
+              }}
+              className="text-[11px] text-white/50 transition-colors hover:text-white/80"
+            >
+              {t.login.operatorLink}
+            </button>
+          ))}
 
         {/* Compact language switcher */}
         <div className="relative">

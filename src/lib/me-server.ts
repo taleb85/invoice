@@ -12,16 +12,26 @@ export type AppMeShellResult =
  * (dock mobile, padding hub, ecc.) senza aspettare il fetch client.
  */
 export async function getAppMeShellResult(): Promise<AppMeShellResult> {
+  try {
+    return await loadAppMeShellResult()
+  } catch (e) {
+    console.error('[getAppMeShellResult]', e)
+    /* Evita 500 sulla shell: il client ritenta con GET /api/me */
+    return { ok: false, kind: 'noprofile' }
+  }
+}
+
+async function loadAppMeShellResult(): Promise<AppMeShellResult> {
   const { supabase, user } = await getRequestAuth()
   if (!user) return { ok: false, kind: 'unauth' }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from('profiles')
     .select('role, sede_id, full_name, sedi(id, nome, country_code, currency, timezone)')
     .eq('id', user.id)
     .single()
 
-  if (!profile) return { ok: false, kind: 'noprofile' }
+  if (profileErr || !profile) return { ok: false, kind: 'noprofile' }
 
   const isAdmin = isMasterAdminRole(profile.role)
   const isAdminSede = isAdminSedeRole(profile.role)
@@ -82,3 +92,4 @@ export async function getAppMeShellResult(): Promise<AppMeShellResult> {
     },
   }
 }
+

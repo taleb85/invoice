@@ -74,7 +74,8 @@ export function UserProvider({
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) {
-          setMe(DEFAULT_ME)
+          /* 401/404 o risposta vuota: non cancellare un utente già idratato da RSC (evita loop /accesso ↔ /). */
+          setMe((prev) => (prev?.user != null ? prev : DEFAULT_ME))
           return
         }
         const raw = String(data.role ?? '').toLowerCase()
@@ -102,7 +103,9 @@ export function UserProvider({
           all_sedi: data.all_sedi ?? [],
         })
       })
-      .catch(() => setMe(DEFAULT_ME))
+      .catch(() => {
+        setMe((prev) => (prev?.user != null ? prev : DEFAULT_ME))
+      })
       .finally(() => setLoading(false))
   }, [tick])
 
