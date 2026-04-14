@@ -23,9 +23,54 @@ ALTER TABLE public.listino_prezzi ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "listino_select" ON public.listino_prezzi;
 DROP POLICY IF EXISTS "listino_all"    ON public.listino_prezzi;
+DROP POLICY IF EXISTS "listino_insert_authenticated" ON public.listino_prezzi;
+DROP POLICY IF EXISTS "listino_update_authenticated" ON public.listino_prezzi;
+DROP POLICY IF EXISTS "listino_delete_authenticated" ON public.listino_prezzi;
 
 CREATE POLICY "listino_select" ON public.listino_prezzi
   FOR SELECT USING (auth.role() IN ('authenticated','service_role'));
 
 CREATE POLICY "listino_all" ON public.listino_prezzi
   FOR ALL USING (auth.role() = 'service_role');
+
+-- Scritture da client (operatori): stesso criterio sede delle bolle/fatture
+CREATE POLICY "listino_insert_authenticated" ON public.listino_prezzi
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    public.is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.fornitori f
+      WHERE f.id = fornitore_id AND f.sede_id IS NOT NULL
+        AND f.sede_id = public.get_user_sede()
+    )
+  );
+
+CREATE POLICY "listino_update_authenticated" ON public.listino_prezzi
+  FOR UPDATE TO authenticated
+  USING (
+    public.is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.fornitori f
+      WHERE f.id = fornitore_id AND f.sede_id IS NOT NULL
+        AND f.sede_id = public.get_user_sede()
+    )
+  )
+  WITH CHECK (
+    public.is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.fornitori f
+      WHERE f.id = fornitore_id AND f.sede_id IS NOT NULL
+        AND f.sede_id = public.get_user_sede()
+    )
+  );
+
+CREATE POLICY "listino_delete_authenticated" ON public.listino_prezzi
+  FOR DELETE TO authenticated
+  USING (
+    public.is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.fornitori f
+      WHERE f.id = fornitore_id AND f.sede_id IS NOT NULL
+        AND f.sede_id = public.get_user_sede()
+    )
+  );

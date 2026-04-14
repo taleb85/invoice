@@ -24,8 +24,9 @@ export default async function NotFound() {
           <span className="text-lg font-bold tracking-tight text-cyan-400">FLUXO</span>
         </Link>
 
-        <div className="app-card-login space-y-5 px-8 py-8">
-          <div className="app-card-bar mb-2" aria-hidden />
+        <div className="app-card-login flex flex-col overflow-hidden">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="space-y-5 px-8 py-8">
           <div className="space-y-1">
             <p className="select-none text-7xl font-black leading-none text-slate-700">404</p>
             <h1 className="text-xl font-bold text-slate-100">{t.appStrings.pageNotFoundTitle}</h1>
@@ -54,6 +55,7 @@ export default async function NotFound() {
               </svg>
               {t.nav.fornitori}
             </Link>
+          </div>
           </div>
         </div>
 

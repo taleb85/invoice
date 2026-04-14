@@ -26,7 +26,6 @@ function NuovaFatturaForm() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
   const { sedeId } = useSedeId()
   const t = useT()
   const { activeOperator } = useActiveOperator()
@@ -39,7 +38,6 @@ function NuovaFatturaForm() {
   const [numeroFattura, setNumeroFattura] = useState('')
   const [importoManuale, setImportoManuale] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registratoDa, setRegistratoDa] = useState('')
@@ -50,7 +48,6 @@ function NuovaFatturaForm() {
       setRegistratoDa(activeOperator.full_name)
     }
   }, [activeOperator])
-  const [uploadMode, setUploadMode] = useState<'idle' | 'camera' | 'file'>('idle')
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>('idle')
   const [dateFromOcr, setDateFromOcr] = useState(false)
 
@@ -117,7 +114,7 @@ function NuovaFatturaForm() {
   }
 
   const runOcr = async (f: File) => {
-    if (!f.type.startsWith('image/')) return
+    if (f.type !== 'application/pdf') return
     setOcrStatus('scanning')
     setDateFromOcr(false)
     try {
@@ -137,17 +134,23 @@ function NuovaFatturaForm() {
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null
+    setError(null)
+    if (f && f.type !== 'application/pdf') {
+      setError('Carica un PDF (fattura ricevuta per email).')
+      e.target.value = ''
+      return
+    }
     setFile(f)
     setOcrStatus('idle')
     setDateFromOcr(false)
-    if (f) { setPreview(URL.createObjectURL(f)); runOcr(f) } else setPreview(null)
+    if (f) void runOcr(f)
   }
 
   const removeFile = () => {
-    setFile(null); setPreview(null); setOcrStatus('idle')
-    setDateFromOcr(false); setUploadMode('idle')
+    setFile(null)
+    setOcrStatus('idle')
+    setDateFromOcr(false)
     if (fileRef.current) fileRef.current.value = ''
-    if (cameraRef.current) cameraRef.current.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -240,49 +243,51 @@ function NuovaFatturaForm() {
 
         {/* Multi-bolla selector */}
         {fornitoreIdParam && (
-          <div className="app-card-login relative overflow-hidden rounded-2xl border border-cyan-500/20 p-5">
-            <div className="app-card-bar mb-4" aria-hidden />
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Bolle da coprire con questa fattura
-            </label>
-            {loadingBolle ? (
-              <p className="text-sm text-slate-500">Caricamento bolle…</p>
-            ) : bolleDisponibili.length === 0 ? (
-              <p className="text-sm text-amber-400">Nessuna bolla aperta per questo fornitore.</p>
-            ) : (
-              <div className="space-y-2">
-                {bolleDisponibili.map(b => {
-                  const sel = bolleSelezionate.has(b.id)
-                  return (
-                    <label key={b.id}
-                      className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${sel ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-slate-700/50 hover:bg-slate-800/60'}`}>
-                      <input type="checkbox" checked={sel} onChange={() => toggleBolla(b.id)}
-                        className="rounded border-slate-600 text-cyan-500 focus:ring-cyan-500" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-100">
-                          {b.numero_bolla ? `${b.numero_bolla} · ` : ''}{fmt(b.data)}
-                        </p>
-                        {b.importo != null && (
-                          <p className="text-xs text-slate-400">£ {b.importo.toFixed(2)}</p>
-                        )}
-                      </div>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sel ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-500'}`}>
-                        {sel ? 'Inclusa' : 'Esclusa'}
+          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-cyan-500/20">
+            <div className="app-card-bar shrink-0" aria-hidden />
+            <div className="p-5">
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Bolle da coprire con questa fattura
+              </label>
+              {loadingBolle ? (
+                <p className="text-sm text-slate-500">Caricamento bolle…</p>
+              ) : bolleDisponibili.length === 0 ? (
+                <p className="text-sm text-amber-400">Nessuna bolla aperta per questo fornitore.</p>
+              ) : (
+                <div className="space-y-2">
+                  {bolleDisponibili.map(b => {
+                    const sel = bolleSelezionate.has(b.id)
+                    return (
+                      <label key={b.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${sel ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-slate-700/50 hover:bg-slate-800/60'}`}>
+                        <input type="checkbox" checked={sel} onChange={() => toggleBolla(b.id)}
+                          className="rounded border-slate-600 text-cyan-500 focus:ring-cyan-500" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-100">
+                            {b.numero_bolla ? `${b.numero_bolla} · ` : ''}{fmt(b.data)}
+                          </p>
+                          {b.importo != null && (
+                            <p className="text-xs text-slate-400">£ {b.importo.toFixed(2)}</p>
+                          )}
+                        </div>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sel ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-500'}`}>
+                          {sel ? 'Inclusa' : 'Esclusa'}
+                        </span>
+                      </label>
+                    )
+                  })}
+                  {/* Totale bolle selezionate */}
+                  {bolleSelezionate.size > 0 && tutteConImporto && (
+                    <div className="mt-1 flex items-center justify-between rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2">
+                      <span className="text-xs font-semibold text-cyan-300">
+                        Totale {bolleSelezionate.size} boll{bolleSelezionate.size > 1 ? 'e' : 'a'}
                       </span>
-                    </label>
-                  )
-                })}
-                {/* Totale bolle selezionate */}
-                {bolleSelezionate.size > 0 && tutteConImporto && (
-                  <div className="mt-1 flex items-center justify-between rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2">
-                    <span className="text-xs font-semibold text-cyan-300">
-                      Totale {bolleSelezionate.size} boll{bolleSelezionate.size > 1 ? 'e' : 'a'}
-                    </span>
-                    <span className="text-sm font-bold text-cyan-200">£ {importoCalcolato.toFixed(2)}</span>
-                  </div>
-                )}
-              </div>
-            )}
+                      <span className="text-sm font-bold text-cyan-200">£ {importoCalcolato.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -325,65 +330,25 @@ function NuovaFatturaForm() {
         </div>
 
         {/* File fattura */}
-        <div className="app-card-login p-5">
-          <div className="app-card-bar mb-4" aria-hidden />
+        <div className="app-card-login flex flex-col overflow-hidden">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="p-5">
           <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
             {t.fatture.fileFattura} <span className="text-red-400">*</span>
           </label>
 
-          {!preview && uploadMode === 'idle' && (
-            <div className="grid grid-cols-2 gap-3">
-              <button type="button"
-                onClick={() => { setUploadMode('camera'); setTimeout(() => cameraRef.current?.click(), 50) }}
-                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/50 py-8 text-slate-500 transition-colors hover:border-cyan-500/50 hover:text-cyan-400">
-                <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-sm font-semibold">{t.bolle.cameraBtn}</span>
-              </button>
-              <button type="button"
-                onClick={() => { setUploadMode('file'); setTimeout(() => fileRef.current?.click(), 50) }}
-                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/50 py-8 text-slate-500 transition-colors hover:border-cyan-500/50 hover:text-cyan-400">
-                <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                <span className="text-sm font-semibold">{t.bolle.fileBtn}</span>
-              </button>
-            </div>
+          {!file && (
+            <button type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-full flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/50 py-8 text-slate-500 transition-colors hover:border-cyan-500/50 hover:text-cyan-400">
+              <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm font-semibold">{t.bolle.fileBtn} (PDF)</span>
+            </button>
           )}
 
-          {preview && file?.type !== 'application/pdf' && (
-            <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Anteprima fattura" className="w-full rounded-xl object-cover max-h-64" />
-              <button type="button" onClick={removeFile}
-                className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              {ocrStatus === 'scanning' && (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full">
-                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                  Analisi…
-                </div>
-              )}
-              {ocrStatus === 'done' && dateFromOcr && (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-green-600 text-white text-xs px-3 py-1.5 rounded-full">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                  </svg>
-                  Dati rilevati
-                </div>
-              )}
-            </div>
-          )}
-
-          {preview && file?.type === 'application/pdf' && (
+          {file?.type === 'application/pdf' && (
             <div className="flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-800/50 p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/15">
                 <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -402,14 +367,15 @@ function NuovaFatturaForm() {
             </div>
           )}
 
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden" />
-          <input ref={fileRef} type="file" accept="image/*,application/pdf" onChange={handleFile} className="hidden" />
+          <input ref={fileRef} type="file" accept="application/pdf" onChange={handleFile} className="hidden" />
+          </div>
         </div>
 
         {/* Registrato da */}
         {file && (
-          <div className="app-card-login relative overflow-hidden rounded-2xl border border-cyan-500/20 p-5">
-            <div className="app-card-bar mb-4" aria-hidden />
+          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-cyan-500/20">
+            <div className="app-card-bar shrink-0" aria-hidden />
+            <div className="p-5">
             <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-400">
               Registrato da
             </label>
@@ -417,6 +383,7 @@ function NuovaFatturaForm() {
               value={registratoDa} onChange={e => setRegistratoDa(e.target.value)}
               className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-0"
             />
+            </div>
           </div>
         )}
 

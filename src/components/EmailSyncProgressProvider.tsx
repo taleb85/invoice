@@ -22,6 +22,8 @@ import {
   clearPendingSync,
   EMAIL_SYNC_RESUME_ATT_KEY,
   runEmailSyncJob,
+  cancelEmailSyncJob,
+  dismissEmailSyncCompletionBanner,
   STALL_ATTACH_THRESHOLD,
   STALL_MS_DEFAULT,
   STALL_MS_PERSIST,
@@ -34,18 +36,17 @@ import {
 
 export type { EmailSyncRequestBody } from '@/lib/email-sync-run-store'
 
-const STALL_RECONNECT_MAX = 3
-
 type Ctx = {
   progress: EmailSyncProgressState
   runEmailSync: (body: EmailSyncRequestBody, opts?: { resumed?: boolean }) => Promise<void>
+  cancelEmailSync: () => void
+  dismissEmailSyncCompletion: () => void
 }
 
 const EmailSyncProgressContext = createContext<Ctx | null>(null)
 
 export function EmailSyncProgressProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<EmailSyncProgressState>(() => getEmailSyncProgressSnapshot())
-  const prevStalledRef = useRef(false)
   const router = useRouter()
   const { t } = useLocale()
 
@@ -71,31 +72,29 @@ export function EmailSyncProgressProvider({ children }: { children: ReactNode })
     return () => window.clearInterval(id)
   }, [progress.active, progress.phase, progress.attachmentsTotal])
 
-  useEffect(() => {
-    if (!progress.active) {
-      prevStalledRef.current = false
-      return
-    }
-    if (progress.stalled && !prevStalledRef.current) {
-      applyEmailSyncProgress((p) => ({
-        ...p,
-        stalledWave: Math.min(STALL_RECONNECT_MAX, p.stalledWave + 1),
-      }))
-    }
-    prevStalledRef.current = progress.stalled
-  }, [progress.active, progress.stalled])
-
   const runEmailSync = useCallback(
     async (body: EmailSyncRequestBody, opts?: { resumed?: boolean }) => {
       await runEmailSyncJob(
         body,
         opts,
-        { emailSyncResumed: t.ui.emailSyncResumed, networkError: t.ui.networkError },
+        {
+          emailSyncResumed: t.ui.emailSyncResumed,
+          networkError: t.ui.networkError,
+          emailSyncStreamIncomplete: t.ui.emailSyncStreamIncomplete,
+        },
         () => router.refresh(),
       )
     },
-    [router, t.ui.emailSyncResumed, t.ui.networkError],
+    [router, t.ui.emailSyncResumed, t.ui.networkError, t.ui.emailSyncStreamIncomplete],
   )
+
+  const cancelEmailSync = useCallback(() => {
+    cancelEmailSyncJob(t.ui.emailSyncCancelled)
+  }, [t.ui.emailSyncCancelled])
+
+  const dismissEmailSyncCompletion = useCallback(() => {
+    dismissEmailSyncCompletionBanner()
+  }, [])
 
   const runEmailSyncRef = useRef(runEmailSync)
   runEmailSyncRef.current = runEmailSync
@@ -132,7 +131,10 @@ export function EmailSyncProgressProvider({ children }: { children: ReactNode })
     }
   }, [t.ui.networkError])
 
-  const value = useMemo(() => ({ progress, runEmailSync }), [progress, runEmailSync])
+  const value = useMemo(
+    () => ({ progress, runEmailSync, cancelEmailSync, dismissEmailSyncCompletion }),
+    [progress, runEmailSync, cancelEmailSync, dismissEmailSyncCompletion],
+  )
 
   return (
     <EmailSyncProgressContext.Provider value={value}>{children}</EmailSyncProgressContext.Provider>

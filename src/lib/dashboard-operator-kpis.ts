@@ -5,6 +5,101 @@ import {
   countSyncLogErrors24h,
 } from '@/lib/dashboard-notification-counts'
 
+export type ListinoOverviewRow = {
+  id: string
+  fornitore_id: string
+  fornitore_nome: string
+  prodotto: string
+  prezzo: number
+  data_prezzo: string
+  note: string | null
+}
+
+const LISTINO_OVERVIEW_LIMIT = 500
+
+/** Righe `listino_prezzi` con nome fornitore, per la pagina /listino. */
+export async function fetchListinoOverviewRows(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null
+): Promise<ListinoOverviewRow[]> {
+  let q = supabase
+    .from('listino_prezzi')
+    .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name)')
+    .order('data_prezzo', { ascending: false })
+    .limit(LISTINO_OVERVIEW_LIMIT)
+  if (fornitoreIds?.length) {
+    q = q.in('fornitore_id', fornitoreIds)
+  }
+  const { data, error } = await q
+  if (error || !data?.length) return []
+  type Fn = { nome?: string | null; display_name?: string | null }
+  return (data as Record<string, unknown>[]).map((r) => {
+    const fn = r.fornitori as Fn | null
+    const label = (fn?.display_name?.trim() || fn?.nome?.trim() || '—') as string
+    return {
+      id: r.id as string,
+      fornitore_id: r.fornitore_id as string,
+      fornitore_nome: label,
+      prodotto: String(r.prodotto ?? ''),
+      prezzo: Number(r.prezzo) || 0,
+      data_prezzo: String(r.data_prezzo ?? ''),
+      note: (r.note as string | null) ?? null,
+    }
+  })
+}
+
+export type FatturaRiepilogoRow = {
+  id: string
+  data: string
+  importo: number | null
+  numero_fattura: string | null
+  fornitore_id: string
+  fornitore_nome: string
+}
+
+const FATTURE_RIEPILOGO_LIMIT = 500
+
+/** Somma importi e conteggio fatture (stesso ambito dei KPI dashboard). */
+export async function fetchFattureTotaleSummary(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null
+): Promise<{ totaleImporto: number; fattureCount: number }> {
+  let q = supabase.from('fatture').select('importo')
+  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  const { data, error } = await q
+  if (error) return { totaleImporto: 0, fattureCount: 0 }
+  const rows = (data ?? []) as { importo: number | null }[]
+  return { totaleImporto: sumImporti(rows), fattureCount: rows.length }
+}
+
+/** Ultime fatture per data, per la tabella in /fatture/riepilogo. */
+export async function fetchFattureRiepilogoRows(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null
+): Promise<FatturaRiepilogoRow[]> {
+  let q = supabase
+    .from('fatture')
+    .select('id, data, importo, numero_fattura, fornitore_id, fornitori(nome, display_name)')
+    .order('data', { ascending: false })
+    .limit(FATTURE_RIEPILOGO_LIMIT)
+  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  const { data, error } = await q
+  if (error || !data?.length) return []
+  type Fn = { nome?: string | null; display_name?: string | null }
+  return (data as Record<string, unknown>[]).map((r) => {
+    const fn = r.fornitori as Fn | null
+    const label = (fn?.display_name?.trim() || fn?.nome?.trim() || '—') as string
+    return {
+      id: r.id as string,
+      data: String(r.data ?? ''),
+      importo: r.importo != null ? Number(r.importo) : null,
+      numero_fattura: (r.numero_fattura as string | null) ?? null,
+      fornitore_id: r.fornitore_id as string,
+      fornitore_nome: label,
+    }
+  })
+}
+
 export type OperatorDashboardKpis = {
   bolleTotal: number
   bolleInAttesa: number

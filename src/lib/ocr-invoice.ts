@@ -14,6 +14,11 @@ export interface OcrResult {
   /** Document date normalised to YYYY-MM-DD */
   data_fattura:       string | null
   numero_fattura:     string | null
+  /**
+   * Model classification: delivery note vs tax invoice vs other commercial PDF.
+   * Used by email scan to choose bolla vs fattura bozza without misrouting DDT numbers.
+   */
+  tipo_documento:     'fattura' | 'bolla' | 'altro' | null
   /** Total amount as a pure float (no currency symbols) */
   totale_iva_inclusa: number | null
 
@@ -49,7 +54,7 @@ export interface OcrResult {
 
 export const EMPTY_OCR: OcrResult = {
   ragione_sociale: null, p_iva: null, indirizzo: null, data_fattura: null,
-  numero_fattura: null, totale_iva_inclusa: null,
+  numero_fattura: null, tipo_documento: null, totale_iva_inclusa: null,
   note_corpo_mail: null, estrazione_utile: undefined,
   importo_raw: null, formato_importo: null,
   nome: null, piva: null, data: null,
@@ -192,7 +197,8 @@ Return ONLY valid JSON — no markdown, no explanation:
   "p_iva": "Supplier VAT/tax number digits only, no country prefix — or null",
   "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
-  "numero_fattura": "Document/invoice/delivery reference number — or null",
+  "numero_fattura": "Document reference: invoice number, DDT/bolla number, credit note number — or null if none visible",
+  "tipo_documento": "Exactly one of: fattura | bolla | altro | null — fattura=tax invoice or credit note; bolla=delivery note/DDT/Lieferschein/Albarán only; altro=quotes/proforma; null only if unreadable. Never use free-text sentences in this field.",
   "totale_iva_inclusa": "The gross total amount — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format",
   "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",
   "estrazione_utile": true
@@ -202,6 +208,8 @@ Rules:
 - ragione_sociale: look for "Vendor", "Supplier", "Fornitore", "Mittente", "Absender", "Fournisseur", "Proveedor" — the SELLER, not the buyer.
 - p_iva: accept VAT No., P.IVA, NIF/CIF, N° TVA, USt-IdNr., SIRET — strip all non-digit characters.
 - indirizzo: only the supplier/seller address, not the customer.
+- numero_fattura: for ANY document type, extract the main document reference number if visible — not only "Invoice No.". For delivery notes / DDT / dispatch documents, map English labels such as "Note Number", "Notes Number", "Notes No.", "Delivery Note No.", "DN", "D.N.", "Document No.", "Your document number", "Shipment number", "Despatch note"; Italian "Numero DDT", "Numero documento di trasporto"; German "Lieferschein-Nr."; French "N° bon de livraison"; Spanish "Nº albarán". Return ONLY the alphanumeric reference (e.g. "11851464"), never the label text. If both an invoice number and a separate delivery-note number appear on the same page, prefer the one matching tipo_documento.
+- tipo_documento: classify from headings/keywords (DDT, D.N., Lieferschein, Delivery note → bolla). When in doubt between invoice and delivery note, prefer bolla if the layout is line-items dispatch without full fiscal invoice wording.
 - totale_iva_inclusa: return the raw amount string EXACTLY as printed (including any currency symbol and separators). Do NOT convert to a number.
 ${estrazioneRule}- note_corpo_mail: never copy long generic email signatures or legal disclaimers; keep it concise.
 - If a field is absent, use null.`
@@ -230,6 +238,49 @@ export function ocrExtractedNothingUseful(ocr: OcrResult): boolean {
 type ParseOcrOutcome =
   | { ok: true; result: OcrResult }
   | { ok: false; result: OcrResult; reason: string; rawPreview: string }
+
+function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'altro' | null {
+  if (raw == null || raw === '') return null
+  const s = String(raw).toLowerCase().replace(/\s+/g, ' ').trim()
+
+  if (s === 'fattura' || s === 'invoice' || s === 'nota_credito' || s === 'credito' || s === 'credit_note') return 'fattura'
+  if (s === 'bolla' || s === 'ddt' || s === 'delivery' || s === 'delivery_note' || s === 'lieferschein' || s === 'albaran') return 'bolla'
+  if (s === 'altro' || s === 'other') return 'altro'
+
+  // Model may return phrases ("Tax invoice", "Nota di consegna"): classify by keywords.
+  // Prefer fattura when both tax-invoice and delivery wording appear (e.g. some layouts).
+  if (
+    /\bfattura\b/.test(s) ||
+    /\binvoice\b/.test(s) ||
+    /\bfacture\b/.test(s) ||
+    /\bfactura\b/.test(s) ||
+    /\brechnung\b/.test(s) ||
+    /nota\s+credito/.test(s) ||
+    /credit[\s_-]?note/.test(s) ||
+    /\bavoir\b/.test(s) ||
+    /\bgutschrift\b/.test(s) ||
+    /\btax[\s_-]?invoice\b/.test(s) ||
+    /\bvat[\s_-]?invoice\b/.test(s) ||
+    /\bsales[\s_-]?invoice\b/.test(s)
+  ) {
+    return 'fattura'
+  }
+  if (
+    /\bddt\b/.test(s) ||
+    /\bbolla\b/.test(s) ||
+    /delivery[\s_-]?note/.test(s) ||
+    /\blieferschein\b/.test(s) ||
+    /albar[aá]n/.test(s) ||
+    /bon\s+de\s+livraison/.test(s) ||
+    /documento\s+di\s+trasporto/.test(s)
+  ) {
+    return 'bolla'
+  }
+  if (/preventivo|quotation|\bquote\b|pro[\s_-]?forma|order\s+confirmation|\bordine\b/.test(s)) {
+    return 'altro'
+  }
+  return null
+}
 
 /* ─────────────────────────────────────────────────────────────
    Robust JSON parsing — outcome + optional DB log on failure
@@ -260,6 +311,7 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
       : null
     const data_fattura    = parsed.data_fattura ?? null
     const numero_fattura  = parsed.numero_fattura ? String(parsed.numero_fattura) : null
+    const tipo_documento  = normalizeTipoDocumento(parsed.tipo_documento)
 
     const noteRaw = parsed.note_corpo_mail
     const note_corpo_mail =
@@ -280,7 +332,7 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
     return {
       ok: true,
       result: {
-        ragione_sociale, p_iva, indirizzo, data_fattura, numero_fattura,
+        ragione_sociale, p_iva, indirizzo, data_fattura, numero_fattura, tipo_documento,
         totale_iva_inclusa, importo_raw, formato_importo,
         note_corpo_mail, estrazione_utile,
         nome: ragione_sociale, piva: p_iva, data: data_fattura,

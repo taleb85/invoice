@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     // Resolve fornitore names separately to avoid FK join cache issues
     const fIds = [...new Set((rows ?? []).map((r: { fornitore_id: string | null }) => r.fornitore_id).filter(Boolean))]
-    let fMap: Record<string, { id: string; nome: string; email: string | null }> = {}
+    const fMap: Record<string, { id: string; nome: string; email: string | null }> = {}
     if (fIds.length) {
       const { data: fRows } = await supabase.from('fornitori').select('id, nome, email').in('id', fIds)
       for (const f of fRows ?? []) fMap[f.id] = f
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
   const fornitoreIds: string[] = [...new Set(
     (data as StmtRow[]).map(s => s.fornitore_id).filter((id): id is string => !!id)
   )]
-  let nomeMap: Record<string, string> = {}
+  const nomeMap: Record<string, string> = {}
   if (fornitoreIds.length) {
     const { data: fRows } = await supabase
       .from('fornitori').select('id, nome').in('id', fornitoreIds)

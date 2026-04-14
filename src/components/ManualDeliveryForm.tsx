@@ -7,6 +7,8 @@ export type ManualDeliveryFormProps = {
   fornitoreId: string
   sedeId?: string | null
   languageHint?: string
+  /** Se assente, la checkbox “email al fornitore” resta disabilitata con hint. */
+  supplierEmail?: string | null
   /** Classi aggiuntive sul wrapper del form */
   className?: string
   onSuccess?: (statementId: string) => void
@@ -21,6 +23,7 @@ export default function ManualDeliveryForm({
   fornitoreId,
   sedeId,
   languageHint,
+  supplierEmail,
   className = '',
   onSuccess,
   onError,
@@ -35,6 +38,7 @@ export default function ManualDeliveryForm({
   const [loading, setLoading] = useState(false)
   const [localError, setLocalError] = useState<string | null>(null)
   const [localOk, setLocalOk] = useState<string | null>(null)
+  const [emailSupplier, setEmailSupplier] = useState(true)
 
   useEffect(() => {
     if (!preview) return
@@ -109,7 +113,29 @@ export default function ManualDeliveryForm({
         return
       }
       if (data.statementId) {
-        setLocalOk(t.dashboard.manualReceiptSaved)
+        const descForMail = trimmed || t.dashboard.manualReceiptEmailDescPhotoOnly
+        let okMsg = t.dashboard.manualReceiptSaved
+
+        if (emailSupplier && supplierEmail?.trim()) {
+          const mailRes = await fetch('/api/richiedi-bolla-ordine', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fornitore_id: fornitoreId,
+              descrizione: descForMail,
+              sede_id: sedeId ?? null,
+              statement_id: data.statementId,
+            }),
+          })
+          const mailData = (await mailRes.json().catch(() => ({}))) as { error?: string }
+          if (mailRes.ok) {
+            okMsg = `${t.dashboard.manualReceiptSaved} ${t.dashboard.manualReceiptEmailSent}`
+          } else {
+            okMsg = `${t.dashboard.manualReceiptSaved} ${t.dashboard.manualReceiptEmailFailed}${mailData.error ? ` (${mailData.error})` : ''}`
+          }
+        }
+
+        setLocalOk(okMsg)
         setText('')
         clearPhoto()
         onSuccess?.(data.statementId)
@@ -206,6 +232,28 @@ export default function ManualDeliveryForm({
             <img src={preview} alt="" className="max-h-40 w-full object-contain bg-slate-900/50" />
           </div>
         ) : null}
+
+        <label
+          className={`mb-3 flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left text-xs leading-snug transition-colors ${
+            supplierEmail?.trim()
+              ? 'border-cyan-500/25 bg-cyan-500/5 text-slate-200'
+              : 'cursor-not-allowed border-slate-700/60 bg-slate-800/40 text-slate-500'
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={Boolean(supplierEmail?.trim() && emailSupplier)}
+            disabled={loading || !supplierEmail?.trim()}
+            onChange={(e) => setEmailSupplier(e.target.checked)}
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-500 bg-slate-900 text-cyan-500 focus:ring-cyan-500/40 disabled:opacity-40"
+          />
+          <span>
+            <span className="font-semibold text-slate-100">{t.dashboard.manualReceiptEmailSupplierLabel}</span>
+            {!supplierEmail?.trim() ? (
+              <span className="mt-1 block text-[11px] text-slate-500">{t.dashboard.manualReceiptEmailSupplierHint}</span>
+            ) : null}
+          </span>
+        </label>
 
         {localError ? (
           <p className="mb-2 text-xs font-medium text-red-400" role="alert">

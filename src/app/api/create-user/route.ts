@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
 
   const { name, pin, sedeId, role } = await req.json()
 
-  if (!name?.trim() || !pin || !sedeId) {
+  const displayName = typeof name === 'string' ? name.trim().toUpperCase() : ''
+  if (!displayName || !pin || !sedeId) {
     return NextResponse.json({ error: 'Nome, PIN e sede sono obbligatori.' }, { status: 400 })
   }
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Email interna auto-generata (l'operatore non la usa mai)
-  const slug = name.trim().toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')
+  const slug = displayName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '')
   const rand = Math.random().toString(36).slice(2, 7)
   const internalEmail = `${slug}_${rand}@interno.fluxo`
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     email: internalEmail,
     password: String(pin),
     email_confirm: true,
-    user_metadata: { full_name: name.trim(), display_name: name.trim() },
+    user_metadata: { full_name: displayName, display_name: displayName },
   })
 
   if (createErr) {
@@ -54,12 +55,12 @@ export async function POST(req: NextRequest) {
 
   const { error: profileErr } = await adminClient
     .from('profiles')
-    .update({ sede_id: sedeId, role: role ?? 'operatore', full_name: name.trim() })
+    .update({ sede_id: sedeId, role: role ?? 'operatore', full_name: displayName })
     .eq('id', newUser.user!.id)
 
   if (profileErr) {
     return NextResponse.json({ error: `Operatore creato ma errore nel profilo: ${profileErr.message}` }, { status: 500 })
   }
 
-  return NextResponse.json({ message: `Operatore "${name.trim()}" creato con successo.` })
+  return NextResponse.json({ message: `Operatore "${displayName}" creato con successo.` })
 }

@@ -78,6 +78,10 @@ type Translations = {
     /** Rete tornata ma fase di stabilizzazione (pallino arancione). */
     connectionReconnecting: string
     emailSyncResumed: string
+    /** Stream NDJSON chiuso senza evento `done` (timeout proxy, errore server, ecc.). */
+    emailSyncStreamIncomplete: string
+    /** Toast dopo stop manuale sincronizzazione email. */
+    emailSyncCancelled: string
     reminderError:    string
     noReminders:      string
     remindersCount:   string   // "{n} sent of {total}" — built in code
@@ -87,6 +91,8 @@ type Translations = {
     operatorPinStepUpHint: string
     /** Step-up PIN: nessun operatore attivo in sessione */
     operatorPinStepUpNoActive: string
+    /** Step-up PIN: apre il modal «Cambio operatore» */
+    operatorPinStepUpChooseOperator: string
     verifyAndContinue: string
     /** Modal cambio operatore: timeout inattività */
     operatorAutoLockLabel: string
@@ -98,8 +104,13 @@ type Translations = {
     remindersSentMany: string
   }
   login: {
+    /** Sotto il logo FLUXO (maiuscole via CSS) */
+    brandTagline: string
     subtitle: string
+    /** Titolo sotto il logo in modalità admin */
     adminSubtitle: string
+    /** Chiarimento (riga secondaria, più discreta) */
+    adminSubtitleHint: string
     nameLabel: string
     namePlaceholder: string
     /** Etichetta codice sede (ex PIN) */
@@ -121,6 +132,10 @@ type Translations = {
     notFound: string
     /** Email/password login is reserved for administrators */
     adminOnlyEmail: string
+    /** PIN per sbloccare il form admin (se configurato in server) */
+    adminGateLabel: string
+    adminGateHint: string
+    adminGateWrong: string
   }
   nav: {
     dashboard: string
@@ -135,6 +150,11 @@ type Translations = {
     logEmail: string
     sedi: string
     sediTitle: string
+    /** Gruppo sedi in sidebar (solo master admin / Portale Gestionale) */
+    sediNavGroupMaster: string
+    /** Link /sedi con sede associata: sostituire `{name}` */
+    gestisciSedeNamed: string
+    /** Link /sedi senza sede sul profilo (fallback) */
     gestisciSedi: string
     tuttiFornitori: string
     cerca: string
@@ -212,6 +232,8 @@ type Translations = {
     aiExtracted: string
     matched: string
     notMatched: string
+    /** Badge dati IA: fornitore già scelto in anagrafica anche se OCR non ha auto-match */
+    recordSupplierLinked: string
     company: string
     invoiceNum: string
     total: string
@@ -237,11 +259,27 @@ type Translations = {
     emailSyncScopeFiscal: string
     emailSyncFiscalYearSelectAria: string
     emailSyncScopeHint: string
+    /** Lookback: usa impostazione IMAP della sede */
+    emailSyncLookbackSedeDefault: string
+    /** Lookback: etichetta con segnaposto `{n}` (giorni) */
+    emailSyncLookbackDaysN: string
+    emailSyncLookbackDaysAria: string
+    emailSyncLookbackDaysHint: string
+    emailSyncDocumentKindAria: string
+    emailSyncDocumentKindHint: string
+    emailSyncDocumentKindAll: string
+    emailSyncDocumentKindFornitore: string
+    emailSyncDocumentKindBolla: string
+    emailSyncDocumentKindFattura: string
+    emailSyncDocumentKindEstratto: string
     syncing: string
     sendReminders: string
     sending: string
     viewLog: string
     sedeOverview: string
+    /** CTA con sede associata: sostituire `{name}` */
+    manageSedeNamed: string
+    /** CTA senza sede associata (fallback) */
     manageSedi: string
     /** Short badge when sede IMAP is configured */
     sedeImapOn: string
@@ -262,6 +300,13 @@ type Translations = {
     manualReceiptNeedSupplier: string
     /** Errore generico API ricevuta digitale (corpo risposta assente) */
     manualReceiptRegisterFailed: string
+    /** Checkbox: dopo “ricevuto senza bolla”, chiedi ordine + DDT via email */
+    manualReceiptEmailSupplierLabel: string
+    manualReceiptEmailSupplierHint: string
+    manualReceiptEmailSent: string
+    manualReceiptEmailFailed: string
+    /** Testo incluso nell’email se l’operatore ha solo la foto, senza testo */
+    manualReceiptEmailDescPhotoOnly: string
     /** Admin: titolo dashboard senza sede operativa selezionata */
     adminGlobalTitle: string
     adminGlobalSubtitle: string
@@ -279,6 +324,28 @@ type Translations = {
     manualDeliveryNeedSede: string
     /** Operator dashboard KPI — listino card subtitle */
     kpiPriceListSub: string
+    /** Pagina /listino — descrizione */
+    listinoOverviewHint: string
+    /** Pagina /listino — vuoto */
+    listinoOverviewEmpty: string
+    /** Pagina /listino — link scheda fornitore */
+    listinoOverviewOpenSupplier: string
+    /** Pagina /listino — nota limite righe {n} */
+    listinoOverviewLimitNote: string
+    /** Pagina /fatture/riepilogo — titolo */
+    fattureRiepilogoTitle: string
+    /** Pagina /fatture/riepilogo — descrizione */
+    fattureRiepilogoHint: string
+    /** Pagina /fatture/riepilogo — vuoto */
+    fattureRiepilogoEmpty: string
+    /** Pagina /fatture/riepilogo — nota limite tabella {n} */
+    fattureRiepilogoLimitNote: string
+    /** Pagina /fatture/riepilogo — link dettaglio fattura */
+    fattureRiepilogoOpenInvoice: string
+    /** Pagina /fatture/riepilogo — sottotitolo totale, {n} = conteggio fatture */
+    fattureRiepilogoCountLabel: string
+    /** Pagina /fatture/riepilogo — link elenco completo */
+    fattureRiepilogoLinkAll: string
     /** Operator dashboard — no statements in scope */
     kpiStatementNone: string
     /** Operator dashboard — all statements OK */
@@ -287,6 +354,8 @@ type Translations = {
     kpiStatementIssuesFooter: string
     /** Sottotitolo card Fornitori (KPI dashboard operatore) */
     kpiFornitoriSub: string
+    /** Card Da processare: sottotitolo sotto il conteggio (coda documenti) */
+    kpiDaProcessareSub: string
     /** Operatore: profilo senza sede assegnata */
     operatorNoSede: string
     /** Banner: OCR ha proposto un fornitore non in rubrica — {name} = nome estratto */
@@ -300,13 +369,15 @@ type Translations = {
     exitSedeView: string
     emailSyncQueued: string
     emailSyncPhaseConnect: string
+    emailSyncConnectToServer: string
+    emailSyncConnectOpeningMailbox: string
     emailSyncPhaseSearch: string
     emailSyncPhaseProcess: string
     emailSyncPhasePersist: string
     emailSyncPhaseDone: string
     emailSyncStalled: string
-    /** Sotto il messaggio stall — placeholder {current} e {max} (es. 1 di 3) */
-    emailSyncStalledReconnect: string
+    /** Chiarimento: stall = assenza heartbeat stream, non retry IMAP (quelli in rosso in connect). */
+    emailSyncStalledHint: string
     /** Retry connessione IMAP — {current} {max} */
     emailSyncImapRetryLine: string
     /** title tooltip sui numeri nella barra di sync */
@@ -323,12 +394,21 @@ type Translations = {
     emailSyncStatImportedLine: string
     /** Email passate per intero in elaborazione — {processed} */
     emailSyncStatProcessedLine: string
+    /** Opzionale se > 0 — {n} unità già in log da sync precedente */
+    emailSyncStatAlreadyLine: string
     /** Opzionale se > 0 — {ignored} */
     emailSyncStatIgnoredLine: string
     /** Opzionale se > 0 — {drafts} */
     emailSyncStatDraftsLine: string
     /** Unità = allegati PDF/immagine + corpi email idonei — {done}, {total} */
     emailSyncStatUnitsLine: string
+    /** Pulsante dettagli sync nell’header (aria-label) */
+    emailSyncStripDetailsExpandAria: string
+    emailSyncStripDetailsCollapseAria: string
+    emailSyncStop: string
+    emailSyncStopAria: string
+    emailSyncDismiss: string
+    emailSyncDismissAria: string
     /** Admin: nome estratto ripetutamente dal corpo email — placeholder {name} */
     potentialSupplierFromEmailBodyBanner: string
     potentialSupplierFromEmailBodyCta: string
@@ -363,6 +443,10 @@ type Translations = {
     rekkiConnectedBadge: string
     rekkiCachedListBanner: string
     rekkiLookupNeedVat: string
+    /** Dopo incolla link Rekki e blur */
+    rekkiIdExtractedFromLink: string
+    /** Un solo risultato API P.IVA → salvataggio automatico */
+    rekkiAutoLinkedSingle: string
     saving: string
     // supplier detail page tabs & KPIs
     tabRiepilogo: string
@@ -420,6 +504,11 @@ type Translations = {
     displayNamePlaceholder: string
     /** Sincronizzazione email mirata: manca sede sul fornitore */
     syncEmailNeedSede: string
+    /** Attesa caricamento scheda fornitore (logo + messaggio) */
+    loadingProfile: string
+    logoUrlLabel: string
+    logoUrlPlaceholder: string
+    logoUrlHint: string
   }
   bolle: {
     title: string
@@ -472,6 +561,11 @@ type Translations = {
     apri: string
     /** Column: delivery note number */
     colNumero: string
+    /** Column: attachment file kind (PDF / image) from URL */
+    colAttachmentKind: string
+    attachmentKindPdf: string
+    attachmentKindImage: string
+    attachmentKindOther: string
     /** Empty state: no bolle registered yet */
     nessunaBollaRegistrata: string
     /** Empty state: CTA link */
@@ -553,6 +647,10 @@ type Translations = {
     nuova: string
     nuovaFattura: string
     documento: string
+    /** Parentesi dopo il conteggio fatture: «(2 in attesa)» — placeholder `{n}` */
+    pendingDocCount: string
+    /** Link verso /statements per documenti email in coda */
+    linkAssociateStatements: string
   }
   impostazioni: {
     title: string
@@ -600,8 +698,12 @@ type Translations = {
     colLogId: string
   }
   sedi: {
+    /** Contesto singola sede (es. copy IMAP / admin_sede); non usare per la lista `/sedi` (solo master email/password). */
     title: string
     subtitle: string
+    /** Lista `/sedi` e dashboard globale: solo `role === 'admin'` (accesso email/password), mai `admin_sede` (nome+PIN). */
+    titleGlobalAdmin: string
+    subtitleGlobalAdmin: string
     newSede: string
     noSedi: string
     users: string
@@ -629,6 +731,8 @@ type Translations = {
     operatoreRole: string
     adminRole: string
     adminSedeRole: string
+    /** Etichetta per `profiles.role === 'admin'` in elenco operatori (≠ badge Amministratore in sidebar) */
+    profileRoleAdmin: string
     /** Admin con sede sul profilo: vista limitata su /sedi */
     adminScopedSediHint: string
     renameTitle: string
@@ -646,6 +750,10 @@ type Translations = {
     // tabs
     tabVerifica: string
     tabDocumenti: string
+    /** Sottotitolo scheda nav — documenti in coda email */
+    schedaNavDaProcessareDesc: string
+    /** Sottotitolo scheda nav — triple-check estratti */
+    schedaNavVerificaDesc: string
     // check status badge labels
     statusOk: string
     statusFatturaMancante: string
@@ -723,11 +831,28 @@ type Translations = {
     gotoBollaDraft: string
     toggleAddStatement: string
     toggleRemoveStatement: string
+    /** Chip corto: tipo documento in coda */
+    docKindEstratto: string
+    docKindBolla: string
+    docKindFattura: string
+    docKindHintBolla: string
+    docKindHintFattura: string
+    docKindGroupAria: string
+    finalizeNeedsSupplier: string
+    btnFinalizeFattura: string
+    btnFinalizeBolla: string
+    btnFinalizeStatement: string
+    btnFinalizing: string
+    finalizeSuccess: string
     // PendingMatchesTab — empty states
     noPendingDocs: string
     noDocsFound: string
     noBolleAttesa: string
     unknownSender: string
+    /** Pending queue: same normalized address as other docs, different OCR company names; `{names}` = joined labels */
+    sameAddressClusterHint: string
+    /** AiDataCard: apre /fornitori/new con dati OCR in query */
+    btnCreateSupplierFromAi: string
     // PendingMatchesTab — matching
     docTotalLabel: string
     exactAmount: string
@@ -755,6 +880,12 @@ type Translations = {
     reconcileDB: string
     loadingResults: string
     editSupplierTitle: string
+    supplierLinkFailed: string
+    assignFailed: string
+    /** Toast dopo auto-link fornitore da OCR (placeholder `{name}`) */
+    autoLinkedSupplierOne: string
+    /** Toast se più documenti collegati in un solo passaggio (placeholder `{count}`) */
+    autoLinkedSupplierMany: string
     ocrFormatToggleTitle: string
     allBolleInvoicedOk: string
     aiStatementTotalLabel: string
@@ -810,9 +941,12 @@ type Translations = {
     docUnavailableFatturaDesc: string
     backToHome: string
     sedeLockTitle: string
-    sedeLockSubtitle: string
+    /** Una riga con segnaposto `{name}` per il nome sede (es. «La sede {name} richiede…») */
+    sedeLockDescription: string
     sedeLockCodeLabel: string
     sedeLockPlaceholder: string
+    /** Errore validazione lunghezza PIN (client + allineato a API) */
+    sedeLockPinLengthError: string
     sectionDates: string
     sectionCurrencyLabel: string
     loadingBolle: string
@@ -935,6 +1069,9 @@ const it: Translations = {
     connectionOffline: 'Offline',
     connectionReconnecting: 'Riconnessione…',
     emailSyncResumed: 'Connessione ripristinata: sincronizzazione email ripresa.',
+    emailSyncStreamIncomplete:
+      'La sincronizzazione non è stata completata (risposta interrotta). Riprova.',
+    emailSyncCancelled: 'Sincronizzazione email interrotta.',
     reminderError:    'Errore durante l\'invio.',
     noReminders:      'Nessun sollecito da inviare (fornitori senza email?).',
     remindersCount:   'sollecit',
@@ -943,27 +1080,32 @@ const it: Translations = {
     pinError:         'Codice non corretto.',
     operatorPinStepUpTitle: 'Conferma operatore',
     operatorPinStepUpHint: 'Inserisci il codice a 4 cifre dell’operatore attivo per autorizzare questa modifica.',
-    operatorPinStepUpNoActive: 'Indica prima chi sta operando (barra in basso o menu), poi inserisci il codice.',
+    operatorPinStepUpNoActive:
+      'Nessun operatore attivo in questa sessione. Usa il pulsante qui sotto (o la barra in basso su mobile / voce nel menu laterale), scegli chi sta operando e poi inserisci il PIN.',
+    operatorPinStepUpChooseOperator: 'Scegli operatore',
     verifyAndContinue: 'Continua',
     operatorAutoLockLabel: 'Blocco automatico dopo',
     operatorAutoLockNever: 'Mai',
     operatorAutoLockMinutes: '{n} min',
   },
   login: {
-    subtitle: 'Accesso Sede: nome della sede e codice a 4 cifre',
-    adminSubtitle: 'Accesso Amministratore — supporto tecnico e configurazione sedi',
-    nameLabel: 'Nome sede',
+    brandTagline: 'Gestione fatture',
+    subtitle: 'Accesso sede: il tuo nome e codice a 4 cifre',
+    adminSubtitle: 'Portale Gestionale',
+    adminSubtitleHint:
+      'Email e password per il Portale Gestionale. Per nome operatore e codice usa «Accesso Sede» (responsabile sede e operatori).',
+    nameLabel: 'Nome',
     namePlaceholder: 'MARIO',
     pinLabel: 'Codice Accesso Sede',
     pinDigits: '(4 cifre)',
-    lookingUp: 'Ricerca sede…',
+    lookingUp: 'Verifica nome…',
     enterFirstName: 'Inserisci solo il nome e premi Tab',
     emailLabel: 'Email',
     emailPlaceholder: 'admin@azienda.it',
     passwordLabel: 'Password',
     passwordPlaceholder: 'Minimo 6 caratteri',
     loginBtn: 'Accedi',
-    adminLink: 'Accesso Amministratore →',
+    adminLink: 'Portale Gestionale →',
     operatorLink: '← Accesso Sede',
     pinIncorrect: 'Codice non corretto. Riprova.',
     invalidCredentials: 'Credenziali non valide.',
@@ -972,6 +1114,9 @@ const it: Translations = {
     notFound: 'Utente non trovato.',
     adminOnlyEmail:
       'Questo accesso è riservato agli amministratori. Usa Accesso Sede oppure chiedi il ruolo admin.',
+    adminGateLabel: 'Codice accesso schermata admin',
+    adminGateHint: 'Inserisci il PIN per sbloccare email e password.',
+    adminGateWrong: 'Codice non valido.',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -982,9 +1127,11 @@ const it: Translations = {
     fatture: 'Fatture',
     archivio: 'Archivio',
     logEmail: 'Log Email',
-    sedi: 'Sedi e Utenti',
-    sediTitle: 'Sedi',
-    gestisciSedi: 'Gestisci Sedi',
+    sedi: 'Sede e Utenti',
+    sediTitle: 'Sede',
+    sediNavGroupMaster: 'Sedi',
+    gestisciSedeNamed: 'Gestisci {name}',
+    gestisciSedi: 'Gestisci sedi',
     tuttiFornitori: 'Tutti i fornitori',
     cerca: 'Cerca…',
     nessunRisultato: 'Nessun risultato',
@@ -1035,12 +1182,13 @@ const it: Translations = {
     attachment: 'Allegato',
     openAttachment: 'Apri allegato',
     detail: 'Dettaglio',
-    add: '+ Aggiungi',
+    add: 'Aggiungi',
     rename: 'Rinomina',
     role: 'Ruolo',
     aiExtracted: 'Dati estratti dall\'IA',
     matched: 'Associato',
     notMatched: 'Non associato',
+    recordSupplierLinked: 'Collegato',
     company: 'Azienda',
     invoiceNum: 'N. Fattura',
     total: 'Totale',
@@ -1065,12 +1213,26 @@ const it: Translations = {
     emailSyncFiscalYearSelectAria: 'Periodo per la sincronizzazione email',
     emailSyncScopeHint:
       'IT, FR, DE, ES: anno civile. UK: anno fiscale che termina il 5 aprile (tax year). Ogni sede usa il proprio paese.',
+    emailSyncLookbackSedeDefault: 'Default sede (IMAP)',
+    emailSyncLookbackDaysN: 'Ultimi {n} giorni',
+    emailSyncLookbackDaysAria: 'Quanti giorni indietro cercare le email non lette',
+    emailSyncLookbackDaysHint:
+      'Default sede: usa i giorni impostati sulla sede. Altrimenti limita la ricerca IMAP agli ultimi N giorni (solo email non lette).',
+    emailSyncDocumentKindAria: 'Tipologia documenti da importare con la sincronizzazione email',
+    emailSyncDocumentKindHint:
+      'Tutto: comportamento predefinito. Nuovo fornitore: solo mittenti non in rubrica. Bolla / Fattura: forza il tipo di bozza creata. Estratto conto: solo messaggi con oggetto da estratto (statement).',
+    emailSyncDocumentKindAll: 'Tutti i documenti',
+    emailSyncDocumentKindFornitore: 'Nuovo fornitore',
+    emailSyncDocumentKindBolla: 'Bolla (DDT)',
+    emailSyncDocumentKindFattura: 'Fattura',
+    emailSyncDocumentKindEstratto: 'Estratto conto',
     syncing: 'Sincronizzazione...',
     sendReminders: 'Invia Solleciti',
     sending: 'Invio in corso...',
     viewLog: 'Vedi Log',
     sedeOverview: 'Panoramica per Sede',
-    manageSedi: 'Gestisci Sedi →',
+    manageSedeNamed: 'Gestisci {name} →',
+    manageSedi: 'Gestisci sedi →',
     sedeImapOn: 'Email attiva',
     digitalizzaRicevuto: 'Ricevuta digitale',
     kpiNoPendingBills: 'Nessuna bolla in attesa.',
@@ -1084,6 +1246,14 @@ const it: Translations = {
     manualReceiptRemovePhoto: 'Rimuovi foto',
     manualReceiptNeedSupplier: 'Seleziona un fornitore.',
     manualReceiptRegisterFailed: 'Registrazione non riuscita.',
+    manualReceiptEmailSupplierLabel:
+      'Invia email al fornitore per chiedere copia dell’ordine e della bolla di consegna (DDT)',
+    manualReceiptEmailSupplierHint:
+      'Aggiungi l’email del fornitore in anagrafica per abilitare l’invio.',
+    manualReceiptEmailSent: 'Email di richiesta inviata al fornitore.',
+    manualReceiptEmailFailed: 'Consegna registrata, ma l’email non è stata inviata.',
+    manualReceiptEmailDescPhotoOnly:
+      'È stata allegata una foto alla registrazione della consegna (nessun testo descrittivo).',
     adminGlobalTitle: 'Dashboard globale',
     adminGlobalSubtitle: 'Riepilogo di tutte le sedi. Seleziona una filiale dal menu o dalla card per la vista operativa.',
     adminGlobalTotalsLabel: 'Totali rete',
@@ -1094,10 +1264,24 @@ const it: Translations = {
     manualDeliveryNeedSede:
       'Seleziona un operatore attivo o assicurati che il tuo profilo sia associato a una sede per registrare una consegna.',
     kpiPriceListSub: 'righe nel listino',
+    listinoOverviewHint:
+      'Righe listino prezzi dei fornitori nel tuo ambito. Apri la scheda fornitore per modificare o importare da fattura.',
+    listinoOverviewEmpty: 'Nessuna riga listino in questo ambito.',
+    listinoOverviewOpenSupplier: 'Apri fornitore →',
+    listinoOverviewLimitNote: 'Mostrate le ultime {n} righe.',
+    fattureRiepilogoTitle: 'Totale fatture',
+    fattureRiepilogoHint:
+      'Somma degli importi nel tuo ambito. La tabella elenca le ultime fatture per data; apri la scheda per allegato e collegamenti.',
+    fattureRiepilogoEmpty: 'Nessuna fattura in questo ambito.',
+    fattureRiepilogoLimitNote: 'Mostrate le ultime {n} fatture (per data).',
+    fattureRiepilogoOpenInvoice: 'Apri fattura →',
+    fattureRiepilogoCountLabel: '{n} fatture',
+    fattureRiepilogoLinkAll: 'Tutte le fatture →',
     kpiStatementNone: 'Nessun estratto conto',
     kpiStatementAllOk: 'Nessuna anomalia',
     kpiStatementIssuesFooter: 'su {t} estratti controllati',
     kpiFornitoriSub: 'Anagrafica e ricerca',
+    kpiDaProcessareSub: 'documenti in coda',
     operatorNoSede:
       'Nessuna sede associata al tuo profilo. Contatta l’amministratore per collegarti alla filiale corretta.',
     suggestedSupplierBanner: 'Rilevato nuovo fornitore: {name}. Vuoi aggiungerlo?',
@@ -1110,13 +1294,16 @@ const it: Translations = {
     exitSedeView: 'Torna alla vista admin',
     emailSyncQueued: 'In coda — un\'altra sincronizzazione sta terminando…',
     emailSyncPhaseConnect: 'Connessione…',
+    emailSyncConnectToServer: 'Collegamento al server IMAP (rete, crittografia, accesso)…',
+    emailSyncConnectOpeningMailbox: 'Apertura della cartella In arrivo…',
     emailSyncPhaseSearch: 'Scansione testi…',
     emailSyncPhaseProcess: 'Analisi allegati con Vision AI…',
     emailSyncPhasePersist: 'Registrazione dati nel database…',
     emailSyncPhaseDone: 'Sincronizzazione completata.',
     emailSyncStalled:
       'Nessun aggiornamento da un po’ — con molti allegati la Vision può impiegare diversi minuti. Attendere…',
-    emailSyncStalledReconnect: 'Tentativo di riconnessione {current} di {max}…',
+    emailSyncStalledHint:
+      'Significa solo che non arrivano messaggi sul flusso (normale con OCR lungo). I tentativi reali sulla casella email compaiono sopra in rosso durante «Connessione».',
     emailSyncImapRetryLine: 'Connessione IMAP: tentativo {current} di {max}',
     emailSyncCountsHint: 'Trovate · nuove in app · elaborate · unità PDF o corpo email',
     emailSyncMailboxGlobal: 'Casella IMAP globale (variabili d’ambiente)',
@@ -1125,10 +1312,17 @@ const it: Translations = {
     emailSyncStatFoundLine: 'Trovate in casella: {found}',
     emailSyncStatImportedLine: 'Nuove in app (documenti importati): {imported}',
     emailSyncStatProcessedLine: 'Email elaborate (lette e analizzate): {processed}',
+    emailSyncStatAlreadyLine: 'Già elaborate in sync precedente (nessun nuovo import): {n}',
     emailSyncStatIgnoredLine: 'Senza esito o ignorate: {ignored}',
     emailSyncStatDraftsLine: 'Bozze create automaticamente: {drafts}',
     emailSyncStatUnitsLine:
       'Unità da analizzare (allegati PDF/immagine o corpo email lungo): {done} / {total}',
+    emailSyncStripDetailsExpandAria: 'Mostra dettagli sincronizzazione email',
+    emailSyncStripDetailsCollapseAria: 'Nascondi dettagli sincronizzazione email',
+    emailSyncStop: 'Stop',
+    emailSyncStopAria: 'Interrompi sincronizzazione email',
+    emailSyncDismiss: 'Chiudi',
+    emailSyncDismissAria: 'Chiudi riepilogo sincronizzazione email',
     potentialSupplierFromEmailBodyBanner:
       'Trovato potenziale fornitore (da testo email): {name}. Vuoi associarlo?',
     potentialSupplierFromEmailBodyCta: 'Apri creazione fornitore',
@@ -1163,6 +1357,8 @@ const it: Translations = {
     rekkiConnectedBadge: 'Rekki',
     rekkiCachedListBanner: 'Dati in cache (connessione assente). Le modifiche potrebbero non essere aggiornate.',
     rekkiLookupNeedVat: 'Aggiungi la P.IVA al fornitore per cercare su Rekki.',
+    rekkiIdExtractedFromLink: 'ID fornitore ricavato dal link Rekki.',
+    rekkiAutoLinkedSingle: 'Un solo fornitore trovato per questa P.IVA — collegamento Rekki salvato.',
     saving: 'Salvataggio...',
     tabRiepilogo: 'Riepilogo',
     tabListino: 'Listino / Prezzi',
@@ -1214,6 +1410,11 @@ const it: Translations = {
       'Opzionale. Se compilato, viene usato nella barra in basso su mobile e negli elenchi compatti al posto del nome completo.',
     displayNamePlaceholder: 'es. Amalfi',
     syncEmailNeedSede: 'Assegna una sede al fornitore per sincronizzare le email.',
+    loadingProfile: 'Stiamo caricando anagrafica, documenti e riepilogo del fornitore…',
+    logoUrlLabel: 'Logo fornitore (URL)',
+    logoUrlPlaceholder: 'https://esempio.it/logo.png',
+    logoUrlHint:
+      'Indirizzo HTTPS di un’immagine (PNG, JPG o SVG). Se il link non è valido o non si carica, restano le iniziali del nome.',
   },
   bolle: {
     title: 'Bolle',
@@ -1257,6 +1458,10 @@ const it: Translations = {
     statoInAttesa: 'In attesa',
     apri: 'Apri',
     colNumero: 'Numero',
+    colAttachmentKind: 'Allegato',
+    attachmentKindPdf: 'PDF',
+    attachmentKindImage: 'Immagine',
+    attachmentKindOther: 'File',
     nessunaBollaRegistrata: 'Nessuna bolla registrata',
     creaLaPrimaBolla: 'Crea la prima bolla →',
     vediDocumento: 'Vedi documento',
@@ -1326,6 +1531,8 @@ const it: Translations = {
     nuova: '+ Nuova',
     nuovaFattura: '+ Fattura',
     documento: 'Documento',
+    pendingDocCount: '({n} in attesa)',
+    linkAssociateStatements: 'Associa →',
   },
   impostazioni: {
     title: 'Impostazioni',
@@ -1372,8 +1579,10 @@ const it: Translations = {
     colLogId: 'ID log',
   },
   sedi: {
-    title: 'Sedi e Utenti',
-    subtitle: 'Gestisci le sedi, la sincronizzazione email e gli operatori',
+    title: 'Sede e Utenti',
+    subtitle: 'Gestisci la sede, la sincronizzazione email e gli operatori',
+    titleGlobalAdmin: 'Sedi',
+    subtitleGlobalAdmin: 'Gestisci le sedi, la sincronizzazione email e gli operatori',
     newSede: 'Nuova Sede',
     noSedi: 'Nessuna sede creata. Inizia aggiungendo la prima sede.',
     users: 'Utenti',
@@ -1399,8 +1608,9 @@ const it: Translations = {
     ruoloHeader: 'Ruolo',
     nessunaSedeOption: '— Nessuna sede —',
     operatoreRole: 'Operatore',
-    adminRole: 'Admin',
-    adminSedeRole: 'Admin sede',
+    adminRole: 'Portale Gestionale',
+    adminSedeRole: 'Amministratore Sede',
+    profileRoleAdmin: 'Portale Gestionale',
     adminScopedSediHint:
       'Vedi solo la sede collegata al tuo profilo. Nuove sedi e la sezione «Utenti senza sede» sono riservate all’amministratore principale (profilo admin senza sede).',
     renameTitle: 'Rinomina',
@@ -1414,8 +1624,10 @@ const it: Translations = {
   },
   statements: {
     heading: 'Verifica Estratti Conto Mensili',
-    tabVerifica: 'Estratto Conto',
+    tabVerifica: 'Estratti Conto',
     tabDocumenti: 'Da Processare',
+    schedaNavDaProcessareDesc: 'Allegati in arrivo: associa fornitori, bolle e fatture.',
+    schedaNavVerificaDesc: 'Controllo mensile estratti conto vs bolle e fatture.',
     statusOk: 'OK',
     statusFatturaMancante: 'Fattura mancante',
     statusBolleManc: 'Bolle mancanti',
@@ -1480,10 +1692,25 @@ const it: Translations = {
     gotoBollaDraft: 'Vai alla bolla bozza →',
     toggleAddStatement: 'Aggiungi a estratto conto',
     toggleRemoveStatement: 'Rimuovi da estratto conto',
+    docKindEstratto: 'Estratto',
+    docKindBolla: 'Bolla',
+    docKindFattura: 'Fattura',
+    docKindHintBolla: 'Segna come bolla di consegna (DDT), non estratto conto né fattura da incrociare',
+    docKindHintFattura: 'Segna come fattura da associare alle bolle in attesa',
+    docKindGroupAria: 'Tipo di documento',
+    finalizeNeedsSupplier: 'Associa un fornitore per finalizzare.',
+    btnFinalizeFattura: 'Registra fattura (senza bolla)',
+    btnFinalizeBolla: 'Crea bolla da allegato',
+    btnFinalizeStatement: 'Archivia estratto',
+    btnFinalizing: 'Finalizzazione…',
+    finalizeSuccess: 'Documento registrato.',
     noPendingDocs: 'Nessun documento da esaminare',
     noDocsFound: 'Nessun documento trovato',
     noBolleAttesa: 'Nessuna bolla in attesa disponibile',
     unknownSender: 'Mittente sconosciuto',
+    sameAddressClusterHint:
+      'Stesso indirizzo su altri documenti in coda. Nomi azienda letti dall’IA sulle altre righe: {names}. Probabile stesso fornitore (ragioni sociali diverse sul documento): associa la stessa anagrafica.',
+    btnCreateSupplierFromAi: 'Crea fornitore →',
     docTotalLabel: 'Totale documento:',
     exactAmount: 'Importo esatto',
     exceeds: 'Eccedenza',
@@ -1507,6 +1734,10 @@ const it: Translations = {
     reconcileDB: 'DB:',
     loadingResults: 'Caricamento risultati…',
     editSupplierTitle: 'Modifica fornitore',
+    supplierLinkFailed: 'Impossibile collegare il fornitore al documento.',
+    assignFailed: 'Associazione alle bolle non riuscita.',
+    autoLinkedSupplierOne: 'Fornitore collegato automaticamente: {name}.',
+    autoLinkedSupplierMany: '{count} documenti collegati automaticamente ai fornitori.',
     ocrFormatToggleTitle: 'Forza interpretazione numerica alternativa',
     allBolleInvoicedOk: 'Tutte le bolle hanno una fattura corrispondente — estratto verificato ✓',
     aiStatementTotalLabel: 'Totale estratto (IA):',
@@ -1560,9 +1791,10 @@ const it: Translations = {
       'Non risulta alcuna fattura con questo link. Potrebbe essere stata eliminata, il link è errato, oppure non hai permesso di vederla da questa sede o con questo profilo.',
     backToHome: 'Torna alla dashboard',
     sedeLockTitle: 'Accesso protetto',
-    sedeLockSubtitle: 'richiede un codice di accesso',
-    sedeLockCodeLabel: 'Codice accesso',
-    sedeLockPlaceholder: '••••••••',
+    sedeLockDescription: 'La sede {name} richiede un PIN numerico a 4 cifre.',
+    sedeLockCodeLabel: 'PIN (4 cifre)',
+    sedeLockPlaceholder: '••••',
+    sedeLockPinLengthError: 'Inserisci un PIN di 4 cifre.',
     sectionDates: 'Date',
     sectionCurrencyLabel: 'Valuta',
     loadingBolle: 'Caricamento bolle…',
@@ -1682,6 +1914,9 @@ const en: Translations = {
     connectionOffline: 'Offline',
     connectionReconnecting: 'Reconnecting…',
     emailSyncResumed: 'Back online — email sync restarted.',
+    emailSyncStreamIncomplete:
+      'Sync did not finish (connection closed early). Please try again.',
+    emailSyncCancelled: 'Email sync stopped.',
     reminderError:    'Error sending reminders.',
     noReminders:      'No reminders to send (suppliers without email?).',
     remindersCount:   'reminder',
@@ -1690,27 +1925,32 @@ const en: Translations = {
     pinError:         'Incorrect code.',
     operatorPinStepUpTitle: 'Operator confirmation',
     operatorPinStepUpHint: 'Enter the active operator’s 4-digit code to authorise this change.',
-    operatorPinStepUpNoActive: 'Choose who is operating (bottom bar or menu) before entering the code.',
+    operatorPinStepUpNoActive:
+      'No active operator in this session. Use the button below (or the bottom bar on mobile / sidebar menu), pick who is operating, then enter the PIN.',
+    operatorPinStepUpChooseOperator: 'Choose operator',
     verifyAndContinue: 'Continue',
     operatorAutoLockLabel: 'Auto-lock after',
     operatorAutoLockNever: 'Off',
     operatorAutoLockMinutes: '{n} min',
   },
   login: {
-    subtitle: 'Branch access: location name and 4-digit code',
-    adminSubtitle: 'Administrator access — technical support and branch setup',
-    nameLabel: 'Branch name',
+    brandTagline: 'Invoice management',
+    subtitle: 'Branch access: your name and 4-digit code',
+    adminSubtitle: 'Management portal',
+    adminSubtitleHint:
+      'Use your admin email and password for the management portal. For operator name and PIN, use Branch access (branch admins and operators).',
+    nameLabel: 'Name',
     namePlaceholder: 'JOHN',
     pinLabel: 'Branch access code',
     pinDigits: '(4 digits)',
-    lookingUp: 'Looking up branch…',
-    enterFirstName: 'Enter the branch name and press Tab',
+    lookingUp: 'Checking name…',
+    enterFirstName: 'Enter only the name and press Tab',
     emailLabel: 'Email',
     emailPlaceholder: 'admin@company.com',
     passwordLabel: 'Password',
     passwordPlaceholder: 'Minimum 6 characters',
     loginBtn: 'Sign In',
-    adminLink: 'Administrator access →',
+    adminLink: 'Management portal →',
     operatorLink: '← Branch access',
     pinIncorrect: 'Incorrect code. Please try again.',
     invalidCredentials: 'Invalid credentials.',
@@ -1718,6 +1958,9 @@ const en: Translations = {
     accessing: 'Signing in…',
     notFound: 'User not found.',
     adminOnlyEmail: 'This sign-in is for administrators only. Use branch access or ask for an admin account.',
+    adminGateLabel: 'Admin screen unlock code',
+    adminGateHint: 'Enter the PIN to unlock email and password.',
+    adminGateWrong: 'Invalid code.',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -1728,9 +1971,11 @@ const en: Translations = {
     fatture: 'Invoices',
     archivio: 'Archive',
     logEmail: 'Email Log',
-    sedi: 'Locations & Users',
-    sediTitle: 'Branches',
-    gestisciSedi: 'Manage Locations',
+    sedi: 'Location & Users',
+    sediTitle: 'Branch',
+    sediNavGroupMaster: 'Locations',
+    gestisciSedeNamed: 'Manage {name}',
+    gestisciSedi: 'Manage locations',
     tuttiFornitori: 'All suppliers',
     cerca: 'Search…',
     nessunRisultato: 'No results',
@@ -1760,20 +2005,22 @@ const en: Translations = {
     noNotifications: 'No notifications',
     errorAlert: 'Sync errors (24h)',
   },
-  common: { save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', new: 'New', loading: 'Loading...', error: 'Error', success: 'Success', noData: 'No data', document: 'Document', actions: 'Actions', date: 'Date', status: 'Status', supplier: 'Supplier', notes: 'Notes', phone: 'Phone', saving: 'Saving...', attachment: 'Attachment', openAttachment: 'Open attachment', detail: 'Detail', add: '+ Add', rename: 'Rename', role: 'Role', aiExtracted: 'AI Extracted Data', matched: 'Matched', notMatched: 'Not matched', company: 'Company', invoiceNum: 'Invoice No.', total: 'Total' },
+  common: { save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', new: 'New', loading: 'Loading...', error: 'Error', success: 'Success', noData: 'No data', document: 'Document', actions: 'Actions', date: 'Date', status: 'Status', supplier: 'Supplier', notes: 'Notes', phone: 'Phone', saving: 'Saving...', attachment: 'Attachment', openAttachment: 'Open attachment', detail: 'Detail', add: 'Add', rename: 'Rename', role: 'Role', aiExtracted: 'AI Extracted Data', matched: 'Matched', notMatched: 'Not matched', recordSupplierLinked: 'Linked', company: 'Company', invoiceNum: 'Invoice No.', total: 'Total' },
   status: { inAttesa: 'Pending', completato: 'Completed', completata: 'Completed' },
-  dashboard: { title: 'Dashboard', subtitle: 'Purchasing overview', suppliers: 'Suppliers', totalBills: 'Total delivery notes', pendingBills: 'Pending notes', invoices: 'Invoices', recentBills: 'Recent delivery notes', viewAll: 'View all →', syncEmail: 'Sync Email', emailSyncScopeLookback: 'Recent days (location lookback)', emailSyncScopeFiscal: 'Fiscal year', emailSyncFiscalYearSelectAria: 'Email sync period', emailSyncScopeHint: 'IT, FR, DE, ES: calendar year. UK: tax year ending 5 April. Each location uses its own country.', syncing: 'Syncing...', sendReminders: 'Send reminders', sending: 'Sending...', viewLog: 'View Log', sedeOverview: 'Overview by Location', manageSedi: 'Manage Locations →', sedeImapOn: 'Email active', digitalizzaRicevuto: 'Digital receipt', kpiNoPendingBills: 'No pending delivery notes.', errorCountSuffix: 'errors', manualReceiptLabel: 'Received (no delivery note)', manualReceiptPlaceholder: 'e.g. 5 kg squid, 2 crates lemons', manualReceiptRegister: 'Register delivery', manualReceiptRegistering: 'Saving…', manualReceiptSaved: 'Delivery registered.', manualReceiptNeedTextOrPhoto: 'Enter a description or attach a photo.', manualReceiptRemovePhoto: 'Remove photo', manualReceiptNeedSupplier: 'Select a supplier.', manualReceiptRegisterFailed: 'Registration failed.', adminGlobalTitle: 'Global dashboard', adminGlobalSubtitle: 'Summary of all locations. Pick a branch from the menu or a card for the operational view.', adminGlobalTotalsLabel: 'Network totals', adminOpenBranchDashboard: 'Operational view', adminSedeSettingsLink: 'Branch page', adminDocQueueShort: 'In queue', rekkiOrder: 'Order on Rekki', manualDeliveryNeedSede: 'Select an active operator or ensure your profile is linked to a location to register a delivery.', kpiPriceListSub: 'rows in price list', kpiStatementNone: 'No statements yet', kpiStatementAllOk: 'No anomalies', kpiStatementIssuesFooter: 'of {t} statements checked', kpiFornitoriSub: 'Directory & search', operatorNoSede: 'No branch is linked to your profile. Ask an administrator to assign you to the correct location.', suggestedSupplierBanner: 'New supplier detected: {name}. Add them?', suggestedSupplierAdd: 'New supplier', suggestedSupplierImport: 'Import from OCR', enterAsSede: 'Enter as location', syncHealthAlert: 'Sync issue (IMAP or OCR)', syncHealthOcrCount: 'OCR failures (48h): {n}', viewingAsSedeBanner: 'You are viewing the dashboard as:', exitSedeView: 'Back to admin overview', emailSyncQueued: 'Queued — another sync is finishing…', emailSyncPhaseConnect: 'Connecting…', emailSyncPhaseSearch: 'Scanning message text…', emailSyncPhaseProcess: 'Attachment analysis with Vision AI…', emailSyncPhasePersist: 'Saving to database…', emailSyncPhaseDone: 'Sync completed.', emailSyncStalled: 'No updates for a while — Vision AI can take several minutes on many attachments. Please wait…', emailSyncStalledReconnect: 'Reconnect attempt {current} of {max}…', emailSyncImapRetryLine: 'IMAP connection: attempt {current} of {max}', emailSyncCountsHint: 'Found · new in app · processed · PDF/body units', emailSyncMailboxGlobal: 'Global IMAP inbox (environment variables)', emailSyncMailboxSede: 'Inbox: {name}', emailSyncSupplierFilterLine: 'Supplier filter: {name}', emailSyncStatFoundLine: 'Found in mailbox: {found}', emailSyncStatImportedLine: 'New in app (documents imported): {imported}', emailSyncStatProcessedLine: 'Emails fully processed: {processed}', emailSyncStatIgnoredLine: 'Skipped or no result: {ignored}', emailSyncStatDraftsLine: 'Auto-created delivery note drafts: {drafts}', emailSyncStatUnitsLine: 'Units to scan (PDF/image attachments + eligible email bodies): {done} / {total}', potentialSupplierFromEmailBodyBanner: 'Potential supplier from email text: {name}. Associate them?', potentialSupplierFromEmailBodyCta: 'Open new supplier' },
-  fornitori: { title: 'Suppliers', new: 'New Supplier', nome: 'Name / Company', email: 'Email', piva: 'VAT Number', noSuppliers: 'No suppliers yet.', addFirst: 'Add the first supplier →', editTitle: 'Edit Supplier', saveChanges: 'Save Changes', notFound: 'Supplier not found.', deleteConfirm: 'Delete this supplier? All linked delivery notes and invoices will also be deleted.', importaDaFattura: 'Import from Invoice', countLabel: 'suppliers registered', namePlaceholder: 'e.g. Smith & Co Ltd', emailPlaceholder: 'supplier@example.com', pivaLabel: 'VAT Number', pivaPlaceholder: 'GB123456789', addressLabel: 'Address (optional)', addressPlaceholder: 'Street, postcode, city', rekkiLinkLabel: 'Rekki link (optional)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'Rekki ID (optional)', rekkiIdPlaceholder: 'e.g. supplier ID on Rekki', rekkiIntegrationTitle: 'Rekki integration', rekkiLookupByVat: 'Search Rekki (VAT)', rekkiSaveRekkiMapping: 'Save Rekki link', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Cached data (offline). Updates may be stale.', rekkiLookupNeedVat: 'Add the VAT number on the supplier record to search Rekki.', saving: 'Saving...', tabRiepilogo: 'Overview', tabListino: 'Price List', tabStrategyConto: 'Statement', kpiBolleTotal: 'Total delivery notes', kpiFatture: 'Invoices received', kpiPending: 'Pending documents', kpiReconciliation: 'Reconciliation', subAperte: 'open', subConfermate: 'confirmed', subDaAbbinare: 'to match', subChiuse: 'notes closed', subListinoRows: 'price list rows in period', subStatementsNoneInMonth: 'none this month', subStatementsAllVerified: 'all verified OK', subStatementsWithIssues: 'with issues', helpText: 'Go to the <b>Statement</b> tab to match documents and delivery notes, or to <b>Delivery Notes</b> and <b>Invoices</b> for the full history.', listinoSetupTitle: 'Price list table not yet created', listinoSetupSubtitle: 'Activate per-product price tracking in 2 clicks:', listinoSetupStep1: 'Click <strong class="font-bold text-slate-100">"Copy SQL"</strong> below', listinoSetupStep2: 'Open the <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, paste and click <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Show full SQL ▸', listinoCopySQL: 'Copy SQL', listinoCopied: 'Copied!', listinoProdotti: 'Products Price List', listinoProdottiTracked: 'products tracked', listinoNoData: 'No product prices recorded', listinoNoDataHint: 'Enter prices directly in the <code class="font-mono text-slate-300">listino_prezzi</code> table on Supabase.', listinoTotale: 'Total spent', listinoDaBolle: 'From delivery notes', listinoDaFatture: 'From invoices', listinoStorico: 'Document history', listinoDocs: 'documents', listinoNoDocs: 'No documents with amount recorded', listinoColData: 'Date', listinoColTipo: 'Type', listinoColNumero: 'Number', listinoColImporto: 'Amount', listinoColTotale: 'Total', preferredLanguageEmail: 'Preferred language (for emails)', languageInheritSede: '— Inherit from location —', recognizedEmailsTitle: 'Recognized emails', recognizedEmailsHint: 'Additional addresses from which this supplier may send documents. Email scanning matches them automatically.', recognizedEmailPlaceholder: 'e.g. invoices@supplier.example.com', recognizedEmailLabelOptional: 'Label (optional)', displayNameLabel: 'Short display name', displayNameHint: 'Optional. Shown in the mobile bottom bar and compact lists instead of the full legal name.', displayNamePlaceholder: 'e.g. Amalfi', syncEmailNeedSede: 'Assign a location to the supplier to sync email.' },
-  bolle: { title: 'Delivery Notes', new: 'New Delivery Note', uploadInvoice: 'Upload Invoice', viewDocument: 'View Document', noBills: 'No delivery notes yet.', addFirst: 'Register the first delivery note →', deleteConfirm: 'Delete this delivery note? Linked invoices will also be deleted.', ocrScanning: 'Recognizing supplier…', ocrMatched: 'Supplier recognized', ocrNotFound: 'Select supplier manually', ocrAnalyzing: 'Analyzing…', ocrAutoRecognized: 'Recognized automatically', ocrRead: 'Read:', selectManually: 'Select supplier', saveNote: 'Save Delivery Note', savingNote: 'Saving…', analyzingNote: 'Analyzing document…', takePhotoOrFile: 'Take photo or choose file', ocrHint: 'Supplier will be recognized automatically', cameraBtn: 'Camera', fileBtn: 'Choose file', countSingolo: 'delivery note registered', countPlural: 'delivery notes registered', countTodaySingolo: 'delivery note today', countTodayPlural: 'delivery notes today', noBillsToday: 'No delivery notes for today.', listShowAll: 'All delivery notes', listShowToday: 'Today only', listAllPending: 'Pending only', fotoLabel: 'Photo / Delivery Note File', fornitoreLabel: 'Supplier', dataLabel: 'Delivery Note Date', dettaglio: 'Delivery Note Detail', fattureCollegate: 'Linked invoices', aggiungi: '+ Add', nessunaFatturaCollegata: 'No linked invoices.', allegatoLink: 'Attachment →', statoCompletato: 'Completed', statoInAttesa: 'Pending', apri: 'Open', colNumero: 'Number', nessunaBollaRegistrata: 'No delivery notes registered', creaLaPrimaBolla: 'Create the first delivery note →', vediDocumento: 'View document', dateFromDocumentHint: 'From document', prezzoDaApp: 'App price', verificaPrezzoFornitore: 'Verify supplier price', rekkiPrezzoIndicativoBadge: '⚠️ Indicative price from Rekki app', listinoRekkiRefTitle: 'Reference price list (Rekki)', listinoRekkiRefHint: 'With Rekki ID set on the supplier, compare this delivery note total with the latest imported list prices.', listinoRekkiRefEmpty: 'No price list rows for this supplier.', scannerTitle: 'AI Scanner', scannerWhatLabel: 'What are you uploading?', scannerModeAuto: 'Auto-detect', scannerModeBolla: 'Delivery note / DDT', scannerModeFattura: 'Invoice', scannerModeSupplier: 'New supplier', scannerFlowBolla: 'Delivery note registration', scannerFlowFattura: 'Invoice registration', scannerSaveFattura: 'Save invoice', scannerSavingFattura: 'Saving invoice…', scannerCreateSupplierCta: 'Create supplier from extracted data', scannerCreateSupplierFromUnrecognized: 'Create supplier from this document', scannerPdfPreview: 'PDF attached — preview not available' },
+  dashboard: { title: 'Dashboard', subtitle: 'Purchasing overview', suppliers: 'Suppliers', totalBills: 'Total delivery notes', pendingBills: 'Pending notes', invoices: 'Invoices', recentBills: 'Recent delivery notes', viewAll: 'View all →', syncEmail: 'Sync Email', emailSyncScopeLookback: 'Recent days (location lookback)', emailSyncScopeFiscal: 'Fiscal year', emailSyncFiscalYearSelectAria: 'Email sync period', emailSyncScopeHint: 'IT, FR, DE, ES: calendar year. UK: tax year ending 5 April. Each location uses its own country.', emailSyncLookbackSedeDefault: 'Location default (IMAP)', emailSyncLookbackDaysN: 'Last {n} days', emailSyncLookbackDaysAria: 'How far back to search for unread mail', emailSyncLookbackDaysHint: 'Location default uses the days set on the branch. Otherwise limit the IMAP search to the last N days (unread only).', emailSyncDocumentKindAria: 'Document types to import when syncing email', emailSyncDocumentKindHint: 'All: default. New supplier: only senders not in your directory. Delivery note / Invoice: force draft type. Statement: only emails whose subject looks like a bank/supplier statement.', emailSyncDocumentKindAll: 'All documents', emailSyncDocumentKindFornitore: 'New supplier', emailSyncDocumentKindBolla: 'Delivery note (DDT)', emailSyncDocumentKindFattura: 'Invoice', emailSyncDocumentKindEstratto: 'Statement', syncing: 'Syncing...', sendReminders: 'Send reminders', sending: 'Sending...', viewLog: 'View Log', sedeOverview: 'Overview by Location', manageSedeNamed: 'Manage {name} →', manageSedi: 'Manage locations →', sedeImapOn: 'Email active', digitalizzaRicevuto: 'Digital receipt', kpiNoPendingBills: 'No pending delivery notes.', errorCountSuffix: 'errors', manualReceiptLabel: 'Received (no delivery note)', manualReceiptPlaceholder: 'e.g. 5 kg squid, 2 crates lemons', manualReceiptRegister: 'Register delivery', manualReceiptRegistering: 'Saving…', manualReceiptSaved: 'Delivery registered.', manualReceiptNeedTextOrPhoto: 'Enter a description or attach a photo.', manualReceiptRemovePhoto: 'Remove photo', manualReceiptNeedSupplier: 'Select a supplier.', manualReceiptRegisterFailed: 'Registration failed.', manualReceiptEmailSupplierLabel: 'Email the supplier to request the purchase order and delivery note (DDT)', manualReceiptEmailSupplierHint: 'Add the supplier’s email on their profile to enable.', manualReceiptEmailSent: 'Request email sent to the supplier.', manualReceiptEmailFailed: 'Delivery saved, but the email could not be sent.', manualReceiptEmailDescPhotoOnly: 'A photo was attached to this delivery registration (no text description).', adminGlobalTitle: 'Global dashboard', adminGlobalSubtitle: 'Summary of all locations. Pick a branch from the menu or a card for the operational view.', adminGlobalTotalsLabel: 'Network totals', adminOpenBranchDashboard: 'Operational view', adminSedeSettingsLink: 'Branch page', adminDocQueueShort: 'In queue', rekkiOrder: 'Order on Rekki', manualDeliveryNeedSede: 'Select an active operator or ensure your profile is linked to a location to register a delivery.', kpiPriceListSub: 'rows in price list', listinoOverviewHint: 'Price list lines for suppliers in your scope. Open a supplier to edit or import from an invoice.', listinoOverviewEmpty: 'No price list rows in this scope.', listinoOverviewOpenSupplier: 'Open supplier →', listinoOverviewLimitNote: 'Showing the latest {n} rows.', fattureRiepilogoTitle: 'Invoice totals', fattureRiepilogoHint: 'Sum of amounts in your scope. The table lists the latest invoices by date; open one for attachment and links.', fattureRiepilogoEmpty: 'No invoices in this scope.', fattureRiepilogoLimitNote: 'Showing the latest {n} invoices (by date).', fattureRiepilogoOpenInvoice: 'Open invoice →', fattureRiepilogoCountLabel: '{n} invoices', fattureRiepilogoLinkAll: 'All invoices →', kpiStatementNone: 'No statements yet', kpiStatementAllOk: 'No anomalies', kpiStatementIssuesFooter: 'of {t} statements checked', kpiFornitoriSub: 'Directory & search', kpiDaProcessareSub: 'documents in queue', operatorNoSede: 'No branch is linked to your profile. Ask an administrator to assign you to the correct location.', suggestedSupplierBanner: 'New supplier detected: {name}. Add them?', suggestedSupplierAdd: 'New supplier', suggestedSupplierImport: 'Import from OCR', enterAsSede: 'Enter as location', syncHealthAlert: 'Sync issue (IMAP or OCR)', syncHealthOcrCount: 'OCR failures (48h): {n}', viewingAsSedeBanner: 'You are viewing the dashboard as:', exitSedeView: 'Back to admin overview', emailSyncQueued: 'Queued — another sync is finishing…', emailSyncPhaseConnect: 'Connecting…', emailSyncConnectToServer: 'Connecting to IMAP (network, TLS, sign-in)…', emailSyncConnectOpeningMailbox: 'Opening the Inbox…', emailSyncPhaseSearch: 'Scanning message text…', emailSyncPhaseProcess: 'Attachment analysis with Vision AI…', emailSyncPhasePersist: 'Saving to database…', emailSyncPhaseDone: 'Sync completed.', emailSyncStalled: 'No updates for a while — Vision AI can take several minutes on many attachments. Please wait…', emailSyncStalledHint: 'This only means the live sync stream is quiet — normal during long OCR. Real IMAP retry counts appear in the red banner above during the connect phase.', emailSyncImapRetryLine: 'IMAP connection: attempt {current} of {max}', emailSyncCountsHint: 'Found · new in app · processed · PDF/body units', emailSyncMailboxGlobal: 'Global IMAP inbox (environment variables)', emailSyncMailboxSede: 'Inbox: {name}', emailSyncSupplierFilterLine: 'Supplier filter: {name}', emailSyncStatFoundLine: 'Found in mailbox: {found}', emailSyncStatImportedLine: 'New in app (documents imported): {imported}', emailSyncStatProcessedLine: 'Emails fully processed: {processed}', emailSyncStatIgnoredLine: 'Skipped or no result: {ignored}', emailSyncStatDraftsLine: 'Auto-created delivery note drafts: {drafts}', emailSyncStatAlreadyLine: 'Already processed in a past sync (not imported again): {n}', emailSyncStatUnitsLine: 'Units to scan (PDF/image attachments + eligible email bodies): {done} / {total}', emailSyncStripDetailsExpandAria: 'Show email sync details', emailSyncStripDetailsCollapseAria: 'Hide email sync details', emailSyncStop: 'Stop', emailSyncStopAria: 'Stop email sync', emailSyncDismiss: 'Dismiss', emailSyncDismissAria: 'Dismiss email sync summary', potentialSupplierFromEmailBodyBanner: 'Potential supplier from email text: {name}. Associate them?', potentialSupplierFromEmailBodyCta: 'Open new supplier' },
+  fornitori: { title: 'Suppliers', new: 'New Supplier', nome: 'Name / Company', email: 'Email', piva: 'VAT Number', noSuppliers: 'No suppliers yet.', addFirst: 'Add the first supplier →', editTitle: 'Edit Supplier', saveChanges: 'Save Changes', notFound: 'Supplier not found.', deleteConfirm: 'Delete this supplier? All linked delivery notes and invoices will also be deleted.', importaDaFattura: 'Import from Invoice', countLabel: 'suppliers registered', namePlaceholder: 'e.g. Smith & Co Ltd', emailPlaceholder: 'supplier@example.com', pivaLabel: 'VAT Number', pivaPlaceholder: 'GB123456789', addressLabel: 'Address (optional)', addressPlaceholder: 'Street, postcode, city', rekkiLinkLabel: 'Rekki link (optional)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'Rekki ID (optional)', rekkiIdPlaceholder: 'e.g. supplier ID on Rekki', rekkiIntegrationTitle: 'Rekki integration', rekkiLookupByVat: 'Search Rekki (VAT)', rekkiSaveRekkiMapping: 'Save Rekki link', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Cached data (offline). Updates may be stale.', rekkiLookupNeedVat: 'Add the VAT number on the supplier record to search Rekki.', rekkiIdExtractedFromLink: 'Supplier ID extracted from the Rekki link.', rekkiAutoLinkedSingle: 'Only one Rekki supplier matched this VAT — Rekki link saved.', saving: 'Saving...', tabRiepilogo: 'Overview', tabListino: 'Price List', tabStrategyConto: 'Statement', kpiBolleTotal: 'Total delivery notes', kpiFatture: 'Invoices received', kpiPending: 'Pending documents', kpiReconciliation: 'Reconciliation', subAperte: 'open', subConfermate: 'confirmed', subDaAbbinare: 'to match', subChiuse: 'notes closed', subListinoRows: 'price list rows in period', subStatementsNoneInMonth: 'none this month', subStatementsAllVerified: 'all verified OK', subStatementsWithIssues: 'with issues', helpText: 'Go to the <b>Statement</b> tab to match documents and delivery notes, or to <b>Delivery Notes</b> and <b>Invoices</b> for the full history.', listinoSetupTitle: 'Price list table not yet created', listinoSetupSubtitle: 'Activate per-product price tracking in 2 clicks:', listinoSetupStep1: 'Click <strong class="font-bold text-slate-100">"Copy SQL"</strong> below', listinoSetupStep2: 'Open the <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, paste and click <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Show full SQL ▸', listinoCopySQL: 'Copy SQL', listinoCopied: 'Copied!', listinoProdotti: 'Products Price List', listinoProdottiTracked: 'products tracked', listinoNoData: 'No product prices recorded', listinoNoDataHint: 'Enter prices directly in the <code class="font-mono text-slate-300">listino_prezzi</code> table on Supabase.', listinoTotale: 'Total spent', listinoDaBolle: 'From delivery notes', listinoDaFatture: 'From invoices', listinoStorico: 'Document history', listinoDocs: 'documents', listinoNoDocs: 'No documents with amount recorded', listinoColData: 'Date', listinoColTipo: 'Type', listinoColNumero: 'Number', listinoColImporto: 'Amount', listinoColTotale: 'Total', preferredLanguageEmail: 'Preferred language (for emails)', languageInheritSede: '— Inherit from location —', recognizedEmailsTitle: 'Recognized emails', recognizedEmailsHint: 'Additional addresses from which this supplier may send documents. Email scanning matches them automatically.', recognizedEmailPlaceholder: 'e.g. invoices@supplier.example.com', recognizedEmailLabelOptional: 'Label (optional)', displayNameLabel: 'Short display name', displayNameHint: 'Optional. Shown in the mobile bottom bar and compact lists instead of the full legal name.', displayNamePlaceholder: 'e.g. Amalfi', loadingProfile: 'Loading supplier profile, documents and summary…', logoUrlLabel: 'Supplier logo (URL)', logoUrlPlaceholder: 'https://example.com/logo.png', logoUrlHint: 'HTTPS image (PNG, JPG or SVG). If it fails to load, initials are shown.', syncEmailNeedSede: 'Assign a location to the supplier to sync email.' },
+  bolle: { title: 'Delivery Notes', new: 'New Delivery Note', uploadInvoice: 'Upload Invoice', viewDocument: 'View Document', noBills: 'No delivery notes yet.', addFirst: 'Register the first delivery note →', deleteConfirm: 'Delete this delivery note? Linked invoices will also be deleted.', ocrScanning: 'Recognizing supplier…', ocrMatched: 'Supplier recognized', ocrNotFound: 'Select supplier manually', ocrAnalyzing: 'Analyzing…', ocrAutoRecognized: 'Recognized automatically', ocrRead: 'Read:', selectManually: 'Select supplier', saveNote: 'Save Delivery Note', savingNote: 'Saving…', analyzingNote: 'Analyzing document…', takePhotoOrFile: 'Take photo or choose file', ocrHint: 'Supplier will be recognized automatically', cameraBtn: 'Camera', fileBtn: 'Choose file', countSingolo: 'delivery note registered', countPlural: 'delivery notes registered', countTodaySingolo: 'delivery note today', countTodayPlural: 'delivery notes today', noBillsToday: 'No delivery notes for today.', listShowAll: 'All delivery notes', listShowToday: 'Today only', listAllPending: 'Pending only', fotoLabel: 'Photo / Delivery Note File', fornitoreLabel: 'Supplier', dataLabel: 'Delivery Note Date', dettaglio: 'Delivery Note Detail', fattureCollegate: 'Linked invoices', aggiungi: '+ Add', nessunaFatturaCollegata: 'No linked invoices.', allegatoLink: 'Attachment →', statoCompletato: 'Completed', statoInAttesa: 'Pending', apri: 'Open', colNumero: 'Number', colAttachmentKind: 'Attachment', attachmentKindPdf: 'PDF', attachmentKindImage: 'Image', attachmentKindOther: 'File', nessunaBollaRegistrata: 'No delivery notes registered', creaLaPrimaBolla: 'Create the first delivery note →', vediDocumento: 'View document', dateFromDocumentHint: 'From document', prezzoDaApp: 'App price', verificaPrezzoFornitore: 'Verify supplier price', rekkiPrezzoIndicativoBadge: '⚠️ Indicative price from Rekki app', listinoRekkiRefTitle: 'Reference price list (Rekki)', listinoRekkiRefHint: 'With Rekki ID set on the supplier, compare this delivery note total with the latest imported list prices.', listinoRekkiRefEmpty: 'No price list rows for this supplier.', scannerTitle: 'AI Scanner', scannerWhatLabel: 'What are you uploading?', scannerModeAuto: 'Auto-detect', scannerModeBolla: 'Delivery note / DDT', scannerModeFattura: 'Invoice', scannerModeSupplier: 'New supplier', scannerFlowBolla: 'Delivery note registration', scannerFlowFattura: 'Invoice registration', scannerSaveFattura: 'Save invoice', scannerSavingFattura: 'Saving invoice…', scannerCreateSupplierCta: 'Create supplier from extracted data', scannerCreateSupplierFromUnrecognized: 'Create supplier from this document', scannerPdfPreview: 'PDF attached — preview not available' },
   fatture: { title: 'Invoices', new: 'New Invoice', noInvoices: 'No invoices yet.', addFirst: 'Add the first invoice →', invoice: 'Invoice', openBill: 'Open delivery note →', deleteConfirm: 'Delete this invoice? This action is irreversible.', countLabel: 'invoices received', headerBolla: 'Delivery Note', headerAllegato: 'Attachment', apri: 'Open →', caricaFatturaTitle: 'Upload Invoice', bollaMarkata: 'The delivery note will be marked as complete', collegataABolla: 'Linked to a delivery note', bollaPasseraCompletato: 'On save the delivery note will be set to "completed"', dataFattura: 'Invoice Date', fileFattura: 'Invoice File', caricaPdfFoto: 'Upload PDF or take photo', maxSize: 'PDF, JPG, PNG, WebP — max 10 MB', savingInProgress: 'Saving...', salvaChiudiBolla: 'Save and Close Delivery Note', dettaglio: 'Detail', bollaCollegata: 'Linked delivery note', statusAssociata: 'Matched', statusSenzaBolla: 'No delivery note', colNumFattura: 'Invoice No.', nessunaFatturaRegistrata: 'No invoices registered' },
-  archivio: { title: 'Archive', subtitle: 'suppliers', noBills: 'No delivery notes', noInvoices: 'No invoices', withBill: 'With note', noEmail: 'No email', bollaS: 'note', bollaP: 'notes', fatturaS: 'invoice', fatturaP: 'invoices', editLink: 'Edit →', nuova: '+ New', nuovaFattura: '+ Invoice', documento: 'Document' },
+  archivio: { title: 'Archive', subtitle: 'suppliers', noBills: 'No delivery notes', noInvoices: 'No invoices', withBill: 'With note', noEmail: 'No email', bollaS: 'note', bollaP: 'notes', fatturaS: 'invoice', fatturaP: 'invoices', editLink: 'Edit →', nuova: '+ New', nuovaFattura: '+ Invoice', documento: 'Document', pendingDocCount: '({n} pending)', linkAssociateStatements: 'Match →' },
   impostazioni: { title: 'Settings', subtitle: 'Customize currency and timezone', lingua: 'Language', valuta: 'Currency', fuso: 'Timezone', preview: 'Preview', saved: 'Settings saved — reloading…', sectionLocalisation: 'Localisation', accountSection: 'Account', changeSede: 'Switch branch', addOperatorsPickSede: 'Choose the active branch under Locations first — then you can add operators (name + PIN) here.' },
   log: { title: 'Email Sync Log', subtitle: 'History of emails processed by automatic synchronization.', sender: 'Sender', subject: 'Subject', stato: 'Status', detail: 'Detail', retry: 'Retry', retrying: 'Retrying…', success: 'Success', bollaNotFound: 'Document Received', supplierNotFound: 'Unknown sender', noLogs: 'No logs yet.', emptyHint: 'Run an email sync from the Dashboard.', totalLogs: 'Total logs', linkedInvoices: 'Documents received', withErrors: 'With errors', vediFile: 'View file', supplierSuggested: 'Suggested supplier', aiSuggest: 'AI suggestion', aiSuggestTitle: 'Suggested company data (OCR)', aiSuggestLoading: 'Analyzing…', aiSuggestError: 'Could not analyze the document.', openCreateSupplier: 'Open create supplier', associateRememberHint: 'After saving, the sender email will be linked to this supplier for future syncs.', colAttachment: 'Attachment', colSede: 'Location', colLogId: 'Log ID' },
-  sedi: { title: 'Locations & Users', subtitle: 'Manage locations, email sync and operators', newSede: 'New Location', noSedi: 'No locations yet. Start by adding the first one.', users: 'Users', imap: 'Email Configuration (IMAP)', imapSubtitle: "Configure this location's email inbox. Invoices received here will be automatically matched to this location's suppliers.", imapHost: 'IMAP Host', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'Email / Username', imapPassword: 'Password', imapPasswordPlaceholder: 'Password or App Password', testConnection: 'Test connection', saveConfig: 'Save configuration', notConfigured: 'Email not configured', accessDenied: 'Access restricted to administrators', accessDeniedHint: 'Contact your admin to get access.', creatingBtn: 'Creating...', createBtn: 'Create', nomePlaceholder: 'e.g. London Office', nessunUtente: 'No users found.', emailHeader: 'Email', sedeHeader: 'Location', ruoloHeader: 'Role', nessunaSedeOption: '— No location —', operatoreRole: 'Operator', adminRole: 'Admin', adminSedeRole: 'Branch admin', adminScopedSediHint: 'You only see the location linked to your profile. New locations and the “Unassigned users” section are for the main administrator (admin with no location on profile).', renameTitle: 'Rename', deleteTitle: 'Delete', addOperatorSedeTitle: 'New operator', addOperatorSedeDesc: 'They sign in with name and PIN (min. 4 characters). Email is generated automatically.', operatorDisplayNameLabel: 'Display name', operatorPinMinLabel: 'PIN (min. 4 characters)', operatorNameRequired: 'Enter the operator’s name.', operatorPinTooShort: 'PIN must be at least 4 characters.' },
+  sedi: { title: 'Location & Users', titleGlobalAdmin: 'Locations', subtitle: 'Manage your location, email sync and operators', subtitleGlobalAdmin: 'Manage locations, email sync and operators', newSede: 'New Location', noSedi: 'No locations yet. Start by adding the first one.', users: 'Users', imap: 'Email Configuration (IMAP)', imapSubtitle: "Configure this location's email inbox. Invoices received here will be automatically matched to this location's suppliers.", imapHost: 'IMAP Host', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'Email / Username', imapPassword: 'Password', imapPasswordPlaceholder: 'Password or App Password', testConnection: 'Test connection', saveConfig: 'Save configuration', notConfigured: 'Email not configured', accessDenied: 'Access restricted to administrators', accessDeniedHint: 'Contact your admin to get access.', creatingBtn: 'Creating...', createBtn: 'Create', nomePlaceholder: 'e.g. London Office', nessunUtente: 'No users found.', emailHeader: 'Email', sedeHeader: 'Location', ruoloHeader: 'Role', nessunaSedeOption: '— No location —', operatoreRole: 'Operator', adminRole: 'Management portal', adminSedeRole: 'Branch administrator', profileRoleAdmin: 'Management portal', adminScopedSediHint: 'You only see the location linked to your profile. New locations and the “Unassigned users” section are for the main administrator (admin with no location on profile).', renameTitle: 'Rename', deleteTitle: 'Delete', addOperatorSedeTitle: 'New operator', addOperatorSedeDesc: 'They sign in with name and PIN (min. 4 characters). Email is generated automatically.', operatorDisplayNameLabel: 'Display name', operatorPinMinLabel: 'PIN (min. 4 characters)', operatorNameRequired: 'Enter the operator’s name.', operatorPinTooShort: 'PIN must be at least 4 characters.' },
   statements: {
     heading: 'Monthly Statement Verification',
     tabVerifica: 'Statement',
     tabDocumenti: 'Pending Documents',
+    schedaNavDaProcessareDesc: 'Incoming attachments: link suppliers, delivery notes and invoices.',
+    schedaNavVerificaDesc: 'Monthly statement check vs delivery notes and invoices.',
 
     statusOk: 'OK',
     statusFatturaMancante: 'Missing Invoice',
@@ -1839,10 +2086,25 @@ const en: Translations = {
     gotoBollaDraft: 'Go to delivery note draft →',
     toggleAddStatement: 'Add to statement',
     toggleRemoveStatement: 'Remove from statement',
+    docKindEstratto: 'Statement',
+    docKindBolla: 'Delivery note',
+    docKindFattura: 'Invoice',
+    docKindHintBolla: 'Mark as delivery note (GRN), not a monthly statement or invoice to match',
+    docKindHintFattura: 'Mark as invoice to match with pending delivery notes',
+    docKindGroupAria: 'Document type',
+    finalizeNeedsSupplier: 'Link a supplier to finalize.',
+    btnFinalizeFattura: 'Save invoice (no delivery note)',
+    btnFinalizeBolla: 'Create delivery note from file',
+    btnFinalizeStatement: 'Archive statement',
+    btnFinalizing: 'Saving…',
+    finalizeSuccess: 'Document saved.',
     noPendingDocs: 'No documents to review',
     noDocsFound: 'No documents found',
     noBolleAttesa: 'No pending delivery notes available',
     unknownSender: 'Unknown sender',
+    sameAddressClusterHint:
+      'Same address as other queued documents. OCR company names on those rows: {names}. Likely the same supplier — link the same contact.',
+    btnCreateSupplierFromAi: 'Create supplier →',
     docTotalLabel: 'Document total:',
     exactAmount: 'Exact amount',
     exceeds: 'Exceeds',
@@ -1866,6 +2128,10 @@ const en: Translations = {
     reconcileDB: 'DB:',
     loadingResults: 'Loading results…',
     editSupplierTitle: 'Edit supplier',
+    supplierLinkFailed: 'Could not link the supplier to this document.',
+    assignFailed: 'Could not assign to delivery notes.',
+    autoLinkedSupplierOne: 'Supplier linked automatically: {name}.',
+    autoLinkedSupplierMany: '{count} documents linked to suppliers automatically.',
     ocrFormatToggleTitle: 'Force alternate numeric format interpretation',
     allBolleInvoicedOk: 'Every delivery note has a matching invoice — statement verified ✓',
     aiStatementTotalLabel: 'AI-extracted statement total:',
@@ -1919,9 +2185,10 @@ const en: Translations = {
       'No invoice matches this link. It may have been deleted, the link may be wrong, or your account or branch may not have access.',
     backToHome: 'Back to dashboard',
     sedeLockTitle: 'Protected access',
-    sedeLockSubtitle: 'requires an access code',
-    sedeLockCodeLabel: 'Access code',
-    sedeLockPlaceholder: '••••••••',
+    sedeLockDescription: 'The branch {name} requires a 4-digit numeric PIN.',
+    sedeLockCodeLabel: 'PIN (4 digits)',
+    sedeLockPlaceholder: '••••',
+    sedeLockPinLengthError: 'Enter a 4-digit PIN.',
     sectionDates: 'Dates',
     sectionCurrencyLabel: 'Currency',
     loadingBolle: 'Loading delivery notes…',
@@ -2001,7 +2268,7 @@ const en: Translations = {
     toastDismiss: 'Dismiss',
     countrySaving: 'Saving…',
     countrySaved: 'Saved',
-    sidebarSediTitle: 'Branches',
+    sidebarSediTitle: 'Locations',
     deleteGenericConfirm: 'Delete this item? This cannot be undone.',
     deleteFailed: 'Error while deleting:',
     errorGenericTitle: 'Something went wrong',
@@ -2041,6 +2308,9 @@ const es: Translations = {
     connectionOffline: 'Sin conexión',
     connectionReconnecting: 'Reconectando…',
     emailSyncResumed: 'Conexión restablecida: reanudando sincronización de correo.',
+    emailSyncStreamIncomplete:
+      'La sincronización no terminó (conexión cerrada antes de tiempo). Inténtalo de nuevo.',
+    emailSyncCancelled: 'Sincronización de correo detenida.',
     reminderError:    'Error al enviar recordatorios.',
     noReminders:      'No hay recordatorios que enviar (¿proveedores sin email?).',
     remindersCount:   'recordatorio',
@@ -2049,27 +2319,32 @@ const es: Translations = {
     pinError:         'PIN incorrecto.',
     operatorPinStepUpTitle: 'Confirmación de operador',
     operatorPinStepUpHint: 'Introduce el PIN de 4 dígitos del operador activo para autorizar este cambio.',
-    operatorPinStepUpNoActive: 'Indica primero quién opera (barra inferior o menú) y luego el PIN.',
+    operatorPinStepUpNoActive:
+      'No hay operador activo en esta sesión. Usa el botón de abajo (o la barra inferior en móvil / menú lateral), elige quién opera e introduce el PIN.',
+    operatorPinStepUpChooseOperator: 'Elegir operador',
     verifyAndContinue: 'Continuar',
     operatorAutoLockLabel: 'Bloqueo automático tras',
     operatorAutoLockNever: 'Nunca',
     operatorAutoLockMinutes: '{n} min',
   },
   login: {
-    subtitle: 'Introduce solo tu nombre y el PIN para acceder',
-    adminSubtitle: 'Acceso administrador',
-    nameLabel: 'Solo nombre',
+    brandTagline: 'Gestión de facturas',
+    subtitle: 'Acceso: tu nombre y PIN de 4 cifras',
+    adminSubtitle: 'Portal de gestión',
+    adminSubtitleHint:
+      'Correo y contraseña para el portal de gestión. Para nombre de operador y PIN, usa «Acceso operador» (admins de sede y operadores).',
+    nameLabel: 'Nombre',
     namePlaceholder: 'JUAN',
     pinLabel: 'PIN',
     pinDigits: '(4 dígitos)',
-    lookingUp: 'Buscando sede…',
+    lookingUp: 'Comprobando nombre…',
     enterFirstName: 'Introduce solo el nombre y pulsa Tab',
     emailLabel: 'Email',
     emailPlaceholder: 'admin@empresa.com',
     passwordLabel: 'Contraseña',
     passwordPlaceholder: 'Mínimo 6 caracteres',
     loginBtn: 'Entrar',
-    adminLink: 'Acceso administrador →',
+    adminLink: 'Portal de gestión →',
     operatorLink: '← Acceso operador',
     pinIncorrect: 'PIN incorrecto. Inténtalo de nuevo.',
     invalidCredentials: 'Credenciales no válidas.',
@@ -2077,22 +2352,27 @@ const es: Translations = {
     accessing: 'Accediendo…',
     notFound: 'Usuario no encontrado.',
     adminOnlyEmail: 'Este acceso es solo para administradores. Usa nombre y PIN o pide una cuenta de administrador.',
+    adminGateLabel: 'Código de desbloqueo (admin)',
+    adminGateHint: 'Introduce el PIN para desbloquear correo y contraseña.',
+    adminGateWrong: 'Código no válido.',
   },
-  nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', archivio: 'Archivo', logEmail: 'Log Email', sedi: 'Sedes y Usuarios', sediTitle: 'Sedes', gestisciSedi: 'Gestionar Sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)' },
-  common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', phone: 'Teléfono', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: '+ Añadir', rename: 'Renombrar', role: 'Rol', aiExtracted: 'Datos extraídos por IA', matched: 'Asociado', notMatched: 'No asociado', company: 'Empresa', invoiceNum: 'N.º Factura', total: 'Total' },
+  nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', archivio: 'Archivo', logEmail: 'Log Email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)' },
+  common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', phone: 'Teléfono', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: 'Añadir', rename: 'Renombrar', role: 'Rol', aiExtracted: 'Datos extraídos por IA', matched: 'Asociado', notMatched: 'No asociado', recordSupplierLinked: 'Vinculado', company: 'Empresa', invoiceNum: 'N.º Factura', total: 'Total' },
   status: { inAttesa: 'Pendiente', completato: 'Completado', completata: 'Completada' },
-  dashboard: { title: 'Panel', subtitle: 'Resumen de compras', suppliers: 'Proveedores', totalBills: 'Total albaranes', pendingBills: 'Albaranes pendientes', invoices: 'Facturas', recentBills: 'Albaranes recientes', viewAll: 'Ver todos →', syncEmail: 'Sincronizar Email', emailSyncScopeLookback: 'Días recientes (sede)', emailSyncScopeFiscal: 'Año fiscal', emailSyncFiscalYearSelectAria: 'Periodo de sincronización de email', emailSyncScopeHint: 'IT, FR, DE, ES: año civil. UK: año fiscal que termina el 5 abr. Cada sede usa su país.', syncing: 'Sincronizando...', sendReminders: 'Enviar recordatorios', sending: 'Enviando...', viewLog: 'Ver Log', sedeOverview: 'Resumen por Sede', manageSedi: 'Gestionar Sedes →', sedeImapOn: 'Email activa', digitalizzaRicevuto: 'Digitalizar recibo', kpiNoPendingBills: 'No hay albaranes pendientes.', errorCountSuffix: 'errores', manualReceiptLabel: 'Recibido (sin albarán)', manualReceiptPlaceholder: 'p. ej. 5 kg calamares, 2 cajas limones', manualReceiptRegister: 'Registrar entrega', manualReceiptRegistering: 'Registrando…', manualReceiptSaved: 'Entrega registrada.', manualReceiptNeedTextOrPhoto: 'Introduce una descripción o adjunta una foto.', manualReceiptRemovePhoto: 'Quitar foto', manualReceiptNeedSupplier: 'Selecciona un proveedor.', manualReceiptRegisterFailed: 'No se pudo registrar.', adminGlobalTitle: 'Panel global', adminGlobalSubtitle: 'Resumen de todas las sedes. Elige una filial en el menú o en la tarjeta para la vista operativa.', adminGlobalTotalsLabel: 'Totales de la red', adminOpenBranchDashboard: 'Vista operativa', adminSedeSettingsLink: 'Ficha sede', adminDocQueueShort: 'En cola', rekkiOrder: 'Pedir en Rekki', manualDeliveryNeedSede: 'Selecciona un operador activo o asegúrate de que tu perfil esté vinculado a una sede para registrar una entrega.', kpiPriceListSub: 'líneas en el listino', kpiStatementNone: 'Sin extractos', kpiStatementAllOk: 'Sin anomalías', kpiStatementIssuesFooter: 'de {t} extractos revisados', kpiFornitoriSub: 'Directorio y búsqueda', operatorNoSede: 'Tu perfil no tiene sede asignada. Pide a un administrador que te vincule a la filial correcta.', suggestedSupplierBanner: 'Nuevo proveedor detectado: {name}. ¿Añadirlo?', suggestedSupplierAdd: 'Nuevo proveedor', suggestedSupplierImport: 'Importar desde OCR', enterAsSede: 'Entrar como sede', syncHealthAlert: 'Problema de sincronización (IMAP u OCR)', syncHealthOcrCount: 'Fallos OCR (48h): {n}', viewingAsSedeBanner: 'Estás viendo el panel como:', exitSedeView: 'Volver a vista admin', emailSyncQueued: 'En cola — otra sincronización está terminando…', emailSyncPhaseConnect: 'Conectando…', emailSyncPhaseSearch: 'Escaneando textos…', emailSyncPhaseProcess: 'Análisis de adjuntos con Vision IA…', emailSyncPhasePersist: 'Guardando en la base de datos…', emailSyncPhaseDone: 'Sincronización completada.', emailSyncStalled: 'Sin novedades — con muchos adjuntos la visión puede tardar varios minutos. Espera…', emailSyncStalledReconnect: 'Intento de reconexión {current} de {max}…', emailSyncImapRetryLine: 'Conexión IMAP: intento {current} de {max}', emailSyncCountsHint: 'Encontradas · nuevas en app · procesadas · unidades PDF/texto', emailSyncMailboxGlobal: 'Bandeja IMAP global (variables de entorno)', emailSyncMailboxSede: 'Bandeja: {name}', emailSyncSupplierFilterLine: 'Filtro proveedor: {name}', emailSyncStatFoundLine: 'Encontradas en el buzón: {found}', emailSyncStatImportedLine: 'Nuevas en la app (documentos importados): {imported}', emailSyncStatProcessedLine: 'Correos procesados (leídos y analizados): {processed}', emailSyncStatIgnoredLine: 'Omitidas o sin resultado: {ignored}', emailSyncStatDraftsLine: 'Borradores de albarán creados: {drafts}', emailSyncStatUnitsLine: 'Unidades a analizar (adjuntos PDF/imagen o cuerpo largo): {done} / {total}', potentialSupplierFromEmailBodyBanner: 'Posible proveedor (texto del correo): {name}. ¿Asociarlo?', potentialSupplierFromEmailBodyCta: 'Abrir nuevo proveedor' },
-  fornitori: { title: 'Proveedores', new: 'Nuevo Proveedor', nome: 'Nombre / Empresa', email: 'Email', piva: 'NIF/CIF', noSuppliers: 'Sin proveedores.', addFirst: 'Añadir el primero →', editTitle: 'Editar Proveedor', saveChanges: 'Guardar Cambios', notFound: 'Proveedor no encontrado.', deleteConfirm: '¿Eliminar este proveedor? También se eliminarán todos los albaranes y facturas vinculados.', importaDaFattura: 'Importar de Factura', countLabel: 'proveedores registrados', namePlaceholder: 'Ej. Empresa S.L.', emailPlaceholder: 'proveedor@ejemplo.com', pivaLabel: 'NIF/CIF', pivaPlaceholder: 'A12345678', addressLabel: 'Dirección (opc.)', addressPlaceholder: 'Calle, CP, ciudad', rekkiLinkLabel: 'Enlace Rekki (opc.)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'ID Rekki (opc.)', rekkiIdPlaceholder: 'ej. ID proveedor en Rekki', rekkiIntegrationTitle: 'Integración Rekki', rekkiLookupByVat: 'Buscar en Rekki (IVA)', rekkiSaveRekkiMapping: 'Guardar enlace Rekki', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Datos en caché (sin conexión).', rekkiLookupNeedVat: 'Añade el NIF/CIF del proveedor para buscar en Rekki.', saving: 'Guardando...', tabRiepilogo: 'Resumen', tabListino: 'Lista de Precios', tabStrategyConto: 'Extracto', kpiBolleTotal: 'Total albaranes', kpiFatture: 'Facturas recibidas', kpiPending: 'Documentos pendientes', kpiReconciliation: 'Conciliación', subAperte: 'abiertos', subConfermate: 'confirmadas', subDaAbbinare: 'por asociar', subChiuse: 'albaranes cerrados', subListinoRows: 'líneas de lista en el período', subStatementsNoneInMonth: 'ninguno este mes', subStatementsAllVerified: 'todos verificados OK', subStatementsWithIssues: 'con incidencias', helpText: 'Ve a la pestaña <b>Extracto</b> para asociar documentos y albaranes, o a <b>Albaranes</b> y <b>Facturas</b> para ver el historial completo.', listinoSetupTitle: 'Tabla de precios no creada aún', listinoSetupSubtitle: 'Activa el seguimiento de precios por producto en 2 clics:', listinoSetupStep1: 'Haz clic en <strong class="font-bold text-slate-100">"Copiar SQL"</strong> abajo', listinoSetupStep2: 'Abre el <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, pega y haz clic en <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Ver SQL completo ▸', listinoCopySQL: 'Copiar SQL', listinoCopied: '¡Copiado!', listinoProdotti: 'Lista de Precios', listinoProdottiTracked: 'productos seguidos', listinoNoData: 'Sin precios de producto registrados', listinoNoDataHint: 'Introduce los precios directamente en la tabla <code class="font-mono text-slate-300">listino_prezzi</code> en Supabase.', listinoTotale: 'Total gastado', listinoDaBolle: 'De albaranes', listinoDaFatture: 'De facturas', listinoStorico: 'Historial de documentos', listinoDocs: 'documentos', listinoNoDocs: 'Sin documentos con importe registrado', listinoColData: 'Fecha', listinoColTipo: 'Tipo', listinoColNumero: 'Número', listinoColImporto: 'Importe', listinoColTotale: 'Total', preferredLanguageEmail: 'Idioma preferido (para correos)', languageInheritSede: '— Heredar de la sede —', recognizedEmailsTitle: 'Correos reconocidos', recognizedEmailsHint: 'Direcciones adicionales desde las que este proveedor puede enviar documentos. El escaneo de correo las empareja automáticamente.', recognizedEmailPlaceholder: 'ej. facturas@proveedor.es', recognizedEmailLabelOptional: 'Etiqueta (opc.)', displayNameLabel: 'Nombre corto (lista y barra)', displayNameHint: 'Opcional. Si lo rellenas, se usa en la barra inferior en móvil y en listas compactas en lugar del nombre completo.', displayNamePlaceholder: 'ej. Amalfi', syncEmailNeedSede: 'Asigna una sede al proveedor para sincronizar el correo.' },
-  bolle: { title: 'Albaranes', new: 'Nuevo Albarán', uploadInvoice: 'Subir Factura', viewDocument: 'Ver Documento', noBills: 'Sin albaranes.', addFirst: 'Registrar el primero →', deleteConfirm: '¿Eliminar este albarán? También se eliminarán las facturas vinculadas.', ocrScanning: 'Reconociendo proveedor…', ocrMatched: 'Proveedor reconocido', ocrNotFound: 'Seleccionar proveedor manualmente', ocrAnalyzing: 'Analizando…', ocrAutoRecognized: 'Reconocido automáticamente', ocrRead: 'Leído:', selectManually: 'Seleccionar proveedor', saveNote: 'Guardar Albarán', savingNote: 'Guardando…', analyzingNote: 'Analizando documento…', takePhotoOrFile: 'Tomar foto o elegir archivo', ocrHint: 'El proveedor se reconocerá automáticamente', cameraBtn: 'Cámara', fileBtn: 'Elegir archivo', countSingolo: 'albarán registrado', countPlural: 'albaranes registrados', countTodaySingolo: 'albarán hoy', countTodayPlural: 'albaranes hoy', noBillsToday: 'Sin albaranes para hoy.', listShowAll: 'Todos los albaranes', listShowToday: 'Solo hoy', listAllPending: 'Solo pendientes', fotoLabel: 'Foto / Archivo Albarán', fornitoreLabel: 'Proveedor', dataLabel: 'Fecha Albarán', dettaglio: 'Detalle Albarán', fattureCollegate: 'Facturas vinculadas', aggiungi: '+ Añadir', nessunaFatturaCollegata: 'Sin facturas vinculadas.', allegatoLink: 'Adjunto →', statoCompletato: 'Completado', statoInAttesa: 'En espera', apri: 'Abrir', colNumero: 'Número', nessunaBollaRegistrata: 'Sin albaranes registrados', creaLaPrimaBolla: 'Crear el primer albarán →', vediDocumento: 'Ver documento', dateFromDocumentHint: 'Del documento', prezzoDaApp: 'Precio de la app', verificaPrezzoFornitore: 'Verificar precio del proveedor', rekkiPrezzoIndicativoBadge: '⚠️ Precio orientativo de la app Rekki', listinoRekkiRefTitle: 'Lista de precios de referencia (Rekki)', listinoRekkiRefHint: 'Con ID Rekki en el proveedor, compara el total del albarán con los últimos precios importados.', listinoRekkiRefEmpty: 'Sin líneas de listino para este proveedor.', scannerTitle: 'Escáner IA', scannerWhatLabel: '¿Qué estás subiendo?', scannerModeAuto: 'Detección automática', scannerModeBolla: 'Albarán / DDT', scannerModeFattura: 'Factura', scannerModeSupplier: 'Nuevo proveedor', scannerFlowBolla: 'Registro de albarán', scannerFlowFattura: 'Registro de factura', scannerSaveFattura: 'Guardar factura', scannerSavingFattura: 'Guardando factura…', scannerCreateSupplierCta: 'Crear proveedor con datos leídos', scannerCreateSupplierFromUnrecognized: 'Crear proveedor desde este documento', scannerPdfPreview: 'PDF adjunto — vista previa no disponible' },
+  dashboard: { title: 'Panel', subtitle: 'Resumen de compras', suppliers: 'Proveedores', totalBills: 'Total albaranes', pendingBills: 'Albaranes pendientes', invoices: 'Facturas', recentBills: 'Albaranes recientes', viewAll: 'Ver todos →', syncEmail: 'Sincronizar Email', emailSyncScopeLookback: 'Días recientes (sede)', emailSyncScopeFiscal: 'Año fiscal', emailSyncFiscalYearSelectAria: 'Periodo de sincronización de email', emailSyncScopeHint: 'IT, FR, DE, ES: año civil. UK: año fiscal que termina el 5 abr. Cada sede usa su país.', emailSyncLookbackSedeDefault: 'Predeterminado de sede (IMAP)', emailSyncLookbackDaysN: 'Últimos {n} días', emailSyncLookbackDaysAria: 'Cuántos días atrás buscar correo no leído', emailSyncLookbackDaysHint: 'Predeterminado de sede: usa los días configurados en la sede. Si no, limita la búsqueda IMAP a los últimos N días (solo no leídos).', emailSyncDocumentKindAria: 'Tipo de documentos a importar al sincronizar el correo', emailSyncDocumentKindHint: 'Todos: predeterminado. Nuevo proveedor: solo remitentes no dados de alta. Albarán / Factura: fuerza el tipo de borrador. Extracto: solo correos cuyo asunto parece un extracto (statement).', emailSyncDocumentKindAll: 'Todos los documentos', emailSyncDocumentKindFornitore: 'Nuevo proveedor', emailSyncDocumentKindBolla: 'Albarán (DDT)', emailSyncDocumentKindFattura: 'Factura', emailSyncDocumentKindEstratto: 'Extracto de cuenta', syncing: 'Sincronizando...', sendReminders: 'Enviar recordatorios', sending: 'Enviando...', viewLog: 'Ver Log', sedeOverview: 'Resumen por Sede', manageSedeNamed: 'Gestionar {name} →', manageSedi: 'Gestionar sedes →', sedeImapOn: 'Email activa', digitalizzaRicevuto: 'Digitalizar recibo', kpiNoPendingBills: 'No hay albaranes pendientes.', errorCountSuffix: 'errores', manualReceiptLabel: 'Recibido (sin albarán)', manualReceiptPlaceholder: 'p. ej. 5 kg calamares, 2 cajas limones', manualReceiptRegister: 'Registrar entrega', manualReceiptRegistering: 'Registrando…', manualReceiptSaved: 'Entrega registrada.', manualReceiptNeedTextOrPhoto: 'Introduce una descripción o adjunta una foto.', manualReceiptRemovePhoto: 'Quitar foto', manualReceiptNeedSupplier: 'Selecciona un proveedor.', manualReceiptRegisterFailed: 'No se pudo registrar.', manualReceiptEmailSupplierLabel: 'Enviar email al proveedor para pedir el pedido y el albarán (DDT)', manualReceiptEmailSupplierHint: 'Añade el email del proveedor en su ficha.', manualReceiptEmailSent: 'Email de solicitud enviado al proveedor.', manualReceiptEmailFailed: 'Entrega guardada, pero no se pudo enviar el email.', manualReceiptEmailDescPhotoOnly: 'Foto adjunta al registro de entrega (sin texto).', adminGlobalTitle: 'Panel global', adminGlobalSubtitle: 'Resumen de todas las sedes. Elige una filial en el menú o en la tarjeta para la vista operativa.', adminGlobalTotalsLabel: 'Totales de la red', adminOpenBranchDashboard: 'Vista operativa', adminSedeSettingsLink: 'Ficha sede', adminDocQueueShort: 'En cola', rekkiOrder: 'Pedir en Rekki', manualDeliveryNeedSede: 'Selecciona un operador activo o asegúrate de que tu perfil esté vinculado a una sede para registrar una entrega.', kpiPriceListSub: 'líneas en el listino', listinoOverviewHint: 'Líneas de listín de precios de los proveedores en tu ámbito. Abre un proveedor para editar o importar desde factura.', listinoOverviewEmpty: 'Sin líneas de listín en este ámbito.', listinoOverviewOpenSupplier: 'Abrir proveedor →', listinoOverviewLimitNote: 'Mostrando las últimas {n} filas.', fattureRiepilogoTitle: 'Total facturas', fattureRiepilogoHint: 'Suma de importes en tu ámbito. La tabla muestra las últimas facturas por fecha; abre una para el adjunto y enlaces.', fattureRiepilogoEmpty: 'No hay facturas en este ámbito.', fattureRiepilogoLimitNote: 'Mostrando las últimas {n} facturas (por fecha).', fattureRiepilogoOpenInvoice: 'Abrir factura →', fattureRiepilogoCountLabel: '{n} facturas', fattureRiepilogoLinkAll: 'Todas las facturas →', kpiStatementNone: 'Sin extractos', kpiStatementAllOk: 'Sin anomalías', kpiStatementIssuesFooter: 'de {t} extractos revisados', kpiFornitoriSub: 'Directorio y búsqueda', kpiDaProcessareSub: 'documentos en cola', operatorNoSede: 'Tu perfil no tiene sede asignada. Pide a un administrador que te vincule a la filial correcta.', suggestedSupplierBanner: 'Nuevo proveedor detectado: {name}. ¿Añadirlo?', suggestedSupplierAdd: 'Nuevo proveedor', suggestedSupplierImport: 'Importar desde OCR', enterAsSede: 'Entrar como sede', syncHealthAlert: 'Problema de sincronización (IMAP u OCR)', syncHealthOcrCount: 'Fallos OCR (48h): {n}', viewingAsSedeBanner: 'Estás viendo el panel como:', exitSedeView: 'Volver a vista admin', emailSyncQueued: 'En cola — otra sincronización está terminando…', emailSyncPhaseConnect: 'Conectando…', emailSyncConnectToServer: 'Conexión al servidor IMAP (red, cifrado, acceso)…', emailSyncConnectOpeningMailbox: 'Abriendo la carpeta Bandeja de entrada…', emailSyncPhaseSearch: 'Escaneando textos…', emailSyncPhaseProcess: 'Análisis de adjuntos con Vision IA…', emailSyncPhasePersist: 'Guardando en la base de datos…', emailSyncPhaseDone: 'Sincronización completada.', emailSyncStalled: 'Sin novedades — con muchos adjuntos la visión puede tardar varios minutos. Espera…', emailSyncStalledHint: 'Solo indica que el flujo no envía novedades (normal con OCR largo). Los reintentos reales de IMAP aparecen arriba en rojo en la fase de conexión.', emailSyncImapRetryLine: 'Conexión IMAP: intento {current} de {max}', emailSyncCountsHint: 'Encontradas · nuevas en app · procesadas · unidades PDF/texto', emailSyncMailboxGlobal: 'Bandeja IMAP global (variables de entorno)', emailSyncMailboxSede: 'Bandeja: {name}', emailSyncSupplierFilterLine: 'Filtro proveedor: {name}', emailSyncStatFoundLine: 'Encontradas en el buzón: {found}', emailSyncStatImportedLine: 'Nuevas en la app (documentos importados): {imported}', emailSyncStatProcessedLine: 'Correos procesados (leídos y analizados): {processed}', emailSyncStatIgnoredLine: 'Omitidas o sin resultado: {ignored}', emailSyncStatDraftsLine: 'Borradores de albarán creados: {drafts}', emailSyncStatAlreadyLine: 'Ya procesadas en una sincronización anterior (sin importar de nuevo): {n}', emailSyncStatUnitsLine: 'Unidades a analizar (adjuntos PDF/imagen o cuerpo largo): {done} / {total}', emailSyncStripDetailsExpandAria: 'Mostrar detalles de sincronización de correo', emailSyncStripDetailsCollapseAria: 'Ocultar detalles de sincronización de correo', emailSyncStop: 'Detener', emailSyncStopAria: 'Detener sincronización de correo', emailSyncDismiss: 'Cerrar', emailSyncDismissAria: 'Cerrar resumen de sincronización de correo', potentialSupplierFromEmailBodyBanner: 'Posible proveedor (texto del correo): {name}. ¿Asociarlo?', potentialSupplierFromEmailBodyCta: 'Abrir nuevo proveedor' },
+  fornitori: { title: 'Proveedores', new: 'Nuevo Proveedor', nome: 'Nombre / Empresa', email: 'Email', piva: 'NIF/CIF', noSuppliers: 'Sin proveedores.', addFirst: 'Añadir el primero →', editTitle: 'Editar Proveedor', saveChanges: 'Guardar Cambios', notFound: 'Proveedor no encontrado.', deleteConfirm: '¿Eliminar este proveedor? También se eliminarán todos los albaranes y facturas vinculados.', importaDaFattura: 'Importar de Factura', countLabel: 'proveedores registrados', namePlaceholder: 'Ej. Empresa S.L.', emailPlaceholder: 'proveedor@ejemplo.com', pivaLabel: 'NIF/CIF', pivaPlaceholder: 'A12345678', addressLabel: 'Dirección (opc.)', addressPlaceholder: 'Calle, CP, ciudad', rekkiLinkLabel: 'Enlace Rekki (opc.)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'ID Rekki (opc.)', rekkiIdPlaceholder: 'ej. ID proveedor en Rekki', rekkiIntegrationTitle: 'Integración Rekki', rekkiLookupByVat: 'Buscar en Rekki (IVA)', rekkiSaveRekkiMapping: 'Guardar enlace Rekki', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Datos en caché (sin conexión).', rekkiLookupNeedVat: 'Añade el NIF/CIF del proveedor para buscar en Rekki.', rekkiIdExtractedFromLink: 'ID de proveedor extraído del enlace Rekki.', rekkiAutoLinkedSingle: 'Solo un proveedor Rekki coincide con este NIF/CIF — enlace guardado.', saving: 'Guardando...', tabRiepilogo: 'Resumen', tabListino: 'Lista de Precios', tabStrategyConto: 'Extracto', kpiBolleTotal: 'Total albaranes', kpiFatture: 'Facturas recibidas', kpiPending: 'Documentos pendientes', kpiReconciliation: 'Conciliación', subAperte: 'abiertos', subConfermate: 'confirmadas', subDaAbbinare: 'por asociar', subChiuse: 'albaranes cerrados', subListinoRows: 'líneas de lista en el período', subStatementsNoneInMonth: 'ninguno este mes', subStatementsAllVerified: 'todos verificados OK', subStatementsWithIssues: 'con incidencias', helpText: 'Ve a la pestaña <b>Extracto</b> para asociar documentos y albaranes, o a <b>Albaranes</b> y <b>Facturas</b> para ver el historial completo.', listinoSetupTitle: 'Tabla de precios no creada aún', listinoSetupSubtitle: 'Activa el seguimiento de precios por producto en 2 clics:', listinoSetupStep1: 'Haz clic en <strong class="font-bold text-slate-100">"Copiar SQL"</strong> abajo', listinoSetupStep2: 'Abre el <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, pega y haz clic en <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Ver SQL completo ▸', listinoCopySQL: 'Copiar SQL', listinoCopied: '¡Copiado!', listinoProdotti: 'Lista de Precios', listinoProdottiTracked: 'productos seguidos', listinoNoData: 'Sin precios de producto registrados', listinoNoDataHint: 'Introduce los precios directamente en la tabla <code class="font-mono text-slate-300">listino_prezzi</code> en Supabase.', listinoTotale: 'Total gastado', listinoDaBolle: 'De albaranes', listinoDaFatture: 'De facturas', listinoStorico: 'Historial de documentos', listinoDocs: 'documentos', listinoNoDocs: 'Sin documentos con importe registrado', listinoColData: 'Fecha', listinoColTipo: 'Tipo', listinoColNumero: 'Número', listinoColImporto: 'Importe', listinoColTotale: 'Total', preferredLanguageEmail: 'Idioma preferido (para correos)', languageInheritSede: '— Heredar de la sede —', recognizedEmailsTitle: 'Correos reconocidos', recognizedEmailsHint: 'Direcciones adicionales desde las que este proveedor puede enviar documentos. El escaneo de correo las empareja automáticamente.', recognizedEmailPlaceholder: 'ej. facturas@proveedor.es', recognizedEmailLabelOptional: 'Etiqueta (opc.)', displayNameLabel: 'Nombre corto (lista y barra)', displayNameHint: 'Opcional. Si lo rellenas, se usa en la barra inferior en móvil y en listas compactas en lugar del nombre completo.', displayNamePlaceholder: 'ej. Amalfi', loadingProfile: 'Cargando ficha, documentos y resumen del proveedor…', logoUrlLabel: 'Logo del proveedor (URL)', logoUrlPlaceholder: 'https://ejemplo.com/logo.png', logoUrlHint: 'Imagen HTTPS (PNG, JPG o SVG). Si no carga, se muestran las iniciales.', syncEmailNeedSede: 'Asigna una sede al proveedor para sincronizar el correo.' },
+  bolle: { title: 'Albaranes', new: 'Nuevo Albarán', uploadInvoice: 'Subir Factura', viewDocument: 'Ver Documento', noBills: 'Sin albaranes.', addFirst: 'Registrar el primero →', deleteConfirm: '¿Eliminar este albarán? También se eliminarán las facturas vinculadas.', ocrScanning: 'Reconociendo proveedor…', ocrMatched: 'Proveedor reconocido', ocrNotFound: 'Seleccionar proveedor manualmente', ocrAnalyzing: 'Analizando…', ocrAutoRecognized: 'Reconocido automáticamente', ocrRead: 'Leído:', selectManually: 'Seleccionar proveedor', saveNote: 'Guardar Albarán', savingNote: 'Guardando…', analyzingNote: 'Analizando documento…', takePhotoOrFile: 'Tomar foto o elegir archivo', ocrHint: 'El proveedor se reconocerá automáticamente', cameraBtn: 'Cámara', fileBtn: 'Elegir archivo', countSingolo: 'albarán registrado', countPlural: 'albaranes registrados', countTodaySingolo: 'albarán hoy', countTodayPlural: 'albaranes hoy', noBillsToday: 'Sin albaranes para hoy.', listShowAll: 'Todos los albaranes', listShowToday: 'Solo hoy', listAllPending: 'Solo pendientes', fotoLabel: 'Foto / Archivo Albarán', fornitoreLabel: 'Proveedor', dataLabel: 'Fecha Albarán', dettaglio: 'Detalle Albarán', fattureCollegate: 'Facturas vinculadas', aggiungi: '+ Añadir', nessunaFatturaCollegata: 'Sin facturas vinculadas.', allegatoLink: 'Adjunto →', statoCompletato: 'Completado', statoInAttesa: 'En espera', apri: 'Abrir', colNumero: 'Número', colAttachmentKind: 'Adjunto', attachmentKindPdf: 'PDF', attachmentKindImage: 'Imagen', attachmentKindOther: 'Archivo', nessunaBollaRegistrata: 'Sin albaranes registrados', creaLaPrimaBolla: 'Crear el primer albarán →', vediDocumento: 'Ver documento', dateFromDocumentHint: 'Del documento', prezzoDaApp: 'Precio de la app', verificaPrezzoFornitore: 'Verificar precio del proveedor', rekkiPrezzoIndicativoBadge: '⚠️ Precio orientativo de la app Rekki', listinoRekkiRefTitle: 'Lista de precios de referencia (Rekki)', listinoRekkiRefHint: 'Con ID Rekki en el proveedor, compara el total del albarán con los últimos precios importados.', listinoRekkiRefEmpty: 'Sin líneas de listino para este proveedor.', scannerTitle: 'Escáner IA', scannerWhatLabel: '¿Qué estás subiendo?', scannerModeAuto: 'Detección automática', scannerModeBolla: 'Albarán / DDT', scannerModeFattura: 'Factura', scannerModeSupplier: 'Nuevo proveedor', scannerFlowBolla: 'Registro de albarán', scannerFlowFattura: 'Registro de factura', scannerSaveFattura: 'Guardar factura', scannerSavingFattura: 'Guardando factura…', scannerCreateSupplierCta: 'Crear proveedor con datos leídos', scannerCreateSupplierFromUnrecognized: 'Crear proveedor desde este documento', scannerPdfPreview: 'PDF adjunto — vista previa no disponible' },
   fatture: { title: 'Facturas', new: 'Nueva Factura', noInvoices: 'Sin facturas.', addFirst: 'Añadir la primera →', invoice: 'Factura', openBill: 'Abrir albarán →', deleteConfirm: '¿Eliminar esta factura? La operación es irreversible.', countLabel: 'facturas recibidas', headerBolla: 'Albarán', headerAllegato: 'Adjunto', apri: 'Abrir →', caricaFatturaTitle: 'Subir Factura', bollaMarkata: 'El albarán se marcará como completado', collegataABolla: 'Vinculada a un albarán', bollaPasseraCompletato: 'Al guardar el albarán pasará a "completado"', dataFattura: 'Fecha Factura', fileFattura: 'Archivo Factura', caricaPdfFoto: 'Subir PDF o tomar foto', maxSize: 'PDF, JPG, PNG, WebP — máx 10 MB', savingInProgress: 'Guardando...', salvaChiudiBolla: 'Guardar y Cerrar Albarán', dettaglio: 'Detalle', bollaCollegata: 'Albarán vinculado', statusAssociata: 'Asociada', statusSenzaBolla: 'Sin albarán', colNumFattura: 'N.º Factura', nessunaFatturaRegistrata: 'Sin facturas registradas' },
-  archivio: { title: 'Archivo', subtitle: 'proveedores', noBills: 'Sin albaranes', noInvoices: 'Sin facturas', withBill: 'Con albarán', noEmail: 'Sin email', bollaS: 'albarán', bollaP: 'albaranes', fatturaS: 'factura', fatturaP: 'facturas', editLink: 'Editar →', nuova: '+ Nuevo', nuovaFattura: '+ Factura', documento: 'Documento' },
+  archivio: { title: 'Archivo', subtitle: 'proveedores', noBills: 'Sin albaranes', noInvoices: 'Sin facturas', withBill: 'Con albarán', noEmail: 'Sin email', bollaS: 'albarán', bollaP: 'albaranes', fatturaS: 'factura', fatturaP: 'facturas', editLink: 'Editar →', nuova: '+ Nuevo', nuovaFattura: '+ Factura', documento: 'Documento', pendingDocCount: '({n} en cola)', linkAssociateStatements: 'Asociar →' },
   impostazioni: { title: 'Configuración', subtitle: 'Personalizar moneda y zona horaria', lingua: 'Idioma', valuta: 'Moneda', fuso: 'Zona horaria', preview: 'Vista previa', saved: 'Configuración guardada — actualizando…', sectionLocalisation: 'Localización', accountSection: 'Cuenta', changeSede: 'Cambiar sede', addOperatorsPickSede: 'Elige la sede activa en Sedes — luego podrás crear operadores (nombre + PIN) aquí.' },
   log: { title: 'Log Sincronización Email', subtitle: 'Historial de emails procesados por la sincronización automática.', sender: 'Remitente', subject: 'Asunto', stato: 'Estado', detail: 'Detalle', retry: 'Reintentar', retrying: 'Reintentando…', success: 'Éxito', bollaNotFound: 'Documento Recibido', supplierNotFound: 'Remitente desconocido', noLogs: 'Sin logs.', emptyHint: 'Ejecuta una sincronización de email desde el Panel.', totalLogs: 'Total logs', linkedInvoices: 'Documentos recibidos', withErrors: 'Con errores', vediFile: 'Ver archivo', supplierSuggested: 'Proveedor sugerido', aiSuggest: 'Sugerencia IA', aiSuggestTitle: 'Datos sugeridos (OCR)', aiSuggestLoading: 'Analizando…', aiSuggestError: 'No se pudo analizar el documento.', openCreateSupplier: 'Abrir alta de proveedor', associateRememberHint: 'Tras guardar, el email del remitente quedará vinculado para futuras sincronizaciones.', colAttachment: 'Adjunto', colSede: 'Sede', colLogId: 'ID log' },
-  sedi: { title: 'Sedes y Usuarios', subtitle: 'Gestionar sedes, sincronización de email y operadores', newSede: 'Nueva Sede', noSedi: 'Sin sedes. Empieza añadiendo la primera.', users: 'Usuarios', imap: 'Configuración Email (IMAP)', imapSubtitle: 'Configura el buzón de esta sede. Las facturas recibidas aquí se asociarán automáticamente a los proveedores de la sede.', imapHost: 'Host IMAP', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Puerto', imapUser: 'Email / Usuario', imapPassword: 'Contraseña', imapPasswordPlaceholder: 'Contraseña o Contraseña de aplicación', testConnection: 'Probar conexión', saveConfig: 'Guardar configuración', notConfigured: 'Email no configurado', accessDenied: 'Acceso restringido a administradores', accessDeniedHint: 'Contacta al admin para obtener acceso.', creatingBtn: 'Creando...', createBtn: 'Crear', nomePlaceholder: 'Ej. Oficina Madrid', nessunUtente: 'No se encontraron usuarios.', emailHeader: 'Email', sedeHeader: 'Sede', ruoloHeader: 'Rol', nessunaSedeOption: '— Sin sede —', operatoreRole: 'Operador', adminRole: 'Admin', adminSedeRole: 'Admin sede', adminScopedSediHint: 'Solo ves la sede vinculada a tu perfil. Las sedes nuevas y «Usuarios sin sede» los gestiona el administrador principal (admin sin sede en el perfil).', renameTitle: 'Renombrar', deleteTitle: 'Eliminar', addOperatorSedeTitle: 'Nuevo operador', addOperatorSedeDesc: 'Accede con nombre y PIN (mín. 4 caracteres). El email se genera automáticamente.', operatorDisplayNameLabel: 'Nombre mostrado', operatorPinMinLabel: 'PIN (mín. 4 caracteres)', operatorNameRequired: 'Introduce el nombre del operador.', operatorPinTooShort: 'El PIN debe tener al menos 4 caracteres.' },
+  sedi: { title: 'Sede y Usuarios', titleGlobalAdmin: 'Sedes', subtitle: 'Gestionar la sede, la sincronización de email y los operadores', subtitleGlobalAdmin: 'Gestionar las sedes, la sincronización de email y los operadores', newSede: 'Nueva Sede', noSedi: 'Sin sedes. Empieza añadiendo la primera.', users: 'Usuarios', imap: 'Configuración Email (IMAP)', imapSubtitle: 'Configura el buzón de esta sede. Las facturas recibidas aquí se asociarán automáticamente a los proveedores de la sede.', imapHost: 'Host IMAP', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Puerto', imapUser: 'Email / Usuario', imapPassword: 'Contraseña', imapPasswordPlaceholder: 'Contraseña o Contraseña de aplicación', testConnection: 'Probar conexión', saveConfig: 'Guardar configuración', notConfigured: 'Email no configurado', accessDenied: 'Acceso restringido a administradores', accessDeniedHint: 'Contacta al admin para obtener acceso.', creatingBtn: 'Creando...', createBtn: 'Crear', nomePlaceholder: 'Ej. Oficina Madrid', nessunUtente: 'No se encontraron usuarios.', emailHeader: 'Email', sedeHeader: 'Sede', ruoloHeader: 'Rol', nessunaSedeOption: '— Sin sede —', operatoreRole: 'Operador', adminRole: 'Portal de gestión', adminSedeRole: 'Administrador de sede', profileRoleAdmin: 'Portal de gestión', adminScopedSediHint: 'Solo ves la sede vinculada a tu perfil. Las sedes nuevas y «Usuarios sin sede» los gestiona el administrador principal (admin sin sede en el perfil).', renameTitle: 'Renombrar', deleteTitle: 'Eliminar', addOperatorSedeTitle: 'Nuevo operador', addOperatorSedeDesc: 'Accede con nombre y PIN (mín. 4 caracteres). El email se genera automáticamente.', operatorDisplayNameLabel: 'Nombre mostrado', operatorPinMinLabel: 'PIN (mín. 4 caracteres)', operatorNameRequired: 'Introduce el nombre del operador.', operatorPinTooShort: 'El PIN debe tener al menos 4 caracteres.' },
   statements: {
     heading: 'Verificación de Extractos Mensuales',
     tabVerifica: 'Estado de cuenta',
     tabDocumenti: 'Pendiente de procesar',
+    schedaNavDaProcessareDesc: 'Adjuntos entrantes: vincula proveedores, albaranes y facturas.',
+    schedaNavVerificaDesc: 'Revisión mensual del extracto frente a albaranes y facturas.',
     statusOk: 'OK',
     statusFatturaMancante: 'Factura faltante',
     statusBolleManc: 'Albaranes faltantes',
@@ -2157,10 +2437,25 @@ const es: Translations = {
     gotoBollaDraft: 'Ir al borrador de albarán →',
     toggleAddStatement: 'Añadir al extracto',
     toggleRemoveStatement: 'Quitar del extracto',
+    docKindEstratto: 'Extracto',
+    docKindBolla: 'Albarán',
+    docKindFattura: 'Factura',
+    docKindHintBolla: 'Marcar como albarán de entrega, no extracto ni factura a cruzar',
+    docKindHintFattura: 'Marcar como factura para asociar con albaranes pendientes',
+    docKindGroupAria: 'Tipo de documento',
+    finalizeNeedsSupplier: 'Vincula un proveedor para finalizar.',
+    btnFinalizeFattura: 'Registrar factura (sin albarán)',
+    btnFinalizeBolla: 'Crear albarán desde el archivo',
+    btnFinalizeStatement: 'Archivar extracto',
+    btnFinalizing: 'Guardando…',
+    finalizeSuccess: 'Documento registrado.',
     noPendingDocs: 'No hay documentos para revisar',
     noDocsFound: 'No se encontraron documentos',
     noBolleAttesa: 'No hay albaranes pendientes disponibles',
     unknownSender: 'Remitente desconocido',
+    sameAddressClusterHint:
+      'Misma dirección que otros documentos en cola. Nombres de empresa (IA) en esas filas: {names}. Probablemente el mismo proveedor: vincula el mismo contacto.',
+    btnCreateSupplierFromAi: 'Crear proveedor →',
     docTotalLabel: 'Total del documento:',
     exactAmount: 'Importe exacto',
     exceeds: 'Excedente',
@@ -2184,6 +2479,10 @@ const es: Translations = {
     reconcileDB: 'BD:',
     loadingResults: 'Cargando resultados…',
     editSupplierTitle: 'Editar proveedor',
+    supplierLinkFailed: 'No se pudo vincular el proveedor al documento.',
+    assignFailed: 'No se pudo asignar a los albaranes.',
+    autoLinkedSupplierOne: 'Proveedor vinculado automáticamente: {name}.',
+    autoLinkedSupplierMany: '{count} documentos vinculados automáticamente a proveedores.',
     ocrFormatToggleTitle: 'Forzar interpretación numérica alternativa',
     allBolleInvoicedOk: 'Todos los albaranes tienen factura correspondiente — extracto verificado ✓',
     aiStatementTotalLabel: 'Total del extracto (IA):',
@@ -2237,9 +2536,10 @@ const es: Translations = {
       'No hay ninguna factura con este enlace. Puede haberse eliminado, el enlace puede ser incorrecto o tu cuenta o sede no tienen acceso.',
     backToHome: 'Volver al panel',
     sedeLockTitle: 'Acceso protegido',
-    sedeLockSubtitle: 'requiere un código de acceso',
-    sedeLockCodeLabel: 'Código de acceso',
-    sedeLockPlaceholder: '••••••••',
+    sedeLockDescription: 'La sede {name} requiere un PIN numérico de 4 cifras.',
+    sedeLockCodeLabel: 'PIN (4 cifras)',
+    sedeLockPlaceholder: '••••',
+    sedeLockPinLengthError: 'Introduce un PIN de 4 cifras.',
     sectionDates: 'Fechas',
     sectionCurrencyLabel: 'Moneda',
     loadingBolle: 'Cargando albaranes…',
@@ -2359,6 +2659,9 @@ const fr: Translations = {
     connectionOffline: 'Hors ligne',
     connectionReconnecting: 'Reconnexion…',
     emailSyncResumed: 'Connexion rétablie — reprise de la synchronisation e-mail.',
+    emailSyncStreamIncomplete:
+      'La synchronisation n’a pas abouti (connexion interrompue). Réessayez.',
+    emailSyncCancelled: 'Synchronisation e-mail interrompue.',
     reminderError:    'Erreur lors de l\'envoi des rappels.',
     noReminders:      'Aucun rappel à envoyer (fournisseurs sans email ?).',
     remindersCount:   'rappel',
@@ -2367,50 +2670,60 @@ const fr: Translations = {
     pinError:         'PIN incorrect.',
     operatorPinStepUpTitle: 'Confirmation opérateur',
     operatorPinStepUpHint: 'Saisissez le PIN à 4 chiffres de l’opérateur actif pour autoriser cette modification.',
-    operatorPinStepUpNoActive: 'Indiquez d’abord qui opère (barre du bas ou menu), puis le PIN.',
+    operatorPinStepUpNoActive:
+      'Aucun opérateur actif pour cette session. Utilisez le bouton ci-dessous (barre du bas sur mobile ou menu latéral), choisissez qui opère, puis saisissez le PIN.',
+    operatorPinStepUpChooseOperator: 'Choisir l’opérateur',
     verifyAndContinue: 'Continuer',
     operatorAutoLockLabel: 'Verrouillage auto après',
     operatorAutoLockNever: 'Jamais',
     operatorAutoLockMinutes: '{n} min',
   },
   login: {
-    subtitle: 'Entrez votre prénom et votre PIN pour accéder',
-    adminSubtitle: 'Accès administrateur',
-    nameLabel: 'Prénom seulement',
+    brandTagline: 'Gestion des factures',
+    subtitle: 'Accès : votre nom et code à 4 chiffres',
+    adminSubtitle: 'Portail de gestion',
+    adminSubtitleHint:
+      'E-mail et mot de passe pour le portail de gestion. Pour le nom d’opérateur et le PIN, utilisez « Accès opérateur » (admins de site et opérateurs).',
+    nameLabel: 'Nom',
     namePlaceholder: 'JEAN',
     pinLabel: 'PIN',
     pinDigits: '(4 chiffres)',
-    lookingUp: 'Recherche du site…',
-    enterFirstName: 'Entrez uniquement le prénom et appuyez sur Tab',
+    lookingUp: 'Vérification du nom…',
+    enterFirstName: 'Saisissez le nom et appuyez sur Tab',
     emailLabel: 'Email',
     emailPlaceholder: 'admin@entreprise.fr',
     passwordLabel: 'Mot de passe',
     passwordPlaceholder: '6 caractères minimum',
     loginBtn: 'Se connecter',
-    adminLink: 'Accès administrateur →',
+    adminLink: 'Portail de gestion →',
     operatorLink: '← Accès opérateur',
     pinIncorrect: 'PIN incorrect. Réessayez.',
     invalidCredentials: 'Identifiants invalides.',
     verifying: 'Vérification…',
     accessing: 'Connexion…',
     notFound: 'Utilisateur introuvable.',
-    adminOnlyEmail: 'Cet accès est réservé aux administrateurs. Utilisez prénom et PIN ou demandez un compte admin.',
+    adminOnlyEmail: 'Cet accès est réservé aux administrateurs. Utilisez nom et PIN ou demandez un compte admin.',
+    adminGateLabel: 'Code de déverrouillage admin',
+    adminGateHint: 'Saisissez le PIN pour déverrouiller e-mail et mot de passe.',
+    adminGateWrong: 'Code invalide.',
   },
-  nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', archivio: 'Archive', logEmail: 'Log Email', sedi: 'Sites & Utilisateurs', sediTitle: 'Sites', gestisciSedi: 'Gérer les Sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)' },
-  common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', phone: 'Téléphone', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: '+ Ajouter', rename: 'Renommer', role: 'Rôle', aiExtracted: 'Données extraites par IA', matched: 'Associé', notMatched: 'Non associé', company: 'Société', invoiceNum: 'N° Facture', total: 'Total' },
+  nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', archivio: 'Archive', logEmail: 'Log Email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)' },
+  common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', phone: 'Téléphone', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: 'Ajouter', rename: 'Renommer', role: 'Rôle', aiExtracted: 'Données extraites par IA', matched: 'Associé', notMatched: 'Non associé', recordSupplierLinked: 'Lié', company: 'Société', invoiceNum: 'N° Facture', total: 'Total' },
   status: { inAttesa: 'En attente', completato: 'Complété', completata: 'Complétée' },
-  dashboard: { title: 'Tableau de bord', subtitle: 'Aperçu des achats', suppliers: 'Fournisseurs', totalBills: 'Total BL', pendingBills: 'BL en attente', invoices: 'Factures', recentBills: 'BL récents', viewAll: 'Voir tout →', syncEmail: 'Sync Email', emailSyncScopeLookback: 'Jours récents (site)', emailSyncScopeFiscal: 'Exercice fiscal', emailSyncFiscalYearSelectAria: 'Période de synchronisation e-mail', emailSyncScopeHint: 'IT, FR, DE, ES : année civile. UK : exercice se terminant le 5 avr. Chaque site utilise son pays.', syncing: 'Synchronisation...', sendReminders: 'Envoyer les relances', sending: 'Envoi en cours...', viewLog: 'Voir Log', sedeOverview: 'Vue par Site', manageSedi: 'Gérer les Sites →', sedeImapOn: 'E-mail active', digitalizzaRicevuto: 'Numériser le reçu', kpiNoPendingBills: 'Aucun BL en attente.', errorCountSuffix: 'erreurs', manualReceiptLabel: 'Reçu (sans bon de livraison)', manualReceiptPlaceholder: 'ex. 5 kg calamars, 2 caisses citrons', manualReceiptRegister: 'Enregistrer la livraison', manualReceiptRegistering: 'Enregistrement…', manualReceiptSaved: 'Livraison enregistrée.', manualReceiptNeedTextOrPhoto: 'Saisissez une description ou ajoutez une photo.', manualReceiptRemovePhoto: 'Retirer la photo', manualReceiptNeedSupplier: 'Sélectionnez un fournisseur.', manualReceiptRegisterFailed: 'Enregistrement impossible.', adminGlobalTitle: 'Tableau global', adminGlobalSubtitle: 'Synthèse de tous les sites. Choisissez une filiale dans le menu ou sur la carte pour la vue opérationnelle.', adminGlobalTotalsLabel: 'Totaux réseau', adminOpenBranchDashboard: 'Vue opérationnelle', adminSedeSettingsLink: 'Fiche site', adminDocQueueShort: 'En file', rekkiOrder: 'Commander sur Rekki', manualDeliveryNeedSede: 'Sélectionnez un opérateur actif ou assurez-vous que votre profil est rattaché à un site pour enregistrer une livraison.', kpiPriceListSub: 'lignes au tarif', kpiStatementNone: 'Aucun relevé', kpiStatementAllOk: 'Aucune anomalie', kpiStatementIssuesFooter: 'sur {t} relevés vérifiés', kpiFornitoriSub: 'Annuaire et recherche', operatorNoSede: 'Aucun site n’est lié à votre profil. Demandez à un administrateur de vous affecter à la bonne filiale.', suggestedSupplierBanner: 'Nouveau fournisseur détecté : {name}. L’ajouter ?', suggestedSupplierAdd: 'Nouveau fournisseur', suggestedSupplierImport: 'Importer depuis OCR', enterAsSede: 'Entrer comme site', syncHealthAlert: 'Problème de synchronisation (IMAP ou OCR)', syncHealthOcrCount: 'Échecs OCR (48h) : {n}', viewingAsSedeBanner: 'Vous consultez le tableau de bord comme :', exitSedeView: 'Retour vue admin', emailSyncQueued: 'En file — une autre synchronisation se termine…', emailSyncPhaseConnect: 'Connexion…', emailSyncPhaseSearch: 'Analyse des textes…', emailSyncPhaseProcess: 'Analyse des pièces jointes (Vision IA)…', emailSyncPhasePersist: 'Enregistrement en base…', emailSyncPhaseDone: 'Synchronisation terminée.', emailSyncStalled: 'Pas de nouvelles — avec beaucoup de pièces jointes, la Vision peut prendre plusieurs minutes. Patience…', emailSyncStalledReconnect: 'Tentative de reconnexion {current} sur {max}…', emailSyncImapRetryLine: 'Connexion IMAP : tentative {current} sur {max}', emailSyncCountsHint: 'Trouvées · nouveaux dans l’app · traités · unités PDF/texte', emailSyncMailboxGlobal: 'Boîte IMAP globale (variables d\'environnement)', emailSyncMailboxSede: 'Boîte : {name}', emailSyncSupplierFilterLine: 'Filtre fournisseur : {name}', emailSyncStatFoundLine: 'Trouvées en boîte : {found}', emailSyncStatImportedLine: 'Nouveaux dans l’app (documents importés) : {imported}', emailSyncStatProcessedLine: 'E-mails traités (lus et analysés) : {processed}', emailSyncStatIgnoredLine: 'Ignorés ou sans résultat : {ignored}', emailSyncStatDraftsLine: 'Brouillons de BL créés : {drafts}', emailSyncStatUnitsLine: 'Unités à analyser (pièces PDF/image ou corps de mail éligible) : {done} / {total}', potentialSupplierFromEmailBodyBanner: 'Fournisseur potentiel (texte e-mail) : {name}. L’associer ?', potentialSupplierFromEmailBodyCta: 'Ouvrir nouveau fournisseur' },
-  fornitori: { title: 'Fournisseurs', new: 'Nouveau Fournisseur', nome: 'Nom / Société', email: 'Email', piva: 'N° TVA', noSuppliers: 'Aucun fournisseur.', addFirst: 'Ajouter le premier →', editTitle: 'Modifier Fournisseur', saveChanges: 'Enregistrer', notFound: 'Fournisseur introuvable.', deleteConfirm: 'Supprimer ce fournisseur ? Tous les BL et factures liés seront supprimés.', importaDaFattura: 'Importer depuis Facture', countLabel: 'fournisseurs enregistrés', namePlaceholder: 'Ex. Dupont & Fils SARL', emailPlaceholder: 'fournisseur@exemple.fr', pivaLabel: 'N° TVA', pivaPlaceholder: 'FR12345678901', addressLabel: 'Adresse (facultatif)', addressPlaceholder: 'Rue, CP, ville', rekkiLinkLabel: 'Lien Rekki (facultatif)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'ID Rekki (facultatif)', rekkiIdPlaceholder: 'ex. ID fournisseur sur Rekki', rekkiIntegrationTitle: 'Intégration Rekki', rekkiLookupByVat: 'Rechercher Rekki (TVA)', rekkiSaveRekkiMapping: 'Enregistrer le lien Rekki', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Données en cache (hors ligne).', rekkiLookupNeedVat: 'Ajoutez le numéro de TVA du fournisseur pour rechercher sur Rekki.', saving: 'Enregistrement...', tabRiepilogo: 'Résumé', tabListino: 'Tarifs', tabStrategyConto: 'Relevé', kpiBolleTotal: 'Total BL', kpiFatture: 'Factures reçues', kpiPending: 'Documents en attente', kpiReconciliation: 'Rapprochement', subAperte: 'ouverts', subConfermate: 'confirmées', subDaAbbinare: 'à associer', subChiuse: 'BL clôturés', subListinoRows: 'lignes au tarif', subStatementsNoneInMonth: 'aucun ce mois-ci', subStatementsAllVerified: 'tous vérifiés OK', subStatementsWithIssues: 'avec anomalies', helpText: 'Allez dans l\'onglet <b>Relevé</b> pour associer documents et BL, ou dans <b>BL</b> et <b>Factures</b> pour l\'historique complet.', listinoSetupTitle: 'Table de prix pas encore créée', listinoSetupSubtitle: 'Activez le suivi des prix par produit en 2 clics :', listinoSetupStep1: 'Cliquez sur <strong class="font-bold text-slate-100">"Copier SQL"</strong> ci-dessous', listinoSetupStep2: 'Ouvrez le <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, collez et cliquez sur <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Afficher le SQL complet ▸', listinoCopySQL: 'Copier SQL', listinoCopied: 'Copié !', listinoProdotti: 'Liste des Prix', listinoProdottiTracked: 'produits suivis', listinoNoData: 'Aucun prix de produit enregistré', listinoNoDataHint: 'Saisissez les prix directement dans la table <code class="font-mono text-slate-300">listino_prezzi</code> sur Supabase.', listinoTotale: 'Total dépensé', listinoDaBolle: 'Des BL', listinoDaFatture: 'Des factures', listinoStorico: 'Historique des documents', listinoDocs: 'documents', listinoNoDocs: 'Aucun document avec montant enregistré', listinoColData: 'Date', listinoColTipo: 'Type', listinoColNumero: 'Numéro', listinoColImporto: 'Montant', listinoColTotale: 'Total', preferredLanguageEmail: 'Langue préférée (e-mails)', languageInheritSede: '— Hériter du site —', recognizedEmailsTitle: 'E-mails reconnus', recognizedEmailsHint: 'Adresses supplémentaires à partir desquelles ce fournisseur peut envoyer des documents. La synchronisation e-mail les associe automatiquement.', recognizedEmailPlaceholder: 'ex. factures@fournisseur.fr', recognizedEmailLabelOptional: 'Libellé (facultatif)', displayNameLabel: 'Nom court (liste & barre)', displayNameHint: 'Facultatif. Affiché dans la barre du bas sur mobile et les listes compactes à la place du nom légal complet.', displayNamePlaceholder: 'ex. Amalfi', syncEmailNeedSede: 'Associez un site au fournisseur pour synchroniser les e-mails.' },
-  bolle: { title: 'Bons de livraison', new: 'Nouveau BL', uploadInvoice: 'Uploader Facture', viewDocument: 'Voir Document', noBills: 'Aucun BL.', addFirst: 'Créer le premier →', deleteConfirm: 'Supprimer ce BL ? Les factures liées seront supprimées.', ocrScanning: 'Reconnaissance fournisseur…', ocrMatched: 'Fournisseur reconnu', ocrNotFound: 'Sélectionner manuellement', ocrAnalyzing: 'Analyse en cours…', ocrAutoRecognized: 'Reconnu automatiquement', ocrRead: 'Lu :', selectManually: 'Sélectionner fournisseur', saveNote: 'Enregistrer BL', savingNote: 'Enregistrement…', analyzingNote: 'Analyse du document…', takePhotoOrFile: 'Prendre photo ou choisir fichier', ocrHint: 'Le fournisseur sera reconnu automatiquement', cameraBtn: 'Caméra', fileBtn: 'Choisir fichier', countSingolo: 'bon de livraison enregistré', countPlural: 'bons de livraison enregistrés', countTodaySingolo: 'BL aujourd’hui', countTodayPlural: 'BL aujourd’hui', noBillsToday: 'Aucun BL pour aujourd’hui.', listShowAll: 'Tous les BL', listShowToday: 'Aujourd’hui seulement', listAllPending: 'En attente seulement', fotoLabel: 'Photo / Fichier BL', fornitoreLabel: 'Fournisseur', dataLabel: 'Date BL', dettaglio: 'Détail BL', fattureCollegate: 'Factures liées', aggiungi: '+ Ajouter', nessunaFatturaCollegata: 'Aucune facture liée.', allegatoLink: 'Pièce jointe →', statoCompletato: 'Complété', statoInAttesa: 'En attente', apri: 'Ouvrir', colNumero: 'Numéro', nessunaBollaRegistrata: 'Aucun BL enregistré', creaLaPrimaBolla: 'Créer le premier BL →', vediDocumento: 'Voir le document', dateFromDocumentHint: 'Issu du document', prezzoDaApp: 'Prix issu de l’app', verificaPrezzoFornitore: 'Vérifier le prix fournisseur', rekkiPrezzoIndicativoBadge: '⚠️ Prix indicatif depuis l’app Rekki', listinoRekkiRefTitle: 'Tarif de référence (Rekki)', listinoRekkiRefHint: 'Avec l’ID Rekki sur le fournisseur, comparez le total du BL aux derniers prix importés.', listinoRekkiRefEmpty: 'Aucune ligne de tarif pour ce fournisseur.', scannerTitle: 'Scanner IA', scannerWhatLabel: 'Que chargez-vous ?', scannerModeAuto: 'Détection auto', scannerModeBolla: 'Bon de livraison / DDT', scannerModeFattura: 'Facture', scannerModeSupplier: 'Nouveau fournisseur', scannerFlowBolla: 'Enregistrement BL', scannerFlowFattura: 'Enregistrement facture', scannerSaveFattura: 'Enregistrer la facture', scannerSavingFattura: 'Enregistrement facture…', scannerCreateSupplierCta: 'Créer le fournisseur avec les données lues', scannerCreateSupplierFromUnrecognized: 'Créer le fournisseur depuis ce document', scannerPdfPreview: 'PDF joint — aperçu non disponible' },
+  dashboard: { title: 'Tableau de bord', subtitle: 'Aperçu des achats', suppliers: 'Fournisseurs', totalBills: 'Total BL', pendingBills: 'BL en attente', invoices: 'Factures', recentBills: 'BL récents', viewAll: 'Voir tout →', syncEmail: 'Sync Email', emailSyncScopeLookback: 'Jours récents (site)', emailSyncScopeFiscal: 'Exercice fiscal', emailSyncFiscalYearSelectAria: 'Période de synchronisation e-mail', emailSyncScopeHint: 'IT, FR, DE, ES : année civile. UK : exercice se terminant le 5 avr. Chaque site utilise son pays.', emailSyncLookbackSedeDefault: 'Défaut du site (IMAP)', emailSyncLookbackDaysN: '{n} derniers jours', emailSyncLookbackDaysAria: 'Combien de jours en arrière chercher les e-mails non lus', emailSyncLookbackDaysHint: 'Défaut du site : utilise les jours définis sur la fiche site. Sinon limite la recherche IMAP aux N derniers jours (non lus uniquement).', emailSyncDocumentKindAria: 'Type de documents à importer lors de la synchro e-mail', emailSyncDocumentKindHint: 'Tout : défaut. Nouveau fournisseur : expéditeurs absents de l’annuaire. BL / Facture : force le type de brouillon. Relevé : e-mails dont l’objet ressemble à un relevé (statement).', emailSyncDocumentKindAll: 'Tous les documents', emailSyncDocumentKindFornitore: 'Nouveau fournisseur', emailSyncDocumentKindBolla: 'Bon de livraison (BL)', emailSyncDocumentKindFattura: 'Facture', emailSyncDocumentKindEstratto: 'Relevé / extrait', syncing: 'Synchronisation...', sendReminders: 'Envoyer les relances', sending: 'Envoi en cours...', viewLog: 'Voir Log', sedeOverview: 'Vue par Site', manageSedeNamed: 'Gérer {name} →', manageSedi: 'Gérer les sites →', sedeImapOn: 'E-mail active', digitalizzaRicevuto: 'Numériser le reçu', kpiNoPendingBills: 'Aucun BL en attente.', errorCountSuffix: 'erreurs', manualReceiptLabel: 'Reçu (sans bon de livraison)', manualReceiptPlaceholder: 'ex. 5 kg calamars, 2 caisses citrons', manualReceiptRegister: 'Enregistrer la livraison', manualReceiptRegistering: 'Enregistrement…', manualReceiptSaved: 'Livraison enregistrée.', manualReceiptNeedTextOrPhoto: 'Saisissez une description ou ajoutez une photo.', manualReceiptRemovePhoto: 'Retirer la photo', manualReceiptNeedSupplier: 'Sélectionnez un fournisseur.', manualReceiptRegisterFailed: 'Enregistrement impossible.', manualReceiptEmailSupplierLabel: 'Envoyer un e-mail au fournisseur pour demander le bon de commande et le BL', manualReceiptEmailSupplierHint: 'Ajoutez l’e-mail du fournisseur sur sa fiche.', manualReceiptEmailSent: 'E-mail de demande envoyé au fournisseur.', manualReceiptEmailFailed: 'Réception enregistrée, mais l’e-mail n’a pas pu être envoyé.', manualReceiptEmailDescPhotoOnly: 'Photo jointe à l’enregistrement du reçu (sans texte).', adminGlobalTitle: 'Tableau global', adminGlobalSubtitle: 'Synthèse de tous les sites. Choisissez une filiale dans le menu ou sur la carte pour la vue opérationnelle.', adminGlobalTotalsLabel: 'Totaux réseau', adminOpenBranchDashboard: 'Vue opérationnelle', adminSedeSettingsLink: 'Fiche site', adminDocQueueShort: 'En file', rekkiOrder: 'Commander sur Rekki', manualDeliveryNeedSede: 'Sélectionnez un opérateur actif ou assurez-vous que votre profil est rattaché à un site pour enregistrer une livraison.', kpiPriceListSub: 'lignes au tarif', listinoOverviewHint: 'Lignes de tarifs des fournisseurs visibles. Ouvrez une fiche fournisseur pour modifier ou importer depuis une facture.', listinoOverviewEmpty: 'Aucune ligne tarif dans ce périmètre.', listinoOverviewOpenSupplier: 'Ouvrir le fournisseur →', listinoOverviewLimitNote: 'Affichage des {n} dernières lignes.', fattureRiepilogoTitle: 'Total factures', fattureRiepilogoHint: 'Somme des montants dans votre périmètre. Le tableau liste les dernières factures par date; ouvrez une fiche pour la pièce jointe et les liens.', fattureRiepilogoEmpty: 'Aucune facture dans ce périmètre.', fattureRiepilogoLimitNote: 'Affichage des {n} dernières factures (par date).', fattureRiepilogoOpenInvoice: 'Ouvrir la facture →', fattureRiepilogoCountLabel: '{n} factures', fattureRiepilogoLinkAll: 'Toutes les factures →', kpiStatementNone: 'Aucun relevé', kpiStatementAllOk: 'Aucune anomalie', kpiStatementIssuesFooter: 'sur {t} relevés vérifiés', kpiFornitoriSub: 'Annuaire et recherche', kpiDaProcessareSub: 'documents en attente', operatorNoSede: 'Aucun site n’est lié à votre profil. Demandez à un administrateur de vous affecter à la bonne filiale.', suggestedSupplierBanner: 'Nouveau fournisseur détecté : {name}. L’ajouter ?', suggestedSupplierAdd: 'Nouveau fournisseur', suggestedSupplierImport: 'Importer depuis OCR', enterAsSede: 'Entrer comme site', syncHealthAlert: 'Problème de synchronisation (IMAP ou OCR)', syncHealthOcrCount: 'Échecs OCR (48h) : {n}', viewingAsSedeBanner: 'Vous consultez le tableau de bord comme :', exitSedeView: 'Retour vue admin', emailSyncQueued: 'En file — une autre synchronisation se termine…', emailSyncPhaseConnect: 'Connexion…', emailSyncConnectToServer: 'Connexion au serveur IMAP (réseau, chiffrement, authentification)…', emailSyncConnectOpeningMailbox: 'Ouverture du dossier Boîte de réception…', emailSyncPhaseSearch: 'Analyse des textes…', emailSyncPhaseProcess: 'Analyse des pièces jointes (Vision IA)…', emailSyncPhasePersist: 'Enregistrement en base…', emailSyncPhaseDone: 'Synchronisation terminée.', emailSyncStalled: 'Pas de nouvelles — avec beaucoup de pièces jointes, la Vision peut prendre plusieurs minutes. Patience…', emailSyncStalledHint: 'Cela signifie seulement qu’aucune mise à jour du flux n’arrive (fréquent pendant un OCR long). Les vraies tentatives IMAP s’affichent en rouge ci-dessus pendant la phase de connexion.', emailSyncImapRetryLine: 'Connexion IMAP : tentative {current} sur {max}', emailSyncCountsHint: 'Trouvées · nouveaux dans l’app · traités · unités PDF/texte', emailSyncMailboxGlobal: 'Boîte IMAP globale (variables d\'environnement)', emailSyncMailboxSede: 'Boîte : {name}', emailSyncSupplierFilterLine: 'Filtre fournisseur : {name}', emailSyncStatFoundLine: 'Trouvées en boîte : {found}', emailSyncStatImportedLine: 'Nouveaux dans l’app (documents importés) : {imported}', emailSyncStatProcessedLine: 'E-mails traités (lus et analysés) : {processed}', emailSyncStatIgnoredLine: 'Ignorés ou sans résultat : {ignored}', emailSyncStatDraftsLine: 'Brouillons de BL créés : {drafts}', emailSyncStatAlreadyLine: 'Déjà traitées lors d’une synchro précédente (pas réimportées) : {n}', emailSyncStatUnitsLine: 'Unités à analyser (pièces PDF/image ou corps de mail éligible) : {done} / {total}', emailSyncStripDetailsExpandAria: 'Afficher les détails de la synchronisation e-mail', emailSyncStripDetailsCollapseAria: 'Masquer les détails de la synchronisation e-mail', emailSyncStop: 'Arrêter', emailSyncStopAria: 'Interrompre la synchronisation e-mail', emailSyncDismiss: 'Fermer', emailSyncDismissAria: 'Fermer le récapitulatif de synchronisation e-mail', potentialSupplierFromEmailBodyBanner: 'Fournisseur potentiel (texte e-mail) : {name}. L’associer ?', potentialSupplierFromEmailBodyCta: 'Ouvrir nouveau fournisseur' },
+  fornitori: { title: 'Fournisseurs', new: 'Nouveau Fournisseur', nome: 'Nom / Société', email: 'Email', piva: 'N° TVA', noSuppliers: 'Aucun fournisseur.', addFirst: 'Ajouter le premier →', editTitle: 'Modifier Fournisseur', saveChanges: 'Enregistrer', notFound: 'Fournisseur introuvable.', deleteConfirm: 'Supprimer ce fournisseur ? Tous les BL et factures liés seront supprimés.', importaDaFattura: 'Importer depuis Facture', countLabel: 'fournisseurs enregistrés', namePlaceholder: 'Ex. Dupont & Fils SARL', emailPlaceholder: 'fournisseur@exemple.fr', pivaLabel: 'N° TVA', pivaPlaceholder: 'FR12345678901', addressLabel: 'Adresse (facultatif)', addressPlaceholder: 'Rue, CP, ville', rekkiLinkLabel: 'Lien Rekki (facultatif)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'ID Rekki (facultatif)', rekkiIdPlaceholder: 'ex. ID fournisseur sur Rekki', rekkiIntegrationTitle: 'Intégration Rekki', rekkiLookupByVat: 'Rechercher Rekki (TVA)', rekkiSaveRekkiMapping: 'Enregistrer le lien Rekki', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Données en cache (hors ligne).', rekkiLookupNeedVat: 'Ajoutez le numéro de TVA du fournisseur pour rechercher sur Rekki.', rekkiIdExtractedFromLink: 'ID fournisseur extrait du lien Rekki.', rekkiAutoLinkedSingle: 'Un seul fournisseur Rekki correspond à cette TVA — lien enregistré.', saving: 'Enregistrement...', tabRiepilogo: 'Résumé', tabListino: 'Tarifs', tabStrategyConto: 'Relevé', kpiBolleTotal: 'Total BL', kpiFatture: 'Factures reçues', kpiPending: 'Documents en attente', kpiReconciliation: 'Rapprochement', subAperte: 'ouverts', subConfermate: 'confirmées', subDaAbbinare: 'à associer', subChiuse: 'BL clôturés', subListinoRows: 'lignes au tarif', subStatementsNoneInMonth: 'aucun ce mois-ci', subStatementsAllVerified: 'tous vérifiés OK', subStatementsWithIssues: 'avec anomalies', helpText: 'Allez dans l\'onglet <b>Relevé</b> pour associer documents et BL, ou dans <b>BL</b> et <b>Factures</b> pour l\'historique complet.', listinoSetupTitle: 'Table de prix pas encore créée', listinoSetupSubtitle: 'Activez le suivi des prix par produit en 2 clics :', listinoSetupStep1: 'Cliquez sur <strong class="font-bold text-slate-100">"Copier SQL"</strong> ci-dessous', listinoSetupStep2: 'Ouvrez le <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, collez et cliquez sur <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Afficher le SQL complet ▸', listinoCopySQL: 'Copier SQL', listinoCopied: 'Copié !', listinoProdotti: 'Liste des Prix', listinoProdottiTracked: 'produits suivis', listinoNoData: 'Aucun prix de produit enregistré', listinoNoDataHint: 'Saisissez les prix directement dans la table <code class="font-mono text-slate-300">listino_prezzi</code> sur Supabase.', listinoTotale: 'Total dépensé', listinoDaBolle: 'Des BL', listinoDaFatture: 'Des factures', listinoStorico: 'Historique des documents', listinoDocs: 'documents', listinoNoDocs: 'Aucun document avec montant enregistré', listinoColData: 'Date', listinoColTipo: 'Type', listinoColNumero: 'Numéro', listinoColImporto: 'Montant', listinoColTotale: 'Total', preferredLanguageEmail: 'Langue préférée (e-mails)', languageInheritSede: '— Hériter du site —', recognizedEmailsTitle: 'E-mails reconnus', recognizedEmailsHint: 'Adresses supplémentaires à partir desquelles ce fournisseur peut envoyer des documents. La synchronisation e-mail les associe automatiquement.', recognizedEmailPlaceholder: 'ex. factures@fournisseur.fr', recognizedEmailLabelOptional: 'Libellé (facultatif)', displayNameLabel: 'Nom court (liste & barre)', displayNameHint: 'Facultatif. Affiché dans la barre du bas sur mobile et les listes compactes à la place du nom légal complet.', displayNamePlaceholder: 'ex. Amalfi', loadingProfile: 'Chargement de la fiche, des documents et du récapitulatif fournisseur…', logoUrlLabel: 'Logo fournisseur (URL)', logoUrlPlaceholder: 'https://exemple.fr/logo.png', logoUrlHint: 'Image HTTPS (PNG, JPG ou SVG). En cas d’échec, les initiales s’affichent.', syncEmailNeedSede: 'Associez un site au fournisseur pour synchroniser les e-mails.' },
+  bolle: { title: 'Bons de livraison', new: 'Nouveau BL', uploadInvoice: 'Uploader Facture', viewDocument: 'Voir Document', noBills: 'Aucun BL.', addFirst: 'Créer le premier →', deleteConfirm: 'Supprimer ce BL ? Les factures liées seront supprimées.', ocrScanning: 'Reconnaissance fournisseur…', ocrMatched: 'Fournisseur reconnu', ocrNotFound: 'Sélectionner manuellement', ocrAnalyzing: 'Analyse en cours…', ocrAutoRecognized: 'Reconnu automatiquement', ocrRead: 'Lu :', selectManually: 'Sélectionner fournisseur', saveNote: 'Enregistrer BL', savingNote: 'Enregistrement…', analyzingNote: 'Analyse du document…', takePhotoOrFile: 'Prendre photo ou choisir fichier', ocrHint: 'Le fournisseur sera reconnu automatiquement', cameraBtn: 'Caméra', fileBtn: 'Choisir fichier', countSingolo: 'bon de livraison enregistré', countPlural: 'bons de livraison enregistrés', countTodaySingolo: 'BL aujourd’hui', countTodayPlural: 'BL aujourd’hui', noBillsToday: 'Aucun BL pour aujourd’hui.', listShowAll: 'Tous les BL', listShowToday: 'Aujourd’hui seulement', listAllPending: 'En attente seulement', fotoLabel: 'Photo / Fichier BL', fornitoreLabel: 'Fournisseur', dataLabel: 'Date BL', dettaglio: 'Détail BL', fattureCollegate: 'Factures liées', aggiungi: '+ Ajouter', nessunaFatturaCollegata: 'Aucune facture liée.', allegatoLink: 'Pièce jointe →', statoCompletato: 'Complété', statoInAttesa: 'En attente', apri: 'Ouvrir', colNumero: 'Numéro', colAttachmentKind: 'Pièce jointe', attachmentKindPdf: 'PDF', attachmentKindImage: 'Image', attachmentKindOther: 'Fichier', nessunaBollaRegistrata: 'Aucun BL enregistré', creaLaPrimaBolla: 'Créer le premier BL →', vediDocumento: 'Voir le document', dateFromDocumentHint: 'Issu du document', prezzoDaApp: 'Prix issu de l’app', verificaPrezzoFornitore: 'Vérifier le prix fournisseur', rekkiPrezzoIndicativoBadge: '⚠️ Prix indicatif depuis l’app Rekki', listinoRekkiRefTitle: 'Tarif de référence (Rekki)', listinoRekkiRefHint: 'Avec l’ID Rekki sur le fournisseur, comparez le total du BL aux derniers prix importés.', listinoRekkiRefEmpty: 'Aucune ligne de tarif pour ce fournisseur.', scannerTitle: 'Scanner IA', scannerWhatLabel: 'Que chargez-vous ?', scannerModeAuto: 'Détection auto', scannerModeBolla: 'Bon de livraison / DDT', scannerModeFattura: 'Facture', scannerModeSupplier: 'Nouveau fournisseur', scannerFlowBolla: 'Enregistrement BL', scannerFlowFattura: 'Enregistrement facture', scannerSaveFattura: 'Enregistrer la facture', scannerSavingFattura: 'Enregistrement facture…', scannerCreateSupplierCta: 'Créer le fournisseur avec les données lues', scannerCreateSupplierFromUnrecognized: 'Créer le fournisseur depuis ce document', scannerPdfPreview: 'PDF joint — aperçu non disponible' },
   fatture: { title: 'Factures', new: 'Nouvelle Facture', noInvoices: 'Aucune facture.', addFirst: 'Ajouter la première →', invoice: 'Facture', openBill: 'Ouvrir BL →', deleteConfirm: 'Supprimer cette facture ? Action irréversible.', countLabel: 'factures reçues', headerBolla: 'Bon de livraison', headerAllegato: 'Pièce jointe', apri: 'Ouvrir →', caricaFatturaTitle: 'Uploader Facture', bollaMarkata: 'Le BL sera marqué comme complété', collegataABolla: 'Liée à un bon de livraison', bollaPasseraCompletato: 'À l\'enregistrement le BL passera à "complété"', dataFattura: 'Date Facture', fileFattura: 'Fichier Facture', caricaPdfFoto: 'Uploader PDF ou prendre photo', maxSize: 'PDF, JPG, PNG, WebP — max 10 Mo', savingInProgress: 'Enregistrement...', salvaChiudiBolla: 'Enregistrer et Clôturer BL', dettaglio: 'Détail', bollaCollegata: 'BL lié', statusAssociata: 'Associée', statusSenzaBolla: 'Sans BL', colNumFattura: 'N° Facture', nessunaFatturaRegistrata: 'Aucune facture enregistrée' },
-  archivio: { title: 'Archive', subtitle: 'fournisseurs', noBills: 'Aucun BL', noInvoices: 'Aucune facture', withBill: 'Avec BL', noEmail: 'Aucun email', bollaS: 'bon', bollaP: 'bons', fatturaS: 'facture', fatturaP: 'factures', editLink: 'Modifier →', nuova: '+ Nouveau', nuovaFattura: '+ Facture', documento: 'Document' },
+  archivio: { title: 'Archive', subtitle: 'fournisseurs', noBills: 'Aucun BL', noInvoices: 'Aucune facture', withBill: 'Avec BL', noEmail: 'Aucun email', bollaS: 'bon', bollaP: 'bons', fatturaS: 'facture', fatturaP: 'factures', editLink: 'Modifier →', nuova: '+ Nouveau', nuovaFattura: '+ Facture', documento: 'Document', pendingDocCount: '({n} en attente)', linkAssociateStatements: 'Associer →' },
   impostazioni: { title: 'Paramètres', subtitle: 'Devise et fuseau horaire', lingua: 'Langue', valuta: 'Devise', fuso: 'Fuseau horaire', preview: 'Aperçu', saved: 'Paramètres sauvegardés — rechargement…', sectionLocalisation: 'Localisation', accountSection: 'Compte', changeSede: 'Changer de site', addOperatorsPickSede: 'Choisissez d’abord le site actif dans Sites — puis vous pourrez créer des opérateurs (nom + PIN) ici.' },
   log: { title: 'Log Sync Email', subtitle: 'Historique des emails traités par la synchronisation automatique.', sender: 'Expéditeur', subject: 'Objet', stato: 'Statut', detail: 'Détail', retry: 'Réessayer', retrying: 'Réessai…', success: 'Succès', bollaNotFound: 'Document Reçu', supplierNotFound: 'Expéditeur inconnu', noLogs: 'Aucun log.', emptyHint: 'Lancez une synchronisation email depuis le Tableau de bord.', totalLogs: 'Total logs', linkedInvoices: 'Documents reçus', withErrors: 'Avec erreurs', vediFile: 'Voir fichier', supplierSuggested: 'Fournisseur suggéré', aiSuggest: 'Suggestion IA', aiSuggestTitle: 'Données suggérées (OCR)', aiSuggestLoading: 'Analyse…', aiSuggestError: 'Impossible d’analyser le document.', openCreateSupplier: 'Ouvrir création fournisseur', associateRememberHint: 'Après enregistrement, l’e-mail de l’expéditeur sera lié pour les prochaines synchronisations.', colAttachment: 'Pièce jointe', colSede: 'Site', colLogId: 'ID log' },
-  sedi: { title: 'Sites & Utilisateurs', subtitle: 'Gérer les sites, la sync email et les opérateurs', newSede: 'Nouveau Site', noSedi: 'Aucun site. Commencez par en ajouter un.', users: 'Utilisateurs', imap: 'Configuration Email (IMAP)', imapSubtitle: "Configurez la boîte mail de ce site. Les factures reçues ici seront associées automatiquement aux fournisseurs du site.", imapHost: 'Hôte IMAP', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'Email / Utilisateur', imapPassword: 'Mot de passe', imapPasswordPlaceholder: 'Mot de passe ou Mot de passe d\'application', testConnection: 'Tester la connexion', saveConfig: 'Enregistrer la configuration', notConfigured: 'Email non configuré', accessDenied: 'Accès réservé aux administrateurs', accessDeniedHint: 'Contactez votre admin pour obtenir l\'accès.', creatingBtn: 'Création...', createBtn: 'Créer', nomePlaceholder: 'Ex. Bureau Paris', nessunUtente: 'Aucun utilisateur trouvé.', emailHeader: 'Email', sedeHeader: 'Site', ruoloHeader: 'Rôle', nessunaSedeOption: '— Aucun site —', operatoreRole: 'Opérateur', adminRole: 'Admin', adminSedeRole: 'Admin site', adminScopedSediHint: 'Vous ne voyez que le site lié à votre profil. Les nouveaux sites et les « Utilisateurs sans site » sont réservés à l’administrateur principal (admin sans site sur le profil).', renameTitle: 'Renommer', deleteTitle: 'Supprimer', addOperatorSedeTitle: 'Nouvel opérateur', addOperatorSedeDesc: 'Connexion avec nom et PIN (min. 4 caractères). L’e-mail est généré automatiquement.', operatorDisplayNameLabel: 'Nom affiché', operatorPinMinLabel: 'PIN (min. 4 caractères)', operatorNameRequired: 'Saisissez le nom de l’opérateur.', operatorPinTooShort: 'Le PIN doit comporter au moins 4 caractères.' },
+  sedi: { title: 'Site et Utilisateurs', titleGlobalAdmin: 'Sites', subtitle: 'Gérer le site, la sync e-mail et les opérateurs', subtitleGlobalAdmin: 'Gérer les sites, la sync e-mail et les opérateurs', newSede: 'Nouveau Site', noSedi: 'Aucun site. Commencez par en ajouter un.', users: 'Utilisateurs', imap: 'Configuration Email (IMAP)', imapSubtitle: "Configurez la boîte mail de ce site. Les factures reçues ici seront associées automatiquement aux fournisseurs du site.", imapHost: 'Hôte IMAP', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'Email / Utilisateur', imapPassword: 'Mot de passe', imapPasswordPlaceholder: 'Mot de passe ou Mot de passe d\'application', testConnection: 'Tester la connexion', saveConfig: 'Enregistrer la configuration', notConfigured: 'Email non configuré', accessDenied: 'Accès réservé aux administrateurs', accessDeniedHint: 'Contactez votre admin pour obtenir l\'accès.', creatingBtn: 'Création...', createBtn: 'Créer', nomePlaceholder: 'Ex. Bureau Paris', nessunUtente: 'Aucun utilisateur trouvé.', emailHeader: 'Email', sedeHeader: 'Site', ruoloHeader: 'Rôle', nessunaSedeOption: '— Aucun site —', operatoreRole: 'Opérateur', adminRole: 'Portail de gestion', adminSedeRole: 'Administrateur de site', profileRoleAdmin: 'Portail de gestion', adminScopedSediHint: 'Vous ne voyez que le site lié à votre profil. Les nouveaux sites et les « Utilisateurs sans site » sont réservés à l’administrateur principal (admin sans site sur le profil).', renameTitle: 'Renommer', deleteTitle: 'Supprimer', addOperatorSedeTitle: 'Nouvel opérateur', addOperatorSedeDesc: 'Connexion avec nom et PIN (min. 4 caractères). L’e-mail est généré automatiquement.', operatorDisplayNameLabel: 'Nom affiché', operatorPinMinLabel: 'PIN (min. 4 caractères)', operatorNameRequired: 'Saisissez le nom de l’opérateur.', operatorPinTooShort: 'Le PIN doit comporter au moins 4 caractères.' },
   statements: {
     heading: 'Vérification des Relevés Mensuels',
     tabVerifica: 'Relevé de Compte',
     tabDocumenti: 'Documents en Attente',
+    schedaNavDaProcessareDesc: 'Pièces jointes reçues : liez fournisseurs, BL et factures.',
+    schedaNavVerificaDesc: 'Contrôle mensuel du relevé par rapport aux BL et factures.',
     statusOk: 'OK',
     statusFatturaMancante: 'Facture manquante',
     statusBolleManc: 'BL manquants',
@@ -2475,10 +2788,25 @@ const fr: Translations = {
     gotoBollaDraft: 'Voir le brouillon BL →',
     toggleAddStatement: 'Ajouter au relevé',
     toggleRemoveStatement: 'Retirer du relevé',
+    docKindEstratto: 'Relevé',
+    docKindBolla: 'BL',
+    docKindFattura: 'Facture',
+    docKindHintBolla: 'Marquer comme bon de livraison, pas relevé mensuel ni facture à rapprocher',
+    docKindHintFattura: 'Marquer comme facture à rapprocher avec les BL en attente',
+    docKindGroupAria: 'Type de document',
+    finalizeNeedsSupplier: 'Associez un fournisseur pour finaliser.',
+    btnFinalizeFattura: 'Enregistrer la facture (sans BL)',
+    btnFinalizeBolla: 'Créer un BL à partir du fichier',
+    btnFinalizeStatement: 'Archiver le relevé',
+    btnFinalizing: 'Enregistrement…',
+    finalizeSuccess: 'Document enregistré.',
     noPendingDocs: 'Aucun document à examiner',
     noDocsFound: 'Aucun document trouvé',
     noBolleAttesa: 'Aucun bon de livraison en attente disponible',
     unknownSender: 'Expéditeur inconnu',
+    sameAddressClusterHint:
+      'Même adresse que d’autres documents en file. Noms d’entreprise (IA) sur ces lignes : {names}. Probablement le même fournisseur : associez le même contact.',
+    btnCreateSupplierFromAi: 'Créer le fournisseur →',
     docTotalLabel: 'Total du document :',
     exactAmount: 'Montant exact',
     exceeds: 'Excédent',
@@ -2502,6 +2830,10 @@ const fr: Translations = {
     reconcileDB: 'BD :',
     loadingResults: 'Chargement des résultats…',
     editSupplierTitle: 'Modifier le fournisseur',
+    supplierLinkFailed: 'Impossible de lier le fournisseur au document.',
+    assignFailed: 'Échec de l’association aux bons de livraison.',
+    autoLinkedSupplierOne: 'Fournisseur associé automatiquement : {name}.',
+    autoLinkedSupplierMany: '{count} documents associés automatiquement à des fournisseurs.',
     ocrFormatToggleTitle: 'Forcer l’interprétation numérique alternative',
     allBolleInvoicedOk: 'Tous les bons de livraison ont une facture correspondante — relevé vérifié ✓',
     aiStatementTotalLabel: 'Total extrait du relevé (IA) :',
@@ -2555,9 +2887,10 @@ const fr: Translations = {
       'Aucune facture ne correspond à ce lien. Elle a peut-être été supprimée, le lien est erroné, ou votre compte ou site n’y a pas accès.',
     backToHome: 'Retour au tableau de bord',
     sedeLockTitle: 'Accès protégé',
-    sedeLockSubtitle: 'nécessite un code d’accès',
-    sedeLockCodeLabel: 'Code d’accès',
-    sedeLockPlaceholder: '••••••••',
+    sedeLockDescription: 'Le site {name} nécessite un PIN numérique à 4 chiffres.',
+    sedeLockCodeLabel: 'PIN (4 chiffres)',
+    sedeLockPlaceholder: '••••',
+    sedeLockPinLengthError: 'Saisissez un PIN à 4 chiffres.',
     sectionDates: 'Dates',
     sectionCurrencyLabel: 'Devise',
     loadingBolle: 'Chargement des bons…',
@@ -2677,6 +3010,9 @@ const de: Translations = {
     connectionOffline: 'Offline',
     connectionReconnecting: 'Verbindung wird wiederhergestellt…',
     emailSyncResumed: 'Verbindung wiederhergestellt — E-Mail-Sync wird fortgesetzt.',
+    emailSyncStreamIncomplete:
+      'Synchronisation unvollständig (Verbindung vorzeitig beendet). Bitte erneut versuchen.',
+    emailSyncCancelled: 'E-Mail-Synchronisation abgebrochen.',
     reminderError:    'Fehler beim Senden der Mahnungen.',
     noReminders:      'Keine Mahnungen zu senden (Lieferanten ohne E-Mail?).',
     remindersCount:   'Mahnung',
@@ -2685,50 +3021,60 @@ const de: Translations = {
     pinError:         'Falscher PIN.',
     operatorPinStepUpTitle: 'Operator bestätigen',
     operatorPinStepUpHint: 'Geben Sie die 4-stellige PIN des aktiven Operators ein, um diese Änderung zu bestätigen.',
-    operatorPinStepUpNoActive: 'Wählen Sie zuerst den aktiven Operator (Leiste oder Menü), dann die PIN.',
+    operatorPinStepUpNoActive:
+      'Kein aktiver Operator in dieser Sitzung. Nutzen Sie die Schaltfläche unten (untere Leiste auf dem Handy oder Seitenmenü), wählen Sie den Operator, dann die PIN.',
+    operatorPinStepUpChooseOperator: 'Operator wählen',
     verifyAndContinue: 'Weiter',
     operatorAutoLockLabel: 'Auto-Sperre nach',
     operatorAutoLockNever: 'Aus',
     operatorAutoLockMinutes: '{n} Min',
   },
   login: {
-    subtitle: 'Vorname und PIN eingeben, um sich anzumelden',
-    adminSubtitle: 'Administrator-Zugang',
-    nameLabel: 'Nur Vorname',
+    brandTagline: 'Rechnungsverwaltung',
+    subtitle: 'Zugang: Ihr Name und 4-stelliger PIN',
+    adminSubtitle: 'Verwaltungsportal',
+    adminSubtitleHint:
+      'E-Mail und Passwort für das Verwaltungsportal. Für Operatorenname und PIN nutzen Sie «Operator-Zugang» (Standort-Admins und Operatoren).',
+    nameLabel: 'Name',
     namePlaceholder: 'MAX',
     pinLabel: 'PIN',
     pinDigits: '(4 Ziffern)',
-    lookingUp: 'Standort wird gesucht…',
-    enterFirstName: 'Nur den Vornamen eingeben und Tab drücken',
+    lookingUp: 'Name wird geprüft…',
+    enterFirstName: 'Namen eingeben und Tab drücken',
     emailLabel: 'E-Mail',
     emailPlaceholder: 'admin@firma.de',
     passwordLabel: 'Passwort',
     passwordPlaceholder: 'Mindestens 6 Zeichen',
     loginBtn: 'Anmelden',
-    adminLink: 'Administrator-Zugang →',
+    adminLink: 'Verwaltungsportal →',
     operatorLink: '← Operator-Zugang',
     pinIncorrect: 'Falscher PIN. Bitte erneut versuchen.',
     invalidCredentials: 'Ungültige Anmeldedaten.',
     verifying: 'Überprüfung…',
     accessing: 'Anmeldung läuft…',
     notFound: 'Benutzer nicht gefunden.',
-    adminOnlyEmail: 'Diese Anmeldung ist nur für Administratoren. Nutzen Sie Vorname und PIN oder bitten Sie um ein Admin-Konto.',
+    adminOnlyEmail: 'Diese Anmeldung ist nur für Administratoren. Nutzen Sie Name und PIN oder bitten Sie um ein Admin-Konto.',
+    adminGateLabel: 'Admin-Entsperrcode',
+    adminGateHint: 'PIN eingeben, um E-Mail und Passwort freizuschalten.',
+    adminGateWrong: 'Ungültiger Code.',
   },
-  nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standorte & Nutzer', sediTitle: 'Standorte', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)' },
-  common: { save: 'Speichern', cancel: 'Abbrechen', delete: 'Löschen', edit: 'Bearbeiten', new: 'Neu', loading: 'Laden...', error: 'Fehler', success: 'Erfolg', noData: 'Keine Daten', document: 'Dokument', actions: 'Aktionen', date: 'Datum', status: 'Status', supplier: 'Lieferant', notes: 'Notizen', phone: 'Telefon', saving: 'Speichern...', attachment: 'Anhang', openAttachment: 'Anhang öffnen', detail: 'Detail', add: '+ Hinzufügen', rename: 'Umbenennen', role: 'Rolle', aiExtracted: 'KI-extrahierte Daten', matched: 'Zugeordnet', notMatched: 'Nicht zugeordnet', company: 'Unternehmen', invoiceNum: 'Rechnungs-Nr.', total: 'Gesamt' },
+  nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standort & Nutzer', sediTitle: 'Standort', sediNavGroupMaster: 'Standorte', gestisciSedeNamed: '{name} verwalten', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)' },
+  common: { save: 'Speichern', cancel: 'Abbrechen', delete: 'Löschen', edit: 'Bearbeiten', new: 'Neu', loading: 'Laden...', error: 'Fehler', success: 'Erfolg', noData: 'Keine Daten', document: 'Dokument', actions: 'Aktionen', date: 'Datum', status: 'Status', supplier: 'Lieferant', notes: 'Notizen', phone: 'Telefon', saving: 'Speichern...', attachment: 'Anhang', openAttachment: 'Anhang öffnen', detail: 'Detail', add: 'Hinzufügen', rename: 'Umbenennen', role: 'Rolle', aiExtracted: 'KI-extrahierte Daten', matched: 'Zugeordnet', notMatched: 'Nicht zugeordnet', recordSupplierLinked: 'Verknüpft', company: 'Unternehmen', invoiceNum: 'Rechnungs-Nr.', total: 'Gesamt' },
   status: { inAttesa: 'Ausstehend', completato: 'Abgeschlossen', completata: 'Abgeschlossen' },
-  dashboard: { title: 'Dashboard', subtitle: 'Einkaufsübersicht', suppliers: 'Lieferanten', totalBills: 'Lieferscheine gesamt', pendingBills: 'Ausstehende Scheine', invoices: 'Rechnungen', recentBills: 'Aktuelle Lieferscheine', viewAll: 'Alle anzeigen →', syncEmail: 'E-Mail synchronisieren', emailSyncScopeLookback: 'Letzte Tage (Standort)', emailSyncScopeFiscal: 'Geschäftsjahr', emailSyncFiscalYearSelectAria: 'Zeitraum für E-Mail-Sync', emailSyncScopeHint: 'IT, FR, DE, ES: Kalenderjahr. UK: Steuerjahr bis 5. Apr. Jeder Standort nutzt sein Land.', syncing: 'Synchronisierung...', sendReminders: 'Zahlungserinnerungen senden', sending: 'Senden...', viewLog: 'Log anzeigen', sedeOverview: 'Übersicht nach Standort', manageSedi: 'Standorte verwalten →', sedeImapOn: 'E-Mail aktiv', digitalizzaRicevuto: 'Beleg digitalisieren', kpiNoPendingBills: 'Keine ausstehenden Lieferscheine.', errorCountSuffix: 'Fehler', manualReceiptLabel: 'Eingang (ohne Lieferschein)', manualReceiptPlaceholder: 'z. B. 5 kg Tintenfisch, 2 Kisten Zitronen', manualReceiptRegister: 'Lieferung erfassen', manualReceiptRegistering: 'Wird gespeichert…', manualReceiptSaved: 'Lieferung erfasst.', manualReceiptNeedTextOrPhoto: 'Beschreibung eingeben oder Foto anhängen.', manualReceiptRemovePhoto: 'Foto entfernen', manualReceiptNeedSupplier: 'Bitte einen Lieferanten wählen.', manualReceiptRegisterFailed: 'Registrierung fehlgeschlagen.', adminGlobalTitle: 'Globales Dashboard', adminGlobalSubtitle: 'Überblick über alle Standorte. Wählen Sie eine Filiale im Menü oder auf der Karte für die operative Ansicht.', adminGlobalTotalsLabel: 'Netzwerk-Gesamtwerte', adminOpenBranchDashboard: 'Operative Ansicht', adminSedeSettingsLink: 'Standort-Seite', adminDocQueueShort: 'In Warteschlange', rekkiOrder: 'Bei Rekki bestellen', manualDeliveryNeedSede: 'Wählen Sie einen aktiven Operator oder stellen Sie sicher, dass Ihr Profil mit einem Standort verknüpft ist, um eine Lieferung zu erfassen.', kpiPriceListSub: 'Zeilen in der Preisliste', kpiStatementNone: 'Kein Kontoauszug', kpiStatementAllOk: 'Keine Auffälligkeiten', kpiStatementIssuesFooter: 'von {t} geprüften Auszügen', kpiFornitoriSub: 'Stamm & Suche', operatorNoSede: 'Ihrem Profil ist kein Standort zugeordnet. Bitte einen Administrator, Sie der richtigen Filiale zuzuweisen.', suggestedSupplierBanner: 'Neuer Lieferant erkannt: {name}. Hinzufügen?', suggestedSupplierAdd: 'Neuer Lieferant', suggestedSupplierImport: 'Aus OCR importieren', enterAsSede: 'Als Standort ansehen', syncHealthAlert: 'Synchronisationsproblem (IMAP oder OCR)', syncHealthOcrCount: 'OCR-Fehler (48h): {n}', viewingAsSedeBanner: 'Sie sehen das Dashboard als:', exitSedeView: 'Zurück zur Admin-Übersicht', emailSyncQueued: 'In Warteschlange — eine andere Synchronisation läuft…', emailSyncPhaseConnect: 'Verbindung…', emailSyncPhaseSearch: 'Texte einlesen…', emailSyncPhaseProcess: 'Anhang-Analyse mit Vision-KI…', emailSyncPhasePersist: 'Speichern in der Datenbank…', emailSyncPhaseDone: 'Synchronisation abgeschlossen.', emailSyncStalled: 'Keine Updates — bei vielen Anhängen kann die Vision mehrere Minuten brauchen. Bitte warten…', emailSyncStalledReconnect: 'Verbindungsversuch {current} von {max}…', emailSyncImapRetryLine: 'IMAP-Verbindung: Versuch {current} von {max}', emailSyncCountsHint: 'Gefunden · neu in der App · verarbeitet · PDF/Text-Einheiten', emailSyncMailboxGlobal: 'Globales IMAP-Postfach (Umgebungsvariablen)', emailSyncMailboxSede: 'Postfach: {name}', emailSyncSupplierFilterLine: 'Lieferantenfilter: {name}', emailSyncStatFoundLine: 'Im Postfach gefunden: {found}', emailSyncStatImportedLine: 'Neu in der App (importierte Dokumente): {imported}', emailSyncStatProcessedLine: 'E-Mails vollständig verarbeitet: {processed}', emailSyncStatIgnoredLine: 'Übersprungen / ohne Ergebnis: {ignored}', emailSyncStatDraftsLine: 'Autom. erstellte Lieferschein-Entwürfe: {drafts}', emailSyncStatUnitsLine: 'Zu analysierende Einheiten (PDF/Bild-Anhänge oder langer Mailtext): {done} / {total}', potentialSupplierFromEmailBodyBanner: 'Möglicher Lieferant (E-Mail-Text): {name}. Zuordnen?', potentialSupplierFromEmailBodyCta: 'Neuen Lieferanten anlegen' },
-  fornitori: { title: 'Lieferanten', new: 'Neuer Lieferant', nome: 'Name / Firma', email: 'E-Mail', piva: 'USt-IdNr.', noSuppliers: 'Keine Lieferanten.', addFirst: 'Ersten hinzufügen →', editTitle: 'Lieferant bearbeiten', saveChanges: 'Änderungen speichern', notFound: 'Lieferant nicht gefunden.', deleteConfirm: 'Diesen Lieferanten löschen? Alle verknüpften Lieferscheine und Rechnungen werden ebenfalls gelöscht.', importaDaFattura: 'Aus Rechnung importieren', countLabel: 'Lieferanten registriert', namePlaceholder: 'z.B. Müller GmbH', emailPlaceholder: 'lieferant@beispiel.de', pivaLabel: 'USt-IdNr.', pivaPlaceholder: 'DE123456789', addressLabel: 'Adresse (optional)', addressPlaceholder: 'Straße, PLZ, Ort', rekkiLinkLabel: 'Rekki-Link (optional)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'Rekki-ID (optional)', rekkiIdPlaceholder: 'z. B. Lieferanten-ID bei Rekki', rekkiIntegrationTitle: 'Rekki-Integration', rekkiLookupByVat: 'Bei Rekki suchen (USt-IdNr.)', rekkiSaveRekkiMapping: 'Rekki-Verknüpfung speichern', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Zwischengespeicherte Daten (offline).', rekkiLookupNeedVat: 'Tragen Sie die USt-IdNr. des Lieferanten ein, um bei Rekki zu suchen.', saving: 'Speichern...', tabRiepilogo: 'Übersicht', tabListino: 'Preisliste', tabStrategyConto: 'Kontoauszug', kpiBolleTotal: 'Lieferscheine gesamt', kpiFatture: 'Rechnungen eingegangen', kpiPending: 'Ausstehende Dokumente', kpiReconciliation: 'Abstimmung', subAperte: 'offen', subConfermate: 'bestätigt', subDaAbbinare: 'zuzuordnen', subChiuse: 'Scheine geschlossen', subListinoRows: 'Preislisten-Einträge im Zeitraum', subStatementsNoneInMonth: 'keiner in diesem Monat', subStatementsAllVerified: 'alle geprüft OK', subStatementsWithIssues: 'mit Abweichungen', helpText: 'Gehe zum Tab <b>Kontoauszug</b>, um Dokumente und Lieferscheine zuzuordnen, oder zu <b>Lieferscheine</b> und <b>Rechnungen</b> für den vollständigen Verlauf.', listinoSetupTitle: 'Preisliste noch nicht erstellt', listinoSetupSubtitle: 'Produktpreise in 2 Klicks aktivieren:', listinoSetupStep1: 'Klicke auf <strong class="font-bold text-slate-100">"SQL kopieren"</strong> unten', listinoSetupStep2: 'Öffne den <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, füge ein und klicke <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Vollständiges SQL anzeigen ▸', listinoCopySQL: 'SQL kopieren', listinoCopied: 'Kopiert!', listinoProdotti: 'Produktpreisliste', listinoProdottiTracked: 'Produkte verfolgt', listinoNoData: 'Keine Produktpreise erfasst', listinoNoDataHint: 'Preise direkt in der Tabelle <code class="font-mono text-slate-300">listino_prezzi</code> auf Supabase eingeben.', listinoTotale: 'Gesamtausgaben', listinoDaBolle: 'Aus Lieferscheinen', listinoDaFatture: 'Aus Rechnungen', listinoStorico: 'Dokumentenverlauf', listinoDocs: 'Dokumente', listinoNoDocs: 'Keine Dokumente mit Betrag erfasst', listinoColData: 'Datum', listinoColTipo: 'Typ', listinoColNumero: 'Nummer', listinoColImporto: 'Betrag', listinoColTotale: 'Gesamt', preferredLanguageEmail: 'Bevorzugte Sprache (für E-Mails)', languageInheritSede: '— Vom Standort übernehmen —', recognizedEmailsTitle: 'Erkannte E-Mail-Adressen', recognizedEmailsHint: 'Zusätzliche Adressen, von denen dieser Lieferant Dokumente senden darf. Der E-Mail-Scan ordnet sie automatisch zu.', recognizedEmailPlaceholder: 'z. B. rechnungen@lieferant.de', recognizedEmailLabelOptional: 'Bezeichnung (optional)', displayNameLabel: 'Kurzname (Liste & Leiste)', displayNameHint: 'Optional. Wird in der mobilen unteren Leiste und kompakten Listen statt des vollen Namens angezeigt.', displayNamePlaceholder: 'z. B. Amalfi', syncEmailNeedSede: 'Weisen Sie dem Lieferanten einen Standort zu, um E-Mails zu synchronisieren.' },
-  bolle: { title: 'Lieferscheine', new: 'Neuer Lieferschein', uploadInvoice: 'Rechnung hochladen', viewDocument: 'Dokument anzeigen', noBills: 'Keine Lieferscheine.', addFirst: 'Ersten erstellen →', deleteConfirm: 'Diesen Lieferschein löschen? Verknüpfte Rechnungen werden ebenfalls gelöscht.', ocrScanning: 'Lieferant wird erkannt…', ocrMatched: 'Lieferant erkannt', ocrNotFound: 'Lieferant manuell auswählen', ocrAnalyzing: 'Analyse läuft…', ocrAutoRecognized: 'Automatisch erkannt', ocrRead: 'Gelesen:', selectManually: 'Lieferant auswählen', saveNote: 'Lieferschein speichern', savingNote: 'Wird gespeichert…', analyzingNote: 'Dokument wird analysiert…', takePhotoOrFile: 'Foto aufnehmen oder Datei wählen', ocrHint: 'Lieferant wird automatisch erkannt', cameraBtn: 'Kamera', fileBtn: 'Datei wählen', countSingolo: 'Lieferschein registriert', countPlural: 'Lieferscheine registriert', countTodaySingolo: 'Lieferschein heute', countTodayPlural: 'Lieferscheine heute', noBillsToday: 'Keine Lieferscheine für heute.', listShowAll: 'Alle Lieferscheine', listShowToday: 'Nur heute', listAllPending: 'Nur ausstehend', fotoLabel: 'Foto / Lieferschein-Datei', fornitoreLabel: 'Lieferant', dataLabel: 'Lieferscheindatum', dettaglio: 'Lieferschein-Details', fattureCollegate: 'Zugeordnete Rechnungen', aggiungi: '+ Hinzufügen', nessunaFatturaCollegata: 'Keine zugeordneten Rechnungen.', allegatoLink: 'Anhang →', statoCompletato: 'Abgeschlossen', statoInAttesa: 'Ausstehend', apri: 'Öffnen', colNumero: 'Nummer', nessunaBollaRegistrata: 'Keine Lieferscheine registriert', creaLaPrimaBolla: 'Ersten Lieferschein erstellen →', vediDocumento: 'Dokument anzeigen', dateFromDocumentHint: 'Aus Dokument', prezzoDaApp: 'Preis aus der App', verificaPrezzoFornitore: 'Lieferantenpreis prüfen', rekkiPrezzoIndicativoBadge: '⚠️ Richtpreis aus der Rekki-App', listinoRekkiRefTitle: 'Referenz-Preisliste (Rekki)', listinoRekkiRefHint: 'Mit Rekki-ID beim Lieferanten vergleichen Sie den Lieferschein-Gesamtbetrag mit den zuletzt importierten Preisen.', listinoRekkiRefEmpty: 'Keine Preislistenzeilen für diesen Lieferanten.', scannerTitle: 'KI-Scanner', scannerWhatLabel: 'Was laden Sie hoch?', scannerModeAuto: 'Automatisch erkennen', scannerModeBolla: 'Lieferschein / DDT', scannerModeFattura: 'Rechnung', scannerModeSupplier: 'Neuer Lieferant', scannerFlowBolla: 'Lieferschein erfassen', scannerFlowFattura: 'Rechnung erfassen', scannerSaveFattura: 'Rechnung speichern', scannerSavingFattura: 'Rechnung wird gespeichert…', scannerCreateSupplierCta: 'Lieferant aus gelesenen Daten anlegen', scannerCreateSupplierFromUnrecognized: 'Lieferant aus diesem Dokument anlegen', scannerPdfPreview: 'PDF angehängt — keine Vorschau' },
+  dashboard: { title: 'Dashboard', subtitle: 'Einkaufsübersicht', suppliers: 'Lieferanten', totalBills: 'Lieferscheine gesamt', pendingBills: 'Ausstehende Scheine', invoices: 'Rechnungen', recentBills: 'Aktuelle Lieferscheine', viewAll: 'Alle anzeigen →', syncEmail: 'E-Mail synchronisieren', emailSyncScopeLookback: 'Letzte Tage (Standort)', emailSyncScopeFiscal: 'Geschäftsjahr', emailSyncFiscalYearSelectAria: 'Zeitraum für E-Mail-Sync', emailSyncScopeHint: 'IT, FR, DE, ES: Kalenderjahr. UK: Steuerjahr bis 5. Apr. Jeder Standort nutzt sein Land.', emailSyncLookbackSedeDefault: 'Standort-Standard (IMAP)', emailSyncLookbackDaysN: 'Letzte {n} Tage', emailSyncLookbackDaysAria: 'Wie weit zurück nach ungelesenen Mails suchen', emailSyncLookbackDaysHint: 'Standort-Standard: nutzt die auf dem Standort hinterlegten Tage. Sonst IMAP-Suche auf die letzten N Tage begrenzen (nur ungelesen).', emailSyncDocumentKindAria: 'Dokumenttyp für den E-Mail-Import', emailSyncDocumentKindHint: 'Alle: Standard. Neuer Lieferant: nur Absender ohne Eintrag. Lieferschein / Rechnung: Entwurfstyp erzwingen. Kontoauszug: nur Mails mit Betreff wie Statement/Auszug.', emailSyncDocumentKindAll: 'Alle Dokumente', emailSyncDocumentKindFornitore: 'Neuer Lieferant', emailSyncDocumentKindBolla: 'Lieferschein (DDT)', emailSyncDocumentKindFattura: 'Rechnung', emailSyncDocumentKindEstratto: 'Kontoauszug', syncing: 'Synchronisierung...', sendReminders: 'Zahlungserinnerungen senden', sending: 'Senden...', viewLog: 'Log anzeigen', sedeOverview: 'Übersicht nach Standort', manageSedeNamed: '{name} verwalten →', manageSedi: 'Standorte verwalten →', sedeImapOn: 'E-Mail aktiv', digitalizzaRicevuto: 'Beleg digitalisieren', kpiNoPendingBills: 'Keine ausstehenden Lieferscheine.', errorCountSuffix: 'Fehler', manualReceiptLabel: 'Eingang (ohne Lieferschein)', manualReceiptPlaceholder: 'z. B. 5 kg Tintenfisch, 2 Kisten Zitronen', manualReceiptRegister: 'Lieferung erfassen', manualReceiptRegistering: 'Wird gespeichert…', manualReceiptSaved: 'Lieferung erfasst.', manualReceiptNeedTextOrPhoto: 'Beschreibung eingeben oder Foto anhängen.', manualReceiptRemovePhoto: 'Foto entfernen', manualReceiptNeedSupplier: 'Bitte einen Lieferanten wählen.', manualReceiptRegisterFailed: 'Registrierung fehlgeschlagen.', manualReceiptEmailSupplierLabel: 'E-Mail an Lieferanten: Bestellung und Lieferschein anfordern', manualReceiptEmailSupplierHint: 'E-Mail des Lieferanten im Profil hinterlegen.', manualReceiptEmailSent: 'Anfrage-E-Mail an Lieferanten gesendet.', manualReceiptEmailFailed: 'Eingang gespeichert, E-Mail konnte nicht gesendet werden.', manualReceiptEmailDescPhotoOnly: 'Foto zur Eingangsregistrierung beigefügt (ohne Text).', adminGlobalTitle: 'Globales Dashboard', adminGlobalSubtitle: 'Überblick über alle Standorte. Wählen Sie eine Filiale im Menü oder auf der Karte für die operative Ansicht.', adminGlobalTotalsLabel: 'Netzwerk-Gesamtwerte', adminOpenBranchDashboard: 'Operative Ansicht', adminSedeSettingsLink: 'Standort-Seite', adminDocQueueShort: 'In Warteschlange', rekkiOrder: 'Bei Rekki bestellen', manualDeliveryNeedSede: 'Wählen Sie einen aktiven Operator oder stellen Sie sicher, dass Ihr Profil mit einem Standort verknüpft ist, um eine Lieferung zu erfassen.', kpiPriceListSub: 'Zeilen in der Preisliste', listinoOverviewHint: 'Preislistenzeilen für Lieferanten in Ihrem Bereich. Lieferant öffnen zum Bearbeiten oder Import aus Rechnung.', listinoOverviewEmpty: 'Keine Preislistenzeilen in diesem Bereich.', listinoOverviewOpenSupplier: 'Lieferant öffnen →', listinoOverviewLimitNote: 'Die letzten {n} Zeilen.', fattureRiepilogoTitle: 'Rechnungssummen', fattureRiepilogoHint: 'Summe der Beträge in Ihrem Bereich. Die Tabelle zeigt die neuesten Rechnungen nach Datum; öffnen Sie eine für Anhang und Verknüpfungen.', fattureRiepilogoEmpty: 'Keine Rechnungen in diesem Bereich.', fattureRiepilogoLimitNote: 'Die letzten {n} Rechnungen (nach Datum).', fattureRiepilogoOpenInvoice: 'Rechnung öffnen →', fattureRiepilogoCountLabel: '{n} Rechnungen', fattureRiepilogoLinkAll: 'Alle Rechnungen →', kpiStatementNone: 'Kein Kontoauszug', kpiStatementAllOk: 'Keine Auffälligkeiten', kpiStatementIssuesFooter: 'von {t} geprüften Auszügen', kpiFornitoriSub: 'Stamm & Suche', kpiDaProcessareSub: 'Dokumente in Warteschlange', operatorNoSede: 'Ihrem Profil ist kein Standort zugeordnet. Bitte einen Administrator, Sie der richtigen Filiale zuzuweisen.', suggestedSupplierBanner: 'Neuer Lieferant erkannt: {name}. Hinzufügen?', suggestedSupplierAdd: 'Neuer Lieferant', suggestedSupplierImport: 'Aus OCR importieren', enterAsSede: 'Als Standort ansehen', syncHealthAlert: 'Synchronisationsproblem (IMAP oder OCR)', syncHealthOcrCount: 'OCR-Fehler (48h): {n}', viewingAsSedeBanner: 'Sie sehen das Dashboard als:', exitSedeView: 'Zurück zur Admin-Übersicht', emailSyncQueued: 'In Warteschlange — eine andere Synchronisation läuft…', emailSyncPhaseConnect: 'Verbindung…', emailSyncConnectToServer: 'Verbindung zum IMAP-Server (Netzwerk, TLS, Anmeldung)…', emailSyncConnectOpeningMailbox: 'Posteingangsordner wird geöffnet…', emailSyncPhaseSearch: 'Texte einlesen…', emailSyncPhaseProcess: 'Anhang-Analyse mit Vision-KI…', emailSyncPhasePersist: 'Speichern in der Datenbank…', emailSyncPhaseDone: 'Synchronisation abgeschlossen.', emailSyncStalled: 'Keine Updates — bei vielen Anhängen kann die Vision mehrere Minuten brauchen. Bitte warten…', emailSyncStalledHint: 'Hier fehlen nur Stream-Updates (bei langer Texterkennung normal). Echte IMAP-Wiederholungen siehst du oben im roten Banner in der Verbindungsphase.', emailSyncImapRetryLine: 'IMAP-Verbindung: Versuch {current} von {max}', emailSyncCountsHint: 'Gefunden · neu in der App · verarbeitet · PDF/Text-Einheiten', emailSyncMailboxGlobal: 'Globales IMAP-Postfach (Umgebungsvariablen)', emailSyncMailboxSede: 'Postfach: {name}', emailSyncSupplierFilterLine: 'Lieferantenfilter: {name}', emailSyncStatFoundLine: 'Im Postfach gefunden: {found}', emailSyncStatImportedLine: 'Neu in der App (importierte Dokumente): {imported}', emailSyncStatProcessedLine: 'E-Mails vollständig verarbeitet: {processed}', emailSyncStatIgnoredLine: 'Übersprungen / ohne Ergebnis: {ignored}', emailSyncStatDraftsLine: 'Autom. erstellte Lieferschein-Entwürfe: {drafts}', emailSyncStatAlreadyLine: 'Bereits in einer früheren Synchronisation verarbeitet (kein erneuter Import): {n}', emailSyncStatUnitsLine: 'Zu analysierende Einheiten (PDF/Bild-Anhänge oder langer Mailtext): {done} / {total}', emailSyncStripDetailsExpandAria: 'E-Mail-Sync-Details anzeigen', emailSyncStripDetailsCollapseAria: 'E-Mail-Sync-Details ausblenden', emailSyncStop: 'Stoppen', emailSyncStopAria: 'E-Mail-Synchronisation abbrechen', emailSyncDismiss: 'Schließen', emailSyncDismissAria: 'E-Mail-Sync-Zusammenfassung schließen', potentialSupplierFromEmailBodyBanner: 'Möglicher Lieferant (E-Mail-Text): {name}. Zuordnen?', potentialSupplierFromEmailBodyCta: 'Neuen Lieferanten anlegen' },
+  fornitori: { title: 'Lieferanten', new: 'Neuer Lieferant', nome: 'Name / Firma', email: 'E-Mail', piva: 'USt-IdNr.', noSuppliers: 'Keine Lieferanten.', addFirst: 'Ersten hinzufügen →', editTitle: 'Lieferant bearbeiten', saveChanges: 'Änderungen speichern', notFound: 'Lieferant nicht gefunden.', deleteConfirm: 'Diesen Lieferanten löschen? Alle verknüpften Lieferscheine und Rechnungen werden ebenfalls gelöscht.', importaDaFattura: 'Aus Rechnung importieren', countLabel: 'Lieferanten registriert', namePlaceholder: 'z.B. Müller GmbH', emailPlaceholder: 'lieferant@beispiel.de', pivaLabel: 'USt-IdNr.', pivaPlaceholder: 'DE123456789', addressLabel: 'Adresse (optional)', addressPlaceholder: 'Straße, PLZ, Ort', rekkiLinkLabel: 'Rekki-Link (optional)', rekkiLinkPlaceholder: 'https://…', rekkiIdLabel: 'Rekki-ID (optional)', rekkiIdPlaceholder: 'z. B. Lieferanten-ID bei Rekki', rekkiIntegrationTitle: 'Rekki-Integration', rekkiLookupByVat: 'Bei Rekki suchen (USt-IdNr.)', rekkiSaveRekkiMapping: 'Rekki-Verknüpfung speichern', rekkiConnectedBadge: 'Rekki', rekkiCachedListBanner: 'Zwischengespeicherte Daten (offline).', rekkiLookupNeedVat: 'Tragen Sie die USt-IdNr. des Lieferanten ein, um bei Rekki zu suchen.', rekkiIdExtractedFromLink: 'Lieferanten-ID aus dem Rekki-Link übernommen.', rekkiAutoLinkedSingle: 'Nur ein Rekki-Lieferant passt zu dieser USt-IdNr. — Verknüpfung gespeichert.', saving: 'Speichern...', tabRiepilogo: 'Übersicht', tabListino: 'Preisliste', tabStrategyConto: 'Kontoauszug', kpiBolleTotal: 'Lieferscheine gesamt', kpiFatture: 'Rechnungen eingegangen', kpiPending: 'Ausstehende Dokumente', kpiReconciliation: 'Abstimmung', subAperte: 'offen', subConfermate: 'bestätigt', subDaAbbinare: 'zuzuordnen', subChiuse: 'Scheine geschlossen', subListinoRows: 'Preislisten-Einträge im Zeitraum', subStatementsNoneInMonth: 'keiner in diesem Monat', subStatementsAllVerified: 'alle geprüft OK', subStatementsWithIssues: 'mit Abweichungen', helpText: 'Gehe zum Tab <b>Kontoauszug</b>, um Dokumente und Lieferscheine zuzuordnen, oder zu <b>Lieferscheine</b> und <b>Rechnungen</b> für den vollständigen Verlauf.', listinoSetupTitle: 'Preisliste noch nicht erstellt', listinoSetupSubtitle: 'Produktpreise in 2 Klicks aktivieren:', listinoSetupStep1: 'Klicke auf <strong class="font-bold text-slate-100">"SQL kopieren"</strong> unten', listinoSetupStep2: 'Öffne den <a href="https://supabase.com/dashboard/project/dubocvwsdzrqrrxsedas/sql/new" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-200 underline decoration-amber-200/50 transition-colors hover:text-slate-100">SQL Editor ↗</a>, füge ein und klicke <strong class="font-bold text-slate-100">"Run"</strong>', listinoSetupShowSQL: 'Vollständiges SQL anzeigen ▸', listinoCopySQL: 'SQL kopieren', listinoCopied: 'Kopiert!', listinoProdotti: 'Produktpreisliste', listinoProdottiTracked: 'Produkte verfolgt', listinoNoData: 'Keine Produktpreise erfasst', listinoNoDataHint: 'Preise direkt in der Tabelle <code class="font-mono text-slate-300">listino_prezzi</code> auf Supabase eingeben.', listinoTotale: 'Gesamtausgaben', listinoDaBolle: 'Aus Lieferscheinen', listinoDaFatture: 'Aus Rechnungen', listinoStorico: 'Dokumentenverlauf', listinoDocs: 'Dokumente', listinoNoDocs: 'Keine Dokumente mit Betrag erfasst', listinoColData: 'Datum', listinoColTipo: 'Typ', listinoColNumero: 'Nummer', listinoColImporto: 'Betrag', listinoColTotale: 'Gesamt', preferredLanguageEmail: 'Bevorzugte Sprache (für E-Mails)', languageInheritSede: '— Vom Standort übernehmen —', recognizedEmailsTitle: 'Erkannte E-Mail-Adressen', recognizedEmailsHint: 'Zusätzliche Adressen, von denen dieser Lieferant Dokumente senden darf. Der E-Mail-Scan ordnet sie automatisch zu.', recognizedEmailPlaceholder: 'z. B. rechnungen@lieferant.de', recognizedEmailLabelOptional: 'Bezeichnung (optional)', displayNameLabel: 'Kurzname (Liste & Leiste)', displayNameHint: 'Optional. Wird in der mobilen unteren Leiste und kompakten Listen statt des vollen Namens angezeigt.', displayNamePlaceholder: 'z. B. Amalfi', loadingProfile: 'Lieferantenprofil, Belege und Übersicht werden geladen…', logoUrlLabel: 'Lieferantenlogo (URL)', logoUrlPlaceholder: 'https://beispiel.de/logo.png', logoUrlHint: 'HTTPS-Bild (PNG, JPG oder SVG). Bei Ladefehler werden Initialen angezeigt.', syncEmailNeedSede: 'Weisen Sie dem Lieferanten einen Standort zu, um E-Mails zu synchronisieren.' },
+  bolle: { title: 'Lieferscheine', new: 'Neuer Lieferschein', uploadInvoice: 'Rechnung hochladen', viewDocument: 'Dokument anzeigen', noBills: 'Keine Lieferscheine.', addFirst: 'Ersten erstellen →', deleteConfirm: 'Diesen Lieferschein löschen? Verknüpfte Rechnungen werden ebenfalls gelöscht.', ocrScanning: 'Lieferant wird erkannt…', ocrMatched: 'Lieferant erkannt', ocrNotFound: 'Lieferant manuell auswählen', ocrAnalyzing: 'Analyse läuft…', ocrAutoRecognized: 'Automatisch erkannt', ocrRead: 'Gelesen:', selectManually: 'Lieferant auswählen', saveNote: 'Lieferschein speichern', savingNote: 'Wird gespeichert…', analyzingNote: 'Dokument wird analysiert…', takePhotoOrFile: 'Foto aufnehmen oder Datei wählen', ocrHint: 'Lieferant wird automatisch erkannt', cameraBtn: 'Kamera', fileBtn: 'Datei wählen', countSingolo: 'Lieferschein registriert', countPlural: 'Lieferscheine registriert', countTodaySingolo: 'Lieferschein heute', countTodayPlural: 'Lieferscheine heute', noBillsToday: 'Keine Lieferscheine für heute.', listShowAll: 'Alle Lieferscheine', listShowToday: 'Nur heute', listAllPending: 'Nur ausstehend', fotoLabel: 'Foto / Lieferschein-Datei', fornitoreLabel: 'Lieferant', dataLabel: 'Lieferscheindatum', dettaglio: 'Lieferschein-Details', fattureCollegate: 'Zugeordnete Rechnungen', aggiungi: '+ Hinzufügen', nessunaFatturaCollegata: 'Keine zugeordneten Rechnungen.', allegatoLink: 'Anhang →', statoCompletato: 'Abgeschlossen', statoInAttesa: 'Ausstehend', apri: 'Öffnen', colNumero: 'Nummer', colAttachmentKind: 'Anhang', attachmentKindPdf: 'PDF', attachmentKindImage: 'Bild', attachmentKindOther: 'Datei', nessunaBollaRegistrata: 'Keine Lieferscheine registriert', creaLaPrimaBolla: 'Ersten Lieferschein erstellen →', vediDocumento: 'Dokument anzeigen', dateFromDocumentHint: 'Aus Dokument', prezzoDaApp: 'Preis aus der App', verificaPrezzoFornitore: 'Lieferantenpreis prüfen', rekkiPrezzoIndicativoBadge: '⚠️ Richtpreis aus der Rekki-App', listinoRekkiRefTitle: 'Referenz-Preisliste (Rekki)', listinoRekkiRefHint: 'Mit Rekki-ID beim Lieferanten vergleichen Sie den Lieferschein-Gesamtbetrag mit den zuletzt importierten Preisen.', listinoRekkiRefEmpty: 'Keine Preislistenzeilen für diesen Lieferanten.', scannerTitle: 'KI-Scanner', scannerWhatLabel: 'Was laden Sie hoch?', scannerModeAuto: 'Automatisch erkennen', scannerModeBolla: 'Lieferschein / DDT', scannerModeFattura: 'Rechnung', scannerModeSupplier: 'Neuer Lieferant', scannerFlowBolla: 'Lieferschein erfassen', scannerFlowFattura: 'Rechnung erfassen', scannerSaveFattura: 'Rechnung speichern', scannerSavingFattura: 'Rechnung wird gespeichert…', scannerCreateSupplierCta: 'Lieferant aus gelesenen Daten anlegen', scannerCreateSupplierFromUnrecognized: 'Lieferant aus diesem Dokument anlegen', scannerPdfPreview: 'PDF angehängt — keine Vorschau' },
   fatture: { title: 'Rechnungen', new: 'Neue Rechnung', noInvoices: 'Keine Rechnungen.', addFirst: 'Erste hinzufügen →', invoice: 'Rechnung', openBill: 'Lieferschein öffnen →', deleteConfirm: 'Diese Rechnung löschen? Aktion kann nicht rückgängig gemacht werden.', countLabel: 'eingegangene Rechnungen', headerBolla: 'Lieferschein', headerAllegato: 'Anhang', apri: 'Öffnen →', caricaFatturaTitle: 'Rechnung hochladen', bollaMarkata: 'Der Lieferschein wird als abgeschlossen markiert', collegataABolla: 'Mit Lieferschein verknüpft', bollaPasseraCompletato: 'Beim Speichern wird der Lieferschein auf "abgeschlossen" gesetzt', dataFattura: 'Rechnungsdatum', fileFattura: 'Rechnungsdatei', caricaPdfFoto: 'PDF hochladen oder Foto aufnehmen', maxSize: 'PDF, JPG, PNG, WebP — max 10 MB', savingInProgress: 'Wird gespeichert...', salvaChiudiBolla: 'Speichern und Lieferschein schließen', dettaglio: 'Details', bollaCollegata: 'Verknüpfter Lieferschein', statusAssociata: 'Zugeordnet', statusSenzaBolla: 'Kein Lieferschein', colNumFattura: 'Rechnungs-Nr.', nessunaFatturaRegistrata: 'Keine Rechnungen registriert' },
-  archivio: { title: 'Archiv', subtitle: 'Lieferanten', noBills: 'Keine Lieferscheine', noInvoices: 'Keine Rechnungen', withBill: 'Mit Schein', noEmail: 'Keine E-Mail', bollaS: 'Schein', bollaP: 'Scheine', fatturaS: 'Rechnung', fatturaP: 'Rechnungen', editLink: 'Bearbeiten →', nuova: '+ Neu', nuovaFattura: '+ Rechnung', documento: 'Dokument' },
+  archivio: { title: 'Archiv', subtitle: 'Lieferanten', noBills: 'Keine Lieferscheine', noInvoices: 'Keine Rechnungen', withBill: 'Mit Schein', noEmail: 'Keine E-Mail', bollaS: 'Schein', bollaP: 'Scheine', fatturaS: 'Rechnung', fatturaP: 'Rechnungen', editLink: 'Bearbeiten →', nuova: '+ Neu', nuovaFattura: '+ Rechnung', documento: 'Dokument', pendingDocCount: '({n} ausstehend)', linkAssociateStatements: 'Zuordnen →' },
   impostazioni: { title: 'Einstellungen', subtitle: 'Währung und Zeitzone', lingua: 'Sprache', valuta: 'Währung', fuso: 'Zeitzone', preview: 'Vorschau', saved: 'Einstellungen gespeichert — wird neu geladen…', sectionLocalisation: 'Lokalisierung', accountSection: 'Konto', changeSede: 'Standort wechseln', addOperatorsPickSede: 'Wählen Sie zuerst den aktiven Standort unter Standorte — dann können Sie hier Operatoren anlegen (Name + PIN).' },
   log: { title: 'E-Mail-Sync-Log', subtitle: 'Verlauf der von der automatischen Synchronisierung verarbeiteten E-Mails.', sender: 'Absender', subject: 'Betreff', stato: 'Status', detail: 'Detail', retry: 'Erneut versuchen', retrying: 'Versuche erneut…', success: 'Erfolg', bollaNotFound: 'Dokument Empfangen', supplierNotFound: 'Unbekannter Absender', noLogs: 'Keine Logs.', emptyHint: 'Führen Sie eine E-Mail-Synchronisierung vom Dashboard aus durch.', totalLogs: 'Logs gesamt', linkedInvoices: 'Empfangene Dokumente', withErrors: 'Mit Fehlern', vediFile: 'Datei anzeigen', supplierSuggested: 'Vorgeschlagener Lieferant', aiSuggest: 'KI-Vorschlag', aiSuggestTitle: 'Vorgeschlagene Stammdaten (OCR)', aiSuggestLoading: 'Analyse…', aiSuggestError: 'Dokument konnte nicht analysiert werden.', openCreateSupplier: 'Lieferant anlegen öffnen', associateRememberHint: 'Nach dem Speichern wird die Absender-E-Mail für künftige Synchronisierungen verknüpft.', colAttachment: 'Anhang', colSede: 'Standort', colLogId: 'Log-ID' },
-  sedi: { title: 'Standorte & Nutzer', subtitle: 'Standorte, E-Mail-Sync und Operatoren verwalten', newSede: 'Neuer Standort', noSedi: 'Keine Standorte. Fügen Sie den ersten hinzu.', users: 'Nutzer', imap: 'E-Mail-Konfiguration (IMAP)', imapSubtitle: 'Konfigurieren Sie das E-Mail-Postfach dieses Standorts. Eingehende Rechnungen werden automatisch den Lieferanten des Standorts zugeordnet.', imapHost: 'IMAP-Host', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'E-Mail / Nutzer', imapPassword: 'Passwort', imapPasswordPlaceholder: 'Passwort oder App-Passwort', testConnection: 'Verbindung testen', saveConfig: 'Konfiguration speichern', notConfigured: 'E-Mail nicht konfiguriert', accessDenied: 'Zugang nur für Administratoren', accessDeniedHint: 'Wenden Sie sich an Ihren Administrator, um Zugang zu erhalten.', creatingBtn: 'Erstellen...', createBtn: 'Erstellen', nomePlaceholder: 'z.B. Büro Berlin', nessunUtente: 'Keine Nutzer gefunden.', emailHeader: 'E-Mail', sedeHeader: 'Standort', ruoloHeader: 'Rolle', nessunaSedeOption: '— Kein Standort —', operatoreRole: 'Operator', adminRole: 'Admin', adminSedeRole: 'Standort-Admin', adminScopedSediHint: 'Sie sehen nur den Standort, der mit Ihrem Profil verknüpft ist. Neue Standorte und «Benutzer ohne Standort» verwaltet der Hauptadministrator (Admin ohne Standort im Profil).', renameTitle: 'Umbenennen', deleteTitle: 'Löschen', addOperatorSedeTitle: 'Neuer Operator', addOperatorSedeDesc: 'Anmeldung mit Name und PIN (mind. 4 Zeichen). E-Mail wird automatisch erzeugt.', operatorDisplayNameLabel: 'Anzeigename', operatorPinMinLabel: 'PIN (mind. 4 Zeichen)', operatorNameRequired: 'Geben Sie den Namen des Operators ein.', operatorPinTooShort: 'Der PIN muss mindestens 4 Zeichen haben.' },
+  sedi: { title: 'Standort & Nutzer', titleGlobalAdmin: 'Standorte', subtitle: 'Standort, E-Mail-Sync und Operatoren verwalten', subtitleGlobalAdmin: 'Standorte, E-Mail-Synchronisation und Operatoren verwalten', newSede: 'Neuer Standort', noSedi: 'Keine Standorte. Fügen Sie den ersten hinzu.', users: 'Nutzer', imap: 'E-Mail-Konfiguration (IMAP)', imapSubtitle: 'Konfigurieren Sie das E-Mail-Postfach dieses Standorts. Eingehende Rechnungen werden automatisch den Lieferanten des Standorts zugeordnet.', imapHost: 'IMAP-Host', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'E-Mail / Nutzer', imapPassword: 'Passwort', imapPasswordPlaceholder: 'Passwort oder App-Passwort', testConnection: 'Verbindung testen', saveConfig: 'Konfiguration speichern', notConfigured: 'E-Mail nicht konfiguriert', accessDenied: 'Zugang nur für Administratoren', accessDeniedHint: 'Wenden Sie sich an Ihren Administrator, um Zugang zu erhalten.', creatingBtn: 'Erstellen...', createBtn: 'Erstellen', nomePlaceholder: 'z.B. Büro Berlin', nessunUtente: 'Keine Nutzer gefunden.', emailHeader: 'E-Mail', sedeHeader: 'Standort', ruoloHeader: 'Rolle', nessunaSedeOption: '— Kein Standort —', operatoreRole: 'Operator', adminRole: 'Verwaltungsportal', adminSedeRole: 'Standort-Administrator', profileRoleAdmin: 'Verwaltungsportal', adminScopedSediHint: 'Sie sehen nur den Standort, der mit Ihrem Profil verknüpft ist. Neue Standorte und «Benutzer ohne Standort» verwaltet der Hauptadministrator (Admin ohne Standort im Profil).', renameTitle: 'Umbenennen', deleteTitle: 'Löschen', addOperatorSedeTitle: 'Neuer Operator', addOperatorSedeDesc: 'Anmeldung mit Name und PIN (mind. 4 Zeichen). E-Mail wird automatisch erzeugt.', operatorDisplayNameLabel: 'Anzeigename', operatorPinMinLabel: 'PIN (mind. 4 Zeichen)', operatorNameRequired: 'Geben Sie den Namen des Operators ein.', operatorPinTooShort: 'Der PIN muss mindestens 4 Zeichen haben.' },
   statements: {
     heading: 'Monatliche Kontoauszugs-Prüfung',
     tabVerifica: 'Kontoauszug',
     tabDocumenti: 'Ausstehende Dokumente',
+    schedaNavDaProcessareDesc: 'Eingehende Anhänge: Lieferanten, Lieferscheine und Rechnungen zuordnen.',
+    schedaNavVerificaDesc: 'Monatliche Kontoauszugsprüfung gegen Lieferscheine und Rechnungen.',
     statusOk: 'OK',
     statusFatturaMancante: 'Rechnung fehlt',
     statusBolleManc: 'Lieferscheine fehlen',
@@ -2793,10 +3139,25 @@ const de: Translations = {
     gotoBollaDraft: 'Zum Lieferschein-Entwurf →',
     toggleAddStatement: 'Zum Auszug hinzufügen',
     toggleRemoveStatement: 'Aus Auszug entfernen',
+    docKindEstratto: 'Auszug',
+    docKindBolla: 'Lieferschein',
+    docKindFattura: 'Rechnung',
+    docKindHintBolla: 'Als Lieferschein markieren, kein Monatsauszug und keine zu zuordnende Rechnung',
+    docKindHintFattura: 'Als Rechnung markieren, mit offenen Lieferscheinen abgleichen',
+    docKindGroupAria: 'Dokumenttyp',
+    finalizeNeedsSupplier: 'Lieferanten zuordnen, um abzuschließen.',
+    btnFinalizeFattura: 'Rechnung speichern (ohne Lieferschein)',
+    btnFinalizeBolla: 'Lieferschein aus Datei anlegen',
+    btnFinalizeStatement: 'Auszug archivieren',
+    btnFinalizing: 'Wird gespeichert…',
+    finalizeSuccess: 'Dokument gespeichert.',
     noPendingDocs: 'Keine Dokumente zu prüfen',
     noDocsFound: 'Keine Dokumente gefunden',
     noBolleAttesa: 'Keine ausstehenden Lieferscheine verfügbar',
     unknownSender: 'Unbekannter Absender',
+    sameAddressClusterHint:
+      'Gleiche Adresse wie bei anderen Dokumenten in der Warteschlange. Von der KI erkannte Firmennamen in den anderen Zeilen: {names}. Vermutlich derselbe Lieferant — verknüpfen Sie denselben Kontakt.',
+    btnCreateSupplierFromAi: 'Lieferant anlegen →',
     docTotalLabel: 'Dokumentgesamtbetrag:',
     exactAmount: 'Genauer Betrag',
     exceeds: 'Überschuss',
@@ -2820,6 +3181,10 @@ const de: Translations = {
     reconcileDB: 'DB:',
     loadingResults: 'Ergebnisse werden geladen…',
     editSupplierTitle: 'Lieferant bearbeiten',
+    supplierLinkFailed: 'Lieferant konnte nicht mit dem Dokument verknüpft werden.',
+    assignFailed: 'Zuordnung zu Lieferscheinen fehlgeschlagen.',
+    autoLinkedSupplierOne: 'Lieferant automatisch verknüpft: {name}.',
+    autoLinkedSupplierMany: '{count} Dokumente automatisch mit Lieferanten verknüpft.',
     ocrFormatToggleTitle: 'Alternative Zahleninterpretation erzwingen',
     allBolleInvoicedOk: 'Alle Lieferscheine haben eine passende Rechnung — Auszug geprüft ✓',
     aiStatementTotalLabel: 'Auszugssumme (KI):',
@@ -2873,9 +3238,10 @@ const de: Translations = {
       'Zu diesem Link gibt es keine Rechnung. Sie wurde evtl. gelöscht, der Link ist falsch, oder Ihr Konto/Standort hat keinen Zugriff.',
     backToHome: 'Zurück zum Dashboard',
     sedeLockTitle: 'Geschützter Zugang',
-    sedeLockSubtitle: 'erfordert einen Zugangscode',
-    sedeLockCodeLabel: 'Zugangscode',
-    sedeLockPlaceholder: '••••••••',
+    sedeLockDescription: 'Der Standort {name} erfordert eine 4-stellige numerische PIN.',
+    sedeLockCodeLabel: 'PIN (4 Ziffern)',
+    sedeLockPlaceholder: '••••',
+    sedeLockPinLengthError: 'Bitte eine 4-stellige PIN eingeben.',
     sectionDates: 'Daten',
     sectionCurrencyLabel: 'Währung',
     loadingBolle: 'Lieferscheine werden geladen…',

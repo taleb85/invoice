@@ -95,7 +95,7 @@ export default function DashboardKpiListSheet({
         <div className="flex items-center gap-3 p-4">
           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bgClass}`}>{icon}</div>
           <div className="min-w-0">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+            <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-slate-200">{label}</p>
             <p className="text-2xl font-bold tabular-nums text-slate-100">{tileValue ?? count}</p>
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function DashboardKpiListSheet({
         <div className="flex items-center gap-4 p-4">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${bgClass}`}>{icon}</div>
           <div className="min-w-0">
-            <p className="truncate text-[10px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
+            <p className="truncate text-[10px] font-semibold uppercase tracking-widest text-slate-200">{label}</p>
             <p className="mt-0.5 text-3xl font-bold leading-tight tabular-nums text-slate-100">{tileValue ?? count}</p>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function DashboardKpiListSheet({
                       <button
                         type="button"
                         onClick={close}
-                        className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-slate-200"
+                        className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-800/80 hover:text-white"
                         aria-label={t.ui.closeMenu}
                       >
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -180,7 +180,7 @@ export default function DashboardKpiListSheet({
                     <button
                       type="button"
                       onClick={close}
-                      className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-slate-200"
+                      className="rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-800/80 hover:text-white"
                       aria-label={t.ui.closeMenu}
                     >
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -197,7 +197,7 @@ export default function DashboardKpiListSheet({
                   }
                 >
                   {dialogItems.length === 0 ? (
-                    <p className="px-5 py-12 text-center text-sm text-slate-400">{dialogEmpty}</p>
+                    <p className="px-5 py-12 text-center text-sm text-slate-200">{dialogEmpty}</p>
                   ) : recentCardChrome ? (
                     <ul className="list-none">
                       {dialogItems.map((row) => (
@@ -210,7 +210,7 @@ export default function DashboardKpiListSheet({
                             <div className="min-w-0 pr-3">
                               <p className="truncate text-sm font-semibold text-slate-100">{row.title}</p>
                               {row.subtitle ? (
-                                <p className="mt-0.5 truncate text-xs text-slate-400">{row.subtitle}</p>
+                                <p className="mt-0.5 truncate text-xs text-slate-200">{row.subtitle}</p>
                               ) : null}
                             </div>
                             {row.statusPill ? (
@@ -241,7 +241,7 @@ export default function DashboardKpiListSheet({
                               {row.title}
                             </span>
                             {row.subtitle ? (
-                              <span className="mt-0.5 block truncate text-xs text-slate-400">{row.subtitle}</span>
+                              <span className="mt-0.5 block truncate text-xs text-slate-200">{row.subtitle}</span>
                             ) : null}
                           </Link>
                         </li>

@@ -3,7 +3,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 
 function normalizeAccessCode(value: unknown): string {
-  return String(value ?? '').trim()
+  return String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 32)
 }
 
 function serviceDb() {
@@ -66,8 +68,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ sede_id: profile.sede_id, ok: true })
   }
 
-  if (!entered) {
-    return NextResponse.json({ error: 'Inserisci il codice di accesso.' }, { status: 400 })
+  if (entered.length !== 4) {
+    return NextResponse.json({ error: 'Il PIN deve essere di 4 cifre.' }, { status: 400 })
   }
 
   const svc = serviceDb()

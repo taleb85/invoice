@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
+import { useActiveOperator } from '@/lib/active-operator-context'
 
 const PIN_LENGTH = 4
 
@@ -20,6 +21,7 @@ export default function OperatorPinStepUpModal({
   defaultOperatorName,
 }: Props) {
   const t = useT()
+  const { openSwitchModal } = useActiveOperator()
   const operatorName = (defaultOperatorName ?? '').trim()
   const canEnterPin = !!operatorName
 
@@ -137,7 +139,17 @@ export default function OperatorPinStepUpModal({
               <span className="uppercase tracking-wide">{operatorName.toUpperCase()}</span>
             </p>
           ) : (
-            <p className="mt-2 text-sm text-amber-400/90">{t.ui.operatorPinStepUpNoActive}</p>
+            <>
+              <p className="mt-2 text-sm text-amber-400/90">{t.ui.operatorPinStepUpNoActive}</p>
+              <button
+                type="button"
+                onClick={() => openSwitchModal()}
+                disabled={loading}
+                className="mt-4 w-full rounded-xl bg-cyan-500/90 px-4 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:opacity-50"
+              >
+                {t.ui.operatorPinStepUpChooseOperator}
+              </button>
+            </>
           )}
 
           <div className="mt-5 space-y-5">

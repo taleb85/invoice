@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useActiveOperator, ActiveOperator } from '@/lib/active-operator-context'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
@@ -15,10 +14,9 @@ interface Operator {
   role:      'operatore' | 'admin_sede'
 }
 
-type Step = 'select' | 'pin' | 'success'
+type Step = 'select' | 'pin'
 
 export default function OperatorSwitchModal() {
-  const router = useRouter()
   const { me } = useMe()
   const t = useT()
   const {
@@ -46,7 +44,7 @@ export default function OperatorSwitchModal() {
    * (es. Mediterraneo), e prima si interrogava solo quella sbagliando lista vuota.
    * Non-admin: sede dell’operatore attivo, altrimenti quella del profilo.
    */
-  function resolveOperatorSedeIds(): string[] {
+  const resolveOperatorSedeIds = useCallback((): string[] => {
     if (me?.is_admin) {
       if (me.all_sedi?.length) return me.all_sedi.map((s) => s.id)
       if (me.sede_id) return [me.sede_id]
@@ -55,7 +53,7 @@ export default function OperatorSwitchModal() {
     if (activeOperator?.sede_id) return [activeOperator.sede_id]
     if (me?.sede_id) return [me.sede_id]
     return []
-  }
+  }, [me?.is_admin, me?.all_sedi, me?.sede_id, activeOperator?.sede_id])
 
   /* ── Fetch operators when modal opens ── */
   useEffect(() => {
@@ -107,12 +105,9 @@ export default function OperatorSwitchModal() {
       .finally(() => setLoadingOps(false))
   }, [
     showSwitchModal,
-    activeOperator?.sede_id,
-    activeOperator?.id,
-    me?.sede_id,
-    me?.is_admin,
-    me?.all_sedi,
-  ]) // eslint-disable-line react-hooks/exhaustive-deps
+    resolveOperatorSedeIds,
+    activeOperator,
+  ])
 
   /* ── Reset on close ── */
   const handleClose = useCallback(() => {
@@ -184,23 +179,30 @@ export default function OperatorSwitchModal() {
         sede_nome: data.sede_nome,
         role:      data.role === 'admin_sede' ? 'admin_sede' : 'operatore',
       }
-      setActiveOperator(op)
+      setActiveOperator(op, me?.user?.id ?? null)
       if (me?.is_admin && typeof data.sede_id === 'string' && data.sede_id) {
         document.cookie = `admin-sede-id=${encodeURIComponent(data.sede_id)}; path=/; SameSite=Strict`
         const ar = data.role === 'admin_sede' ? 'admin_sede' : 'operatore'
         document.cookie = `fluxo-acting-role=${encodeURIComponent(ar)}; path=/; SameSite=Strict`
-        router.refresh()
       }
-      setStep('success')
-      setTimeout(() => {
-        handleClose()
-      }, 1200)
+      try {
+        window.dispatchEvent(
+          new CustomEvent('fluxo:active-operator-changed', {
+            detail: { operator: op },
+          }),
+        )
+      } catch {
+        /* ignore */
+      }
+      /** Hard refresh: stato RSC/cache browser allineato al nuovo operatore. */
+      window.location.reload()
+      return
     } catch {
       setError(t.ui.networkError)
       clearPin()
     }
     setLoading(false)
-  }, [selected, currentPin, setActiveOperator, handleClose, clearPin, me?.is_admin, router])
+  }, [selected, currentPin, setActiveOperator, clearPin, me?.is_admin, me?.user?.id, t.ui.networkError, t.ui.pinError])
 
   /* ── Keyboard support ── */
   useEffect(() => {
@@ -225,7 +227,7 @@ export default function OperatorSwitchModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4 pt-4 backdrop-blur-sm max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-black/70 px-4 pt-4 backdrop-blur-sm max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
       <div className="flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-900 shadow-2xl">
@@ -263,21 +265,6 @@ export default function OperatorSwitchModal() {
 
         {/* Body */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
-
-          {/* ─ Step: success ─ */}
-          {step === 'success' && (
-            <div className="py-6 flex flex-col items-center gap-3">
-              <div className="w-14 h-14 bg-emerald-500/15 rounded-2xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                </svg>
-              </div>
-              <p className="text-white font-semibold text-base uppercase tracking-wide">
-                {selected?.full_name.toUpperCase()}
-              </p>
-              <p className="text-slate-500 text-xs">{t.ui.operatorChanged}</p>
-            </div>
-          )}
 
           {/* ─ Step: select operator ─ */}
           {step === 'select' && (
@@ -435,8 +422,7 @@ export default function OperatorSwitchModal() {
         </div>
 
         {/* Footer — inactivity setting */}
-        {step !== 'success' && (
-          <div className="flex shrink-0 flex-col gap-2 border-t border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex shrink-0 flex-col gap-2 border-t border-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <label className="flex min-h-[44px] items-center gap-2 text-xs text-slate-500 sm:min-h-0">
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -455,7 +441,6 @@ export default function OperatorSwitchModal() {
               <option value={30}>{t.ui.operatorAutoLockMinutes.replace('{n}', '30')}</option>
             </select>
           </div>
-        )}
       </div>
     </div>
   )

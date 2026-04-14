@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { openDocumentUrl } from '@/lib/open-document-url'
-import { createClient } from '@/utils/supabase/server'
+import { getRequestAuth } from '@/utils/supabase/server'
 import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supabase-detail-for-viewer'
 import ToggleStato from './ToggleStato'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
@@ -8,7 +8,7 @@ import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/local
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
 async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
-  const supabase = await createClient()
+  const { supabase } = await getRequestAuth()
   const { data, error } = await supabase.rpc('bolla_has_rekki_prezzo_flag', { p_bolla_id: bollaId })
   if (error) return false
   return Boolean(data)
@@ -27,7 +27,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
   const fornitoreRekkiId = bolla.fornitore?.rekki_supplier_id?.trim()
   let listinoRows: { prodotto: string; prezzo: number; data_prezzo: string }[] = []
   if (fornitoreRekkiId) {
-    const supabase = await createClient()
+    const { supabase } = await getRequestAuth()
     const { data } = await supabase
       .from('listino_prezzi')
       .select('prodotto, prezzo, data_prezzo')
@@ -68,8 +68,9 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
 
       <div className="space-y-4">
         {/* Info + stato */}
-        <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
-          <div className="app-card-bar mb-4" aria-hidden />
+        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-100">{t.bolle.dettaglio}</h2>
             <ToggleStato id={bolla.id} stato={bolla.stato} />
@@ -122,12 +123,14 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
               </dd>
             </div>
           </dl>
+          </div>
         </div>
 
         {/* Allegato */}
         {bolla.file_url && (
-          <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
-            <div className="app-card-bar mb-3" aria-hidden />
+          <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+            <div className="app-card-bar shrink-0" aria-hidden />
+            <div className="p-6">
             <h2 className="mb-3 text-sm font-semibold text-slate-100">{t.common.attachment}</h2>
             <a
               href={openDocumentUrl({ bollaId: bolla.id })}
@@ -140,12 +143,14 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
               </svg>
               {t.common.openAttachment}
             </a>
+            </div>
           </div>
         )}
 
         {fornitoreRekkiId && (
-          <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
-            <div className="app-card-bar mb-3" aria-hidden />
+          <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+            <div className="app-card-bar shrink-0" aria-hidden />
+            <div className="p-6">
             <h2 className="mb-2 text-sm font-semibold text-slate-100">{t.bolle.listinoRekkiRefTitle}</h2>
             <p className="mb-3 text-[11px] leading-snug text-slate-500">{t.bolle.listinoRekkiRefHint}</p>
             {listinoRows.length === 0 ? (
@@ -174,12 +179,14 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
                 </table>
               </div>
             )}
+            </div>
           </div>
         )}
 
         {/* Fatture collegate */}
-        <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
-          <div className="app-card-bar mb-4" aria-hidden />
+        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-100">{t.bolle.fattureCollegate}</h2>
             <Link
@@ -207,6 +214,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
               ))}
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

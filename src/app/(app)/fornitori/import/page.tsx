@@ -19,13 +19,12 @@ function ImportFornitoreInner() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
   const { sedeId } = useSedeId()
   const t = useT()
   const prefillApplied = useRef(false)
 
   const [step, setStep] = useState<Step>('upload')
-  const [preview, setPreview] = useState<string | null>(null)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [extracted, setExtracted] = useState<ExtractedData>({ nome: null, piva: null, email: null })
   const [form, setForm] = useState({ nome: '', piva: '', email: '', indirizzo: '' })
   const [error, setError] = useState<string | null>(null)
@@ -53,10 +52,10 @@ function ImportFornitoreInner() {
     if (!file) return
     setError(null)
 
-    if (file.type.startsWith('image/')) {
-      setPreview(URL.createObjectURL(file))
-    } else {
-      setPreview(null)
+    if (file.type !== 'application/pdf') {
+      setError('Carica un PDF (es. fattura o documento da mail).')
+      e.target.value = ''
+      return
     }
 
     setStep('loading')
@@ -76,6 +75,7 @@ function ImportFornitoreInner() {
 
       const result: ExtractedData = data
       setExtracted(result)
+      setUploadedFileName(file.name)
       setForm({
         nome: result.nome ?? '',
         piva: result.piva ?? '',
@@ -149,15 +149,7 @@ function ImportFornitoreInner() {
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <input
-            ref={cameraRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            capture="environment"
+            accept="application/pdf"
             onChange={handleFileChange}
             className="hidden"
           />
@@ -182,29 +174,18 @@ function ImportFornitoreInner() {
               </div>
               <div className="text-center">
                 <p className="font-semibold text-slate-100">{t.fatture.caricaFatturaTitle}</p>
-                <p className="text-sm text-slate-400 mt-1">{t.bolle.takePhotoOrFile}</p>
+                <p className="text-sm text-slate-400 mt-1">PDF (documento da mail o allegato)</p>
               </div>
-              <div className="flex gap-3 w-full">
-                <button
-                  onClick={() => cameraRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-600/50 hover:bg-slate-800/60 text-slate-200 text-sm font-medium rounded-lg transition-colors"
-                >
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {t.bolle.cameraBtn}
-                </button>
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  {t.bolle.fileBtn}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                {t.bolle.fileBtn} (PDF)
+              </button>
             </div>
           )}
 
@@ -216,10 +197,12 @@ function ImportFornitoreInner() {
 
       {(step === 'confirm' || step === 'saving') && (
         <div className="space-y-4">
-          {preview && (
-            <div className="bg-slate-900/90 rounded-xl border border-slate-700/50 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Documento" className="w-full max-h-48 object-contain p-2 bg-slate-800/60" />
+          {uploadedFileName && (
+            <div className="flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-900/90 px-4 py-3">
+              <svg className="h-8 w-8 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <p className="min-w-0 truncate text-sm text-slate-200">{uploadedFileName}</p>
             </div>
           )}
 
@@ -277,7 +260,7 @@ function ImportFornitoreInner() {
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => { setStep('upload'); setPreview(null); prefillApplied.current = false; if (fileRef.current) fileRef.current.value = '' }}
+                onClick={() => { setStep('upload'); setUploadedFileName(null); prefillApplied.current = false; if (fileRef.current) fileRef.current.value = '' }}
                 className="flex-1 py-2.5 text-sm font-medium text-slate-400 border border-slate-600/50 rounded-lg hover:bg-slate-800/60 transition-colors"
               >
                 {t.log.retry}

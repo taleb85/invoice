@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { getTranslations } from '@/lib/translations'
 import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
 
@@ -34,8 +35,9 @@ export default function RootErrorBoundary({
           </div>
         </div>
 
-        <div className="app-card-login space-y-4 px-8 py-8">
-          <div className="app-card-bar mb-2" aria-hidden />
+        <div className="app-card-login flex flex-col overflow-hidden">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="space-y-4 px-8 py-8">
           <h1 className="text-xl font-bold text-slate-100">
             {t.appStrings.errorGenericTitle}
           </h1>
@@ -57,12 +59,13 @@ export default function RootErrorBoundary({
             >
               {t.appStrings.tryAgain}
             </button>
-            <a
+            <Link
               href="/"
               className="flex-1 rounded-xl border border-slate-600/50 bg-slate-800/60 px-4 py-2.5 text-center text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800"
             >
               {t.appStrings.backToHome}
-            </a>
+            </Link>
+          </div>
           </div>
         </div>
 

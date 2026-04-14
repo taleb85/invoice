@@ -50,8 +50,8 @@ export async function lookupRekkiSuppliersByVat(pivaRaw: string): Promise<RekkiL
       mode: 'manual',
       suppliers: [],
       message:
-        'Ricerca automatica: configura sul server REKKI_API_KEY e REKKI_SUPPLIERS_SEARCH_URL (con {vat} nel path/query). ' +
-        'Oppure incolla l’ID fornitore Rekki a mano.',
+        'Ricerca da P.IVA: sul server servono REKKI_API_KEY e REKKI_SUPPLIERS_SEARCH_URL (con {vat} nel path o query; chiave Bearer). ' +
+        'Senza API: incolla il link Rekki del fornitore nel campo Link — l’ID viene ricavato automaticamente — oppure inserisci l’ID a mano.',
     }
   }
 

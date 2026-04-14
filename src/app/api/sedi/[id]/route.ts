@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 
 const ALLOWED_COUNTRIES = ['UK', 'IT', 'FR', 'DE', 'ES']
 const ALLOWED_CURRENCIES = ['GBP', 'EUR', 'USD', 'CHF', 'CAD', 'AUD', 'JPY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF']
@@ -15,22 +16,35 @@ export async function PATCH(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, sede_id')
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  const master = isMasterAdminRole(profile?.role)
+  const sedeAdmin = isAdminSedeRole(profile?.role)
+  if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params
+  if (sedeAdmin && profile?.sede_id !== id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const body = await req.json() as {
     country_code?: string
     currency?: string
     timezone?: string
+    nome?: string
+    access_password?: string | null
+    imap_host?: string | null
+    imap_port?: number | null
+    imap_user?: string | null
+    imap_password?: string | null
+    imap_lookback_days?: number | null
   }
 
-  const update: Record<string, string> = {}
+  const update: Record<string, string | number | null> = {}
 
   if (body.country_code !== undefined) {
     if (!ALLOWED_COUNTRIES.includes(body.country_code)) {
@@ -52,6 +66,46 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid timezone' }, { status: 400 })
     }
     update.timezone = body.timezone
+  }
+
+  if (body.nome !== undefined) {
+    const nome = typeof body.nome === 'string' ? body.nome.trim() : ''
+    if (!nome) return NextResponse.json({ error: 'Nome sede obbligatorio.' }, { status: 400 })
+    update.nome = nome
+  }
+
+  if (body.access_password !== undefined) {
+    if (body.access_password === null || body.access_password === '') {
+      update.access_password = null
+    } else {
+      const digits = String(body.access_password).replace(/\D/g, '').slice(0, 4)
+      if (digits.length !== 4) {
+        return NextResponse.json({ error: 'PIN accesso sede: 4 cifre o vuoto.' }, { status: 400 })
+      }
+      update.access_password = digits
+    }
+  }
+
+  if (body.imap_host !== undefined) {
+    update.imap_host = body.imap_host && String(body.imap_host).trim() ? String(body.imap_host).trim() : null
+  }
+  if (body.imap_port !== undefined) {
+    update.imap_port =
+      body.imap_port == null || body.imap_port === 0 ? null : Number(body.imap_port) || 993
+  }
+  if (body.imap_user !== undefined) {
+    update.imap_user = body.imap_user && String(body.imap_user).trim() ? String(body.imap_user).trim() : null
+  }
+  if (body.imap_password !== undefined) {
+    update.imap_password =
+      body.imap_password === null || body.imap_password === ''
+        ? null
+        : String(body.imap_password)
+  }
+  if (body.imap_lookback_days !== undefined) {
+    const n = Number(body.imap_lookback_days)
+    update.imap_lookback_days =
+      body.imap_lookback_days == null || Number.isNaN(n) || n <= 0 ? null : n
   }
 
   if (Object.keys(update).length === 0) {

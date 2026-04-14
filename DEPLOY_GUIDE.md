@@ -60,12 +60,16 @@ vercel env add IMAP_HOST
 vercel env add IMAP_PORT
 vercel env add IMAP_USER
 vercel env add IMAP_PASSWORD
+
+# Opzionale — gate PIN sulla schermata «Accesso amministratore» (/login), prima di email/password
+# vercel env add ADMIN_LOGIN_GATE_PIN
 ```
 
 > **Dove trovare i valori:**
 > - `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase Dashboard → Settings → API → Project URL + anon key
 > - `SUPABASE_SERVICE_ROLE_KEY`: Supabase Dashboard → Settings → API → service_role key ⚠️ (non esporre lato client)
 > - `CRON_SECRET`: genera con `openssl rand -hex 32`
+> - `ADMIN_LOGIN_GATE_PIN` *(opzionale)*: stringa da 1 a 12 caratteri (anche alfanumerica). Se impostata, il login admin richiede prima questo codice; se assente, il comportamento resta senza gate.
 
 ---
 

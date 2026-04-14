@@ -40,6 +40,17 @@ export function useManualDeliverySede(): ManualDeliverySedeContext {
     return () => window.removeEventListener('focus', onFocus)
   }, [refreshCookie])
 
+  /** Dopo cambio operatore (modal PIN) il master aggiorna `admin-sede-id` senza cambiare focus finestra. */
+  useEffect(() => {
+    refreshCookie()
+  }, [activeOperator?.id, refreshCookie])
+
+  useEffect(() => {
+    const onOpChange = () => refreshCookie()
+    window.addEventListener('fluxo:active-operator-changed', onOpChange)
+    return () => window.removeEventListener('fluxo:active-operator-changed', onOpChange)
+  }, [refreshCookie])
+
   const effectiveSedeId =
     activeOperator?.sede_id?.trim() ||
     (me?.is_admin ? cookieSedeId : null) ||

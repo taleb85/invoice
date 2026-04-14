@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 })
   }
 
+  if (file.type !== 'application/pdf') {
+    return NextResponse.json({ error: 'Carica solo un PDF.' }, { status: 400 })
+  }
+
   // Recupera il vecchio file_url prima di sovrascrivere
   const { data: fatturaCorrente } = await supabase
     .from('fatture')

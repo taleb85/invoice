@@ -8,6 +8,10 @@ import { LOCALES } from '@/lib/translations'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { getAssociatedSedeNome, navGestisciSediLabel } from '@/lib/gestisci-sede-label'
+import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
+import { effectiveIsAdminSedeUi, profileCanAccessSediListPage } from '@/lib/effective-operator-ui'
+import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 
 function getCookie(name: string): string {
   if (typeof document === 'undefined') return ''
@@ -18,25 +22,27 @@ function getCookie(name: string): string {
 interface SidebarProps {
   /** Optional; still invoked on route change (legacy hook for parents). */
   onClose?: () => void
+  collapsed: boolean
+  onCollapsedChange: (next: boolean) => void
 }
 
-export default function Sidebar({ onClose }: SidebarProps) {
+export default function Sidebar({ onClose, collapsed, onCollapsedChange }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const { me } = useMe()
   const { locale, t, setLocale } = useLocale()
-  const { activeOperator, openSwitchModal, clearActiveOperator } = useActiveOperator()
+  const { activeOperator, openSwitchModal } = useActiveOperator()
   const [sedeNome, setSedeNome] = useState<string | null>(null)
-  const [sedeId, setSedeId] = useState<string | null>(null)
   const [allSedi, setAllSedi] = useState<{ id: string; nome: string }[]>([])
-  const [adminSedeId, setAdminSedeId] = useState<string>('')
   const [branchesOpen, setBranchesOpen] = useState(true)
-  const [fornitori, setFornitori] = useState<{ id: string; nome: string }[]>([])
+  const [fornitori, setFornitori] = useState<{ id: string; nome: string; display_name: string | null }[]>([])
   const [fornitoriOpen, setFornitoriOpen] = useState(true)
   const [fornitoriSearch, setFornitoriSearch] = useState('')
-  const [collapsed, setCollapsed] = useState(false)
   const [langOpen, setLangOpen] = useState(false)
+
+  /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
+  const gestisciSediLinkLabel = navGestisciSediLabel(t, getAssociatedSedeNome(me, getCookie))
 
   /** Legacy: parent may reset state on navigation (mobile drawer removed). */
   useEffect(() => {
@@ -50,10 +56,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
     const actingAsStaff = Boolean(me.is_admin && activeOperator)
     if (actingAsStaff && activeOperator) {
       setSedeNome(activeOperator.sede_nome ?? me.sede_nome)
-      setSedeId(activeOperator.sede_id ?? me.sede_id ?? null)
     } else {
       setSedeNome(me.sede_nome)
-      setSedeId(me.sede_id ?? null)
     }
 
     if (me.is_admin && me.all_sedi?.length > 0) {
@@ -61,12 +65,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
       const savedSede = getCookie('admin-sede-id')
       if (savedSede && !me.all_sedi.some((s) => s.id === savedSede)) {
         document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
-        setAdminSedeId('')
-      } else {
-        setAdminSedeId(savedSede || '')
       }
     }
+  }, [me, activeOperator])
 
+  useEffect(() => {
+    if (!me) {
+      setFornitori([])
+      return
+    }
+
+    const actingAsStaff = Boolean(me.is_admin && activeOperator)
     const sedeForFornitori =
       actingAsStaff && activeOperator?.sede_id
         ? activeOperator.sede_id
@@ -74,30 +83,47 @@ export default function Sidebar({ onClose }: SidebarProps) {
           ? me.sede_id ?? null
           : null
 
-    if (sedeForFornitori) {
-      const supabaseClient = createClient()
-      supabaseClient
+    let cancelled = false
+
+    const loadFornitori = () => {
+      if (!sedeForFornitori) {
+        setFornitori([])
+        return
+      }
+      createClient()
         .from('fornitori')
-        .select('id, nome')
+        .select('id, nome, display_name')
         .eq('sede_id', sedeForFornitori)
         .order('nome')
-        .then(({ data: rows }: { data: { id: string; nome: string }[] | null }) => setFornitori(rows ?? []))
-    } else {
-      setFornitori([])
+        .then(({ data: rows }: { data: { id: string; nome: string; display_name: string | null }[] | null }) => {
+          if (!cancelled) setFornitori(rows ?? [])
+        })
     }
-  }, [me, activeOperator])
+
+    loadFornitori()
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadFornitori()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [me, activeOperator, pathname])
 
 
-  const handleAdminSedeChange = (value: string) => {
-    setAdminSedeId(value)
-    if (me?.is_admin) clearActiveOperator()
-    document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
-    if (!value) {
-      document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
-    } else {
-      document.cookie = `admin-sede-id=${value}; path=/; SameSite=Strict`
-    }
-    router.refresh()
+  const listinoNavIcon = (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
+    </svg>
+  )
+
+  const listinoNavItem = {
+    label: t.fornitori.tabListino,
+    href: '/listino',
+    icon: listinoNavIcon,
   }
 
   const operatoreNavItems = [
@@ -119,37 +145,33 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </svg>
       ),
     },
-    {
-      label: t.nav.bolle,
-      href: '/bolle',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-      ),
-    },
-    {
-      label: t.nav.fatture,
-      href: '/fatture',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      ),
-    },
+    listinoNavItem,
   ]
 
-  const filteredFornitori = fornitori.filter(f =>
-    f.nome.toLowerCase().includes(fornitoriSearch.toLowerCase())
+  const fornitoriSearchLower = fornitoriSearch.toLowerCase()
+  const filteredFornitori = fornitori.filter((f) => {
+    if (!fornitoriSearchLower) return true
+    const label = fornitoreDisplayLabel(f).toLowerCase()
+    const nome = (f.nome ?? '').toLowerCase()
+    const alias = (f.display_name ?? '').toLowerCase()
+    return label.includes(fornitoriSearchLower) || nome.includes(fornitoriSearchLower) || alias.includes(fornitoriSearchLower)
+  })
+
+  const { displayName: operatorDockName, avatarLetter: operatorDockInitial } = resolvedOperatorDockDisplay(
+    me,
+    activeOperator,
+    t.ui.noOperator,
   )
+  const operatorDockAria =
+    operatorDockName !== t.ui.noOperator
+      ? `${t.ui.changeOperator}: ${operatorDockName}`
+      : t.ui.selectOperator
 
   /** Admin master: vista “piano” solo senza operatore PIN; con operatore attivo la UI segue il suo ruolo. */
   const actingAsStaff = Boolean(me?.is_admin && activeOperator)
   const isMasterAdmin = Boolean(me?.is_admin && !actingAsStaff)
-  const isAdminSede = Boolean(
-    (me?.is_admin_sede && !me?.is_admin) ||
-    (actingAsStaff && activeOperator?.role === 'admin_sede'),
-  )
+  const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
+  const sessionCanNavigateSediList = profileCanAccessSediListPage(me)
 
   // Admin flat nav items — Branches is rendered as a custom expandable section inline.
   const logEmailNavItem = {
@@ -182,6 +204,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </svg>
       ),
     },
+    listinoNavItem,
     logEmailNavItem,
   ]
 
@@ -192,6 +215,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
       : operatoreNavItems
 
   const handleLogout = async () => {
+    try {
+      localStorage.removeItem('fluxo-active-operator')
+      localStorage.removeItem('fluxo-active-operator-user')
+    } catch {
+      /* ignore */
+    }
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
@@ -199,14 +228,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   // Shared icon-link style helpers
   const navLink = (isActive: boolean) =>
-    `flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap overflow-hidden ${
+    `flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap overflow-hidden ${
       isActive
-        ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[9px]'
-        : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[9px]'
+        ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]'
+        : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'
     }`
 
   const iconOnly = (isActive: boolean) =>
-    `flex items-center justify-center w-9 h-9 rounded-lg transition-all ${
+    `flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all ${
       isActive
         ? 'bg-cyan-500/20 text-white shadow-[inset_0_0_0_1px_rgba(6,182,212,0.20)]'
         : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100'
@@ -218,106 +247,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
         suppressHydrationWarning
         className={[
           /* Mobile: no sidebar — desktop only */
-          'hidden md:flex md:flex-col md:relative md:z-auto md:shrink-0 md:min-h-screen',
-          collapsed ? 'md:w-14' : 'md:w-64',
+          'hidden md:flex md:h-full md:min-h-0 md:flex-col md:relative md:z-auto md:shrink-0 md:overflow-visible',
+          collapsed ? 'md:w-14' : 'md:w-56',
           'bg-slate-950',
-          'transition-all duration-200 ease-in-out',
+          'transition-[width] duration-[600ms] ease-[cubic-bezier(0.08,0.82,0.17,1)]',
           'shadow-[4px_0_32px_rgba(0,0,0,0.45)]',
         ].join(' ')}
       >
-        {/* ── Logo / collapse toggle ── */}
-        <div className="relative border-b border-slate-800/60 flex items-center">
-          {collapsed ? (
-            /* Mini logo — icon card only */
-            <button
-              onClick={() => setCollapsed(false)}
-              className="w-full flex items-center justify-center py-3 hover:bg-slate-800/40 transition-colors"
-              title={t.ui.expandSidebar}
-            >
-              <svg viewBox="0 0 56 56" className="w-8 h-8" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="fxm-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#1e3a5f"/>
-                    <stop offset="100%" stopColor="#172554"/>
-                  </linearGradient>
-                  <linearGradient id="fxm-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#5b7cf9"/>
-                    <stop offset="50%" stopColor="#38bdf8"/>
-                    <stop offset="100%" stopColor="#22d3ee"/>
-                  </linearGradient>
-                </defs>
-                <rect width="56" height="56" rx="13" fill="url(#fxm-bg)"/>
-                <path d="M7 30 C13 18, 22 18, 29 30 S43 42, 49 30"
-                      stroke="url(#fxm-wave)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                <circle cx="7"  cy="30" r="3" fill="#5b7cf9"/>
-                <circle cx="29" cy="30" r="3" fill="#38bdf8"/>
-                <circle cx="49" cy="30" r="3" fill="#22d3ee"/>
-              </svg>
-            </button>
-          ) : (
-            /* Full logo + collapse button */
-            <div className="flex-1 relative px-3 py-2.5">
-              {/* Icon + wordmark row */}
-              <div
-                className="flex items-center gap-3 md:cursor-pointer"
-                onClick={() => { if (window.innerWidth >= 768) router.push('/') }}
-              >
-                {/* Icon card — left half inside card, right half outside */}
-                <svg viewBox="0 0 96 56" className="w-12 h-[30px] shrink-0" xmlns="http://www.w3.org/2000/svg">
-                  <defs>
-                    <linearGradient id="fx-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#1e3a5f"/>
-                      <stop offset="100%" stopColor="#172554"/>
-                    </linearGradient>
-                    <linearGradient id="fx-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#5b7cf9"/>
-                      <stop offset="50%" stopColor="#38bdf8"/>
-                      <stop offset="100%" stopColor="#22d3ee"/>
-                    </linearGradient>
-                  </defs>
-                  {/* Card — left 56px */}
-                  <rect width="56" height="56" rx="13" fill="url(#fx-card-bg)"/>
-                  {/* Wave: starts inside card, exits right side */}
-                  <path d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
-                        stroke="url(#fx-wave)" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-                  {/* Dots: left inside, middle near edge, right outside */}
-                  <circle cx="7"  cy="28" r="3.5" fill="#5b7cf9"/>
-                  <circle cx="48" cy="28" r="3.5" fill="#38bdf8"/>
-                  <circle cx="88" cy="28" r="3.5" fill="#22d3ee"/>
-                </svg>
-
-                {/* Wordmark */}
-                <div className="min-w-0">
-                  <svg viewBox="0 0 130 32" className="w-20 h-auto" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                      <linearGradient id="fx-text" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#6b8ef5"/>
-                        <stop offset="100%" stopColor="#22d3ee"/>
-                      </linearGradient>
-                    </defs>
-                    <text x="0" y="24" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="24" fill="url(#fx-text)">FLUXO</text>
-                  </svg>
-                  <p className="text-[9px] font-semibold text-slate-400 tracking-wider uppercase -mt-1">{t.ui.tagline}</p>
-                </div>
-              </div>
-
-              {/* Desktop collapse toggle */}
-              <button
-                onClick={() => setCollapsed(true)}
-                className="hidden md:flex absolute top-1/2 -translate-y-1/2 right-1.5 items-center justify-center w-6 h-6 rounded-md text-slate-600 hover:text-slate-300 hover:bg-slate-800/70 transition-colors"
-                title={t.ui.collapseSidebar}
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* ── Navigation ── */}
-        <nav className={`flex-1 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden ${collapsed ? 'px-2' : 'px-2.5'}`}>
-
+        {/* ── Navigation: area voci scrollabile + riga Comprimi in fondo al nav */}
+        <nav
+          className={`flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-hidden ${collapsed ? 'px-1.5' : 'px-2'}`}
+        >
+          <div className="min-h-0 flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto py-2.5">
           {/* Dashboard */}
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
@@ -339,13 +280,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <div>
               <button
                 onClick={() => setBranchesOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-colors"
+                className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-800/70 hover:text-slate-100 transition-colors"
               >
-                <span className="flex items-center gap-2.5">
+                <span className="flex items-center gap-2">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  <span className="truncate">{t.nav.sediTitle}</span>
+                  <span className="truncate">{t.nav.sediNavGroupMaster}</span>
                 </span>
                 <svg className={`w-3 h-3 shrink-0 transition-transform ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -353,7 +294,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </button>
 
               {branchesOpen && (
-                <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2.5">
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2">
                   {allSedi.map((s) => {
                     const isActive = pathname.startsWith(`/sedi/${s.id}`)
                     return (
@@ -370,7 +311,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span className="truncate">{t.nav.gestisciSedi}</span>
+                    <span className="truncate">{gestisciSediLinkLabel}</span>
                   </Link>
                 </div>
               )}
@@ -387,14 +328,40 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           )}
 
+          {/* Admin sede: stessa pagina gestione operatori / IMAP / PIN (vista solo propria sede). */}
+          {isAdminSede &&
+            !isMasterAdmin &&
+            me?.sede_id &&
+            sessionCanNavigateSediList &&
+            !collapsed && (
+            <Link href="/sedi" onClick={onClose} className={navLink(pathname === '/sedi')}>
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <span className="truncate">{gestisciSediLinkLabel}</span>
+            </Link>
+          )}
+          {isAdminSede && !isMasterAdmin && me?.sede_id && sessionCanNavigateSediList && collapsed && (
+            <Link
+              href="/sedi"
+              onClick={onClose}
+              title={gestisciSediLinkLabel}
+              className={iconOnly(pathname === '/sedi')}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </Link>
+          )}
+
           {/* ── Operator: Fornitori section ── */}
           {!isMasterAdmin && !collapsed && (
             <div>
               <button
                 onClick={() => setFornitoriOpen(o => !o)}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors ${pathname.startsWith('/fornitori') ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[9px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[9px]'}`}
+                className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${pathname.startsWith('/fornitori') ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'}`}
               >
-                <span className="flex items-center gap-2.5 min-w-0">
+                <span className="flex items-center gap-2 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
@@ -411,7 +378,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </button>
 
               {fornitoriOpen && (
-                <div className="ml-3.5 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2.5">
+                <div className="ml-3 mt-0.5 space-y-0.5 border-l border-slate-800 pl-2">
                   {/* Search */}
                   {fornitori.length > 5 && (
                     <div className="px-1 py-1">
@@ -436,12 +403,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
                   {/* Individual links */}
                   {filteredFornitori.slice(0, 30).map((f) => {
-                    const isActive = pathname === `/fornitori/${f.id}`
+                    const isActive =
+                      pathname === `/fornitori/${f.id}` || pathname.startsWith(`/fornitori/${f.id}/`)
                     return (
                       <Link key={f.id} href={`/fornitori/${f.id}`} onClick={onClose}
                         className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-medium transition-colors ${isActive ? 'bg-cyan-500/15 text-white' : 'text-slate-500 hover:bg-slate-800/60 hover:text-slate-100'}`}>
                         <span className={`w-1 h-1 rounded-full shrink-0 ${isActive ? 'bg-cyan-400' : 'bg-current opacity-50'}`} />
-                        <span className="truncate">{f.nome}</span>
+                        <span className="min-w-0 flex-1 truncate">{fornitoreDisplayLabel(f)}</span>
                       </Link>
                     )
                   })}
@@ -459,126 +427,190 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </div>
           )}
 
-          {/* Operator collapsed: Fornitori icon → /fornitori */}
+          {/* Operator collapsed: Listino + Fornitori */}
           {!isMasterAdmin && collapsed && (
-            <Link href="/fornitori" onClick={onClose} title={t.nav.fornitori}
-              className={iconOnly(pathname.startsWith('/fornitori'))}>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </Link>
+            <>
+              <Link
+                href="/listino"
+                onClick={onClose}
+                title={t.fornitori.tabListino}
+                className={iconOnly(pathname.startsWith('/listino'))}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
+                </svg>
+              </Link>
+              <Link href="/fornitori" onClick={onClose} title={t.nav.fornitori}
+                className={iconOnly(pathname.startsWith('/fornitori'))}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </Link>
+            </>
           )}
 
-          {/* Remaining flat nav items (Log email, etc.) */}
-          {navItems.slice(1).map((item) => {
-            const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-            const hasBadge = (item as { badge?: boolean }).badge
-            return collapsed ? (
-              <Link key={item.href} href={item.href} onClick={onClose}
-                title={item.label} className={`${iconOnly(isActive)} relative`}>
-                {item.icon}
-                {hasBadge && (
-                  <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-1 ring-slate-950" />
-                )}
-              </Link>
-            ) : (
-              <Link key={item.href} href={item.href} onClick={onClose}
-                className={`${navLink(isActive)} relative`}>
-                {item.icon}
-                <span className="truncate flex-1">{item.label}</span>
-                {hasBadge && (
-                  <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500" />
-                )}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* ── Role / Sede badge ── */}
-        {!collapsed && (isMasterAdmin || sedeNome || isAdminSede) && (
-          <div className="px-3 pb-2">
-            {isMasterAdmin ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-amber-400/10 border border-amber-400/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                  <span className="text-[11px] font-semibold text-amber-300/80">{t.sedi.adminRole}</span>
-                </div>
-                {allSedi.length > 0 && (
-                  <select
-                    value={adminSedeId}
-                    onChange={(e) => handleAdminSedeChange(e.target.value)}
-                    className="w-full cursor-pointer rounded-lg border border-slate-700 bg-slate-800 px-2 py-1.5 text-[11px] text-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-500/40"
-                  >
-                    <option value="" className="bg-slate-950 text-white">
-                      {t.nav.sedeGlobalOverview}
-                    </option>
-                    {allSedi.map((s) => (
-                      <option key={s.id} value={s.id} className="bg-slate-950 text-white">
-                        {s.nome}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                {isAdminSede ? (
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
-                    <span className="text-[11px] font-semibold text-violet-200/90">{t.sedi.adminSedeRole}</span>
-                  </div>
-                ) : null}
-                {sedeNome ? (
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-slate-800">
-                    <span className="h-2 w-2 shrink-0 rounded-full border border-cyan-500/35 bg-cyan-500/15" />
-                    <span className="text-[11px] text-white truncate">{sedeNome}</span>
-                  </div>
-                ) : null}
-              </div>
-            )}
+          {/* Resto voci piatte. Fornitori: solo per master — operatori/admin sede hanno già il blocco espandibile sopra (o l’icona se sidebar compatta). */}
+          {navItems
+            .slice(1)
+            .filter((item) => isMasterAdmin || item.href !== '/fornitori')
+            .map((item) => {
+              const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+              const hasBadge = (item as { badge?: boolean }).badge
+              return collapsed ? (
+                <Link key={item.href} href={item.href} onClick={onClose}
+                  title={item.label} className={`${iconOnly(isActive)} relative`}>
+                  {item.icon}
+                  {hasBadge && (
+                    <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 ring-1 ring-slate-950" />
+                  )}
+                </Link>
+              ) : (
+                <Link key={item.href} href={item.href} onClick={onClose}
+                  className={`${navLink(isActive)} relative`}>
+                  {item.icon}
+                  <span className="truncate flex-1">{item.label}</span>
+                  {hasBadge && (
+                    <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500" />
+                  )}
+                </Link>
+              )
+            })}
           </div>
-        )}
 
-        {/* ── Operatore attivo ── */}
-        {!collapsed && (
-          <div className="px-3 pb-2">
+          <div
+            className="flex w-full shrink-0 justify-center border-t border-slate-800/40 py-2"
+          >
             <button
               type="button"
-              onClick={openSwitchModal}
-              title={t.ui.changeOperator}
-              aria-label={activeOperator ? `${t.ui.changeOperator}: ${activeOperator.full_name}` : t.ui.selectOperator}
-              className="flex w-full min-h-[52px] items-center gap-3 rounded-xl border border-cyan-500/25 bg-slate-800/50 px-3 py-2.5 text-left transition-all hover:border-cyan-500/45 hover:bg-slate-800/75 active:scale-[0.99] touch-manipulation"
+              onClick={() => onCollapsedChange(!collapsed)}
+              className="flex h-8 w-8 items-center justify-center rounded-md text-cyan-400/70 shadow-sm transition-[background-color,color,box-shadow] duration-[600ms] ease-[cubic-bezier(0.08,0.82,0.17,1)] hover:bg-slate-800/70 hover:text-cyan-300 hover:shadow-md hover:shadow-cyan-500/10 active:bg-slate-700/70 active:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
+              title={collapsed ? t.ui.expandSidebar : t.ui.collapseSidebar}
+              aria-label={collapsed ? t.ui.expandSidebar : t.ui.collapseSidebar}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-bold text-cyan-300">
-                {activeOperator ? activeOperator.full_name.charAt(0).toUpperCase() : '?'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.ui.operatorLabel}</p>
-                <p className="truncate text-sm font-semibold text-slate-200">
-                  {activeOperator ? activeOperator.full_name : t.ui.noOperator}
-                </p>
-              </div>
-              <span className="shrink-0 rounded-lg bg-cyan-500/15 px-2.5 py-2 text-[11px] font-bold uppercase tracking-wide text-cyan-300 ring-1 ring-cyan-500/30">
-                {t.ui.changeOperatorShort}
-              </span>
+              {collapsed ? (
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              ) : (
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              )}
             </button>
           </div>
-        )}
+        </nav>
+
+        {/* ── Role / Sede badge (espansa: card testo; compatta: icone centrate + title) ── */}
+        {(isMasterAdmin || sedeNome || isAdminSede) && collapsed ? (
+            <div className="flex shrink-0 flex-col items-center gap-1 px-1 pb-1.5">
+              {isMasterAdmin ? (
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-400/30 bg-amber-400/10"
+                  title={t.sedi.adminRole}
+                  role="status"
+                  aria-label={t.sedi.adminRole}
+                >
+                  <svg className="h-4 w-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </span>
+              ) : null}
+              {!isMasterAdmin && isAdminSede ? (
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-violet-500/30 bg-violet-500/10"
+                  title={t.sedi.adminSedeRole}
+                  role="status"
+                  aria-label={t.sedi.adminSedeRole}
+                >
+                  <svg className="h-4 w-4 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </span>
+              ) : null}
+              {!isMasterAdmin && sedeNome ? (
+                <span
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/80"
+                  title={sedeNome}
+                  role="status"
+                  aria-label={sedeNome}
+                >
+                  <svg className="h-4 w-4 text-cyan-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+        {!collapsed && isMasterAdmin ? (
+          <div className="px-2 pb-2">
+            <div className="flex items-center gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-2 py-1.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400" />
+              <span className="text-[11px] font-semibold leading-snug text-amber-300/80 text-balance">{t.sedi.adminRole}</span>
+            </div>
+          </div>
+        ) : null}
+
+        {/* ── Sede + operatore (stessa riga compatta: bordo slate, py-1.5, testo 11px) ── */}
+        {!collapsed && !isMasterAdmin ? (
+          <div className="px-2 pb-2">
+            <div className="space-y-1.5">
+              {isAdminSede ? (
+                <div className="flex items-center gap-2 rounded-lg border border-violet-500/25 bg-violet-500/10 px-2 py-1.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-violet-200 shadow-[0_0_10px_rgba(196,181,253,0.75),0_0_22px_rgba(139,92,246,0.45)]" />
+                  <span className="text-[11px] font-semibold text-violet-200/90">{t.sedi.adminSedeRole}</span>
+                </div>
+              ) : null}
+              {sedeNome ? (
+                <div className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-2 text-xs font-bold text-cyan-100">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(103,232,249,0.75),0_0_22px_rgba(6,182,212,0.45)]" />
+                  <span className="min-w-0 truncate">{sedeNome}</span>
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={openSwitchModal}
+                title={operatorDockAria}
+                aria-label={operatorDockAria}
+                className="flex w-full touch-manipulation items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-2 text-left text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/25"
+              >
+                <span className="h-2 w-2 shrink-0 rounded-full bg-cyan-200 shadow-[0_0_10px_rgba(103,232,249,0.75),0_0_22px_rgba(6,182,212,0.45)]" />
+                <span className="min-w-0 flex-1 truncate">{operatorDockName}</span>
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-50 [text-shadow:0_0_12px_rgba(103,232,249,0.7),0_0_24px_rgba(6,182,212,0.35)]">
+                  {t.ui.changeOperatorShort}
+                </span>
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {/* Collapsed: switch icon */}
-        {collapsed && (
-          <div className="px-2 pb-2">
+        {!isMasterAdmin && collapsed && (
+          <div className="px-1 pb-1">
             <button
               type="button"
               onClick={openSwitchModal}
-              title={activeOperator ? `${t.ui.operatorLabel}: ${activeOperator.full_name}` : t.ui.selectOperator}
-              aria-label={t.ui.changeOperator}
-              className="relative mx-auto flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-cyan-300 touch-manipulation"
+              title={operatorDockAria}
+              aria-label={operatorDockAria}
+              className="relative mx-auto flex h-8 w-8 touch-manipulation items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-800/80 hover:text-cyan-300"
             >
               <span className="text-xs font-bold text-cyan-300">
-                {activeOperator ? activeOperator.full_name.charAt(0).toUpperCase() : '?'}
+                {operatorDockInitial}
               </span>
-              {activeOperator && (
+              {operatorDockName !== t.ui.noOperator && (
                 <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full border border-slate-900 bg-cyan-400" />
               )}
             </button>
@@ -586,23 +618,27 @@ export default function Sidebar({ onClose }: SidebarProps) {
         )}
 
         {/* ── Footer ── */}
-        <div className={`border-t border-slate-800 ${collapsed ? 'px-2 py-3 space-y-1' : 'px-3 py-3 space-y-1'}`}>
+        <div
+          className={`border-t border-slate-800 ${collapsed ? 'space-y-0.5 px-1 py-2' : 'space-y-1 px-2 py-2.5'}`}
+        >
 
           {/* Language switcher */}
           {!collapsed && (
-            <div className="relative">
+            <div className="relative z-[100]">
               <button
                 onClick={() => setLangOpen(o => !o)}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 text-slate-600 hover:text-slate-300 hover:bg-slate-800/60 rounded-lg transition-colors text-[11px]"
+                className="group w-full flex items-center gap-2 px-2 py-1.5 text-slate-500 hover:bg-slate-800/60 rounded-lg transition-colors text-[11px]"
               >
                 <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}</span>
-                <span className="font-medium">{LOCALES.find(l => l.code === locale)?.label ?? locale}</span>
+                <span className="font-medium text-cyan-50 [text-shadow:0_0_12px_rgba(103,232,249,0.7),0_0_24px_rgba(6,182,212,0.35)] group-hover:text-cyan-100 group-hover:[text-shadow:0_0_14px_rgba(103,232,249,0.85),0_0_28px_rgba(6,182,212,0.4)]">
+                  {LOCALES.find(l => l.code === locale)?.label ?? locale}
+                </span>
                 <svg className={`w-3 h-3 ml-auto transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
                 </svg>
               </button>
               {langOpen && (
-                <div className="absolute bottom-full mb-1 left-0 right-0 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl z-50">
+                <div className="absolute bottom-full mb-1 left-0 right-0 z-[100] max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
@@ -614,7 +650,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
                         locale === l.code
                           ? 'bg-cyan-500/15 text-white'
-                          : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
+                          : 'text-slate-300 hover:bg-slate-800/70 hover:text-slate-100'
                       }`}
                     >
                       <span className="text-sm">{l.flag}</span>
@@ -633,16 +669,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
           {/* Collapsed: globe icon → opens lang popover */}
           {collapsed && (
-            <div className="relative">
+            <div className="relative z-[100]">
               <button
                 onClick={() => setLangOpen(o => !o)}
                 title={t.ui.languageTooltip}
-                className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-slate-600 hover:text-slate-300 hover:bg-slate-800/70 transition-colors text-sm"
+                className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-sm text-slate-600 transition-colors hover:bg-slate-800/70 hover:text-slate-300"
               >
                 {LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}
               </button>
               {langOpen && (
-                <div className="absolute bottom-0 left-full ml-2 bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-2xl z-50 w-40">
+                <div className="absolute bottom-0 left-full z-[100] ml-2 max-h-[min(240px,calc(100vh-6rem))] w-40 overflow-y-auto overflow-x-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-2xl">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
@@ -654,7 +690,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
                         locale === l.code
                           ? 'bg-cyan-500/15 text-white'
-                          : 'text-slate-500 hover:bg-slate-800/70 hover:text-slate-100'
+                          : 'text-slate-300 hover:bg-slate-800/70 hover:text-slate-100'
                       }`}
                     >
                       <span className="text-sm">{l.flag}</span>
@@ -664,27 +700,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </div>
               )}
             </div>
-          )}
-          {!isMasterAdmin && !collapsed && (
-            <Link
-              href="/bolle/new"
-              className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-cyan-500 hover:bg-cyan-600 text-white text-xs font-semibold rounded-lg transition-colors shadow-[0_0_12px_rgba(6,182,212,0.25)]"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              {t.nav.nuovaBolla}
-            </Link>
-          )}
-
-          {/* + icon when collapsed and operator */}
-          {!isMasterAdmin && collapsed && (
-            <Link href="/bolle/new" onClick={onClose} title={t.nav.nuovaBolla}
-              className="flex items-center justify-center w-9 h-9 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition-colors mx-auto shadow-[0_0_10px_rgba(6,182,212,0.2)]">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-            </Link>
           )}
 
           {collapsed ? (
@@ -703,7 +718,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </svg>
               </Link>
               <button onClick={handleLogout} title={t.nav.esci}
-                className="flex items-center justify-center w-9 h-9 rounded-lg mx-auto text-slate-500 hover:text-slate-100 hover:bg-slate-800/70 transition-colors">
+                className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-800/70 hover:text-slate-100">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
@@ -713,8 +728,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <>
               <Link
                 href="/impostazioni"
-                className={`flex items-center gap-2.5 w-full px-2.5 py-2 text-xs font-medium rounded-lg transition-colors ${
-                  pathname === '/impostazioni' ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[9px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[9px]'
+                className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  pathname === '/impostazioni' ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'
                 }`}
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -726,8 +741,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               <Link
                 href="/guida"
-                className={`flex items-center gap-2.5 w-full px-2.5 py-2 text-xs font-medium rounded-lg transition-colors ${
-                  pathname === '/guida' ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[9px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[9px]'
+                className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                  pathname === '/guida' ? 'bg-cyan-500/15 text-white border-l-2 border-cyan-500 pl-[7px]' : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100 border-l-2 border-transparent pl-[7px]'
                 }`}
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -738,7 +753,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2.5 w-full px-2.5 py-2 text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 text-xs font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-slate-400 hover:text-slate-100 hover:bg-slate-800/70 text-xs font-medium rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

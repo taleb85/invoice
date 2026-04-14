@@ -9,7 +9,6 @@ interface Props {
 
 export default function ReplaceFileButton({ fatturaId }: Props) {
   const router = useRouter()
-  const cameraRef = useRef<HTMLInputElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [open, setOpen] = useState(false)
@@ -25,8 +24,7 @@ export default function ReplaceFileButton({ fatturaId }: Props) {
 
     let dataFattura: string | null = null
 
-    // OCR solo su immagini
-    if (file.type.startsWith('image/')) {
+    if (file.type === 'application/pdf') {
       try {
         const ocrForm = new FormData()
         ocrForm.append('file', file)
@@ -73,17 +71,9 @@ export default function ReplaceFileButton({ fatturaId }: Props) {
   return (
     <div className="mt-4">
       <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
-      />
-      <input
         ref={fileRef}
         type="file"
-        accept="image/*,.pdf"
+        accept="application/pdf"
         className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
       />
@@ -101,29 +91,19 @@ export default function ReplaceFileButton({ fatturaId }: Props) {
       )}
 
       {open && (
-        <div className="grid grid-cols-2 gap-3 mt-2">
-          <button
-            onClick={() => { setOpen(false); setTimeout(() => cameraRef.current?.click(), 50) }}
-            className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-600/50 py-5 text-slate-500 transition-colors hover:border-cyan-500/50 hover:text-cyan-400 active:bg-slate-800/80"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-xs font-medium">Fotocamera</span>
-          </button>
+        <div className="mt-2 flex flex-col gap-2">
           <button
             onClick={() => { setOpen(false); setTimeout(() => fileRef.current?.click(), 50) }}
             className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-600/50 py-5 text-slate-500 transition-colors hover:border-cyan-500/50 hover:text-cyan-400 active:bg-slate-800/80"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            <span className="text-xs font-medium">Scegli file</span>
+            <span className="text-xs font-medium">Scegli PDF</span>
           </button>
           <button
             onClick={() => setOpen(false)}
-            className="col-span-2 py-1 text-xs text-slate-500 transition-colors hover:text-slate-300"
+            className="py-1 text-xs text-slate-500 transition-colors hover:text-slate-300"
           >
             Annulla
           </button>

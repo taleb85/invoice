@@ -26,6 +26,8 @@ export interface Fornitore {
   rekki_supplier_id?: string | null
   /** Link profilo / ordine Rekki (opzionale). */
   rekki_link?: string | null
+  /** URL pubblico immagine logo (opzionale). */
+  logo_url?: string | null
   created_at: string
 }
 

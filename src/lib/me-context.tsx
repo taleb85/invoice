@@ -12,6 +12,8 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 
 export interface MeData {
   user:         { id: string; email: string } | null
+  /** `profiles.full_name` — nome mostrato in UI (es. sidebar) quando non c’è operatore attivo nel contesto */
+  full_name:    string | null
   role:         'admin' | 'admin_sede' | 'operatore' | null
   sede_id:      string | null
   sede_nome:    string | null
@@ -36,6 +38,7 @@ interface MeContextValue {
 
 const DEFAULT_ME: MeData = {
   user:         null,
+  full_name:    null,
   role:         null,
   sede_id:      null,
   sede_nome:    null,
@@ -87,6 +90,7 @@ export function UserProvider({
         const isAdminSede = !!data.is_admin_sede || role === 'admin_sede'
         setMe({
           user: data.user ?? null,
+          full_name: typeof data.full_name === 'string' ? data.full_name.trim() || null : null,
           role,
           sede_id: data.sede_id ?? null,
           sede_nome: data.sede_nome ?? null,

@@ -1,11 +1,20 @@
 import Link from 'next/link'
 import { cookies } from 'next/headers'
 import { openDocumentUrl } from '@/lib/open-document-url'
-import { createClient } from '@/utils/supabase/server'
+import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 
 const BOLLE_LIST_LIMIT = 500
+
+type BollaListRow = {
+  id: string
+  data: string
+  stato: string
+  file_url: string | null
+  fornitore_id: string
+  fornitori?: { nome: string } | null
+}
 
 /** YYYY-MM-DD for the user's calendar day in IANA timezone (matches Impostazioni fuso). */
 function calendarDateInTimeZone(timeZone: string): string {
@@ -17,10 +26,7 @@ function calendarDateInTimeZone(timeZone: string): string {
 }
 
 async function getListSedeId(): Promise<string | null> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { supabase, user } = await getRequestAuth()
   if (!user) return null
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const cookieStore = await cookies()
@@ -32,7 +38,7 @@ async function getListSedeId(): Promise<string | null> {
 
 async function getBolleForToday(timeZone: string, sedeId: string | null) {
   const today = calendarDateInTimeZone(timeZone)
-  const supabase = await createClient()
+  const { supabase } = await getRequestAuth()
   let q = supabase
     .from('bolle')
     .select('*, fornitori(nome)')
@@ -46,7 +52,7 @@ async function getBolleForToday(timeZone: string, sedeId: string | null) {
 }
 
 async function getBolleAll(sedeId: string | null, pendingOnly: boolean) {
-  const supabase = await createClient()
+  const { supabase } = await getRequestAuth()
   let q = supabase
     .from('bolle')
     .select('*, fornitori(nome)')
@@ -170,7 +176,7 @@ export default async function BollePage({
           ) : (
             <>
               <div className="divide-y divide-slate-800/80 md:hidden">
-                {bolle.map((b: any) => (
+                {bolle.map((b: BollaListRow) => (
                   <div key={b.id} className="px-4 py-4">
                     <Link href={`/bolle/${b.id}`} className="mb-3 block text-left transition-colors hover:opacity-90">
                       <div className="flex items-start justify-between gap-2">
@@ -243,7 +249,7 @@ export default async function BollePage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80">
-                  {bolle.map((b: any) => (
+                  {bolle.map((b: BollaListRow) => (
                     <tr key={b.id} className="group transition-colors hover:bg-slate-800/40">
                       <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-300">
                         <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-cyan-300">

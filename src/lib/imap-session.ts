@@ -106,6 +106,10 @@ export async function withImapSession<T>(
     onRetry?: (info: ImapSessionRetryInfo) => void | Promise<void>
     /** Dopo il backoff e prima del nuovo connect: utile per inviare heartbeat allo stream NDJSON. */
     beforeReconnect?: (info: ImapSessionReconnectInfo) => void | Promise<void>
+    /** Subito prima di `client.connect()` (TCP/TLS/autenticazione lato client). */
+    beforeConnect?: () => void | Promise<void>
+    /** Subito dopo `connect()` riuscito, prima del callback `work` (es. apertura casella). */
+    afterConnect?: () => void | Promise<void>
   }
 ): Promise<T> {
   const max = IMAP_CONNECT_MAX_ATTEMPTS
@@ -116,7 +120,9 @@ export async function withImapSession<T>(
     }
     const client = new ImapFlow(imapFlowOptionsFromCredentials(creds))
     try {
+      await opts?.beforeConnect?.()
       await client.connect()
+      await opts?.afterConnect?.()
       const out = await work(client)
       await safeImapLogout(client)
       return out

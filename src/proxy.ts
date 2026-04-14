@@ -15,9 +15,8 @@ const PUBLIC_PATHS = [
 
 const SEDE_LOCK_EXEMPT = ['/api/sede-lock']
 
-/** Lista sedi e pagine riservate al solo Admin Master. */
+/** Pagine riservate al solo Admin Master (non confondere con `/sedi` lista: vedi sotto). */
 function isMasterAdminOnlyPath(pathname: string): boolean {
-  if (pathname === '/sedi') return true
   if (pathname.startsWith('/impostazioni/fornitori')) return true
   return false
 }
@@ -34,7 +33,7 @@ function sedeDetailPathSedeId(pathname: string): string | null {
   return id || null
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
@@ -92,6 +91,17 @@ export async function middleware(request: NextRequest) {
 
   if (isMasterAdminOnlyPath(pathname)) {
     if (!isMasterAdmin) {
+      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const homeUrl = request.nextUrl.clone()
+      homeUrl.pathname = '/'
+      return NextResponse.redirect(homeUrl)
+    }
+  }
+
+  /** Lista `/sedi`: master (tutte) oppure admin_sede con sede assegnata (solo la propria, via API). */
+  if (pathname === '/sedi') {
+    const allowed = isMasterAdmin || (isAdminSede && !!profile?.sede_id)
+    if (!allowed) {
       if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const homeUrl = request.nextUrl.clone()
       homeUrl.pathname = '/'

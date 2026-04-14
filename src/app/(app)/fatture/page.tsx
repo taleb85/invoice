@@ -1,16 +1,26 @@
 import Link from 'next/link'
 import { openDocumentUrl } from '@/lib/open-document-url'
-import { createClient } from '@/utils/supabase/server'
+import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 
-async function getFatture() {
-  const supabase = await createClient()
+type FatturaListRow = {
+  id: string
+  data: string
+  file_url: string | null
+  bolla_id: string | null
+  fornitore_id: string | null
+  fornitore: { nome: string } | null
+}
+
+async function getFatture(): Promise<FatturaListRow[]> {
+  const { supabase } = await getRequestAuth()
   const { data } = await supabase
     .from('fatture')
-    .select('*, fornitore:fornitori(nome)')
+    .select('id, data, file_url, bolla_id, fornitore_id, fornitore:fornitori(nome)')
     .order('data', { ascending: false })
-  return data ?? []
+  /* Tipi Supabase sull’embed `fornitore` possono essere array in inference; a runtime è un oggetto. */
+  return (data ?? []) as unknown as FatturaListRow[]
 }
 
 export default async function FatturePage() {
@@ -53,24 +63,39 @@ export default async function FatturePage() {
           <>
             {/* Mobile: card list */}
             <div className="md:hidden divide-y divide-slate-800/80">
-              {fatture.map((f: any) => (
+              {fatture.map((f) => (
                 <div key={f.id} className="px-4 py-4 transition-colors hover:bg-slate-800/40">
-                  <Link href={`/fatture/${f.id}`} className="block">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <p className="font-semibold text-slate-100 truncate">{f.fornitore?.nome ?? '—'}</p>
-                      <p className="text-xs text-slate-400 shrink-0">{formatDate(f.data)}</p>
-                    </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {f.bolla_id && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-2 py-0.5 text-xs font-medium text-cyan-300">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-                          </svg>
-                          {t.fatture.openBill}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    {f.fornitore_id ? (
+                      <Link
+                        href={`/fornitori/${f.fornitore_id}`}
+                        className="truncate font-semibold text-cyan-400 transition-colors hover:text-cyan-300"
+                      >
+                        {f.fornitore?.nome ?? '—'}
+                      </Link>
+                    ) : (
+                      <p className="truncate font-semibold text-slate-100">{f.fornitore?.nome ?? '—'}</p>
+                    )}
+                    <Link
+                      href={`/fatture/${f.id}`}
+                      className="shrink-0 text-xs text-slate-400 transition-colors hover:text-cyan-300"
+                    >
+                      {formatDate(f.data)}
+                    </Link>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {f.bolla_id && (
+                      <Link
+                        href={`/bolle/${f.bolla_id}`}
+                        className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-2 py-0.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/25"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                        </svg>
+                        {t.fatture.openBill}
+                      </Link>
+                    )}
+                  </div>
                   {f.file_url && (
                     <a
                       href={openDocumentUrl({ fatturaId: f.id })}
@@ -97,12 +122,24 @@ export default async function FatturePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80">
-                {fatture.map((f: any) => (
+                {fatture.map((f) => (
                   <tr key={f.id} className="transition-colors hover:bg-slate-800/40">
                     <td className="px-6 py-4">
-                      <Link href={`/fatture/${f.id}`} className="font-medium text-cyan-400 hover:text-cyan-300">
-                        {f.fornitore?.nome ?? '—'}
-                      </Link>
+                      {f.fornitore_id ? (
+                        <Link
+                          href={`/fornitori/${f.fornitore_id}`}
+                          className="font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+                        >
+                          {f.fornitore?.nome ?? '—'}
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/fatture/${f.id}`}
+                          className="font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+                        >
+                          {f.fornitore?.nome ?? '—'}
+                        </Link>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-slate-400">{formatDate(f.data)}</td>
                     <td className="px-6 py-4">

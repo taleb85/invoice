@@ -1,13 +1,12 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
-import { createClient, getProfile } from '@/utils/supabase/server'
+import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import SollecitiButton from '@/components/SollecitiButton'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import DashboardHubQuickActions from '@/components/DashboardHubQuickActions'
 import NotificationBell from '@/components/NotificationBell'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
-import { getT, getLocale, getTimezone, getCurrency, formatDate as fmtDate } from '@/lib/locale-server'
+import { getT, getLocale, getTimezone, getCurrency, getCookieStore, formatDate as fmtDate } from '@/lib/locale-server'
 import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
   countFornitoriWithOverdueBolle,
@@ -23,7 +22,7 @@ import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies()
+  const cookieStore = await getCookieStore()
   const [t, locale, tz, profile, currency] = await Promise.all([
     getT(),
     getLocale(),
@@ -38,7 +37,7 @@ export default async function DashboardPage() {
   const dashboardAdminSedeUi =
     isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
 
-  const supabase = await createClient()
+  const { supabase } = await getRequestAuth()
   let adminViewSedeId: string | null = null
   let adminViewSedeNome: string | null = null
   if (isMasterAdmin && adminPick) {
@@ -63,14 +62,14 @@ export default async function DashboardPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-3">
             <div className="min-w-0 sm:flex-1 sm:flex-initial">
               <h1 className="text-xl font-bold text-slate-100 md:text-2xl">{t.dashboard.title}</h1>
-              <p className="mt-1 hidden text-sm text-slate-400 md:block">{t.sedi.subtitle}</p>
+              <p className="mt-1 hidden text-sm text-slate-100/90 md:block">{t.sedi.subtitleGlobalAdmin}</p>
             </div>
             <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3">
               <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
               <ScanEmailButton alwaysShowLabel />
               <Link
                 href="/log"
-                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-medium transition-colors ${
                   erroriRecenti > 0
                     ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
                     : 'bg-slate-800/90 text-slate-200 hover:bg-slate-800'
@@ -305,7 +304,7 @@ export default async function DashboardPage() {
               {t.dashboard.suggestedSupplierImport}
             </Link>
             <Link
-              href="/statements"
+              href="/statements/da-processare"
               className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium text-slate-400 underline-offset-2 hover:text-slate-200 hover:underline"
             >
               {t.statements.tabDocumenti} →

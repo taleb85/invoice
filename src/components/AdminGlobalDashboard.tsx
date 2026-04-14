@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Translations } from '@/lib/translations'
 import { getLocale as getCountryLocale } from '@/lib/localization'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
+import { dashboardManageSediLabel } from '@/lib/gestisci-sede-label'
 
 export type AdminGlobalSedeCard = {
   id: string
@@ -18,6 +19,7 @@ export function AdminGlobalDashboard({
   sediCards,
   globalTotals,
   erroriRecenti,
+  associatedSedeNome = '',
 }: {
   t: Translations
   sediCards: AdminGlobalSedeCard[]
@@ -28,7 +30,10 @@ export function AdminGlobalDashboard({
     totFatture: number
   }
   erroriRecenti: number
+  /** Nome sede sul profilo (o contesto) per etichetta «Gestisci …» */
+  associatedSedeNome?: string | null
 }) {
+  const manageSediText = dashboardManageSediLabel(t, associatedSedeNome ?? '')
   return (
     <div className="max-w-5xl p-4 md:p-8">
       <div className="mb-8">
@@ -66,7 +71,7 @@ export function AdminGlobalDashboard({
               href="/sedi"
               className="inline-flex min-h-[44px] items-center rounded-lg border border-cyan-500/25 bg-cyan-500/10 px-3 py-2 text-sm font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/15"
             >
-              {t.dashboard.manageSedi}
+              {manageSediText}
             </Link>
           </div>
         </div>
@@ -98,7 +103,7 @@ export function AdminGlobalDashboard({
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-semibold text-slate-100">{t.dashboard.sedeOverview}</h2>
         <Link href="/sedi" className="text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-          {t.dashboard.manageSedi}
+          {manageSediText}
         </Link>
       </div>
 
@@ -116,7 +121,7 @@ export function AdminGlobalDashboard({
             </svg>
             <p className="text-sm text-slate-400">{t.sedi.noSedi}</p>
             <Link href="/sedi" className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-              {t.dashboard.manageSedi}
+              {manageSediText}
             </Link>
           </div>
         </div>
@@ -124,7 +129,6 @@ export function AdminGlobalDashboard({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {sediCards.map((sede) => {
             const loc = getCountryLocale(sede.country_code)
-            const tzLabel = '' // optional: pass timezone from parent if needed
             const metaLine = [loc.flag, loc.name].filter(Boolean).join(' · ')
             const imapOk = !!(sede.imap_host?.trim() && sede.imap_user?.trim())
             const needsAttention = sede.bolleInAttesa > 0 || sede.documentiInCoda > 0

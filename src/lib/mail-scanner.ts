@@ -1,5 +1,6 @@
 import { simpleParser } from 'mailparser'
 import { withImapSession, type ImapCredentials } from '@/lib/imap-session'
+import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
 
 export interface EmailAttachment {
   filename: string
@@ -52,9 +53,6 @@ function emailBodyPlain(parsed: { text?: string; html?: string | false }): strin
   return plain || null
 }
 
-const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic']
-const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic']
-
 function globalImapCreds(): ImapCredentials {
   const port = Number(process.env.IMAP_PORT ?? 993)
   return {
@@ -68,18 +66,22 @@ function globalImapCreds(): ImapCredentials {
 }
 
 /**
- * Restituisce tutte le email non lette che contengono almeno un allegato
- * con tipo PDF, JPG o PNG.
+ * Restituisce tutte le email non lette che contengono almeno un allegato PDF
+ * (fattura / bolla / estratto) oppure corpo testo sufficiente per l’estrazione.
  */
 export type FetchUnseenImapHooks = {
   onRetry?: (info: { attempt: number; maxAttempts: number; error: unknown }) => void | Promise<void>
   beforeReconnect?: (info: { attempt: number; maxAttempts: number }) => void | Promise<void>
+  beforeConnect?: () => void | Promise<void>
+  afterConnect?: () => void | Promise<void>
   afterInboxOpen?: () => void | Promise<void>
 }
 
 export async function fetchUnseenEmails(
   hooks?: FetchUnseenImapHooks,
-  fiscalRange?: { start: Date; endExclusive: Date } | null
+  fiscalRange?: { start: Date; endExclusive: Date } | null,
+  /** Solo senza fiscalRange: limita la ricerca IMAP `SINCE` (email non lette). */
+  lookbackDays?: number | null
 ): Promise<ScannedEmail[]> {
   if (!process.env.IMAP_HOST || !process.env.IMAP_USER) {
     throw new Error('Variabili IMAP_HOST e IMAP_USER non configurate.')
@@ -93,10 +95,16 @@ export async function fetchUnseenEmails(
 
     try {
       await hooks?.afterInboxOpen?.()
+      const sinceLookback =
+        !fiscalRange && lookbackDays && lookbackDays > 0
+          ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+          : undefined
       const searchResult = await client.search(
         fiscalRange
           ? { seen: false, since: fiscalRange.start, before: fiscalRange.endExclusive }
-          : { seen: false },
+          : sinceLookback
+            ? { seen: false, since: sinceLookback }
+            : { seen: false },
         { uid: true }
       )
       const uids = Array.isArray(searchResult) ? searchResult : []
@@ -130,11 +138,7 @@ export async function fetchUnseenEmails(
         if (!fromAddr) continue
 
         const validAttachments: EmailAttachment[] = (parsed.attachments ?? [])
-          .filter((att) => {
-            const type = att.contentType?.toLowerCase() ?? ''
-            const ext = (att.filename ?? '').split('.').pop()?.toLowerCase() ?? ''
-            return ALLOWED_TYPES.includes(type) || ALLOWED_EXTENSIONS.includes(ext)
-          })
+          .filter((att) => isFiscalDocumentAttachment(att.contentType, att.filename))
           .map((att) => {
             const ext = (att.filename ?? '').split('.').pop()?.toLowerCase() ?? 'bin'
             return {
@@ -175,6 +179,8 @@ export async function fetchUnseenEmails(
     {
       onRetry: hooks?.onRetry,
       beforeReconnect: hooks?.beforeReconnect,
+      beforeConnect: hooks?.beforeConnect,
+      afterConnect: hooks?.afterConnect,
     }
   )
 }

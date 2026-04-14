@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 
 export async function GET() {
   const supabase = await createClient()
@@ -12,15 +13,25 @@ export async function GET() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  const master = isMasterAdminRole(profile?.role)
+  const sedeAdmin = isAdminSedeRole(profile?.role)
+  if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
+  if (sedeAdmin && !profile?.sede_id?.trim()) {
+    return NextResponse.json({ error: 'Profilo sede non configurato.' }, { status: 403 })
+  }
 
-  const scopedSedeId = profile.sede_id?.trim() || null
-  /** `global` = admin master senza sede; `sede` = admin assegnato a una filiale → solo quella sede, niente vista multi-sede/utenti orfani. */
+  const scopedSedeId = sedeAdmin
+    ? profile!.sede_id!.trim()
+    : (profile?.sede_id?.trim() || null)
+  /** `global` = admin master senza sede; `sede` = vista limitata a una filiale. */
   const adminListScope: 'global' | 'sede' = scopedSedeId ? 'sede' : 'global'
 
-  const { data: sediRaw, error } = await supabase
+  /** RLS non espone l’elenco profili della sede agli admin_sede: usiamo service role dopo aver verificato il chiamante. */
+  const svc = createServiceClient()
+
+  const { data: sediRaw, error } = await svc
     .from('sedi')
     .select('*')
     .order('nome')
@@ -35,10 +46,14 @@ export async function GET() {
     sedi.map(async (sede) => {
       const [{ count: fornitori_count }, { count: bolle_count }, { count: fatture_count }, { count: users_count }] =
         await Promise.all([
-          supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
-          supabase.from('bolle').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
-          supabase.from('fatture').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
+          svc.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
+          svc.from('bolle').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
+          svc.from('fatture').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
+          svc
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('sede_id', sede.id)
+            .neq('role', 'admin'),
         ])
       return {
         ...sede,
@@ -50,15 +65,16 @@ export async function GET() {
     })
   )
 
-  const { data: profilesRaw } = await supabase
+  const { data: profilesRaw } = await svc
     .from('profiles')
     .select('*, sedi(id, nome, created_at)')
     .order('email')
 
-  const profiles =
-    scopedSedeId
-      ? (profilesRaw ?? []).filter((p) => p.sede_id === scopedSedeId)
-      : (profilesRaw ?? [])
+  /** Il ruolo `admin` è solo l’accesso portale (email/password); non è un operatore di sede e non va elencato qui. */
+  const profiles = (scopedSedeId
+    ? (profilesRaw ?? []).filter((p) => p.sede_id === scopedSedeId)
+    : (profilesRaw ?? [])
+  ).filter((p) => p.role !== 'admin')
 
   return NextResponse.json({ sedi: sediWithCounts, profiles, adminListScope })
 }

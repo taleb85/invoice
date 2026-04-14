@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import type { Fornitore } from '@/types'
 import OperatorPinStepUpModal from '@/components/OperatorPinStepUpModal'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { effectiveIsFornitoreGridAdmin } from '@/lib/effective-operator-ui'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
@@ -31,7 +32,7 @@ export default function FornitoriCardsGrid({
   const supabase = createClient()
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
-  const isAdmin = !!(me?.is_admin || me?.is_admin_sede)
+  const isAdmin = effectiveIsFornitoreGridAdmin(me, activeOperator)
   const net = useNetworkStatusOptional()
 
   const [rows, setRows] = useState<Fornitore[]>(fornitori)
@@ -120,7 +121,7 @@ export default function FornitoriCardsGrid({
         setGate({ action: 'unlock', id, nome })
         return
       }
-      // Scheda: operatore dal corpo card va diretto; da footer se sbloccato idem.
+      // Scheda: corpo card → dettaglio senza PIN (anche admin). PIN solo dal footer (unlock).
       if (action === 'detail' && !isAdmin) {
         window.location.assign(`/fornitori/${id}`)
         return
@@ -131,9 +132,13 @@ export default function FornitoriCardsGrid({
         else if (action === 'delete') void runDelete(id, nome)
         return
       }
+      if (action === 'detail' && isAdmin) {
+        window.location.assign(`/fornitori/${id}`)
+        return
+      }
       setGate({ action, id, nome })
     },
-    [isAdmin, router, runDelete, unlockedIds],
+    [isAdmin, runDelete, unlockedIds],
   )
 
   const onVerified = useCallback(() => {
@@ -147,7 +152,7 @@ export default function FornitoriCardsGrid({
     if (g.action === 'detail') window.location.assign(`/fornitori/${g.id}`)
     else if (g.action === 'edit') window.location.assign(`/fornitori/${g.id}/edit`)
     else if (g.action === 'delete') void runDelete(g.id, g.nome)
-  }, [router, runDelete])
+  }, [runDelete])
 
   const detailCls =
     'text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors'
@@ -215,13 +220,13 @@ export default function FornitoriCardsGrid({
           return (
             <div
               key={f.id}
-              className="app-card group overflow-hidden transition-all hover:border-cyan-500/35"
+              className="app-card group flex h-full flex-col overflow-hidden transition-all hover:border-cyan-500/35"
             >
-              <div className="app-card-bar" aria-hidden />
+              <div className="app-card-bar shrink-0" aria-hidden />
               {isAdmin ? (
                 <button
                   type="button"
-                  className="block w-full p-5 pb-4 text-left"
+                  className="flex w-full min-h-0 flex-1 flex-col p-5 pb-4 text-left"
                   onClick={() => request('detail', f.id, f.nome)}
                 >
                   <div className="flex items-center gap-3 mb-4">
@@ -245,14 +250,16 @@ export default function FornitoriCardsGrid({
                       {f.email && <p className="text-xs text-slate-400 truncate mt-0.5">{f.email}</p>}
                     </div>
                   </div>
-                  {f.piva && (
-                    <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-800/80 px-2.5 py-1 font-mono text-[10px] text-slate-400">
-                      {t.fornitori.pivaLabel} {f.piva}
-                    </p>
-                  )}
+                  <div className="mt-auto flex min-h-[2.75rem] items-end">
+                    {f.piva ? (
+                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-800/80 px-2.5 py-1 font-mono text-[10px] text-slate-400">
+                        {t.fornitori.pivaLabel} {f.piva}
+                      </p>
+                    ) : null}
+                  </div>
                 </button>
               ) : (
-                <Link href={`/fornitori/${f.id}`} className="block p-5 pb-4">
+                <Link href={`/fornitori/${f.id}`} className="flex min-h-0 flex-1 flex-col p-5 pb-4">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
                       {initials}
@@ -274,15 +281,17 @@ export default function FornitoriCardsGrid({
                       {f.email && <p className="text-xs text-slate-400 truncate mt-0.5">{f.email}</p>}
                     </div>
                   </div>
-                  {f.piva && (
-                    <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-800/80 px-2.5 py-1 font-mono text-[10px] text-slate-400">
-                      {t.fornitori.pivaLabel} {f.piva}
-                    </p>
-                  )}
+                  <div className="mt-auto flex min-h-[2.75rem] items-end">
+                    {f.piva ? (
+                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-800/80 px-2.5 py-1 font-mono text-[10px] text-slate-400">
+                        {t.fornitori.pivaLabel} {f.piva}
+                      </p>
+                    ) : null}
+                  </div>
                 </Link>
               )}
 
-              <div className="flex items-center justify-center border-t border-slate-700/60 bg-slate-950/40 px-4 py-2.5">
+              <div className="mt-auto flex shrink-0 items-center justify-center border-t border-slate-700/60 bg-slate-950/40 px-4 py-2.5">
                 {unlockedIds.has(f.id) ? (
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>

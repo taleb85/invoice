@@ -10,6 +10,7 @@ export async function GET() {
   const me = r.me
   return NextResponse.json({
     user: me.user,
+    full_name: me.full_name,
     role: me.role,
     sede_id: me.sede_id,
     sede_nome: me.sede_nome,

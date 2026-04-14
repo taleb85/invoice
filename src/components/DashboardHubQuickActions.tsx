@@ -5,6 +5,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
+import { useActiveOperator } from '@/lib/active-operator-context'
+import { effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
 import ManualDeliveryMobilePanel from '@/components/DashboardManualDeliveryMobile'
 
@@ -14,6 +16,7 @@ export default function DashboardHubQuickActions() {
   const normalized = normalizeAppPath(pathname ?? '')
   const onDash = normalized === '/' || normalized === ''
   const { me, loading } = useMe()
+  const { activeOperator } = useActiveOperator()
   const t = useT()
   const [receiptOpen, setReceiptOpen] = useState(false)
   const receiptPanelRef = useRef<HTMLDivElement>(null)
@@ -37,7 +40,7 @@ export default function DashboardHubQuickActions() {
 
   const closeReceipt = useCallback(() => setReceiptOpen(false), [])
 
-  const isAdminUser = !!me?.is_admin
+  const isAdminUser = effectiveIsMasterAdminPlane(me, activeOperator)
 
   /** Solo operatore: tile «Ricevuto» (Scanner è il CTA in cima in `page.tsx`). */
   if (!onDash || (loading && !me) || isAdminUser) return null

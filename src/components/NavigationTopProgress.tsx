@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-/** Anchor: bordo inferiore della striscia desktop in `AppShellMain` (Online / attività). */
+/** Host: strip desktop sticky in `AppShellMain` (tratto sup./inf. senza lati verticali). */
 export const APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID = 'app-desktop-header-nav-progress'
 
 const BUSY_CLEAR_MS = 14_000
@@ -24,7 +24,8 @@ function isModifiedClick(e: MouseEvent): boolean {
  * poi completa al 100% e scompare.
  *
  * Su **mobile** (`< md`): posizione da `placement` (default: bordo inferiore viewport).
- * Su **desktop** (`md+`): sempre sul bordo inferiore della striscia sticky con “Online”.
+ * Su **desktop** (`md+`): tratto solo su **bordo superiore** (↦) e **inferiore** (↤), senza lati verticali;
+ * il `progress` è lo stesso della barra mobile (click → cambio rotta, con cap simil-NProgress).
  */
 export type NavigationProgressPlacement = 'viewportTop' | 'belowMobileTopbar' | 'viewportBottom'
 
@@ -39,9 +40,10 @@ export default function NavigationTopProgress({
   desktopHost,
 }: {
   placement?: NavigationProgressPlacement
-  /** Contenitore nel DOM per la barra desktop (ref sulla strip in AppShellMain). */
+  /** Desktop (`AppShellMain`): host = riga intera logo + attività / rete (bordo progress su tutta la barra). */
   desktopHost: HTMLElement | null
 }) {
+  const perimeterGradId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const pathname = usePathname() ?? ''
   const searchParams = useSearchParams()
   const routeKey = `${pathname}?${searchParams?.toString() ?? ''}`
@@ -93,7 +95,7 @@ export default function NavigationTopProgress({
     }
   }
 
-  const finishBar = () => {
+  const finishBar = useCallback(() => {
     if (!isLoadingRef.current) return
     isLoadingRef.current = false
     routeKeyAtClickRef.current = null
@@ -109,7 +111,7 @@ export default function NavigationTopProgress({
       setVisible(false)
       window.setTimeout(() => setProgress(0), 220)
     }, FILL_DONE_MS)
-  }
+  }, [])
 
   useEffect(() => {
     if (onLoginRoute) return
@@ -138,7 +140,7 @@ export default function NavigationTopProgress({
     return () => {
       clearSettleTimer()
     }
-  }, [routeKey, onLoginRoute])
+  }, [routeKey, onLoginRoute, finishBar])
 
   useEffect(() => {
     if (onLoginRoute) return
@@ -205,9 +207,9 @@ export default function NavigationTopProgress({
   const mobilePlaceCls = placementClassName[placement]
   const visCls = visible ? ' navigation-top-progress--visible' : ''
 
-  const track = (extra: string) => (
+  const mobileTrack = (
     <div
-      className={`navigation-top-progress${extra}${visCls}`}
+      className={`navigation-top-progress${mobilePlaceCls ? ` ${mobilePlaceCls}` : ''} md:hidden${visCls}`}
       aria-hidden
       role="presentation"
     >
@@ -218,15 +220,47 @@ export default function NavigationTopProgress({
     </div>
   )
 
+  const inset = 1
+  const dashOffset = 1 - progress
+  /** Solo orizzontali: sopra L→R, sotto R→L; `M` salta i lati verticali. */
+  const desktopPerimeterD = `M ${inset} ${inset} L ${100 - inset} ${inset} M ${100 - inset} ${100 - inset} L ${inset} ${100 - inset}`
+
+  const desktopTrack = (
+    <div
+      className={`navigation-top-progress--desktop-perimeter${visCls}`}
+      aria-hidden
+      role="presentation"
+    >
+      <svg
+        className="navigation-top-progress__perimeter-svg"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id={perimeterGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#06b6d4" />
+            <stop offset="100%" stopColor="#34d399" />
+          </linearGradient>
+        </defs>
+        <path
+          d={desktopPerimeterD}
+          fill="none"
+          stroke={`url(#${perimeterGradId})`}
+          strokeWidth={2}
+          vectorEffect="nonScalingStroke"
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="butt"
+        />
+      </svg>
+    </div>
+  )
+
   return (
     <>
-      {createPortal(
-        track(`${mobilePlaceCls ? ` ${mobilePlaceCls}` : ''} md:hidden`),
-        document.body,
-      )}
-      {desktopHost ?
-        createPortal(track(' navigation-top-progress--desktop-header'), desktopHost)
-      : null}
+      {createPortal(mobileTrack, document.body)}
+      {desktopHost ? createPortal(desktopTrack, desktopHost) : null}
     </>
   )
 }

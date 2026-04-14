@@ -59,7 +59,7 @@ export default function DashboardOperatorKpiGrid({
   let stmtSubClass: string
   if (k.statementsTotal === 0) {
     stmtSub = t.dashboard.kpiStatementNone
-    stmtSubClass = 'text-slate-400'
+    stmtSubClass = 'text-slate-200'
   } else if (k.statementsWithIssues === 0) {
     stmtSub = t.dashboard.kpiStatementAllOk
     stmtSubClass = 'text-emerald-400'
@@ -70,30 +70,11 @@ export default function DashboardOperatorKpiGrid({
 
   const items: KpiItem[] = [
     {
-      href: '/bolle',
-      label: t.fornitori.kpiBolleTotal,
-      value: k.bolleTotal,
-      sub: `${k.bolleInAttesa} ${t.fornitori.subAperte}`,
-      subClass: k.bolleInAttesa > 0 ? 'text-amber-400' : 'text-slate-400',
-      borderClass: 'border-cyan-500/25',
-      glowRgb: '6,182,212',
-      icon: (
-        <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-          />
-        </svg>
-      ),
-    },
-    {
       href: '/fornitori',
       label: t.nav.fornitori,
       value: k.fornitoriCount,
       sub: t.dashboard.kpiFornitoriSub,
-      subClass: 'text-slate-400',
+      subClass: 'text-slate-200',
       borderClass: 'border-fuchsia-500/25',
       glowRgb: '217,70,239',
       icon: (
@@ -108,11 +89,44 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
+      href: '/statements/da-processare',
+      label: t.statements.tabDocumenti,
+      value: k.documentiPending,
+      sub: t.dashboard.kpiDaProcessareSub,
+      subClass: k.documentiPending > 0 ? 'text-amber-400' : 'text-slate-200',
+      borderClass: 'border-amber-500/25',
+      glowRgb: '245,158,11',
+      icon: (
+        <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
+      href: '/bolle',
+      label: t.fornitori.kpiBolleTotal,
+      value: k.bolleTotal,
+      sub: `${k.bolleInAttesa} ${t.fornitori.subAperte}`,
+      subClass: k.bolleInAttesa > 0 ? 'text-amber-400' : 'text-slate-200',
+      borderClass: 'border-cyan-500/25',
+      glowRgb: '6,182,212',
+      icon: (
+        <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+      ),
+    },
+    {
       href: '/fatture',
       label: t.fornitori.kpiFatture,
       value: k.fattureCount,
       sub: t.fornitori.subConfermate,
-      subClass: 'text-slate-400',
+      subClass: 'text-slate-200',
       borderClass: 'border-emerald-500/25',
       glowRgb: '16,185,129',
       icon: (
@@ -127,25 +141,11 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/archivio',
-      label: t.fornitori.kpiPending,
-      value: k.documentiDaAssociare,
-      sub: t.fornitori.subDaAbbinare,
-      subClass: k.documentiDaAssociare > 0 ? 'text-amber-400' : 'text-slate-400',
-      borderClass: 'border-amber-500/25',
-      glowRgb: '245,158,11',
-      icon: (
-        <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      href: '/fatture',
+      href: '/fatture/riepilogo',
       label: t.common.total,
       value: formatCurrency(k.totaleImporto, currency, locale),
       sub: `${k.fattureCount} ${t.nav.fatture.toLowerCase()}`,
-      subClass: 'text-slate-400',
+      subClass: 'text-slate-200',
       borderClass: 'border-violet-500/25',
       glowRgb: '168,85,247',
       icon: (
@@ -160,11 +160,11 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/fornitori',
+      href: '/listino',
       label: t.fornitori.tabListino,
       value: k.listinoRows,
       sub: t.dashboard.kpiPriceListSub,
-      subClass: k.listinoRows > 0 ? 'text-slate-400' : 'text-slate-500',
+      subClass: k.listinoRows > 0 ? 'text-slate-200' : 'text-slate-300',
       borderClass: 'border-teal-500/25',
       glowRgb: '20,184,166',
       icon: (
@@ -174,7 +174,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/statements',
+      href: '/statements/verifica',
       label: t.statements.tabVerifica,
       value: k.statementsWithIssues,
       sub: stmtSub,
@@ -208,14 +208,14 @@ export default function DashboardOperatorKpiGrid({
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="flex flex-1 flex-col p-4 sm:p-5">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-400 sm:text-xs">{item.label}</p>
+              <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-200 sm:text-xs">{item.label}</p>
               <span className="shrink-0">{item.icon}</span>
             </div>
             <p className="break-words text-2xl font-bold tabular-nums text-slate-100 sm:text-3xl">{item.value}</p>
             <div className="mt-1 flex items-end justify-between gap-2">
               <p className={`min-w-0 text-[10px] leading-snug sm:text-xs ${item.subClass}`}>{item.sub}</p>
               <svg
-                className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-slate-400"
+                className="h-3.5 w-3.5 shrink-0 text-slate-200 transition-colors group-hover:text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

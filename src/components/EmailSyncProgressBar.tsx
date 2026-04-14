@@ -2,67 +2,11 @@
 
 import { usePathname } from 'next/navigation'
 import { useT } from '@/lib/use-t'
-import type { EmailScanPhase } from '@/lib/email-scan-stream'
+import { emailSyncProgressPhaseTitle } from '@/lib/email-sync-ui-phase-label'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
+import { buildEmailSyncMailStatLines } from '@/lib/email-sync-stat-lines'
 
-function phaseLabel(phase: EmailScanPhase | null, t: ReturnType<typeof useT>): string {
-  switch (phase) {
-    case 'queued':
-      return t.dashboard.emailSyncQueued
-    case 'connect':
-      return t.dashboard.emailSyncPhaseConnect
-    case 'search':
-      return t.dashboard.emailSyncPhaseSearch
-    case 'process':
-      return t.dashboard.emailSyncPhaseProcess
-    case 'persist':
-      return t.dashboard.emailSyncPhasePersist
-    case 'complete':
-      return t.dashboard.emailSyncPhaseDone
-    default:
-      return t.dashboard.syncing
-  }
-}
-
-function buildMailStatLines(
-  t: ReturnType<typeof useT>,
-  found: number,
-  processed: number,
-  imported: number,
-  ignored: number,
-  drafts: number,
-): { text: string; key: string }[] {
-  const lines: { text: string; key: string }[] = [
-    {
-      key: 'found',
-      text: t.dashboard.emailSyncStatFoundLine.replace(/\{found\}/g, String(found)),
-    },
-    {
-      key: 'imported',
-      text: t.dashboard.emailSyncStatImportedLine.replace(/\{imported\}/g, String(imported)),
-    },
-    {
-      key: 'processed',
-      text: t.dashboard.emailSyncStatProcessedLine.replace(/\{processed\}/g, String(processed)),
-    },
-  ]
-  if (ignored > 0) {
-    lines.push({
-      key: 'ignored',
-      text: t.dashboard.emailSyncStatIgnoredLine.replace(/\{ignored\}/g, String(ignored)),
-    })
-  }
-  if (drafts > 0) {
-    lines.push({
-      key: 'drafts',
-      text: t.dashboard.emailSyncStatDraftsLine.replace(/\{drafts\}/g, String(drafts)),
-    })
-  }
-  return lines
-}
-
-const STALL_RECONNECT_UI_MAX = 3
 
 function AttemptProgressTrack(props: {
   current: number
@@ -120,18 +64,21 @@ function mailLineClass(
   if (variant === 'completionWarn') {
     if (key === 'imported') return `${base} text-amber-200/95`
     if (key === 'processed') return `${base} text-amber-100/95`
+    if (key === 'already') return `${base} text-amber-200/90`
     if (key === 'ignored' || key === 'drafts') return `${base} text-amber-200/85`
     return `${base} text-amber-100/95`
   }
   if (variant === 'completionOk') {
     if (key === 'imported') return `${base} text-emerald-200/95`
     if (key === 'processed') return `${base} text-cyan-100/95`
+    if (key === 'already') return `${base} text-slate-300`
     if (key === 'ignored' || key === 'drafts') return `${base} text-slate-300`
     return `${base} text-cyan-100/95`
   }
   // live cyan box
   if (key === 'imported') return `${base} text-emerald-200/90 [text-shadow:0_0_20px_rgba(52,211,153,0.1)]`
   if (key === 'processed') return `${base} text-cyan-50/95 [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
+  if (key === 'already') return `${base} text-slate-400`
   if (key === 'ignored' || key === 'drafts') return `${base} text-slate-400`
   return `${base} text-cyan-100/95 [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
 }
@@ -147,15 +94,21 @@ export default function EmailSyncProgressBar() {
   const onBolleNewMobile = normalizeAppPath(pathname) === '/bolle/new'
   if (!ctx) return null
 
-  const { progress } = ctx
+  const { progress, cancelEmailSync, dismissEmailSyncCompletion } = ctx
   const visible =
     progress.active || progress.stalled || progress.toast !== null || !!progress.connectionWarning
 
   if (!visible) return null
 
   const connWarn = progress.connectionWarning
-  const label = connWarn ?? phaseLabel(progress.phase, t)
-  const pct = Math.min(100, Math.max(0, progress.percent))
+  const label =
+    connWarn ??
+    emailSyncProgressPhaseTitle(progress.phase, progress.connectStep, t.dashboard)
+  const rawPct = progress.percent
+  const pct = Math.min(
+    100,
+    Math.max(0, typeof rawPct === 'number' && Number.isFinite(rawPct) ? rawPct : 0),
+  )
   const att = progress.attachmentsTotal
   const attDone = progress.attachmentsProcessed
   const mf = progress.mailsFound
@@ -163,6 +116,7 @@ export default function EmailSyncProgressBar() {
   const ric = progress.ricevuti
   const ign = progress.ignorate
   const boz = progress.bozzeCreate
+  const skipDup = progress.skippedAlreadyCompleted
   const supplierFilterLine =
     progress.mailboxContext?.supplierFilter?.trim() ?
       t.dashboard.emailSyncSupplierFilterLine.replace(
@@ -175,15 +129,12 @@ export default function EmailSyncProgressBar() {
     ? t.dashboard.emailSyncStatUnitsLine.replace(/\{done\}/g, String(attDone)).replace(/\{total\}/g, String(att))
     : null
 
-  const mailLines = buildMailStatLines(t, mf, mp, ric, ign, boz)
+  const mailLines = buildEmailSyncMailStatLines(t.dashboard, mf, mp, ric, ign, boz, skipDup)
   const statsTitle = [...mailLines.map((l) => l.text), unitStatsLine].filter(Boolean).join(' · ')
 
   const barError = !!connWarn
   const stalledActive = progress.stalled && progress.active && !barError
   const imapRetry = progress.imapRetry
-  const stallAttemptDisplay = stalledActive
-    ? Math.min(STALL_RECONNECT_UI_MAX, Math.max(1, progress.stalledWave || 1))
-    : 0
 
   const showCompletionSummary =
     !progress.active &&
@@ -201,6 +152,7 @@ export default function EmailSyncProgressBar() {
     ric > 0 ||
     ign > 0 ||
     boz > 0 ||
+    skipDup > 0 ||
     showUnitStats
 
   const completionUnitLine = t.dashboard.emailSyncStatUnitsLine
@@ -209,7 +161,7 @@ export default function EmailSyncProgressBar() {
 
   return (
     <div
-      className={`sticky top-14 z-[35] border-b px-4 py-3 backdrop-blur-md md:top-0 md:z-[25] md:px-8 ${
+      className={`sticky top-14 z-[35] overflow-x-visible border-b px-4 py-3 backdrop-blur-md md:top-0 md:z-[25] md:px-8 ${
         onBolleNewMobile ? 'max-md:mt-14' : ''
       } ${
         barError
@@ -226,7 +178,7 @@ export default function EmailSyncProgressBar() {
       aria-live="polite"
       aria-busy={progress.active}
     >
-      <div className="flex w-full min-w-0 flex-col gap-2.5">
+      <div className="flex w-full min-w-0 flex-col gap-2.5 overflow-x-visible">
         <div className="flex min-w-0 items-start justify-between gap-3 text-sm sm:items-center sm:text-base">
           <span
             className={`min-w-0 flex-1 font-semibold leading-snug ${
@@ -243,19 +195,53 @@ export default function EmailSyncProgressBar() {
           >
             {label}
           </span>
-          <span
-            className={`shrink-0 tabular-nums text-base font-semibold sm:text-lg ${
-              completionWarn
-                ? 'text-amber-200'
-                : showCompletionSummary
-                  ? 'text-emerald-200'
-                  : stalledActive
-                    ? 'text-slate-200'
-                    : 'text-slate-300'
-            }`}
-          >
-            {Math.round(pct)}%
-          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            {showCompletionSummary ? (
+              <button
+                type="button"
+                onClick={() => dismissEmailSyncCompletion()}
+                className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors sm:text-sm ${
+                  completionWarn
+                    ? 'border-amber-400/50 text-amber-100 hover:bg-amber-500/15'
+                    : 'border-emerald-400/50 text-emerald-100 hover:bg-emerald-500/15'
+                }`}
+                aria-label={t.dashboard.emailSyncDismissAria}
+              >
+                {t.dashboard.emailSyncDismiss}
+              </button>
+            ) : null}
+            {progress.active ? (
+              <button
+                type="button"
+                onClick={() => cancelEmailSync()}
+                className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors sm:text-sm ${
+                  barError
+                    ? 'border-red-400/50 text-red-100 hover:bg-red-500/15'
+                    : stalledActive
+                      ? 'border-amber-400/45 text-amber-100 hover:bg-amber-500/15'
+                      : 'border-cyan-400/45 text-cyan-100 hover:bg-cyan-500/15'
+                }`}
+                aria-label={t.dashboard.emailSyncStopAria}
+              >
+                {t.dashboard.emailSyncStop}
+              </button>
+            ) : null}
+            <span
+              className={`tabular-nums text-base font-semibold sm:text-lg ${
+                barError
+                  ? 'text-red-100 [text-shadow:0_0_12px_rgba(248,113,113,0.6),0_0_22px_rgba(239,68,68,0.28)]'
+                  : completionWarn
+                    ? 'text-amber-100 [text-shadow:0_0_12px_rgba(253,230,138,0.55),0_0_22px_rgba(245,158,11,0.32)]'
+                    : showCompletionSummary
+                      ? 'text-emerald-100 [text-shadow:0_0_12px_rgba(110,231,183,0.55),0_0_22px_rgba(16,185,129,0.32)]'
+                      : stalledActive
+                        ? 'text-amber-100 [text-shadow:0_0_12px_rgba(253,230,138,0.45),0_0_20px_rgba(245,158,11,0.22)]'
+                        : 'text-cyan-50 [text-shadow:0_0_12px_rgba(103,232,249,0.7),0_0_24px_rgba(6,182,212,0.35)]'
+              }`}
+            >
+              {Math.round(pct)}%
+            </span>
+          </div>
         </div>
 
         {barError && imapRetry ? (
@@ -286,22 +272,13 @@ export default function EmailSyncProgressBar() {
                   </svg>
                 </span>
               </div>
-              <div className="min-w-0 flex-1 space-y-3">
+              <div className="min-w-0 flex-1 space-y-2">
                 <p className="text-pretty text-sm font-medium leading-relaxed text-amber-50 sm:text-[0.9375rem]">
                   {t.dashboard.emailSyncStalled}
                 </p>
-                <div className="flex flex-col gap-2 border-t border-amber-500/20 pt-3">
-                  <p className="text-xs font-medium leading-snug text-amber-200/95 sm:text-sm">
-                    {t.dashboard.emailSyncStalledReconnect
-                      .replace(/\{current\}/g, String(stallAttemptDisplay))
-                      .replace(/\{max\}/g, String(STALL_RECONNECT_UI_MAX))}
-                  </p>
-                  <AttemptProgressTrack
-                    current={stallAttemptDisplay}
-                    max={STALL_RECONNECT_UI_MAX}
-                    variant="amber"
-                  />
-                </div>
+                <p className="text-pretty text-xs leading-snug text-amber-200/85 sm:text-sm">
+                  {t.dashboard.emailSyncStalledHint}
+                </p>
               </div>
             </div>
           </div>
@@ -425,28 +402,30 @@ export default function EmailSyncProgressBar() {
           <>
             {showLiveStatsPanel && (
               <div
-                className="rounded-lg border border-cyan-500/25 bg-gradient-to-br from-cyan-950/35 via-slate-900/40 to-slate-950/50 px-3 py-2.5 shadow-inner shadow-cyan-950/20 sm:px-4"
+                className="relative overflow-visible rounded-lg border border-cyan-500/25 bg-gradient-to-br from-cyan-950/35 via-slate-900/40 to-slate-950/50 shadow-inner shadow-cyan-950/20"
                 title={statsTitle || t.dashboard.emailSyncCountsHint}
               >
-                {supplierFilterLine ? (
-                  <p className="text-xs font-medium text-cyan-200/90 sm:text-sm">{supplierFilterLine}</p>
-                ) : null}
-                <ul
-                  className={`list-none space-y-2 text-xs leading-snug sm:text-sm ${
-                    supplierFilterLine ? 'mt-2 border-t border-cyan-500/20 pt-2' : ''
-                  }`}
-                >
-                  {mailLines.map(({ key, text }) => (
-                    <li key={key} className={mailLineClass(key, 'live')}>
-                      {text}
-                    </li>
-                  ))}
-                  {unitStatsLine ? (
-                    <li className="text-pretty font-medium text-emerald-200/90 [text-shadow:0_0_20px_rgba(52,211,153,0.1)]">
-                      {unitStatsLine}
-                    </li>
+                <div className="min-w-0 px-3 py-3 sm:px-4">
+                  {supplierFilterLine ? (
+                    <p className="text-xs font-medium text-cyan-200/90 sm:text-sm">{supplierFilterLine}</p>
                   ) : null}
-                </ul>
+                  <ul
+                    className={`list-none space-y-2 text-xs leading-snug sm:text-sm ${
+                      supplierFilterLine ? 'mt-2 border-t border-cyan-500/20 pt-2' : ''
+                    }`}
+                  >
+                    {mailLines.map(({ key, text }) => (
+                      <li key={key} className={mailLineClass(key, 'live')}>
+                        {text}
+                      </li>
+                    ))}
+                    {unitStatsLine ? (
+                      <li className="text-pretty font-medium text-emerald-200/90 [text-shadow:0_0_20px_rgba(52,211,153,0.1)]">
+                        {unitStatsLine}
+                      </li>
+                    ) : null}
+                  </ul>
+                </div>
               </div>
             )}
             {progress.toast && (

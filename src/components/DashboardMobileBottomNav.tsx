@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
 import {
   fornitoreIdFromProfilePath,
   isFornitoreProfileRoute,
@@ -33,9 +34,11 @@ const BOTTOM_NAV_ARIA_FORNITORE = 'Navigazione fornitore'
 
 function BottomNavOperatorRow() {
   const t = useT()
+  const { me } = useMe()
   const { activeOperator, openSwitchModal } = useActiveOperator()
-  const name = activeOperator?.full_name?.trim() || t.ui.noOperator
-  const initial = name !== t.ui.noOperator ? name.charAt(0).toUpperCase() : '?'
+  const { displayName: name, avatarLetter: initial } = resolvedOperatorDockDisplay(me, activeOperator, t.ui.noOperator)
+  const aria =
+    name !== t.ui.noOperator ? `${t.ui.changeOperator}: ${name}` : t.ui.selectOperator
 
   return (
     <div className="w-full shrink-0 border-b border-white/10 pb-2">
@@ -43,9 +46,7 @@ function BottomNavOperatorRow() {
         type="button"
         onClick={() => openSwitchModal()}
         className="flex w-full min-h-[44px] touch-manipulation items-center gap-2 rounded-xl border border-cyan-500/35 bg-slate-800/45 px-2 py-1.5 text-left transition-all active:scale-[0.99] hover:border-cyan-400/55 hover:bg-slate-800/75"
-        aria-label={
-          activeOperator ? `${t.ui.changeOperator}: ${activeOperator.full_name}` : t.ui.selectOperator
-        }
+        aria-label={aria}
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-bold text-cyan-200">
           {initial}
@@ -67,9 +68,11 @@ function BottomNavOperatorRow() {
 /** Voce hub operatore: stessa griglia delle altre icone, al posto del link Rekki. */
 function OperatorHubNavItem({ itemCls }: { itemCls: (active: boolean) => string }) {
   const t = useT()
+  const { me } = useMe()
   const { activeOperator, openSwitchModal } = useActiveOperator()
-  const name = activeOperator?.full_name?.trim() || t.ui.noOperator
-  const initial = name !== t.ui.noOperator ? name.charAt(0).toUpperCase() : '?'
+  const { displayName: name, avatarLetter: initial } = resolvedOperatorDockDisplay(me, activeOperator, t.ui.noOperator)
+  const aria =
+    name !== t.ui.noOperator ? `${t.ui.changeOperator}: ${name}` : t.ui.selectOperator
   const short =
     name === t.ui.noOperator
       ? t.ui.changeOperatorShort
@@ -80,9 +83,7 @@ function OperatorHubNavItem({ itemCls }: { itemCls: (active: boolean) => string 
       type="button"
       onClick={() => openSwitchModal()}
       className={itemCls(false)}
-      aria-label={
-        activeOperator ? `${t.ui.changeOperator}: ${activeOperator.full_name}` : t.ui.selectOperator
-      }
+      aria-label={aria}
     >
       <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-[9px] font-bold text-cyan-200 sm:h-6 sm:w-6 sm:text-[10px]">
         {initial}
@@ -101,12 +102,15 @@ function FornitoreProfileBottomNav({
 }) {
   const router = useRouter()
   const t = useT()
+  const { me } = useMe()
+  const { activeOperator } = useActiveOperator()
+  const masterAdminNoOperator = Boolean(me?.is_admin && !activeOperator)
   const fid = fornitoreIdFromProfilePath(normalized)
   const nuovaBollaHref = fid ? `/bolle/new?fornitore_id=${encodeURIComponent(fid)}` : '/bolle/new'
 
   return (
     <nav className={navClsFornitore} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
-      <BottomNavOperatorRow />
+      {!masterAdminNoOperator && <BottomNavOperatorRow />}
       <div className={fornitoreIconsRow}>
         <button type="button" onClick={() => router.back()} className={itemCls(false)}>
           <ArrowLeft className="h-6 w-6 shrink-0" aria-hidden />
@@ -176,7 +180,6 @@ export default function DashboardMobileBottomNav() {
 
   const adminHubNav = () => (
     <nav className={navClsHub} aria-label={BOTTOM_NAV_ARIA_ADMIN}>
-      <BottomNavOperatorRow />
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
           <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />

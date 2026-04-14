@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev --turbo",
+    "dev:webpack": "NODE_OPTIONS='--max-old-space-size=8192' next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,7 +14,8 @@
     "deploy:debug": "npm run build && bash scripts/vercel-deploy-nogit.sh --debug",
     "vercel:prod": "bash scripts/vercel-deploy-nogit.sh --no-wait",
     "db:apply-migrations": "node scripts/apply-supabase-migrations.mjs",
-    "db:apply-migrations:dry": "node scripts/apply-supabase-migrations.mjs --dry-run"
+    "db:apply-migrations:dry": "node scripts/apply-supabase-migrations.mjs --dry-run",
+    "db:reset-email-scan": "node scripts/reset-email-scan-state.mjs"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

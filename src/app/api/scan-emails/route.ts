@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { fetchUnseenEmails, markEmailsAsRead, ScannedEmail, type FetchUnseenImapHooks } from '@/lib/mail-scanner'
+import { fetchUnseenEmails, ScannedEmail, type FetchUnseenImapHooks } from '@/lib/mail-scanner'
 import { createServiceClient } from '@/utils/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { simpleParser } from 'mailparser'
@@ -24,6 +24,12 @@ import {
   isScanUnitAlreadyCompleted,
 } from '@/lib/email-scan-checkpoint'
 import { defaultFiscalYearLabel, fiscalYearRangeUtc, isValidFiscalYear } from '@/lib/fiscal-year'
+import {
+  emailSubjectLooksLikeStatement,
+  scanContextSuggestsBolla,
+  scanContextSuggestsFattura,
+} from '@/lib/document-bozza-routing'
+import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
 
 /**
  * Limite durata funzione su Vercel/hosting (secondi).
@@ -31,6 +37,28 @@ import { defaultFiscalYearLabel, fiscalYearRangeUtc, isValidFiscalYear } from '@
  * Modifica questo valore se il piano lo consente (max 800 Enterprise).
  */
 export const maxDuration = 300
+
+type EmailSyncDocumentKind = 'all' | 'fornitore' | 'bolla' | 'fattura' | 'estratto_conto'
+
+const EMAIL_SYNC_DOCUMENT_KINDS = new Set<string>([
+  'all',
+  'fornitore',
+  'bolla',
+  'fattura',
+  'estratto_conto',
+])
+
+function parseEmailSyncDocumentKind(raw: unknown): EmailSyncDocumentKind {
+  return typeof raw === 'string' && EMAIL_SYNC_DOCUMENT_KINDS.has(raw) ? (raw as EmailSyncDocumentKind) : 'all'
+}
+
+function filterEmailsForSyncDocumentKind(
+  emails: ScannedEmail[],
+  kind: EmailSyncDocumentKind,
+): ScannedEmail[] {
+  if (kind !== 'estratto_conto') return emails
+  return emails.filter((e) => emailSubjectLooksLikeStatement(e.subject))
+}
 
 /** Heartbeat NDJSON durante OCR: evita timeout UI client (~30s) tra un allegato e l’altro. */
 const PROCESS_STREAM_HEARTBEAT_MS = 15_000
@@ -62,6 +90,7 @@ function buildMetadata(ocr: OcrResult, matchedBy: 'email' | 'alias' | 'domain' |
     indirizzo:          ocr.indirizzo ?? null,
     data_fattura:       ocr.data_fattura,
     numero_fattura:     ocr.numero_fattura,
+    tipo_documento:     ocr.tipo_documento ?? null,
     // Stored as a pure float — no formatting at rest
     totale_iva_inclusa: ocr.totale_iva_inclusa,
     // Preserved for UI validation badge ("Parsed as UK format £1,234.56")
@@ -158,6 +187,10 @@ async function insertLog(
 type FetchImapHooks = {
   onRetry?: (info: { attempt: number; maxAttempts: number; error: unknown }) => void | Promise<void>
   beforeReconnect?: (info: { attempt: number; maxAttempts: number }) => void | Promise<void>
+  /** Prima di `client.connect()` (stream UI). */
+  beforeConnect?: () => void | Promise<void>
+  /** Dopo `connect()` riuscito, prima di aprire la casella (stream UI). */
+  afterConnect?: () => void | Promise<void>
   afterMailboxOpen?: () => void | Promise<void>
 }
 
@@ -248,12 +281,9 @@ async function fetchFromImap(
         }
 
         const attachments = (parsed.attachments ?? [])
-          .filter(a => {
-            const ct = a.contentType ?? ''
-            return ct.startsWith('image/') || ct === 'application/pdf'
-          })
+          .filter(a => isFiscalDocumentAttachment(a.contentType, a.filename))
           .map(a => {
-            const ext = a.filename?.split('.').pop() ?? (a.contentType === 'application/pdf' ? 'pdf' : 'jpg')
+            const ext = a.filename?.split('.').pop()?.toLowerCase() ?? 'pdf'
             return {
               filename: a.filename ?? `allegato.${ext}`,
               content: a.content,
@@ -305,33 +335,9 @@ async function fetchFromImap(
     {
       onRetry: hooks?.onRetry,
       beforeReconnect: hooks?.beforeReconnect,
+      beforeConnect: hooks?.beforeConnect,
+      afterConnect: hooks?.afterConnect,
     }
-  )
-}
-
-async function markReadOnImap(
-  host: string,
-  port: number,
-  user: string,
-  password: string,
-  uids: number[],
-  imapOpts?: { onRetry?: FetchImapHooks['onRetry']; beforeReconnect?: FetchImapHooks['beforeReconnect'] }
-) {
-  if (!uids.length) return
-  await withImapSession(
-    {
-      host,
-      port,
-      user,
-      password,
-      secure: port !== 143,
-      tls: { rejectUnauthorized: false },
-    },
-    async (client) => {
-      await client.mailboxOpen('INBOX')
-      await client.messageFlagsAdd(uids, ['\\Seen'], { uid: true })
-    },
-    imapOpts ? { onRetry: imapOpts.onRetry, beforeReconnect: imapOpts.beforeReconnect } : undefined
   )
 }
 
@@ -409,13 +415,16 @@ function emailMatchesSupplierScope(fromRaw: string, scope: SupplierEmailScope): 
   return !!dom && scope.allowedDomains.has(dom)
 }
 
+/** Unità di lavoro per una singola email (allegati o corpo scansionabile). */
+function countUnitsForOneEmail(e: ScannedEmail): number {
+  if (e.attachments.length) return e.attachments.length
+  if (emailHasScannableBody(e)) return 1
+  return 0
+}
+
 /** Allegati + eventuali email solo-testo da processare come unità di lavoro. */
 function countScanEmailUnits(emails: ScannedEmail[]): number {
-  return emails.reduce((sum, e) => {
-    if (e.attachments.length) return sum + e.attachments.length
-    if (emailHasScannableBody(e)) return sum + 1
-    return sum
-  }, 0)
+  return emails.reduce((sum, e) => sum + countUnitsForOneEmail(e), 0)
 }
 
 const SYNTHETIC_EMAIL_DOC_FILENAME = '[DA TESTO EMAIL] Documento sintetico.txt'
@@ -599,8 +608,12 @@ async function runOcrForEmail(
 
 type ProcessEmailsOptions = {
   onAttachmentProgress?: (p: { attachmentsProcessed: number; attachmentsTotal: number }) => void
+  /** Chiamato quando tutte le unità (allegati / corpo) di un messaggio IMAP sono state elaborate. */
+  onEmailFullyProcessed?: () => void
   /** Scansione mirata: tutte le email in input sono attribuite a questo fornitore. */
   directFornitore?: Fornitore | null
+  /** Filtro tipologia import lato server (default all). */
+  documentKind?: EmailSyncDocumentKind
 }
 
 async function processEmails(
@@ -613,13 +626,14 @@ async function processEmails(
   ricevuti: number
   ignorate: number
   bozzaCreate: number
-  toMarkRead: number[]
   attachmentsTotal: number
   attachmentsProcessed: number
+  /** Unità (allegato o corpo) già chiuse in `log_sincronizzazione` — nessun nuovo insert. */
+  skippedAlreadyCompleted: number
 }> {
   let ricevuti = 0
   let ignorate = 0
-  const uidsToMarkRead: number[] = []
+  let skippedAlreadyCompleted = 0
   const rekkiPersistedUids = new Set<number>()
 
   if (!process.env.OPENAI_API_KEY?.trim()) {
@@ -630,14 +644,33 @@ async function processEmails(
 
   const attachmentsTotal = countScanEmailUnits(emails)
   let attachmentsProcessed = 0
-  const bumpAttach = () => {
+  const unitsPerUid = new Map<number, number>()
+  const unitsDonePerUid = new Map<number, number>()
+  for (const e of emails) {
+    const n = countUnitsForOneEmail(e)
+    if (n > 0) unitsPerUid.set(e.uid, n)
+  }
+  const bumpAttach = (uid: number) => {
     attachmentsProcessed++
+    const need = unitsPerUid.get(uid)
+    if (need !== undefined) {
+      const done = (unitsDonePerUid.get(uid) ?? 0) + 1
+      unitsDonePerUid.set(uid, done)
+      if (done >= need) {
+        options?.onEmailFullyProcessed?.()
+      }
+    }
     options?.onAttachmentProgress?.({ attachmentsProcessed, attachmentsTotal })
   }
 
+  const docKind = options?.documentKind ?? 'all'
+  const onlyUnknownSenders = docKind === 'fornitore' && !options?.directFornitore
+
   // La sede effettiva da usare: priorità sedeFilter (per-sede IMAP) → fallbackSedeId (global IMAP)
   const effectiveSede = sedeFilter ?? fallbackSedeId ?? null
-  mailDebugLog(`[PROCESS] Inizio processEmails: ${emails.length} email, sedeFilter=${sedeFilter ?? 'nessuno'} fallback=${fallbackSedeId ?? 'nessuno'} effective=${effectiveSede ?? 'NULL'}`)
+  mailDebugLog(
+    `[PROCESS] Inizio processEmails: ${emails.length} email, sedeFilter=${sedeFilter ?? 'nessuno'} fallback=${fallbackSedeId ?? 'nessuno'} effective=${effectiveSede ?? 'NULL'} documentKind=${docKind}`,
+  )
 
   // ── FASE 1: raggruppa allegati (e messaggi solo-testo) per fornitore ────
   // Item include anche l'OCR pre-computato (per i documenti risolti via P.IVA)
@@ -678,6 +711,11 @@ async function processEmails(
           noFornitore.push(email)
           continue
         }
+        if (onlyUnknownSenders) {
+          mailDebugLog(`[PROCESS] Modalità «nuovo fornitore»: salto email da mittente già in rubrica (${fornitore.nome})`)
+          for (let ai = 0; ai < email.attachments.length; ai++) bumpAttach(email.uid)
+          continue
+        }
         mailDebugLog(`[PROCESS] ✅ Fornitore abbinato: ${fornitore.nome} (${fornitore.id})`)
         if (!groups.has(fornitore.id)) {
           groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'email' })
@@ -690,6 +728,11 @@ async function processEmails(
         if (!fornitore) {
           mailDebugLog(`[PROCESS] ⚠️  Solo testo, fornitore non trovato per "${email.from}" — estrazione+P.IVA`)
           noFornitoreBodyOnly.push(email)
+          continue
+        }
+        if (onlyUnknownSenders) {
+          mailDebugLog(`[PROCESS] Modalità «nuovo fornitore»: salto solo-testo da mittente già in rubrica (${fornitore.nome})`)
+          bumpAttach(email.uid)
           continue
         }
         mailDebugLog(`[PROCESS] ✅ Solo testo, fornitore: ${fornitore.nome} (${fornitore.id})`)
@@ -716,8 +759,8 @@ async function processEmails(
         kind: 'attachment',
       })
       if (await isScanUnitAlreadyCompleted(supabase, fp)) {
-        if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
-        bumpAttach()
+        skippedAlreadyCompleted++
+        bumpAttach(email.uid)
         continue
       }
 
@@ -755,7 +798,6 @@ async function processEmails(
           if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'piva' })
           groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
           mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via P.IVA → "${fornitore.nome}"`)
-          if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
           continue
         }
       }
@@ -771,7 +813,7 @@ async function processEmails(
             allegato_nome: attachment.filename ?? null,
           })
           ignorate++
-          bumpAttach()
+          bumpAttach(email.uid)
           continue
         }
         const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
@@ -799,7 +841,7 @@ async function processEmails(
             scan_attachment_fingerprint: fp,
           })
           ignorate++
-          bumpAttach()
+          bumpAttach(email.uid)
         } else {
           mailDebugLog(`[PROCESS] ✅ Documento [DA TESTO EMAIL] salvato — mittente="${email.from}"`)
           const hinted =
@@ -818,8 +860,7 @@ async function processEmails(
             }),
           })
           ricevuti++
-          if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
-          bumpAttach()
+          bumpAttach(email.uid)
         }
         continue
       }
@@ -838,7 +879,7 @@ async function processEmails(
           allegato_nome: attachment.filename ?? null,
         })
         ignorate++
-        bumpAttach()
+        bumpAttach(email.uid)
         continue
       }
 
@@ -872,7 +913,7 @@ async function processEmails(
           scan_attachment_fingerprint: fp,
         })
         ignorate++
-        bumpAttach()
+        bumpAttach(email.uid)
       } else {
         mailDebugLog(`[PROCESS] ✅ Documento sconosciuto salvato — mittente="${email.from}" sede=${unknownDocSedeId ?? 'NULL'} piva_ocr="${ocr.p_iva ?? '—'}"`)
         const hinted =
@@ -891,8 +932,7 @@ async function processEmails(
           }),
         })
         ricevuti++
-        if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
-        bumpAttach()
+        bumpAttach(email.uid)
       }
     }
   }
@@ -907,8 +947,8 @@ async function processEmails(
       kind: 'body_only',
     })
     if (await isScanUnitAlreadyCompleted(supabase, fp)) {
-      if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
-      bumpAttach()
+      skippedAlreadyCompleted++
+      bumpAttach(email.uid)
       continue
     }
 
@@ -927,7 +967,7 @@ async function processEmails(
         scan_attachment_fingerprint: fp,
       })
       ignorate++
-      bumpAttach()
+      bumpAttach(email.uid)
       continue
     }
 
@@ -939,7 +979,6 @@ async function processEmails(
         if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'piva' })
         groups.get(fornitore.id)!.items.push({ email, attachment: null, ocr })
         mailDebugLog(`[PROCESS] ✅ Testo email risolto via P.IVA → "${fornitore.nome}"`)
-        if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
         continue
       }
     }
@@ -953,7 +992,7 @@ async function processEmails(
         allegato_nome: null,
       })
       ignorate++
-      bumpAttach()
+      bumpAttach(email.uid)
       continue
     }
 
@@ -984,7 +1023,7 @@ async function processEmails(
         scan_attachment_fingerprint: fp,
       })
       ignorate++
-      bumpAttach()
+      bumpAttach(email.uid)
     } else {
       mailDebugLog(`[PROCESS] ✅ Documento solo-testo salvato — mittente="${email.from}"`)
       const hinted =
@@ -1003,8 +1042,7 @@ async function processEmails(
         }),
       })
       ricevuti++
-      if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
-      bumpAttach()
+      bumpAttach(email.uid)
     }
   }
 
@@ -1042,8 +1080,8 @@ async function processEmails(
       const done = await isScanUnitAlreadyCompleted(supabase, fp)
       skipped[i] = done
       if (done) {
-        if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
-        bumpAttach()
+        skippedAlreadyCompleted++
+        bumpAttach(email.uid)
       }
     }
 
@@ -1104,7 +1142,7 @@ async function processEmails(
             sede_id: documentSedeId,
             allegato_nome: attachment.filename ?? null,
           })
-          bumpAttach()
+          bumpAttach(email.uid)
           continue
         }
 
@@ -1124,7 +1162,7 @@ async function processEmails(
             sede_id: documentSedeId,
             allegato_nome: null,
           })
-          bumpAttach()
+          bumpAttach(email.uid)
           continue
         }
         file_url = syn.publicUrl
@@ -1145,17 +1183,37 @@ async function processEmails(
 
       if (fornitore.id && documentSedeId) {
         const dataDoc = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
-        const hasFattura = !!(ocr.numero_fattura && ocr.numero_fattura.trim())
+        const numRef = ocr.numero_fattura?.trim() || null
+        const tipo = ocr.tipo_documento ?? null
+        const isBollaTipo = tipo === 'bolla'
+        const isFatturaTipo = tipo === 'fattura'
+        const isAltroTipo = tipo === 'altro'
+        const ctxFattura = scanContextSuggestsFattura(email.subject, storedFileName)
+        const ctxBolla = scanContextSuggestsBolla(email.subject, storedFileName)
 
-        if (hasFattura) {
-          // Ha numero fattura → creiamo una Fattura bozza
+        let createFatturaBozza =
+          isFatturaTipo ||
+          (!isBollaTipo && !isAltroTipo && !!numRef)
+
+        // OCR tipo "bolla" / "altro" / assente ma oggetto o nome file da chiaramente fattura.
+        if (!createFatturaBozza && ctxFattura && !ctxBolla) {
+          createFatturaBozza = true
+        }
+
+        if (docKind === 'fattura') {
+          createFatturaBozza = true
+        } else if (docKind === 'bolla') {
+          createFatturaBozza = false
+        }
+
+        if (createFatturaBozza) {
           const { data: newFattura, error: fatturaErr } = await supabase
             .from('fatture')
             .insert([{
               fornitore_id:             fornitore.id,
               sede_id:                  documentSedeId,
               data:                     dataDoc,
-              numero_fattura:           ocr.numero_fattura,
+              numero_fattura:           numRef,
               importo:                  ocr.totale_iva_inclusa ?? null,
               verificata_estratto_conto: false,
               file_url,
@@ -1169,17 +1227,17 @@ async function processEmails(
             bozzaId = newFattura.id
             bozzaTipo = 'fattura'
             bozzaCreate++
-            mailDebugLog(`[BOZZA] ✅ Fattura bozza creata: id=${bozzaId} n.fattura=${ocr.numero_fattura}`)
+            mailDebugLog(`[BOZZA] ✅ Fattura bozza creata: id=${bozzaId} n.fattura=${numRef ?? '—'}`)
           }
         } else {
-          // Nessun numero fattura → creiamo una Bolla bozza
           const { data: newBolla, error: bollaErr } = await supabase
             .from('bolle')
             .insert([{
               fornitore_id:  fornitore.id,
               sede_id:       documentSedeId,
               data:          dataDoc,
-              numero_bolla:  null,
+              /** Qualsiasi riferimento estratto (anche da etichette tipo "Note Number") va sul DDT. */
+              numero_bolla:  numRef,
               importo:       ocr.totale_iva_inclusa ?? null,
               stato:         'bozza',
               file_url,
@@ -1193,7 +1251,9 @@ async function processEmails(
             bozzaId = newBolla.id
             bozzaTipo = 'bolla'
             bozzaCreate++
-            mailDebugLog(`[BOZZA] ✅ Bolla bozza creata: id=${bozzaId} importo=${ocr.totale_iva_inclusa ?? '—'}`)
+            mailDebugLog(
+              `[BOZZA] ✅ Bolla bozza creata: id=${bozzaId} n.bolla=${numRef ?? '—'} importo=${ocr.totale_iva_inclusa ?? '—'}`,
+            )
           }
         }
       }
@@ -1212,8 +1272,7 @@ async function processEmails(
       }
 
       // Detect statement emails: mark with is_statement = true
-      const subjectLower  = (email.subject ?? '').toLowerCase()
-      const isStatementEmail = subjectLower.includes('statement') || subjectLower.includes('estratto conto') || subjectLower.includes('account statement')
+      const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
 
       const knownPayload = {
         fornitore_id:   fornitore.id,
@@ -1243,7 +1302,7 @@ async function processEmails(
           allegato_nome: attachment?.filename ?? null,
           scan_attachment_fingerprint: fp,
         })
-        bumpAttach()
+        bumpAttach(email.uid)
         continue
       }
 
@@ -1275,7 +1334,6 @@ async function processEmails(
       })
 
       ricevuti++
-      if (!uidsToMarkRead.includes(email.uid)) uidsToMarkRead.push(email.uid)
 
       const rekkiMappingActive = !!(
         fornitore.rekki_link?.trim() || fornitore.rekki_supplier_id?.trim()
@@ -1298,18 +1356,20 @@ async function processEmails(
           }).catch((err) => console.error('[REKKI] persist fallito:', err))
         }
       }
-      bumpAttach()
+      bumpAttach(email.uid)
     }
   }
 
-  mailDebugLog(`[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate}`)
+  mailDebugLog(
+    `[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate} skippedAlready=${skippedAlreadyCompleted}`,
+  )
   return {
     ricevuti,
     ignorate,
     bozzaCreate,
-    toMarkRead: uidsToMarkRead,
     attachmentsTotal,
     attachmentsProcessed,
+    skippedAlreadyCompleted,
   }
 }
 
@@ -1422,6 +1482,7 @@ export async function GET(req: Request) {
         ricevuti: 0,
         ignorate: 0,
         bozzeCreate: 0,
+        skippedAlreadyCompleted: result.skippedAlreadyCompleted,
         avvisi: result.avvisi,
         messaggio: result.avvisi[0],
         mailsFound: result.mailsFound,
@@ -1434,6 +1495,7 @@ export async function GET(req: Request) {
       ricevuti: result.ricevuti,
       ignorate: result.ignorate,
       bozzeCreate: result.bozzeCreate,
+      skippedAlreadyCompleted: result.skippedAlreadyCompleted,
       messaggio: result.messaggio,
       ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
       mailsFound: result.mailsFound,
@@ -1473,6 +1535,10 @@ type RunEmailScanParams = {
   emailSyncScope?: 'lookback' | 'fiscal_year'
   /** Obbligatorio se fiscal_year e scope fiscal; altrimenti calcolato per sede. */
   fiscalYear?: number
+  /** Solo scope lookback: override giorni (1–365). Assente = usa `imap_lookback_days` per sede. */
+  lookbackDaysOverride?: number
+  /** Filtro tipologia documenti (fornitore mirato: ignorato, si usa sempre all). */
+  documentKind?: EmailSyncDocumentKind
   emit?: (e: EmailScanStreamEvent) => void | Promise<void>
 }
 
@@ -1486,6 +1552,8 @@ type EmailScanCoreResult = {
   mailsProcessed: number
   attachmentsTotal: number
   attachmentsProcessed: number
+  /** Allegati/corpi già registrati in log (sync precedente) — nessun nuovo documento in coda. */
+  skippedAlreadyCompleted: number
 }
 
 async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCoreResult> {
@@ -1518,14 +1586,21 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     mailDebugLog(`[FORNITORE] Scansione mirata id=${params.fornitoreId} sede=${filterSedeId}`)
   }
 
+  const effectiveDocKind: EmailSyncDocumentKind = directFornitore ? 'all' : (params.documentKind ?? 'all')
+
   let totalRicevuti = 0
   let totalIgnorate = 0
   let totalBozzeCreate = 0
+  let totalSkippedAlready = 0
   const avvisi: string[] = []
 
   let mailsFound = 0
   let mailsProcessed = 0
+  /** Email completate nel batch `processEmails` in corso (stream UI; azzerato a fine batch). */
+  let emailsDoneInBatch = 0
   let attDoneRun = 0
+  /** Include l’avanzamento dell’unità corrente (OCR); `attDoneRun` solo a fine batch. Serve a heartbeat/stream. */
+  let attDoneLive = 0
   let attTotalRun = 0
 
   let scopeMailboxKind: 'sede' | 'global' = 'sede'
@@ -1556,6 +1631,13 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
 
   const emailSyncScope = params.emailSyncScope ?? 'lookback'
   const fiscalYearParam = isValidFiscalYear(params.fiscalYear) ? params.fiscalYear : undefined
+  const lookbackOverride =
+    typeof params.lookbackDaysOverride === 'number' &&
+    Number.isFinite(params.lookbackDaysOverride) &&
+    params.lookbackDaysOverride >= 1 &&
+    params.lookbackDaysOverride <= 365
+      ? Math.floor(params.lookbackDaysOverride)
+      : undefined
 
   let sediQuery = supabase
     .from('sedi')
@@ -1590,28 +1672,33 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
 
   const snap = () => ({
     mailsFound,
-    mailsProcessed,
+    mailsProcessed: mailsProcessed + emailsDoneInBatch,
     ricevuti: totalRicevuti,
     ignorate: totalIgnorate,
     bozzeCreate: totalBozzeCreate,
+    skippedAlreadyCompleted: totalSkippedAlready,
     attachmentsTotal: attTotalRun,
-    attachmentsProcessed: attDoneRun,
+    attachmentsProcessed: attDoneLive,
     mailboxContext: mailboxCtx(),
   })
 
-  const emitProcessPulse = () => {
-    const total = Math.max(attTotalRun, 1)
-    const ratio = attTotalRun > 0 ? Math.min(1, attDoneRun / total) : 0
-    return s({
+  /** Percentuale fase process: 45–89 in base alle unità effettivamente elaborate (incluso batch in corso). */
+  const processPercentFromUnits = (done: number, totalUnits: number) => {
+    const total = Math.max(totalUnits, 1)
+    const ratio = Math.min(1, Math.max(0, done / total))
+    return 45 + Math.min(44, Math.floor(44 * ratio))
+  }
+
+  const emitProcessPulse = () =>
+    s({
       type: 'progress',
       phase: 'process',
-      percent: 45 + Math.min(29, Math.floor(29 * ratio)),
+      percent: processPercentFromUnits(attDoneLive, attTotalRun),
       connectionWarning: null,
       ...snap(),
     })
-  }
 
-  await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, ...snap() })
+  await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, connectStep: null, ...snap() })
 
   /** Ogni retry IMAP: errore + dopo backoff un secondo evento (heartbeat NDJSON). */
   const imapStreamRetryHooks: Pick<FetchImapHooks, 'onRetry' | 'beforeReconnect'> = {
@@ -1622,6 +1709,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         percent: Math.min(24, 10 + attempt * 5),
         connectionWarning: IMAP_CONNECTION_RETRY_USER_MESSAGE,
         imapRetry: { attempt: Math.min(maxAttempts, attempt + 1), maxAttempts },
+        connectStep: 'to_server',
         ...snap(),
       })
     },
@@ -1632,6 +1720,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         percent: Math.min(27, 12 + attempt * 4),
         connectionWarning: null,
         imapRetry: { attempt, maxAttempts },
+        connectStep: 'to_server',
         ...snap(),
       })
     },
@@ -1643,7 +1732,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
       scopeMailboxName = sede.nome?.trim() || '—'
       mailDebugLog(`\n[SEDE] ══ Inizio scansione sede "${sede.nome}" (${sede.id}) ══`)
       try {
-        await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, ...snap() })
+        await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, connectStep: null, ...snap() })
         const sedeCc =
           (sede as { country_code?: string | null }).country_code?.trim().toUpperCase() || 'UK'
         const sedeFiscalRange =
@@ -1659,11 +1748,35 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           sede.imap_user,
           sede.imap_password,
           {
-            lookbackDays: sedeFiscalRange ? null : sede.imap_lookback_days,
+            lookbackDays: sedeFiscalRange
+              ? null
+              : lookbackOverride !== undefined
+                ? lookbackOverride
+                : sede.imap_lookback_days,
             fiscalRange: sedeFiscalRange,
           },
           {
             ...imapStreamRetryHooks,
+            beforeConnect: async () => {
+              await s({
+                type: 'progress',
+                phase: 'connect',
+                percent: 12,
+                connectionWarning: null,
+                connectStep: 'to_server',
+                ...snap(),
+              })
+            },
+            afterConnect: async () => {
+              await s({
+                type: 'progress',
+                phase: 'connect',
+                percent: 20,
+                connectionWarning: null,
+                connectStep: 'opening_mailbox',
+                ...snap(),
+              })
+            },
             afterMailboxOpen: async () => {
               await s({
                 type: 'progress',
@@ -1678,9 +1791,10 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         const filtered = supplierScope
           ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope!))
           : emails
+        const syncKindFiltered = filterEmailsForSyncDocumentKind(filtered, effectiveDocKind)
 
-        const batchMails = filtered.length
-        const batchAtt = countScanEmailUnits(filtered)
+        const batchMails = syncKindFiltered.length
+        const batchAtt = countScanEmailUnits(syncKindFiltered)
         mailsFound += batchMails
         attTotalRun += batchAtt
 
@@ -1692,9 +1806,12 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           ...snap(),
         })
 
-        mailDebugLog(`[SEDE] "${sede.nome}": ${emails.length} in inbox / ${batchMails} dopo filtro fornitore`)
+        mailDebugLog(
+          `[SEDE] "${sede.nome}": ${emails.length} in inbox / ${batchMails} dopo filtri (fornitore + tipologia sync)`,
+        )
 
-        if (filtered.length > 0) {
+        if (syncKindFiltered.length > 0) {
+          emailsDoneInBatch = 0
           await s({
             type: 'progress',
             phase: 'process',
@@ -1704,15 +1821,14 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           })
           const onAttachmentProgress = (p: { attachmentsProcessed: number; attachmentsTotal: number }) => {
             const done = attDoneRun + p.attachmentsProcessed
-            const total = Math.max(attTotalRun, 1)
-            const ratio = Math.min(1, done / total)
+            attDoneLive = Math.max(attDoneLive, done)
             void s({
               type: 'progress',
               phase: 'process',
-              percent: 60 + Math.min(29, Math.floor(29 * ratio)),
+              percent: processPercentFromUnits(attDoneLive, attTotalRun),
               connectionWarning: null,
               ...snap(),
-              attachmentsProcessed: done,
+              attachmentsProcessed: attDoneLive,
             })
           }
 
@@ -1720,35 +1836,28 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
             void emitProcessPulse()
           }, PROCESS_STREAM_HEARTBEAT_MS)
           let peDone = 0
-          let toMarkRead: number[] = []
           try {
-            const out = await processEmails(supabase, filtered, sede.id, undefined, {
+            const out = await processEmails(supabase, syncKindFiltered, sede.id, undefined, {
               directFornitore: directFornitore ?? undefined,
+              onEmailFullyProcessed: () => {
+                emailsDoneInBatch++
+              },
               onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
+              documentKind: effectiveDocKind,
             })
             peDone = out.attachmentsProcessed
             totalRicevuti += out.ricevuti
             totalIgnorate += out.ignorate
             totalBozzeCreate += out.bozzaCreate
-            toMarkRead = out.toMarkRead
+            totalSkippedAlready += out.skippedAlreadyCompleted
           } finally {
             clearInterval(processHb)
           }
 
           attDoneRun += peDone
+          attDoneLive = Math.max(attDoneLive, attDoneRun)
           mailsProcessed += batchMails
-
-          if (toMarkRead.length > 0) {
-            mailDebugLog(`[SEDE] Segno come lette ${toMarkRead.length} email`)
-            await markReadOnImap(
-              sede.imap_host,
-              sede.imap_port ?? 993,
-              sede.imap_user,
-              sede.imap_password,
-              toMarkRead as number[],
-              imapStreamRetryHooks
-            )
-          }
+          emailsDoneInBatch = 0
 
           await s({
             type: 'progress',
@@ -1780,9 +1889,29 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     scopeMailboxKind = 'global'
     scopeMailboxName = ''
     try {
-      await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, ...snap() })
+      await s({ type: 'progress', phase: 'connect', percent: 10, connectionWarning: null, connectStep: null, ...snap() })
       const globalHooks: FetchUnseenImapHooks = {
         ...imapStreamRetryHooks,
+        beforeConnect: async () => {
+          await s({
+            type: 'progress',
+            phase: 'connect',
+            percent: 12,
+            connectionWarning: null,
+            connectStep: 'to_server',
+            ...snap(),
+          })
+        },
+        afterConnect: async () => {
+          await s({
+            type: 'progress',
+            phase: 'connect',
+            percent: 20,
+            connectionWarning: null,
+            connectStep: 'opening_mailbox',
+            ...snap(),
+          })
+        },
         afterInboxOpen: async () => {
           await s({
             type: 'progress',
@@ -1793,12 +1922,17 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           })
         },
       }
-      const emails = await fetchUnseenEmails(globalHooks, globalFiscalRange)
+      const globalLookbackDays =
+        !globalFiscalRange && emailSyncScope === 'lookback' && lookbackOverride !== undefined
+          ? lookbackOverride
+          : null
+      const emails = await fetchUnseenEmails(globalHooks, globalFiscalRange, globalLookbackDays)
       const filtered = supplierScope
         ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope!))
         : emails
-      const batchMails = filtered.length
-      const batchAtt = countScanEmailUnits(filtered)
+      const syncKindFiltered = filterEmailsForSyncDocumentKind(filtered, effectiveDocKind)
+      const batchMails = syncKindFiltered.length
+      const batchAtt = countScanEmailUnits(syncKindFiltered)
       mailsFound += batchMails
       attTotalRun += batchAtt
 
@@ -1810,8 +1944,9 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         ...snap(),
       })
 
-      mailDebugLog(`[GLOBALE] Email trovate: ${emails.length} / ${batchMails} dopo filtro`)
-      if (filtered.length > 0) {
+      mailDebugLog(`[GLOBALE] Email trovate: ${emails.length} / ${batchMails} dopo filtri`)
+      if (syncKindFiltered.length > 0) {
+        emailsDoneInBatch = 0
         await s({
           type: 'progress',
           phase: 'process',
@@ -1821,15 +1956,14 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         })
         const onAttachmentProgress = (p: { attachmentsProcessed: number; attachmentsTotal: number }) => {
           const done = attDoneRun + p.attachmentsProcessed
-          const total = Math.max(attTotalRun, 1)
-          const ratio = Math.min(1, done / total)
+          attDoneLive = Math.max(attDoneLive, done)
           void s({
             type: 'progress',
             phase: 'process',
-            percent: 60 + Math.min(29, Math.floor(29 * ratio)),
+            percent: processPercentFromUnits(attDoneLive, attTotalRun),
             connectionWarning: null,
             ...snap(),
-            attachmentsProcessed: done,
+            attachmentsProcessed: attDoneLive,
           })
         }
 
@@ -1837,25 +1971,28 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           void emitProcessPulse()
         }, PROCESS_STREAM_HEARTBEAT_MS)
         let peDoneGlobal = 0
-        let toMarkReadGlobal: number[] = []
         try {
-          const out = await processEmails(supabase, filtered, undefined, systemFallbackSedeId, {
+          const out = await processEmails(supabase, syncKindFiltered, undefined, systemFallbackSedeId, {
             directFornitore: directFornitore ?? undefined,
+            onEmailFullyProcessed: () => {
+              emailsDoneInBatch++
+            },
             onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
+            documentKind: effectiveDocKind,
           })
           peDoneGlobal = out.attachmentsProcessed
           totalRicevuti += out.ricevuti
           totalIgnorate += out.ignorate
           totalBozzeCreate += out.bozzaCreate
-          toMarkReadGlobal = out.toMarkRead
+          totalSkippedAlready += out.skippedAlreadyCompleted
         } finally {
           clearInterval(processHbGlobal)
         }
 
         attDoneRun += peDoneGlobal
+        attDoneLive = Math.max(attDoneLive, attDoneRun)
         mailsProcessed += batchMails
-
-        await markEmailsAsRead(toMarkReadGlobal, imapStreamRetryHooks)
+        emailsDoneInBatch = 0
 
         await s({
           type: 'progress',
@@ -1873,11 +2010,18 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     mailDebugLog('[GLOBALE] Casella globale non configurata — salto')
   }
 
-  mailDebugLog(`\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} avvisi=${avvisi.length}`)
+  mailDebugLog(
+    `\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} skippedAlready=${totalSkippedAlready} avvisi=${avvisi.length}`,
+  )
 
   let messaggio: string
   if (totalRicevuti === 0) {
-    messaggio = 'Nessuna nuova email con allegati o testo da elaborare.'
+    if (totalSkippedAlready > 0) {
+      messaggio =
+        `Nessun documento nuovo in coda: ${totalSkippedAlready} ${totalSkippedAlready === 1 ? 'unità (allegato o corpo mail) era già stata elaborata' : 'unità (allegati o corpi mail) erano già state elaborate'} in una sincronizzazione precedente (vedi Log sincronizzazione o Documenti da elaborare).`
+    } else {
+      messaggio = 'Nessuna nuova email con allegati o testo da elaborare.'
+    }
   } else if (totalBozzeCreate > 0) {
     messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — ${totalBozzeCreate} ${totalBozzeCreate === 1 ? 'bozza creata automaticamente' : 'bozze create automaticamente'}. Controlla in Statements → Documenti da Elaborare.`
   } else {
@@ -1894,6 +2038,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     mailsProcessed,
     attachmentsTotal: attTotalRun,
     attachmentsProcessed: attDoneRun,
+    skippedAlreadyCompleted: totalSkippedAlready,
   }
 }
 
@@ -1904,6 +2049,8 @@ export async function POST(req: Request) {
   let wantStream = false
   let emailSyncScope: 'lookback' | 'fiscal_year' | undefined
   let fiscalYear: number | undefined
+  let lookbackDaysOverride: number | undefined
+  let documentKind: EmailSyncDocumentKind = 'all'
   try {
     const body = await req.json() as {
       user_sede_id?: string
@@ -1912,6 +2059,8 @@ export async function POST(req: Request) {
       stream?: boolean
       email_sync_scope?: 'lookback' | 'fiscal_year'
       fiscal_year?: number
+      email_sync_lookback_days?: number
+      email_sync_document_kind?: string
     }
     userSedeId = body?.user_sede_id ?? undefined
     filterSedeId = body?.filter_sede_id ?? undefined
@@ -1919,6 +2068,11 @@ export async function POST(req: Request) {
     wantStream = body?.stream === true
     emailSyncScope = body?.email_sync_scope === 'fiscal_year' ? 'fiscal_year' : body?.email_sync_scope === 'lookback' ? 'lookback' : undefined
     fiscalYear = typeof body?.fiscal_year === 'number' ? body.fiscal_year : undefined
+    if (typeof body?.email_sync_lookback_days === 'number' && Number.isFinite(body.email_sync_lookback_days)) {
+      const n = Math.floor(body.email_sync_lookback_days)
+      if (n >= 1 && n <= 365) lookbackDaysOverride = n
+    }
+    documentKind = parseEmailSyncDocumentKind(body?.email_sync_document_kind)
   } catch { /* no body */ }
 
   if (wantStream) {
@@ -1939,6 +2093,8 @@ export async function POST(req: Request) {
             fornitoreId,
             emailSyncScope,
             fiscalYear,
+            lookbackDaysOverride,
+            documentKind,
             emit: write,
           })
           await write({
@@ -1946,6 +2102,7 @@ export async function POST(req: Request) {
             ricevuti: result.ricevuti,
             ignorate: result.ignorate,
             bozzeCreate: result.bozzeCreate,
+            skippedAlreadyCompleted: result.skippedAlreadyCompleted,
             messaggio: result.messaggio,
             avvisi: result.avvisi,
             mailsFound: result.mailsFound,
@@ -1977,13 +2134,22 @@ export async function POST(req: Request) {
 
   try {
     const result = await queueEmailScan(() =>
-      runEmailScanCore({ userSedeId, filterSedeId, fornitoreId, emailSyncScope, fiscalYear })
+      runEmailScanCore({
+        userSedeId,
+        filterSedeId,
+        fornitoreId,
+        emailSyncScope,
+        fiscalYear,
+        lookbackDaysOverride,
+        documentKind,
+      })
     )
     if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {
       return NextResponse.json({
         ricevuti: 0,
         ignorate: 0,
         bozzeCreate: 0,
+        skippedAlreadyCompleted: result.skippedAlreadyCompleted,
         avvisi: result.avvisi,
         messaggio: result.avvisi[0],
         mailsFound: result.mailsFound,
@@ -1996,6 +2162,7 @@ export async function POST(req: Request) {
       ricevuti: result.ricevuti,
       ignorate: result.ignorate,
       bozzeCreate: result.bozzeCreate,
+      skippedAlreadyCompleted: result.skippedAlreadyCompleted,
       messaggio: result.messaggio,
       ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
       mailsFound: result.mailsFound,

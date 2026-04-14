@@ -21,7 +21,7 @@ export function fornitoreIdFromProfilePath(normalized: string): string | null {
  * Ogni schermata sotto AppShell mostra la bottom bar su viewport stretti (`< md`).
  * Prima era limitata a hub + scheda fornitore; ora include anche fattura/bolla dettaglio, archivio, ecc.
  */
-export function showsMobileBottomBar(_normalized: string): boolean {
+export function showsMobileBottomBar(): boolean {
   return true
 }
 

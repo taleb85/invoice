@@ -43,7 +43,7 @@ export default function ConnectionStatusDot() {
       aria-label={label}
     >
       <span className={dotClass} />
-      <span className="hidden text-[10px] font-medium text-slate-400 sm:inline">{label}</span>
+      <span className="hidden text-[10px] font-medium text-slate-100 sm:inline">{label}</span>
     </span>
   )
 }

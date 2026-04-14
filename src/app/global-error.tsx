@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import Link from 'next/link'
 import { getTranslations } from '@/lib/translations'
 import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
 
@@ -90,7 +91,7 @@ export default function GlobalError({
               >
                 {t.appStrings.tryAgain}
               </button>
-              <a
+              <Link
                 href="/"
                 style={{
                   padding: '0.625rem 1rem', borderRadius: 12,
@@ -100,7 +101,7 @@ export default function GlobalError({
                 }}
               >
                 {t.appStrings.backToHome}
-              </a>
+              </Link>
             </div>
           </div>
 

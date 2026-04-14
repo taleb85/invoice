@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useSedeId } from '@/lib/use-sede'
 import { useMe } from '@/lib/me-context'
+import { useActiveOperator } from '@/lib/active-operator-context'
+import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useT } from '@/lib/use-t'
 
 const fieldBaseCls =
@@ -18,13 +20,14 @@ function NewFornitoreForm() {
   const supabase = createClient()
   const { sedeId: ctxSede } = useSedeId()
   const { me } = useMe()
+  const { activeOperator } = useActiveOperator()
   const t = useT()
   const prefillSedeParam = searchParams.get('prefill_sede_id')
   const preSede = prefillSedeParam?.trim() || ''
   const sedeId =
-    me?.is_admin && preSede
+    effectiveIsMasterAdminPlane(me, activeOperator) && preSede
       ? preSede
-      : me?.is_admin_sede && preSede && me?.sede_id && preSede === me.sede_id
+      : effectiveIsAdminSedeUi(me, activeOperator) && preSede && me?.sede_id && preSede === me.sede_id
         ? preSede
         : ctxSede
   const [saving, setSaving] = useState(false)
@@ -61,7 +64,7 @@ function NewFornitoreForm() {
       .insert([
         {
           nome: form.nome,
-          display_name: form.display_name.trim() || null,
+          display_name: form.display_name.trim().toLocaleUpperCase() || null,
           email: form.email || null,
           piva: form.piva || null,
           indirizzo: form.indirizzo.trim() || null,
@@ -130,9 +133,12 @@ function NewFornitoreForm() {
           <div>
             <label className={labelCls}>{t.fornitori.displayNameLabel}</label>
             <input
-              className={inputCls}
+              className={`${inputCls} uppercase`}
+              autoCapitalize="characters"
               value={form.display_name}
-              onChange={(e) => setForm({ ...form, display_name: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, display_name: e.target.value.toLocaleUpperCase() })
+              }
               placeholder={t.fornitori.displayNamePlaceholder}
             />
             <p className="mt-1 text-[11px] text-slate-400">{t.fornitori.displayNameHint}</p>

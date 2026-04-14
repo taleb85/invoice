@@ -97,8 +97,9 @@ export default function SedeAddOperatorForm({
             id={nameId}
             type="text"
             autoComplete="off"
+            autoCapitalize="characters"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value.toUpperCase())}
             className={inputCls}
             placeholder={t.sedi.operatoreRole}
             disabled={loading}
@@ -144,11 +145,13 @@ export default function SedeAddOperatorForm({
   }
 
   return (
-    <div className="app-card mb-8 p-5">
-      <div className="app-card-bar mb-4" aria-hidden />
-      <h2 className="text-sm font-semibold text-slate-100">{t.sedi.addOperatorSedeTitle}</h2>
-      <p className="mb-4 mt-1 text-xs text-slate-400">{t.sedi.addOperatorSedeDesc}</p>
-      {inner}
+    <div className="app-card mb-8 flex flex-col overflow-hidden">
+      <div className="app-card-bar shrink-0" aria-hidden />
+      <div className="p-5">
+        <h2 className="text-sm font-semibold text-slate-100">{t.sedi.addOperatorSedeTitle}</h2>
+        <p className="mb-4 mt-1 text-xs text-slate-400">{t.sedi.addOperatorSedeDesc}</p>
+        {inner}
+      </div>
     </div>
   )
 }

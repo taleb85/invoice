@@ -20,13 +20,45 @@ export function openDocumentUrl(params: {
   return `/api/open-document?${q.toString()}`
 }
 
-/** Estrae bucket e path oggetto da una public URL Supabase. */
+function decodeStoragePath(pathSegment: string): string {
+  try {
+    return decodeURIComponent(pathSegment)
+  } catch {
+    return pathSegment
+  }
+}
+
+/**
+ * Estrae bucket e path oggetto da un URL Supabase Storage (public, signed o render).
+ * Serve a rigenerare sempre un URL firmato fresco: i link `/object/sign/...?token=...` in DB scadono
+ * e il browser può aprire una scheda “nera” nel viewer PDF.
+ */
 export function parseSupabasePublicStorageUrl(fileUrl: string): { bucket: string; objectPath: string } | null {
   try {
     const u = new URL(fileUrl)
-    const m = u.pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/)
-    if (!m) return null
-    return { bucket: m[1], objectPath: decodeURIComponent(m[2]) }
+    const pathname = u.pathname
+
+    const publicM = pathname.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)$/)
+    if (publicM) {
+      return { bucket: publicM[1], objectPath: decodeStoragePath(publicM[2]) }
+    }
+
+    const signM = pathname.match(/\/storage\/v1\/object\/sign\/([^/]+)\/(.+)$/)
+    if (signM) {
+      return { bucket: signM[1], objectPath: decodeStoragePath(signM[2]) }
+    }
+
+    const renderM = pathname.match(/\/storage\/v1\/render\/image\/public\/([^/]+)\/(.+)$/)
+    if (renderM) {
+      return { bucket: renderM[1], objectPath: decodeStoragePath(renderM[2]) }
+    }
+
+    const authM = pathname.match(/\/storage\/v1\/object\/authenticated\/([^/]+)\/(.+)$/)
+    if (authM) {
+      return { bucket: authM[1], objectPath: decodeStoragePath(authM[2]) }
+    }
+
+    return null
   } catch {
     return null
   }

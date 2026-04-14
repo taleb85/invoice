@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import type { Sede, Profile } from '@/types'
 import { useT } from '@/lib/use-t'
+import { useMe } from '@/lib/me-context'
 import { getLocale, COUNTRY_OPTIONS } from '@/lib/localization'
 import { CURRENCIES, TIMEZONES } from '@/lib/translations'
 
@@ -59,13 +60,13 @@ export default function SediPage() {
   const router = useRouter()
   const supabase = createClient()
   const t = useT()
+  const { me } = useMe()
 
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   /** `sede` = admin con `profiles.sede_id`: solo quella sede, niente wizard / utenti senza sede. */
   const [adminListScope, setAdminListScope] = useState<'global' | 'sede'>('global')
   const [sedi, setSedi] = useState<SedeWithCounts[]>([])
   const [profiles, setProfiles] = useState<ProfileWithSede[]>([])
-  const [allSedi, setAllSedi] = useState<Sede[]>([])
   const [loading, setLoading] = useState(true)
 
   // ── Wizard nuova sede ──
@@ -134,10 +135,6 @@ export default function SediPage() {
     await loadData()
   }
 
-  // Legacy state (mantenuto per handleAddSede, non visibile nell'UI)
-  const [newSedeName, setNewSedeName] = useState('')
-  const [addingSede, setAddingSede] = useState(false)
-
   // Edit sede name
   const [editingSede, setEditingSede] = useState<{ id: string; nome: string } | null>(null)
 
@@ -147,12 +144,18 @@ export default function SediPage() {
   const handleSaveProfile = async () => {
     if (!editingProfile) return
     setSavingProfile(true)
-    const { error: err } = await supabase
-      .from('profiles')
-      .update({ full_name: editingProfile.full_name.trim() || null, role: editingProfile.role })
-      .eq('id', editingProfile.id)
+    const fn = editingProfile.full_name.trim().toUpperCase()
+    const res = await fetch(`/api/profiles/${editingProfile.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: fn || null, role: editingProfile.role }),
+    })
+    const data = await res.json().catch(() => ({}))
     setSavingProfile(false)
-    if (err) { setError(err.message); return }
+    if (!res.ok) {
+      setError(typeof data.error === 'string' ? data.error : 'Errore salvataggio profilo.')
+      return
+    }
     setEditingProfile(null)
     await loadData()
   }
@@ -175,7 +178,6 @@ export default function SediPage() {
 
   // Crea operatore
   const [createUserOpen, setCreateUserOpen] = useState<string | null>(null)
-  const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserPassword, setNewUserPassword] = useState('')
   const [newUserName, setNewUserName] = useState('')
   const [showNewUserPw, setShowNewUserPw] = useState(false)
@@ -188,13 +190,17 @@ export default function SediPage() {
     const res = await fetch('/api/create-user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newUserName, pin: newUserPassword, sedeId, role: 'operatore' }),
+      body: JSON.stringify({
+        name: newUserName.trim().toUpperCase(),
+        pin: newUserPassword,
+        sedeId,
+        role: 'operatore',
+      }),
     })
     const data = await res.json()
     setCreatingUser(false)
     if (res.ok) {
       setCreateUserMsg({ ok: true, text: data.message })
-      setNewUserEmail('')
       setNewUserPassword('')
       await loadData()
     } else {
@@ -209,13 +215,21 @@ export default function SediPage() {
   const [savingAccessPw, setSavingAccessPw] = useState(false)
 
   const handleSaveAccessPassword = async (sedeId: string) => {
+    const digits = accessPwValue.replace(/\D/g, '').slice(0, 4)
+    if (digits.length > 0 && digits.length !== 4) {
+      setError('Il PIN di accesso sede deve essere di 4 cifre oppure vuoto.')
+      return
+    }
     setSavingAccessPw(true)
-    const { error } = await supabase.from('sedi').update({
-      access_password: accessPwValue.trim() || null,
-    }).eq('id', sedeId)
+    const res = await fetch(`/api/sedi/${sedeId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_password: digits.length ? digits : null }),
+    })
+    const d = await res.json().catch(() => ({}))
     setSavingAccessPw(false)
-    if (error) {
-      setError(error.message)
+    if (!res.ok) {
+      setError(typeof d.error === 'string' ? d.error : 'Errore salvataggio PIN sede.')
       return
     }
     setAccessPwOpen(null)
@@ -285,7 +299,6 @@ export default function SediPage() {
     const scope: 'global' | 'sede' = data.adminListScope === 'sede' ? 'sede' : 'global'
     setAdminListScope(scope)
     setSedi(data.sedi ?? [])
-    setAllSedi(data.sedi ?? [])
     setProfiles((data.profiles ?? []) as ProfileWithSede[])
     setLoading(false)
   }
@@ -296,27 +309,20 @@ export default function SediPage() {
     if (adminListScope === 'sede' && showWizard) setShowWizard(false)
   }, [adminListScope, showWizard])
 
-  const handleAddSede = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (adminListScope === 'sede') return
-    if (!newSedeName.trim()) return
-    setAddingSede(true)
-    setError(null)
-    const { error: err } = await supabase.from('sedi').insert([{ nome: newSedeName.trim() }])
-    setAddingSede(false)
-    if (err) { setError(err.message); return }
-    setNewSedeName('')
-    setSuccessMsg('Sede aggiunta con successo.')
-    setTimeout(() => setSuccessMsg(null), 3000)
-    await loadData()
-  }
-
   const handleUpdateSede = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingSede) return
     setError(null)
-    const { error: err } = await supabase.from('sedi').update({ nome: editingSede.nome }).eq('id', editingSede.id)
-    if (err) { setError(err.message); return }
+    const res = await fetch(`/api/sedi/${editingSede.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome: editingSede.nome.trim() }),
+    })
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setError(typeof d.error === 'string' ? d.error : 'Errore aggiornamento sede.')
+      return
+    }
     setEditingSede(null)
     setSuccessMsg('Sede aggiornata.')
     setTimeout(() => setSuccessMsg(null), 3000)
@@ -331,15 +337,6 @@ export default function SediPage() {
     if (err) { setError(err.message); return }
     setSuccessMsg('Sede eliminata.')
     setTimeout(() => setSuccessMsg(null), 3000)
-    await loadData()
-  }
-
-  const handleUpdateProfile = async (profileId: string, field: 'sede_id' | 'role', value: string) => {
-    setError(null)
-    const { error: err } = await supabase.from('profiles').update({ [field]: value || null }).eq('id', profileId)
-    if (err) { setError(err.message); return }
-    setSuccessMsg('Utente aggiornato.')
-    setTimeout(() => setSuccessMsg(null), 2000)
     await loadData()
   }
 
@@ -360,15 +357,23 @@ export default function SediPage() {
     setSavingImap(true)
     setError(null)
     const lookbackVal = parseInt(imapForm.imap_lookback_days)
-    const { error: err } = await supabase.from('sedi').update({
-      imap_host: imapForm.imap_host.trim() || null,
-      imap_port: parseInt(imapForm.imap_port) || 993,
-      imap_user: imapForm.imap_user.trim() || null,
-      imap_password: imapForm.imap_password || null,
-      imap_lookback_days: isNaN(lookbackVal) || lookbackVal <= 0 ? null : lookbackVal,
-    }).eq('id', sedeId)
+    const res = await fetch(`/api/sedi/${sedeId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imap_host: imapForm.imap_host.trim() || null,
+        imap_port: parseInt(imapForm.imap_port) || 993,
+        imap_user: imapForm.imap_user.trim() || null,
+        imap_password: imapForm.imap_password || null,
+        imap_lookback_days: isNaN(lookbackVal) || lookbackVal <= 0 ? null : lookbackVal,
+      }),
+    })
+    const d = await res.json().catch(() => ({}))
     setSavingImap(false)
-    if (err) { setError(err.message); return }
+    if (!res.ok) {
+      setError(typeof d.error === 'string' ? d.error : 'Errore salvataggio IMAP.')
+      return
+    }
     setSuccessMsg('Configurazione email salvata.')
     setTimeout(() => setSuccessMsg(null), 3000)
     setImapOpen(null)
@@ -409,12 +414,12 @@ export default function SediPage() {
   if (!isAdmin) {
     return (
       <div className="p-8 max-w-lg">
-        <div className="bg-red-50 border border-red-100 rounded-xl p-6 text-center">
-          <svg className="w-10 h-10 text-red-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-6 text-center">
+          <svg className="mx-auto mb-3 h-10 w-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
-          <p className="font-semibold text-red-700">{t.sedi.accessDenied}</p>
-          <p className="text-sm text-red-500 mt-1">{t.sedi.accessDeniedHint}</p>
+          <p className="font-semibold text-red-200">{t.sedi.accessDenied}</p>
+          <p className="mt-1 text-sm text-red-300/90">{t.sedi.accessDeniedHint}</p>
         </div>
       </div>
     )
@@ -430,13 +435,8 @@ export default function SediPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-slate-100">{t.sedi.title}</h1>
-          <p className="text-sm text-slate-400 mt-1 hidden md:block">{t.sedi.subtitle}</p>
-          {isSedeScopedAdmin ? (
-            <p className="mt-2 text-xs leading-snug text-amber-200/90 md:text-sm border border-amber-500/25 rounded-lg px-3 py-2 bg-amber-500/10">
-              {t.sedi.adminScopedSediHint}
-            </p>
-          ) : null}
+          <h1 className="text-xl md:text-2xl font-bold text-slate-100">{t.sedi.titleGlobalAdmin}</h1>
+          <p className="text-sm text-slate-400 mt-1 hidden md:block">{t.sedi.subtitleGlobalAdmin}</p>
         </div>
         {!isSedeScopedAdmin ? (
           <button
@@ -650,8 +650,8 @@ export default function SediPage() {
                     </div>
                   </div>
                   {(wizardImap.imap_host.includes('gmail') || wizardImap.imap_host.includes('outlook') || wizardImap.imap_host.includes('office365')) && (
-                    <div className="flex gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700">
-                      <svg className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                      <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
                       <span>
@@ -695,9 +695,9 @@ export default function SediPage() {
                   {wizardOperators.length > 0 && (
                     <div className="space-y-1.5 mb-2">
                       {wizardOperators.map((op, i) => (
-                        <div key={i} className="flex items-center justify-between px-3 py-2 bg-green-50 border border-green-100 rounded-lg">
+                        <div key={i} className="flex items-center justify-between rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600">
                               <span className="text-white text-[10px] font-bold">{op.name.charAt(0).toUpperCase()}</span>
                             </div>
                             <span className="text-sm font-medium text-slate-100">{op.name}</span>
@@ -719,8 +719,12 @@ export default function SediPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1">Nome operatore</label>
-                        <input type="text" placeholder="Mario Rossi" value={wizardNewOpName}
-                          onChange={(e) => setWizardNewOpName(e.target.value)}
+                        <input
+                          type="text"
+                          placeholder="MARIO ROSSI"
+                          autoCapitalize="characters"
+                          value={wizardNewOpName}
+                          onChange={(e) => setWizardNewOpName(e.target.value.toUpperCase())}
                           onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
                           className="w-full px-3 py-2 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95"
                         />
@@ -759,7 +763,7 @@ export default function SediPage() {
                   </div>
 
                   {wizardError && (
-                    <div className="text-xs px-3 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg">{wizardError}</div>
+                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">{wizardError}</div>
                   )}
 
                   <div className="flex justify-between pt-1">
@@ -784,7 +788,7 @@ export default function SediPage() {
 
       {/* Sedi list */}
       <div>
-        <h2 className="text-base font-semibold text-slate-100 mb-3">{t.sedi.title} ({sedi.length})</h2>
+        <h2 className="text-base font-semibold text-slate-100 mb-3">{t.sedi.titleGlobalAdmin} ({sedi.length})</h2>
         {sedi.length === 0 ? (
           <div className="bg-slate-800/60 border border-dashed border-slate-600/50 rounded-xl p-8 text-center">
             <p className="text-slate-500 text-sm">{t.sedi.noSedi}</p>
@@ -819,10 +823,10 @@ export default function SediPage() {
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="text-xs text-slate-500">{sede.users_count} operatori · {sede.fornitori_count} fornitori · {sede.bolle_count} bolle · {sede.fatture_count} fatture</span>
                             {sede.access_password && (
-                              <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-semibold rounded">PIN</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/35">PIN</span>
                             )}
                             {sede.imap_user ? (
-                              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">EMAIL ✓</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/35">EMAIL ✓</span>
                             ) : (
                               <span className="px-1.5 py-0.5 bg-slate-800/80 text-slate-500 text-[10px] font-medium rounded">Email non config.</span>
                             )}
@@ -840,7 +844,7 @@ export default function SediPage() {
                           <button
                             type="button"
                             onClick={() => handleDeleteSede(sede.id, sede.nome)}
-                            className="p-1.5 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-colors"
                             title={t.sedi.deleteTitle}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -867,7 +871,7 @@ export default function SediPage() {
                           <div key={p.id}>
                             {editingProfile?.id === p.id ? (
                               <form
-                                className="px-3 py-2.5 bg-blue-50/60 rounded-lg border border-blue-100 space-y-3"
+                                className="space-y-3 rounded-lg border border-cyan-500/25 bg-slate-800/90 px-3 py-2.5 ring-1 ring-cyan-500/10"
                                 onSubmit={(e) => {
                                   e.preventDefault()
                                   void handleSaveProfile()
@@ -879,8 +883,14 @@ export default function SediPage() {
                                     <input
                                       type="text"
                                       autoFocus
+                                      autoCapitalize="characters"
                                       value={editingProfile.full_name}
-                                      onChange={(e) => setEditingProfile({ ...editingProfile, full_name: e.target.value })}
+                                      onChange={(e) =>
+                                        setEditingProfile({
+                                          ...editingProfile,
+                                          full_name: e.target.value.toUpperCase(),
+                                        })
+                                      }
                                       className="w-full text-sm px-2.5 py-2 min-h-[44px] border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95"
                                     />
                                   </div>
@@ -892,8 +902,10 @@ export default function SediPage() {
                                       className="w-full text-sm px-2.5 py-2 min-h-[44px] border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95"
                                     >
                                       <option value="operatore">Operatore</option>
-                                      <option value="admin_sede">Admin sede</option>
-                                      <option value="admin">Admin</option>
+                                      <option value="admin_sede">{t.sedi.adminSedeRole}</option>
+                                      {me?.is_admin ? (
+                                        <option value="admin">{t.sedi.profileRoleAdmin}</option>
+                                      ) : null}
                                     </select>
                                   </div>
                                 </div>
@@ -918,7 +930,7 @@ export default function SediPage() {
                               <div className="flex items-center justify-between py-1.5 px-3 bg-slate-800/60 rounded-lg">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <div className="w-6 h-6 rounded-full bg-cyan-500/10 flex items-center justify-center shrink-0">
-                                    <svg className="w-3 h-3 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                     </svg>
                                   </div>
@@ -927,18 +939,24 @@ export default function SediPage() {
                                   </p>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
-                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ring-1 ${
                                     p.role === 'admin'
-                                      ? 'bg-violet-100 text-violet-700'
+                                      ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
                                       : p.role === 'admin_sede'
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-blue-50 text-blue-600'
+                                        ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
+                                        : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                                   }`}>
-                                    {p.role === 'admin' ? 'Admin' : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
+                                    {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
                                   </span>
                                   <button
                                     type="button"
-                                    onClick={() => setEditingProfile({ id: p.id, full_name: p.full_name ?? '', role: p.role })}
+                                    onClick={() =>
+                                      setEditingProfile({
+                                        id: p.id,
+                                        full_name: (p.full_name ?? '').toUpperCase(),
+                                        role: p.role,
+                                      })
+                                    }
                                     className="p-1 text-slate-600 hover:text-cyan-400 hover:bg-cyan-500/10 rounded transition-colors"
                                     title="Modifica"
                                   >
@@ -950,7 +968,7 @@ export default function SediPage() {
                                     type="button"
                                     onClick={() => handleDeleteUser(p.id, p.email ?? '')}
                                     disabled={deletingUserId === p.id}
-                                    className="p-1 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-40"
+                                    className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/15 rounded transition-colors disabled:opacity-40"
                                     title="Elimina"
                                   >
                                     {deletingUserId === p.id
@@ -973,7 +991,7 @@ export default function SediPage() {
 
                   {/* Crea operatore */}
                   <button type="button"
-                    onClick={() => { setCreateUserOpen(createUserOpen === sede.id ? null : sede.id); setCreateUserMsg(null); setNewUserEmail(''); setNewUserPassword(''); setNewUserName('') }}
+                    onClick={() => { setCreateUserOpen(createUserOpen === sede.id ? null : sede.id); setCreateUserMsg(null); setNewUserPassword(''); setNewUserName('') }}
                     className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-slate-400 hover:bg-slate-800/60 transition-colors"
                   >
                     <span className="flex items-center gap-1.5">
@@ -991,9 +1009,14 @@ export default function SediPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">Nome operatore</label>
-                          <input type="text" placeholder="Mario Rossi" value={newUserName}
-                            onChange={(e) => setNewUserName(e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95" />
+                          <input
+                            type="text"
+                            placeholder="MARIO ROSSI"
+                            autoCapitalize="characters"
+                            value={newUserName}
+                            onChange={(e) => setNewUserName(e.target.value.toUpperCase())}
+                            className="w-full px-3 py-2 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">PIN (min. 4 caratteri)</label>
@@ -1014,7 +1037,7 @@ export default function SediPage() {
                         </div>
                       </div>
                       {createUserMsg && (
-                        <div className={`text-xs px-3 py-2 rounded-lg ${createUserMsg.ok ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                        <div className={`text-xs px-3 py-2 rounded-lg border ${createUserMsg.ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
                           {createUserMsg.text}
                         </div>
                       )}
@@ -1032,7 +1055,16 @@ export default function SediPage() {
 
                   {/* Codice accesso */}
                   <button type="button"
-                    onClick={() => { if (accessPwOpen === sede.id) { setAccessPwOpen(null) } else { setAccessPwOpen(sede.id); setAccessPwValue(sede.access_password ?? ''); setShowAccessPw(false) } }}
+                    onClick={() => {
+                      if (accessPwOpen === sede.id) {
+                        setAccessPwOpen(null)
+                      } else {
+                        setAccessPwOpen(sede.id)
+                        const d = (sede.access_password ?? '').replace(/\D/g, '').slice(0, 4)
+                        setAccessPwValue(d)
+                        setShowAccessPw(false)
+                      }
+                    }}
                     className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-slate-400 hover:bg-slate-800/60 transition-colors"
                   >
                     <span className="flex items-center gap-1.5">
@@ -1048,9 +1080,16 @@ export default function SediPage() {
                   {accessPwOpen === sede.id && (
                     <div className="px-5 py-4 space-y-3 bg-slate-800/40">
                       <div className="relative">
-                        <input type={showAccessPw ? 'text' : 'password'} placeholder="PIN o password sede…" value={accessPwValue}
-                          onChange={(e) => setAccessPwValue(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95 pr-9" />
+                        <input
+                          type={showAccessPw ? 'text' : 'password'}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={4}
+                          placeholder="••••"
+                          value={accessPwValue}
+                          onChange={(e) => setAccessPwValue(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          className="w-full px-3 py-2 text-sm tracking-widest border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/35 focus:border-cyan-500 bg-slate-900/95 pr-9 text-center"
+                        />
                         <button type="button" onClick={() => setShowAccessPw(!showAccessPw)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1061,7 +1100,7 @@ export default function SediPage() {
                           </svg>
                         </button>
                       </div>
-                      <p className="text-[11px] text-slate-500">Lascia vuoto per disabilitare il codice.</p>
+                      <p className="text-[11px] text-slate-500">PIN numerico di 4 cifre. Lascia vuoto per disabilitare.</p>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setAccessPwOpen(null)}
                           className="px-3 py-2 text-sm border border-slate-600/50 rounded-lg hover:bg-slate-800/60 text-slate-400">Annulla</button>
@@ -1235,8 +1274,8 @@ export default function SediPage() {
                       </div>
 
                       {(imapForm.imap_host.includes('gmail') || imapForm.imap_host.includes('googlemail') || imapForm.imap_host.includes('outlook') || imapForm.imap_host.includes('office365')) && (
-                        <div className="flex gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700">
-                          <svg className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                          <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                           </svg>
                           <span>
@@ -1248,7 +1287,7 @@ export default function SediPage() {
                         </div>
                       )}
                       {imapTestResult && (
-                        <div className={`text-xs px-3 py-2 rounded-lg ${imapTestResult.ok ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                        <div className={`rounded-lg border px-3 py-2 text-xs ${imapTestResult.ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
                           {imapTestResult.message}
                         </div>
                       )}
@@ -1293,21 +1332,21 @@ export default function SediPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ${
                         p.role === 'admin'
-                          ? 'bg-violet-100 text-violet-700'
+                          ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
                           : p.role === 'admin_sede'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-blue-50 text-blue-600'
+                            ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
+                            : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                       }`}
                     >
-                      {p.role === 'admin' ? 'Admin' : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
+                      {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleDeleteUser(p.id, p.email ?? '')}
                       disabled={deletingUserId === p.id}
-                      className="p-1.5 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                      className="p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-colors disabled:opacity-40"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>

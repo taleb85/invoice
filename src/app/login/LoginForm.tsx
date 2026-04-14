@@ -53,6 +53,15 @@ function LoginFormInner() {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSugg, setShowSugg]     = useState(false)
 
+  /** Gate opzionale admin (`ADMIN_LOGIN_GATE_PIN` sul server) */
+  const [adminGateEnabled, setAdminGateEnabled] = useState<boolean | null>(null)
+  const [adminGateUnlocked, setAdminGateUnlocked] = useState(false)
+  const [adminGatePinLen, setAdminGatePinLen]     = useState(PIN_LENGTH)
+  const [adminGatePin, setAdminGatePin]           = useState<string[]>(() => Array(PIN_LENGTH).fill(''))
+  const [adminGateVerifying, setAdminGateVerifying] = useState(false)
+  const adminGatePinRefs = useRef<(HTMLInputElement | null)[]>([])
+  const emailRef         = useRef<HTMLInputElement | null>(null)
+
   /* ─── lookup nome → email interna ─────────────────── */
   const lookupSede = async (n: string) => {
     const token = normalizeOperatorLoginName(n)
@@ -105,8 +114,14 @@ function LoginFormInner() {
       setTimeout(() => pinRefs.current[0]?.focus(), 50)
       return
     }
+    try {
+      localStorage.removeItem('fluxo-active-operator')
+      localStorage.removeItem('fluxo-active-operator-user')
+    } catch {
+      /* ignore */
+    }
     router.push('/'); router.refresh()
-  }, [loading, supabase, router])
+  }, [loading, supabase, router, t.login.pinIncorrect])
 
   /* ─── gestione digitazione PIN ────────────────────── */
   const handlePinChange = (idx: number, val: string) => {
@@ -169,6 +184,129 @@ function LoginFormInner() {
     }
   }, [nameReady, pin])
 
+  /* Gate admin: stato da server */
+  useEffect(() => {
+    if (mode !== 'admin') return
+    setAdminGateEnabled(null)
+    setAdminGateUnlocked(false)
+    setMessage(null)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/admin-login-gate')
+        const data = (await res.json().catch(() => ({}))) as {
+          enabled?: boolean
+          pinLength?: number
+        }
+        if (cancelled) return
+        const en = Boolean(data.enabled)
+        setAdminGateEnabled(en)
+        if (!en) {
+          setAdminGateUnlocked(true)
+          return
+        }
+        const pl =
+          typeof data.pinLength === 'number' && data.pinLength > 0
+            ? data.pinLength
+            : PIN_LENGTH
+        setAdminGatePinLen(pl)
+        setAdminGatePin(Array(pl).fill(''))
+        setAdminGateUnlocked(false)
+      } catch {
+        if (!cancelled) {
+          setAdminGateEnabled(false)
+          setAdminGateUnlocked(true)
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [mode])
+
+  useEffect(() => {
+    if (mode !== 'admin' || adminGateEnabled !== true || adminGateUnlocked || adminGateVerifying) return
+    adminGatePinRefs.current[0]?.focus()
+  }, [mode, adminGateEnabled, adminGateUnlocked, adminGateVerifying])
+
+  useEffect(() => {
+    if (mode !== 'admin' || !adminGateUnlocked) return
+    const tmr = window.setTimeout(() => emailRef.current?.focus(), 60)
+    return () => window.clearTimeout(tmr)
+  }, [mode, adminGateUnlocked])
+
+  const verifyAdminGate = useCallback(
+    async (full: string) => {
+      if (adminGateVerifying) return
+      setAdminGateVerifying(true)
+      setMessage(null)
+      try {
+        const res = await fetch('/api/admin-login-gate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pin: full }),
+        })
+        const data = (await res.json().catch(() => ({}))) as { ok?: boolean }
+        if (res.ok && data.ok) {
+          setAdminGateUnlocked(true)
+          setAdminGatePin(Array(adminGatePinLen).fill(''))
+        } else {
+          setMessage({ type: 'error', text: t.login.adminGateWrong })
+          setAdminGatePin(Array(adminGatePinLen).fill(''))
+          window.setTimeout(() => adminGatePinRefs.current[0]?.focus(), 50)
+        }
+      } catch {
+        setMessage({ type: 'error', text: t.ui.networkError })
+      } finally {
+        setAdminGateVerifying(false)
+      }
+    },
+    [adminGatePinLen, adminGateVerifying, t.login.adminGateWrong, t.ui.networkError],
+  )
+
+  const handleAdminGatePinChange = (idx: number, val: string) => {
+    const char = val.length === 0 ? '' : val.slice(-1)
+    const next = [...adminGatePin]
+    next[idx]  = char
+    setAdminGatePin(next)
+    setMessage(null)
+
+    if (char) {
+      if (idx < adminGatePinLen - 1) {
+        adminGatePinRefs.current[idx + 1]?.focus()
+      } else {
+        adminGatePinRefs.current[idx]?.blur()
+        const full = next.join('')
+        if (full.length === adminGatePinLen) void verifyAdminGate(full)
+      }
+    }
+  }
+
+  const handleAdminGatePinKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (adminGatePin[idx]) {
+        const next = [...adminGatePin]; next[idx] = ''; setAdminGatePin(next)
+      } else if (idx > 0) {
+        adminGatePinRefs.current[idx - 1]?.focus()
+        const next = [...adminGatePin]; next[idx - 1] = ''; setAdminGatePin(next)
+      }
+    } else if (e.key === 'ArrowLeft' && idx > 0) {
+      adminGatePinRefs.current[idx - 1]?.focus()
+    } else if (e.key === 'ArrowRight' && idx < adminGatePinLen - 1) {
+      adminGatePinRefs.current[idx + 1]?.focus()
+    }
+  }
+
+  const handleAdminGatePinPaste = (e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData('text').slice(0, adminGatePinLen)
+    if (!text) return
+    e.preventDefault()
+    const next = Array(adminGatePinLen).fill('')
+    text.split('').forEach((c, i) => { next[i] = c })
+    setAdminGatePin(next)
+    const lastFilled = Math.min(text.length, adminGatePinLen) - 1
+    adminGatePinRefs.current[Math.max(0, lastFilled)]?.focus()
+    if (text.length === adminGatePinLen) void verifyAdminGate(text)
+  }
+
   /* ─── email autocomplete ──────────────────────────── */
   const handleEmailChange = (val: string) => {
     setEmail(val)
@@ -182,7 +320,7 @@ function LoginFormInner() {
 
   /* ─── login admin (solo profilo role = admin) ─────── */
   const handleLoginByEmail = async () => {
-    if (!email || !adminPw) return
+    if (!adminGateUnlocked || !email || !adminPw) return
     setLoading(true); setMessage(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password: adminPw })
     if (error) { setMessage({ type: 'error', text: t.login.invalidCredentials }); setLoading(false); return }
@@ -201,6 +339,17 @@ function LoginFormInner() {
       return
     }
 
+    // Stesso URL `/`, ma senza questo la UI resta “come operatore”: cookie sede + operatore in localStorage
+    // da sessioni precedenti sul browser (es. Osteria Basilico + Gustavo).
+    document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
+    document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
+    try {
+      localStorage.removeItem('fluxo-active-operator')
+      localStorage.removeItem('fluxo-active-operator-user')
+    } catch {
+      /* ignore */
+    }
+
     router.push('/'); router.refresh()
   }
 
@@ -209,10 +358,10 @@ function LoginFormInner() {
   const pinFilled = pin.join('').length === PIN_LENGTH
 
   return (
-    <div className="w-full max-w-xs">
+    <div className="mx-auto w-full max-w-xs">
 
       {/* Logo — ingrandito, verticale */}
-      <div className="flex flex-col items-center mb-6 -mt-4">
+      <div className="flex flex-col items-center text-center mb-6 -mt-4">
         <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="w-28 h-[68px] shrink-0 drop-shadow-[0_6px_24px_rgba(6,182,212,0.45)] mb-4">
           <defs>
             <linearGradient id="lg-card" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -233,28 +382,47 @@ function LoginFormInner() {
           <circle cx="88" cy="28" r="3.5" fill="#22d3ee"/>
         </svg>
         <h1 className="text-5xl font-extrabold tracking-widest bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent leading-none drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]">FLUXO</h1>
-        <p className="text-[11px] font-semibold tracking-[0.3em] uppercase mt-2 bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent opacity-80">Gestione Fatture</p>
-        <p className="text-xs text-white/90 mt-6">
-          {mode === 'name' ? t.login.subtitle : t.login.adminSubtitle}
-        </p>
+        <p className="text-[11px] font-semibold tracking-[0.3em] uppercase mt-2 bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent opacity-80">{t.login.brandTagline}</p>
+        {mode === 'name' ? (
+          <p className="mt-6 max-w-[20rem] px-1 text-xs leading-snug text-white/90 text-balance">
+            {t.login.subtitle}
+          </p>
+        ) : (
+          <div className="mt-6 flex max-w-[20rem] flex-col items-center gap-1.5 px-1 text-center">
+            <p className="text-[0.8125rem] font-semibold leading-snug tracking-tight text-cyan-200/95 text-balance">
+              {t.login.adminSubtitle}
+            </p>
+            <p className="text-[11px] leading-relaxed text-slate-400 text-balance">
+              {t.login.adminSubtitleHint}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Card — tema Deep Ocean; shell + barra = globals .app-card-login / .app-card-bar */}
       <div className="app-card-login">
         <div className="app-card-bar" aria-hidden />
 
-        <div className="p-6 space-y-4">
+        <div className="space-y-4 p-6 text-center">
 
         {mode === 'name' ? (
-          /* ── OPERATORE: Nome + PIN a 4 cifre ── */
-          <div className="space-y-5">
+          /* ── OPERATORE: Nome + PIN a 4 cifre — niente autofill / salvataggio credenziali browser ── */
+          <form
+            className="space-y-5 text-center"
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore
+            data-bwignore
+            onSubmit={e => { e.preventDefault() }}
+          >
 
             {/* Nome */}
             <div>
-              <label className="block text-xs font-semibold text-cyan-400/80 mb-1.5 uppercase tracking-wide">{t.login.nameLabel}</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">{t.login.nameLabel}</label>
               <input
                 type="text"
-                autoComplete="given-name"
+                name="fluxo-branch-display"
+                autoComplete="off"
                 placeholder={t.login.namePlaceholder}
                 value={name}
                 onChange={e => {
@@ -268,12 +436,12 @@ function LoginFormInner() {
                   setName(token)
                   void lookupSede(token)
                 }}
-                className={inputCls + ' uppercase'}
+                className={`${inputCls} text-center uppercase`}
                 autoFocus
                 disabled={loading}
               />
               {/* Badge sede */}
-              <div className="mt-2 h-6 flex items-center">
+              <div className="mt-2 flex h-6 min-h-6 items-center justify-center">
                 {lookingUp && (
                   <span className="text-xs text-slate-400 flex items-center gap-1.5">
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -299,9 +467,9 @@ function LoginFormInner() {
 
             {/* PIN a 4 caselle */}
             <div>
-              <label className="block text-xs font-semibold text-cyan-400/80 mb-3 uppercase tracking-wide">
-                {t.login.pinLabel}
-                <span className="ml-1.5 font-normal text-gray-400 normal-case">{t.login.pinDigits}</span>
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
+                <span>{t.login.pinLabel}</span>
+                <span className="font-normal normal-case text-gray-400"> {t.login.pinDigits}</span>
               </label>
               <div className="flex gap-3 justify-center" onPaste={handlePinPaste}>
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -309,6 +477,8 @@ function LoginFormInner() {
                     key={idx}
                     ref={el => { pinRefs.current[idx] = el }}
                     type="password"
+                    name={`fluxo-access-segment-${idx}`}
+                    autoComplete="off"
                     inputMode="numeric"
                     maxLength={2}
                     value={pin[idx]}
@@ -353,88 +523,185 @@ function LoginFormInner() {
             </div>
 
             {message && <FeedbackMsg msg={message} />}
-          </div>
+          </form>
 
         ) : (
-          /* ── ADMIN: Email + Password ── */
-          <form onSubmit={e => { e.preventDefault(); handleLoginByEmail() }} className="space-y-4">
-
-            <div className="relative">
-              <label className="block text-xs font-semibold text-cyan-400/80 mb-1.5 uppercase tracking-wide">{t.login.emailLabel}</label>
-              <input
-                type="email" autoComplete="email" placeholder={t.login.emailPlaceholder}
-                value={email}
-                onChange={e => handleEmailChange(e.target.value)}
-                onBlur={() => setTimeout(() => setShowSugg(false), 150)}
-                onFocus={() => suggestions.length > 0 && setShowSugg(true)}
-                className={inputCls} autoFocus
-              />
-              {showSugg && (
-                <ul className="absolute z-10 left-0 right-0 mt-1 bg-slate-800 border border-slate-600/60 rounded-xl shadow-xl overflow-hidden text-sm">
-                  {suggestions.map(s => {
-                    const at = s.indexOf('@')
+          /* ── ADMIN: gate PIN opzionale + email/password ── */
+          <form
+            onSubmit={e => { e.preventDefault(); handleLoginByEmail() }}
+            className="space-y-4 text-center"
+            autoComplete="off"
+            data-lpignore="true"
+            data-1p-ignore
+            data-bwignore
+          >
+            {adminGateEnabled === null ? (
+              <div className="flex justify-center py-12" role="status" aria-live="polite">
+                <svg className="h-8 w-8 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+              </div>
+            ) : !adminGateUnlocked ? (
+              <div className="space-y-4">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
+                  {t.login.adminGateLabel}
+                </label>
+                <p className="px-0.5 text-[11px] leading-relaxed text-slate-500">{t.login.adminGateHint}</p>
+                <div
+                  className="flex flex-wrap justify-center gap-2"
+                  onPaste={handleAdminGatePinPaste}
+                >
+                  {Array.from({ length: adminGatePinLen }).map((_, idx) => {
+                    const narrow = adminGatePinLen > 5
                     return (
-                      <li key={s}>
-                        <button type="button" onMouseDown={() => { setEmail(s); setSuggestions([]); setShowSugg(false) }}
-                          className="w-full text-left px-4 py-2.5 hover:bg-slate-700/60 transition-colors flex items-center gap-1">
-                          <span className="text-slate-400">{s.slice(0, at + 1)}</span>
-                          <span className="text-slate-100 font-medium">{s.slice(at + 1)}</span>
-                        </button>
-                      </li>
+                      <input
+                        key={idx}
+                        ref={el => { adminGatePinRefs.current[idx] = el }}
+                        type="password"
+                        name={`fluxo-admin-gate-${idx}`}
+                        autoComplete="off"
+                        inputMode="text"
+                        maxLength={2}
+                        value={adminGatePin[idx]}
+                        onChange={e => handleAdminGatePinChange(idx, e.target.value)}
+                        onKeyDown={e => handleAdminGatePinKeyDown(idx, e)}
+                        disabled={adminGateVerifying}
+                        className={[
+                          narrow ? 'h-10 w-9 text-base' : 'h-14 w-14 text-xl',
+                          'border-2 text-center font-bold transition-all',
+                          'rounded-xl focus:outline-none focus:ring-0',
+                          adminGateVerifying
+                            ? 'border-slate-700 bg-slate-800/50 text-slate-600'
+                            : adminGatePin[idx]
+                              ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
+                              : 'border-slate-600 bg-slate-800/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10',
+                        ].join(' ')}
+                      />
                     )
                   })}
-                </ul>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-cyan-400/80 mb-1.5 uppercase tracking-wide">{t.login.passwordLabel}</label>
-              <div className="relative">
-                <input
-                  type={showPw ? 'text' : 'password'} autoComplete="current-password"
-                  placeholder={t.login.passwordPlaceholder} value={adminPw}
-                  onChange={e => setAdminPw(e.target.value)} className={inputCls + ' pr-11'}
-                />
-                <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
-                  {showPw ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </div>
+                {adminGateVerifying && (
+                  <p className="mt-1 flex items-center justify-center gap-2 text-xs text-cyan-400">
+                    <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                     </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                  )}
-                </button>
+                    {t.login.verifying}
+                  </p>
+                )}
+                {message && <FeedbackMsg msg={message} />}
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="relative text-left">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">{t.login.emailLabel}</label>
+                  <input
+                    ref={emailRef}
+                    type="email"
+                    name="fluxo-admin-email"
+                    autoComplete="off"
+                    placeholder={t.login.emailPlaceholder}
+                    value={email}
+                    onChange={e => handleEmailChange(e.target.value)}
+                    onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+                    onFocus={() => suggestions.length > 0 && setShowSugg(true)}
+                    className={inputCls}
+                  />
+                  {showSugg && (
+                    <ul className="absolute left-0 right-0 z-10 mt-1 overflow-hidden rounded-xl border border-slate-600/60 bg-slate-800 text-sm shadow-xl">
+                      {suggestions.map(s => {
+                        const at = s.indexOf('@')
+                        return (
+                          <li key={s}>
+                            <button type="button" onMouseDown={() => { setEmail(s); setSuggestions([]); setShowSugg(false) }}
+                              className="flex w-full items-center gap-1 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/60">
+                              <span className="text-slate-400">{s.slice(0, at + 1)}</span>
+                              <span className="font-medium text-slate-100">{s.slice(at + 1)}</span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </div>
 
-            {message && <FeedbackMsg msg={message} />}
+                <div className="text-left">
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">{t.login.passwordLabel}</label>
+                  <div className="relative">
+                    <input
+                      type={showPw ? 'text' : 'password'}
+                      name="fluxo-admin-secret"
+                      autoComplete="off"
+                      placeholder={t.login.passwordPlaceholder} value={adminPw}
+                      onChange={e => setAdminPw(e.target.value)} className={inputCls + ' pr-11'}
+                    />
+                    <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                      {showPw ? (
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                        </svg>
+                      ) : (
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-            <button type="submit" disabled={loading || !email || !adminPw}
-              className="app-glow-cyan flex w-full items-center justify-center gap-2 rounded-full bg-cyan-500 py-3 text-sm font-bold uppercase tracking-wide text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50">
-              {loading
-                ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-              }
-              {t.login.loginBtn}
-            </button>
+                {message && <FeedbackMsg msg={message} />}
+
+                <button type="submit" disabled={loading || !email || !adminPw || !adminGateUnlocked}
+                  className="app-glow-cyan flex w-full items-center justify-center gap-2 rounded-full bg-cyan-500 py-3 text-sm font-bold uppercase tracking-wide text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50">
+                  {loading
+                    ? <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                    : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                  }
+                  {t.login.loginBtn}
+                </button>
+              </>
+            )}
           </form>
         )}
         </div>{/* fine p-8 */}
       </div>{/* fine card */}
 
       {/* Toggle admin + language selector row */}
-      <div className="flex items-center justify-between mt-5 px-1">
+      <div className="mt-5 flex w-full items-center justify-between px-1">
         {mode === 'name' ? (
-          <button type="button" onClick={() => { setMode('admin'); setMessage(null) }}
+          <button type="button" onClick={() => {
+            setMode('admin')
+            setMessage(null)
+            setName('')
+            setSedeNome(null)
+            setNameReady(false)
+            resolvedEmail.current = null
+            setPin(Array(PIN_LENGTH).fill(''))
+            setEmail('')
+            setAdminPw('')
+            setSuggestions([])
+            setShowSugg(false)
+          }}
             className="text-[11px] text-white/80 hover:text-white transition-colors">
             {t.login.adminLink}
           </button>
         ) : (
-          <button type="button" onClick={() => { setMode('name'); setMessage(null) }}
+          <button type="button" onClick={() => {
+            setMode('name')
+            setMessage(null)
+            setEmail('')
+            setAdminPw('')
+            setSuggestions([])
+            setShowSugg(false)
+            setName('')
+            setSedeNome(null)
+            setNameReady(false)
+            resolvedEmail.current = null
+            setPin(Array(PIN_LENGTH).fill(''))
+          }}
             className="text-[11px] text-white/50 hover:text-white/80 transition-colors">
             {t.login.operatorLink}
           </button>
@@ -453,7 +720,7 @@ function LoginFormInner() {
             </svg>
           </button>
           {langOpen && (
-            <div className="absolute bottom-full mb-1 right-0 bg-[#0f2040] border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 w-36">
+            <div className="absolute bottom-full mb-1 right-0 z-50 w-36 overflow-hidden rounded-xl border border-white/10 bg-[#0f2040] shadow-xl">
               {LOCALES.map(l => (
                 <button
                   key={l.code}
@@ -482,14 +749,14 @@ function LoginFormInner() {
 
 function FeedbackMsg({ msg }: { msg: Message }) {
   return (
-    <div className={`flex items-start gap-2 text-sm px-4 py-3 rounded-xl ${
-      msg.type === 'error' ? 'bg-red-500/10 text-red-300 border border-red-500/20' : 'bg-green-500/10 text-green-300 border border-green-500/20'
+    <div className={`flex flex-col items-center gap-2 rounded-xl px-4 py-3 text-center text-sm ${
+      msg.type === 'error' ? 'border border-red-500/20 bg-red-500/10 text-red-300' : 'border border-green-500/20 bg-green-500/10 text-green-300'
     }`}>
       {msg.type === 'error'
-        ? <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        : <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        ? <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        : <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       }
-      {msg.text}
+      <p className="max-w-none text-pretty leading-snug">{msg.text}</p>
     </div>
   )
 }

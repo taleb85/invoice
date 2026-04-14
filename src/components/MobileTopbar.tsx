@@ -42,6 +42,12 @@ export default function MobileTopbar() {
   const currentLocale = LOCALES.find((l) => l.code === locale)
 
   const handleLogout = async () => {
+    try {
+      localStorage.removeItem('fluxo-active-operator')
+      localStorage.removeItem('fluxo-active-operator-user')
+    } catch {
+      /* ignore */
+    }
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()

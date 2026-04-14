@@ -8,10 +8,14 @@ import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProv
 import {
   readEmailSyncScopePrefs,
   writeEmailSyncScopePrefs,
-  emailSyncScopeBodyFields,
+  emailSyncApiBodyFields,
+  type EmailSyncDocumentKind,
   type EmailSyncScopePrefs,
 } from '@/lib/email-sync-scope-prefs'
 import { defaultFiscalYearLabel } from '@/lib/fiscal-year'
+
+/** Giorni predefiniti per l’override lookback (oltre al default sede). */
+const LOOKBACK_DAY_PRESETS = [3, 7, 14, 30, 60, 90] as const
 
 interface Props {
   /** Se true mostra sempre il testo (non solo su desktop) */
@@ -26,10 +30,7 @@ interface Props {
 export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propSedeId }: Props) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'ok' | 'warn' | 'error'; text: string } | null>(null)
-  const [scopePrefs, setScopePrefs] = useState<EmailSyncScopePrefs>(() => ({
-    mode: 'lookback',
-    fiscalYear: new Date().getUTCFullYear(),
-  }))
+  const [scopePrefs, setScopePrefs] = useState<EmailSyncScopePrefs>(() => readEmailSyncScopePrefs())
   const fallbackSedeIdRef = useRef<string | null>(null)
   const t = useT()
   const router = useRouter()
@@ -55,7 +56,12 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
     if (p.mode === 'fiscal_year') {
       const y = Math.min(current, Math.max(oldest, p.fiscalYear))
       if (y !== p.fiscalYear) {
-        const fixed = { mode: 'fiscal_year' as const, fiscalYear: y }
+        const fixed = {
+          mode: 'fiscal_year' as const,
+          fiscalYear: y,
+          lookbackDays: p.lookbackDays ?? null,
+          documentKind: p.documentKind ?? 'all',
+        }
         writeEmailSyncScopePrefs(fixed)
         setScopePrefs(fixed)
         return
@@ -75,7 +81,7 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
     setToast(null)
     try {
       const effectiveSedeId = propSedeId ?? fallbackSedeIdRef.current
-      const scopeFields = emailSyncScopeBodyFields(readEmailSyncScopePrefs())
+      const scopeFields = emailSyncApiBodyFields(scopePrefs)
       const payload = {
         ...scopeFields,
         ...(effectiveSedeId
@@ -115,10 +121,16 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
 
   const labelVis = alwaysShowLabel ? '' : 'hidden md:inline'
   const btnSize = alwaysShowLabel
-    ? 'inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 px-3.5 py-0'
+    ? 'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 px-3 py-0'
     : 'inline-flex items-center gap-1.5 px-3 py-1.5'
+  const selectSize =
+    'h-8 py-0 pl-2 pr-7 text-left text-[11px] font-medium leading-8'
 
   const selectValue = scopePrefs.mode === 'lookback' ? 'lb' : `fy:${scopePrefs.fiscalYear}`
+  const lookbackSelectValue =
+    scopePrefs.lookbackDays != null && scopePrefs.lookbackDays >= 1
+      ? String(scopePrefs.lookbackDays)
+      : 'def'
 
   return (
     <div className={`flex flex-col gap-1.5 ${alwaysShowLabel ? 'min-w-0 shrink-0' : 'items-end'}`}>
@@ -134,18 +146,28 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
           onChange={(e) => {
             const v = e.target.value
             if (v === 'lb') {
-              const n: EmailSyncScopePrefs = { mode: 'lookback', fiscalYear: scopePrefs.fiscalYear }
+              const n: EmailSyncScopePrefs = {
+                mode: 'lookback',
+                fiscalYear: scopePrefs.fiscalYear,
+                lookbackDays: scopePrefs.lookbackDays ?? null,
+                documentKind: scopePrefs.documentKind,
+              }
               writeEmailSyncScopePrefs(n)
               setScopePrefs(n)
               return
             }
             const y = Number(v.replace(/^fy:/, ''))
             if (!Number.isFinite(y)) return
-            const n: EmailSyncScopePrefs = { mode: 'fiscal_year', fiscalYear: y }
+            const n: EmailSyncScopePrefs = {
+              mode: 'fiscal_year',
+              fiscalYear: y,
+              lookbackDays: scopePrefs.lookbackDays ?? null,
+              documentKind: scopePrefs.documentKind,
+            }
             writeEmailSyncScopePrefs(n)
             setScopePrefs(n)
           }}
-          className="w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 py-1.5 pl-2 pr-7 text-left text-[11px] font-medium text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]"
+          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
         >
           <option className="bg-slate-900 text-slate-100" value="lb">
             {t.dashboard.emailSyncScopeLookback}
@@ -155,6 +177,101 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
               {t.dashboard.emailSyncScopeFiscal}: {y}
             </option>
           ))}
+        </select>
+        <svg
+          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+      {scopePrefs.mode === 'lookback' ? (
+        <div className="relative max-w-[min(100%,11rem)] min-w-0 shrink-0">
+          <select
+            value={lookbackSelectValue}
+            disabled={loading || emailSync?.progress.active}
+            title={t.dashboard.emailSyncLookbackDaysHint}
+            aria-label={t.dashboard.emailSyncLookbackDaysAria}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v === 'def') {
+                const n: EmailSyncScopePrefs = {
+                  ...scopePrefs,
+                  lookbackDays: null,
+                }
+                writeEmailSyncScopePrefs(n)
+                setScopePrefs(n)
+                return
+              }
+              const days = Number(v)
+              if (!Number.isFinite(days) || days < 1) return
+              const n: EmailSyncScopePrefs = { ...scopePrefs, lookbackDays: days }
+              writeEmailSyncScopePrefs(n)
+              setScopePrefs(n)
+            }}
+            className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+          >
+            <option className="bg-slate-900 text-slate-100" value="def">
+              {t.dashboard.emailSyncLookbackSedeDefault}
+            </option>
+            {LOOKBACK_DAY_PRESETS.map((d) => (
+              <option key={d} className="bg-slate-900 text-slate-100" value={String(d)}>
+                {t.dashboard.emailSyncLookbackDaysN.replace('{n}', String(d))}
+              </option>
+            ))}
+          </select>
+          <svg
+            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      ) : null}
+      <div className="relative max-w-[min(100%,13.5rem)] min-w-0 shrink-0">
+        <select
+          value={scopePrefs.documentKind}
+          disabled={loading || emailSync?.progress.active}
+          title={t.dashboard.emailSyncDocumentKindHint}
+          aria-label={t.dashboard.emailSyncDocumentKindAria}
+          onChange={(e) => {
+            const v = e.target.value as EmailSyncDocumentKind
+            if (
+              v !== 'all' &&
+              v !== 'fornitore' &&
+              v !== 'bolla' &&
+              v !== 'fattura' &&
+              v !== 'estratto_conto'
+            ) {
+              return
+            }
+            const n: EmailSyncScopePrefs = { ...scopePrefs, documentKind: v }
+            writeEmailSyncScopePrefs(n)
+            setScopePrefs(n)
+          }}
+          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-900/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+        >
+          <option className="bg-slate-900 text-slate-100" value="all">
+            {t.dashboard.emailSyncDocumentKindAll}
+          </option>
+          <option className="bg-slate-900 text-slate-100" value="fornitore">
+            {t.dashboard.emailSyncDocumentKindFornitore}
+          </option>
+          <option className="bg-slate-900 text-slate-100" value="bolla">
+            {t.dashboard.emailSyncDocumentKindBolla}
+          </option>
+          <option className="bg-slate-900 text-slate-100" value="fattura">
+            {t.dashboard.emailSyncDocumentKindFattura}
+          </option>
+          <option className="bg-slate-900 text-slate-100" value="estratto_conto">
+            {t.dashboard.emailSyncDocumentKindEstratto}
+          </option>
         </select>
         <svg
           className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-400"

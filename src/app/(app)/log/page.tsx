@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { openDocumentUrl } from '@/lib/open-document-url'
-import { createClient, getProfile } from '@/utils/supabase/server'
+import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import RetryButton from '@/components/RetryButton'
 import DeleteButton from '@/components/DeleteButton'
 import ScanEmailButton from '@/components/ScanEmailButton'
@@ -49,7 +49,7 @@ export default async function LogPage() {
   const isAdminSede = profile?.role === 'admin_sede'
   if (!isMasterAdmin && !isAdminSede) redirect('/')
 
-  const supabase = await createClient()
+  const { supabase } = await getRequestAuth()
   const [t, locale, tz] = await Promise.all([getT(), getLocale(), getTimezone()])
 
   const STATO_CONFIG: Record<LogStato, { label: string; className: string }> = {

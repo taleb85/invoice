@@ -4,6 +4,7 @@ import OpenAI from 'openai'
 
 export interface LineItem {
   prodotto: string
+  codice_prodotto: string | null
   prezzo: number
   unita: string | null
   note: string | null
@@ -15,7 +16,8 @@ Return ONLY valid JSON — no markdown, no explanation:
 {
   "items": [
     {
-      "prodotto": "Product name / description exactly as written",
+      "codice_prodotto": "SKU / article code / item # / EAN — or null if the line has no separate product code column",
+      "prodotto": "Product name / description exactly as written (without repeating the code if it is only in the code column)",
       "prezzo": 12.50,
       "unita": "kg / unit / box / l / pz — or null if not specified",
       "note": "any useful detail (e.g. 'per 5kg case') or null"
@@ -30,8 +32,11 @@ Rules:
 - Include ALL line items visible on the document.
 - Normalise prices to plain decimal numbers (e.g. "£12,50" → 12.50, "1.234,56" → 1234.56).
 - If price is not parseable, use null for that item.
-- prodotto: use the original language as written on the invoice.
+- codice_prodotto: use the value from columns often named Code, SKU, Art., Artikel, Ref., Item #, Product ID, EAN, Cod., Cód., etc. If the document only embeds a code inside the description text and there is no separate code field, you may put that alphanumeric code here and shorten prodotto accordingly, or leave codice_prodotto null if unclear.
+- prodotto: use the original language as written on the invoice; prefer the description text over the code.
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
+
+const VISION_MODEL = 'gpt-4o' as const
 
 async function extractPdfText(buffer: Buffer): Promise<string | null> {
   try {
@@ -45,6 +50,58 @@ async function extractPdfText(buffer: Buffer): Promise<string | null> {
   }
 }
 
+/**
+ * PDF scannerizzato o senza text layer: stesso approccio di `ocr-invoice` (prima pagina → JPEG, poi Files API).
+ */
+async function extractLineItemsFromScannedPdf(openai: OpenAI, buf: Buffer): Promise<string | null> {
+  const { tryRasterizePdfFirstPageForVision } = await import('@/lib/ocr-invoice-vision-prepare')
+  const raster = await tryRasterizePdfFirstPageForVision(buf)
+  if (raster) {
+    try {
+      const imageUrl = `data:image/jpeg;base64,${raster.toString('base64')}`
+      const completion = await openai.chat.completions.create({
+        model: VISION_MODEL,
+        max_tokens: 1500,
+        temperature: 0,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
+              { type: 'text', text: SYSTEM_PROMPT },
+            ],
+          },
+        ],
+      })
+      const out = completion.choices[0]?.message?.content?.trim()
+      if (out) return out
+    } catch (err) {
+      console.warn('[listino] Vision su PDF rasterizzato fallita, fallback Files API:', err)
+    }
+  }
+
+  try {
+    const file = new File([new Uint8Array(buf)], 'document.pdf', { type: 'application/pdf' })
+    const uploaded = await openai.files.create({ file, purpose: 'user_data' })
+    const parts = [
+      { type: 'file' as const, file: { file_id: uploaded.id } },
+      { type: 'text' as const, text: SYSTEM_PROMPT },
+    ]
+    const completion = await openai.chat.completions.create({
+      model: VISION_MODEL,
+      max_tokens: 1500,
+      temperature: 0,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      messages: [{ role: 'user', content: parts as any }],
+    })
+    openai.files.delete(uploaded.id).catch(() => {})
+    return completion.choices[0]?.message?.content?.trim() ?? null
+  } catch (err) {
+    console.error('[listino] Files API / vision su PDF fallita:', err)
+    return null
+  }
+}
+
 function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string | null } {
   try {
     const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
@@ -53,12 +110,18 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
     const parsed = JSON.parse(match[0])
     const items: LineItem[] = (parsed.items ?? [])
       .filter((i: Record<string, unknown>) => i.prodotto && i.prezzo != null)
-      .map((i: Record<string, unknown>) => ({
-        prodotto: String(i.prodotto).trim(),
-        prezzo: typeof i.prezzo === 'number' ? i.prezzo : parseFloat(String(i.prezzo)) || 0,
-        unita: i.unita ? String(i.unita) : null,
-        note: i.note ? String(i.note) : null,
-      }))
+      .map((i: Record<string, unknown>) => {
+        const rawCode = i.codice_prodotto ?? i.codice ?? i.sku
+        const codice =
+          rawCode != null && String(rawCode).trim() !== '' ? String(rawCode).trim() : null
+        return {
+          prodotto: String(i.prodotto).trim(),
+          codice_prodotto: codice,
+          prezzo: typeof i.prezzo === 'number' ? i.prezzo : parseFloat(String(i.prezzo)) || 0,
+          unita: i.unita ? String(i.unita) : null,
+          note: i.note ? String(i.note) : null,
+        }
+      })
     return { items, data_fattura: parsed.data_fattura ?? null }
   } catch {
     return { items: [], data_fattura: null }
@@ -112,25 +175,36 @@ export async function POST(req: NextRequest) {
 
   if (contentType.includes('pdf')) {
     const text = await extractPdfText(fileBuffer)
-    if (!text) {
-      return NextResponse.json({ error: 'PDF senza testo estraibile. Prova con un\'immagine.' }, { status: 422 })
+    if (text) {
+      const snippet = text.slice(0, 6000)
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        max_tokens: 1500,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: snippet },
+        ],
+      })
+      rawResponse = completion.choices[0]?.message?.content ?? ''
+    } else {
+      const visionOut = await extractLineItemsFromScannedPdf(openai, fileBuffer)
+      if (!visionOut) {
+        return NextResponse.json(
+          {
+            error:
+              'PDF senza testo estraibile e lettura grafica non riuscita. Il file potrebbe essere protetto, corrotto o in un formato non supportato.',
+          },
+          { status: 422 },
+        )
+      }
+      rawResponse = visionOut
     }
-    const snippet = text.slice(0, 6000)
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      max_tokens: 1500,
-      temperature: 0,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user',   content: snippet },
-      ],
-    })
-    rawResponse = completion.choices[0]?.message?.content ?? ''
   } else {
     const base64   = fileBuffer.toString('base64')
     const imageUrl = `data:${contentType};base64,${base64}`
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: VISION_MODEL,
       max_tokens: 1500,
       temperature: 0,
       messages: [{

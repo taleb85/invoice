@@ -46,7 +46,7 @@ export default function SollecitiButton({ fornitoriInScadenza = 0 }: Props) {
       <button
         onClick={handleClick}
         disabled={loading}
-        className="inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg bg-orange-500 px-3.5 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation"
+        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation"
       >
         {loading ? (
           <>
@@ -63,7 +63,7 @@ export default function SollecitiButton({ fornitoriInScadenza = 0 }: Props) {
             </svg>
             <span>{t.dashboard.sendReminders}</span>
             {/* Badge con conteggio */}
-            <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-orange-500/40 bg-orange-500/20 px-0.5 text-[10px] font-bold tabular-nums text-orange-200">
+            <span className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full border border-orange-500/40 bg-orange-500/20 px-0.5 text-[9px] font-bold tabular-nums text-orange-200">
               {fornitoriInScadenza > 9 ? '9+' : fornitoriInScadenza}
             </span>
           </>

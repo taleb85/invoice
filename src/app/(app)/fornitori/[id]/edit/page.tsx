@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
@@ -31,6 +31,7 @@ export default function EditFornitore() {
   const [form, setForm] = useState({
     nome: '',
     display_name: '',
+    logo_url: '',
     email: '',
     piva: '',
     indirizzo: '',
@@ -44,14 +45,14 @@ export default function EditFornitore() {
   const [addingAlias, setAddingAlias] = useState(false)
   const [deletingAliasId, setDeletingAliasId] = useState<string | null>(null)
 
-  async function loadAliases() {
+  const loadAliases = useCallback(async () => {
     const { data } = await supabase
       .from('fornitore_emails')
       .select('id, email, label')
       .eq('fornitore_id', id)
       .order('created_at')
     setAliases(data ?? [])
-  }
+  }, [id, supabase])
 
   useEffect(() => {
     async function load() {
@@ -71,7 +72,8 @@ export default function EditFornitore() {
         }
         setForm({
           nome: data.nome ?? '',
-          display_name: row.display_name ?? '',
+          display_name: (row.display_name ?? '').toLocaleUpperCase(),
+          logo_url: (data as { logo_url?: string | null }).logo_url ?? '',
           email: data.email ?? '',
           piva: data.piva ?? '',
           indirizzo: row.indirizzo ?? '',
@@ -83,7 +85,7 @@ export default function EditFornitore() {
       setLoading(false)
     }
     load()
-  }, [id])
+  }, [id, loadAliases, supabase, t.fornitori.notFound])
 
   const handleAddAlias = async () => {
     if (!newAlias.email.trim()) return
@@ -121,7 +123,7 @@ export default function EditFornitore() {
       .from('fornitori')
       .update({
         nome: form.nome,
-        display_name: form.display_name.trim() || null,
+        display_name: form.display_name.trim().toLocaleUpperCase() || null,
         email: form.email || null,
         piva: form.piva || null,
         indirizzo: form.indirizzo.trim() || null,
@@ -187,12 +189,28 @@ export default function EditFornitore() {
           <div>
             <label className={labelCls}>{t.fornitori.displayNameLabel}</label>
             <input
-              className={inputCls}
+              className={`${inputCls} uppercase`}
+              autoCapitalize="characters"
               value={form.display_name}
-              onChange={(e) => setForm({ ...form, display_name: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, display_name: e.target.value.toLocaleUpperCase() })
+              }
               placeholder={t.fornitori.displayNamePlaceholder}
             />
             <p className="mt-1 text-[11px] text-slate-400">{t.fornitori.displayNameHint}</p>
+          </div>
+          <div>
+            <label className={labelCls}>{t.fornitori.logoUrlLabel}</label>
+            <input
+              type="url"
+              className={inputCls}
+              value={form.logo_url}
+              onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
+              placeholder={t.fornitori.logoUrlPlaceholder}
+              inputMode="url"
+              autoComplete="off"
+            />
+            <p className="mt-1 text-[11px] text-slate-400">{t.fornitori.logoUrlHint}</p>
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.email}</label>

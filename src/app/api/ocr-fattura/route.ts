@@ -10,9 +10,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nessun file ricevuto.' }, { status: 400 })
     }
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Formato non supportato. Usa JPG, PNG, WebP, GIF o PDF.' }, { status: 400 })
+    if (file.type !== 'application/pdf') {
+      return NextResponse.json(
+        { error: 'Carica un PDF (fattura o documento da mail). Le immagini non sono supportate.' },
+        { status: 400 },
+      )
     }
 
     const buffer = await file.arrayBuffer()

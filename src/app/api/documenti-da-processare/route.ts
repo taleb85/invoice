@@ -1,6 +1,120 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { recordManualSupplierAssociation, senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
+import { recordManualSupplierAssociation } from '@/lib/mittente-fornitore-assoc'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+type DocRowFinalizza = {
+  fornitore_id: string | null
+  sede_id: string | null
+  data_documento: string | null
+  file_url: string
+  is_statement: boolean
+  metadata: unknown
+}
+
+/** Crea fattura senza bolla, bolla da allegato, o archivia estratto — dopo scelta tipo in coda. */
+async function finalizePendingByTipo(
+  supabase: SupabaseClient,
+  id: string,
+  doc: DocRowFinalizza,
+): Promise<NextResponse> {
+  const meta =
+    doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+      ? (doc.metadata as Record<string, unknown>)
+      : {}
+  let tipo = meta.pending_kind as string | undefined
+  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement') {
+    tipo = doc.is_statement ? 'statement' : undefined
+  }
+  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement') {
+    return NextResponse.json({ error: 'Imposta il tipo di documento (estratto, bolla o fattura).' }, { status: 400 })
+  }
+  if (!doc.fornitore_id) {
+    return NextResponse.json({ error: 'Associa un fornitore prima di finalizzare.' }, { status: 400 })
+  }
+
+  const oggi = new Date().toISOString().split('T')[0]
+  const { data: fornitoreRow } = await supabase
+    .from('fornitori')
+    .select('sede_id')
+    .eq('id', doc.fornitore_id)
+    .maybeSingle()
+  const sedeDefinitiva = fornitoreRow?.sede_id ?? doc.sede_id ?? null
+  const dataDoc = doc.data_documento ?? oggi
+  const m = meta as {
+    totale_iva_inclusa?: number | null
+    numero_fattura?: string | null
+  }
+
+  if (tipo === 'fattura') {
+    const { data: fattura, error: insErr } = await supabase
+      .from('fatture')
+      .insert([{
+        fornitore_id: doc.fornitore_id,
+        bolla_id: null,
+        sede_id: sedeDefinitiva,
+        data: dataDoc,
+        file_url: doc.file_url,
+        importo: m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null,
+        verificata_estratto_conto: false,
+        numero_fattura: typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null,
+      }])
+      .select('id')
+      .single()
+    if (insErr) {
+      return NextResponse.json({ error: `Errore inserimento fattura: ${insErr.message}` }, { status: 500 })
+    }
+    await supabase
+      .from('documenti_da_processare')
+      .update({
+        stato: 'associato',
+        fattura_id: fattura.id,
+        bolla_id: null,
+        ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+      })
+      .eq('id', id)
+    return NextResponse.json({ ok: true, fattura_id: fattura.id })
+  }
+
+  if (tipo === 'bolla') {
+    const numBolla =
+      typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null
+    const { data: bolla, error: insErr } = await supabase
+      .from('bolle')
+      .insert([{
+        fornitore_id: doc.fornitore_id,
+        sede_id: sedeDefinitiva,
+        data: dataDoc,
+        file_url: doc.file_url,
+        stato: 'in attesa',
+        numero_bolla: numBolla,
+        importo: m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null,
+      }])
+      .select('id')
+      .single()
+    if (insErr) {
+      return NextResponse.json({ error: `Errore inserimento bolla: ${insErr.message}` }, { status: 500 })
+    }
+    await supabase
+      .from('documenti_da_processare')
+      .update({
+        stato: 'associato',
+        bolla_id: bolla.id,
+        ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+      })
+      .eq('id', id)
+    return NextResponse.json({ ok: true, bolla_id: bolla.id })
+  }
+
+  await supabase
+    .from('documenti_da_processare')
+    .update({
+      stato: 'associato',
+      ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+    })
+    .eq('id', id)
+  return NextResponse.json({ ok: true })
+}
 
 // ── GET /api/documenti-da-processare ──────────────────────────────────────────
 // Returns pending documents using the service client to bypass RLS.
@@ -89,23 +203,58 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient()
 
   const body = await req.json()
-  const { id, azione, bolla_id, bolla_ids, fornitore_id, is_statement } = body as {
+  const { id, azione, bolla_id, bolla_ids, fornitore_id, is_statement, kind } = body as {
     id: string
-    azione: 'associa' | 'scarta' | 'aggiorna_fornitore' | 'mark_statement'
+    azione: 'associa' | 'scarta' | 'aggiorna_fornitore' | 'mark_statement' | 'set_pending_kind' | 'finalizza_tipo'
     bolla_id?: string          // legacy single-bolla
     bolla_ids?: string[]       // new multi-bolla
     fornitore_id?: string
     is_statement?: boolean
+    /** document classification: statement vs delivery note vs invoice (pending queue UI) */
+    kind?: 'statement' | 'bolla' | 'fattura'
+    /** Usato con azione `associa` per finalizzare senza bolle (stesso handler già deployato ovunque). */
+    finalizza_da_tipo?: boolean
   }
+  const azioneNorm = String(azione ?? '').trim()
   // Normalise: support both bolla_id (legacy) and bolla_ids (new)
   const bollaIds: string[] = bolla_ids?.length
     ? bolla_ids
     : bolla_id ? [bolla_id] : []
 
-  if (!id || !azione) return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 })
+  if (!id || !azioneNorm) return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 })
 
   // ── mark_statement ───────────────────────────────────────────────────────
-  if (azione === 'mark_statement') {
+  if (azioneNorm === 'mark_statement') {
+    // Classificazione Estratto / Bolla / Fattura: stessa logica di set_pending_kind così
+    // funziona anche su deploy che non espongono ancora l’azione dedicata (evita «Azione non valida»).
+    const classifies =
+      kind === 'statement' || kind === 'bolla' || kind === 'fattura'
+    if (classifies) {
+      const { data: row, error: readErr } = await supabase
+        .from('documenti_da_processare')
+        .select('metadata')
+        .eq('id', id)
+        .maybeSingle()
+      if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 })
+      if (!row) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
+      const prevMeta = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+        ? { ...(row.metadata as Record<string, unknown>) }
+        : {}
+      prevMeta.pending_kind = kind
+      const stmt = kind === 'statement'
+      const { error } = await supabase
+        .from('documenti_da_processare')
+        .update({
+          is_statement: stmt,
+          metadata: prevMeta,
+        })
+        .eq('id', id)
+      if (error && !error.message.includes('column')) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true })
+    }
+
     const { error } = await supabase
       .from('documenti_da_processare')
       .update({ is_statement: is_statement ?? true })
@@ -117,8 +266,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // ── set_pending_kind — estratto / bolla / fattura (metadata + is_statement) ──
+  if (azioneNorm === 'set_pending_kind') {
+    if (kind !== 'statement' && kind !== 'bolla' && kind !== 'fattura') {
+      return NextResponse.json({ error: 'kind non valido' }, { status: 400 })
+    }
+    const { data: row, error: readErr } = await supabase
+      .from('documenti_da_processare')
+      .select('metadata')
+      .eq('id', id)
+      .maybeSingle()
+    if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 })
+    if (!row) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
+    const prevMeta = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+      ? { ...(row.metadata as Record<string, unknown>) }
+      : {}
+    prevMeta.pending_kind = kind
+    const { error } = await supabase
+      .from('documenti_da_processare')
+      .update({
+        is_statement: kind === 'statement',
+        metadata: prevMeta,
+      })
+      .eq('id', id)
+    if (error && !error.message.includes('column')) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   // ── aggiorna_fornitore ────────────────────────────────────────────────────
-  if (azione === 'aggiorna_fornitore') {
+  if (azioneNorm === 'aggiorna_fornitore') {
     if (!fornitore_id) return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
     const { data: docRow } = await supabase
       .from('documenti_da_processare')
@@ -174,14 +352,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
   }
 
+  // ── finalizza_tipo — alias esplicito (stessa logica di associa + finalizza_da_tipo) ──
+  if (azioneNorm === 'finalizza_tipo') {
+    return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza)
+  }
+
   // ── scarta ────────────────────────────────────────────────────────────────
-  if (azione === 'scarta') {
+  if (azioneNorm === 'scarta') {
     await supabase.from('documenti_da_processare').update({ stato: 'scartato' }).eq('id', id)
     return NextResponse.json({ ok: true })
   }
 
   // ── associa ───────────────────────────────────────────────────────────────
-  if (azione === 'associa') {
+  if (azioneNorm === 'associa') {
+    if (body.finalizza_da_tipo === true) {
+      return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza)
+    }
     if (!bollaIds.length) return NextResponse.json({ error: 'Nessuna bolla selezionata' }, { status: 400 })
 
     // Fetch all selected bolle

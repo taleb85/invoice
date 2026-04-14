@@ -4,9 +4,12 @@
  * verifica sede/fornitore se la riga non torna dal client anonimo.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import type { Fattura } from '@/types'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 
-const FATTURA_SELECT = '*, fornitore:fornitori(nome, email, piva), bolla:bolle(id, data, stato)'
+/** Senza embed `bolla`: l’embed su `bolle` può far fallire l’intera riga se la bolla collegata non passa RLS (l’elenco cliente usa solo colonne su `fatture`). */
+const FATTURA_CORE = '*, fornitore:fornitori(nome, email, piva)'
+const BOLLA_EMBED_FIELDS = 'id, data, stato'
 const BOLLA_SELECT = '*, fornitore:fornitori(nome, email, piva, rekki_supplier_id)'
 
 function isAdminProfile(profile: { role?: string } | null): boolean {
@@ -45,11 +48,37 @@ async function operatoreCanAccessBolla(
   return fornitoreSedeMatches(service, row.fornitore_id, userSedeId)
 }
 
-export async function getFatturaForViewer(id: string) {
-  const auth = await createClient()
-  const {
-    data: { user },
-  } = await auth.auth.getUser()
+async function attachBollaForViewer(
+  auth: SupabaseClient,
+  service: SupabaseClient,
+  fattura: Fattura,
+  ctx: { isAdmin: boolean; profileSedeId: string | null }
+): Promise<Fattura> {
+  const bollaId = fattura.bolla_id
+  if (!bollaId) return fattura
+
+  const { data: viaAuth } = await auth
+    .from('bolle')
+    .select(BOLLA_EMBED_FIELDS)
+    .eq('id', bollaId)
+    .maybeSingle()
+  if (viaAuth) return { ...fattura, bolla: viaAuth as Fattura['bolla'] }
+
+  if (ctx.isAdmin) {
+    const { data } = await service.from('bolle').select(BOLLA_EMBED_FIELDS).eq('id', bollaId).maybeSingle()
+    return data ? { ...fattura, bolla: data as Fattura['bolla'] } : fattura
+  }
+
+  const { data: bRow } = await service.from('bolle').select('sede_id, fornitore_id').eq('id', bollaId).maybeSingle()
+  if (!bRow) return fattura
+  if (!(await operatoreCanAccessBolla(service, bRow, ctx.profileSedeId))) return fattura
+
+  const { data } = await service.from('bolle').select(BOLLA_EMBED_FIELDS).eq('id', bollaId).maybeSingle()
+  return data ? { ...fattura, bolla: data as Fattura['bolla'] } : fattura
+}
+
+export async function getFatturaForViewer(id: string): Promise<Fattura | null> {
+  const { supabase: auth, user } = await getRequestAuth()
   if (!user) return null
 
   const profile = await getProfile()
@@ -58,16 +87,19 @@ export async function getFatturaForViewer(id: string) {
   const isAdmin = isAdminProfile(profile)
   const service = createServiceClient()
 
+  const bollaCtx = { isAdmin, profileSedeId: profile.sede_id }
+
   if (isAdmin) {
-    const { data: viaService } = await service.from('fatture').select(FATTURA_SELECT).eq('id', id).maybeSingle()
-    if (viaService) return viaService
+    const { data: viaService } = await service.from('fatture').select(FATTURA_CORE).eq('id', id).maybeSingle()
+    if (viaService) return attachBollaForViewer(auth, service, viaService as Fattura, bollaCtx)
     // Service role assente/errato in .env locale: RLS consente comunque SELECT agli admin.
-    const { data: viaAuth } = await auth.from('fatture').select(FATTURA_SELECT).eq('id', id).maybeSingle()
-    return viaAuth
+    const { data: viaAuth } = await auth.from('fatture').select(FATTURA_CORE).eq('id', id).maybeSingle()
+    if (!viaAuth) return null
+    return attachBollaForViewer(auth, service, viaAuth as Fattura, bollaCtx)
   }
 
-  const { data: viaUser } = await auth.from('fatture').select(FATTURA_SELECT).eq('id', id).maybeSingle()
-  if (viaUser) return viaUser
+  const { data: viaUser } = await auth.from('fatture').select(FATTURA_CORE).eq('id', id).maybeSingle()
+  if (viaUser) return attachBollaForViewer(auth, service, viaUser as Fattura, bollaCtx)
 
   const { data: row } = await service
     .from('fatture')
@@ -77,15 +109,13 @@ export async function getFatturaForViewer(id: string) {
   if (!row) return null
   if (!(await operatoreCanAccessFattura(service, row, profile.sede_id))) return null
 
-  const { data } = await service.from('fatture').select(FATTURA_SELECT).eq('id', id).maybeSingle()
-  return data
+  const { data } = await service.from('fatture').select(FATTURA_CORE).eq('id', id).maybeSingle()
+  if (!data) return null
+  return attachBollaForViewer(auth, service, data as Fattura, bollaCtx)
 }
 
 export async function getBollaForViewer(id: string) {
-  const auth = await createClient()
-  const {
-    data: { user },
-  } = await auth.auth.getUser()
+  const { supabase: auth, user } = await getRequestAuth()
   if (!user) return null
 
   const profile = await getProfile()

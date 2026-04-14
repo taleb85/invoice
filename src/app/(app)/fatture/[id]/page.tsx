@@ -26,8 +26,9 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="space-y-4">
-        <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
-          <div className="app-card-bar mb-4" aria-hidden />
+        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="p-6">
           <h2 className="mb-4 text-sm font-semibold text-slate-100">{t.fatture.dettaglio}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
@@ -61,10 +62,12 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
               </div>
             )}
           </dl>
+          </div>
         </div>
 
-        <div className="app-card overflow-hidden rounded-xl border border-slate-700/50 p-6">
-          <div className="app-card-bar mb-3" aria-hidden />
+        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="p-6">
           <h2 className="mb-3 text-sm font-semibold text-slate-100">{t.common.attachment}</h2>
           {fattura.file_url ? (
             <a
@@ -82,6 +85,7 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
             <p className="text-sm text-slate-500">Nessun allegato</p>
           )}
           <ReplaceFileButton fatturaId={fattura.id} />
+          </div>
         </div>
       </div>
     </div>

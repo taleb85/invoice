@@ -60,6 +60,10 @@ const MIGRATIONS = [
   'supabase/migrations/admin-log-sede-sync-health-rekki-id.sql',
   'supabase/migrations/tighten-rls-operator-isolation.sql',
   'supabase/migrations/email-scan-attachment-fingerprint.sql',
+  'supabase/migrations/20260413_admin_sede_role.sql',
+  'supabase/migrations/20260413_fix-taleb-profile-admin-sede.sql',
+  'supabase/migrations/add-fornitore-logo-url.sql',
+  'supabase/migrations/listino-prezzi-rls-authenticated-write.sql',
 ]
 
 function loadEnvLocal() {

@@ -17,8 +17,9 @@ export default async function DocumentUnavailable({ kind }: { kind: 'bolla' | 'f
   return (
     <div className="flex min-h-[50vh] items-center justify-center p-4 md:min-h-[60vh]">
       <div className="w-full max-w-md space-y-5 text-center">
-        <div className="app-card-login space-y-4 px-6 py-8">
-          <div className="app-card-bar mb-2" aria-hidden />
+        <div className="app-card-login flex flex-col overflow-hidden">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="space-y-4 px-6 py-8">
           <h1 className="text-xl font-bold text-slate-100">{title}</h1>
           <p className="text-sm leading-relaxed text-slate-400">{desc}</p>
           <div className="grid grid-cols-2 gap-2.5 pt-1">
@@ -45,6 +46,7 @@ export default async function DocumentUnavailable({ kind }: { kind: 'bolla' | 'f
             <Link href="/fatture" className={`col-span-2 ${secondaryBtn}`}>
               {t.nav.fatture}
             </Link>
+          </div>
           </div>
         </div>
         <p className="text-xs text-slate-500">{t.appStrings.brandFooter}</p>

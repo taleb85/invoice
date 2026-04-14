@@ -1,31 +1,32 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, Suspense, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense, type ReactNode } from 'react'
 import Link from 'next/link'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { useParams, usePathname, useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
+import {
+  fornitorePageTabHref,
+  fornitoreBollaDeepLink,
+  fornitoreFatturaDeepLink,
+  fornitoreSupplierClearDocParams,
+} from '@/lib/fornitore-supplier-url'
+import FornitoreDocDetailLayer from '@/components/FornitoreDocDetailLayer'
 import DashboardKpiListSheet, { type DashboardKpiListItem } from '@/components/DashboardKpiListSheet'
 import { createClient } from '@/utils/supabase/client'
-import { PendingMatchesTab, VerificationStatusTab } from '@/app/(app)/statements/page'
+import { PendingMatchesTab, VerificationStatusTab } from '@/app/(app)/statements/statements-views'
 import { useT } from '@/lib/use-t'
-import { getLocale } from '@/lib/localization'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
 import { segmentParam } from '@/lib/segment-param'
+import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
 import { useEmailSyncProgress } from '@/components/EmailSyncProgressProvider'
 import { useMe } from '@/lib/me-context'
-import { emailSyncScopeBodyFields, readEmailSyncScopePrefs } from '@/lib/email-sync-scope-prefs'
+import { emailSyncApiBodyFields, readEmailSyncScopePrefs } from '@/lib/email-sync-scope-prefs'
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
+import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
+import FornitoreAvatar from '@/components/FornitoreAvatar'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'documenti' | 'verifica'
-
-function fornitorePageTabHref(pathname: string, sp: ReadonlyURLSearchParams, tab: Tab): string {
-  const q = new URLSearchParams(sp.toString())
-  if (tab === 'dashboard') q.delete('tab')
-  else q.set('tab', tab)
-  const qs = q.toString()
-  return qs ? `${pathname}?${qs}` : pathname
-}
 
 interface Fornitore {
   id: string
@@ -42,6 +43,7 @@ interface Fornitore {
   contatto_nome?: string | null
   rekki_supplier_id?: string | null
   rekki_link?: string | null
+  logo_url?: string | null
 }
 
 interface Bolla {
@@ -108,22 +110,51 @@ type SupplierPeriodStats = {
   statementsWithIssues: number
 }
 
+const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
+  bolleTotal: 0,
+  bolleAperte: 0,
+  fattureTotal: 0,
+  pending: 0,
+  totaleSpesa: 0,
+  listinoRows: 0,
+  statementsInPeriod: 0,
+  statementsWithIssues: 0,
+}
+
 function useSupplierPeriodStats(fornitoreId: string, year: number, month: number) {
   const [stats, setStats] = useState<SupplierPeriodStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
     const from = `${year}-${String(month).padStart(2, '0')}-01`
     const to = new Date(year, month, 1).toISOString().split('T')[0]
     const supabase = createClient()
+
+    const pendingCountPromise = fetch(
+      `/api/documenti-da-processare?fornitore_id=${encodeURIComponent(fornitoreId)}&stati=in_attesa,da_associare&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+    )
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: unknown) => (Array.isArray(d) ? d.length : 0))
+      .catch(() => 0)
+
     Promise.all([
-      supabase.from('bolle').select('stato', { count: 'exact' }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
-      supabase.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('stato', 'in attesa').gte('data', from).lt('data', to),
+      supabase
+        .from('bolle')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .gte('data', from)
+        .lt('data', to),
+      supabase
+        .from('bolle')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .eq('stato', 'in attesa')
+        .gte('data', from)
+        .lt('data', to),
       supabase.from('fatture').select('id, importo', { count: 'exact' }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
-      fetch(`/api/documenti-da-processare?fornitore_id=${fornitoreId}&stati=in_attesa,da_associare&from=${from}&to=${to}`)
-        .then((r) => (r.ok ? r.json() : []))
-        .then((d: unknown[]) => d.length),
+      pendingCountPromise,
       supabase
         .from('listino_prezzi')
         .select('id', { count: 'exact', head: true })
@@ -136,24 +167,35 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
         .eq('fornitore_id', fornitoreId)
         .gte('received_at', from)
         .lt('received_at', to),
-    ]).then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes]) => {
-      const totaleSpesa = ((fattureRes.data ?? []) as { importo: number | null }[]).reduce((s, f) => s + (f.importo ?? 0), 0)
-      const listinoRows = listinoRes.error ? 0 : (listinoRes.count ?? 0)
-      const stmtData = stmtsRes.error ? [] : ((stmtsRes.data ?? []) as { missing_rows: number | null }[])
-      const statementsInPeriod = stmtData.length
-      const statementsWithIssues = stmtData.filter((s) => (s.missing_rows ?? 0) > 0).length
-      setStats({
-        bolleTotal: bolleRes.count ?? 0,
-        bolleAperte: bolleAperteRes.count ?? 0,
-        fattureTotal: fattureRes.count ?? 0,
-        pending: pendingCount as number,
-        totaleSpesa,
-        listinoRows,
-        statementsInPeriod,
-        statementsWithIssues,
+    ])
+      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes]) => {
+        if (cancelled) return
+        const totaleSpesa = ((fattureRes.data ?? []) as { importo: number | null }[]).reduce((s, f) => s + (f.importo ?? 0), 0)
+        const listinoRows = listinoRes.error ? 0 : (listinoRes.count ?? 0)
+        const stmtData = stmtsRes.error ? [] : ((stmtsRes.data ?? []) as { missing_rows: number | null }[])
+        const statementsInPeriod = stmtData.length
+        const statementsWithIssues = stmtData.filter((s) => (s.missing_rows ?? 0) > 0).length
+        setStats({
+          bolleTotal: bolleRes.count ?? 0,
+          bolleAperte: bolleAperteRes.count ?? 0,
+          fattureTotal: fattureRes.count ?? 0,
+          pending: pendingCount,
+          totaleSpesa,
+          listinoRows,
+          statementsInPeriod,
+          statementsWithIssues,
+        })
       })
-      setLoading(false)
-    })
+      .catch(() => {
+        if (!cancelled) setStats(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [fornitoreId, year, month])
 
   return { stats, loading }
@@ -177,7 +219,7 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
   let stmtSubColor: string
   if (stmtN === 0) {
     stmtSub = t.fornitori.subStatementsNoneInMonth
-    stmtSubColor = 'text-slate-400'
+    stmtSubColor = 'text-slate-200'
   } else if (stmtIssues === 0) {
     stmtSub = t.fornitori.subStatementsAllVerified
     stmtSubColor = 'text-emerald-400'
@@ -199,7 +241,7 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
         </svg>
       ),
       sub: `${stats?.bolleAperte ?? 0} ${t.fornitori.subAperte}`,
-      subColor: (stats?.bolleAperte ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400',
+      subColor: (stats?.bolleAperte ?? 0) > 0 ? 'text-amber-400' : 'text-slate-200',
     },
     {
       label: t.fornitori.kpiFatture,
@@ -213,7 +255,7 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
         </svg>
       ),
       sub: t.fornitori.subConfermate,
-      subColor: 'text-slate-400',
+      subColor: 'text-slate-200',
     },
     {
       label: t.fornitori.kpiPending,
@@ -227,7 +269,7 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
         </svg>
       ),
       sub: t.fornitori.subDaAbbinare,
-      subColor: (stats?.pending ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400',
+      subColor: (stats?.pending ?? 0) > 0 ? 'text-amber-400' : 'text-slate-200',
     },
     {
       label: t.common.total,
@@ -244,7 +286,7 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
         </svg>
       ),
       sub: `${stats?.fattureTotal ?? 0} ${t.nav.fatture.toLowerCase()}`,
-      subColor: 'text-slate-400',
+      subColor: 'text-slate-200',
     },
     {
       label: t.fornitori.tabListino,
@@ -258,7 +300,7 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
         </svg>
       ),
       sub: t.fornitori.subListinoRows,
-      subColor: (stats?.listinoRows ?? 0) > 0 ? 'text-slate-400' : 'text-slate-500',
+      subColor: (stats?.listinoRows ?? 0) > 0 ? 'text-slate-200' : 'text-slate-300',
     },
     {
       label: t.statements.tabVerifica,
@@ -288,53 +330,35 @@ function SupplierDesktopKpiGrid({
   onTabChange: (tab: Tab) => void
 }) {
   const t = useT()
-  if (loading) {
-    const skeletonAccents = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#14b8a6', '#0ea5e9'] as const
-    return (
-      <div className="mb-6 hidden gap-4 md:grid md:grid-cols-3 xl:grid-cols-6">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="app-card animate-pulse overflow-hidden border-l-4 p-5"
-            style={{ borderLeftColor: skeletonAccents[i] }}
-          >
-            <div className="app-card-bar mb-3" aria-hidden />
-            <div className="mb-3 flex items-center justify-between">
-              <div className="h-3 flex-1 rounded bg-slate-700/80" />
-              <div className="h-6 w-6 shrink-0 rounded-lg bg-slate-700/80" />
-            </div>
-            <div className="h-8 w-1/2 rounded bg-slate-700/80" />
-            <div className="mt-1 flex items-center justify-between">
-              <div className="h-3 w-2/3 rounded bg-slate-700/80" />
-              <div className="h-3.5 w-3.5 shrink-0 rounded bg-slate-700/80" />
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-  const kpis = buildSupplierKpiItems(stats, t)
+  const displayStats = stats ?? EMPTY_SUPPLIER_PERIOD_STATS
+  const kpis = buildSupplierKpiItems(displayStats, t)
   return (
-    <div className="mb-6 hidden gap-4 md:grid md:grid-cols-3 xl:grid-cols-6">
+    <div
+      className="mb-6 hidden gap-4 md:grid md:grid-cols-3 xl:grid-cols-6"
+      aria-busy={loading}
+      aria-live="polite"
+    >
       {kpis.map((k) => (
         <button
           key={k.label}
           type="button"
           onClick={() => onTabChange(k.tab)}
-          className={`app-card group cursor-pointer overflow-hidden border-l-4 ${k.accent} p-5 text-left transition-all hover:border-cyan-500/30 active:scale-[0.98]`}
+          className={`app-card group flex flex-col cursor-pointer overflow-hidden border-l-4 ${k.accent} text-left transition-all hover:border-cyan-500/30 active:scale-[0.98]`}
           style={{ borderLeftColor: k.accentHex }}
         >
-          <div className="app-card-bar" aria-hidden />
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{k.label}</p>
-            {k.icon}
-          </div>
-          <p className="text-3xl font-bold text-slate-100">{k.value}</p>
-          <div className="mt-1 flex items-center justify-between">
-            <p className={`text-xs ${k.subColor}`}>{k.sub}</p>
-            <svg className="h-3.5 w-3.5 text-slate-600 transition-colors group-hover:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="flex flex-1 flex-col p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-200">{k.label}</p>
+              {k.icon}
+            </div>
+            <p className="text-3xl font-bold text-slate-100">{k.value}</p>
+            <div className="mt-1 flex items-center justify-between">
+              <p className={`text-xs ${k.subColor}`}>{k.sub}</p>
+              <svg className="h-3.5 w-3.5 text-slate-200 transition-colors group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
           </div>
         </button>
       ))}
@@ -447,7 +471,7 @@ function DashboardTab({
       setBolleSheetItems(
         bl.map((b) => ({
           id: b.id,
-          href: `/bolle/${b.id}`,
+          href: fornitoreBollaDeepLink(pathname, searchParams, b.id),
           title: formatDate(b.data),
           subtitle: b.numero_bolla?.trim() ? `#${b.numero_bolla}` : null,
           statusPill: b.stato === 'completato' ? ('completato' as const) : ('in attesa' as const),
@@ -456,38 +480,15 @@ function DashboardTab({
       setFattureSheetItems(
         ft.map((f) => ({
           id: f.id,
-          href: `/fatture/${f.id}`,
+          href: fornitoreFatturaDeepLink(pathname, searchParams, f.id),
           title: formatDate(f.data),
           subtitle: f.numero_fattura?.trim() ?? null,
         }))
       )
     })
-  }, [fornitoreId, filterYear, filterMonth, formatDate])
+  }, [fornitoreId, filterYear, filterMonth, formatDate, pathname, searchParams])
 
-  if (periodStatsLoading) {
-    const skeletonAccents = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#14b8a6', '#0ea5e9'] as const
-    return (
-      <div className="grid grid-cols-2 gap-3 md:hidden">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className="app-card animate-pulse overflow-hidden border-l-[3px] p-3"
-            style={{ borderLeftColor: skeletonAccents[i] }}
-          >
-            <div className="app-card-bar mb-2" aria-hidden />
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div className="h-3 flex-1 rounded bg-slate-700/80" />
-              <div className="h-6 w-6 shrink-0 rounded-lg bg-slate-700/80" />
-            </div>
-            <div className="h-7 w-1/2 rounded bg-slate-700/80" />
-            <div className="mt-0.5 h-2.5 w-2/3 rounded bg-slate-700/80" />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  const kpis = buildSupplierKpiItems(periodStats, t)
+  const kpis = buildSupplierKpiItems(periodStats ?? EMPTY_SUPPLIER_PERIOD_STATS, t)
 
   const nuovaBollaActive =
     pathname === '/bolle/new' && searchParams.get('fornitore_id') === fornitoreId
@@ -497,7 +498,11 @@ function DashboardTab({
   return (
     <div className="space-y-6">
       {/* Mobile: KPI — bolle/fatture come foglio elenco (come dashboard); altre voci → tab via Link. */}
-      <div className="grid grid-cols-2 gap-3 md:hidden">
+      <div
+        className="grid grid-cols-2 gap-3 md:hidden"
+        aria-busy={periodStatsLoading}
+        aria-live="polite"
+      >
         {kpis.map((k) => {
           const tabHref = fornitorePageTabHref(pathname, searchParams, k.tab)
           if (k.tab === 'bolle') {
@@ -546,7 +551,7 @@ function DashboardTab({
               style={{ borderLeftColor: k.accentHex }}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
-                <p className="line-clamp-2 min-w-0 flex-1 text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-400">
+                <p className="line-clamp-2 min-w-0 flex-1 text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-200">
                   {k.label}
                 </p>
                 <span className="shrink-0 [&>svg]:!h-6 [&>svg]:!w-6" aria-hidden>
@@ -598,10 +603,10 @@ function DashboardTab({
           <div className="app-card-bar" aria-hidden />
           <div className="flex items-center justify-between border-b border-slate-700/60 px-4 py-2.5 md:px-5 md:py-3">
             <div className="flex items-center gap-2">
-              <svg className="h-3.5 w-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t.appStrings.contactsHeading}</p>
+              <svg className="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.appStrings.contactsHeading}</p>
               {contatti.length > 0 && (
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400">{contatti.length}</span>
+                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-200">{contatti.length}</span>
               )}
             </div>
             <button onClick={openAdd}
@@ -617,22 +622,22 @@ function DashboardTab({
               <p className="mb-3 text-xs font-semibold text-cyan-200">{editingId ? t.appStrings.contactEdit : t.appStrings.contactNew}</p>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">{t.fornitori.nome} *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.fornitori.nome} *</label>
                   <input type="text" value={formNome} onChange={e => setFormNome(e.target.value)} placeholder="Marco Ferretti"
                     className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">{t.common.role}</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.common.role}</label>
                   <input type="text" value={formRuolo} onChange={e => setFormRuolo(e.target.value)} placeholder="Administration"
                     className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">{t.common.phone}</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.common.phone}</label>
                   <input type="tel" value={formTelefono} onChange={e => setFormTelefono(e.target.value)} placeholder="+44 20 1234 5678"
                     className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
                 <div className="md:col-span-4">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">{t.fornitori.email}</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.fornitori.email}</label>
                   <input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} placeholder="marco@supplier.com"
                     className="w-full rounded-lg border border-slate-600/60 bg-slate-800/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/40" />
                 </div>
@@ -643,7 +648,7 @@ function DashboardTab({
                   {formSaving ? t.common.saving : t.common.save}
                 </button>
                 <button onClick={() => { setShowAddForm(false); setEditingId(null) }}
-                  className="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 transition-colors hover:text-slate-200">
+                  className="rounded-lg px-4 py-2 text-xs font-medium text-slate-200 transition-colors hover:text-slate-200">
                   {t.common.cancel}
                 </button>
               </div>
@@ -665,8 +670,8 @@ function DashboardTab({
             </div>
           ) : contatti.length === 0 && !showAddForm ? (
             <div className="px-4 py-8 text-center md:px-5">
-              <svg className="mx-auto mb-2 h-8 w-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              <p className="text-xs text-slate-500">{t.appStrings.noContactRegistered}</p>
+              <svg className="mx-auto mb-2 h-8 w-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+              <p className="text-xs text-slate-300">{t.appStrings.noContactRegistered}</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-800/80">
@@ -678,7 +683,7 @@ function DashboardTab({
                   </div>
                   {/* Info */}
                   <div className="min-w-0 flex-1">
-                    {c.ruolo && <p className="text-[10px] leading-tight text-slate-500">{c.ruolo}</p>}
+                    {c.ruolo && <p className="text-[10px] leading-tight text-slate-300">{c.ruolo}</p>}
                     <p className="text-sm font-semibold leading-tight text-slate-100">{c.nome}</p>
                   </div>
                   {/* Actions */}
@@ -696,11 +701,11 @@ function DashboardTab({
                       </a>
                     )}
                     <button onClick={() => openEdit(c)} title={t.common.edit}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 opacity-0 transition-colors hover:bg-slate-800 hover:text-slate-200 group-hover:opacity-100">
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 opacity-0 transition-colors hover:bg-slate-800 hover:text-slate-200 group-hover:opacity-100">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
                     <button onClick={() => handleDeleteContatto(c.id)} disabled={deletingId === c.id} title={t.appStrings.contactRemove}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 opacity-0 transition-colors hover:bg-red-950/50 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40">
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-300 opacity-0 transition-colors hover:bg-red-950/50 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40">
                       {deletingId === c.id
                         ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                         : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -718,76 +723,76 @@ function DashboardTab({
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
         <div className="flex items-center gap-2 border-b border-slate-700/60 px-5 py-3">
-          <svg className="h-3.5 w-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t.appStrings.infoSupplierCard}</p>
+          <svg className="h-3.5 w-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.appStrings.infoSupplierCard}</p>
         </div>
         <div className="grid grid-cols-2 gap-0 divide-y divide-slate-800/80 md:grid-cols-3 md:divide-x md:divide-y-0 md:divide-slate-800/80">
 
           {/* Contact */}
           <div className="space-y-3 px-5 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.appStrings.contactsHeading}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{t.appStrings.contactsHeading}</p>
             {fornitore.email && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                 <a href={`mailto:${fornitore.email}`} className="truncate text-xs text-cyan-400 hover:text-cyan-300 hover:underline">{fornitore.email}</a>
               </div>
             )}
             {fornitore.telefono && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                 <a href={`tel:${fornitore.telefono}`} className="text-xs text-slate-300 hover:text-cyan-300">{fornitore.telefono}</a>
               </div>
             )}
             {fornitore.contatto_nome && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 <span className="text-xs text-slate-300">{fornitore.contatto_nome}</span>
               </div>
             )}
             {!fornitore.email && !fornitore.telefono && !fornitore.contatto_nome && (
-              <p className="text-xs italic text-slate-600">{t.appStrings.noContactRegistered}</p>
+              <p className="text-xs italic text-slate-300">{t.appStrings.noContactRegistered}</p>
             )}
           </div>
 
           {/* Address */}
           <div className="space-y-3 px-5 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.appStrings.contactsLegal}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{t.appStrings.contactsLegal}</p>
             {(fornitore.indirizzo || fornitore.citta || fornitore.paese) ? (
               <div className="flex items-start gap-2">
-                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 <div className="text-xs leading-relaxed text-slate-300">
                   {fornitore.indirizzo && <p>{fornitore.indirizzo}</p>}
                   {(fornitore.citta || fornitore.paese) && <p>{[fornitore.citta, fornitore.paese].filter(Boolean).join(', ')}</p>}
                 </div>
               </div>
             ) : (
-              <p className="text-xs italic text-slate-600">{t.appStrings.noAddressRegistered}</p>
+              <p className="text-xs italic text-slate-300">{t.appStrings.noAddressRegistered}</p>
             )}
           </div>
 
           {/* Fiscal info */}
           <div className="space-y-3 px-5 py-4">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.appStrings.contactsFiscal}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-300">{t.appStrings.contactsFiscal}</p>
             {fornitore.piva && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 <span className="font-mono text-xs text-slate-300">{fornitore.piva}</span>
               </div>
             )}
             {Number.isFinite(new Date(fornitore.created_at).getTime()) && (
               <div className="flex items-center gap-2">
-                <svg className="h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                <span className="text-xs text-slate-500">{t.appStrings.clientSince} {formatDateLib(fornitore.created_at, locale, timezone, { month: 'long', year: 'numeric' })}</span>
+                <svg className="h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <span className="text-xs text-slate-300">{t.appStrings.clientSince} {formatDateLib(fornitore.created_at, locale, timezone, { month: 'long', year: 'numeric' })}</span>
               </div>
             )}
             {fornitore.note && (
               <div className="mt-1 flex items-start gap-2">
-                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
-                <p className="text-xs italic leading-relaxed text-slate-400">{fornitore.note}</p>
+                <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
+                <p className="text-xs italic leading-relaxed text-slate-200">{fornitore.note}</p>
               </div>
             )}
             {!fornitore.piva && !fornitore.note && (
-              <p className="text-xs italic text-slate-600">{t.appStrings.noFiscalRegistered}</p>
+              <p className="text-xs italic text-slate-300">{t.appStrings.noFiscalRegistered}</p>
             )}
           </div>
         </div>
@@ -805,31 +810,114 @@ function DashboardTab({
   )
 }
 
+function attachmentKindPillClass(kind: AttachmentKind): string {
+  const base = 'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums'
+  if (kind === 'pdf') return `${base} border-cyan-500/35 bg-cyan-500/10 text-cyan-200`
+  if (kind === 'image') return `${base} border-violet-500/35 bg-violet-500/10 text-violet-200`
+  return `${base} border-slate-600/50 bg-slate-800/70 text-slate-400`
+}
+
+/** Etichetta link “apri file”: foto → apri allegato; PDF → vedi documento (bolle/fatture). */
+function attachmentOpenFileLinkLabel(
+  kind: AttachmentKind | null,
+  t: { bolle: { vediDocumento: string }; common: { openAttachment: string } },
+): string {
+  if (kind === 'image') return t.common.openAttachment
+  if (kind === 'pdf') return t.bolle.vediDocumento
+  return t.common.openAttachment
+}
+
+function attachmentKindText(
+  kind: AttachmentKind,
+  t: { bolle: { attachmentKindPdf: string; attachmentKindImage: string; attachmentKindOther: string } },
+): string {
+  if (kind === 'pdf') return t.bolle.attachmentKindPdf
+  if (kind === 'image') return t.bolle.attachmentKindImage
+  return t.bolle.attachmentKindOther
+}
+
+/** Numero documento salvato in coda email (`metadata.numero_fattura`) quando la bolla non ha `numero_bolla`. */
+function numeroRefFromDocMetadata(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object') return null
+  const n = (metadata as Record<string, unknown>).numero_fattura
+  return typeof n === 'string' && n.trim() ? n.trim() : null
+}
+
 /* ─── Bolle tab ──────────────────────────────────────────────────── */
-function BolleTab({ fornitoreId, year, month }: { fornitoreId: string; year: number; month: number }) {
+function BolleTab({
+  fornitoreId,
+  year,
+  month,
+  pathname,
+  searchParams,
+}: {
+  fornitoreId: string
+  year: number
+  month: number
+  pathname: string
+  searchParams: ReadonlyURLSearchParams
+}) {
   const router = useRouter()
   const t = useT()
   const formatDate = useAppFormatDate()
   const [bolle, setBolle] = useState<Bolla[]>([])
+  const [numeroDaCodaByFileUrl, setNumeroDaCodaByFileUrl] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
     const from = `${year}-${String(month).padStart(2, '0')}-01`
-    const to   = new Date(year, month, 1).toISOString().split('T')[0]
+    const to = new Date(year, month, 1).toISOString().split('T')[0]
     const supabase = createClient()
-    supabase
-      .from('bolle')
-      .select('id, data, stato, file_url, numero_bolla, importo')
-      .eq('fornitore_id', fornitoreId)
-      .gte('data', from)
-      .lt('data', to)
-      .order('data', { ascending: false })
-      .then(({ data }: { data: Bolla[] | null }) => {
-        setBolle(data ?? [])
+    void (async () => {
+      const { data } = await supabase
+        .from('bolle')
+        .select('id, data, stato, file_url, numero_bolla, importo')
+        .eq('fornitore_id', fornitoreId)
+        .gte('data', from)
+        .lt('data', to)
+        .order('data', { ascending: false })
+      if (cancelled) return
+      const rows = (data ?? []) as Bolla[]
+      const urls = [
+        ...new Set(
+          rows
+            .filter((b) => !b.numero_bolla?.trim() && b.file_url?.trim())
+            .map((b) => b.file_url!.trim()),
+        ),
+      ]
+      const map: Record<string, string> = {}
+      if (urls.length > 0) {
+        const { data: docs } = await supabase
+          .from('documenti_da_processare')
+          .select('file_url, metadata, created_at')
+          .in('file_url', urls)
+        if (!cancelled && docs?.length) {
+          const sorted = [...docs].sort((a, b) =>
+            String(b.created_at ?? '').localeCompare(String(a.created_at ?? '')),
+          )
+          for (const row of sorted) {
+            const fu = row.file_url?.trim()
+            if (!fu || map[fu]) continue
+            const n = numeroRefFromDocMetadata(row.metadata)
+            if (n) map[fu] = n
+          }
+        }
+      }
+      if (!cancelled) {
+        setNumeroDaCodaByFileUrl(map)
+        setBolle(rows)
         setLoading(false)
-      })
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
   }, [fornitoreId, year, month])
+
+  const numeroInElenco = (b: Bolla) =>
+    b.numero_bolla?.trim() || (b.file_url?.trim() ? numeroDaCodaByFileUrl[b.file_url.trim()] : '') || ''
 
   if (loading) {
     return (
@@ -852,10 +940,10 @@ function BolleTab({ fornitoreId, year, month }: { fornitoreId: string; year: num
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
         <div className="px-6 py-16 text-center">
-        <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="mx-auto mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
-        <p className="text-sm font-medium text-slate-400">{t.bolle.nessunaBollaRegistrata}</p>
+        <p className="text-sm font-medium text-slate-200">{t.bolle.nessunaBollaRegistrata}</p>
         <Link href={`/bolle/new?fornitore_id=${fornitoreId}`}
           className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
           {t.bolle.creaLaPrimaBolla}
@@ -870,18 +958,29 @@ function BolleTab({ fornitoreId, year, month }: { fornitoreId: string; year: num
       <div className="app-card-bar" aria-hidden />
       <div className="min-w-0 flex-1">
       <div className="divide-y divide-slate-800/80 md:hidden">
-        {bolle.map((b) => (
+        {bolle.map((b) => {
+          const fileKind = attachmentKindFromFileUrl(b.file_url)
+          return (
           <div
             key={b.id}
             role="button"
             tabIndex={0}
-            onClick={() => router.push(`/bolle/${b.id}`)}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') router.push(`/bolle/${b.id}`) }}
+            onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })
+            }}
             className="flex min-h-[56px] cursor-pointer items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-slate-800/40 active:bg-slate-800/60 touch-manipulation"
           >
             <div>
-              <p className="text-sm font-medium text-slate-100">{formatDate(b.data)}</p>
-              {b.numero_bolla && <p className="mt-0.5 text-xs text-slate-400">#{b.numero_bolla}</p>}
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-slate-100">{formatDate(b.data)}</p>
+                {fileKind ? (
+                  <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
+                    {attachmentKindText(fileKind, t)}
+                  </span>
+                ) : null}
+              </div>
+              {numeroInElenco(b) && <p className="mt-0.5 text-xs text-slate-200">#{numeroInElenco(b)}</p>}
               {b.importo != null && <p className="mt-0.5 text-xs font-semibold text-slate-300">£{b.importo.toFixed(2)}</p>}
             </div>
             <div className="flex items-center gap-2">
@@ -902,30 +1001,47 @@ function BolleTab({ fornitoreId, year, month }: { fornitoreId: string; year: num
                   onClick={e => e.stopPropagation()}
                   className="-mr-2 px-2 py-1.5 text-xs text-cyan-400 touch-manipulation hover:text-cyan-300 hover:underline"
                 >
-                  {t.bolle.apri}
+                  {attachmentOpenFileLinkLabel(fileKind, t)}
                 </a>
               )}
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[420px] text-sm">
+        <table className="w-full min-w-[500px] text-sm">
           <thead>
             <tr className="border-b border-slate-700/60 bg-slate-950/40">
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.common.date}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.bolle.colNumero}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.statements.colAmount}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.common.status}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Actions</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.common.date}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.bolle.colNumero}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.bolle.colAttachmentKind}</th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.statements.colAmount}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.common.status}</th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/80">
-            {bolle.map((b) => (
-              <tr key={b.id} className="cursor-pointer transition-colors hover:bg-slate-800/40" onClick={() => window.location.href = `/bolle/${b.id}`}>
+            {bolle.map((b) => {
+              const fileKind = attachmentKindFromFileUrl(b.file_url)
+              return (
+              <tr
+                key={b.id}
+                className="cursor-pointer transition-colors hover:bg-slate-800/40"
+                onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
+              >
                 <td className="px-5 py-3 font-medium text-slate-300">{formatDate(b.data)}</td>
-                <td className="px-5 py-3 font-mono text-xs text-slate-500">{b.numero_bolla ?? '—'}</td>
+                <td className="px-5 py-3 font-mono text-xs text-slate-300">{numeroInElenco(b) || '—'}</td>
+                <td className="px-5 py-3">
+                  {!fileKind ? (
+                    <span className="text-slate-600">—</span>
+                  ) : (
+                    <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
+                      {attachmentKindText(fileKind, t)}
+                    </span>
+                  )}
+                </td>
                 <td className="px-5 py-3 text-right font-bold tabular-nums text-slate-200">{b.importo != null ? `£${b.importo.toFixed(2)}` : '—'}</td>
                 <td className="px-5 py-3">
                   {b.stato === 'completato' ? (
@@ -941,21 +1057,30 @@ function BolleTab({ fornitoreId, year, month }: { fornitoreId: string; year: num
                 <td className="px-5 py-3 text-right">
                   <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                     {b.file_url && (
-                      <a href={openDocumentUrl({ bollaId: b.id })} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/20">
+                      <a
+                        href={openDocumentUrl({ bollaId: b.id })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={attachmentOpenFileLinkLabel(fileKind, t)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                      >
                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                        {t.bolle.vediDocumento}
+                        {attachmentOpenFileLinkLabel(fileKind, t)}
                       </a>
                     )}
-                    <Link href={`/bolle/${b.id}`}
-                      className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-2 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-cyan-500">
+                    <Link
+                      href={fornitoreBollaDeepLink(pathname, searchParams, b.id)}
+                      scroll={false}
+                      className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-2 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-cyan-500"
+                    >
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       {t.bolle.apri}
                     </Link>
                   </div>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -965,7 +1090,19 @@ function BolleTab({ fornitoreId, year, month }: { fornitoreId: string; year: num
 }
 
 /* ─── Fatture tab ────────────────────────────────────────────────── */
-function FattureTab({ fornitoreId, year, month }: { fornitoreId: string; year: number; month: number }) {
+function FattureTab({
+  fornitoreId,
+  year,
+  month,
+  pathname,
+  searchParams,
+}: {
+  fornitoreId: string
+  year: number
+  month: number
+  pathname: string
+  searchParams: ReadonlyURLSearchParams
+}) {
   const t = useT()
   const formatDate = useAppFormatDate()
   const [fatture, setFatture] = useState<Fattura[]>([])
@@ -1010,10 +1147,10 @@ function FattureTab({ fornitoreId, year, month }: { fornitoreId: string; year: n
       <div className="app-card overflow-hidden">
         <div className="app-card-bar" aria-hidden />
         <div className="px-6 py-16 text-center">
-        <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="mx-auto mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        <p className="text-sm font-medium text-slate-400">{t.fatture.nessunaFatturaRegistrata}</p>
+        <p className="text-sm font-medium text-slate-200">{t.fatture.nessunaFatturaRegistrata}</p>
         <Link href={`/fatture/new?fornitore_id=${fornitoreId}`}
           className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
           {t.fatture.addFirst}
@@ -1028,13 +1165,22 @@ function FattureTab({ fornitoreId, year, month }: { fornitoreId: string; year: n
       <div className="app-card-bar" aria-hidden />
       <div className="min-w-0 flex-1">
       <div className="divide-y divide-slate-800/80 md:hidden">
-        {fatture.map((f) => (
+        {fatture.map((f) => {
+          const fileKind = attachmentKindFromFileUrl(f.file_url)
+          return (
           <div key={f.id} className="min-h-[56px] px-4 py-4 transition-colors hover:bg-slate-800/40 active:bg-slate-800/60 touch-manipulation">
-            <Link href={`/fatture/${f.id}`} className="block">
+            <Link href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)} scroll={false} className="block">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-medium text-slate-100">{formatDate(f.data)}</p>
-                  {f.numero_fattura && <p className="mt-0.5 text-xs text-slate-400">#{f.numero_fattura}</p>}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-slate-100">{formatDate(f.data)}</p>
+                    {fileKind ? (
+                      <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
+                        {attachmentKindText(fileKind, t)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {f.numero_fattura && <p className="mt-0.5 text-xs text-slate-200">#{f.numero_fattura}</p>}
                   {f.importo != null && <p className="mt-0.5 text-xs font-semibold text-slate-300">£{f.importo.toFixed(2)}</p>}
                 </div>
                 <div className="flex items-center gap-2">
@@ -1043,43 +1189,46 @@ function FattureTab({ fornitoreId, year, month }: { fornitoreId: string; year: n
                       {t.fatture.statusAssociata}
                     </span>
                   ) : (
-                    <span className="rounded-full border border-slate-600/60 bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-400">
+                    <span className="rounded-full border border-slate-600/60 bg-slate-800/80 px-2 py-0.5 text-[11px] font-medium text-slate-200">
                       {t.fatture.statusSenzaBolla}
                     </span>
                   )}
                 </div>
               </div>
             </Link>
-            {f.file_url && (
-              <a
-                href={openDocumentUrl({ fatturaId: f.id })}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 inline-block text-xs font-medium text-green-400 hover:text-green-300 hover:underline"
-              >
-                PDF
-              </a>
-            )}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[380px] text-sm">
+        <table className="w-full min-w-[520px] text-sm">
           <thead>
             <tr className="border-b border-slate-700/60 bg-slate-950/40">
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.common.date}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.fatture.colNumFattura}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.statements.colAmount}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-400">{t.fatture.headerBolla}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Actions</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.common.date}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.fatture.colNumFattura}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.bolle.colAttachmentKind}</th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.statements.colAmount}</th>
+              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">{t.fatture.headerBolla}</th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/80">
-            {fatture.map((f) => (
+            {fatture.map((f) => {
+              const fileKind = attachmentKindFromFileUrl(f.file_url)
+              return (
               <tr key={f.id} className="transition-colors hover:bg-slate-800/40">
                 <td className="px-5 py-3 font-medium text-slate-300">{formatDate(f.data)}</td>
-                <td className="px-5 py-3 font-mono text-xs text-slate-500">{f.numero_fattura ?? '—'}</td>
+                <td className="px-5 py-3 font-mono text-xs text-slate-300">{f.numero_fattura ?? '—'}</td>
+                <td className="px-5 py-3">
+                  {!fileKind ? (
+                    <span className="text-slate-600">—</span>
+                  ) : (
+                    <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
+                      {attachmentKindText(fileKind, t)}
+                    </span>
+                  )}
+                </td>
                 <td className="px-5 py-3 text-right font-bold tabular-nums text-slate-200">{f.importo != null ? `£${f.importo.toFixed(2)}` : '—'}</td>
                 <td className="px-5 py-3">
                   {f.bolla_id ? (
@@ -1087,29 +1236,24 @@ function FattureTab({ fornitoreId, year, month }: { fornitoreId: string; year: n
                       {t.fatture.statusAssociata}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/60 bg-slate-800/80 px-2 py-0.5 text-[11px] font-semibold text-slate-400">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-600/60 bg-slate-800/80 px-2 py-0.5 text-[11px] font-semibold text-slate-200">
                       {t.fatture.statusSenzaBolla}
                     </span>
                   )}
                 </td>
                 <td className="px-5 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {f.file_url && (
-                      <a href={openDocumentUrl({ fatturaId: f.id })} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/20">
-                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                        PDF
-                      </a>
-                    )}
-                    <Link href={`/fatture/${f.id}`}
-                      className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-2 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-cyan-500">
-                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                      {t.fatture.dettaglio}
-                    </Link>
-                  </div>
+                  <Link
+                    href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)}
+                    scroll={false}
+                    className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-2 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-cyan-500"
+                  >
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    {t.fatture.dettaglio}
+                  </Link>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -1162,10 +1306,12 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
   const [saving, setSaving]           = useState(false)
   const [saveError, setSaveError]     = useState<string | null>(null)
   const [deletingId, setDeletingId]   = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Import from fattura state
   type ImportItem = {
     prodotto: string
+    codice_prodotto: string | null
     prezzo: number
     unita: string | null
     note: string | null
@@ -1345,7 +1491,22 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
         setImportError('Nessun prodotto trovato in questa fattura. Prova con un\'altra.')
       } else {
         const enriched = enrichWithComparison(
-          json.items.map((item: { prodotto: string; prezzo: number; unita: string | null; note: string | null }) => ({ ...item, selected: true })),
+          json.items.map(
+            (item: {
+              prodotto: string
+              prezzo: number
+              codice_prodotto?: string | null
+              unita: string | null
+              note: string | null
+            }) => ({
+              ...item,
+              codice_prodotto:
+                item.codice_prodotto != null && String(item.codice_prodotto).trim() !== ''
+                  ? String(item.codice_prodotto).trim()
+                  : null,
+              selected: true,
+            })
+          ),
           listino
         )
         setImportItems(enriched)
@@ -1362,17 +1523,35 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
     const toSave = importItems.filter(i => i.selected && i.prodotto && i.prezzo > 0)
     if (!toSave.length) return
     setImportSaving(true)
-    const supabase = createClient()
+    setImportError(null)
     const rows = toSave.map(i => ({
-      fornitore_id: fornitoreId,
       prodotto: i.prodotto,
       prezzo: i.prezzo,
       data_prezzo: importDate,
-      note: [i.unita ? `Unità: ${i.unita}` : null, i.note].filter(Boolean).join(' — ') || null,
+      note:
+        [
+          i.codice_prodotto?.trim() ? `Codice: ${i.codice_prodotto.trim()}` : null,
+          i.unita ? `Unità: ${i.unita}` : null,
+          i.note,
+        ]
+          .filter(Boolean)
+          .join(' — ') || null,
     }))
-    const { error } = await supabase.from('listino_prezzi').insert(rows)
-    if (error) {
-      setImportError(error.message)
+    try {
+      const res = await fetch('/api/listino/prezzi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ fornitore_id: fornitoreId, rows }),
+      })
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setImportError(json.error ?? `Errore ${res.status}`)
+        setImportSaving(false)
+        return
+      }
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e))
       setImportSaving(false)
       return
     }
@@ -1386,16 +1565,31 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
     if (!formProdotto.trim() || !formPrezzo || !formData) return
     setSaving(true)
     setSaveError(null)
-    const supabase = createClient()
-    const { error } = await supabase.from('listino_prezzi').insert([{
-      fornitore_id: fornitoreId,
-      prodotto: formProdotto.trim(),
-      prezzo: parseFloat(formPrezzo),
-      data_prezzo: formData,
-      note: formNote.trim() || null,
-    }])
-    if (error) {
-      setSaveError(error.message)
+    try {
+      const res = await fetch('/api/listino/prezzi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          fornitore_id: fornitoreId,
+          rows: [
+            {
+              prodotto: formProdotto.trim(),
+              prezzo: parseFloat(formPrezzo),
+              data_prezzo: formData,
+              note: formNote.trim() || null,
+            },
+          ],
+        }),
+      })
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setSaveError(json.error ?? `Errore ${res.status}`)
+        setSaving(false)
+        return
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e))
       setSaving(false)
       return
     }
@@ -1411,8 +1605,23 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
-    const supabase = createClient()
-    await supabase.from('listino_prezzi').delete().eq('id', id)
+    setDeleteError(null)
+    try {
+      const res = await fetch(
+        `/api/listino/prezzi?id=${encodeURIComponent(id)}&fornitore_id=${encodeURIComponent(fornitoreId)}`,
+        { method: 'DELETE', credentials: 'include' }
+      )
+      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setDeleteError(json.error ?? `Errore ${res.status}`)
+        setDeletingId(null)
+        return
+      }
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : String(e))
+      setDeletingId(null)
+      return
+    }
     setDeletingId(null)
     await loadListino()
   }
@@ -1513,10 +1722,10 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <div className="px-5 py-3 border-b border-slate-700/60 flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t.fornitori.listinoProdotti}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoProdotti}</p>
             <div className="flex items-center gap-2">
               {Object.keys(listinoByProduct).length > 0 && (
-                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-medium text-slate-200">
                   {Object.keys(listinoByProduct).length} {t.fornitori.listinoProdottiTracked}
                 </span>
               )}
@@ -1537,6 +1746,10 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
             </div>
           </div>
 
+          {deleteError && (
+            <div className="border-b border-red-500/25 bg-red-500/10 px-5 py-2 text-xs text-red-200">{deleteError}</div>
+          )}
+
           {/* Import from invoice panel */}
           {showImport && (
             <div className="border-b border-violet-500/25 bg-violet-500/10 px-5 py-4">
@@ -1553,7 +1766,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                 <>
                   <div className="mb-3 flex items-end gap-3">
                     <div className="flex-1">
-                      <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">{t.appStrings.listinoImportSelectInvoiceLabel}</label>
+                      <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">{t.appStrings.listinoImportSelectInvoiceLabel}</label>
                       <select
                         value={selectedFatturaId}
                         onChange={e => { setSelectedFatturaId(e.target.value); setImportItems([]); setImportError(null) }}
@@ -1587,13 +1800,13 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   {importItems.length > 0 && (
                     <div className="mt-2">
                       <div className="mb-2 flex items-center justify-between">
-                        <p className="text-[10px] font-semibold uppercase text-slate-500">
+                        <p className="text-[10px] font-semibold uppercase text-slate-300">
                           {t.appStrings.listinoImportProductsSelected
                             .replace(/\{selected\}/g, String(importItems.filter(i => i.selected).length))
                             .replace(/\{total\}/g, String(importItems.length))}
                         </p>
                         <div className="flex items-center gap-2">
-                          <label className="text-[10px] font-semibold uppercase text-slate-500">{t.appStrings.listinoImportPriceListDateLabel}</label>
+                          <label className="text-[10px] font-semibold uppercase text-slate-300">{t.appStrings.listinoImportPriceListDateLabel}</label>
                           <input
                             type="date"
                             value={importDate}
@@ -1629,20 +1842,21 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                 {nuovi.length} nuovo{nuovi.length > 1 ? 'i' : ''}
                               </span>
                             )}
-                            <span className="text-[10px] text-slate-500">rispetto all&apos;ultimo listino registrato</span>
+                            <span className="text-[10px] text-slate-300">rispetto all&apos;ultimo listino registrato</span>
                           </div>
                         )
                       })()}
 
-                      <div className="mb-3 overflow-hidden rounded-lg border border-slate-700/60 bg-slate-900/40">
-                        <table className="w-full text-xs">
+                      <div className="mb-3 overflow-x-auto rounded-lg border border-slate-700/60 bg-slate-900/40">
+                        <table className="w-full min-w-[780px] text-xs">
                           <thead>
                             <tr className="border-b border-slate-700/60 bg-slate-800/80">
                               <th className="w-8 px-3 py-2"></th>
-                              <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-500">Prodotto</th>
-                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-500">Ult. prezzo</th>
-                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-500">In fattura</th>
-                              <th className="w-24 px-3 py-2 text-center text-[10px] font-semibold uppercase text-slate-500">Δ variaz.</th>
+                              <th className="min-w-[10rem] w-[10.5rem] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-200">Cod.</th>
+                              <th className="min-w-[14rem] px-3 py-2 text-left text-[10px] font-semibold uppercase text-slate-300">Prodotto</th>
+                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-300">Ult. prezzo</th>
+                              <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-slate-300">In fattura</th>
+                              <th className="w-24 px-3 py-2 text-center text-[10px] font-semibold uppercase text-slate-300">Δ variaz.</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-700/50">
@@ -1660,25 +1874,51 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                       className="w-3.5 h-3.5 accent-violet-500 cursor-pointer"
                                     />
                                   </td>
-                                  <td className="px-3 py-2.5 max-w-xs">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <input
-                                        type="text"
-                                        value={item.prodotto}
-                                        onChange={e => setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, prodotto: e.target.value } : it))}
-                                        className="-mx-1 min-w-0 rounded bg-transparent px-1 font-medium text-slate-100 focus:bg-slate-800/80 focus:outline-none"
-                                      />
-                                      {item.isNew && (
-                                        <span className="shrink-0 rounded-full bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-300">Nuovo</span>
-                                      )}
+                                  <td className="min-w-0 px-3 py-2 align-top">
+                                    <input
+                                      type="text"
+                                      value={item.codice_prodotto ?? ''}
+                                      onChange={e =>
+                                        setImportItems(prev =>
+                                          prev.map((it, i) =>
+                                            i === idx
+                                              ? {
+                                                  ...it,
+                                                  codice_prodotto: e.target.value.trim() === '' ? null : e.target.value,
+                                                }
+                                              : it
+                                          )
+                                        )
+                                      }
+                                      placeholder="—"
+                                      className="w-full min-w-0 border-0 bg-transparent px-1 py-1.5 font-mono text-[13px] font-medium leading-snug tracking-wide text-slate-100 placeholder:text-slate-500 focus:bg-slate-800/35 focus:outline-none focus:ring-0"
+                                    />
+                                  </td>
+                                  <td className="min-w-0 px-3 py-2.5 align-top">
+                                    <div className="flex min-w-0 flex-col gap-1">
+                                      <div className="flex min-w-0 flex-wrap items-start gap-1.5">
+                                        <input
+                                          type="text"
+                                          value={item.prodotto}
+                                          onChange={e => setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, prodotto: e.target.value } : it))}
+                                          className="-mx-1 min-h-[1.25rem] min-w-0 flex-1 rounded bg-transparent px-1 font-medium leading-snug text-slate-100 focus:bg-slate-800/80 focus:outline-none"
+                                        />
+                                        {item.isNew && (
+                                          <span className="shrink-0 rounded-full bg-cyan-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-cyan-300">
+                                            Nuovo
+                                          </span>
+                                        )}
+                                      </div>
                                       {item.matchedProdotto && item.matchedProdotto !== item.prodotto && (
-                                        <span className="shrink-0 truncate text-[9px] italic text-slate-500">≈ {item.matchedProdotto}</span>
+                                        <p className="break-words text-[9px] italic leading-snug text-slate-300">≈ {item.matchedProdotto}</p>
+                                      )}
+                                      {item.note && (
+                                        <p className="break-words text-[10px] italic leading-snug text-slate-300">{item.note}</p>
                                       )}
                                     </div>
-                                    {item.note && <p className="mt-0.5 text-[10px] italic text-slate-500">{item.note}</p>}
                                   </td>
-                                  <td className="px-3 py-2.5 text-right tabular-nums text-slate-400">
-                                    {item.prezzoAttuale != null ? `£${item.prezzoAttuale.toFixed(2)}` : <span className="text-slate-600">—</span>}
+                                  <td className="px-3 py-2.5 text-right tabular-nums text-slate-200">
+                                    {item.prezzoAttuale != null ? `£${item.prezzoAttuale.toFixed(2)}` : <span className="text-slate-300">—</span>}
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums">
                                     <input
@@ -1694,14 +1934,14 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                                       <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                                         isRincaro ? 'bg-red-500/20 text-red-200'
                                         : isRibasso ? 'bg-emerald-500/20 text-emerald-200'
-                                        : 'bg-slate-700/80 text-slate-400'
+                                        : 'bg-slate-700/80 text-slate-200'
                                       }`}>
                                         {item.delta > 0 ? '▲' : '▼'} {Math.abs(item.delta).toFixed(1)}%
                                       </span>
                                     ) : item.isNew ? (
                                       <span className="text-[10px] font-semibold text-cyan-400/90">—</span>
                                     ) : (
-                                      <span className="text-[10px] text-slate-600">—</span>
+                                      <span className="text-[10px] text-slate-300">—</span>
                                     )}
                                   </td>
                                 </tr>
@@ -1721,7 +1961,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                             ? 'Salvataggio…'
                             : `Salva ${importItems.filter(i => i.selected).length} prodotti`}
                         </button>
-                        <button type="button" onClick={() => { setShowImport(false); setImportItems([]) }} className="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 transition-colors hover:text-slate-200">
+                        <button type="button" onClick={() => { setShowImport(false); setImportItems([]) }} className="rounded-lg px-4 py-2 text-xs font-medium text-slate-200 transition-colors hover:text-slate-200">
                           Annulla
                         </button>
                       </div>
@@ -1738,7 +1978,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
               <p className="mb-3 text-xs font-semibold text-cyan-100">Nuovo prodotto / aggiornamento prezzo</p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                 <div className="md:col-span-2">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Prodotto *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Prodotto *</label>
                   <input
                     type="text"
                     value={formProdotto}
@@ -1748,7 +1988,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Prezzo *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Prezzo *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1760,7 +2000,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Data prezzo *</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Data prezzo *</label>
                   <input
                     type="date"
                     value={formData}
@@ -1769,7 +2009,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   />
                 </div>
                 <div className="md:col-span-4">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-500">Note (opzionale)</label>
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-300">Note (opzionale)</label>
                   <input
                     type="text"
                     value={formNote}
@@ -1794,7 +2034,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="rounded-lg px-4 py-2 text-xs font-medium text-slate-400 transition-colors hover:text-slate-200"
+                  className="rounded-lg px-4 py-2 text-xs font-medium text-slate-200 transition-colors hover:text-slate-200"
                 >
                   {t.common.cancel}
                 </button>
@@ -1805,11 +2045,11 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           {/* Empty state */}
           {Object.keys(listinoByProduct).length === 0 && !showForm && (
             <div className="px-5 py-10 text-center">
-              <svg className="mx-auto mb-2 h-10 w-10 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="mx-auto mb-2 h-10 w-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <p className="text-sm font-medium text-slate-400">{t.fornitori.listinoNoData}</p>
-              <p className="mt-1 text-xs text-slate-500">{t.appStrings.clickAddFirst}</p>
+              <p className="text-sm font-medium text-slate-200">{t.fornitori.listinoNoData}</p>
+              <p className="mt-1 text-xs text-slate-300">{t.appStrings.clickAddFirst}</p>
             </div>
           )}
 
@@ -1833,7 +2073,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                           <p className="text-sm font-semibold text-slate-100">{prodotto}</p>
                           {penultimo && (
                             <div className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              isRincaro ? 'bg-red-500/15 text-red-300' : isRibasso ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-800 text-slate-500'
+                              isRincaro ? 'bg-red-500/15 text-red-300' : isRibasso ? 'bg-emerald-500/15 text-emerald-300' : 'bg-slate-800 text-slate-300'
                             }`}>
                               {isRincaro ? '▲' : isRibasso ? '▼' : '='} {Math.abs(pct).toFixed(1)}%
                             </div>
@@ -1842,7 +2082,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                           {sorted.map((p, i) => (
                             <span key={p.id} className="flex items-center gap-1">
-                              <span className="text-[10px] text-slate-500">
+                              <span className="text-[10px] text-slate-300">
                                 {formatDateLib(p.data_prezzo, locale, timezone, { month: 'short', year: '2-digit' })}
                               </span>
                               <span className={`text-xs font-bold ${
@@ -1852,11 +2092,11 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                               }`}>
                                 £{p.prezzo.toFixed(2)}
                               </span>
-                              {i < sorted.length - 1 && <span className="text-[10px] text-slate-600">→</span>}
+                              {i < sorted.length - 1 && <span className="text-[10px] text-slate-300">→</span>}
                             </span>
                           ))}
                         </div>
-                        {ultimo.note && <p className="mt-0.5 text-[10px] italic text-slate-500">{ultimo.note}</p>}
+                        {ultimo.note && <p className="mt-0.5 text-[10px] italic text-slate-300">{ultimo.note}</p>}
                       </div>
 
                       {/* Delete last entry button */}
@@ -1865,7 +2105,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                         onClick={() => handleDelete(ultimo.id)}
                         disabled={deletingId === ultimo.id}
                         title="Rimuovi ultimo prezzo"
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-500/15 hover:text-red-400 disabled:opacity-40"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-red-500/15 hover:text-red-400 disabled:opacity-40"
                       >
                         {deletingId === ultimo.id
                           ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -1891,11 +2131,13 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           ].map(({ label, value, cls }) => (
             <div
               key={label}
-              className={`relative overflow-hidden rounded-xl border p-4 shadow-lg shadow-black/30 backdrop-blur-xl ${cls}`}
+              className={`relative flex flex-col overflow-hidden rounded-xl border shadow-lg shadow-black/30 backdrop-blur-xl ${cls}`}
             >
-              <div className="app-card-bar mb-3" aria-hidden />
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
-              <p className="text-xl font-bold tabular-nums">£{value.toFixed(2)}</p>
+              <div className="app-card-bar shrink-0" aria-hidden />
+              <div className="p-4">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
+                <p className="text-xl font-bold tabular-nums">£{value.toFixed(2)}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -1903,19 +2145,21 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
 
       {/* ── Storico cronologico documenti ── */}
       {rows.length === 0 ? (
-        <div className="app-card overflow-hidden px-6 py-16 text-center">
-          <div className="app-card-bar" aria-hidden />
-          <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="app-card flex flex-col overflow-hidden text-center">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="px-6 py-16">
+          <svg className="mx-auto mb-3 h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
           </svg>
-          <p className="text-sm font-medium text-slate-400">{t.fornitori.listinoNoDocs}</p>
+          <p className="text-sm font-medium text-slate-200">{t.fornitori.listinoNoDocs}</p>
+          </div>
         </div>
       ) : (
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <div className="flex items-center justify-between border-b border-slate-700/60 px-5 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t.fornitori.listinoStorico}</p>
-            <p className="text-xs text-slate-500">{rows.length} {t.fornitori.listinoDocs}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoStorico}</p>
+            <p className="text-xs text-slate-300">{rows.length} {t.fornitori.listinoDocs}</p>
           </div>
 
           {/* Mobile */}
@@ -1926,7 +2170,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   <span className={`h-2 w-2 shrink-0 rounded-full ${r.tipo === 'fattura' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-slate-100">{formatDate(r.data)}</p>
-                    {r.numero && <p className="text-[11px] text-slate-500">#{r.numero}</p>}
+                    {r.numero && <p className="text-[11px] text-slate-300">#{r.numero}</p>}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -1946,10 +2190,10 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-700/60">
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t.fornitori.listinoColData}</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t.fornitori.listinoColTipo}</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{t.fornitori.listinoColNumero}</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">{t.fornitori.listinoColImporto}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColData}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColTipo}</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColNumero}</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColImporto}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/50">
@@ -1966,12 +2210,12 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                       {r.tipo === 'fattura' ? t.fatture.title : t.bolle.title}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-slate-500">{r.numero ?? '—'}</td>
+                  <td className="px-5 py-3.5 text-slate-300">{r.numero ?? '—'}</td>
                   <td className="px-5 py-3.5 text-right text-base font-bold tabular-nums text-slate-100">£{(r.importo ?? 0).toFixed(2)}</td>
                 </tr>
               ))}
               <tr className="border-t-2 border-slate-700/60 bg-slate-800/30">
-                <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{t.fornitori.listinoColTotale}</td>
+                <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-300">{t.fornitori.listinoColTotale}</td>
                 <td className="px-5 py-3 text-right text-base font-bold tabular-nums text-slate-100">£{totale.toFixed(2)}</td>
               </tr>
             </tbody>
@@ -2023,6 +2267,7 @@ function FornitoreDetailClient({
     (next: Tab) => {
       if (next === tab) return
       const q = new URLSearchParams(searchParams.toString())
+      fornitoreSupplierClearDocParams(q)
       if (next === 'dashboard') q.delete('tab')
       else q.set('tab', next)
       const qs = q.toString()
@@ -2035,13 +2280,12 @@ function FornitoreDetailClient({
 
   const t = useT()
   const { locale, timezone } = useLocale()
-  const loc = getLocale(countryCode)
   const { me } = useMe()
   const { runEmailSync, progress: emailSyncProgress } = useEmailSyncProgress()
   const supplierSyncDisabled = !fornitore.sede_id || emailSyncProgress.active
   const syncThisSupplier = () => {
     void runEmailSync({
-      ...emailSyncScopeBodyFields(readEmailSyncScopePrefs()),
+      ...emailSyncApiBodyFields(readEmailSyncScopePrefs()),
       fornitore_id: fornitore.id,
       user_sede_id: me?.sede_id ?? fornitore.sede_id ?? undefined,
     })
@@ -2078,8 +2322,6 @@ function FornitoreDetailClient({
   ]
 
   // Initials for avatar
-  const initials = fornitore.nome.split(/\s+/).slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()
-
   const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(fornitore.id, filterYear, filterMonth)
 
   const TabContent = () => (
@@ -2095,11 +2337,45 @@ function FornitoreDetailClient({
           onFornitoreReload={reloadFornitore}
         />
       )}
-      {tab === 'bolle'     && <BolleTab fornitoreId={fornitore.id} year={filterYear} month={filterMonth} />}
-      {tab === 'fatture'   && <FattureTab fornitoreId={fornitore.id} year={filterYear} month={filterMonth} />}
+      {tab === 'bolle' && (
+        <BolleTab
+          fornitoreId={fornitore.id}
+          year={filterYear}
+          month={filterMonth}
+          pathname={pathname}
+          searchParams={searchParams}
+        />
+      )}
+      {tab === 'fatture' && (
+        <FattureTab
+          fornitoreId={fornitore.id}
+          year={filterYear}
+          month={filterMonth}
+          pathname={pathname}
+          searchParams={searchParams}
+        />
+      )}
       {tab === 'listino'   && <ListinoTab fornitoreId={fornitore.id} />}
-      {tab === 'documenti' && <PendingMatchesTab fornitoreId={fornitore.id} countryCode={countryCode} currency={currency} year={filterYear} month={filterMonth} />}
-      {tab === 'verifica'  && <VerificationStatusTab fornitoreId={fornitore.id} countryCode={countryCode} currency={currency} year={filterYear} month={filterMonth} />}
+      {tab === 'documenti' && (
+        <PendingMatchesTab
+          sedeId={fornitore.sede_id ?? undefined}
+          fornitoreId={fornitore.id}
+          countryCode={countryCode}
+          currency={currency}
+          year={filterYear}
+          month={filterMonth}
+        />
+      )}
+      {tab === 'verifica' && (
+        <VerificationStatusTab
+          sedeId={fornitore.sede_id ?? undefined}
+          fornitoreId={fornitore.id}
+          countryCode={countryCode}
+          currency={currency}
+          year={filterYear}
+          month={filterMonth}
+        />
+      )}
     </>
   )
 
@@ -2107,31 +2383,39 @@ function FornitoreDetailClient({
 
   return (
     <>
+      <FornitoreDocDetailLayer
+        fornitoreId={fornitore.id}
+        bollaId={searchParams.get('bolla')}
+        fatturaId={searchParams.get('fattura')}
+      />
       {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
       <div className="md:hidden px-4 pb-6">
         <div className="app-card mb-4 mt-2 overflow-hidden">
           <div className="app-card-bar" aria-hidden />
-          <div className="flex flex-col gap-2 px-3 py-2.5">
-            <h1 className="text-sm font-semibold leading-snug text-slate-100">{fornitore.nome}</h1>
-            <button
-              type="button"
-              onClick={syncThisSupplier}
-              disabled={supplierSyncDisabled}
-              title={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
-              className="inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-cyan-500/90 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {emailSyncProgress.active ? (
-                <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-              ) : (
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              )}
-              {t.dashboard.syncEmail}
-            </button>
+          <div className="flex items-start gap-3 px-3 py-2.5">
+            <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <h1 className="text-sm font-semibold leading-snug text-slate-100">{fornitore.nome}</h1>
+              <button
+                type="button"
+                onClick={syncThisSupplier}
+                disabled={supplierSyncDisabled}
+                title={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
+                className="inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-cyan-500/90 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {emailSyncProgress.active ? (
+                  <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                {t.dashboard.syncEmail}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2158,15 +2442,12 @@ function FornitoreDetailClient({
         <div className="bg-slate-950 px-6 pt-3 pb-0">
           {/* Identity + stats + actions — all in one row */}
           <div className="flex items-center gap-4 pb-3 border-b border-white/10">
-            {/* Avatar */}
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-sm font-bold text-white shrink-0">
-              {initials}
-            </div>
+            <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} />
 
             {/* Name / email */}
             <div className="min-w-0 flex-1">
               <h1 className="text-sm font-bold text-white truncate leading-tight">{fornitore.nome}</h1>
-              {fornitore.email && <p className="text-[11px] text-slate-400 truncate mt-0.5">{fornitore.email}</p>}
+              {fornitore.email && <p className="text-[11px] text-slate-200 truncate mt-0.5">{fornitore.email}</p>}
             </div>
 
             {/* Stat pills */}
@@ -2176,9 +2457,9 @@ function FornitoreDetailClient({
                 { label: t.nav.fatture,          value: fattureCount },
                 { label: t.fornitori.kpiPending, value: pendingCount, warn: pendingCount > 0 },
               ].map(k => (
-                <div key={k.label} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold ${k.warn ? 'bg-amber-400/10 border-amber-400/20 text-amber-300' : 'bg-white/5 border-white/10 text-slate-300'}`}>
+                <div key={k.label} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold ${k.warn ? 'bg-amber-400/10 border-amber-400/20 text-amber-300' : 'bg-white/5 border-white/10 text-slate-100'}`}>
                   <span className="font-bold tabular-nums">{k.value}</span>
-                  <span className="text-[10px] opacity-60 hidden xl:inline">{k.label}</span>
+                  <span className="hidden text-[10px] font-medium text-slate-200 xl:inline">{k.label}</span>
                 </div>
               ))}
             </div>
@@ -2189,14 +2470,14 @@ function FornitoreDetailClient({
             {/* Month/year navigator */}
             <div className="flex items-center gap-1 shrink-0 bg-white/5 border border-white/10 rounded-lg px-1 py-1">
               <button onClick={() => shiftMonth(-1)}
-                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors">
+                className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-white hover:bg-white/10 rounded transition-colors">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <span className="text-[11px] font-semibold text-slate-200 tabular-nums min-w-[72px] text-center">
+              <span className="min-w-[72px] text-center text-[11px] font-semibold tabular-nums text-white">
                 {monthYearLabel}
               </span>
               <button onClick={() => shiftMonth(1)} disabled={isCurrentMonth}
-                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
               </button>
               {!isCurrentMonth && (
@@ -2238,12 +2519,12 @@ function FornitoreDetailClient({
                 {t.nav.nuovaBolla}
               </Link>
               <Link href={`/fatture/new?fornitore_id=${fornitore.id}`}
-                className="flex items-center gap-1.5 px-3 py-2 bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold rounded-lg transition-colors border border-white/10">
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition-colors hover:bg-white/10 hover:text-white">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 {t.fatture.new}
               </Link>
               <Link href={`/fornitori/${fornitore.id}/edit`} title={t.fornitori.editTitle}
-                className="p-2 text-slate-400 hover:text-slate-200 hover:bg-white/10 rounded-lg transition-colors border border-white/10">
+                className="rounded-lg border border-white/10 p-2 text-slate-100 transition-colors hover:bg-white/10 hover:text-white">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
               </Link>
             </div>
@@ -2256,7 +2537,7 @@ function FornitoreDetailClient({
                 className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-all border-b-2 -mb-px ${
                   tab === tb.id
                     ? 'text-white border-cyan-400'
-                    : 'text-slate-400 border-transparent hover:text-slate-200'
+                    : 'border-transparent text-slate-300 hover:text-white'
                 }`}
               >
                 {tb.label}
@@ -2264,7 +2545,7 @@ function FornitoreDetailClient({
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
                     tab === tb.id
                       ? tb.id === 'documenti' ? 'bg-amber-400/20 text-amber-300' : 'bg-cyan-400/20 text-cyan-300'
-                      : 'bg-white/10 text-slate-400'
+                      : 'bg-white/10 text-slate-200'
                   }`}>
                     {tb.badge}
                   </span>
@@ -2276,7 +2557,7 @@ function FornitoreDetailClient({
 
         {/* Tab content — KPI desktop sempre visibili (stesso periodo del navigatore mese) */}
         <div className="min-h-[calc(100vh-8rem)]">
-          <div className="mx-auto max-w-6xl p-5">
+          <div className="mx-auto w-full max-w-screen-2xl px-5 py-5 md:px-8">
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
             <TabContent />
           </div>
@@ -2290,6 +2571,9 @@ function FornitoreDetailClient({
 export default function FornitoreDetailPage() {
   const id = segmentParam(useParams().id)
   const router = useRouter()
+  const tPage = useT()
+  const idRef = useRef(id)
+  idRef.current = id
 
   const [fornitore, setFornitore] = useState<Fornitore | null>(null)
   const [bolleCount, setBolleCount] = useState(0)
@@ -2300,68 +2584,108 @@ export default function FornitoreDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
-  const load = useCallback(async () => {
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('fornitori')
-      .select('*')
-      .eq('id', id)
-      .single()
+  /**
+   * Carica anagrafica + conteggi. Il fetch documenti in coda non blocca più la pagina:
+   * se `/api/documenti-da-processare` fallisce o resta appeso, prima si vedeva lo splash all’infinito
+   * perché `Promise.all` rifiutava e `setLoading(false)` non veniva mai chiamato.
+   */
+  const loadImpl = useCallback(
+    async (opts: { pageLoading: boolean; cancelled?: () => boolean }) => {
+      const { pageLoading, cancelled } = opts
 
-    if (error || !data) { setNotFound(true); setLoading(false); return }
-    setFornitore(data as Fornitore)
+      if (!id) {
+        setNotFound(true)
+        setFornitore(null)
+        if (pageLoading) setLoading(false)
+        return
+      }
 
-    const [bolleRes, fattureRes, pendingRes, sedeRes] = await Promise.all([
-      supabase.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', id),
-      supabase.from('fatture').select('id', { count: 'exact', head: true }).eq('fornitore_id', id),
-      fetch(`/api/documenti-da-processare?fornitore_id=${id}&stati=in_attesa,da_associare`)
-        .then(r => r.ok ? r.json() : []),
-      data.sede_id
-        ? supabase.from('sedi').select('country_code, currency').eq('id', data.sede_id).single()
-        : Promise.resolve({ data: null }),
-    ])
+      if (pageLoading) setLoading(true)
 
-    setBolleCount(bolleRes.count ?? 0)
-    setFattureCount(fattureRes.count ?? 0)
-    setPendingCount(Array.isArray(pendingRes) ? pendingRes.length : 0)
-    const sedeData = sedeRes.data as { country_code?: string; currency?: string } | null
-    setCountryCode(sedeData?.country_code ?? 'UK')
-    setSedeCurrency(sedeData?.currency ?? 'GBP')
-    setLoading(false)
-  }, [id])
+      try {
+        const supabase = createClient()
+        const [fornitoreRes, bolleRes, fattureRes] = await Promise.all([
+          supabase.from('fornitori').select('*').eq('id', id).single(),
+          supabase.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', id),
+          supabase.from('fatture').select('id', { count: 'exact', head: true }).eq('fornitore_id', id),
+        ])
 
-  useEffect(() => { load() }, [load])
+        if (cancelled?.()) return
+
+        if (fornitoreRes.error || !fornitoreRes.data) {
+          setNotFound(true)
+          setFornitore(null)
+          return
+        }
+
+        setNotFound(false)
+        const data = fornitoreRes.data as Fornitore
+        setFornitore(data)
+        setBolleCount(bolleRes.count ?? 0)
+        setFattureCount(fattureRes.count ?? 0)
+
+        if (data.sede_id) {
+          const { data: sedeData } = await supabase
+            .from('sedi')
+            .select('country_code, currency')
+            .eq('id', data.sede_id)
+            .single()
+          if (cancelled?.()) return
+          setCountryCode(sedeData?.country_code ?? 'UK')
+          setSedeCurrency(sedeData?.currency ?? 'GBP')
+        } else {
+          setCountryCode('UK')
+          setSedeCurrency('GBP')
+        }
+
+        const pendingForId = id
+        void fetch(
+          `/api/documenti-da-processare?fornitore_id=${encodeURIComponent(pendingForId)}&stati=in_attesa,da_associare`
+        )
+          .then((r) => (r.ok ? r.json() : []))
+          .then((pendingRes) => {
+            if (idRef.current !== pendingForId) return
+            setPendingCount(Array.isArray(pendingRes) ? pendingRes.length : 0)
+          })
+          .catch(() => {
+            if (idRef.current !== pendingForId) return
+            setPendingCount(0)
+          })
+      } catch {
+        if (cancelled?.()) return
+        if (pageLoading) {
+          setNotFound(true)
+          setFornitore(null)
+        }
+      } finally {
+        if (pageLoading && !cancelled?.()) setLoading(false)
+      }
+    },
+    [id]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    void loadImpl({ pageLoading: true, cancelled: () => cancelled })
+    return () => {
+      cancelled = true
+    }
+  }, [loadImpl])
+
+  const reloadFornitore = useCallback(() => {
+    void loadImpl({ pageLoading: false })
+  }, [loadImpl])
 
   if (loading) {
-    const shellAccents = ['#3b82f6', '#22c55e', '#f59e0b', '#a855f7', '#14b8a6', '#0ea5e9'] as const
     return (
-      <div className="mx-auto max-w-6xl p-4 pb-6 md:p-5">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 w-48 rounded bg-slate-700/80" />
-          <div className="h-8 w-72 rounded bg-slate-700/80" />
-          <div className="h-10 w-64 rounded bg-slate-700/80" />
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="app-card h-28 overflow-hidden border-l-4 p-4"
-                style={{ borderLeftColor: shellAccents[i] }}
-              >
-                <div className="app-card-bar mb-2" aria-hidden />
-                <div className="h-3 w-2/3 rounded bg-slate-700/80" />
-                <div className="mt-3 h-6 w-1/2 rounded bg-slate-700/80" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <FluxoSupplierProfileLoading message={tPage.fornitori.loadingProfile} tagline={tPage.ui.tagline} />
     )
   }
 
   if (notFound || !fornitore) {
     return (
       <div className="max-w-5xl p-4 py-20 text-center md:p-8">
-        <p className="mb-3 font-medium text-slate-400">Fornitore non trovato.</p>
+        <p className="mb-3 font-medium text-slate-200">Fornitore non trovato.</p>
         <button type="button" onClick={() => router.push('/fornitori')}
           className="text-sm font-medium text-cyan-400 hover:underline">
           ← Torna ai fornitori
@@ -2373,7 +2697,7 @@ export default function FornitoreDetailPage() {
   return (
     <Suspense fallback={null}>
       <FornitoreDetailClient
-        reloadFornitore={load}
+        reloadFornitore={reloadFornitore}
         fornitore={fornitore}
         bolleCount={bolleCount}
         fattureCount={fattureCount}

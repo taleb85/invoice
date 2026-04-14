@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Fornitore } from '@/types'
@@ -72,7 +73,6 @@ function NuovaBollaForm() {
   const preselectedFornitoreId = searchParams.get('fornitore_id') ?? ''
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
-  const cameraRef = useRef<HTMLInputElement>(null)
   const { sedeId } = useSedeId()
   const t = useT()
   const { locale, timezone } = useLocale()
@@ -97,7 +97,6 @@ function NuovaBollaForm() {
   const [numeroBolla, setNumeroBolla] = useState('')
   const [importo, setImporto] = useState('')
   const [file, setFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registratoDa, setRegistratoDa] = useState('')
@@ -107,8 +106,6 @@ function NuovaBollaForm() {
       setRegistratoDa(activeOperator.full_name)
     }
   }, [activeOperator])
-  const [uploadMode, setUploadMode] = useState<'idle' | 'camera' | 'file'>('idle')
-
   const [scanIntent, setScanIntent] = useState<ScanIntent>('auto')
   const [registrationTarget, setRegistrationTarget] = useState<'bolla' | 'fattura'>('bolla')
 
@@ -254,6 +251,12 @@ function NuovaBollaForm() {
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null
+    setError(null)
+    if (f && f.type !== 'application/pdf') {
+      setError('Carica un PDF (documento ricevuto per email: fattura, bolla o estratto).')
+      e.target.value = ''
+      return
+    }
     setFile(f)
     setOcrStatus('idle')
     setMatchedFornitore(null)
@@ -264,14 +267,7 @@ function NuovaBollaForm() {
     setDateFromOcr(false)
     setRegistrationTarget('bolla')
     if (f) {
-      if (f.type.startsWith('image/')) {
-        setPreview(URL.createObjectURL(f))
-      } else {
-        setPreview(null)
-      }
       void runScannerHub(f, scanIntent, fornitori)
-    } else {
-      setPreview(null)
     }
   }
 
@@ -285,7 +281,6 @@ function NuovaBollaForm() {
 
   const handleRemoveFile = () => {
     setFile(null)
-    setPreview(null)
     setOcrStatus('idle')
     setMatchedFornitore(null)
     setOcrNome(null)
@@ -294,9 +289,7 @@ function NuovaBollaForm() {
     setNeedsSupplierDeepExtract(false)
     setDateFromOcr(false)
     setRegistrationTarget('bolla')
-    setUploadMode('idle')
     if (fileRef.current) fileRef.current.value = ''
-    if (cameraRef.current) cameraRef.current.value = ''
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -306,7 +299,7 @@ function NuovaBollaForm() {
     setSaving(true)
     setError(null)
 
-    const ext = file.name.split('.').pop() ?? 'jpg'
+    const ext = file.name.split('.').pop() ?? 'pdf'
     const uniqueName = `${crypto.randomUUID()}.${ext}`
 
     const { error: uploadError } = await supabase.storage
@@ -448,77 +441,18 @@ function NuovaBollaForm() {
             {t.bolle.fotoLabel}
           </label>
 
-          {!preview && !file?.type.startsWith('application/pdf') && uploadMode === 'idle' && (
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => { setUploadMode('camera'); setTimeout(() => cameraRef.current?.click(), 50) }}
-                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/70 py-8 text-slate-500 transition-colors hover:border-cyan-500/45 hover:text-cyan-300 active:bg-slate-800/50"
-              >
-                <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-sm font-semibold">{t.bolle.cameraBtn}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setUploadMode('file'); setTimeout(() => fileRef.current?.click(), 50) }}
-                className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/70 py-8 text-slate-500 transition-colors hover:border-cyan-500/45 hover:text-cyan-300 active:bg-slate-800/50"
-              >
-                <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                <span className="text-sm font-semibold">{t.bolle.fileBtn}</span>
-              </button>
-            </div>
+          {!file && (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex w-full flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/70 py-8 text-slate-500 transition-colors hover:border-cyan-500/45 hover:text-cyan-300 active:bg-slate-800/50"
+            >
+              <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm font-semibold">{t.bolle.fileBtn} (PDF)</span>
+            </button>
           )}
-
-          {preview ? (
-            <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={preview}
-                alt="Anteprima"
-                className="w-full rounded-xl object-cover max-h-64"
-              />
-              <button
-                type="button"
-                onClick={handleRemoveFile}
-                className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-
-              {ocrStatus === 'scanning' && (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/70 text-white text-xs px-3 py-1.5 rounded-full">
-                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                  {t.bolle.ocrScanning}
-                </div>
-              )}
-              {ocrStatus === 'matched' && (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-emerald-500/90 px-3 py-1.5 text-xs text-white shadow-lg shadow-emerald-900/40">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                  </svg>
-                  {t.bolle.ocrMatched}
-                </div>
-              )}
-              {ocrStatus === 'not_found' && (
-                <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-amber-500/90 px-3 py-1.5 text-xs text-amber-950 shadow-lg">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  {t.bolle.ocrNotFound}
-                </div>
-              )}
-            </div>
-          ) : null}
 
           {file?.type === 'application/pdf' && (
             <div className="relative rounded-xl border border-slate-600/60 bg-slate-800/50 px-4 py-8 text-center text-sm text-slate-400">
@@ -540,21 +474,29 @@ function NuovaBollaForm() {
                   {t.bolle.ocrAnalyzing}
                 </p>
               )}
+              {ocrStatus === 'matched' && (
+                <p className="mt-3 flex items-center justify-center gap-2 text-xs text-emerald-300">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                  </svg>
+                  {t.bolle.ocrMatched}
+                </p>
+              )}
+              {ocrStatus === 'not_found' && (
+                <p className="mt-3 flex items-center justify-center gap-2 text-xs text-amber-300">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  {t.bolle.ocrNotFound}
+                </p>
+              )}
             </div>
           )}
 
           <input
-            ref={cameraRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFile}
-            className="hidden"
-          />
-          <input
             ref={fileRef}
             type="file"
-            accept="image/*,application/pdf"
+            accept="application/pdf"
             onChange={handleFile}
             className="hidden"
           />
@@ -614,9 +556,9 @@ function NuovaBollaForm() {
           {fornitori.length === 0 ? (
             <p className="text-sm text-amber-300">
               {t.fornitori.noSuppliers}{' '}
-              <a href="/fornitori/new" className="font-medium text-cyan-400 underline transition-colors hover:text-cyan-300">
+              <Link href="/fornitori/new" className="font-medium text-cyan-400 underline transition-colors hover:text-cyan-300">
                 {t.fornitori.addFirst}
-              </a>
+              </Link>
             </p>
           ) : (
             <select

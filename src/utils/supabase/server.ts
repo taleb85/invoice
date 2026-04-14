@@ -1,7 +1,25 @@
+import { cache } from 'react'
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import type { User } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import type { Profile } from '@/types'
+
+export type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
+
+/**
+ * Condivide `createClient` + `auth.getUser()` dentro la stessa richiesta RSC/API:
+ * layout `(app)` e pagina non ripetono il round-trip Supabase Auth.
+ */
+export const getRequestAuth = cache(
+  async (): Promise<{ supabase: SupabaseServerClient; user: User | null }> => {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    return { supabase, user }
+  }
+)
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -42,8 +60,7 @@ export function createServiceClient() {
 
 /** Restituisce il profilo dell'utente corrente inclusa la sede. */
 export async function getProfile(): Promise<Profile | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { supabase, user } = await getRequestAuth()
   if (!user) return null
 
   const { data } = await supabase

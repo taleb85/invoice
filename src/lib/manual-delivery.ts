@@ -110,7 +110,7 @@ function parseAiRows(content: string): ManualDeliveryLine[] {
     for (const raw of parsed.rows) {
       const row = raw as Record<string, unknown>
       const prodotto = row.prodotto != null ? String(row.prodotto).trim() : ''
-      let quantita = Number(row.quantita)
+      const quantita = Number(row.quantita)
       if (Number.isNaN(quantita) || quantita <= 0) continue
       let unita = row.unita != null ? String(row.unita).trim() : ''
       if (!unita) unita = 'pz'

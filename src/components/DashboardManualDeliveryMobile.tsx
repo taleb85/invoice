@@ -8,7 +8,7 @@ import { useLocale } from '@/lib/locale-context'
 import { useT } from '@/lib/use-t'
 import ManualDeliveryForm from '@/components/ManualDeliveryForm'
 
-type FornitoreRow = { id: string; nome: string }
+type FornitoreRow = { id: string; nome: string; email: string | null }
 
 export type ManualDeliveryMobilePanelProps = {
   /** Override sede per query/API (mantiene le stesse regole di visibilità del contesto). */
@@ -47,7 +47,7 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
     ;(async () => {
       const { data, error } = await supabase
         .from('fornitori')
-        .select('id, nome')
+        .select('id, nome, email')
         .eq('sede_id', effectiveSedeId)
         .order('nome')
       if (error) {
@@ -121,7 +121,12 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
             </div>
           </div>
           {fornitoreId ? (
-            <ManualDeliveryForm fornitoreId={fornitoreId} sedeId={effectiveSedeId} languageHint={locale} />
+            <ManualDeliveryForm
+              fornitoreId={fornitoreId}
+              sedeId={effectiveSedeId}
+              languageHint={locale}
+              supplierEmail={fornitori.find((f) => f.id === fornitoreId)?.email ?? null}
+            />
           ) : null}
         </>
       )}

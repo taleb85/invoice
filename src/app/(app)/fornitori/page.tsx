@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
-import { createClient } from '@/utils/supabase/server'
+import { getRequestAuth } from '@/utils/supabase/server'
+import { getCookieStore } from '@/lib/locale-server'
 import { Fornitore } from '@/types'
 import FornitoriCardsGrid from '@/components/FornitoriCardsGrid'
 import { getT } from '@/lib/locale-server'
@@ -10,12 +10,11 @@ async function getFornitori(): Promise<{
   sedeNome: string | null
   sedeScope: string
 }> {
-  const supabase  = await createClient()
-  const cookieStore = await cookies()
+  const { supabase, user } = await getRequestAuth()
+  const cookieStore = await getCookieStore()
 
   // Detect sede attiva: per admin usa admin-sede-id, per operatore usa sede dal profilo
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data: profile }  = user
+  const { data: profile } = user
     ? await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
     : { data: null }
 
