@@ -1268,8 +1268,8 @@ export default function SediPage() {
                           />
                           <span className="text-xs text-slate-500">
                             {imapForm.imap_lookback_days && parseInt(imapForm.imap_lookback_days) > 0
-                              ? `Legge email non lette degli ultimi ${imapForm.imap_lookback_days} giorni`
-                              : 'Legge tutte le email non lette (nessun limite)'}
+                              ? `Legge email (lette e non lette) degli ultimi ${imapForm.imap_lookback_days} giorni`
+                              : 'Legge tutte le email in Posta in arrivo (lette e non lette, nessun limite di giorni)'}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-1">Lascia vuoto per nessun limite. Consigliato: 30–90 giorni.</p>

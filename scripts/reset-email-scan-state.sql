@@ -2,9 +2,9 @@
 -- Reset stato scan email (coda + checkpoint) — da eseguire in Supabase SQL Editor
 -- =============================================================================
 -- Dopo l’esecuzione:
--- 1. Segna di nuovo come NON LETTE le mail che vuoi riprocessare (webmail / client),
---    perché lo scan IMAP usa solo messaggi { seen: false }.
--- 2. Avvia la sincronizzazione dalla dashboard (pulsante scan email) o da Log.
+-- 1. Avvia la sincronizzazione dalla dashboard (pulsante scan email) o da Log.
+--    Lo scan IMAP considera le mail nella finestra (giorni / anno fiscale), lette e non lette;
+--    senza le righe di log sotto, gli allegati possono essere rielaborati se ancora in casella.
 --
 -- Nota: i file già caricati su Storage (bucket documenti) restano; puoi pulirli a mano
 -- se ti servono meno oggetti orfani.
@@ -16,7 +16,7 @@ BEGIN;
 DELETE FROM public.documenti_da_processare;
 
 -- Checkpoint idempotenza: senza queste righe lo stesso allegato può essere rielaborato
--- (se la mail torna non letta e lo scan viene rilanciato).
+-- (se lo scan viene rilanciato e il messaggio è ancora nella finestra IMAP).
 DELETE FROM public.log_sincronizzazione
 WHERE scan_attachment_fingerprint IS NOT NULL;
 

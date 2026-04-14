@@ -60,3 +60,68 @@ export function defaultFiscalYearLabel(countryCode: string, ref = new Date()): n
 export function isValidFiscalYear(y: unknown): y is number {
   return typeof y === 'number' && Number.isFinite(y) && y >= FY_MIN && y <= FY_MAX
 }
+
+/**
+ * Etichetta breve per UI: UK `2025/26` (tax year che termina ad aprile `labelYear`);
+ * IT/FR/DE/ES anno civile come stringa (`2025`).
+ */
+export function formatFiscalYearShort(countryCode: string, labelYear: number): string {
+  const y = clampYear(labelYear)
+  const cc = (countryCode || 'UK').toUpperCase()
+  if (cc === 'UK') {
+    const startYear = y - 1
+    const endTwo = String(y).slice(-2).padStart(2, '0')
+    return `${startYear}/${endTwo}`
+  }
+  return String(y)
+}
+
+/** Mesi civili che compongono l’anno fiscale `fiscalLabelYear` (UK: apr → mar; altri: gen → dic). */
+export function listFiscalYearCalendarMonths(countryCode: string, fiscalLabelYear: number): { y: number; m: number }[] {
+  const L = clampYear(fiscalLabelYear)
+  const cc = (countryCode || 'UK').toUpperCase()
+  const out: { y: number; m: number }[] = []
+  if (cc === 'UK') {
+    let y = L - 1
+    let m = 4
+    for (let i = 0; i < 12; i++) {
+      out.push({ y, m })
+      m += 1
+      if (m > 12) {
+        m = 1
+        y += 1
+      }
+    }
+  } else {
+    for (let m = 1; m <= 12; m++) out.push({ y: L, m })
+  }
+  return out
+}
+
+const monthOrd = (y: number, m: number) => y * 12 + (m - 1)
+
+/**
+ * Finestre mensili (from/to esclusivo come `YYYY-MM-DD`) per il riepilogo fornitore:
+ * dall’inizio dell’anno fiscale che contiene il mese selezionato fino a quel mese incluso,
+ * ordine dal più recente al più vecchio (stessa logica email sync / `defaultFiscalYearLabel`).
+ */
+export function listFiscalMonthsThroughSelection(
+  countryCode: string,
+  selectedYear: number,
+  selectedMonth: number
+): { y: number; m: number; from: string; to: string }[] {
+  const cc = (countryCode || 'UK').toUpperCase()
+  const lastDay = new Date(Date.UTC(selectedYear, selectedMonth, 0))
+  const label = defaultFiscalYearLabel(cc, lastDay)
+  const all = listFiscalYearCalendarMonths(cc, label)
+  const selOrd = monthOrd(selectedYear, selectedMonth)
+  const filtered = all.filter((x) => monthOrd(x.y, x.m) <= selOrd)
+  const withRanges = filtered.map(({ y, m }) => {
+    const from = `${y}-${String(m).padStart(2, '0')}-01`
+    const nm = m === 12 ? 1 : m + 1
+    const ny = m === 12 ? y + 1 : y
+    const to = `${ny}-${String(nm).padStart(2, '0')}-01`
+    return { y, m, from, to }
+  })
+  return withRanges.reverse()
+}

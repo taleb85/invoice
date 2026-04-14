@@ -25,9 +25,24 @@ interface Props {
    * scoped to this specific branch — skips the /api/me lookup entirely.
    */
   sedeId?: string
+  /** Sincronizzazione mirata al fornitore (casella = sede del fornitore). */
+  fornitoreId?: string
+  /** Es. assenza sede sul fornitore — disabilita oltre allo stato interno. */
+  disabled?: boolean
+  /** Tooltip quando `disabled` è true (es. serve sede sul fornitore). */
+  disabledReasonTitle?: string
+  /** `supplier`: stile allineato alla barra fornitore (bordi cyan / sfondo tenue). */
+  variant?: 'default' | 'supplier'
 }
 
-export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propSedeId }: Props) {
+export default function ScanEmailButton({
+  alwaysShowLabel = false,
+  sedeId: propSedeId,
+  fornitoreId,
+  disabled: disabledProp,
+  disabledReasonTitle,
+  variant = 'default',
+}: Props) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'ok' | 'warn' | 'error'; text: string } | null>(null)
   const [scopePrefs, setScopePrefs] = useState<EmailSyncScopePrefs>(() => readEmailSyncScopePrefs())
@@ -84,6 +99,7 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
       const scopeFields = emailSyncApiBodyFields(scopePrefs)
       const payload = {
         ...scopeFields,
+        ...(fornitoreId ? { fornitore_id: fornitoreId } : {}),
         ...(effectiveSedeId
           ? {
               user_sede_id: effectiveSedeId,
@@ -120,11 +136,33 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
   }
 
   const labelVis = alwaysShowLabel ? '' : 'hidden md:inline'
+  const isSupplierVariant = variant === 'supplier'
   const btnSize = alwaysShowLabel
-    ? 'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 px-3 py-0'
+    ? isSupplierVariant
+      ? 'inline-flex min-h-[44px] w-full items-center justify-center gap-1 px-2.5 py-0 md:h-7 md:min-h-0 md:w-auto md:gap-1.5 md:px-3'
+      : 'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 px-3 py-0'
     : 'inline-flex items-center gap-1.5 px-3 py-1.5'
   const selectSize =
     'h-8 py-0 pl-2 pr-7 text-left text-[11px] font-medium leading-8'
+  const selectSizeSupplier =
+    'h-7 py-0 pl-1.5 pr-6 text-left text-[10px] font-medium leading-7 md:pl-2 md:pr-7'
+  const selectSizeEffective = isSupplierVariant ? selectSizeSupplier : selectSize
+  const selectRound = isSupplierVariant ? 'rounded-md' : 'rounded-lg'
+  const selectFocusRing = isSupplierVariant
+    ? 'focus:ring-1 focus:ring-cyan-500/30'
+    : 'focus:ring-2 focus:ring-cyan-500/30'
+  const selectSurface = isSupplierVariant
+    ? 'border-white/10 bg-white/5 text-slate-100 shadow-none shadow-black/0'
+    : 'border-slate-600/50 bg-slate-700/90 shadow-sm shadow-black/20'
+  const selectOptionSurface = isSupplierVariant ? 'bg-slate-700 text-slate-100' : 'bg-slate-700 text-slate-100'
+  const selectChevronCls = isSupplierVariant ? 'text-slate-300' : 'text-slate-200'
+  const selectChevronAbs = isSupplierVariant
+    ? 'right-1.5 h-2.5 w-2.5 md:right-2 md:h-3 md:w-3'
+    : 'right-2 h-3 w-3'
+  const btnPrimaryCls = isSupplierVariant
+    ? `${btnSize} rounded-lg border border-cyan-500/40 bg-cyan-500/15 font-bold text-[11px] text-cyan-100 transition-colors hover:bg-cyan-500/25 active:bg-cyan-500/30 whitespace-nowrap touch-manipulation md:text-xs`
+    : `${btnSize} rounded-lg bg-cyan-500 font-semibold text-xs text-white transition-colors hover:bg-cyan-600 active:bg-cyan-700 whitespace-nowrap touch-manipulation`
+  const controlsDisabled = loading || emailSync?.progress.active || !!disabledProp
 
   const selectValue = scopePrefs.mode === 'lookback' ? 'lb' : `fy:${scopePrefs.fiscalYear}`
   const lookbackSelectValue =
@@ -133,14 +171,23 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
       : 'def'
 
   return (
-    <div className={`flex flex-col gap-1.5 ${alwaysShowLabel ? 'min-w-0 shrink-0' : 'items-end'}`}>
+    <div
+      title={disabledProp && disabledReasonTitle ? disabledReasonTitle : undefined}
+      className={`flex flex-col ${isSupplierVariant ? 'gap-1' : 'gap-1.5'} ${alwaysShowLabel ? 'min-w-0 shrink-0' : 'items-end'} ${isSupplierVariant ? 'w-full min-w-0 md:w-auto' : ''}`}
+    >
       <div
-        className={`flex flex-wrap items-center gap-1.5 ${alwaysShowLabel ? '' : 'justify-end'}`}
+        className={
+          isSupplierVariant
+            ? 'flex w-full flex-col gap-1 md:w-auto md:flex-row md:flex-nowrap md:items-center md:gap-1.5'
+            : `flex flex-wrap items-center gap-1.5 ${alwaysShowLabel ? '' : 'justify-end'}`
+        }
       >
-      <div className="relative max-w-[min(100%,12.5rem)] min-w-0 shrink-0">
+      <div
+        className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[10.5rem]' : 'max-w-[min(100%,12.5rem)]'}`}
+      >
         <select
           value={selectValue}
-          disabled={loading || emailSync?.progress.active}
+          disabled={controlsDisabled}
           title={t.dashboard.emailSyncScopeHint}
           aria-label={t.dashboard.emailSyncFiscalYearSelectAria}
           onChange={(e) => {
@@ -167,19 +214,19 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
             writeEmailSyncScopePrefs(n)
             setScopePrefs(n)
           }}
-          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+          className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${selectSizeEffective} backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
         >
-          <option className="bg-slate-700 text-slate-100" value="lb">
+          <option className={selectOptionSurface} value="lb">
             {t.dashboard.emailSyncScopeLookback}
           </option>
           {fiscalYearOptions.map((y) => (
-            <option key={y} className="bg-slate-700 text-slate-100" value={`fy:${y}`}>
+            <option key={y} className={selectOptionSurface} value={`fy:${y}`}>
               {t.dashboard.emailSyncScopeFiscal}: {y}
             </option>
           ))}
         </select>
         <svg
-          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-200"
+          className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${selectChevronAbs} ${selectChevronCls}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -189,10 +236,12 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
         </svg>
       </div>
       {scopePrefs.mode === 'lookback' ? (
-        <div className="relative max-w-[min(100%,11rem)] min-w-0 shrink-0">
+        <div
+          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[8.25rem]' : 'max-w-[min(100%,11rem)]'}`}
+        >
           <select
             value={lookbackSelectValue}
-            disabled={loading || emailSync?.progress.active}
+            disabled={controlsDisabled}
             title={t.dashboard.emailSyncLookbackDaysHint}
             aria-label={t.dashboard.emailSyncLookbackDaysAria}
             onChange={(e) => {
@@ -212,19 +261,19 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
               writeEmailSyncScopePrefs(n)
               setScopePrefs(n)
             }}
-            className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${selectSizeEffective} backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
           >
-            <option className="bg-slate-700 text-slate-100" value="def">
+            <option className={selectOptionSurface} value="def">
               {t.dashboard.emailSyncLookbackSedeDefault}
             </option>
             {LOOKBACK_DAY_PRESETS.map((d) => (
-              <option key={d} className="bg-slate-700 text-slate-100" value={String(d)}>
+              <option key={d} className={selectOptionSurface} value={String(d)}>
                 {t.dashboard.emailSyncLookbackDaysN.replace('{n}', String(d))}
               </option>
             ))}
           </select>
           <svg
-            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-200"
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${selectChevronAbs} ${selectChevronCls}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -234,63 +283,71 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
           </svg>
         </div>
       ) : null}
-      <div className="relative max-w-[min(100%,13.5rem)] min-w-0 shrink-0">
-        <select
-          value={scopePrefs.documentKind}
-          disabled={loading || emailSync?.progress.active}
-          title={t.dashboard.emailSyncDocumentKindHint}
-          aria-label={t.dashboard.emailSyncDocumentKindAria}
-          onChange={(e) => {
-            const v = e.target.value as EmailSyncDocumentKind
-            if (
-              v !== 'all' &&
-              v !== 'fornitore' &&
-              v !== 'bolla' &&
-              v !== 'fattura' &&
-              v !== 'estratto_conto'
-            ) {
-              return
-            }
-            const n: EmailSyncScopePrefs = { ...scopePrefs, documentKind: v }
-            writeEmailSyncScopePrefs(n)
-            setScopePrefs(n)
-          }}
-          className={`w-full cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 ${selectSize} text-slate-100 shadow-sm shadow-black/20 backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+      {!fornitoreId ? (
+        <div
+          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[min(100%,13.5rem)]' : 'max-w-[min(100%,13.5rem)]'}`}
         >
-          <option className="bg-slate-700 text-slate-100" value="all">
-            {t.dashboard.emailSyncDocumentKindAll}
-          </option>
-          <option className="bg-slate-700 text-slate-100" value="fornitore">
-            {t.dashboard.emailSyncDocumentKindFornitore}
-          </option>
-          <option className="bg-slate-700 text-slate-100" value="bolla">
-            {t.dashboard.emailSyncDocumentKindBolla}
-          </option>
-          <option className="bg-slate-700 text-slate-100" value="fattura">
-            {t.dashboard.emailSyncDocumentKindFattura}
-          </option>
-          <option className="bg-slate-700 text-slate-100" value="estratto_conto">
-            {t.dashboard.emailSyncDocumentKindEstratto}
-          </option>
-        </select>
-        <svg
-          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-200"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
+          <select
+            value={scopePrefs.documentKind}
+            disabled={controlsDisabled}
+            title={t.dashboard.emailSyncDocumentKindHint}
+            aria-label={t.dashboard.emailSyncDocumentKindAria}
+            onChange={(e) => {
+              const v = e.target.value as EmailSyncDocumentKind
+              if (
+                v !== 'all' &&
+                v !== 'fornitore' &&
+                v !== 'bolla' &&
+                v !== 'fattura' &&
+                v !== 'estratto_conto'
+              ) {
+                return
+              }
+              const n: EmailSyncScopePrefs = { ...scopePrefs, documentKind: v }
+              writeEmailSyncScopePrefs(n)
+              setScopePrefs(n)
+            }}
+            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${selectSizeEffective} backdrop-blur-sm transition-colors focus:border-cyan-500 focus:outline-none ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+          >
+            <option className={selectOptionSurface} value="all">
+              {t.dashboard.emailSyncDocumentKindAll}
+            </option>
+            <option className={selectOptionSurface} value="fornitore">
+              {t.dashboard.emailSyncDocumentKindFornitore}
+            </option>
+            <option className={selectOptionSurface} value="bolla">
+              {t.dashboard.emailSyncDocumentKindBolla}
+            </option>
+            <option className={selectOptionSurface} value="fattura">
+              {t.dashboard.emailSyncDocumentKindFattura}
+            </option>
+            <option className={selectOptionSurface} value="estratto_conto">
+              {t.dashboard.emailSyncDocumentKindEstratto}
+            </option>
+          </select>
+          <svg
+            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 ${selectChevronAbs} ${selectChevronCls}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      ) : null}
       <button
         onClick={handleClick}
-        disabled={loading || emailSync?.progress.active}
-        className={`${btnSize} rounded-lg bg-cyan-500 font-semibold text-xs text-white transition-colors hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 whitespace-nowrap touch-manipulation`}
+        disabled={controlsDisabled}
+        className={`${btnPrimaryCls} disabled:cursor-not-allowed ${isSupplierVariant ? 'disabled:opacity-45' : 'disabled:opacity-50'}`}
       >
         {loading ? (
           <>
-            <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+            <svg
+              className={`shrink-0 animate-spin ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5' : 'h-4 w-4'}`}
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
@@ -298,7 +355,12 @@ export default function ScanEmailButton({ alwaysShowLabel = false, sedeId: propS
           </>
         ) : (
           <>
-            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className={`shrink-0 ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5' : 'h-4 w-4'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             <span className={labelVis}>{t.dashboard.syncEmail}</span>

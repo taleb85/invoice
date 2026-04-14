@@ -25,6 +25,28 @@ export function formatDate(
   return out
 }
 
+/** Mese per esteso + anno, tutto in maiuscolo (es. it: «MARZO 2026»). */
+export function formatMonthYearUppercase(
+  d: string,
+  locale: Locale = 'it',
+  timezone = 'Europe/Rome'
+): string {
+  const parsed = new Date(d)
+  if (!Number.isFinite(parsed.getTime())) return ''
+  const intlLocale =
+    locale === 'it' ? 'it-IT'
+    : locale === 'en' ? 'en-GB'
+    : locale === 'es' ? 'es-ES'
+    : locale === 'fr' ? 'fr-FR'
+    : 'de-DE'
+  const out = new Intl.DateTimeFormat(intlLocale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: timezone,
+  }).format(parsed)
+  return out.toLocaleUpperCase(intlLocale)
+}
+
 export function formatCurrency(amount: number, currencyCode = 'EUR', locale: Locale = 'it') {
   const intlLocale =
     locale === 'it' ? 'it-IT'

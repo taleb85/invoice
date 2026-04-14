@@ -21,7 +21,7 @@
  * Combinazione “tutto” precedente + fornitori:
  *   node scripts/reset-email-scan-state.mjs --with-fornitori
  *
- * Poi: mail non lette su IMAP → Sincronizza email dall’app.
+ * Poi: dalla app rilancia la sincronizzazione email (anche mail già lette, nella finestra IMAP).
  */
 
 import { readFileSync, existsSync } from 'node:fs'

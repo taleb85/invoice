@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@layer base {
+  /* Puntatore di sistema sui pulsanti. */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /*
   Dashboard operatore (mobile): KPI + “Bolle recenti” devono restare nascosti sotto md.
   Usiamo media query pura così non dipende dal momento in cui Tailwind applica `hidden md:block`

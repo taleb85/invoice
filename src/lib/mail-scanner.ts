@@ -66,8 +66,8 @@ function globalImapCreds(): ImapCredentials {
 }
 
 /**
- * Restituisce tutte le email non lette che contengono almeno un allegato PDF
- * (fattura / bolla / estratto) oppure corpo testo sufficiente per l’estrazione.
+ * Restituisce le email nella finestra IMAP scelta (lette e non lette) che contengono
+ * almeno un allegato PDF (fattura / bolla / estratto) oppure corpo testo sufficiente per l’estrazione.
  */
 export type FetchUnseenImapHooks = {
   onRetry?: (info: { attempt: number; maxAttempts: number; error: unknown }) => void | Promise<void>
@@ -80,7 +80,7 @@ export type FetchUnseenImapHooks = {
 export async function fetchUnseenEmails(
   hooks?: FetchUnseenImapHooks,
   fiscalRange?: { start: Date; endExclusive: Date } | null,
-  /** Solo senza fiscalRange: limita la ricerca IMAP `SINCE` (email non lette). */
+  /** Solo senza fiscalRange: limita la ricerca IMAP `SINCE` (lette e non lette). */
   lookbackDays?: number | null
 ): Promise<ScannedEmail[]> {
   if (!process.env.IMAP_HOST || !process.env.IMAP_USER) {
@@ -101,10 +101,10 @@ export async function fetchUnseenEmails(
           : undefined
       const searchResult = await client.search(
         fiscalRange
-          ? { seen: false, since: fiscalRange.start, before: fiscalRange.endExclusive }
+          ? { since: fiscalRange.start, before: fiscalRange.endExclusive }
           : sinceLookback
-            ? { seen: false, since: sinceLookback }
-            : { seen: false },
+            ? { since: sinceLookback }
+            : { all: true },
         { uid: true }
       )
       const uids = Array.isArray(searchResult) ? searchResult : []

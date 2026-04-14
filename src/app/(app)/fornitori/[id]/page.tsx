@@ -724,6 +724,12 @@ function SupplierDesktopMonthlyDocSummary({
   const fiscalSelectedDisplay = formatFiscalYearShort(ccSede, fiscalSelectedLabel)
   const fiscalSelectedLine = t.fornitori.supplierMonthlyDocFiscalSelected.replace('{year}', fiscalSelectedDisplay)
 
+  const lastDayTableEnd = new Date(Date.UTC(endYear, endMonth, 0))
+  const fiscalTableEndDisplay = formatFiscalYearShort(
+    ccSede,
+    defaultFiscalYearLabel(ccSede, lastDayTableEnd)
+  )
+
   return (
     <section
       className={`app-card mb-6 hidden overflow-hidden md:flex md:flex-col ${tabHi.border}`}
@@ -758,7 +764,7 @@ function SupplierDesktopMonthlyDocSummary({
                 <div
                   role="group"
                   className="flex shrink-0 flex-wrap items-center gap-0.5 self-start rounded-md border border-slate-600/70 bg-slate-900/45 px-0.5 py-0.5 sm:self-auto"
-                  aria-label={`${t.fornitori.supplierMonthlyDocTitle} · ${fiscalSelectedDisplay}`}
+                  aria-label={`${t.fornitori.supplierMonthlyDocTitle} · ${fiscalTableEndDisplay}`}
                 >
                   <button
                     type="button"
@@ -772,7 +778,7 @@ function SupplierDesktopMonthlyDocSummary({
                     </svg>
                   </button>
                   <span className="min-w-[3.25rem] px-1 text-center text-[10px] font-semibold tabular-nums text-slate-100 sm:min-w-[3.5rem]">
-                    {fiscalSelectedDisplay}
+                    {fiscalTableEndDisplay}
                   </span>
                   <button
                     type="button"
@@ -2919,6 +2925,12 @@ function FornitoreDetailClient({
   const [filterYear,  setFilterYear]  = useState(now.getFullYear())
   const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1)
 
+  /** Periodo solo per il riepilogo mensile in card: frecce anno qui non muovono il navigatore in header. */
+  const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState(() => ({
+    y: now.getFullYear(),
+    m: now.getMonth() + 1,
+  }))
+
   const shiftMonth = (delta: number) => {
     setFilterMonth(prev => {
       const newMonth = prev + delta
@@ -2934,6 +2946,22 @@ function FornitoreDetailClient({
     if (y > nowY || (y === nowY && m > nowM)) return { y: nowY, m: nowM }
     return { y, m }
   }
+
+  useEffect(() => {
+    setMonthlySummaryPeriod({ y: filterYear, m: filterMonth })
+  }, [filterYear, filterMonth])
+
+  const shiftMonthlySummaryYear = (delta: number) => {
+    setMonthlySummaryPeriod((prev) => clampSupplierPeriod(prev.y + delta, prev.m))
+  }
+
+  const nextMonthlySummaryYearPeriod = clampSupplierPeriod(monthlySummaryPeriod.y + 1, monthlySummaryPeriod.m)
+  const canShiftMonthlySummaryYearForward =
+    nextMonthlySummaryYearPeriod.y !== monthlySummaryPeriod.y ||
+    nextMonthlySummaryYearPeriod.m !== monthlySummaryPeriod.m
+
+  const isMonthlySummaryAtCurrentMonth =
+    monthlySummaryPeriod.y === nowY && monthlySummaryPeriod.m === nowM
 
   const shiftYear = (delta: number) => {
     const next = clampSupplierPeriod(filterYear + delta, filterMonth)
@@ -3222,22 +3250,19 @@ function FornitoreDetailClient({
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
             <SupplierDesktopMonthlyDocSummary
               fornitoreId={fornitore.id}
-              endYear={filterYear}
-              endMonth={filterMonth}
+              endYear={monthlySummaryPeriod.y}
+              endMonth={monthlySummaryPeriod.m}
               selectedYear={filterYear}
               selectedMonth={filterMonth}
               countryCode={countryCode}
               currency={currency ?? 'GBP'}
               activeTab={tab}
               periodNav={{
-                onPrevYear: () => shiftYear(-1),
-                onNextYear: () => shiftYear(1),
-                onResetToNow: () => {
-                  setFilterYear(now.getFullYear())
-                  setFilterMonth(now.getMonth() + 1)
-                },
-                disableNextYear: !canShiftYearForward,
-                showResetToNow: !isCurrentMonth,
+                onPrevYear: () => shiftMonthlySummaryYear(-1),
+                onNextYear: () => shiftMonthlySummaryYear(1),
+                onResetToNow: () => setMonthlySummaryPeriod({ y: nowY, m: nowM }),
+                disableNextYear: !canShiftMonthlySummaryYearForward,
+                showResetToNow: !isMonthlySummaryAtCurrentMonth,
               }}
               onOpenMonthTab={(y, m, nextTab) => {
                 const c = clampSupplierPeriod(y, m)
