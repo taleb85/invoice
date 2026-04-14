@@ -25,6 +25,7 @@ import {
 import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
 import { useMe } from '@/lib/me-context'
+import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
@@ -968,6 +969,7 @@ function DashboardTab({
   filterYear,
   filterMonth,
   onFornitoreReload,
+  readOnly,
 }: {
   fornitoreId: string
   fornitore: Fornitore
@@ -976,6 +978,7 @@ function DashboardTab({
   filterYear: number
   filterMonth: number
   onFornitoreReload?: () => void
+  readOnly?: boolean
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -1170,6 +1173,7 @@ function DashboardTab({
       </div>
 
       {/* Mobile: stesse azioni che prima erano nella bottom bar fissa, sotto i KPI */}
+      {!readOnly ? (
       <div className="grid grid-cols-2 gap-3 md:hidden">
         <Link
           href={`/bolle/new?fornitore_id=${fornitoreId}`}
@@ -1200,6 +1204,7 @@ function DashboardTab({
           <span className="truncate">{t.fatture.new}</span>
         </Link>
       </div>
+      ) : null}
 
       {/* Desktop md+: tre tessere quadrate (contatti | scheda | Rekki); senza contatti → 2 colonne. */}
       <div
@@ -1218,16 +1223,18 @@ function DashboardTab({
                 <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-medium text-slate-200">{contatti.length}</span>
               )}
             </div>
+            {!readOnly ? (
             <button onClick={openAdd}
               className="flex items-center gap-1 px-2.5 py-1 bg-cyan-500 hover:bg-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors">
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
               {t.common.add}
             </button>
+            ) : null}
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
           {/* Add / edit form */}
-          {showAddForm && (
+          {!readOnly && showAddForm && (
             <div className="border-b border-cyan-500/25 bg-cyan-500/10 px-4 py-4 md:px-5">
               <p className="mb-3 text-xs font-semibold text-cyan-200">{editingId ? t.appStrings.contactEdit : t.appStrings.contactNew}</p>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -1310,10 +1317,13 @@ function DashboardTab({
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                       </a>
                     )}
+                    {!readOnly ? (
                     <button onClick={() => openEdit(c)} title={t.common.edit}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-200 opacity-0 transition-colors hover:bg-slate-700 hover:text-slate-200 group-hover:opacity-100">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
+                    ) : null}
+                    {!readOnly ? (
                     <button onClick={() => handleDeleteContatto(c.id)} disabled={deletingId === c.id} title={t.appStrings.contactRemove}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-200 opacity-0 transition-colors hover:bg-red-950/50 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40">
                       {deletingId === c.id
@@ -1321,6 +1331,7 @@ function DashboardTab({
                         : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       }
                     </button>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -1421,6 +1432,7 @@ function DashboardTab({
         onSaved={onFornitoreReload}
         className="h-full min-h-0 flex flex-col"
         compactFields
+        readOnly={readOnly}
       />
       </div>
       </div>
@@ -1477,12 +1489,14 @@ function BolleTab({
   month,
   pathname,
   searchParams,
+  readOnly,
 }: {
   fornitoreId: string
   year: number
   month: number
   pathname: string
   searchParams: ReadonlyURLSearchParams
+  readOnly?: boolean
 }) {
   const router = useRouter()
   const t = useT()
@@ -1571,10 +1585,12 @@ function BolleTab({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
         <p className="text-sm font-medium text-slate-200">{t.bolle.nessunaBollaRegistrata}</p>
+        {!readOnly ? (
         <Link href={`/bolle/new?fornitore_id=${fornitoreId}`}
           className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
           {t.bolle.creaLaPrimaBolla}
         </Link>
+        ) : null}
         </div>
       </div>
     )
@@ -1694,6 +1710,7 @@ function BolleTab({
                         {attachmentOpenFileLinkLabel(fileKind, t)}
                       </OpenDocumentInAppButton>
                     )}
+                    {!readOnly ? (
                     <DeleteButton
                       id={b.id}
                       table="bolle"
@@ -1701,6 +1718,7 @@ function BolleTab({
                       className={FORNITORE_TABLE_DELETE_PILL}
                       iconClassName="h-3 w-3"
                     />
+                    ) : null}
                   </div>
                 </td>
               </tr>
@@ -1721,12 +1739,14 @@ function FattureTab({
   month,
   pathname,
   searchParams,
+  readOnly,
 }: {
   fornitoreId: string
   year: number
   month: number
   pathname: string
   searchParams: ReadonlyURLSearchParams
+  readOnly?: boolean
 }) {
   const t = useT()
   const formatDate = useAppFormatDate()
@@ -1776,10 +1796,12 @@ function FattureTab({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
         <p className="text-sm font-medium text-slate-200">{t.fatture.nessunaFatturaRegistrata}</p>
+        {!readOnly ? (
         <Link href={`/fatture/new?fornitore_id=${fornitoreId}`}
           className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
           {t.fatture.addFirst}
         </Link>
+        ) : null}
         </div>
       </div>
     )
@@ -1912,7 +1934,7 @@ ALTER TABLE public.listino_prezzi ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "listino_select" ON public.listino_prezzi
   FOR SELECT USING (auth.role() IN ('authenticated','service_role'));`
 
-function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
+function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?: boolean }) {
   const t = useT()
   const { locale, timezone } = useLocale()
   const formatDate = useAppFormatDate()
@@ -2318,6 +2340,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                 </li>
               </ol>
             </div>
+            {!readOnly ? (
             <button
               onClick={copy}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all ${
@@ -2332,7 +2355,9 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                 <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>{t.fornitori.listinoCopySQL}</>
               )}
             </button>
+            ) : null}
           </div>
+          {!readOnly ? (
           <details className="border-t border-amber-500/20">
             <summary className="px-5 py-2 text-[11px] text-amber-300/90 cursor-pointer hover:bg-amber-500/10 select-none">
               {t.fornitori.listinoSetupShowSQL}
@@ -2341,6 +2366,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
               {MIGRATION_SQL}
             </pre>
           </details>
+          ) : null}
         </div>
       ) : listTabloExists === true ? (
         /* Listino prodotti — with add form */
@@ -2354,6 +2380,8 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                   {Object.keys(listinoByProduct).length} {t.fornitori.listinoProdottiTracked}
                 </span>
               )}
+              {!readOnly ? (
+              <>
               <button
                 onClick={openImport}
                 className="flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-violet-500"
@@ -2368,6 +2396,8 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                 {t.common.add}
               </button>
+              </>
+              ) : null}
             </div>
           </div>
 
@@ -2376,7 +2406,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           )}
 
           {/* Import from invoice panel */}
-          {showImport && (
+          {showImport && !readOnly && (
             <div className="border-b border-violet-500/25 bg-violet-500/10 px-5 py-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-violet-200">{t.appStrings.listinoImportPanelTitle}</p>
@@ -2598,7 +2628,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           )}
 
           {/* Add product inline form */}
-          {showForm && (
+          {showForm && !readOnly && (
             <div className="border-b border-cyan-500/25 bg-cyan-500/10 px-5 py-4">
               <p className="mb-3 text-xs font-semibold text-cyan-100">Nuovo prodotto / aggiornamento prezzo</p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -2674,7 +2704,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
               <p className="text-sm font-medium text-slate-200">{t.fornitori.listinoNoData}</p>
-              <p className="mt-1 text-xs text-slate-200">{t.appStrings.clickAddFirst}</p>
+              {!readOnly ? <p className="mt-1 text-xs text-slate-200">{t.appStrings.clickAddFirst}</p> : null}
             </div>
           )}
 
@@ -2725,6 +2755,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                       </div>
 
                       {/* Delete last entry button */}
+                      {!readOnly ? (
                       <button
                         type="button"
                         onClick={() => handleDelete(ultimo.id)}
@@ -2737,6 +2768,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
                           : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         }
                       </button>
+                      ) : null}
                     </div>
                   </div>
                 )
@@ -2905,6 +2937,12 @@ function FornitoreDetailClient({
     return 'dashboard'
   }, [tabParam])
 
+  const supplierReadOnlyMobile = useMobileSupplierReadOnly()
+  const displayTab = useMemo((): Tab => {
+    if (supplierReadOnlyMobile && (tab === 'documenti' || tab === 'verifica')) return 'dashboard'
+    return tab
+  }, [supplierReadOnlyMobile, tab])
+
   const setTab = useCallback(
     (next: Tab) => {
       if (next === tab) {
@@ -2923,18 +2961,29 @@ function FornitoreDetailClient({
     [pathname, router, searchParams, tab]
   )
 
+  useEffect(() => {
+    if (!supplierReadOnlyMobile) return
+    if (tab !== 'documenti' && tab !== 'verifica') return
+    const q = new URLSearchParams(searchParams.toString())
+    fornitoreSupplierClearDocParams(q)
+    q.delete('tab')
+    const qs = q.toString()
+    const url = qs ? `${pathname}?${qs}` : pathname
+    router.replace(url, { scroll: false })
+  }, [supplierReadOnlyMobile, tab, pathname, router, searchParams])
+
   const t = useT()
   const { locale, timezone } = useLocale()
   const { me } = useMe()
   useLayoutEffect(() => {
-    if (tab === 'dashboard') return
+    if (displayTab === 'dashboard') return
     const id = requestAnimationFrame(() => scrollSupplierTabPanelIntoView())
     const tmo = window.setTimeout(scrollSupplierTabPanelIntoView, 350)
     return () => {
       cancelAnimationFrame(id)
       window.clearTimeout(tmo)
     }
-  }, [tab])
+  }, [displayTab])
 
   /** Sede attiva utente se il fornitore non ha ancora `sede_id` — necessario per API statement/bolle in Verifica. */
   const effectiveSedeId = fornitore.sede_id?.trim() || me?.sede_id?.trim() || undefined
@@ -3002,19 +3051,25 @@ function FornitoreDetailClient({
   const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(fornitore.id, filterYear, filterMonth)
 
   const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
-  const tabs: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'dashboard', label: t.fornitori.tabRiepilogo },
-    { id: 'conferme', label: t.fornitori.kpiOrdini, badge: ordiniCount > 0 ? ordiniCount : undefined },
-    { id: 'bolle', label: t.nav.bolle, badge: bolleCount },
-    { id: 'fatture', label: t.nav.fatture, badge: fattureCount },
-    { id: 'verifica', label: t.statements.tabVerifica },
-    { id: 'listino', label: t.fornitori.tabListino },
-    { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
-  ]
+  const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
+    const all: { id: Tab; label: string; badge?: number }[] = [
+      { id: 'dashboard', label: t.fornitori.tabRiepilogo },
+      { id: 'conferme', label: t.fornitori.kpiOrdini, badge: ordiniCount > 0 ? ordiniCount : undefined },
+      { id: 'bolle', label: t.nav.bolle, badge: bolleCount },
+      { id: 'fatture', label: t.nav.fatture, badge: fattureCount },
+      { id: 'verifica', label: t.statements.tabVerifica },
+      { id: 'listino', label: t.fornitori.tabListino },
+      { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
+    ]
+    if (supplierReadOnlyMobile) {
+      return all.filter((tb) => tb.id !== 'documenti' && tb.id !== 'verifica')
+    }
+    return all
+  }, [t, ordiniCount, bolleCount, fattureCount, pendingCount, supplierReadOnlyMobile])
 
   const TabContent = () => (
     <>
-      {tab === 'dashboard' && (
+      {displayTab === 'dashboard' && (
         <DashboardTab
           fornitoreId={fornitore.id}
           fornitore={fornitore}
@@ -3023,31 +3078,38 @@ function FornitoreDetailClient({
           filterYear={filterYear}
           filterMonth={filterMonth}
           onFornitoreReload={reloadFornitore}
+          readOnly={supplierReadOnlyMobile}
         />
       )}
-      {tab === 'bolle' && (
+      {displayTab === 'bolle' && (
         <BolleTab
           fornitoreId={fornitore.id}
           year={filterYear}
           month={filterMonth}
           pathname={pathname}
           searchParams={searchParams}
+          readOnly={supplierReadOnlyMobile}
         />
       )}
-      {tab === 'fatture' && (
+      {displayTab === 'fatture' && (
         <FattureTab
           fornitoreId={fornitore.id}
           year={filterYear}
           month={filterMonth}
           pathname={pathname}
           searchParams={searchParams}
+          readOnly={supplierReadOnlyMobile}
         />
       )}
-      {tab === 'listino'   && <ListinoTab fornitoreId={fornitore.id} />}
-      {tab === 'conferme' && (
-        <FornitoreConfermeOrdineTab fornitoreId={fornitore.id} sedeId={fornitore.sede_id ?? null} />
+      {displayTab === 'listino' && <ListinoTab fornitoreId={fornitore.id} readOnly={supplierReadOnlyMobile} />}
+      {displayTab === 'conferme' && (
+        <FornitoreConfermeOrdineTab
+          fornitoreId={fornitore.id}
+          sedeId={fornitore.sede_id ?? null}
+          readOnly={supplierReadOnlyMobile}
+        />
       )}
-      {tab === 'documenti' && (
+      {displayTab === 'documenti' && (
         <PendingMatchesTab
           sedeId={effectiveSedeId}
           fornitoreId={fornitore.id}
@@ -3058,7 +3120,7 @@ function FornitoreDetailClient({
           cardAccent="amber"
         />
       )}
-      {tab === 'verifica' && (
+      {displayTab === 'verifica' && (
         <VerificationStatusTab
           sedeId={effectiveSedeId}
           fornitoreId={fornitore.id}
@@ -3072,7 +3134,7 @@ function FornitoreDetailClient({
     </>
   )
 
-  const activeTabInfo = tabs.find((tb) => tb.id === tab)!
+  const activeTabInfo = tabs.find((tb) => tb.id === displayTab) ?? tabs[0]!
 
   return (
     <>
@@ -3083,20 +3145,26 @@ function FornitoreDetailClient({
       />
       {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
       <div className="md:hidden px-4 pb-6">
-        <div className={`app-card mb-4 mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[tab].border}`}>
-          <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[tab].bar}`} aria-hidden />
+        <div className={`app-card mb-4 mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
+          <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
           <div className="flex items-start gap-3 px-3 py-2.5">
             <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitore.nome}</h1>
-              <ScanEmailButton
-                variant="supplier"
-                alwaysShowLabel
-                fornitoreId={fornitore.id}
-                sedeId={fornitore.sede_id ?? undefined}
-                disabled={!fornitore.sede_id}
-                disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
-              />
+              {supplierReadOnlyMobile ? (
+                <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-2 text-[11px] leading-snug text-amber-100/95">
+                  {t.fornitori.profileViewOnlyBanner}
+                </p>
+              ) : (
+                <ScanEmailButton
+                  variant="supplier"
+                  alwaysShowLabel
+                  fornitoreId={fornitore.id}
+                  sedeId={fornitore.sede_id ?? undefined}
+                  disabled={!fornitore.sede_id}
+                  disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
+                />
+              )}
             </div>
           </div>
         </div>

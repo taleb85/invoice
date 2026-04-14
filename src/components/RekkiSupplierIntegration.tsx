@@ -15,6 +15,7 @@ export default function RekkiSupplierIntegration({
   onSaved,
   className,
   compactFields,
+  readOnly,
 }: {
   fornitoreId: string
   piva: string | null
@@ -25,6 +26,8 @@ export default function RekkiSupplierIntegration({
   className?: string
   /** Campi ID/link in colonna singola (tile stretti). */
   compactFields?: boolean
+  /** Solo lettura: nessuna modifica mapping Rekki (es. mobile operatore). */
+  readOnly?: boolean
 }) {
   const t = useT()
   const [rekkiId, setRekkiId] = useState(initialRekkiId?.trim() ?? '')
@@ -136,6 +139,42 @@ export default function RekkiSupplierIntegration({
   }
 
   const shell = SUMMARY_HIGHLIGHT_ACCENTS.cyan
+
+  if (readOnly) {
+    const id = initialRekkiId?.trim() ?? rekkiId.trim()
+    const link = initialRekkiLink?.trim() ?? rekkiLink.trim()
+    return (
+      <div className={`app-card overflow-hidden ${shell.border} ${className ?? ''}`}>
+        <div className={`app-card-bar ${shell.bar}`} aria-hidden />
+        <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
+          <svg className="h-3.5 w-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-100">{t.fornitori.rekkiIntegrationTitle}</p>
+        </div>
+        <div className="space-y-3 px-5 py-4 text-sm text-slate-200">
+          {id || link ? (
+            <>
+              {id ? (
+                <p>
+                  <span className="text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.rekkiIdLabel}</span>{' '}
+                  <span className="font-mono text-slate-100">{id}</span>
+                </p>
+              ) : null}
+              {link ? (
+                <p className="break-words">
+                  <span className="text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.rekkiLinkLabel}</span>{' '}
+                  <span className="text-cyan-300">{link}</span>
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-xs italic text-slate-200">—</p>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`app-card overflow-hidden ${shell.border} ${className ?? ''}`}>

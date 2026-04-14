@@ -4,6 +4,7 @@ import {
   countPendingDocumentiSessionScoped,
   countSyncLogErrors24h,
 } from '@/lib/dashboard-notification-counts'
+import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 
 export type ListinoOverviewRow = {
   id: string
@@ -341,5 +342,36 @@ export async function fetchRecentBolleScoped(
   if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
   const { data } = await q
   return data ?? []
+}
+
+export type ScannerFlowDaySummary = { aiElaborate: number; archiviate: number }
+
+/** Conteggi `scanner_flow_events` per sede nella giornata (fuso `ianaTimeZone`). Tabella assente → zeri. */
+export async function fetchTodayScannerFlowSummary(
+  supabase: SupabaseClient,
+  sedeId: string,
+  ianaTimeZone: string
+): Promise<ScannerFlowDaySummary> {
+  const { start, endExclusive } = utcBoundsForZonedCalendarDay(ianaTimeZone)
+  const [aiRes, archRes] = await Promise.all([
+    supabase
+      .from('scanner_flow_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('sede_id', sedeId)
+      .eq('step', 'ai_elaborata')
+      .gte('created_at', start)
+      .lt('created_at', endExclusive),
+    supabase
+      .from('scanner_flow_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('sede_id', sedeId)
+      .in('step', ['archiviata_bolla', 'archiviata_fattura'])
+      .gte('created_at', start)
+      .lt('created_at', endExclusive),
+  ])
+  if (aiRes.error || archRes.error) {
+    return { aiElaborate: 0, archiviate: 0 }
+  }
+  return { aiElaborate: aiRes.count ?? 0, archiviate: archRes.count ?? 0 }
 }
 
