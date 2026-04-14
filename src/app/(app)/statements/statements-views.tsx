@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo, useTransition } from 'react'
+import { Fragment, useEffect, useState, useCallback, useRef, useMemo, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -88,6 +88,123 @@ function fmt(d: string | null, locale = 'it-IT', timezone?: string) {
   } catch {
     return d
   }
+}
+
+/** Data «ufficiale» del documento: colonna DB, altrimenti data_fattura in metadata OCR. */
+function officialDateIsoForPendingDoc(doc: Documento): string | null {
+  const col = doc.data_documento?.trim()
+  if (col) return col
+  const raw = doc.metadata?.data_fattura?.trim()
+  if (!raw) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  const d = new Date(raw)
+  if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10)
+  const itMatch = raw.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/)
+  if (itMatch) {
+    const [, dd, mm, yyyy] = itMatch
+    const d2 = new Date(`${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`)
+    if (!Number.isNaN(d2.getTime())) return d2.toISOString().slice(0, 10)
+  }
+  return null
+}
+
+/** Campi opzionali in `statements.extracted_pdf_dates` (jsonb). */
+type StmtExtractedPdfDates = {
+  issued_date?: string | null
+  last_payment_date?: string | null
+  account_no?: string | null
+  credit_limit?: string | number | null
+  available_credit?: string | null
+  payment_terms?: string | null
+  last_payment_amount?: number | null
+}
+
+function stmtOfficialDateIso(s: { extracted_pdf_dates?: StmtExtractedPdfDates | null }): string | null {
+  const pdf = s.extracted_pdf_dates
+  const issued = pdf?.issued_date?.trim()
+  if (issued) return issued
+  const lastPay = pdf?.last_payment_date?.trim()
+  return lastPay || null
+}
+
+function hasStmtPdfSummary(pdf: StmtExtractedPdfDates | null | undefined): boolean {
+  if (!pdf || typeof pdf !== 'object') return false
+  if (pdf.account_no?.trim()) return true
+  if (pdf.issued_date?.trim()) return true
+  if (pdf.last_payment_date?.trim()) return true
+  if (pdf.credit_limit != null && String(pdf.credit_limit).trim() !== '') return true
+  if (pdf.available_credit?.trim()) return true
+  if (pdf.payment_terms?.trim()) return true
+  if (pdf.last_payment_amount != null && Number.isFinite(pdf.last_payment_amount)) return true
+  return false
+}
+
+function StmtPdfSummaryGrid({
+  pdf,
+  t,
+  formatStmtDate,
+  countryCode,
+}: {
+  pdf: StmtExtractedPdfDates
+  t: ReturnType<typeof useT>
+  formatStmtDate: (d: string | null) => string
+  countryCode?: string
+}) {
+  const cc = countryCode ?? 'UK'
+  const fmtMoney = (n: number) => formatCurrency(n, cc)
+  const fmtLimit = (v: string | number | null | undefined) => {
+    if (v == null) return null
+    const s = String(v).trim()
+    if (!s) return null
+    const n = Number(s.replace(/,/g, ''))
+    if (Number.isFinite(n)) return fmtMoney(n)
+    return s
+  }
+
+  type Row = { k: string; label: string; value: string }
+  const rows: Row[] = []
+  const acc = pdf.account_no?.trim()
+  if (acc) rows.push({ k: 'acc', label: t.statements.stmtPdfMetaAccountNo, value: acc })
+  const issued = pdf.issued_date?.trim()
+  if (issued) rows.push({ k: 'iss', label: t.statements.stmtPdfMetaIssuedDate, value: formatStmtDate(issued) })
+  const lim = fmtLimit(pdf.credit_limit)
+  if (lim) rows.push({ k: 'lim', label: t.statements.stmtPdfMetaCreditLimit, value: lim })
+  const avail = pdf.available_credit?.trim()
+  if (avail) {
+    const n = Number(avail.replace(/,/g, ''))
+    rows.push({
+      k: 'ava',
+      label: t.statements.stmtPdfMetaAvailableCredit,
+      value: Number.isFinite(n) ? fmtMoney(n) : avail,
+    })
+  }
+  const terms = pdf.payment_terms?.trim()
+  if (terms) rows.push({ k: 'term', label: t.statements.stmtPdfMetaPaymentTerms, value: terms })
+  if (pdf.last_payment_amount != null && Number.isFinite(pdf.last_payment_amount)) {
+    rows.push({
+      k: 'lpa',
+      label: t.statements.stmtPdfMetaLastPaymentAmt,
+      value: fmtMoney(pdf.last_payment_amount),
+    })
+  }
+  const lp = pdf.last_payment_date?.trim()
+  if (lp) rows.push({ k: 'lpd', label: t.statements.stmtPdfMetaLastPaymentDate, value: formatStmtDate(lp) })
+
+  if (!rows.length) return null
+
+  return (
+    <div className="mt-2 rounded-lg border border-slate-600/45 bg-slate-900/35 px-3 py-2.5 ring-1 ring-inset ring-slate-500/10">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{t.statements.stmtPdfSummaryTitle}</p>
+      <dl className="mt-2 grid grid-cols-1 gap-y-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-6">
+        {rows.map(r => (
+          <Fragment key={r.k}>
+            <dt className="text-xs font-semibold text-slate-300">{r.label}</dt>
+            <dd className="text-xs font-medium tabular-nums text-slate-100 sm:text-right">{r.value}</dd>
+          </Fragment>
+        ))}
+      </dl>
+    </div>
+  )
 }
 
 /** React hook returning a locale/timezone-aware fmt function. */
@@ -515,8 +632,9 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
   const [bolle, setBolle] = useState<BollaConFattura[]>([])
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(() => {
-    if (doc.data_documento) {
-      const dt = new Date(doc.data_documento)
+    const iso = officialDateIsoForPendingDoc(doc)
+    if (iso) {
+      const dt = new Date(iso)
       return { year: dt.getFullYear(), month: dt.getMonth() + 1 }
     }
     const now = new Date()
@@ -1492,6 +1610,7 @@ export function PendingMatchesTab({
             const bolleSameSupplier = bolleAperte.filter(b => b.fornitore_id === doc.fornitore_id)
             const bolleOther        = bolleAperte.filter(b => b.fornitore_id !== doc.fornitore_id)
             const rowTheme = pendingDocRowTheme(doc.stato)
+            const officialDocDateIso = officialDateIsoForPendingDoc(doc)
 
             return (
               <div
@@ -1681,8 +1800,14 @@ export function PendingMatchesTab({
 
                     <p className="mb-0.5 truncate text-xs text-slate-300">{doc.oggetto_mail ?? doc.mittente}</p>
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-                      <span>{t.statements.labelReceived} {fmt(doc.created_at)}</span>
-                      {doc.data_documento && <span className="font-medium text-cyan-300">{t.statements.labelDocDate} {fmt(doc.data_documento)}</span>}
+                      {officialDocDateIso ? (
+                        <span className="font-medium text-cyan-300">
+                          {t.statements.labelDocDate} {fmt(officialDocDateIso)}
+                        </span>
+                      ) : null}
+                      <span className={officialDocDateIso ? 'text-slate-400' : ''}>
+                        {t.statements.labelReceived} {fmt(doc.created_at)}
+                      </span>
                       <OpenDocumentInAppButton
                         documentoId={doc.id}
                         fileUrl={doc.file_url}
@@ -2056,7 +2181,9 @@ ALTER TABLE public.statement_rows ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "stmt_select"  ON public.statements     FOR SELECT USING (auth.role() IN ('authenticated','service_role'));
 CREATE POLICY "stmt_write"   ON public.statements     FOR ALL    USING (auth.role() = 'service_role');
 CREATE POLICY "srow_select"  ON public.statement_rows FOR SELECT USING (auth.role() IN ('authenticated','service_role'));
-CREATE POLICY "srow_write"   ON public.statement_rows FOR ALL    USING (auth.role() = 'service_role');`
+CREATE POLICY "srow_write"   ON public.statement_rows FOR ALL    USING (auth.role() = 'service_role');
+
+ALTER TABLE public.statements ADD COLUMN IF NOT EXISTS extracted_pdf_dates jsonb;`
 
 function MigrationCard() {
   const t = useT()
@@ -2141,9 +2268,15 @@ export function VerificationStatusTab({
 
   /* ── Statement list (received via email) ─────────────────── */
   type StmtRecord = {
-    id: string; email_subject: string | null; received_at: string
-    file_url: string | null; status: 'processing'|'done'|'error'
-    total_rows: number; missing_rows: number; fornitore_nome: string | null
+    id: string
+    email_subject: string | null
+    received_at: string
+    extracted_pdf_dates?: StmtExtractedPdfDates | null
+    file_url: string | null
+    status: 'processing' | 'done' | 'error'
+    total_rows: number
+    missing_rows: number
+    fornitore_nome: string | null
   }
   const [stmts,          setStmts]          = useState<StmtRecord[]>([])
   const [stmtsLoading,   setStmtsLoading]   = useState(true)
@@ -2299,6 +2432,20 @@ export function VerificationStatusTab({
     return () => window.removeEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, onLayoutRefresh)
   }, [fetchStmts, fetchData])
 
+  useEffect(() => {
+    setSelectedStmt(null)
+    setCheckResults(null)
+    setCheckError(null)
+  }, [sedeId, fornitoreId])
+
+  useEffect(() => {
+    if (stmtsLoading || !selectedStmt) return
+    if (stmts.some(s => s.id === selectedStmt.id)) return
+    setSelectedStmt(null)
+    setCheckResults(null)
+    setCheckError(null)
+  }, [stmts, stmtsLoading, selectedStmt])
+
   /* ── Load rows for a specific statement ─────────────────────────────── */
   async function loadStatementRows(stmt: StmtRecord) {
     setSelectedStmt(stmt)
@@ -2387,24 +2534,31 @@ export function VerificationStatusTab({
   return (
     <>
       {/* ════════ SECTION 1 — Statement inbox (received via email) ════════ */}
-      <div className={`app-card mb-6 overflow-hidden ${shell.border}`}>
+      <div className={`app-card mb-4 w-full min-w-0 overflow-hidden ${shell.border}`}>
         <div className={`app-card-bar ${shell.bar}`} aria-hidden />
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-700/70 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-cyan-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex min-h-10 items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-700/70 px-4 py-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <svg className="h-3.5 w-3.5 shrink-0 text-cyan-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
             <p className="text-sm font-semibold text-slate-100">{t.statements.stmtReceived}</p>
-            {stmts.length > 0 && (
-              <span className="text-xs text-slate-300 font-normal">{t.statements.stmtClickHint}</span>
-            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
             {selectedStmt && (
-              <button onClick={() => { setSelectedStmt(null); setCheckResults(null); setCheckError(null) }}
-                className="text-xs text-slate-200 hover:text-slate-200 font-medium">
-                ← {t.statements.stmtBackToList}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedStmt(null)
+                  setCheckResults(null)
+                  setCheckError(null)
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+              >
+                <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                {t.statements.stmtBackToList}
               </button>
             )}
             <button
@@ -2418,16 +2572,30 @@ export function VerificationStatusTab({
                   void fetchStmts(false)
                 })
               }
-              className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline disabled:pointer-events-none disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 disabled:pointer-events-none disabled:opacity-50"
             >
-              {t.statements.btnRefresh} ↺
+              <svg
+                className={`h-3.5 w-3.5 shrink-0 opacity-90 ${stmtHeaderRefreshPending ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              {t.statements.btnRefresh}
             </button>
           </div>
         </div>
 
         {/* Migration needed */}
         {needsMigration && (
-          <div className="px-5 py-6 flex items-start gap-3">
+          <div className="flex items-start gap-2.5 px-4 py-4">
             <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
@@ -2443,7 +2611,7 @@ export function VerificationStatusTab({
         {/* Statement list */}
         {!needsMigration && !selectedStmt && (
           stmtsLoading ? (
-            <div className="px-5 py-10 text-center">
+            <div className="px-4 py-6 text-center">
               <div className="inline-flex items-center gap-2 text-sm text-slate-300">
                 <svg className="w-4 h-4 animate-spin text-cyan-500" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -2453,9 +2621,9 @@ export function VerificationStatusTab({
               </div>
             </div>
           ) : stmts.length === 0 ? (
-            <div className="px-5 py-10 text-center">
+            <div className="px-4 py-6 text-center">
               <p className="text-sm font-medium text-slate-200">{t.statements.stmtEmpty}</p>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-xs mx-auto">
+              <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-slate-300">
                 {t.statements.stmtInboxEmptyDetail}
               </p>
             </div>
@@ -2463,7 +2631,7 @@ export function VerificationStatusTab({
             <div className="divide-y divide-slate-800/60">
               {stmts.map(s => (
                 <button key={s.id} onClick={() => loadStatementRows(s)}
-                  className="w-full text-left flex items-center gap-4 px-5 py-4 hover:bg-slate-700/60 active:bg-slate-700/90 transition-colors">
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/60 active:bg-slate-700/90">
                   {/* Status dot */}
                   <div className={`w-2 h-2 rounded-full shrink-0 ${
                     s.status === 'processing' ? 'bg-blue-400 animate-pulse' :
@@ -2477,8 +2645,22 @@ export function VerificationStatusTab({
                     {s.email_subject && s.fornitore_nome && (
                       <p className="text-xs text-slate-300 truncate">{s.email_subject}</p>
                     )}
-                    <p className="text-xs text-slate-300 mt-0.5">
-                      {formatStmtDate(s.received_at)}
+                    <p className="mt-0.5 text-xs text-slate-300">
+                      {(() => {
+                        const official = stmtOfficialDateIso(s)
+                        if (official) {
+                          return (
+                            <>
+                              <span className="font-medium tabular-nums text-slate-100">{formatStmtDate(official)}</span>
+                              <span className="text-slate-500"> · </span>
+                              <span className="text-slate-400">
+                                {t.statements.labelReceived} {formatStmtDate(s.received_at)}
+                              </span>
+                            </>
+                          )
+                        }
+                        return formatStmtDate(s.received_at)
+                      })()}
                     </p>
                   </div>
                   {/* Counts */}
@@ -2509,45 +2691,69 @@ export function VerificationStatusTab({
 
         {/* Selected statement — loading rows */}
         {selectedStmt && checkLoading && (
-          <div className="px-5 py-10 text-center text-sm text-slate-300">{t.statements.loadingResults}</div>
+          <div className="px-4 py-6 text-center text-sm text-slate-300">{t.statements.loadingResults}</div>
         )}
         {/* errors are shown as toasts — no inline error block needed */}
 
-        {/* Selected statement header */}
-        {selectedStmt && checkResults && (
-          <div className="px-5 py-3 bg-slate-700/70 border-b border-slate-700/50 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="truncate text-xs font-semibold text-slate-200">
+        {/* Intestazione estratto + riepilogo campi letti dal PDF (account, plafond, ultimo pagamento, …) */}
+        {selectedStmt && (
+          <div className="flex min-h-10 items-start justify-between gap-3 border-b border-slate-700/50 bg-slate-700/70 px-4 py-2.5">
+            <div className="min-w-0 flex-1 pr-2">
+              <p className="truncate text-sm font-semibold text-slate-100">
                 {selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement'}
               </p>
-              <p className="text-[10px] text-slate-300">
-                {t.statements.receivedOn} {formatStmtDate(selectedStmt.received_at)}
+              {hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) && (
+                <StmtPdfSummaryGrid
+                  pdf={selectedStmt.extracted_pdf_dates as StmtExtractedPdfDates}
+                  t={t}
+                  formatStmtDate={formatStmtDate}
+                  countryCode={countryCode}
+                />
+              )}
+              <div
+                className={`text-xs font-normal text-slate-400 ${
+                  hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'
+                }`}
+              >
+                <span className="text-slate-400">{t.statements.receivedOn}</span>{' '}
+                <span className="tabular-nums text-slate-300">{formatStmtDate(selectedStmt.received_at)}</span>
                 {selectedStmt.file_url && (
                   <>
-                    {' · '}
+                    <span className="text-slate-500"> · </span>
                     <OpenDocumentInAppButton
                       statementId={selectedStmt.id}
                       fileUrl={selectedStmt.file_url}
-                      className="inline border-0 bg-transparent p-0 text-[10px] font-inherit text-cyan-400 transition-colors hover:text-cyan-300 hover:underline"
+                      className="ml-0.5 inline-flex shrink-0 items-center rounded-lg border border-cyan-500/45 bg-cyan-500/15 px-2.5 py-1.5 text-xs font-semibold text-cyan-100 shadow-sm transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
                     >
                       {t.statements.openPdf}
                     </OpenDocumentInAppButton>
                   </>
                 )}
-              </p>
+              </div>
             </div>
             <button
-              onClick={() => fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`).then(() => loadStatementRows(selectedStmt))}
-              className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline"
+              type="button"
+              onClick={() =>
+                fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`).then(() => loadStatementRows(selectedStmt))
+              }
+              className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
             >
-              ↺ {t.statements.reanalyze}
+              <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              {t.statements.reanalyze}
             </button>
           </div>
         )}
 
         {/* Results */}
         {checkResults && (
-          <div>
+          <div className="min-w-0 w-full">
             {/* ── Inline header: title + filter chips + clear ── */}
             {(() => {
               const countOk   = checkResults.filter(r => r.status === 'ok').length
@@ -2563,12 +2769,12 @@ export function VerificationStatusTab({
                 { id: 'rekki_prezzo_discordanza', dot: 'bg-amber-300', label: t.statements.statusRekkiPrezzo, count: countRK  },
               ]
               return (
-                <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-700/50 flex-wrap">
-                  <span className="text-sm font-bold text-slate-100 shrink-0">{t.statements.tabVerifica}</span>
-                  <div className="flex items-center gap-2 flex-wrap flex-1">
+                <div className="flex min-h-10 flex-wrap items-center gap-2 border-b border-slate-700/50 bg-slate-700/70 px-4 py-2.5">
+                  <span className="shrink-0 text-sm font-bold text-slate-100">{t.statements.tabVerifica}</span>
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     {chips.map(chip => (
                       <button key={chip.id} onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-all whitespace-nowrap ${
+                        className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
                           checkFilter === chip.id
                             ? 'bg-gray-900 text-white border-gray-900'
                             : 'bg-slate-700/90 text-slate-200 border-slate-600/50 hover:border-slate-500'
@@ -2580,8 +2786,14 @@ export function VerificationStatusTab({
                     ))}
                   </div>
                   {checkFilter !== 'all' && (
-                    <button onClick={() => setCheckFilter('all')}
-                      className="text-xs font-medium text-slate-200 underline-offset-2 transition-colors hover:text-white hover:underline shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCheckFilter('all')}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+                    >
+                      <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                       {t.statements.clearFilter}
                     </button>
                   )}
@@ -2603,7 +2815,7 @@ export function VerificationStatusTab({
               const hasEmail   = !!(r.fornitore?.email)
 
               return (
-                <div key={r.numero} className={`flex items-start gap-4 px-5 py-4 border-b border-slate-600/50 last:border-0 ${
+                <div key={r.numero} className={`flex items-start gap-3 px-4 py-3 border-b border-slate-600/50 last:border-0 ${
                   r.status === 'rekki_prezzo_discordanza'
                     ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
                     : r.status === 'errore_importo'
@@ -2702,31 +2914,47 @@ export function VerificationStatusTab({
             })}
             </div>
 
-            {/* Per-line results — desktop table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
+            {/* Per-line results — desktop table (table-fixed + % colgroup = usa tutta la larghezza) */}
+            <div className="hidden min-w-0 w-full overflow-x-auto md:block">
+              <table className="w-full min-w-[860px] table-fixed text-sm leading-tight">
                 <colgroup>
-                  <col className="w-8" />{/* chevron */}
-                  <col className="w-36" />{/* reference */}
-                  <col className="w-40" />{/* status */}
-                  <col className="w-28" />{/* stmt date */}
-                  <col className="w-28" />{/* sys date */}
-                  <col className="w-28" />{/* stmt amount */}
-                  <col className="w-28" />{/* sys amount */}
-                  <col className="w-24" />{/* checks */}
-                  <col />{/* action */}
+                  <col className="w-[2%]" />
+                  <col className="w-[12%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[15%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[7%]" />
+                  <col className="w-[20%]" />
                 </colgroup>
                 <thead>
                   <tr className="border-b border-slate-700/50">
-                    <th className="px-2 py-2.5" />
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.colRef}</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.colStatus}</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColStmtDate}</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColSysDate}</th>
-                    <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColStmtAmount}</th>
-                    <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColSysAmount}</th>
-                    <th className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.tripleColChecks}</th>
-                    <th className="text-center px-4 py-2.5 text-[10px] font-bold text-slate-300 uppercase tracking-widest">{t.statements.colAction}</th>
+                    <th className="py-2 pl-1 pr-0" />
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.colRef}
+                    </th>
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.colStatus}
+                    </th>
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.tripleColStmtDate}
+                    </th>
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.tripleColSysDate}
+                    </th>
+                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.tripleColStmtAmount}
+                    </th>
+                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.tripleColSysAmount}
+                    </th>
+                    <th className="py-2 px-0.5 text-center text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.tripleColChecks}
+                    </th>
+                    <th className="py-2 pl-1 pr-2 text-center text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                      {t.statements.colAction}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
@@ -2760,38 +2988,53 @@ export function VerificationStatusTab({
                             : ''
                       }`}>
                         {/* Chevron */}
-                        <td className="pl-4 pr-0 py-3.5">
-                          <svg className="w-3 h-3 text-slate-300 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
+                        <td className="py-2 pl-1 pr-0 align-middle">
+                          <svg className="mx-auto h-3 w-3 text-slate-300 transition-colors group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M7 10l5 5 5-5z" />
                           </svg>
                         </td>
 
                         {/* Reference */}
-                        <td className="px-4 py-3.5">
-                          <span className={`font-mono text-xs font-bold ${r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-slate-100'}`}>{r.numero}</span>
+                        <td className="min-w-0 py-2 pl-0 pr-1 align-middle">
+                          <span
+                            className={`block truncate font-mono text-xs font-bold ${r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-slate-100'}`}
+                            title={r.numero}
+                          >
+                            {r.numero}
+                          </span>
                         </td>
 
                         {/* Status badge */}
-                        <td className="px-4 py-3.5">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${cfg.cls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${STATUS_STYLE[r.status].dot}`} />
-                            {cfg.label}
+                        <td className="min-w-0 py-2 pl-0 pr-1 align-middle">
+                          <span
+                            className={`inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] font-semibold leading-tight ${cfg.cls}`}
+                          >
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
+                            <span className="min-w-0 break-words text-left">{cfg.label}</span>
                           </span>
                         </td>
 
                         {/* Stmt Date */}
-                        <td className="px-4 py-3.5 text-xs text-slate-200 whitespace-nowrap">{fmtDate(r.data_doc)}</td>
+                        <td className="py-2 pl-0 pr-1 align-middle text-xs text-slate-200 whitespace-nowrap">
+                          {fmtDate(r.data_doc)}
+                        </td>
 
                         {/* Sys Date (fattura date) */}
-                        <td className="px-4 py-3.5 text-xs text-slate-200 whitespace-nowrap">{fmtDate(r.fattura?.data)}</td>
+                        <td className="py-2 pl-0 pr-1 align-middle text-xs text-slate-200 whitespace-nowrap">
+                          {fmtDate(r.fattura?.data)}
+                        </td>
 
                         {/* Stmt Amount */}
-                        <td className={`px-4 py-3.5 text-right font-bold tabular-nums text-sm whitespace-nowrap ${r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-slate-100'}`}>
+                        <td
+                          className={`py-2 pl-0 pr-1 text-right align-middle text-sm font-bold tabular-nums tracking-tight whitespace-nowrap ${
+                            r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-slate-100'
+                          }`}
+                        >
                           {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
                         </td>
 
                         {/* Sys Amount */}
-                        <td className="px-4 py-3.5 text-right tabular-nums text-sm whitespace-nowrap">
+                        <td className="min-w-0 py-2 pl-0 pr-1 text-right align-middle tabular-nums text-sm whitespace-nowrap">
                           {r.fattura?.importo !== null && r.fattura?.importo !== undefined ? (
                             <div className="inline-flex flex-col items-end gap-0.5">
                               <span className={
@@ -2809,51 +3052,89 @@ export function VerificationStatusTab({
                                 </span>
                               )}
                               {r.status === 'rekki_prezzo_discordanza' && (
-                                <span className="text-[9px] font-medium text-amber-100 max-w-[160px] text-right leading-tight">
+                                <span className="max-w-full text-right text-[9px] font-medium leading-tight text-amber-100">
                                   {t.bolle.verificaPrezzoFornitore} · {t.bolle.prezzoDaApp}
                                 </span>
                               )}
                             </div>
-                          ) : <span className="text-slate-400">—</span>}
+                          ) : (
+                            <span className="text-sm text-slate-400">—</span>
+                          )}
                         </td>
 
                         {/* Checks — 4 colored segments */}
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-0.5 justify-center">
+                        <td className="py-2 px-0.5 align-middle">
+                          <div className="flex items-center justify-center gap-px">
                             {checks.map((pass, i) => {
                               const isLast = i === 3
                               if (r.status === 'rekki_prezzo_discordanza' && isLast) {
-                                return <div key={i} title={t.statements.rekkiCheckSegmentTooltip} className="h-2 w-5 rounded-sm bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.45)]" />
+                                return (
+                                  <div
+                                    key={i}
+                                    title={t.statements.rekkiCheckSegmentTooltip}
+                                    className="h-2 w-5 shrink-0 rounded-sm bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.45)]"
+                                  />
+                                )
                               }
-                              return <div key={i} className={`h-2 w-5 rounded-sm ${pass ? 'bg-green-500' : 'bg-slate-600'}`} />
+                              return (
+                                <div
+                                  key={i}
+                                  className={`h-2 w-5 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-slate-600'}`}
+                                />
+                              )
                             })}
                           </div>
                         </td>
 
                         {/* Action */}
-                        <td className="px-4 py-3.5 text-center">
+                        <td className="py-2 pl-1 pr-2 text-center align-middle">
                           {needAction && (
                             sollecitoState === 'sent' ? (
-                              <div className="inline-flex flex-col items-center gap-0.5">
-                                <span className="flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-200">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                              <div className="mx-auto inline-flex max-w-full flex-col items-center gap-0.5">
+                                <span className="flex items-center gap-0.5 rounded-md border border-emerald-500/35 bg-emerald-500/15 px-2 py-1 text-[11px] font-bold text-emerald-200">
+                                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                  </svg>
                                   {t.statements.btnSent}
                                 </span>
-                                {sollEntry.sentAt && <span className="text-[9px] text-slate-400 mt-0.5">{new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short' }).format(new Date(sollEntry.sentAt))}</span>}
+                                {sollEntry.sentAt && (
+                                  <span className="text-[10px] text-slate-400">
+                                    {new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short' }).format(
+                                      new Date(sollEntry.sentAt),
+                                    )}
+                                  </span>
+                                )}
                               </div>
                             ) : (
-                              <button onClick={() => inviaSollecito(r)} disabled={!hasEmail || sollecitoState === 'loading'}
+                              <button
+                                type="button"
+                                onClick={() => inviaSollecito(r)}
+                                disabled={!hasEmail || sollecitoState === 'loading'}
                                 title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
-                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
-                                  !hasEmail ? 'cursor-not-allowed border-slate-600/50 bg-slate-700/60 text-slate-400'
-                                  : 'border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
-                                }`}>
+                                className={`mx-auto flex w-full max-w-[9.5rem] items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-bold transition-colors ${
+                                  !hasEmail
+                                    ? 'cursor-not-allowed border-slate-600/50 bg-slate-700/60 text-slate-400'
+                                    : 'border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
+                                }`}
+                              >
                                 {sollecitoState === 'loading' ? (
-                                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                                  <svg className="h-3.5 w-3.5 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                  </svg>
                                 ) : (
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                    />
+                                  </svg>
                                 )}
-                                {sollecitoState === 'loading' ? t.statements.btnSending : t.statements.btnSendReminder}
+                                <span className="min-w-0 text-left leading-tight">
+                                  {sollecitoState === 'loading' ? t.statements.btnSending : t.statements.btnSendReminder}
+                                </span>
                               </button>
                             )
                           )}

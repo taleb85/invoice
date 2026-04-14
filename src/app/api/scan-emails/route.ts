@@ -14,7 +14,7 @@ import {
   OcrInvoiceConfigurationError,
 } from '@/lib/ocr-invoice'
 import { MIN_EMAIL_BODY_CHARS_FOR_SCAN, emailHasScannableBody } from '@/lib/mail-scanner'
-import { ocrStatement } from '@/lib/ocr-statement'
+import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
@@ -225,7 +225,7 @@ type FetchImapEmailOpts = {
   fiscalRange?: { start: Date; endExclusive: Date } | null
 }
 
-/** Scansiona una casella IMAP e restituisce le email non lette (allegati e/o corpo testuale). */
+/** Scansiona una casella IMAP e restituisce le email nella finestra scelta (lette e non lette, allegati e/o corpo testuale). */
 async function fetchFromImap(
   host: string,
   port: number,
@@ -239,10 +239,9 @@ async function fetchFromImap(
     `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'}`
   )
 
-  let searchCriteria: { seen: false; since?: Date; before?: Date }
+  let searchCriteria: { since?: Date; before?: Date; all?: boolean }
   if (fiscalRange) {
     searchCriteria = {
-      seen: false,
       since: fiscalRange.start,
       before: fiscalRange.endExclusive,
     }
@@ -251,7 +250,7 @@ async function fetchFromImap(
       lookbackDays && lookbackDays > 0
         ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
         : undefined
-    searchCriteria = sinceDate ? { seen: false, since: sinceDate } : { seen: false }
+    searchCriteria = sinceDate ? { since: sinceDate } : { all: true }
   }
 
   return withImapSession(
@@ -339,7 +338,7 @@ async function fetchFromImap(
           attachments,
         })
       }
-      mailDebugLog(`[IMAP] Messaggi non letti trovati: ${totalMsg} (con allegati o testo analizzabile: ${withAttach})`)
+      mailDebugLog(`[IMAP] Messaggi nella finestra di ricerca: ${totalMsg} (con allegati o testo analizzabile: ${withAttach})`)
       mailDebugLog(`[IMAP] Sessione chiusa correttamente: ${host}`)
       return emails
     },
@@ -1492,12 +1491,17 @@ async function processStatementInBackground(
   const statementId = stmtRow.id
   mailDebugLog(`[STMT] Statement record creato: ${statementId}`)
 
-  // 2️⃣ OCR — parse statement rows
-  const rows = await ocrStatement(buffer, contentType)
+  // 2️⃣ OCR — parse statement rows + optional PDF header dates
+  const ocr = await ocrStatement(buffer, contentType)
+  const rows = ocr.rows
+  const extractedPdfDates = extractedPdfDatesToJson(ocr.extractedPdfDates)
 
   if (!rows.length) {
     console.warn(`[STMT] Nessuna riga estratta dal PDF per statement ${statementId}`)
-    await supabase.from('statements').update({ status: 'error', total_rows: 0 }).eq('id', statementId)
+    await supabase
+      .from('statements')
+      .update({ status: 'error', total_rows: 0, extracted_pdf_dates: extractedPdfDates })
+      .eq('id', statementId)
     return
   }
 
@@ -1530,9 +1534,10 @@ async function processStatementInBackground(
   // 5️⃣ Update statement record with counts
   const missingRows = results.filter(r => r.status !== 'ok').length
   await supabase.from('statements').update({
-    status:      'done',
-    total_rows:  results.length,
-    missing_rows: missingRows,
+    status:              'done',
+    total_rows:          results.length,
+    missing_rows:        missingRows,
+    extracted_pdf_dates: extractedPdfDates,
   }).eq('id', statementId)
 
   mailDebugLog(`[STMT] ✅ Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, Suspense, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, Suspense, type ReactNode } from 'react'
 import Link from 'next/link'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { useParams, usePathname, useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
@@ -16,22 +16,47 @@ import { createClient } from '@/utils/supabase/client'
 import { PendingMatchesTab, VerificationStatusTab } from '@/app/(app)/statements/statements-views'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
-import { formatDate as formatDateLib } from '@/lib/locale'
+import { formatDate as formatDateLib, formatCurrency, formatMonthYearUppercase } from '@/lib/locale'
+import {
+  defaultFiscalYearLabel,
+  formatFiscalYearShort,
+  listFiscalMonthsThroughSelection,
+} from '@/lib/fiscal-year'
 import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
-import { useEmailSyncProgress } from '@/components/EmailSyncProgressProvider'
 import { useMe } from '@/lib/me-context'
-import { emailSyncApiBodyFields, readEmailSyncScopePrefs } from '@/lib/email-sync-scope-prefs'
+import ScanEmailButton from '@/components/ScanEmailButton'
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
 import FornitoreConfermeOrdineTab from '@/components/FornitoreConfermeOrdineTab'
 import DeleteButton from '@/components/DeleteButton'
-import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
+import {
+  SUPPLIER_DETAIL_TAB_HIGHLIGHT,
+  SUPPLIER_DETAIL_TAB_TABLE_ACCENT,
+} from '@/lib/supplier-detail-tab-theme'
 import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
 import { hexToRgbTuple, supplierDesktopKpiOuterShadow, supplierKpiPalette } from '@/lib/kpi-accent-palette'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica'
+
+/** Due `TabContent` (mobile/desktop); scrolla il pannello visibile dentro `<main data-app-main-scroll>`. */
+function scrollSupplierTabPanelIntoView() {
+  if (typeof document === 'undefined') return
+  const panel = [...document.querySelectorAll<HTMLElement>('.fornitore-tab-panel')].find((e) => e.offsetHeight > 0)
+  if (!panel) return
+  const main = document.querySelector('[data-app-main-scroll]') as HTMLElement | null
+  if (main) {
+    const rect = panel.getBoundingClientRect()
+    const mainRect = main.getBoundingClientRect()
+    const padding = 8
+    const delta = rect.top - mainRect.top - padding
+    const nextTop = main.scrollTop + delta
+    main.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' })
+    return
+  }
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 interface Fornitore {
   id: string
@@ -116,6 +141,20 @@ type SupplierPeriodStats = {
   statementsWithIssues: number
 }
 
+/** Conta uno statement nel mese `[from, to)` se ricezione o data emissione PDF cade in quel mese. */
+function statementInSupplierPeriod(
+  row: { received_at: string; extracted_pdf_dates: unknown },
+  from: string,
+  to: string,
+): boolean {
+  const rec = String(row.received_at ?? '').slice(0, 10)
+  if (rec >= from && rec < to) return true
+  const pdf = row.extracted_pdf_dates as { issued_date?: string | null } | null | undefined
+  const issued = pdf?.issued_date?.trim()
+  if (issued && issued >= from && issued < to) return true
+  return false
+}
+
 const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   bolleTotal: 0,
   bolleAperte: 0,
@@ -170,10 +209,10 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
         .lt('data_prezzo', to),
       supabase
         .from('statements')
-        .select('missing_rows')
+        .select('missing_rows, received_at, extracted_pdf_dates')
         .eq('fornitore_id', fornitoreId)
-        .gte('received_at', from)
-        .lt('received_at', to),
+        .order('received_at', { ascending: false })
+        .limit(800),
       supabase
         .from('conferme_ordine')
         .select('id', { count: 'exact', head: true })
@@ -185,9 +224,16 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
         if (cancelled) return
         const totaleSpesa = ((fattureRes.data ?? []) as { importo: number | null }[]).reduce((s, f) => s + (f.importo ?? 0), 0)
         const listinoRows = listinoRes.error ? 0 : (listinoRes.count ?? 0)
-        const stmtData = stmtsRes.error ? [] : ((stmtsRes.data ?? []) as { missing_rows: number | null }[])
-        const statementsInPeriod = stmtData.length
-        const statementsWithIssues = stmtData.filter((s) => (s.missing_rows ?? 0) > 0).length
+        const stmtData = stmtsRes.error
+          ? []
+          : ((stmtsRes.data ?? []) as {
+              missing_rows: number | null
+              received_at: string
+              extracted_pdf_dates: unknown
+            }[])
+        const stmtInMonth = stmtData.filter((s) => statementInSupplierPeriod(s, from, to))
+        const statementsInPeriod = stmtInMonth.length
+        const statementsWithIssues = stmtInMonth.filter((s) => (s.missing_rows ?? 0) > 0).length
         const ordiniNelPeriodo = ordiniRes.error ? 0 : (ordiniRes.count ?? 0)
         setStats({
           bolleTotal: bolleRes.count ?? 0,
@@ -429,6 +475,482 @@ function SupplierDesktopKpiGrid({
   )
 }
 
+function supplierMonthKey(y: number, m: number) {
+  return `${y}-${String(m).padStart(2, '0')}`
+}
+
+type SupplierMonthlyDocRow = {
+  y: number
+  m: number
+  monthLabel: string
+  bolle: number
+  fatture: number
+  fattureImporto: number
+  ordini: number
+  statements: number
+  pending: number
+}
+
+/** Solo spostamento per anno (come « / » anno in header); il mese resta quello già selezionato. */
+type SupplierMonthlyDocPeriodNav = {
+  onPrevYear: () => void
+  onNextYear: () => void
+  onResetToNow: () => void
+  disableNextYear: boolean
+  showResetToNow: boolean
+}
+
+function useSupplierMonthlyDocSummary(
+  fornitoreId: string,
+  endYear: number,
+  endMonth: number,
+  countryCode: string
+) {
+  const [rows, setRows] = useState<SupplierMonthlyDocRow[] | null>(null)
+  const [loading, setLoading] = useState(true)
+  const { locale, timezone } = useLocale()
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setRows(null)
+    const windows = listFiscalMonthsThroughSelection(countryCode, endYear, endMonth)
+    if (windows.length === 0) {
+      setRows([])
+      setLoading(false)
+      return
+    }
+    const minFrom = windows.reduce((a, w) => (w.from < a ? w.from : a), windows[0].from)
+    const maxTo = windows.reduce((a, w) => (w.to > a ? w.to : a), windows[0].to)
+    const keySet = new Set(windows.map((w) => supplierMonthKey(w.y, w.m)))
+    const supabase = createClient()
+    const createdGte = `${minFrom}T00:00:00.000Z`
+    const createdLt = `${maxTo}T00:00:00.000Z`
+
+    Promise.all([
+      supabase.from('bolle').select('data').eq('fornitore_id', fornitoreId).gte('data', minFrom).lt('data', maxTo),
+      supabase.from('fatture').select('data, importo').eq('fornitore_id', fornitoreId).gte('data', minFrom).lt('data', maxTo),
+      supabase
+        .from('conferme_ordine')
+        .select('created_at')
+        .eq('fornitore_id', fornitoreId)
+        .gte('created_at', createdGte)
+        .lt('created_at', createdLt),
+      supabase
+        .from('statements')
+        .select('missing_rows, received_at, extracted_pdf_dates')
+        .eq('fornitore_id', fornitoreId)
+        .order('received_at', { ascending: false })
+        .limit(800),
+      supabase
+        .from('documenti_da_processare')
+        .select('created_at, data_documento')
+        .eq('fornitore_id', fornitoreId)
+        .in('stato', ['in_attesa', 'da_associare'])
+        .limit(500),
+    ])
+      .then(([bolleRes, fattureRes, ordiniRes, stmtsRes, pendingRes]) => {
+        if (cancelled) return
+        const agg = new Map<
+          string,
+          { bolle: number; fatture: number; fattureImporto: number; ordini: number; statements: number; pending: number }
+        >()
+        for (const w of windows) {
+          agg.set(supplierMonthKey(w.y, w.m), {
+            bolle: 0,
+            fatture: 0,
+            fattureImporto: 0,
+            ordini: 0,
+            statements: 0,
+            pending: 0,
+          })
+        }
+        const bump = (
+          key: string,
+          field: 'bolle' | 'fatture' | 'fattureImporto' | 'ordini' | 'statements' | 'pending',
+          n = 1,
+          extra = 0
+        ) => {
+          if (!keySet.has(key)) return
+          const cell = agg.get(key)
+          if (!cell) return
+          if (field === 'fattureImporto') cell.fattureImporto += extra
+          else (cell as Record<string, number>)[field] += n
+        }
+
+        if (!bolleRes.error && bolleRes.data) {
+          for (const r of bolleRes.data as { data: string }[]) {
+            const k = (r.data ?? '').slice(0, 7)
+            bump(k, 'bolle')
+          }
+        }
+        if (!fattureRes.error && fattureRes.data) {
+          for (const r of fattureRes.data as { data: string; importo: number | null }[]) {
+            const k = (r.data ?? '').slice(0, 7)
+            bump(k, 'fatture')
+            bump(k, 'fattureImporto', 0, r.importo ?? 0)
+          }
+        }
+        if (!ordiniRes.error && ordiniRes.data) {
+          for (const r of ordiniRes.data as { created_at: string }[]) {
+            const d = (r.created_at ?? '').slice(0, 10)
+            const k = d.slice(0, 7)
+            bump(k, 'ordini')
+          }
+        }
+        if (!stmtsRes.error && stmtsRes.data) {
+          const stmtRows = stmtsRes.data as {
+            missing_rows: number | null
+            received_at: string
+            extracted_pdf_dates: unknown
+          }[]
+          for (const w of windows) {
+            const k = supplierMonthKey(w.y, w.m)
+            const n = stmtRows.filter((s) => statementInSupplierPeriod(s, w.from, w.to)).length
+            if (n > 0) {
+              const cell = agg.get(k)
+              if (cell) cell.statements = n
+            }
+          }
+        }
+        if (!pendingRes.error && pendingRes.data) {
+          for (const r of pendingRes.data as { created_at: string; data_documento: string | null }[]) {
+            const doc = r.data_documento?.trim()
+            const day = doc && /^\d{4}-\d{2}-\d{2}$/.test(doc) ? doc : (r.created_at ?? '').slice(0, 10)
+            const k = day.slice(0, 7)
+            bump(k, 'pending')
+          }
+        }
+
+        const out: SupplierMonthlyDocRow[] = windows.map((w) => {
+          const k = supplierMonthKey(w.y, w.m)
+          const a = agg.get(k)!
+          return {
+            y: w.y,
+            m: w.m,
+            monthLabel: formatMonthYearUppercase(
+              `${w.y}-${String(w.m).padStart(2, '0')}-15`,
+              locale,
+              timezone
+            ),
+            bolle: a.bolle,
+            fatture: a.fatture,
+            fattureImporto: a.fattureImporto,
+            ordini: a.ordini,
+            statements: a.statements,
+            pending: a.pending,
+          }
+        })
+        setRows(out)
+      })
+      .catch(() => {
+        if (!cancelled) setRows(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [fornitoreId, endYear, endMonth, countryCode, locale, timezone])
+
+  return { rows, loading }
+}
+
+/** Tabella riepilogo documenti per mese — solo desktop, sotto la griglia KPI. */
+function SupplierDesktopMonthlyDocSummary({
+  fornitoreId,
+  endYear,
+  endMonth,
+  selectedYear,
+  selectedMonth,
+  countryCode,
+  currency,
+  activeTab,
+  onOpenMonthTab,
+  periodNav,
+}: {
+  fornitoreId: string
+  endYear: number
+  endMonth: number
+  selectedYear: number
+  selectedMonth: number
+  countryCode: string
+  currency: string
+  /** Bordo / barra / accenti tabella come la card del tab sotto (fatture, bolle, …). */
+  activeTab: Tab
+  onOpenMonthTab: (y: number, m: number, tab: Tab) => void
+  periodNav?: SupplierMonthlyDocPeriodNav
+}) {
+  const t = useT()
+  const { locale } = useLocale()
+  const { rows, loading } = useSupplierMonthlyDocSummary(fornitoreId, endYear, endMonth, countryCode)
+  const cur = currency?.trim() || 'GBP'
+  const ccSede = countryCode?.trim() || 'UK'
+
+  const tabHi = SUPPLIER_DETAIL_TAB_HIGHLIGHT[activeTab]
+  const tabTable = SUPPLIER_DETAIL_TAB_TABLE_ACCENT[activeTab]
+
+  const tabName = (tab: Tab) => {
+    switch (tab) {
+      case 'dashboard':
+        return t.fornitori.tabRiepilogo
+      case 'bolle':
+        return t.nav.bolle
+      case 'fatture':
+        return t.nav.fatture
+      case 'conferme':
+        return t.fornitori.kpiOrdini
+      case 'verifica':
+        return t.statements.tabVerifica
+      case 'documenti':
+        return t.statements.tabDocumenti
+      case 'listino':
+        return t.fornitori.tabListino
+      default:
+        return tab
+    }
+  }
+
+  const ariaGoTo = (tab: Tab, monthLabel: string) =>
+    t.fornitori.supplierMonthlyDocAriaGoToTabMonth
+      .replace('{tab}', tabName(tab))
+      .replace('{month}', monthLabel)
+
+  const dataCellBtn = `w-full min-h-[2.125rem] rounded-md px-2 py-1.5 text-right tabular-nums text-slate-200 transition-colors hover:bg-white/[0.06] ${tabTable.cellHover} focus:outline-none focus-visible:ring-2 ${tabTable.focusRing}`
+  const lastDaySelected = new Date(Date.UTC(selectedYear, selectedMonth, 0))
+  const fiscalSelectedLabel = defaultFiscalYearLabel(ccSede, lastDaySelected)
+  const fiscalSelectedDisplay = formatFiscalYearShort(ccSede, fiscalSelectedLabel)
+  const fiscalSelectedLine = t.fornitori.supplierMonthlyDocFiscalSelected.replace('{year}', fiscalSelectedDisplay)
+
+  return (
+    <section
+      className={`app-card mb-6 hidden overflow-hidden md:flex md:flex-col ${tabHi.border}`}
+      aria-busy={loading}
+      aria-live="polite"
+    >
+      <div className={`app-card-bar ${tabHi.bar}`} aria-hidden />
+      <div className="border-b border-slate-700/60 bg-slate-800/30 px-5 py-3">
+        <div className="flex items-start gap-2">
+          <svg
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-200"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-200">
+              {t.fornitori.supplierMonthlyDocTitle}
+            </h3>
+            <p className="mt-1.5 text-xs leading-snug text-slate-400">{t.fornitori.supplierMonthlyDocHint}</p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <p className="min-w-0 text-xs font-medium tabular-nums text-slate-300">{fiscalSelectedLine}</p>
+              {periodNav && (
+                <div
+                  role="group"
+                  className="flex shrink-0 flex-wrap items-center gap-0.5 self-start rounded-md border border-slate-600/70 bg-slate-900/45 px-0.5 py-0.5 sm:self-auto"
+                  aria-label={`${t.fornitori.supplierMonthlyDocTitle} · ${fiscalSelectedDisplay}`}
+                >
+                  <button
+                    type="button"
+                    onClick={periodNav.onPrevYear}
+                    title={t.appStrings.monthNavPrevYearTitle}
+                    aria-label={t.appStrings.monthNavPrevYearTitle}
+                    className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
+                    </svg>
+                  </button>
+                  <span className="min-w-[3.25rem] px-1 text-center text-[10px] font-semibold tabular-nums text-slate-100 sm:min-w-[3.5rem]">
+                    {fiscalSelectedDisplay}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={periodNav.onNextYear}
+                    disabled={periodNav.disableNextYear}
+                    title={t.appStrings.monthNavNextYearTitle}
+                    aria-label={t.appStrings.monthNavNextYearTitle}
+                    className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
+                    </svg>
+                  </button>
+                  {periodNav.showResetToNow && (
+                    <button
+                      type="button"
+                      onClick={periodNav.onResetToNow}
+                      title={t.appStrings.monthNavResetTitle}
+                      aria-label={t.appStrings.monthNavResetTitle}
+                      className={`flex h-6 w-6 items-center justify-center rounded transition-colors hover:bg-white/10 ${tabTable.resetNav}`}
+                    >
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="min-w-0 flex-1 overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-700/60 bg-slate-700/40">
+              <th className="sticky left-0 z-[1] bg-slate-700/50 px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200 backdrop-blur-sm">
+                {t.fornitori.supplierMonthlyDocColMonth}
+              </th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200 tabular-nums">
+                {t.fornitori.supplierMonthlyDocColFiscalYear}
+              </th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200 tabular-nums">
+                {t.fornitori.supplierMonthlyDocColBolle}
+              </th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200 tabular-nums">
+                {t.fornitori.supplierMonthlyDocColFatture}
+              </th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200 tabular-nums">
+                {t.fornitori.supplierMonthlyDocColSpesa}
+              </th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200 tabular-nums">
+                {t.fornitori.supplierMonthlyDocColOrdini}
+              </th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200 tabular-nums">
+                {t.fornitori.supplierMonthlyDocColStatements}
+              </th>
+              <th className="px-5 py-2.5 pr-5 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200 tabular-nums">
+                {t.fornitori.supplierMonthlyDocColPending}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-800/80">
+            {(rows ?? []).map((r) => {
+              const sel = r.y === selectedYear && r.m === selectedMonth
+              const lastDayRow = new Date(Date.UTC(r.y, r.m, 0))
+              const fyRow = formatFiscalYearShort(ccSede, defaultFiscalYearLabel(ccSede, lastDayRow))
+              return (
+                <tr
+                  key={`${r.y}-${r.m}`}
+                  className={`group transition-colors ${sel ? tabTable.selectionRow : 'hover:bg-slate-700/40'}`}
+                >
+                  <td
+                    className={`sticky left-0 z-[1] px-0 backdrop-blur-sm ${sel ? tabTable.selectionRow : 'bg-slate-800/95 group-hover:bg-slate-700/40'}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'dashboard')}
+                      className={`w-full px-5 py-3 text-left text-sm font-medium tabular-nums transition-colors md:pl-5 ${sel ? tabTable.monthSelected : 'text-slate-200'} ${tabTable.cellHover}`}
+                      aria-label={ariaGoTo('dashboard', r.monthLabel)}
+                      title={ariaGoTo('dashboard', r.monthLabel)}
+                    >
+                      {r.monthLabel}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums text-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'dashboard')}
+                      className={`${dataCellBtn}`}
+                      aria-label={ariaGoTo('dashboard', r.monthLabel)}
+                      title={ariaGoTo('dashboard', r.monthLabel)}
+                    >
+                      {fyRow}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'bolle')}
+                      className={dataCellBtn}
+                      aria-label={ariaGoTo('bolle', r.monthLabel)}
+                      title={ariaGoTo('bolle', r.monthLabel)}
+                    >
+                      {r.bolle}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'fatture')}
+                      className={dataCellBtn}
+                      aria-label={ariaGoTo('fatture', r.monthLabel)}
+                      title={ariaGoTo('fatture', r.monthLabel)}
+                    >
+                      {r.fatture}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'fatture')}
+                      className={dataCellBtn}
+                      aria-label={ariaGoTo('fatture', r.monthLabel)}
+                      title={ariaGoTo('fatture', r.monthLabel)}
+                    >
+                      {formatCurrency(r.fattureImporto, cur, locale)}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'conferme')}
+                      className={dataCellBtn}
+                      aria-label={ariaGoTo('conferme', r.monthLabel)}
+                      title={ariaGoTo('conferme', r.monthLabel)}
+                    >
+                      {r.ordini}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'verifica')}
+                      className={dataCellBtn}
+                      aria-label={ariaGoTo('verifica', r.monthLabel)}
+                      title={ariaGoTo('verifica', r.monthLabel)}
+                    >
+                      {r.statements}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 pr-5 text-right tabular-nums">
+                    <button
+                      type="button"
+                      onClick={() => onOpenMonthTab(r.y, r.m, 'documenti')}
+                      className={dataCellBtn}
+                      aria-label={ariaGoTo('documenti', r.monthLabel)}
+                      title={ariaGoTo('documenti', r.monthLabel)}
+                    >
+                      {r.pending}
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        {!loading && rows?.length === 0 && (
+          <p className="border-t border-slate-800/80 px-5 py-8 text-center text-sm text-slate-200">—</p>
+        )}
+        {loading && rows == null && (
+          <p className="border-t border-slate-800/80 px-5 py-8 text-center text-sm text-slate-200">…</p>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function DashboardTab({
   fornitoreId,
   fornitore,
@@ -610,6 +1132,10 @@ function DashboardTab({
               key={k.label}
               href={tabHref}
               scroll={false}
+              onClick={() => {
+                requestAnimationFrame(() => scrollSupplierTabPanelIntoView())
+                window.setTimeout(scrollSupplierTabPanelIntoView, 240)
+              }}
               className="supplier-desktop-kpi-card group relative block w-full overflow-hidden p-3 text-left transition-[transform,box-shadow] active:scale-[0.99] hover:shadow-[0_12px_36px_-10px_rgba(var(--supplier-kpi-rgb),0.28)]"
               style={{
                 boxShadow: supplierDesktopKpiOuterShadow(k.accentHex),
@@ -2340,23 +2866,27 @@ function FornitoreDetailClient({
   const router = useRouter()
   const tabParam = searchParams.get('tab')
   const tab = useMemo((): Tab => {
+    const p = tabParam?.trim().toLowerCase()
     if (
-      tabParam === 'dashboard' ||
-      tabParam === 'bolle' ||
-      tabParam === 'fatture' ||
-      tabParam === 'listino' ||
-      tabParam === 'conferme' ||
-      tabParam === 'documenti' ||
-      tabParam === 'verifica'
+      p === 'dashboard' ||
+      p === 'bolle' ||
+      p === 'fatture' ||
+      p === 'listino' ||
+      p === 'conferme' ||
+      p === 'documenti' ||
+      p === 'verifica'
     ) {
-      return tabParam
+      return p
     }
     return 'dashboard'
   }, [tabParam])
 
   const setTab = useCallback(
     (next: Tab) => {
-      if (next === tab) return
+      if (next === tab) {
+        scrollSupplierTabPanelIntoView()
+        return
+      }
       const q = new URLSearchParams(searchParams.toString())
       fornitoreSupplierClearDocParams(q)
       if (next === 'dashboard') q.delete('tab')
@@ -2372,15 +2902,18 @@ function FornitoreDetailClient({
   const t = useT()
   const { locale, timezone } = useLocale()
   const { me } = useMe()
-  const { runEmailSync, progress: emailSyncProgress } = useEmailSyncProgress()
-  const supplierSyncDisabled = !fornitore.sede_id || emailSyncProgress.active
-  const syncThisSupplier = () => {
-    void runEmailSync({
-      ...emailSyncApiBodyFields(readEmailSyncScopePrefs()),
-      fornitore_id: fornitore.id,
-      user_sede_id: me?.sede_id ?? fornitore.sede_id ?? undefined,
-    })
-  }
+  useLayoutEffect(() => {
+    if (tab === 'dashboard') return
+    const id = requestAnimationFrame(() => scrollSupplierTabPanelIntoView())
+    const tmo = window.setTimeout(scrollSupplierTabPanelIntoView, 350)
+    return () => {
+      cancelAnimationFrame(id)
+      window.clearTimeout(tmo)
+    }
+  }, [tab])
+
+  /** Sede attiva utente se il fornitore non ha ancora `sede_id` — necessario per API statement/bolle in Verifica. */
+  const effectiveSedeId = fornitore.sede_id?.trim() || me?.sede_id?.trim() || undefined
   // ── Shared month/year filter ───────────────────────────────────────
   const now = new Date()
   const [filterYear,  setFilterYear]  = useState(now.getFullYear())
@@ -2394,6 +2927,23 @@ function FornitoreDetailClient({
       return newMonth
     })
   }
+
+  const nowY = now.getFullYear()
+  const nowM = now.getMonth() + 1
+  const clampSupplierPeriod = (y: number, m: number) => {
+    if (y > nowY || (y === nowY && m > nowM)) return { y: nowY, m: nowM }
+    return { y, m }
+  }
+
+  const shiftYear = (delta: number) => {
+    const next = clampSupplierPeriod(filterYear + delta, filterMonth)
+    setFilterYear(next.y)
+    setFilterMonth(next.m)
+  }
+
+  const nextYearPeriod = clampSupplierPeriod(filterYear + 1, filterMonth)
+  const canShiftYearForward =
+    nextYearPeriod.y !== filterYear || nextYearPeriod.m !== filterMonth
 
   const monthYearLabel = formatDateLib(
     `${filterYear}-${String(filterMonth).padStart(2, '0')}-15`,
@@ -2453,7 +3003,7 @@ function FornitoreDetailClient({
       )}
       {tab === 'documenti' && (
         <PendingMatchesTab
-          sedeId={fornitore.sede_id ?? undefined}
+          sedeId={effectiveSedeId}
           fornitoreId={fornitore.id}
           countryCode={countryCode}
           currency={currency}
@@ -2464,7 +3014,7 @@ function FornitoreDetailClient({
       )}
       {tab === 'verifica' && (
         <VerificationStatusTab
-          sedeId={fornitore.sede_id ?? undefined}
+          sedeId={effectiveSedeId}
           fornitoreId={fornitore.id}
           countryCode={countryCode}
           currency={currency}
@@ -2493,25 +3043,14 @@ function FornitoreDetailClient({
             <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitore.nome}</h1>
-              <button
-                type="button"
-                onClick={syncThisSupplier}
-                disabled={supplierSyncDisabled}
-                title={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
-                className="inline-flex min-h-[44px] w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-cyan-500/90 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {emailSyncProgress.active ? (
-                  <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                ) : (
-                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                )}
-                {t.dashboard.syncEmail}
-              </button>
+              <ScanEmailButton
+                variant="supplier"
+                alwaysShowLabel
+                fornitoreId={fornitore.id}
+                sedeId={fornitore.sede_id ?? undefined}
+                disabled={!fornitore.sede_id}
+                disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
+              />
             </div>
           </div>
         </div>
@@ -2529,16 +3068,18 @@ function FornitoreDetailClient({
           </div>
         </header>
 
-        <TabContent />
+        <div className="fornitore-tab-panel scroll-mt-4 outline-none" tabIndex={-1}>
+          <TabContent />
+        </div>
       </div>
 
       {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
       <div className="hidden md:block">
 
         {/* ── Horizontal header bar ── */}
-        <div className="bg-slate-700 px-6 pt-3 pb-0">
-          {/* Identity + stats + actions — all in one row */}
-          <div className="flex items-center gap-4 pb-3 border-b border-white/10">
+        <div className="bg-slate-700 px-6 pt-2 pb-0">
+          {/* Identity + period + actions — one row */}
+          <div className="flex min-h-0 items-center gap-3 border-b border-white/10 pb-2">
             <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} />
 
             {/* Name / email */}
@@ -2547,42 +3088,71 @@ function FornitoreDetailClient({
               {fornitore.email && <p className="text-[11px] text-slate-200 truncate mt-0.5">{fornitore.email}</p>}
             </div>
 
-            {/* Stat pills */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {[
-                { label: t.fornitori.kpiOrdini, value: ordiniCount },
-                { label: t.nav.bolle, value: bolleCount },
-                { label: t.nav.fatture, value: fattureCount },
-                { label: t.fornitori.kpiPending, value: pendingCount, warn: pendingCount > 0 },
-              ].map(k => (
-                <div key={k.label} className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold ${k.warn ? 'bg-amber-400/10 border-amber-400/20 text-amber-300' : 'bg-white/5 border-white/10 text-slate-100'}`}>
-                  <span className="font-bold tabular-nums">{k.value}</span>
-                  <span className="hidden text-[10px] font-medium text-slate-200 xl:inline">{k.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Divider */}
-            <div className="w-px h-6 bg-white/10 shrink-0" />
-
-            {/* Month/year navigator */}
-            <div className="flex items-center gap-1 shrink-0 bg-white/5 border border-white/10 rounded-lg px-1 py-1">
-              <button onClick={() => shiftMonth(-1)}
-                className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-white hover:bg-white/10 rounded transition-colors">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+            {/* Month/year navigator: «« / « = anno / mese; » / »» con limite al mese corrente */}
+            <div className="flex shrink-0 items-center gap-0.5 rounded-lg border border-white/10 bg-white/5 px-0.5 py-0.5">
+              <button
+                type="button"
+                onClick={() => shiftYear(-1)}
+                title={t.appStrings.monthNavPrevYearTitle}
+                aria-label={t.appStrings.monthNavPrevYearTitle}
+                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
+                </svg>
               </button>
-              <span className="min-w-[72px] text-center text-[11px] font-semibold tabular-nums text-white">
+              <button
+                type="button"
+                onClick={() => shiftMonth(-1)}
+                title={t.appStrings.monthNavPrevMonthTitle}
+                aria-label={t.appStrings.monthNavPrevMonthTitle}
+                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <span className="min-w-[5.75rem] text-center text-[11px] font-semibold tabular-nums text-white sm:min-w-[6.5rem]">
                 {monthYearLabel}
               </span>
-              <button onClick={() => shiftMonth(1)} disabled={isCurrentMonth}
-                className="w-6 h-6 flex items-center justify-center text-slate-200 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                disabled={isCurrentMonth}
+                title={t.appStrings.monthNavNextMonthTitle}
+                aria-label={t.appStrings.monthNavNextMonthTitle}
+                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => shiftYear(1)}
+                disabled={!canShiftYearForward}
+                title={t.appStrings.monthNavNextYearTitle}
+                aria-label={t.appStrings.monthNavNextYearTitle}
+                className="flex h-6 w-6 items-center justify-center rounded text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
+                </svg>
               </button>
               {!isCurrentMonth && (
-                <button onClick={() => { setFilterYear(now.getFullYear()); setFilterMonth(now.getMonth() + 1) }}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterYear(now.getFullYear())
+                    setFilterMonth(now.getMonth() + 1)
+                  }}
                   title={t.appStrings.monthNavResetTitle}
-                  className="w-6 h-6 flex items-center justify-center text-cyan-400 hover:text-cyan-300 hover:bg-white/10 rounded transition-colors">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" /></svg>
+                  aria-label={t.appStrings.monthNavResetTitle}
+                  className="flex h-6 w-6 items-center justify-center rounded text-cyan-400 transition-colors hover:bg-white/10 hover:text-cyan-300"
+                >
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
+                  </svg>
                 </button>
               )}
             </div>
@@ -2591,42 +3161,31 @@ function FornitoreDetailClient({
             <div className="w-px h-6 bg-white/10 shrink-0" />
 
             {/* Action buttons */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={syncThisSupplier}
-                disabled={supplierSyncDisabled}
-                title={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
-                className="flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-2 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/25 disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {emailSyncProgress.active ? (
-                  <svg className="h-3.5 w-3.5 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                ) : (
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                )}
-                {t.dashboard.syncEmail}
-              </button>
+            <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:thin]">
+              <ScanEmailButton
+                variant="supplier"
+                alwaysShowLabel
+                fornitoreId={fornitore.id}
+                sedeId={fornitore.sede_id ?? undefined}
+                disabled={!fornitore.sede_id}
+                disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
+              />
               <Link
                 href={`/bolle/new?fornitore_id=${fornitore.id}`}
-                className="app-glow-cyan flex items-center gap-1.5 rounded-xl bg-cyan-500 px-3 py-2 text-xs font-bold text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600"
+                className="app-glow-cyan flex shrink-0 items-center gap-1.5 rounded-lg bg-cyan-500 px-2.5 py-1.5 text-[11px] font-bold text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 {t.nav.nuovaBolla}
               </Link>
               <Link
                 href={`/fatture/new?fornitore_id=${fornitore.id}`}
-                className="flex items-center gap-1.5 rounded-xl border border-cyan-500/45 bg-slate-700/50 px-3 py-2 text-xs font-semibold text-cyan-100 shadow-[0_0_20px_-8px_rgba(34,211,238,0.25)] transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/10 hover:text-white"
+                className="flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-500/45 bg-slate-700/50 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-100 shadow-[0_0_20px_-8px_rgba(34,211,238,0.25)] transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/10 hover:text-white"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 {t.fatture.new}
               </Link>
               <Link href={`/fornitori/${fornitore.id}/edit`} title={t.fornitori.editTitle}
-                className="rounded-lg border border-white/10 p-2 text-slate-100 transition-colors hover:bg-white/10 hover:text-white">
+                className="shrink-0 rounded-lg border border-white/10 p-1.5 text-slate-100 transition-colors hover:bg-white/10 hover:text-white">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
               </Link>
             </div>
@@ -2636,7 +3195,7 @@ function FornitoreDetailClient({
           <div className="flex gap-0.5">
             {tabs.map(tb => (
               <button key={tb.id} onClick={() => setTab(tb.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold transition-all border-b-2 -mb-px ${
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-all border-b-2 -mb-px ${
                   tab === tb.id
                     ? 'border-cyan-400 text-white shadow-[0_6px_24px_-8px_rgba(34,211,238,0.35)]'
                     : 'border-transparent text-slate-200 hover:text-white'
@@ -2661,7 +3220,35 @@ function FornitoreDetailClient({
         <div className="min-h-[calc(100vh-8rem)]">
           <div className="mx-auto w-full max-w-screen-2xl px-5 py-5 md:px-8">
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
-            <TabContent />
+            <SupplierDesktopMonthlyDocSummary
+              fornitoreId={fornitore.id}
+              endYear={filterYear}
+              endMonth={filterMonth}
+              selectedYear={filterYear}
+              selectedMonth={filterMonth}
+              countryCode={countryCode}
+              currency={currency ?? 'GBP'}
+              activeTab={tab}
+              periodNav={{
+                onPrevYear: () => shiftYear(-1),
+                onNextYear: () => shiftYear(1),
+                onResetToNow: () => {
+                  setFilterYear(now.getFullYear())
+                  setFilterMonth(now.getMonth() + 1)
+                },
+                disableNextYear: !canShiftYearForward,
+                showResetToNow: !isCurrentMonth,
+              }}
+              onOpenMonthTab={(y, m, nextTab) => {
+                const c = clampSupplierPeriod(y, m)
+                setFilterYear(c.y)
+                setFilterMonth(c.m)
+                setTab(nextTab)
+              }}
+            />
+            <div className="fornitore-tab-panel scroll-mt-6 outline-none md:scroll-mt-28" tabIndex={-1}>
+              <TabContent />
+            </div>
           </div>
         </div>
       </div>

@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const fornitoreId = searchParams.get('fornitore_id')
   const statementId = searchParams.get('id')
   const action      = searchParams.get('action')
+  const listLimit   = fornitoreId ? 500 : 200
 
   // ── Get rows for one statement ──────────────────────────────────────────
   if (statementId && action !== 'recheck') {
@@ -97,9 +98,10 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = (supabase as any)
     .from('statements')
-    .select('id, sede_id, fornitore_id, email_subject, received_at, file_url, status, total_rows, missing_rows')
+    .select('id, sede_id, fornitore_id, email_subject, received_at, extracted_pdf_dates, file_url, status, total_rows, missing_rows')
     .order('received_at', { ascending: false })
-    .limit(50)
+    /* Per singolo fornitore servono più righe (estratto 2025 vs ricezioni 2026, cronologia lunga). */
+    .limit(listLimit)
 
   if (sedeId)      q = q.eq('sede_id',      sedeId)
   if (fornitoreId) q = q.eq('fornitore_id', fornitoreId)
