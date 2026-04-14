@@ -25,11 +25,19 @@ if echo "$SSH_OUT" | grep -qi 'successfully authenticated'; then
   :
 elif echo "$SSH_OUT" | grep -qi 'Permission denied'; then
   echo ""
-  echo "=== Aggiungi questa chiave pubblica su GitHub ==="
-  echo "    https://github.com/settings/ssh/new"
+  echo "=== GitHub non accetta ancora questa chiave SSH ==="
+  echo "    Usa l’account GitHub che possiede (o può pushare su) talebarikhan/invoice."
   echo ""
-  cat "${KEY}.pub"
+  if [[ "$(uname -s)" == "Darwin" ]] && command -v pbcopy >/dev/null; then
+    pbcopy < "${KEY}.pub"
+    echo "Chiave pubblica copiata negli appunti (una riga intera, senza spezzature)."
+    command -v open >/dev/null && open "https://github.com/settings/ssh/new"
+  else
+    echo "Copia manualmente il file (una sola riga):"
+    echo "  cat ${KEY}.pub | tr -d '\n' ; echo"
+  fi
   echo ""
+  echo "Su GitHub: Settings → SSH and GPG keys → New SSH key → incolla (Cmd+V) → Add."
   echo "Poi rilancia: bash scripts/github-push-bootstrap.sh"
   exit 1
 else
