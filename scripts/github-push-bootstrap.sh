@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-REPO_SSH="git@github.com:talebbarikhan/invoice.git"
+REPO_SSH="git@github.com:taleb85/invoice.git"
 git remote set-url origin "$REPO_SSH"
 echo "origin → $REPO_SSH"
 
@@ -26,7 +26,7 @@ if echo "$SSH_OUT" | grep -qi 'successfully authenticated'; then
 elif echo "$SSH_OUT" | grep -qi 'Permission denied'; then
   echo ""
   echo "=== GitHub non accetta ancora questa chiave SSH ==="
-  echo "    Usa l’account GitHub che possiede (o può pushare su) talebarikhan/invoice."
+  echo "    Usa l’account GitHub che possiede (o può pushare su) taleb85/invoice."
   echo ""
   if [[ "$(uname -s)" == "Darwin" ]] && command -v pbcopy >/dev/null; then
     pbcopy < "${KEY}.pub"
