@@ -161,8 +161,8 @@ export default function EmailSyncProgressBar() {
 
   return (
     <div
-      className={`sticky top-14 z-[35] overflow-x-visible border-b px-4 py-3 backdrop-blur-md md:top-0 md:z-[25] md:px-8 ${
-        onBolleNewMobile ? 'max-md:mt-14' : ''
+      className={`sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] z-[35] overflow-x-visible border-b px-4 py-3 backdrop-blur-md md:top-0 md:z-[25] md:px-8 ${
+        onBolleNewMobile ? 'max-md:mt-[calc(3.5rem+env(safe-area-inset-top,0px))]' : ''
       } ${
         barError
           ? 'border-red-500/40 bg-red-950/90 shadow-[0_4px_24px_-8px_rgba(239,68,68,0.35)]'

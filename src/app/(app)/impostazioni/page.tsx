@@ -48,7 +48,7 @@ function ProfileMobileHub() {
   }
 
   return (
-    <div className="mb-4 rounded-2xl border border-white/10 bg-slate-700/50 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+    <div className="mt-4 rounded-2xl border border-white/10 bg-slate-700/50 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
       {showOperatorForm && sedeId ? <SedeAddOperatorForm sedeId={sedeId} embedded /> : null}
       {showPickSedeForOperators ? (
         <div className="space-y-2">
@@ -232,41 +232,43 @@ export default function ImpostazioniPage() {
         <AppPageHeaderStrip>
           <AppPageHeaderTitleWithDashboardShortcut
             dashboardLabel={t.nav.dashboard}
-            className="min-w-0 flex-1 items-start gap-3"
+            className="min-w-0 w-full flex-1 items-center gap-3"
+            showDashboardShortcut={false}
           >
-            <h1 className="app-page-title text-xl font-bold" suppressHydrationWarning>
-              {mounted ? t.impostazioni.title : ''}
-            </h1>
-            <p className="mt-1 text-sm text-slate-200" suppressHydrationWarning>
-              {mounted ? t.impostazioni.subtitle : ''}
-            </p>
+            <div className="flex w-full min-w-0 items-center justify-between gap-3">
+              <div className="min-w-0 flex-1 py-0.5 pr-2">
+                <h1 className="app-page-title text-xl font-bold leading-tight" suppressHydrationWarning>
+                  {mounted ? t.impostazioni.title : ''}
+                </h1>
+                <p className="mt-1 text-sm leading-snug text-slate-200" suppressHydrationWarning>
+                  {mounted ? t.impostazioni.subtitle : ''}
+                </p>
+              </div>
+              <Link
+                href="/guida"
+                className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center self-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-slate-900/20 transition-all hover:border-cyan-400/35 hover:brightness-110 active:scale-[0.98] sm:h-11 sm:w-11"
+                aria-label={t.nav.guida}
+                title={t.nav.guida}
+              >
+                <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" aria-hidden>
+                  <defs>
+                    <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#6b8ef5" />
+                      <stop offset="100%" stopColor="#22d3ee" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    stroke={`url(#${helpIconGradId})`}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </Link>
+            </div>
           </AppPageHeaderTitleWithDashboardShortcut>
-          <div className="flex shrink-0 items-start justify-end">
-            <Link
-              href="/guida"
-              className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-slate-900/20 transition-all hover:border-cyan-400/35 hover:brightness-110 active:scale-[0.98]"
-              aria-label={t.nav.guida}
-              title={t.nav.guida}
-            >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" aria-hidden>
-                <defs>
-                  <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#6b8ef5" />
-                    <stop offset="100%" stopColor="#22d3ee" />
-                  </linearGradient>
-                </defs>
-                <path
-                  stroke={`url(#${helpIconGradId})`}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </Link>
-          </div>
         </AppPageHeaderStrip>
-        <ProfileMobileHub />
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <div className="space-y-5 p-5">
@@ -284,6 +286,7 @@ export default function ImpostazioniPage() {
           </button>
           </div>
         </div>
+        <ProfileMobileHub />
       </div>
 
       {/* ══ DESKTOP: un’unica colonna (niente seconda sidebar con un solo tab) ══ */}

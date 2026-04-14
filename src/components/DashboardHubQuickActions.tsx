@@ -93,7 +93,7 @@ export default function DashboardHubQuickActions() {
 
   return (
     <>
-      <div className="mt-8 grid grid-cols-1 gap-3 border-t border-slate-700/50 pt-6 pb-1 md:hidden">
+      <div className="grid grid-cols-1 gap-3 border-t border-slate-700/50 pt-4 pb-0 md:hidden">
         <button
           type="button"
           onClick={() => setReceiptOpen(true)}

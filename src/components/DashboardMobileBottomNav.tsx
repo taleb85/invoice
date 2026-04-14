@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink, FileText, Home, Plus, Scan, User, Users } from 'lucide-react'
+import { ArrowLeft, ExternalLink, FileText, Home, Plus, User, Users } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
@@ -12,6 +12,7 @@ import {
   isFornitoreProfileRoute,
   normalizeAppPath,
 } from '@/lib/mobile-hub-routes'
+import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 
 /**
  * Glass dock — allineato a `.app-card` (globals): vetro scuro, blur forte, ombra.
@@ -31,6 +32,20 @@ const fornitoreIconsRow = 'flex w-full min-h-[48px] flex-1 items-stretch justify
 const BOTTOM_NAV_ARIA_MAIN = 'Navigazione principale'
 const BOTTOM_NAV_ARIA_ADMIN = 'Navigazione amministratore'
 const BOTTOM_NAV_ARIA_FORNITORE = 'Navigazione fornitore'
+
+/** Stessa icona del CTA «Scanner» sulla dashboard mobile (`page.tsx` → /bolle/new). */
+function HubScannerIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+      />
+    </svg>
+  )
+}
 
 function BottomNavOperatorRow() {
   const t = useT()
@@ -85,7 +100,7 @@ function OperatorHubNavItem({ itemCls }: { itemCls: (active: boolean) => string 
       className={itemCls(false)}
       aria-label={aria}
     >
-      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-500/20 text-[9px] font-bold text-cyan-200 sm:h-6 sm:w-6 sm:text-[10px]">
+      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-500/20 text-[9px] font-bold text-cyan-200 ring-1 ring-inset ring-cyan-500/20 sm:h-6 sm:w-6 sm:text-[10px]">
         {initial}
       </div>
       <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{short}</span>
@@ -107,6 +122,7 @@ function FornitoreProfileBottomNav({
   const masterAdminNoOperator = Boolean(me?.is_admin && !activeOperator)
   const fid = fornitoreIdFromProfilePath(normalized)
   const nuovaBollaHref = fid ? `/bolle/new?fornitore_id=${encodeURIComponent(fid)}` : '/bolle/new'
+  const supplierReadOnlyMobile = useMobileSupplierReadOnly()
 
   return (
     <nav className={navClsFornitore} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
@@ -120,10 +136,12 @@ function FornitoreProfileBottomNav({
           <ArrowLeft className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.bottomNavBackToSede}</span>
         </button>
+        {!supplierReadOnlyMobile ? (
         <Link href={nuovaBollaHref} className={itemCls(false)} prefetch={false}>
           <Plus className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.addNewDelivery}</span>
         </Link>
+        ) : null}
         <a href="https://rekki.com" target="_blank" rel="noopener noreferrer" className={itemCls(false)}>
           <ExternalLink className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.openRekki}</span>
@@ -170,6 +188,14 @@ export default function DashboardMobileBottomNav() {
         : 'text-slate-200 hover:bg-white/5 hover:text-white active:bg-white/10'
     } ${active ? 'bg-cyan-500/10' : ''}`
 
+  /** Scanner AI — stesso filo del CTA dashboard (gradiente cyan/viola, alone). */
+  const scannerNavItemCls = (active: boolean) =>
+    `flex min-h-[48px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-2 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-xs touch-manipulation transition-all active:scale-[0.98] ${
+      active
+        ? 'border-cyan-400/50 bg-gradient-to-b from-cyan-500/30 to-violet-500/15 text-cyan-50 shadow-[0_0_22px_-8px_rgba(6,182,212,0.55)]'
+        : 'border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42)] hover:border-cyan-400/45 hover:from-cyan-500/25 hover:to-violet-500/15 hover:text-white'
+    }`
+
   /** Tre colonne uguali sulla scheda fornitore (niente max-w 25%). */
   const fornitoreItemCls = (active: boolean) =>
     `flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-medium touch-manipulation transition-colors ${
@@ -193,8 +219,8 @@ export default function DashboardMobileBottomNav() {
           <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
-        <Link href="/bolle/new" className={itemCls(isActive('/bolle/new'))} prefetch={false}>
-          <Scan className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <Link href="/bolle/new" className={scannerNavItemCls(isActive('/bolle/new'))} prefetch={false}>
+          <HubScannerIcon className="h-5 w-5 shrink-0 text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] sm:h-6 sm:w-6" />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavScannerAi}</span>
         </Link>
         <Link href="/bolle" className={itemCls(isActive('/bolle'))} prefetch={false}>
@@ -221,8 +247,8 @@ export default function DashboardMobileBottomNav() {
           <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
-        <Link href="/bolle/new" className={itemCls(isActive('/bolle/new'))} prefetch={false}>
-          <Scan className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+        <Link href="/bolle/new" className={scannerNavItemCls(isActive('/bolle/new'))} prefetch={false}>
+          <HubScannerIcon className="h-5 w-5 shrink-0 text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] sm:h-6 sm:w-6" />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavScannerAi}</span>
         </Link>
         <OperatorHubNavItem itemCls={itemCls} />

@@ -42,7 +42,7 @@ export default function AppSummaryHighlightCard({
   return (
     <div className={`app-card mb-6 overflow-hidden ${theme.border} ${className ?? ''}`}>
       <div className={`app-card-bar ${theme.bar}`} aria-hidden />
-      <div className="px-5 py-4 sm:px-6 sm:py-5">
+      <div className="px-3 py-4 sm:px-4 sm:py-5 md:px-6 lg:px-8 xl:px-10">
         {trailingWithLabel ? (
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
             <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.label}`}>{label}</p>

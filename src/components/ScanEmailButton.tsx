@@ -140,7 +140,7 @@ export default function ScanEmailButton({
   const btnSize = alwaysShowLabel
     ? isSupplierVariant
       ? 'inline-flex min-h-[44px] w-full items-center justify-center gap-1 px-2 py-0 md:h-6 md:min-h-0 md:w-auto md:gap-1 md:px-2 xl:h-9 xl:gap-1.5 xl:px-2.5'
-      : 'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 px-3 py-0'
+      : 'inline-flex h-10 min-h-[44px] w-full shrink-0 items-center justify-center gap-1.5 px-3 py-0 sm:h-8 sm:min-h-0 sm:w-auto'
     : 'inline-flex items-center gap-1.5 px-3 py-1.5'
   const selectSize =
     'h-8 py-0 pl-2 pr-7 text-left text-[11px] font-medium leading-8'
@@ -180,17 +180,19 @@ export default function ScanEmailButton({
   return (
     <div
       title={disabledProp && disabledReasonTitle ? disabledReasonTitle : undefined}
-      className={`flex flex-col ${isSupplierVariant ? 'gap-1' : 'gap-1.5'} ${alwaysShowLabel ? 'min-w-0' : 'items-end'} ${alwaysShowLabel && !isSupplierVariant ? 'shrink-0' : ''} ${isSupplierVariant ? 'w-full min-w-0 md:w-auto xl:min-w-0 xl:flex-1 xl:max-w-none' : ''}`}
+      className={`flex flex-col ${isSupplierVariant ? 'gap-1' : 'gap-1.5'} ${alwaysShowLabel ? 'min-w-0 w-full max-w-full' : 'items-end'} ${isSupplierVariant ? 'w-full min-w-0 md:w-auto xl:min-w-0 xl:flex-1 xl:max-w-none' : ''}`}
     >
       <div
         className={
           isSupplierVariant
             ? 'flex w-full flex-col gap-1 md:w-auto md:flex-row md:flex-wrap md:items-center md:gap-x-2 md:gap-y-1.5 xl:h-9 xl:w-full xl:flex-nowrap xl:items-center xl:justify-end'
-            : `flex flex-wrap items-center gap-1.5 ${alwaysShowLabel ? '' : 'justify-end'}`
+            : alwaysShowLabel
+              ? 'flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-1.5'
+              : 'flex flex-wrap items-center justify-end gap-1.5'
         }
       >
       <div
-        className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[8.75rem]' : 'max-w-[min(100%,12.5rem)]'}`}
+        className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[8.75rem]' : alwaysShowLabel ? 'w-full sm:max-w-[min(100%,12.5rem)]' : 'max-w-[min(100%,12.5rem)]'}`}
       >
         <select
           value={selectValue}
@@ -244,7 +246,7 @@ export default function ScanEmailButton({
       </div>
       {scopePrefs.mode === 'lookback' ? (
         <div
-          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[7rem]' : 'max-w-[min(100%,11rem)]'}`}
+          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[7rem]' : alwaysShowLabel ? 'w-full sm:max-w-[min(100%,11rem)]' : 'max-w-[min(100%,11rem)]'}`}
         >
           <select
             value={lookbackSelectValue}
@@ -292,7 +294,7 @@ export default function ScanEmailButton({
       ) : null}
       {!fornitoreId ? (
         <div
-          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[min(100%,13.5rem)]' : 'max-w-[min(100%,13.5rem)]'}`}
+          className={`relative min-w-0 shrink-0 ${isSupplierVariant ? 'w-full max-w-none md:max-w-[min(100%,13.5rem)]' : alwaysShowLabel ? 'w-full sm:max-w-[min(100%,13.5rem)]' : 'max-w-[min(100%,13.5rem)]'}`}
         >
           <select
             value={scopePrefs.documentKind}
@@ -377,7 +379,7 @@ export default function ScanEmailButton({
       </div>
 
       {toast && (
-        <p className={`text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${
+        <p className={`text-xs font-medium px-2 py-1 rounded-lg w-full max-w-full text-right sm:max-w-[220px] ${
           toast.type === 'ok' ? 'bg-slate-700/90 text-green-300' :
           toast.type === 'warn' ? 'bg-slate-700/90 text-amber-200' :
           'bg-slate-700/90 text-red-300'

@@ -244,11 +244,15 @@ export default function NuovaBollaForm() {
         return
       }
 
+      if (sedeId) {
+        void supabase.from('scanner_flow_events').insert({ sede_id: sedeId, step: 'ai_elaborata' })
+      }
+
       applyHubResult(result, intent, list)
     } catch {
       setOcrStatus('error')
     }
-  }, [applyHubResult])
+  }, [applyHubResult, sedeId, supabase])
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null
@@ -339,6 +343,10 @@ export default function NuovaBollaForm() {
         return
       }
 
+      if (sedeId) {
+        void supabase.from('scanner_flow_events').insert({ sede_id: sedeId, step: 'archiviata_fattura' })
+      }
+
       router.push('/fatture')
       router.refresh()
       return
@@ -362,6 +370,10 @@ export default function NuovaBollaForm() {
       return
     }
 
+    if (sedeId) {
+      void supabase.from('scanner_flow_events').insert({ sede_id: sedeId, step: 'archiviata_bolla' })
+    }
+
     router.push('/bolle')
     router.refresh()
   }
@@ -381,16 +393,20 @@ export default function NuovaBollaForm() {
   return (
     <div className="flex flex-col">
       {/*
-        Su `/bolle/new` il main non ha più `pt-14` (evita doppio offset con sticky). Sotto il topbar
-        mobile serve spazio in flow solo quando la barra sync non è visibile (la sync bar ha già `mt-14`).
+        Su `/bolle/new` il main non ha più offset top (evita doppio offset con sticky). Sotto il topbar
+        mobile serve spazio in flow solo quando la barra sync non è visibile (la sync bar ha già margin-top sotto topbar).
       */}
-      {!emailSyncBannerVisible ? <div className="h-14 shrink-0 md:hidden" aria-hidden /> : null}
+      {!emailSyncBannerVisible ? (
+        <div className="h-[calc(3.5rem+env(safe-area-inset-top,0px))] shrink-0 md:hidden" aria-hidden />
+      ) : null}
       {/*
         Mobile: `fixed` sotto topbar (o sotto topbar+sync). Desktop: sticky in cima al contenuto.
       */}
       <div
         className={`z-10 flex items-center gap-3 border-b px-4 py-3 backdrop-blur-md max-md:fixed max-md:left-0 max-md:right-0 md:sticky md:top-0 ${desktopHeaderBarDefaultBorderColor} ${desktopHeaderBarDefaultFill} ${
-          emailSyncBannerVisible ? 'max-md:top-[calc(3.5rem+6.5rem)]' : 'max-md:top-14'
+          emailSyncBannerVisible
+            ? 'max-md:top-[calc(3.5rem+6.5rem+env(safe-area-inset-top,0px))]'
+            : 'max-md:top-[calc(3.5rem+env(safe-area-inset-top,0px))]'
         }`}
       >
         <button

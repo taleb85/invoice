@@ -14,11 +14,18 @@ const homeIcon = (
 )
 
 /** Icona home/dashboard come nella toolbar header desktop (`href="/"`). */
-export function AppPageHeaderDashboardShortcut({ dashboardLabel }: { dashboardLabel: string }) {
+export function AppPageHeaderDashboardShortcut({
+  dashboardLabel,
+  className,
+}: {
+  dashboardLabel: string
+  /** Es. `hidden md:flex` per nascondere su mobile. */
+  className?: string
+}) {
   return (
     <Link
       href="/"
-      className={`${DASHBOARD_HEADER_SHORTCUT_CLASS} shrink-0`}
+      className={[DASHBOARD_HEADER_SHORTCUT_CLASS, 'shrink-0', className].filter(Boolean).join(' ')}
       title={dashboardLabel}
       aria-label={dashboardLabel}
     >
@@ -35,6 +42,7 @@ export function AppPageHeaderTitleWithDashboardShortcut({
   children,
   className = 'min-w-0 items-start gap-3 sm:flex-1 sm:flex-initial',
   showDashboardShortcut = true,
+  dashboardShortcutClassName,
 }: {
   dashboardLabel: string
   children: ReactNode
@@ -42,11 +50,16 @@ export function AppPageHeaderTitleWithDashboardShortcut({
   className?: string
   /** Su `/` la scorciatoia verso la dashboard è ridondante. */
   showDashboardShortcut?: boolean
+  /** Classi aggiuntive sul link dashboard (es. `hidden md:flex`). */
+  dashboardShortcutClassName?: string
 }) {
   return (
     <div className={`flex ${className}`}>
       {showDashboardShortcut ? (
-        <AppPageHeaderDashboardShortcut dashboardLabel={dashboardLabel} />
+        <AppPageHeaderDashboardShortcut
+          dashboardLabel={dashboardLabel}
+          className={dashboardShortcutClassName}
+        />
       ) : null}
       <div className="min-w-0 flex-1">{children}</div>
     </div>

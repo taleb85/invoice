@@ -44,18 +44,6 @@
 }
 
 /*
-  Dashboard operatore (mobile): KPI + “Bolle recenti” devono restare nascosti sotto md.
-  Usiamo media query pura così non dipende dal momento in cui Tailwind applica `hidden md:block`
-  (evita un frame con griglia KPI sopra i CTA Scanner / Ricevuto).
- */
-/* Sotto tablet (768px): allineato a --app-design-tablet-min */
-@media (max-width: 767px) {
-  .operator-dash-hide-mobile {
-    display: none !important;
-  }
-}
-
-/*
   Tema “twilight”: canvas main grigio‑blu (slate-500–700), card più scure + neon cyan.
   Canvas main ~ zinc-600–800; pannelli .app-card slate-800; sidebar bg-slate-700.
 */
@@ -345,9 +333,9 @@ body {
   transition: opacity 0.2s ease;
 }
 
-/* Sotto la topbar mobile fissa (h-14); su md la topbar non c’è → stesso effetto del bordo alto schermo */
+/* Sotto la topbar mobile fissa (safe-area + h-14); su md la topbar non c’è → stesso effetto del bordo alto schermo */
 .navigation-top-progress--below-mobile-topbar {
-  top: 3.5rem;
+  top: calc(3.5rem + env(safe-area-inset-top, 0px));
 }
 
 @media (min-width: 768px) {

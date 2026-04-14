@@ -22,7 +22,6 @@ export default function OperatorSwitchModal() {
   const {
     activeOperator, setActiveOperator,
     showSwitchModal, closeSwitchModal,
-    inactivityTimeout, setInactivityTimeout,
   } = useActiveOperator()
 
   const [step, setStep]             = useState<Step>('select')
@@ -227,25 +226,39 @@ export default function OperatorSwitchModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-900/40 px-4 pt-4 backdrop-blur-md max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
+      role="dialog"
+      aria-modal
+      aria-labelledby="operator-switch-modal-title"
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/60 px-4 pt-4 backdrop-blur-md max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose()
+      }}
     >
-      <div className="flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-700 shadow-2xl">
+      <div
+        className="pointer-events-auto flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-600/45 bg-slate-700/95 shadow-2xl shadow-black/50 ring-1 ring-inset ring-cyan-400/10 backdrop-blur-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="h-0.5 w-full shrink-0 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-300"
+          aria-hidden
+        />
 
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-600/80 px-4 py-4 sm:px-5">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-600/50 px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/25 bg-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
             </div>
             <div className="min-w-0">
-              <p className="text-base font-semibold text-white">{t.ui.changeOperator}</p>
+              <p id="operator-switch-modal-title" className="text-base font-semibold tracking-tight text-slate-100">
+                {t.ui.changeOperator}
+              </p>
               {activeOperator && (
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-400">
                   {t.ui.currentlyActive}{' '}
-                  <span className="text-slate-200 uppercase tracking-wide">
+                  <span className="font-medium text-cyan-200/90 uppercase tracking-wide">
                     {activeOperator.full_name.toUpperCase()}
                   </span>
                 </p>
@@ -255,7 +268,7 @@ export default function OperatorSwitchModal() {
           <button
             type="button"
             onClick={handleClose}
-            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-700 hover:text-slate-200 touch-manipulation"
+            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-600/40 hover:text-slate-100 touch-manipulation"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
@@ -264,7 +277,7 @@ export default function OperatorSwitchModal() {
         </div>
 
         {/* Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5 [scrollbar-color:rgba(100,116,139,0.45)_transparent]">
 
           {/* ─ Step: select operator ─ */}
           {step === 'select' && (
@@ -277,16 +290,16 @@ export default function OperatorSwitchModal() {
                   </svg>
                 </div>
               ) : noSedeContext ? (
-                <p className="text-center text-slate-500 text-sm py-6 px-1">
+                <p className="px-1 py-6 text-center text-sm text-slate-400">
                   {t.ui.noSedeForOperators}
                 </p>
               ) : operators.length === 0 ? (
-                <p className="text-center text-slate-500 text-sm py-6">
+                <p className="py-6 text-center text-sm text-slate-400">
                   {t.ui.noOperatorsFound}
                 </p>
               ) : (
                 <>
-                  <p className="text-xs font-semibold text-slate-200 uppercase tracking-wide">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400/85">
                     {t.ui.selectOperator}
                   </p>
                   <div className="space-y-2">
@@ -297,13 +310,13 @@ export default function OperatorSwitchModal() {
                         ref={op.id === operators[0].id ? firstBtnRef : undefined}
                         onClick={() => { setSelected(op); setStep('pin'); setPin(Array(PIN_LENGTH).fill('')); setError('') }}
                         className={[
-                          'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition-all touch-manipulation active:scale-[0.99]',
+                          'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left shadow-sm transition-all touch-manipulation active:scale-[0.99]',
                           selected?.id === op.id
-                            ? 'border-cyan-500/40 bg-cyan-500/10 text-white'
-                            : 'border-slate-700/60 bg-slate-700/40 text-slate-200 hover:border-slate-600 hover:bg-slate-700/70',
+                            ? 'border-cyan-400/45 bg-cyan-500/12 text-white shadow-[0_0_24px_-8px_rgba(34,211,238,0.35)]'
+                            : 'border-slate-600/50 bg-slate-800/35 text-slate-200 hover:border-cyan-500/25 hover:bg-slate-800/55',
                         ].join(' ')}
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-700 text-sm font-bold text-slate-200">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-500/35 bg-slate-700/80 text-sm font-bold text-slate-100 ring-1 ring-inset ring-white/5">
                           {(op.full_name.trim().toUpperCase() || '?').charAt(0)}
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -335,21 +348,22 @@ export default function OperatorSwitchModal() {
               {/* Who we're logging in as */}
               <div className="flex items-center gap-3">
                 <button
+                  type="button"
                   onClick={() => { setStep('select'); clearPin() }}
-                  className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700 rounded-lg transition-colors"
+                  className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-600/35 hover:text-slate-100"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
                   </svg>
                 </button>
-                <div className="w-9 h-9 rounded-full bg-cyan-500/15 flex items-center justify-center text-sm font-bold text-cyan-300">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/10 text-sm font-bold text-cyan-300">
                   {(selected?.full_name.trim().toUpperCase() || '?').charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white uppercase tracking-wide">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-100">
                     {selected?.full_name.toUpperCase()}
                   </p>
-                  <p className="text-[11px] text-slate-500">{t.login.pinLabel}</p>
+                  <p className="text-[11px] text-slate-400">{t.login.pinLabel}</p>
                 </div>
               </div>
 
@@ -362,7 +376,7 @@ export default function OperatorSwitchModal() {
                       'w-4 h-4 rounded-full transition-all duration-150',
                       pin[i]
                         ? 'bg-cyan-400 scale-110 shadow-[0_0_8px_rgba(34,211,238,0.6)]'
-                        : 'bg-slate-700 border border-slate-600',
+                        : 'border border-slate-600/80 bg-slate-800/80',
                     ].join(' ')}
                   />
                 ))}
@@ -403,12 +417,12 @@ export default function OperatorSwitchModal() {
                           if (isClear)  clearPin()
                         }}
                         className={[
-                          'min-h-[52px] rounded-2xl text-xl font-bold transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg',
+                          'min-h-[52px] rounded-2xl border text-xl font-bold transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg',
                           isDigit
-                            ? 'bg-slate-700 hover:bg-slate-700 text-white border border-slate-700/60 shadow-sm'
+                            ? 'border-slate-600/60 bg-slate-800/90 text-white shadow-sm hover:border-cyan-500/35 hover:bg-slate-800'
                             : isClear
-                              ? 'bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700/40'
-                              : 'bg-slate-700/50 hover:bg-slate-700 text-slate-200 border border-slate-700/40',
+                              ? 'border-slate-600/45 bg-slate-800/50 text-slate-300 hover:border-slate-500/50 hover:bg-slate-800/70'
+                              : 'border-slate-600/45 bg-slate-800/50 text-slate-300 hover:border-slate-500/50 hover:bg-slate-800/70',
                         ].join(' ')}
                       >
                         {key}
@@ -420,27 +434,6 @@ export default function OperatorSwitchModal() {
             </div>
           )}
         </div>
-
-        {/* Footer — inactivity setting */}
-        <div className="flex shrink-0 flex-col gap-2 border-t border-slate-600/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <label className="flex min-h-[44px] items-center gap-2 text-xs text-slate-500 sm:min-h-0">
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-              <span>{t.ui.operatorAutoLockLabel}</span>
-            </label>
-            <select
-              value={inactivityTimeout}
-              onChange={(e) => setInactivityTimeout(Number(e.target.value))}
-              className="min-h-[48px] w-full rounded-xl border border-slate-700 bg-slate-700 px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 touch-manipulation sm:min-h-[44px] sm:w-auto sm:min-w-[8.5rem]"
-            >
-              <option value={0}>{t.ui.operatorAutoLockNever}</option>
-              <option value={5}>{t.ui.operatorAutoLockMinutes.replace('{n}', '5')}</option>
-              <option value={10}>{t.ui.operatorAutoLockMinutes.replace('{n}', '10')}</option>
-              <option value={15}>{t.ui.operatorAutoLockMinutes.replace('{n}', '15')}</option>
-              <option value={30}>{t.ui.operatorAutoLockMinutes.replace('{n}', '30')}</option>
-            </select>
-          </div>
       </div>
     </div>
   )

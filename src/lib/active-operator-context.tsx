@@ -2,7 +2,7 @@
 
 import {
   createContext, useCallback, useContext,
-  useEffect, useRef, useState, ReactNode,
+  useEffect, useState, ReactNode,
 } from 'react'
 
 export interface ActiveOperator {
@@ -19,9 +19,6 @@ interface ActiveOperatorContextValue {
   /** Salva anche `boundAuthUserId` (es. `me.user.id`) quando l’operatore è scelto dopo login. */
   setActiveOperator:   (op: ActiveOperator | null, boundAuthUserId?: string | null) => void
   clearActiveOperator: () => void
-  /** Timeout inattività in minuti. 0 = disabilitato. */
-  inactivityTimeout:    number
-  setInactivityTimeout: (mins: number) => void
   /** Apre/chiude il modal di cambio operatore */
   showSwitchModal:  boolean
   openSwitchModal:  () => void
@@ -34,14 +31,11 @@ export const FLUXO_ACTIVE_OPERATOR_USER_KEY = 'fluxo-active-operator-user'
 
 const STORAGE_KEY = FLUXO_ACTIVE_OPERATOR_KEY
 const BOUND_USER_KEY = FLUXO_ACTIVE_OPERATOR_USER_KEY
-const TIMEOUT_KEY  = 'fluxo-inactivity-timeout'
 
 const Ctx = createContext<ActiveOperatorContextValue>({
   activeOperator:       null,
   setActiveOperator:    () => {},
   clearActiveOperator:  () => {},
-  inactivityTimeout:    0,
-  setInactivityTimeout: () => {},
   showSwitchModal:  false,
   openSwitchModal:  () => {},
   closeSwitchModal: () => {},
@@ -49,9 +43,7 @@ const Ctx = createContext<ActiveOperatorContextValue>({
 
 export function ActiveOperatorProvider({ children }: { children: ReactNode }) {
   const [activeOperator, setActiveOperatorState] = useState<ActiveOperator | null>(null)
-  const [inactivityTimeout, setInactivityTimeoutState] = useState(0)
   const [showSwitchModal, setShowSwitchModal]           = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /* ── Bootstrap from localStorage (client only) ──
    * Senza `fluxo-active-operator-user` non ripristiniamo: dati legacy o altro account. */
@@ -60,8 +52,6 @@ export function ActiveOperatorProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY)
       const bound = localStorage.getItem(BOUND_USER_KEY)
       if (raw && bound) setActiveOperatorState(JSON.parse(raw))
-      const t = localStorage.getItem(TIMEOUT_KEY)
-      if (t) setInactivityTimeoutState(Number(t))
     } catch { /* ignore */ }
   }, [])
 
@@ -83,42 +73,12 @@ export function ActiveOperatorProvider({ children }: { children: ReactNode }) {
 
   const clearActiveOperator = useCallback(() => setActiveOperator(null), [setActiveOperator])
 
-  const setInactivityTimeout = useCallback((mins: number) => {
-    setInactivityTimeoutState(mins)
-    try { localStorage.setItem(TIMEOUT_KEY, String(mins)) } catch { /* ignore */ }
-  }, [])
-
-  /* ── Inactivity timer ── */
-  const resetTimer = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    if (inactivityTimeout > 0 && activeOperator) {
-      timerRef.current = setTimeout(() => {
-        setShowSwitchModal(true)
-      }, inactivityTimeout * 60 * 1000)
-    }
-  }, [inactivityTimeout, activeOperator])
-
-  useEffect(() => {
-    if (inactivityTimeout <= 0 || !activeOperator) {
-      if (timerRef.current) clearTimeout(timerRef.current)
-      return
-    }
-    const events = ['mousemove', 'keydown', 'touchstart', 'click', 'scroll']
-    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }))
-    resetTimer()
-    return () => {
-      events.forEach(e => window.removeEventListener(e, resetTimer))
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [inactivityTimeout, activeOperator, resetTimer])
-
   const openSwitchModal  = useCallback(() => setShowSwitchModal(true),  [])
   const closeSwitchModal = useCallback(() => setShowSwitchModal(false), [])
 
   return (
     <Ctx.Provider value={{
       activeOperator, setActiveOperator, clearActiveOperator,
-      inactivityTimeout, setInactivityTimeout,
       showSwitchModal, openSwitchModal, closeSwitchModal,
     }}>
       {children}
