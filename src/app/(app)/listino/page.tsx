@@ -16,6 +16,7 @@ import {
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,10 +54,11 @@ export default async function ListinoOverviewPage() {
   }
 
   const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
+  const listinoTheme = SUMMARY_HIGHLIGHT_ACCENTS.lime
 
   return (
     <div className="w-full min-w-0 p-4 md:p-8">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="lime">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.fornitori.tabListino}</h1>
         </div>
@@ -67,8 +69,8 @@ export default async function ListinoOverviewPage() {
           {t.dashboard.operatorNoSede}
         </div>
       ) : rows.length === 0 ? (
-        <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
+        <div className={`app-card overflow-hidden ${listinoTheme.border}`}>
+          <div className={`app-card-bar ${listinoTheme.bar}`} aria-hidden />
           <div className="px-6 py-14 text-center">
             <svg
               className="mx-auto mb-3 h-12 w-12 text-slate-600"
@@ -87,7 +89,7 @@ export default async function ListinoOverviewPage() {
             <p className="text-sm text-slate-200">{t.dashboard.listinoOverviewEmpty}</p>
             <Link
               href="/fornitori"
-              className="mt-4 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+              className="mt-4 inline-block text-sm font-medium text-lime-400 hover:text-lime-300 hover:underline"
             >
               {t.nav.fornitori} →
             </Link>
@@ -96,13 +98,13 @@ export default async function ListinoOverviewPage() {
       ) : (
         <>
           <AppSummaryHighlightCard
-            accent="teal"
+            accent="lime"
             label={t.common.total}
             primary={rows.length}
             secondary={t.dashboard.listinoOverviewLimitNote.replace(/\{n\}/g, String(rows.length))}
           />
-          <div className="app-card overflow-hidden">
-            <div className="app-card-bar" aria-hidden />
+          <div className={`app-card overflow-hidden ${listinoTheme.border}`}>
+            <div className={`app-card-bar ${listinoTheme.bar}`} aria-hidden />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
@@ -133,7 +135,7 @@ export default async function ListinoOverviewPage() {
                       <td className="max-w-[200px] px-4 py-3">
                         <Link
                           href={`/fornitori/${r.fornitore_id}?tab=listino`}
-                          className="font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+                          className="font-medium text-lime-400 transition-colors hover:text-lime-300"
                         >
                           {r.fornitore_nome}
                         </Link>
@@ -147,7 +149,7 @@ export default async function ListinoOverviewPage() {
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/fornitori/${r.fornitore_id}?tab=listino`}
-                          className="text-xs font-semibold text-slate-200 transition-colors hover:text-cyan-300"
+                          className="text-xs font-semibold text-slate-200 transition-colors hover:text-lime-300"
                         >
                           {t.dashboard.listinoOverviewOpenSupplier}
                         </Link>

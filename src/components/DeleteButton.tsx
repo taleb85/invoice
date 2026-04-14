@@ -10,9 +10,23 @@ interface Props {
   table: string
   confirmMessage?: string
   redirectTo?: string
+  /** Sostituisce le classi predefinite (es. pill compatto in tabella). */
+  className?: string
+  /** Classi SVG cestino / spinner (default `w-3.5 h-3.5`). */
+  iconClassName?: string
 }
 
-export default function DeleteButton({ id, table, confirmMessage, redirectTo }: Props) {
+const defaultButtonClass =
+  'inline-flex items-center gap-1.5 rounded-lg border border-red-500/55 bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm shadow-red-950/30 ring-1 ring-inset ring-red-400/15 transition-colors hover:border-red-400/70 hover:bg-red-600/25 hover:text-red-50 hover:shadow-red-900/40'
+
+export default function DeleteButton({
+  id,
+  table,
+  confirmMessage,
+  redirectTo,
+  className,
+  iconClassName = 'w-3.5 h-3.5',
+}: Props) {
   const t = useT()
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -41,15 +55,15 @@ export default function DeleteButton({ id, table, confirmMessage, redirectTo }: 
     <button
       onClick={handleDelete}
       disabled={loading}
-      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-950/50 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+      className={`${className ?? defaultButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
     >
       {loading ? (
-        <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+        <svg className={`animate-spin ${iconClassName}`} fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
         </svg>
       ) : (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={iconClassName} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
         </svg>
       )}

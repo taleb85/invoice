@@ -1,6 +1,13 @@
 'use client'
 
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '@/lib/use-t'
 import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
@@ -14,6 +21,10 @@ interface Toast {
 }
 
 interface ToastCtx {
+  /**
+   * Aggiorna sempre la barra desktop (`#app-desktop-header-nav-progress`).
+   * Il toast flottante in alto a destra viene mostrato solo sotto `md`: su desktop evita il duplicato.
+   */
   showToast: (message: string, type?: ToastType) => void
 }
 
@@ -49,12 +60,24 @@ export function desktopHeaderBarSurfaceClass(banner: DesktopHeaderToastBanner): 
   return 'border-b border-cyan-400/40 bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 shadow-[0_1px_0_rgba(34,211,238,0.14),inset_0_1px_0_rgba(255,255,255,0.05)]'
 }
 
+const MD_MIN_WIDTH = 768
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [headerBanner, setHeaderBanner] = useState<DesktopHeaderToastBanner>(null)
+  /** Su `md+` la barra header mostra il messaggio: niente portale flottante (evita doppione). */
+  const [useFloatingToast, setUseFloatingToast] = useState(true)
   const counter = useRef(0)
   const headerBannerToastIdRef = useRef<number | null>(null)
   const headerBannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useLayoutEffect(() => {
+    const mq = window.matchMedia(`(min-width: ${MD_MIN_WIDTH}px)`)
+    const sync = () => setUseFloatingToast(!mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   const clearHeaderBannerTimer = useCallback(() => {
     if (headerBannerTimerRef.current !== null) {
@@ -66,7 +89,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const showToast = useCallback(
     (message: string, type: ToastType = 'info') => {
       const id = ++counter.current
-      setToasts((prev) => [...prev, { id, type, message }])
+      if (useFloatingToast) {
+        setToasts((prev) => [...prev, { id, type, message }])
+      }
 
       clearHeaderBannerTimer()
       headerBannerToastIdRef.current = id
@@ -83,7 +108,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         setToasts((prev) => prev.filter((toast) => toast.id !== id))
       }, 4500)
     },
-    [clearHeaderBannerTimer]
+    [clearHeaderBannerTimer, useFloatingToast]
   )
 
   const dismiss = useCallback(

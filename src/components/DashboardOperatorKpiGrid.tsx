@@ -4,14 +4,14 @@ import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
 import type { ReactNode } from 'react'
 import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
+import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
+import { operatorKpiVisual } from '@/lib/kpi-accent-palette'
 
-const skeletonAccents = ['#6366f1', '#f97316', '#ec4899', '#3b82f6', '#34d399', '#22d3ee', '#2dd4bf', '#a855f7'] as const
-
-/** Alone KPI: versione ridotta rispetto al blocco precedente (circa metà intensità). */
+/** Alone KPI: alone dominante sul colore della card (non più cyan fisso). */
 function operatorKpiCardShadow(glowRgb: string) {
   return [
-    '0 0 0 1px rgba(34,211,238,0.1)',
-    '0 0 44px -14px rgba(34,211,238,0.18)',
+    `0 0 0 1px rgba(${glowRgb},0.14)`,
+    `0 0 44px -14px rgba(${glowRgb},0.22)`,
     `0 0 40px -10px rgba(${glowRgb},0.4)`,
     '0 18px 40px -12px rgba(0,0,0,0.48)',
   ].join(', ')
@@ -24,25 +24,24 @@ export function DashboardOperatorKpiSkeleton() {
     <div className={kpiGridPanelClass}>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
         {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
-          const hex = skeletonAccents[i % skeletonAccents.length]
-          const r = parseInt(hex.slice(1, 3), 16)
-          const g = parseInt(hex.slice(3, 5), 16)
-          const b = parseInt(hex.slice(5, 7), 16)
+          const ov = operatorKpiVisual[i]
           return (
             <div
               key={i}
-              className="operator-kpi-card flex animate-pulse flex-col overflow-hidden rounded-2xl border border-slate-600/40"
-              style={{ boxShadow: operatorKpiCardShadow(`${r},${g},${b}`) }}
+              className={`operator-kpi-card relative flex animate-pulse flex-col overflow-hidden rounded-2xl border-slate-600/55 ${ov.ringClass}`}
+              style={{ boxShadow: operatorKpiCardShadow(ov.glowRgb) }}
             >
-              <div className="operator-kpi-card-bar shrink-0" aria-hidden />
-              <div className="flex flex-1 flex-col p-4 sm:p-5">
+              <KpiLAccentOverlay accentHex={ov.accentHex} edgePx={4} />
+              <div className="relative z-[1] flex flex-1 flex-col p-4 sm:p-5">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="h-3 flex-1 rounded bg-slate-700/80" />
                   <div className="h-6 w-6 shrink-0 rounded-lg bg-slate-700/80" />
                 </div>
-                <div className="h-8 w-1/2 rounded bg-slate-700/80" />
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <div className="h-3 w-2/3 rounded bg-slate-700/80" />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-1 items-center gap-2">
+                    <div className="h-8 w-12 rounded bg-slate-700/80" />
+                    <div className="h-3 flex-1 rounded bg-slate-700/80" />
+                  </div>
                   <div className="h-3.5 w-3.5 shrink-0 rounded bg-slate-700/80" />
                 </div>
               </div>
@@ -60,8 +59,11 @@ type KpiItem = {
   value: string | number
   sub: string
   subClass: string
-  borderClass: string
+  accentHex: string
   glowRgb: string
+  ringClass: string
+  hoverClass: string
+  chevronClass: string
   icon: ReactNode
 }
 
@@ -89,18 +91,23 @@ export default function DashboardOperatorKpiGrid({
     stmtSubClass = 'text-amber-300'
   }
 
+  const ov = operatorKpiVisual
+
   const items: KpiItem[] = [
     {
       href: '/fornitori',
       label: t.nav.fornitori,
       value: k.fornitoriCount,
       sub: t.dashboard.kpiFornitoriSub,
-      subClass: 'text-indigo-100/90',
-      borderClass: 'border-indigo-500/32',
-      glowRgb: '99,102,241',
+      subClass: ov[0].subIdleClass,
+      accentHex: ov[0].accentHex,
+      glowRgb: ov[0].glowRgb,
+      ringClass: ov[0].ringClass,
+      hoverClass: ov[0].hoverClass,
+      chevronClass: ov[0].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-indigo-400 drop-shadow-[0_0_8px_rgba(129,140,248,0.35)]"
+          className={`h-5 w-5 ${ov[0].iconClass} ${ov[0].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -120,12 +127,15 @@ export default function DashboardOperatorKpiGrid({
       label: t.fornitori.kpiPending,
       value: k.documentiPending,
       sub: t.dashboard.kpiDaProcessareSub,
-      subClass: k.documentiPending > 0 ? 'text-orange-300' : 'text-slate-100',
-      borderClass: 'border-orange-500/32',
-      glowRgb: '249,115,22',
+      subClass: k.documentiPending > 0 ? ov[1].subPositiveClass! : ov[1].subIdleClass,
+      accentHex: ov[1].accentHex,
+      glowRgb: ov[1].glowRgb,
+      ringClass: ov[1].ringClass,
+      hoverClass: ov[1].hoverClass,
+      chevronClass: ov[1].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.35)]"
+          className={`h-5 w-5 ${ov[1].iconClass} ${ov[1].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -140,12 +150,15 @@ export default function DashboardOperatorKpiGrid({
       label: t.fornitori.kpiOrdini,
       value: k.ordiniCount,
       sub: t.dashboard.kpiOrdiniSub,
-      subClass: k.ordiniCount > 0 ? 'text-pink-100/90' : 'text-slate-100',
-      borderClass: 'border-pink-500/32',
-      glowRgb: '236,72,153',
+      subClass: k.ordiniCount > 0 ? ov[2].subPositiveClass! : ov[2].subIdleClass,
+      accentHex: ov[2].accentHex,
+      glowRgb: ov[2].glowRgb,
+      ringClass: ov[2].ringClass,
+      hoverClass: ov[2].hoverClass,
+      chevronClass: ov[2].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-pink-400 drop-shadow-[0_0_8px_rgba(244,114,182,0.4)]"
+          className={`h-5 w-5 ${ov[2].iconClass} ${ov[2].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -165,12 +178,15 @@ export default function DashboardOperatorKpiGrid({
       label: t.fornitori.kpiBolleTotal,
       value: k.bolleTotal,
       sub: `${k.bolleInAttesa} ${t.fornitori.subAperte}`,
-      subClass: k.bolleInAttesa > 0 ? 'text-amber-300' : 'text-blue-100/85',
-      borderClass: 'border-blue-500/32',
-      glowRgb: '59,130,246',
+      subClass: k.bolleInAttesa > 0 ? ov[3].subPositiveClass! : ov[3].subIdleClass,
+      accentHex: ov[3].accentHex,
+      glowRgb: ov[3].glowRgb,
+      ringClass: ov[3].ringClass,
+      hoverClass: ov[3].hoverClass,
+      chevronClass: ov[3].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.38)]"
+          className={`h-5 w-5 ${ov[3].iconClass} ${ov[3].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -190,12 +206,15 @@ export default function DashboardOperatorKpiGrid({
       label: t.fornitori.kpiFatture,
       value: k.fattureCount,
       sub: t.fornitori.subConfermate,
-      subClass: 'text-emerald-100/90',
-      borderClass: 'border-emerald-500/32',
-      glowRgb: '52,211,153',
+      subClass: ov[4].subIdleClass,
+      accentHex: ov[4].accentHex,
+      glowRgb: ov[4].glowRgb,
+      ringClass: ov[4].ringClass,
+      hoverClass: ov[4].hoverClass,
+      chevronClass: ov[4].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.38)]"
+          className={`h-5 w-5 ${ov[4].iconClass} ${ov[4].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -216,11 +235,14 @@ export default function DashboardOperatorKpiGrid({
       value: k.statementsWithIssues,
       sub: stmtSub,
       subClass: stmtSubClass,
-      borderClass: 'border-cyan-500/32',
-      glowRgb: '34,211,238',
+      accentHex: ov[5].accentHex,
+      glowRgb: ov[5].glowRgb,
+      ringClass: ov[5].ringClass,
+      hoverClass: ov[5].hoverClass,
+      chevronClass: ov[5].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(103,232,249,0.38)]"
+          className={`h-5 w-5 ${ov[5].iconClass} ${ov[5].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -240,12 +262,15 @@ export default function DashboardOperatorKpiGrid({
       label: t.fornitori.tabListino,
       value: k.listinoRows,
       sub: t.dashboard.kpiPriceListSub,
-      subClass: k.listinoRows > 0 ? 'text-teal-100/90' : 'text-slate-200',
-      borderClass: 'border-teal-500/32',
-      glowRgb: '20,184,166',
+      subClass: k.listinoRows > 0 ? ov[6].subPositiveClass! : ov[6].subIdleClass,
+      accentHex: ov[6].accentHex,
+      glowRgb: ov[6].glowRgb,
+      ringClass: ov[6].ringClass,
+      hoverClass: ov[6].hoverClass,
+      chevronClass: ov[6].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-teal-400 drop-shadow-[0_0_8px_rgba(45,212,191,0.35)]"
+          className={`h-5 w-5 ${ov[6].iconClass} ${ov[6].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -260,12 +285,15 @@ export default function DashboardOperatorKpiGrid({
       label: t.common.total,
       value: formatCurrency(k.totaleImporto, currency, locale),
       sub: `${k.fattureCount} ${t.nav.fatture.toLowerCase()}`,
-      subClass: 'text-purple-100/90',
-      borderClass: 'border-purple-500/32',
-      glowRgb: '192,132,252',
+      subClass: ov[7].subIdleClass,
+      accentHex: ov[7].accentHex,
+      glowRgb: ov[7].glowRgb,
+      ringClass: ov[7].ringClass,
+      hoverClass: ov[7].hoverClass,
+      chevronClass: ov[7].chevronClass,
       icon: (
         <svg
-          className="h-5 w-5 text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.38)]"
+          className={`h-5 w-5 ${ov[7].iconClass} ${ov[7].iconDropShadow}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -289,24 +317,26 @@ export default function DashboardOperatorKpiGrid({
           <Link
             key={`${item.href}-${item.label}`}
             href={item.href}
-            className={`operator-kpi-card group flex flex-col overflow-hidden rounded-2xl border ${item.borderClass} transition-[transform,box-shadow,border-color,background-color] duration-200 hover:border-cyan-400/38 hover:bg-slate-700/90 hover:shadow-[0_0_0_1px_rgba(103,232,249,0.12)] active:scale-[0.99]`}
+            className={`operator-kpi-card group relative flex flex-col overflow-hidden rounded-2xl border-slate-600/55 ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 hover:bg-slate-700/90 ${item.hoverClass} active:scale-[0.99]`}
             style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
           >
-            <div className="operator-kpi-card-bar shrink-0" aria-hidden />
-            <div className="flex flex-1 flex-col p-4 sm:p-5">
+            <KpiLAccentOverlay accentHex={item.accentHex} edgePx={4} />
+            <div className="relative z-[1] flex flex-1 flex-col p-4 sm:p-5">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-white/95 sm:text-xs [text-shadow:0_0_14px_rgba(255,255,255,0.08)]">
                   {item.label}
                 </p>
                 <span className="shrink-0">{item.icon}</span>
               </div>
-              <p className="break-words text-2xl font-bold tabular-nums text-white sm:text-3xl [text-shadow:0_0_20px_rgba(255,255,255,0.06)]">
-                {item.value}
-              </p>
-              <div className="mt-1 flex items-end justify-between gap-2">
-                <p className={`min-w-0 text-[10px] leading-snug sm:text-xs ${item.subClass}`}>{item.sub}</p>
+              <div className="mt-1 flex min-w-0 flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+                <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+                  <p className="break-words text-2xl font-bold tabular-nums text-white sm:text-3xl [text-shadow:0_0_20px_rgba(255,255,255,0.06)]">
+                    {item.value}
+                  </p>
+                  <p className={`min-w-0 text-[10px] leading-snug sm:text-xs ${item.subClass}`}>{item.sub}</p>
+                </div>
                 <svg
-                  className="h-3.5 w-3.5 shrink-0 text-cyan-400/70 transition-colors group-hover:text-cyan-200 group-hover:drop-shadow-[0_0_5px_rgba(103,232,249,0.35)]"
+                  className={`h-3.5 w-3.5 shrink-0 self-center ${item.chevronClass}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

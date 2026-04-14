@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import { cookies } from 'next/headers'
-import { openDocumentUrl } from '@/lib/open-document-url'
 import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -15,7 +17,7 @@ type BollaListRow = {
   stato: string
   file_url: string | null
   fornitore_id: string
-  fornitori?: { nome: string } | null
+  fornitori?: { nome: string; display_name?: string | null } | null
 }
 
 /** YYYY-MM-DD for the user's calendar day in IANA timezone (matches Impostazioni fuso). */
@@ -43,7 +45,7 @@ async function getBolleForToday(timeZone: string, sedeId: string | null) {
   const { supabase } = await getRequestAuth()
   let q = supabase
     .from('bolle')
-    .select('*, fornitori(nome)')
+    .select('*, fornitori(nome, display_name)')
     .eq('data', today)
     .order('id', { ascending: false })
   if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
@@ -57,7 +59,7 @@ async function getBolleAll(sedeId: string | null, pendingOnly: boolean) {
   const { supabase } = await getRequestAuth()
   let q = supabase
     .from('bolle')
-    .select('*, fornitori(nome)')
+    .select('*, fornitori(nome, display_name)')
     .order('data', { ascending: false })
     .order('id', { ascending: false })
     .limit(BOLLE_LIST_LIMIT)
@@ -98,9 +100,11 @@ export default async function BollePage({
     return t.bolle.noBills
   })()
 
+  const bolleListTheme = SUMMARY_HIGHLIGHT_ACCENTS.indigo
+
   return (
     <div className="p-4 md:p-8">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="indigo">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-2xl font-bold">{t.bolle.title}</h1>
         </div>
@@ -118,44 +122,44 @@ export default async function BollePage({
       </AppPageHeaderStrip>
 
       <AppSummaryHighlightCard
-        accent="blue"
+        accent="indigo"
         label={t.common.total}
         primary={bolle.length}
         secondary={subtitle}
         trailing={
           !showAll ? (
             <>
-              <Link href="/bolle?tutte=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+              <Link href="/bolle?tutte=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
                 {t.bolle.listShowAll}
               </Link>
               <span className="text-slate-600" aria-hidden>
                 ·
               </span>
-              <Link href="/bolle?tutte=1&pending=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+              <Link href="/bolle?tutte=1&pending=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
                 {t.bolle.listAllPending}
               </Link>
             </>
           ) : pendingOnly ? (
             <>
-              <Link href="/bolle" className="text-cyan-400 transition-colors hover:text-cyan-300">
+              <Link href="/bolle" className="text-indigo-400 transition-colors hover:text-indigo-300">
                 {t.bolle.listShowToday}
               </Link>
               <span className="text-slate-600" aria-hidden>
                 ·
               </span>
-              <Link href="/bolle?tutte=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+              <Link href="/bolle?tutte=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
                 {t.bolle.listShowAll}
               </Link>
             </>
           ) : (
             <>
-              <Link href="/bolle" className="text-cyan-400 transition-colors hover:text-cyan-300">
+              <Link href="/bolle" className="text-indigo-400 transition-colors hover:text-indigo-300">
                 {t.bolle.listShowToday}
               </Link>
               <span className="text-slate-600" aria-hidden>
                 ·
               </span>
-              <Link href="/bolle?tutte=1&pending=1" className="text-cyan-400 transition-colors hover:text-cyan-300">
+              <Link href="/bolle?tutte=1&pending=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
                 {t.bolle.listAllPending}
               </Link>
             </>
@@ -163,8 +167,8 @@ export default async function BollePage({
         }
       />
 
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${bolleListTheme.border}`}>
+        <div className={`app-card-bar ${bolleListTheme.bar}`} aria-hidden />
         <div>
           {bolle.length === 0 ? (
             <div className="px-6 py-20 text-center">
@@ -178,7 +182,7 @@ export default async function BollePage({
               </svg>
               <p className="text-sm font-medium text-slate-200">{emptyMessage}</p>
               {!showAll ? (
-                <Link href="/bolle?tutte=1" className="mt-4 inline-block text-sm font-semibold text-cyan-400 hover:text-cyan-300">
+                <Link href="/bolle?tutte=1" className="mt-4 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">
                   {t.bolle.listShowAll} →
                 </Link>
               ) : null}
@@ -186,13 +190,15 @@ export default async function BollePage({
           ) : (
             <>
               <div className="divide-y divide-slate-800/80 md:hidden">
-                {bolle.map((b: BollaListRow) => (
+                {bolle.map((b: BollaListRow) => {
+                  const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
+                  return (
                   <div key={b.id} className="px-4 py-4">
                     <Link href={`/bolle/${b.id}`} className="mb-3 block text-left transition-colors hover:opacity-90">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-slate-100">
-                            {b.fornitori?.nome ?? <span className="text-slate-600">—</span>}
+                            {supplierLabel || <span className="text-slate-600">—</span>}
                           </p>
                           <p className="mt-0.5 text-xs text-slate-200">{formatDate(b.data)}</p>
                         </div>
@@ -211,18 +217,13 @@ export default async function BollePage({
                     </Link>
                     <div className="flex flex-wrap items-center gap-2">
                       {b.file_url && (
-                        <a
-                          href={openDocumentUrl({ bollaId: b.id })}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg bg-cyan-500/15 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/25"
-                        >
+                        <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                           {t.bolle.viewDocument}
-                        </a>
+                        </OpenDocumentInAppButton>
                       )}
                       {b.stato === 'in attesa' && (
                         <Link
@@ -238,7 +239,8 @@ export default async function BollePage({
                       <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
 
               <table className="hidden w-full text-sm md:table">
@@ -259,16 +261,18 @@ export default async function BollePage({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80">
-                  {bolle.map((b: BollaListRow) => (
+                  {bolle.map((b: BollaListRow) => {
+                    const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
+                    return (
                     <tr key={b.id} className="group transition-colors hover:bg-slate-700/40">
                       <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-200">
-                        <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-cyan-300">
+                        <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-indigo-300">
                           {formatDate(b.data)}
                         </Link>
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-100">
-                        <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-cyan-300">
-                          {b.fornitori?.nome ?? <span className="text-slate-600">—</span>}
+                        <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-indigo-300">
+                          {supplierLabel || <span className="text-slate-600">—</span>}
                         </Link>
                       </td>
                       <td className="px-6 py-4">
@@ -287,18 +291,13 @@ export default async function BollePage({
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
                           {b.file_url && (
-                            <a
-                              href={openDocumentUrl({ bollaId: b.id })}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500/15 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/25"
-                            >
+                            <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
                               <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                               </svg>
                               {t.bolle.viewDocument}
-                            </a>
+                            </OpenDocumentInAppButton>
                           )}
                           {b.stato === 'in attesa' && (
                             <Link
@@ -315,7 +314,8 @@ export default async function BollePage({
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </>

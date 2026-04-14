@@ -1,9 +1,12 @@
 'use client'
 
 import { useLayoutEffect, useTransition } from 'react'
-import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
+import {
+  SUMMARY_HIGHLIGHT_ACCENTS,
+  type SummaryHighlightAccent,
+} from '@/lib/summary-highlight-accent'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
@@ -33,12 +36,12 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
     }
   }, [pathname])
 
-  const navLinkInner =
-    'flex min-h-[88px] w-full flex-col justify-center px-4 py-4 transition-colors touch-manipulation sm:min-h-0 sm:px-5 sm:py-5'
+  const statementsPageAccent: SummaryHighlightAccent = isVerifica ? 'cyan' : 'amber'
+  const statementsMainTheme = SUMMARY_HIGHLIGHT_ACCENTS[statementsPageAccent]
 
   return (
     <div className="w-full min-w-0 p-4 md:p-8">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent={statementsPageAccent}>
         <div className="min-w-0 flex-1">
           <h1 className="app-page-title text-2xl font-bold">
             {isVerifica ? t.statements.heading : t.statements.tabDocumenti}
@@ -79,23 +82,9 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
 
       <StatementsSummaryHighlight />
 
-      {isVerifica ? (
-        <div className="mb-6 w-full overflow-hidden rounded-2xl border border-sky-500/25 bg-slate-700/50 shadow-[0_0_24px_-8px_rgba(14,165,233,0.25)]">
-          <Link
-            href="/statements/verifica"
-            className={`${navLinkInner} bg-sky-500/10 ring-1 ring-inset ring-sky-500/30`}
-            aria-current="page"
-          >
-            <span className="text-sm font-semibold text-slate-100">{t.statements.tabVerifica}</span>
-            <span className="mt-1 max-w-3xl text-xs leading-snug text-slate-300">{t.statements.schedaNavVerificaDesc}</span>
-          </Link>
-        </div>
-      ) : null}
-
-      <div className="overflow-hidden rounded-2xl border border-slate-600/45 bg-slate-800/55 shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset]">
-        <div className="min-h-[12rem] rounded-xl bg-slate-950/35 p-4 ring-1 ring-inset ring-white/[0.07] md:p-6">
-          {children}
-        </div>
+      <div className={`app-card mb-6 overflow-hidden ${statementsMainTheme.border}`}>
+        <div className={`app-card-bar ${statementsMainTheme.bar}`} aria-hidden />
+        <div className="min-h-[12rem] px-5 py-4 sm:px-6 sm:py-5">{children}</div>
       </div>
     </div>
   )

@@ -17,6 +17,7 @@ import {
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,10 +65,11 @@ export default async function FattureRiepilogoPage() {
 
   const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
   const countLabel = t.dashboard.fattureRiepilogoCountLabel.replace(/\{n\}/g, String(summary.fattureCount))
+  const riepilogoTheme = SUMMARY_HIGHLIGHT_ACCENTS.violet
 
   return (
     <div className="w-full min-w-0 p-4 md:p-8">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="violet">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.fattureRiepilogoTitle}</h1>
         </div>
@@ -78,8 +80,8 @@ export default async function FattureRiepilogoPage() {
           {t.dashboard.operatorNoSede}
         </div>
       ) : summary.fattureCount === 0 ? (
-        <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
+        <div className={`app-card overflow-hidden ${riepilogoTheme.border}`}>
+          <div className={`app-card-bar ${riepilogoTheme.bar}`} aria-hidden />
           <div className="px-6 py-14 text-center">
             <svg
               className="mx-auto mb-3 h-12 w-12 text-slate-600"
@@ -98,7 +100,7 @@ export default async function FattureRiepilogoPage() {
             <p className="text-sm text-slate-200">{t.dashboard.fattureRiepilogoEmpty}</p>
             <Link
               href="/fatture"
-              className="mt-4 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+              className="mt-4 inline-block text-sm font-medium text-violet-400 hover:text-violet-300 hover:underline"
             >
               {t.dashboard.fattureRiepilogoLinkAll}
             </Link>
@@ -107,17 +109,17 @@ export default async function FattureRiepilogoPage() {
       ) : (
         <>
           <AppSummaryHighlightCard
-            accent="purple"
+            accent="violet"
             label={t.common.total}
             primary={formatCurrency(summary.totaleImporto, currency, locale)}
             secondary={countLabel}
           />
 
-          <p className="mb-3 text-xs text-slate-500">
+          <p className="mb-3 text-xs leading-relaxed text-slate-400">
             {t.dashboard.fattureRiepilogoLimitNote.replace(/\{n\}/g, String(rows.length))}
           </p>
-          <div className="app-card overflow-hidden">
-            <div className="app-card-bar" aria-hidden />
+          <div className={`app-card overflow-hidden ${riepilogoTheme.border}`}>
+            <div className={`app-card-bar ${riepilogoTheme.bar}`} aria-hidden />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
@@ -134,7 +136,7 @@ export default async function FattureRiepilogoPage() {
                     <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">
                       {t.fornitori.listinoColImporto}
                     </th>
-                    <th className="w-28 px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">
+                    <th className="w-40 px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">
                       {' '}
                     </th>
                   </tr>
@@ -146,7 +148,7 @@ export default async function FattureRiepilogoPage() {
                       <td className="max-w-[200px] px-4 py-3">
                         <Link
                           href={`/fornitori/${r.fornitore_id}`}
-                          className="font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+                          className="font-medium text-violet-400 transition-colors hover:text-violet-300"
                         >
                           {r.fornitore_nome}
                         </Link>
@@ -155,10 +157,10 @@ export default async function FattureRiepilogoPage() {
                       <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-slate-100">
                         {formatCurrency(Number(r.importo) || 0, currency, locale)}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right align-middle">
                         <Link
                           href={`/fatture/${r.id}`}
-                          className="text-xs font-semibold text-slate-200 transition-colors hover:text-cyan-300"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-violet-500/15 px-3 py-1.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/25"
                         >
                           {t.dashboard.fattureRiepilogoOpenInvoice}
                         </Link>
@@ -173,7 +175,7 @@ export default async function FattureRiepilogoPage() {
           <div className="mt-4 text-center md:text-left">
             <Link
               href="/fatture"
-              className="text-sm font-medium text-slate-200 transition-colors hover:text-cyan-300 hover:underline"
+              className="text-sm font-medium text-slate-200 transition-colors hover:text-violet-300 hover:underline"
             >
               {t.dashboard.fattureRiepilogoLinkAll}
             </Link>

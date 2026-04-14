@@ -1,11 +1,11 @@
 import Link from 'next/link'
-import { openDocumentUrl } from '@/lib/open-document-url'
 import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, getCurrency, formatDate as fmtDate } from '@/lib/locale-server'
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 
 type FatturaListRow = {
   id: string
@@ -40,7 +40,7 @@ export default async function FatturePage() {
 
   return (
     <div className="p-4 md:p-8">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="emerald">
         <div className="min-w-0 sm:flex-1 sm:flex-initial">
           <h1 className="app-page-title text-2xl font-bold">{t.fatture.title}</h1>
         </div>
@@ -115,14 +115,11 @@ export default async function FatturePage() {
                     )}
                   </div>
                   {f.file_url && (
-                    <a
-                      href={openDocumentUrl({ fatturaId: f.id })}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-block text-xs font-medium text-green-400 hover:text-green-300 hover:underline"
-                    >
-                      {t.fatture.apri}
-                    </a>
+                    <div className="mt-2">
+                      <OpenDocumentInAppButton fatturaId={f.id} fileUrl={f.file_url}>
+                        {t.fatture.apri}
+                      </OpenDocumentInAppButton>
+                    </div>
                   )}
                 </div>
               ))}
@@ -171,9 +168,9 @@ export default async function FatturePage() {
                     </td>
                     <td className="px-6 py-4">
                       {f.file_url ? (
-                        <a href={openDocumentUrl({ fatturaId: f.id })} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
+                        <OpenDocumentInAppButton fatturaId={f.id} fileUrl={f.file_url}>
                           {t.fatture.apri}
-                        </a>
+                        </OpenDocumentInAppButton>
                       ) : (
                         <span className="text-xs text-slate-600">—</span>
                       )}

@@ -144,22 +144,22 @@ export default async function LogPage() {
 
       <div className="mb-6 grid grid-cols-3 gap-3 md:mb-8 md:gap-4">
         {statCard(
-          <>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="text-2xl font-bold tabular-nums text-slate-100 md:text-3xl">{entries.length}</p>
             <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-slate-200 md:text-xs">{t.log.totalLogs}</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-slate-100 md:text-3xl">{entries.length}</p>
-          </>
+          </div>
         )}
         {statCard(
-          <>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="text-2xl font-bold tabular-nums text-emerald-300 md:text-3xl">{totaleSuccessi}</p>
             <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-emerald-400/90 md:text-xs">{t.log.linkedInvoices}</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-300 md:text-3xl">{totaleSuccessi}</p>
-          </>
+          </div>
         )}
         {statCard(
-          <>
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <p className="text-2xl font-bold tabular-nums text-red-300 md:text-3xl">{totaleErrori}</p>
             <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-400/90 md:text-xs">{t.log.withErrors}</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-red-300 md:text-3xl">{totaleErrori}</p>
-          </>
+          </div>
         )}
       </div>
 

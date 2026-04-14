@@ -283,7 +283,7 @@ export default function SedeFornitoriPage() {
           <span className="text-gray-600 font-medium">Fornitori</span>
         </nav>
 
-        <AppPageHeaderStrip>
+        <AppPageHeaderStrip accent="sky">
           <div className="min-w-0 sm:flex-1 sm:flex-initial">
             <h1 className="app-page-title text-2xl font-bold">Fornitori</h1>
           </div>
@@ -302,7 +302,7 @@ export default function SedeFornitoriPage() {
         </AppPageHeaderStrip>
 
         <AppSummaryHighlightCard
-          accent="indigo"
+          accent="sky"
           label={t.common.total}
           primary={fornitori.length}
           secondary={t.fornitori.countLabel}

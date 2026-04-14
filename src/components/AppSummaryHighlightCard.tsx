@@ -37,25 +37,30 @@ export default function AppSummaryHighlightCard({
       <div className={`app-card-bar ${theme.bar}`} aria-hidden />
       <div className="px-5 py-4 sm:px-6 sm:py-5">
         <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.label}`}>{label}</p>
-        <p className="mt-1 text-2xl font-bold tabular-nums text-slate-50 sm:text-3xl">{primary}</p>
-        {hasSecondary && !hasTrailing ? (
-          <p className="mt-1 text-sm text-slate-200">{secondary}</p>
-        ) : null}
-        {hasSecondary && hasTrailing ? (
-          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <p className="min-w-0 text-sm text-slate-200">{secondary}</p>
-            <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold sm:justify-end">
-              {trailing}
+        {hasSecondary ? (
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+              <p className="text-2xl font-bold tabular-nums text-slate-50 sm:text-3xl">{primary}</p>
+              <p className="min-w-0 text-sm leading-snug text-slate-200">{secondary}</p>
             </div>
+            {hasTrailing ? (
+              <div className="flex min-w-0 w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold sm:w-auto sm:justify-end">
+                {trailing}
+              </div>
+            ) : null}
           </div>
-        ) : null}
-        {!hasSecondary && hasTrailing ? (
-          <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs font-semibold">
-            {trailing}
-          </div>
-        ) : null}
+        ) : (
+          <>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-slate-50 sm:text-3xl">{primary}</p>
+            {hasTrailing ? (
+              <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs font-semibold">
+                {trailing}
+              </div>
+            ) : null}
+          </>
+        )}
         {hasFooter ? (
-          <div className="mt-4 border-t border-slate-600/35 pt-4">{footer}</div>
+          <div className="mt-2.5 border-t border-slate-600/35 pt-2.5">{footer}</div>
         ) : null}
       </div>
     </div>

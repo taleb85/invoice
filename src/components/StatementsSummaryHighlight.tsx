@@ -7,8 +7,8 @@ import { useT } from '@/lib/use-t'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 
-const tabBtn =
-  'text-cyan-400 transition-colors hover:text-cyan-300 disabled:cursor-default disabled:opacity-100'
+const tabBtnBase =
+  'transition-colors disabled:cursor-default disabled:opacity-100 hover:opacity-90'
 
 export type StatementsSummaryHighlightProps = {
   /** Ambito conteggi (es. pagina `/sedi/[id]/statements`); altrimenti si usa `me.sede_id`. */
@@ -90,7 +90,11 @@ export default function StatementsSummaryHighlight({
         <button
           type="button"
           onClick={() => onTabChange('pending')}
-          className={`${tabBtn} font-semibold ${(activeTabProp ?? 'pending') === 'pending' ? 'text-cyan-200' : ''}`}
+          className={`${tabBtnBase} font-semibold ${
+            (activeTabProp ?? 'pending') === 'pending'
+              ? 'text-amber-200'
+              : 'text-slate-500 hover:text-amber-300/80'
+          }`}
         >
           {t.statements.tabDocumenti}
         </button>
@@ -100,16 +104,22 @@ export default function StatementsSummaryHighlight({
         <button
           type="button"
           onClick={() => onTabChange('status')}
-          className={`${tabBtn} font-semibold ${activeTabProp === 'status' ? 'text-cyan-200' : ''}`}
+          className={`${tabBtnBase} font-semibold ${
+            activeTabProp === 'status'
+              ? 'text-cyan-200'
+              : 'text-slate-500 hover:text-cyan-300/80'
+          }`}
         >
           {t.statements.tabVerifica}
         </button>
       </>
     ) : undefined
 
+  const summaryAccent = isVerifica ? 'cyan' : 'amber'
+
   return (
     <AppSummaryHighlightCard
-      accent="cyan"
+      accent={summaryAccent}
       label={t.common.total}
       primary={primary}
       secondary={secondary}

@@ -82,21 +82,29 @@ export function AdminGlobalDashboard({
       <div className="mb-8 rounded-xl border border-cyan-500/20 bg-slate-700/50 p-4 shadow-[0_0_24px_-8px_rgba(6,182,212,0.25)] md:p-5">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-cyan-400/90">{t.dashboard.adminGlobalTotalsLabel}</p>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-3 text-center">
-            <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.totFornitori}</p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.suppliers}</p>
+          <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-3">
+            <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
+              <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.totFornitori}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.suppliers}</p>
+            </div>
           </div>
-          <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-3 text-center">
-            <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.totBolle}</p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.totalBills}</p>
+          <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-3">
+            <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
+              <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.totBolle}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.totalBills}</p>
+            </div>
           </div>
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3 text-center">
-            <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.bolleInAttesa}</p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.pendingBills}</p>
+          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+            <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
+              <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.bolleInAttesa}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.pendingBills}</p>
+            </div>
           </div>
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-3 text-center">
-            <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.totFatture}</p>
-            <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.invoices}</p>
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-3">
+            <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
+              <p className="text-2xl font-bold tabular-nums text-slate-100">{globalTotals.totFatture}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{t.dashboard.invoices}</p>
+            </div>
           </div>
         </div>
       </div>

@@ -26,6 +26,10 @@ import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
 import FornitoreConfermeOrdineTab from '@/components/FornitoreConfermeOrdineTab'
+import DeleteButton from '@/components/DeleteButton'
+import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
+import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
+import { hexToRgbTuple, supplierDesktopKpiOuterShadow, supplierKpiPalette } from '@/lib/kpi-accent-palette'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica'
 
@@ -221,6 +225,9 @@ type KpiDef = {
   tab: Tab
   accent: string
   accentHex: string
+  chevronHoverClass: string
+  /** Tile mobile «Totale spesa» (due righe con tab fatture). */
+  isSpesaTotale?: boolean
 }
 
 function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<typeof useT>): KpiDef[] {
@@ -239,57 +246,69 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
     stmtSubColor = 'text-amber-400'
   }
 
+  const c = supplierKpiPalette.conferme
+  const b = supplierKpiPalette.bolle
+  const f = supplierKpiPalette.fatture
+  const v = supplierKpiPalette.verifica
+  const l = supplierKpiPalette.listino
+  const tot = supplierKpiPalette.totaleSpesa
+  const d = supplierKpiPalette.documenti
+
   return [
     {
       label: t.fornitori.kpiOrdini,
       value: stats?.ordiniNelPeriodo ?? 0,
       tab: 'conferme',
-      accent: 'border-l-fuchsia-500',
-      accentHex: '#d946ef',
+      accent: c.accent,
+      accentHex: c.hex,
+      chevronHoverClass: c.chevronHoverClass,
       icon: (
-        <svg className="h-5 w-5 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${c.iconClass} ${c.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
         </svg>
       ),
       sub: t.fornitori.subOrdiniPeriodo,
-      subColor: (stats?.ordiniNelPeriodo ?? 0) > 0 ? 'text-fuchsia-300' : 'text-slate-200',
+      subColor: (stats?.ordiniNelPeriodo ?? 0) > 0 ? c.subStrong : 'text-slate-200',
     },
     {
       label: t.fornitori.kpiBolleTotal,
       value: stats?.bolleTotal ?? 0,
       tab: 'bolle',
-      accent: 'border-l-blue-500',
-      accentHex: '#3b82f6',
+      accent: b.accent,
+      accentHex: b.hex,
+      chevronHoverClass: b.chevronHoverClass,
       icon: (
-        <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${b.iconClass} ${b.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
       ),
       sub: `${stats?.bolleAperte ?? 0} ${t.fornitori.subAperte}`,
-      subColor: (stats?.bolleAperte ?? 0) > 0 ? 'text-amber-400' : 'text-slate-200',
+      subColor: (stats?.bolleAperte ?? 0) > 0 ? b.subStrong : 'text-slate-200',
     },
     {
       label: t.fornitori.kpiFatture,
       value: stats?.fattureTotal ?? 0,
       tab: 'fatture',
-      accent: 'border-l-green-500',
-      accentHex: '#22c55e',
+      accent: f.accent,
+      accentHex: f.hex,
+      chevronHoverClass: f.chevronHoverClass,
       icon: (
-        <svg className="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${f.iconClass} ${f.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       ),
       sub: t.fornitori.subConfermate,
-      subColor: 'text-slate-200',
+      subColor: f.subStrong,
     },
     {
       label: t.statements.tabVerifica,
       value: stats?.statementsInPeriod ?? 0,
       tab: 'verifica',
-      accent: 'border-l-sky-500',
-      accentHex: '#0ea5e9',
+      accent: v.accent,
+      accentHex: v.hex,
+      chevronHoverClass: v.chevronHoverClass,
       icon: (
-        <svg className="h-5 w-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${v.iconClass} ${v.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
       ),
@@ -300,46 +319,50 @@ function buildSupplierKpiItems(stats: SupplierPeriodStats | null, t: ReturnType<
       label: t.fornitori.tabListino,
       value: stats?.listinoRows ?? 0,
       tab: 'listino',
-      accent: 'border-l-teal-500',
-      accentHex: '#14b8a6',
+      accent: l.accent,
+      accentHex: l.hex,
+      chevronHoverClass: l.chevronHoverClass,
       icon: (
-        <svg className="h-5 w-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${l.iconClass} ${l.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
         </svg>
       ),
       sub: t.fornitori.subListinoRows,
-      subColor: (stats?.listinoRows ?? 0) > 0 ? 'text-slate-200' : 'text-slate-200',
+      subColor: l.subStrong,
     },
     {
       label: t.common.total,
       value: (() => {
-        const v = stats?.totaleSpesa ?? 0
-        return v >= 1000 ? `£${(v / 1000).toFixed(1)}k` : `£${v.toFixed(0)}`
+        const val = stats?.totaleSpesa ?? 0
+        return val >= 1000 ? `£${(val / 1000).toFixed(1)}k` : `£${val.toFixed(0)}`
       })(),
       tab: 'fatture',
-      accent: 'border-l-purple-500',
-      accentHex: '#a855f7',
+      accent: tot.accent,
+      accentHex: tot.hex,
+      chevronHoverClass: tot.chevronHoverClass,
+      isSpesaTotale: true,
       icon: (
-        <svg className="h-5 w-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${tot.iconClass} ${tot.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
       sub: `${stats?.fattureTotal ?? 0} ${t.nav.fatture.toLowerCase()}`,
-      subColor: 'text-slate-200',
+      subColor: tot.subStrong,
     },
     {
       label: t.fornitori.kpiPending,
       value: stats?.pending ?? 0,
       tab: 'documenti',
-      accent: 'border-l-amber-500',
-      accentHex: '#f59e0b',
+      accent: d.accent,
+      accentHex: d.hex,
+      chevronHoverClass: d.chevronHoverClass,
       icon: (
-        <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`${d.iconClass} ${d.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
       sub: t.fornitori.subDaAbbinare,
-      subColor: (stats?.pending ?? 0) > 0 ? 'text-amber-400' : 'text-slate-200',
+      subColor: (stats?.pending ?? 0) > 0 ? d.subStrong : 'text-slate-200',
     },
   ]
 }
@@ -368,21 +391,36 @@ function SupplierDesktopKpiGrid({
           key={k.label}
           type="button"
           onClick={() => onTabChange(k.tab)}
-          className={`app-card group flex flex-col cursor-pointer overflow-hidden border-l-4 ${k.accent} text-left transition-[transform,box-shadow,border-color] duration-200 hover:border-cyan-400/35 hover:shadow-[0_12px_40px_-12px_rgba(6,182,212,0.18)] active:scale-[0.98]`}
-          style={{ borderLeftColor: k.accentHex }}
+          className="supplier-desktop-kpi-card group relative flex h-full min-h-[160px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98]"
+          style={{
+            boxShadow: supplierDesktopKpiOuterShadow(k.accentHex),
+            ['--supplier-kpi-rgb' as string]: hexToRgbTuple(k.accentHex),
+          }}
         >
-          <div className="app-card-bar shrink-0" aria-hidden />
-          <div className="flex flex-1 flex-col p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-200">{k.label}</p>
-              {k.icon}
+          <KpiLAccentOverlay accentHex={k.accentHex} edgePx={4} />
+          <div className="relative z-[1] flex min-h-0 flex-1 flex-col gap-0 p-4">
+            <div className="flex min-h-[2.75rem] shrink-0 items-center justify-between gap-2 border-b border-slate-600/25 pb-3">
+              <p className="min-w-0 flex-1 pr-1 text-left text-[11px] font-semibold uppercase leading-snug tracking-wider text-slate-200 line-clamp-2">
+                {k.label}
+              </p>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center [&>svg]:h-[1.35rem] [&>svg]:w-[1.35rem] [&>svg]:shrink-0">
+                {k.icon}
+              </span>
             </div>
-            <p className="text-3xl font-bold text-slate-100">{k.value}</p>
-            <div className="mt-1 flex items-center justify-between">
-              <p className={`text-xs ${k.subColor}`}>{k.sub}</p>
-              <svg className="h-3.5 w-3.5 text-slate-200 transition-colors group-hover:text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+            <div className="flex min-h-0 flex-1 flex-col justify-end gap-2 pt-3">
+              <p className={`line-clamp-2 text-[11px] font-medium leading-snug ${k.subColor}`}>{k.sub}</p>
+              <div className="flex shrink-0 items-end justify-between gap-1">
+                <p className="min-w-0 text-2xl font-bold tabular-nums leading-none tracking-tight text-slate-50">{k.value}</p>
+                <svg
+                  className={`mb-1 h-4 w-4 shrink-0 text-slate-400 transition-colors ${k.chevronHoverClass}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
             </div>
           </div>
         </button>
@@ -538,7 +576,7 @@ function DashboardTab({
                 count={periodStats?.bolleTotal ?? 0}
                 label={k.label}
                 icon={<span className="[&>svg]:!h-6 [&>svg]:!w-6">{k.icon}</span>}
-                bgClass="bg-blue-500/20"
+                bgClass="bg-indigo-500/20"
                 tileAccentHex={k.accentHex}
                 sheetTitle={t.bolle.title}
                 items={bolleSheetItems}
@@ -548,8 +586,8 @@ function DashboardTab({
             )
           }
           if (k.tab === 'fatture') {
-            const fattureBg = k.accentHex === '#a855f7' ? 'bg-violet-500/20' : 'bg-emerald-500/20'
-            const isTotaleTile = k.accentHex === '#a855f7'
+            const isTotaleTile = k.isSpesaTotale === true
+            const fattureBg = isTotaleTile ? 'bg-violet-500/20' : 'bg-emerald-500/20'
             return (
               <DashboardKpiListSheet
                 key={k.label}
@@ -572,10 +610,14 @@ function DashboardTab({
               key={k.label}
               href={tabHref}
               scroll={false}
-              className="app-card group block w-full overflow-hidden border-l-[3px] p-3 text-left transition-all active:scale-[0.99] hover:border-cyan-500/30"
-              style={{ borderLeftColor: k.accentHex }}
+              className="supplier-desktop-kpi-card group relative block w-full overflow-hidden p-3 text-left transition-[transform,box-shadow] active:scale-[0.99] hover:shadow-[0_12px_36px_-10px_rgba(var(--supplier-kpi-rgb),0.28)]"
+              style={{
+                boxShadow: supplierDesktopKpiOuterShadow(k.accentHex),
+                ['--supplier-kpi-rgb' as string]: hexToRgbTuple(k.accentHex),
+              }}
             >
-              <div className="mb-2 flex items-start justify-between gap-2">
+              <KpiLAccentOverlay accentHex={k.accentHex} edgePx={3} />
+              <div className="relative z-[1] mb-2 flex items-start justify-between gap-2">
                 <p className="line-clamp-2 min-w-0 flex-1 text-[10px] font-semibold uppercase leading-tight tracking-wide text-slate-200">
                   {k.label}
                 </p>
@@ -583,8 +625,10 @@ function DashboardTab({
                   {k.icon}
                 </span>
               </div>
-              <p className="text-xl font-bold tabular-nums text-slate-100">{k.value}</p>
-              <p className={`mt-0.5 line-clamp-1 text-[10px] ${k.subColor}`}>{k.sub}</p>
+              <div className="relative z-[1] flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <p className="text-xl font-bold tabular-nums text-slate-100">{k.value}</p>
+                <p className={`line-clamp-2 min-w-0 text-[10px] leading-snug ${k.subColor}`}>{k.sub}</p>
+              </div>
             </Link>
           )
         })}
@@ -624,8 +668,8 @@ function DashboardTab({
 
       {/* ── Contacts section ── */}
       {!contattiError && (
-        <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
+        <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+          <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
           <div className="flex items-center justify-between border-b border-slate-700/60 px-4 py-2.5 md:px-5 md:py-3">
             <div className="flex items-center gap-2">
               <svg className="h-3.5 w-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -745,8 +789,8 @@ function DashboardTab({
       )}
 
       {/* Supplier info card */}
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+        <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
         <div className="flex items-center gap-2 border-b border-slate-700/60 px-5 py-3">
           <svg className="h-3.5 w-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.appStrings.infoSupplierCard}</p>
@@ -852,6 +896,14 @@ function attachmentOpenFileLinkLabel(
   return t.common.openAttachment
 }
 
+/** Pill cyan compatto: «Vedi documento» / allegato in tabella bolle fornitore (e dettaglio fatture). */
+const FORNITORE_TABLE_CYAN_ACTION_PILL =
+  'inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/20'
+
+/** Pill elimina compatto, allineato al cyan in tabella bolle fornitore. */
+const FORNITORE_TABLE_DELETE_PILL =
+  'inline-flex items-center gap-1 rounded-lg border border-red-500/50 bg-red-950/40 px-2 py-1 text-[10px] font-semibold text-red-200 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-red-400/65 hover:bg-red-600/20 hover:text-red-50'
+
 function attachmentKindText(
   kind: AttachmentKind,
   t: { bolle: { attachmentKindPdf: string; attachmentKindImage: string; attachmentKindOther: string } },
@@ -946,8 +998,8 @@ function BolleTab({
 
   if (loading) {
     return (
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.border}`}>
+        <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
         <div className="divide-y divide-slate-800/80">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex animate-pulse gap-4 px-5 py-3.5">
@@ -962,8 +1014,8 @@ function BolleTab({
 
   if (bolle.length === 0) {
     return (
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.border}`}>
+        <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
         <div className="px-6 py-16 text-center">
         <svg className="mx-auto mb-3 h-12 w-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -979,8 +1031,8 @@ function BolleTab({
   }
 
   return (
-    <div className="app-card flex flex-col overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
+    <div className={`app-card flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.border}`}>
+      <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
       <div className="divide-y divide-slate-800/80 md:hidden">
         {bolle.map((b) => {
@@ -1087,20 +1139,19 @@ function BolleTab({
                         target="_blank"
                         rel="noopener noreferrer"
                         title={attachmentOpenFileLinkLabel(fileKind, t)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                        className={FORNITORE_TABLE_CYAN_ACTION_PILL}
                       >
                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         {attachmentOpenFileLinkLabel(fileKind, t)}
                       </a>
                     )}
-                    <Link
-                      href={fornitoreBollaDeepLink(pathname, searchParams, b.id)}
-                      scroll={false}
-                      className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-2 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-cyan-500"
-                    >
-                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                      {t.bolle.apri}
-                    </Link>
+                    <DeleteButton
+                      id={b.id}
+                      table="bolle"
+                      confirmMessage={t.bolle.deleteConfirm}
+                      className={FORNITORE_TABLE_DELETE_PILL}
+                      iconClassName="h-3 w-3"
+                    />
                   </div>
                 </td>
               </tr>
@@ -1153,8 +1204,8 @@ function FattureTab({
 
   if (loading) {
     return (
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
+        <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
         <div className="divide-y divide-slate-800/80">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex animate-pulse gap-4 px-5 py-3.5">
@@ -1169,8 +1220,8 @@ function FattureTab({
 
   if (fatture.length === 0) {
     return (
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
+        <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
         <div className="px-6 py-16 text-center">
         <svg className="mx-auto mb-3 h-12 w-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1186,8 +1237,8 @@ function FattureTab({
   }
 
   return (
-    <div className="app-card flex flex-col overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
+    <div className={`app-card flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
+      <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
       <div className="divide-y divide-slate-800/80 md:hidden">
         {fatture.map((f) => {
@@ -1270,7 +1321,7 @@ function FattureTab({
                   <Link
                     href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)}
                     scroll={false}
-                    className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 px-2 py-1 text-[10px] font-semibold text-white transition-colors hover:bg-cyan-500"
+                    className={FORNITORE_TABLE_CYAN_ACTION_PILL}
                   >
                     <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                     {t.fatture.dettaglio}
@@ -1667,8 +1718,8 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
 
   if (loading) {
     return (
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+        <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
         <div className="flex animate-pulse items-center justify-between border-b border-slate-700/60 px-5 py-3">
           <div className="h-3 w-32 rounded bg-slate-700/80" />
           <div className="h-3 w-14 rounded bg-slate-700/80" />
@@ -1697,7 +1748,7 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
       {listTabloExists === false ? (
         /* Setup card — compact 2-step flow */
         <div className="app-card overflow-hidden border-amber-500/25">
-          <div className="app-card-bar" aria-hidden />
+          <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti.bar}`} aria-hidden />
           <div className="px-5 py-4 flex items-start gap-3 bg-amber-500/10">
             <svg className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -1744,8 +1795,8 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
         </div>
       ) : listTabloExists === true ? (
         /* Listino prodotti — with add form */
-        <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
+        <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+          <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="px-5 py-3 border-b border-slate-700/60 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoProdotti}</p>
             <div className="flex items-center gap-2">
@@ -2150,15 +2201,30 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
       {rows.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
-            { label: t.fornitori.listinoTotale, value: totale, cls: 'border-slate-700/50 bg-slate-700/90 text-slate-100' },
-            { label: t.fornitori.listinoDaBolle, value: totBolle, cls: 'border-blue-500/30 bg-blue-500/10 text-blue-200' },
-            { label: t.fornitori.listinoDaFatture, value: totFatture, cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' },
-          ].map(({ label, value, cls }) => (
+            {
+              label: t.fornitori.listinoTotale,
+              value: totale,
+              cls: 'border-slate-700/50 bg-slate-700/90 text-slate-100',
+              bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar,
+            },
+            {
+              label: t.fornitori.listinoDaBolle,
+              value: totBolle,
+              cls: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
+              bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar,
+            },
+            {
+              label: t.fornitori.listinoDaFatture,
+              value: totFatture,
+              cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
+              bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar,
+            },
+          ].map(({ label, value, cls, bar }) => (
             <div
               key={label}
               className={`relative flex flex-col overflow-hidden rounded-xl border shadow-lg shadow-black/30 backdrop-blur-xl ${cls}`}
             >
-              <div className="app-card-bar shrink-0" aria-hidden />
+              <div className={`app-card-bar shrink-0 ${bar}`} aria-hidden />
               <div className="p-4">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
                 <p className="text-xl font-bold tabular-nums">£{value.toFixed(2)}</p>
@@ -2170,8 +2236,8 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
 
       {/* ── Storico cronologico documenti ── */}
       {rows.length === 0 ? (
-        <div className="app-card flex flex-col overflow-hidden text-center">
-          <div className="app-card-bar shrink-0" aria-hidden />
+        <div className={`app-card flex flex-col overflow-hidden text-center ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+          <div className={`app-card-bar shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="px-6 py-16">
           <svg className="mx-auto mb-3 h-12 w-12 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -2180,8 +2246,8 @@ function ListinoTab({ fornitoreId }: { fornitoreId: string }) {
           </div>
         </div>
       ) : (
-        <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
+        <div className={`app-card overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+          <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="flex items-center justify-between border-b border-slate-700/60 px-5 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-200">{t.fornitori.listinoStorico}</p>
             <p className="text-xs text-slate-200">{rows.length} {t.fornitori.listinoDocs}</p>
@@ -2394,6 +2460,7 @@ function FornitoreDetailClient({
           currency={currency}
           year={filterYear}
           month={filterMonth}
+          cardAccent="amber"
         />
       )}
       {tab === 'verifica' && (
@@ -2404,6 +2471,7 @@ function FornitoreDetailClient({
           currency={currency}
           year={filterYear}
           month={filterMonth}
+          cardAccent="cyan"
         />
       )}
     </>
@@ -2420,8 +2488,8 @@ function FornitoreDetailClient({
       />
       {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
       <div className="md:hidden px-4 pb-6">
-        <div className="app-card mb-4 mt-2 overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
+        <div className={`app-card mb-4 mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[tab].border}`}>
+          <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[tab].bar}`} aria-hidden />
           <div className="flex items-start gap-3 px-3 py-2.5">
             <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">

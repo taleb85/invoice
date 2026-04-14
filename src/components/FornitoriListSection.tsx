@@ -43,16 +43,16 @@ export default function FornitoriListSection({
   return (
     <>
       <AppSummaryHighlightCard
-        accent="indigo"
+        accent="sky"
         label={t.common.total}
         primary={fornitori.length}
         secondary={t.fornitori.countLabel}
-        footer={
-          <label className="block min-w-0">
+        trailing={
+          <label className="block min-w-0 w-full sm:w-72">
             <span className="sr-only">{t.nav.cerca}</span>
             <div className="relative">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -71,7 +71,7 @@ export default function FornitoriListSection({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.nav.cerca}
                 autoComplete="off"
-                className="w-full rounded-lg border border-slate-600/60 bg-slate-800/90 py-2.5 pl-10 pr-3 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-500/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/25"
+                className="w-full rounded-md border border-slate-600/60 bg-slate-800/90 py-1.5 pl-8 pr-2.5 text-xs font-normal text-slate-100 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-2 focus:ring-sky-500/25"
               />
             </div>
           </label>

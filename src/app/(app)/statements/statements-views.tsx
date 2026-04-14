@@ -18,6 +18,7 @@ import {
   normalizeAddressKey,
 } from '@/lib/auto-resolve-pending-doc'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
+import { SUMMARY_HIGHLIGHT_ACCENTS, type SummaryHighlightAccent } from '@/lib/summary-highlight-accent'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 
@@ -139,7 +140,7 @@ export function StatementsContent({
     <div className={wrapperClass}>
       {showPageHeader && (
         <>
-          <AppPageHeaderStrip>
+          <AppPageHeaderStrip accent={active === 'pending' ? 'amber' : 'cyan'}>
             <div className="min-w-0 sm:flex-1 sm:flex-initial">
               <h1 className="app-page-title text-2xl font-bold">{t.statements.heading}</h1>
             </div>
@@ -667,7 +668,24 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
 /* ══════════════════════════════════════════════════════════════
    TAB 1 — Pending Matches
    ══════════════════════════════════════════════════════════════ */
-export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, year, month }: { sedeId?: string; fornitoreId?: string; countryCode?: string; currency?: string; year?: number; month?: number }) {
+export function PendingMatchesTab({
+  sedeId,
+  fornitoreId,
+  countryCode,
+  currency,
+  year,
+  month,
+  cardAccent = 'amber',
+}: {
+  sedeId?: string
+  fornitoreId?: string
+  countryCode?: string
+  currency?: string
+  year?: number
+  month?: number
+  /** Scheda fornitore: allinea barra/bordo al tab (es. `amber` per «Documenti»). */
+  cardAccent?: SummaryHighlightAccent
+}) {
   const t = useT()
   const { me } = useMe()
   const { showToast } = useToast()
@@ -1032,6 +1050,7 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
         showToast(msg, 'error')
         return
       }
+      showToast(t.statements.finalizeSuccess, 'success')
       setTimeout(() => {
         void fetchDocs()
         void fetchBolleAperte()
@@ -1056,6 +1075,19 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
   const isPdf = (url: string) => url.toLowerCase().includes('.pdf')
   const inAttesa = docs.filter(d => d.stato === 'in_attesa' || d.stato === 'da_associare').length
   const bozzeCreate = docs.filter(d => d.stato === 'bozza_creata').length
+
+  const listShellTheme = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
+
+  const pendingDocRowTheme = (docStato: Documento['stato']) => {
+    if (docStato === 'associato') return SUMMARY_HIGHLIGHT_ACCENTS.emerald
+    if (docStato === 'scartato') {
+      return {
+        border: 'border-slate-600/45',
+        bar: 'bg-gradient-to-r from-slate-600/35 to-transparent',
+      } as const
+    }
+    return listShellTheme
+  }
 
   return (
     <>
@@ -1116,20 +1148,26 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
       )}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-600/45 bg-slate-800/50 px-6 py-16 text-center">
-          <p className="text-sm text-slate-300">{t.common.loading}</p>
+        <div className={`app-card overflow-hidden ${listShellTheme.border}`}>
+          <div className={`app-card-bar ${listShellTheme.bar}`} aria-hidden />
+          <div className="px-6 py-16 text-center">
+            <p className="text-sm text-slate-300">{t.common.loading}</p>
+          </div>
         </div>
       ) : docs.length === 0 ? (
-        <div className="rounded-xl border border-slate-600/45 bg-slate-800/50 px-6 py-16 text-center">
-          <svg className="mx-auto mb-4 h-14 w-14 text-slate-400 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="text-sm font-medium text-slate-300">
-            {filter === 'in_attesa' ? t.statements.noPendingDocs : t.statements.noDocsFound}
-          </p>
+        <div className={`app-card overflow-hidden ${listShellTheme.border}`}>
+          <div className={`app-card-bar ${listShellTheme.bar}`} aria-hidden />
+          <div className="px-6 py-16 text-center">
+            <svg className="mx-auto mb-4 h-14 w-14 text-slate-400 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="text-sm font-medium text-slate-300">
+              {filter === 'in_attesa' ? t.statements.noPendingDocs : t.statements.noDocsFound}
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {docs.map(doc => {
             const stato          = actions[doc.id] ?? 'idle'
             const isImage        = doc.content_type?.startsWith('image/')
@@ -1139,21 +1177,17 @@ export function PendingMatchesTab({ sedeId, fornitoreId, countryCode, currency, 
             const isStmt         = statementDocs.has(doc.id) || doc.is_statement
             const bolleSameSupplier = bolleAperte.filter(b => b.fornitore_id === doc.fornitore_id)
             const bolleOther        = bolleAperte.filter(b => b.fornitore_id !== doc.fornitore_id)
+            const rowTheme = pendingDocRowTheme(doc.stato)
 
             return (
               <div
                 key={doc.id}
-                className={`overflow-hidden rounded-xl border transition-opacity ${
+                className={`app-card overflow-hidden transition-opacity ${
                   stato === 'done' ? 'opacity-[0.58] saturate-[0.85]' : ''
-                } ${
-                  doc.stato === 'associato'
-                    ? 'border-emerald-500/40 bg-slate-800/70 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]'
-                    : doc.stato === 'da_associare'
-                      ? 'border-cyan-500/35 bg-slate-800/65 shadow-[0_0_24px_-12px_rgba(34,211,238,0.12)]'
-                      : 'border-slate-600/40 bg-slate-800/55 shadow-sm'
-                }`}
+                } ${rowTheme.border}`}
               >
-                <div className="flex gap-3 p-3 md:gap-3 md:p-3">
+                <div className={`app-card-bar ${rowTheme.bar}`} aria-hidden />
+                <div className="flex gap-3 p-3 md:gap-3 md:p-4">
                   {/* Thumbnail */}
                   <button
                     onClick={async () => {
@@ -1715,7 +1749,7 @@ function MigrationCard() {
   }
   return (
     <div className="app-card mb-6 overflow-hidden border-amber-500/25">
-      <div className="app-card-bar" aria-hidden />
+      <div className={`app-card-bar ${SUMMARY_HIGHLIGHT_ACCENTS.amber.bar}`} aria-hidden />
       <div className="flex items-start gap-3 px-5 py-4">
         <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -1756,7 +1790,24 @@ function MigrationCard() {
   )
 }
 
-export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, currency, year, month }: { sedeId?: string; fornitoreId?: string; countryCode?: string; currency?: string; year?: number; month?: number }) {
+export function VerificationStatusTab({
+  sedeId,
+  fornitoreId,
+  countryCode,
+  currency,
+  year,
+  month,
+  cardAccent = 'cyan',
+}: {
+  sedeId?: string
+  fornitoreId?: string
+  countryCode?: string
+  currency?: string
+  year?: number
+  month?: number
+  /** Scheda fornitore: allinea barra/bordo al tab (es. `cyan` per «Verifica»). */
+  cardAccent?: SummaryHighlightAccent
+}) {
   const now = new Date()
   const loc = getLocale(countryCode)
   const resolvedCurrency = currency ?? loc.currency ?? 'EUR'
@@ -1765,6 +1816,7 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
   const formatStmtDate = useFmt()
   const MONTHS = t.statements.months
   const STATUS_CONFIG = useStatusConfig()
+  const shell = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
 
   /* ── Statement list (received via email) ─────────────────── */
   type StmtRecord = {
@@ -2014,8 +2066,8 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
   return (
     <>
       {/* ════════ SECTION 1 — Statement inbox (received via email) ════════ */}
-      <div className="app-card mb-6 overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card mb-6 overflow-hidden ${shell.border}`}>
+        <div className={`app-card-bar ${shell.bar}`} aria-hidden />
         {/* Header */}
         <div className="flex items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-700/70 px-5 py-4">
           <div className="flex items-center gap-2">
@@ -2498,8 +2550,8 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
             { label: t.statements.classicComplete, value: completi, cls: 'text-emerald-400' },
             { label: t.statements.classicMissing,  value: mancanti, cls: 'text-red-500' },
           ].map(c => (
-            <div key={c.label} className="app-card flex flex-col overflow-hidden text-center">
-              <div className="app-card-bar shrink-0" aria-hidden />
+            <div key={c.label} className={`app-card flex flex-col overflow-hidden text-center ${shell.border}`}>
+              <div className={`app-card-bar shrink-0 ${shell.bar}`} aria-hidden />
               <div className="p-4">
                 <p className={`text-2xl font-bold ${c.cls}`}>{c.value}</p>
                 <p className="text-xs text-slate-200 mt-0.5 uppercase tracking-wide">{c.label}</p>
@@ -2534,15 +2586,15 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
       )}
 
       {loading ? (
-        <div className="app-card flex flex-col overflow-hidden text-center">
-          <div className="app-card-bar shrink-0" aria-hidden />
+        <div className={`app-card flex flex-col overflow-hidden text-center ${shell.border}`}>
+          <div className={`app-card-bar shrink-0 ${shell.bar}`} aria-hidden />
           <div className="px-6 py-16">
             <p className="text-sm text-slate-200">{t.common.loading}</p>
           </div>
         </div>
       ) : gruppi.length === 0 ? (
-        <div className="app-card flex flex-col overflow-hidden text-center">
-          <div className="app-card-bar shrink-0" aria-hidden />
+        <div className={`app-card flex flex-col overflow-hidden text-center ${shell.border}`}>
+          <div className={`app-card-bar shrink-0 ${shell.bar}`} aria-hidden />
           <div className="px-6 py-16">
             <p className="text-sm font-medium text-slate-200">{t.statements.stmtEmpty} — {t.statements.months[mese-1]} {anno}</p>
           </div>
@@ -2556,8 +2608,8 @@ export function VerificationStatusTab({ sedeId, fornitoreId, countryCode, curren
             const allGood   = gMissing === 0
 
             return (
-              <div key={g.fornitore_id} className="app-card overflow-hidden">
-                <div className="app-card-bar" aria-hidden />
+              <div key={g.fornitore_id} className={`app-card overflow-hidden ${shell.border}`}>
+                <div className={`app-card-bar ${shell.bar}`} aria-hidden />
                 {/* Supplier header with Verification Triangle */}
                 <div className="border-b border-slate-700/50 bg-slate-700/60 px-5 py-4">
                   <div className="flex items-start justify-between gap-4 flex-wrap">

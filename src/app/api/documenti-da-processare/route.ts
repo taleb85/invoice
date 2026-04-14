@@ -14,6 +14,22 @@ type DocRowFinalizza = {
   metadata: unknown
 }
 
+/**
+ * Migrazione `conferme_ordine` non applicata o tabella non in cache PostgREST:
+ * non restituire 500 (evita toast/banner rossi); il documento viene comunque segnato associato.
+ */
+function confermeOrdineTableUnavailable(err: { message?: string; code?: string }): boolean {
+  if (err.code === '42P01') return true
+  const m = (err.message ?? '').toLowerCase()
+  if (!m.includes('conferme_ordine')) return false
+  return (
+    m.includes('schema cache') ||
+    m.includes('could not find') ||
+    m.includes('does not exist') ||
+    m.includes('not found')
+  )
+}
+
 /** Crea fattura senza bolla, bolla da allegato, o archivia estratto — dopo scelta tipo in coda. */
 async function finalizePendingByTipo(
   supabase: SupabaseClient,
@@ -96,7 +112,7 @@ async function finalizePendingByTipo(
         note: null,
       },
     ])
-    if (coErr) {
+    if (coErr && !confermeOrdineTableUnavailable(coErr)) {
       return NextResponse.json(
         { error: `Errore archiviazione ordine (tabella conferme_ordine): ${coErr.message}` },
         { status: 500 },

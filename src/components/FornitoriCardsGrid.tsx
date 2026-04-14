@@ -13,6 +13,10 @@ import { useT } from '@/lib/use-t'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import { cacheFornitoriList, readCachedFornitoriList } from '@/lib/app-data-cache'
 import { useNetworkStatusOptional } from '@/lib/network-context'
+import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+
+/** Allineato al KPI «Fornitori» (`operatorKpiVisual` sky) e a `AppSummaryHighlightCard accent="sky"`. */
+const fornitoriCardTheme = SUMMARY_HIGHLIGHT_ACCENTS.sky
 
 type Gate = { action: 'detail' | 'edit' | 'delete' | 'unlock'; id: string; nome: string }
 
@@ -165,14 +169,14 @@ export default function FornitoriCardsGrid({
   }, [runDelete])
 
   const detailCls =
-    'text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors'
+    'text-[11px] font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors'
   const editCls =
-    'inline-flex items-center gap-1 rounded-lg p-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300'
+    'inline-flex items-center gap-1 rounded-lg p-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:bg-sky-500/10 hover:text-sky-300'
 
   if (!cacheReady) {
     return (
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${fornitoriCardTheme.border}`}>
+        <div className={`app-card-bar ${fornitoriCardTheme.bar}`} aria-hidden />
         <div className="h-32 animate-pulse bg-slate-700/40" />
       </div>
     )
@@ -180,8 +184,8 @@ export default function FornitoriCardsGrid({
 
   if (rows.length === 0) {
     return (
-      <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
+      <div className={`app-card overflow-hidden ${fornitoriCardTheme.border}`}>
+        <div className={`app-card-bar ${fornitoriCardTheme.bar}`} aria-hidden />
         <div className="px-6 py-16 text-center">
           <svg className="mx-auto mb-4 h-14 w-14 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -195,7 +199,7 @@ export default function FornitoriCardsGrid({
           {showAddWhenEmpty ? (
             <Link
               href="/fornitori/new"
-              className="mt-4 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+              className="mt-4 inline-block text-sm font-medium text-sky-400 hover:text-sky-300 hover:underline"
             >
               {addFirstLabel}
             </Link>
@@ -220,7 +224,7 @@ export default function FornitoriCardsGrid({
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {rows.map((f) => {
           const display = fornitoreDisplayLabel(f)
           const hasDisplayAlias = !!(f.display_name?.trim())
@@ -232,81 +236,70 @@ export default function FornitoriCardsGrid({
             .filter(Boolean)
             .join('')
             .toUpperCase() || '?'
+
+          const bodyClasses =
+            'flex min-h-0 w-full flex-1 flex-col gap-4 p-5 pb-4 items-center sm:items-stretch'
+          const avatarShell =
+            'flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 via-sky-500 to-blue-600 text-base font-bold text-white shadow-md shadow-sky-950/40 ring-2 ring-slate-600/50 ring-offset-2 ring-offset-slate-700/95'
+          const headBlock = (
+            <>
+              <div className={`${avatarShell} mx-auto sm:mx-0`}>{initials}</div>
+              <div className="min-w-0 w-full flex-1 text-center sm:text-left">
+                <div className="flex min-w-0 flex-col items-center gap-2 sm:flex-row sm:items-center sm:justify-start">
+                  <p className="max-w-full truncate font-bold leading-tight text-slate-100 transition-colors group-hover:text-sky-300 sm:min-w-0 sm:flex-1">
+                    {display}
+                  </p>
+                  {rekkiMapped ? (
+                    <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-200">
+                      {t.fornitori.rekkiConnectedBadge}
+                    </span>
+                  ) : null}
+                </div>
+                {hasDisplayAlias ? (
+                  <p className="mt-1 truncate text-[11px] text-slate-500">{f.nome}</p>
+                ) : null}
+                {f.email ? (
+                  <p className="mt-1 truncate text-xs text-slate-300">{f.email}</p>
+                ) : null}
+              </div>
+            </>
+          )
+          const pivaBlock = (
+            <div className="mt-auto flex min-h-[2.5rem] items-end justify-center sm:justify-start">
+              {f.piva ? (
+                <p className="inline-block rounded-full border border-slate-500/45 bg-slate-800/90 px-3 py-1 font-mono text-[10px] text-slate-200">
+                  {t.fornitori.pivaLabel} {f.piva}
+                </p>
+              ) : null}
+            </div>
+          )
+
           return (
             <div
               key={f.id}
-              className="app-card group flex h-full flex-col overflow-hidden transition-all hover:border-cyan-500/35"
+              className={`app-card group relative flex h-full flex-col overflow-hidden rounded-3xl transition-all ${fornitoriCardTheme.border} hover:border-sky-400/45 hover:shadow-lg hover:shadow-sky-500/12`}
             >
-              <div className="app-card-bar shrink-0" aria-hidden />
+              <div
+                className={`app-card-bar h-1 shrink-0 rounded-t-3xl ${fornitoriCardTheme.bar}`}
+                aria-hidden
+              />
               {isAdmin ? (
-                <button
-                  type="button"
-                  className="flex w-full min-h-0 flex-1 flex-col p-5 pb-4 text-left"
-                  onClick={() => request('detail', f.id, f.nome)}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
-                      {initials}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <p className="min-w-0 flex-1 truncate font-bold text-sm leading-tight text-slate-100 transition-colors group-hover:text-cyan-300">
-                          {display}
-                        </p>
-                        {rekkiMapped && (
-                          <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-200">
-                            {t.fornitori.rekkiConnectedBadge}
-                          </span>
-                        )}
-                      </div>
-                      {hasDisplayAlias && (
-                        <p className="mt-0.5 truncate text-[11px] text-slate-500">{f.nome}</p>
-                      )}
-                      {f.email && <p className="text-xs text-slate-200 truncate mt-0.5">{f.email}</p>}
-                    </div>
+                <button type="button" className={bodyClasses} onClick={() => request('detail', f.id, f.nome)}>
+                  <div className="flex flex-col gap-3 sm:flex-1 sm:flex-row sm:items-start sm:gap-4">
+                    {headBlock}
                   </div>
-                  <div className="mt-auto flex min-h-[2.75rem] items-end">
-                    {f.piva ? (
-                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-700/80 px-2.5 py-1 font-mono text-[10px] text-slate-200">
-                        {t.fornitori.pivaLabel} {f.piva}
-                      </p>
-                    ) : null}
-                  </div>
+                  {pivaBlock}
                 </button>
               ) : (
-                <Link href={`/fornitori/${f.id}`} className="flex min-h-0 flex-1 flex-col p-5 pb-4">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
-                      {initials}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <p className="min-w-0 flex-1 truncate font-bold text-sm leading-tight text-slate-100 transition-colors group-hover:text-cyan-300">
-                          {display}
-                        </p>
-                        {rekkiMapped && (
-                          <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-200">
-                            {t.fornitori.rekkiConnectedBadge}
-                          </span>
-                        )}
-                      </div>
-                      {hasDisplayAlias && (
-                        <p className="mt-0.5 truncate text-[11px] text-slate-500">{f.nome}</p>
-                      )}
-                      {f.email && <p className="text-xs text-slate-200 truncate mt-0.5">{f.email}</p>}
-                    </div>
+                <Link href={`/fornitori/${f.id}`} className={bodyClasses}>
+                  <div className="flex flex-col gap-3 sm:flex-1 sm:flex-row sm:items-start sm:gap-4">
+                    {headBlock}
                   </div>
-                  <div className="mt-auto flex min-h-[2.75rem] items-end">
-                    {f.piva ? (
-                      <p className="inline-block rounded-lg border border-slate-600/60 bg-slate-700/80 px-2.5 py-1 font-mono text-[10px] text-slate-200">
-                        {t.fornitori.pivaLabel} {f.piva}
-                      </p>
-                    ) : null}
-                  </div>
+                  {pivaBlock}
                 </Link>
               )}
 
-              <div className="mt-auto flex shrink-0 items-center justify-center border-t border-slate-700/60 bg-slate-700/40 px-4 py-2.5">
+              <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-3xl border-t border-slate-600/35 bg-slate-800/35 px-4 py-2.5 backdrop-blur-sm">
                 {unlockedIds.has(f.id) ? (
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>
