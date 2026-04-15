@@ -3,7 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { lookupRekkiSuppliersByVat } from '@/lib/rekki-supplier-lookup'
 
 type Body =
-  | { action: 'lookup'; piva: string }
+  | { action: 'lookup'; piva: string; supplierName?: string | null }
   | {
       action: 'save'
       fornitore_id: string
@@ -26,7 +26,9 @@ export async function POST(req: Request) {
   }
 
   if (body.action === 'lookup') {
-    const result = await lookupRekkiSuppliersByVat(body.piva ?? '')
+    const result = await lookupRekkiSuppliersByVat(body.piva ?? '', {
+      supplierDisplayName: body.supplierName ?? null,
+    })
     return NextResponse.json(result)
   }
 

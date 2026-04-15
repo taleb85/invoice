@@ -1,16 +1,50 @@
 /**
  * Ricerca fornitore Rekki per P.IVA (normalizzata).
- * Richiede variabili opzionali: REKKI_API_KEY + REKKI_SUPPLIERS_SEARCH_URL
- * (URL con placeholder {vat} per il solo numero, es. …?vat={vat}).
+ *
+ * ## Diagnosi: perché la ricerca automatica via P.IVA fallisce
+ *
+ * 1. **Variabili d’ambiente assenti** — `lookupRekkiSuppliersByVat` legge solo `process.env` sul **runtime
+ *    Node del server Next.js** (route `POST /api/fornitore-rekki`). Se `REKKI_API_KEY` o
+ *    `REKKI_SUPPLIERS_SEARCH_URL` non sono definite lì, la modalità passa a `manual` senza chiamata HTTP.
+ * 2. **Dove inserirle**
+ *    - **Sviluppo locale:** file `.env.local` nella root del progetto Next (accanto a `package.json`),
+ *      righe ad esempio:
+ *        `REKKI_API_KEY=...`
+ *        `REKKI_SUPPLIERS_SEARCH_URL=https://api.example.com/v1/suppliers/search?vat={vat}`
+ *      Il placeholder `{vat}` viene sostituito con la sola **parte numerica** della P.IVA; senza `{vat}`
+ *      viene aggiunto `?vat=` o `&vat=`. Riavvia `next dev` dopo le modifiche.
+ *    - **Produzione (Vercel / Docker / altro host):** variabili d’ambiente nel pannello del provider
+ *      (es. Project Settings → Environment Variables su Vercel), **non** in Supabase Dashboard, a meno che
+ *      non richiami Rekki da Edge Functions / Database Webhooks (in quel caso andrebbero nei Secrets Supabase
+ *      per quel contesto). Questa app usa la Route Handler Next → env del **deploy Next**.
+ * 3. **Risposta API** — `REKKI_SUPPLIERS_SEARCH_URL` deve restituire JSON con array in `data` | `suppliers` |
+ *    `items` | `results` e oggetti con `id` (o `supplier_id` / `uuid`) e nome. Status ≠ 2xx o JSON non
+ *    conforme → nessun fornitore in lista.
+ *
+ * Senza API: usare il pulsante «Cerca su Rekki» (Google `site:rekki.com`) e incollare l’URL profilo nel
+ * campo Link; `extractRekkiSupplierIdFromUrl` ricava l’ID.
  */
 
 export type RekkiSupplierHit = { id: string; name: string }
+
+/** Suggerimenti senza chiamate HTTP a Google/Rekki (solo URL da aprire nel browser). */
+export type RekkiLookupFallbackHints = {
+  googleSearchByVatUrl: string | null
+  googleSearchByCompanyUrl: string | null
+  /** Promemoria breve per gli operatori (dove configurare le env). */
+  envSetupHint?: string
+}
 
 export type RekkiLookupResult = {
   mode: 'api' | 'manual'
   suppliers: RekkiSupplierHit[]
   message?: string
+  /** Presente quando mancano le API, la risposta è vuota o in errore: aprire questi link nel browser. */
+  fallback?: RekkiLookupFallbackHints | null
 }
+
+const ENV_HINT =
+  'Variabili server Next.js: in locale `.env.local` nella root del repo; in produzione pannello env del deploy (es. Vercel). Chiavi: REKKI_API_KEY, REKKI_SUPPLIERS_SEARCH_URL (con {vat}).'
 
 function normalizeResponseJson(j: unknown): RekkiSupplierHit[] {
   if (!j || typeof j !== 'object') return []
@@ -36,23 +70,88 @@ function normalizeResponseJson(j: unknown): RekkiSupplierHit[] {
   return out
 }
 
-export async function lookupRekkiSuppliersByVat(pivaRaw: string): Promise<RekkiLookupResult> {
-  const digits = (pivaRaw ?? '').replace(/\D/g, '')
-  if (digits.length < 7) {
-    return { mode: 'manual', suppliers: [], message: 'P.IVA / VAT troppo corta per la ricerca.' }
+const MIN_VAT_DIGITS = 7
+
+function digitsOnlyVat(pivaRaw: string): string {
+  return (pivaRaw ?? '').replace(/\D/g, '')
+}
+
+/**
+ * Google con query `site:rekki.com` + P.IVA (solo cifre). Aprire in nuova scheda dal client.
+ */
+export function buildGoogleSiteRekkiSearchUrlForVat(vatDigits: string): string | null {
+  const d = digitsOnlyVat(vatDigits)
+  if (d.length < MIN_VAT_DIGITS) return null
+  const q = `site:rekki.com ${d}`
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}`
+}
+
+/**
+ * Google con `site:rekki.com` + ragione sociale (per fallback senza API o esito vuoto).
+ */
+export function buildGoogleSiteRekkiSearchUrlForCompany(companyName: string): string | null {
+  const t = companyName.replace(/\s+/g, ' ').trim()
+  if (t.length < 2) return null
+  const q = `site:rekki.com ${t}`
+  return `https://www.google.com/search?q=${encodeURIComponent(q)}`
+}
+
+/**
+ * Fallback «smart» senza scraping: solo URL di ricerca (e hint env), nessuna richiesta server-side a Google/Rekki.
+ */
+export function buildRekkiDiscoveryFallbackHints(opts: {
+  vatDigits: string
+  supplierDisplayName?: string | null
+  includeEnvHint?: boolean
+}): RekkiLookupFallbackHints {
+  const vatDigits = digitsOnlyVat(opts.vatDigits)
+  return {
+    googleSearchByVatUrl: buildGoogleSiteRekkiSearchUrlForVat(vatDigits),
+    googleSearchByCompanyUrl: buildGoogleSiteRekkiSearchUrlForCompany(opts.supplierDisplayName ?? '') ?? null,
+    envSetupHint: opts.includeEnvHint ? ENV_HINT : undefined,
+  }
+}
+
+export async function lookupRekkiSuppliersByVat(
+  pivaRaw: string,
+  opts?: { supplierDisplayName?: string | null },
+): Promise<RekkiLookupResult> {
+  const digits = digitsOnlyVat(pivaRaw)
+  const name = opts?.supplierDisplayName?.trim() || null
+
+  const attachFallback = (
+    base: Omit<RekkiLookupResult, 'fallback'>,
+    includeEnvHint: boolean,
+  ): RekkiLookupResult => ({
+    ...base,
+    fallback: buildRekkiDiscoveryFallbackHints({
+      vatDigits: digits,
+      supplierDisplayName: name,
+      includeEnvHint,
+    }),
+  })
+
+  if (digits.length < MIN_VAT_DIGITS) {
+    return attachFallback(
+      { mode: 'manual', suppliers: [], message: 'P.IVA / VAT troppo corta per la ricerca.' },
+      false,
+    )
   }
 
   const key = process.env.REKKI_API_KEY?.trim()
   const template = process.env.REKKI_SUPPLIERS_SEARCH_URL?.trim()
 
   if (!key || !template) {
-    return {
-      mode: 'manual',
-      suppliers: [],
-      message:
-        'Ricerca da P.IVA: sul server servono REKKI_API_KEY e REKKI_SUPPLIERS_SEARCH_URL (con {vat} nel path o query; chiave Bearer). ' +
-        'Senza API: incolla il link Rekki del fornitore nel campo Link — l’ID viene ricavato automaticamente — oppure inserisci l’ID a mano.',
-    }
+    return attachFallback(
+      {
+        mode: 'manual',
+        suppliers: [],
+        message:
+          'Ricerca da P.IVA non attiva: sul server Next.js servono REKKI_API_KEY e REKKI_SUPPLIERS_SEARCH_URL (con {vat} nel path o query; header Bearer). ' +
+          'Usa «Cerca su Rekki» qui sotto o incolla il link profilo nel campo Link.',
+      },
+      true,
+    )
   }
 
   const url = template.includes('{vat}')
@@ -70,21 +169,35 @@ export async function lookupRekkiSuppliersByVat(pivaRaw: string): Promise<RekkiL
     })
     clearTimeout(to)
     if (!r.ok) {
-      return {
-        mode: 'api',
-        suppliers: [],
-        message: `Rekki ha risposto ${r.status}. Verifica URL e permessi API.`,
-      }
+      return attachFallback(
+        {
+          mode: 'api',
+          suppliers: [],
+          message: `Rekki ha risposto ${r.status}. Verifica URL e permessi API.`,
+        },
+        false,
+      )
     }
     const j: unknown = await r.json()
     const suppliers = normalizeResponseJson(j)
+    if (!suppliers.length) {
+      return attachFallback(
+        {
+          mode: 'api',
+          suppliers: [],
+          message: 'Nessun fornitore Rekki trovato per questa P.IVA.',
+        },
+        false,
+      )
+    }
     return {
       mode: 'api',
       suppliers,
-      message: suppliers.length ? undefined : 'Nessun fornitore Rekki trovato per questa P.IVA.',
+      message: undefined,
+      fallback: null,
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Errore di rete'
-    return { mode: 'api', suppliers: [], message: msg }
+    return attachFallback({ mode: 'api', suppliers: [], message: msg }, false)
   }
 }

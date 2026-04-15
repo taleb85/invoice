@@ -1,6 +1,6 @@
 /**
- * Prova a ricavare l'ID fornitore Rekki da un URL (app / web Rekki).
- * Non richiede API: basta incollare il link profilo/ordine se contiene l'ID nel path o nella query.
+ * Ricava l'ID fornitore Rekki da un URL (app / web Rekki).
+ * Non richiede API: incolla il link profilo o ordine se contiene l'ID nel path, query o hash.
  */
 
 const UUID_RE =
@@ -8,45 +8,124 @@ const UUID_RE =
 
 function looksLikeRekkiHost(hostname: string): boolean {
   const h = hostname.toLowerCase()
-  return h === 'rekki.com' || h.endsWith('.rekki.com') || h.endsWith('.rekki.app')
+  return (
+    h === 'rekki.com' ||
+    h === 'www.rekki.com' ||
+    h.endsWith('.rekki.com') ||
+    h.endsWith('.rekki.app')
+  )
 }
 
+function normalizePastedUrl(raw: string): string {
+  let s = raw.trim()
+  if (!s) return s
+  s = s.replace(/^<+|>+$/g, '').replace(/^["']+|["']+$/g, '').trim()
+  return s
+}
+
+function safeDecodePathSegment(seg: string): string {
+  try {
+    return decodeURIComponent(seg).trim()
+  } catch {
+    return seg.trim()
+  }
+}
+
+function isPlausibleSupplierIdToken(seg: string): boolean {
+  const s = seg.trim()
+  if (s.length < 4 || s.length > 128) return false
+  if (UUID_RE.test(s)) return true
+  // slug alfanumerico + trattini (es. acme-srl-123)
+  if (/^[a-z0-9][a-z0-9._-]*$/i.test(s) && /[a-z]/i.test(s)) return true
+  if (/^\d+$/.test(s) && s.length >= 6) return true
+  return false
+}
+
+/**
+ * Estrae l'ID fornitore Rekki da URL testuale (anche senza schema, con hash `#/…`, trailing slash).
+ * Esportato anche come `extractRekkiIdFromUrl` per compatibilità con naming esterno.
+ */
 export function extractRekkiSupplierIdFromUrl(raw: string): string | null {
-  const s = raw.trim()
-  if (!s) return null
+  const s0 = normalizePastedUrl(raw)
+  if (!s0) return null
+
+  const withProto = s0.includes('://') ? s0 : `https://${s0}`
   let url: URL
   try {
-    url = new URL(s.includes('://') ? s : `https://${s}`)
+    url = new URL(withProto)
   } catch {
-    return null
+    const u = s0.match(UUID_RE)
+    return u ? u[0] : null
   }
+
   if (!looksLikeRekkiHost(url.hostname)) {
     return null
   }
 
-  const path = url.pathname
-  const pathMatch = path.match(
-    /\/(?:supplier|suppliers|vendor|vendors|s)\/([^/?#]+)/i,
-  )
-  if (pathMatch) {
-    const seg = decodeURIComponent(pathMatch[1]).trim()
-    if (seg.length >= 4 && seg.length <= 128) return seg
+  const path = url.pathname.replace(/\/+$/, '') || '/'
+  const hash = (url.hash ?? '').replace(/^#/, '')
+
+  const pathPatterns = [
+    /\/(?:[^/]+\/)*(?:supplier|suppliers|vendor|vendors|v|s)\/([^/?#]+)/i,
+    /\/profiles?\/([^/?#]+)/i,
+    /\/(?:org|organization|organisations)\/([^/?#]+)/i,
+    /\/p\/([^/?#]+)/i,
+  ]
+  for (const re of pathPatterns) {
+    const m = path.match(re)
+    if (m) {
+      const seg = safeDecodePathSegment(m[1] ?? '')
+      if (isPlausibleSupplierIdToken(seg)) return seg
+    }
   }
 
-  for (const key of ['supplier_id', 'supplierId', 'supplier', 'id', 'vendor_id']) {
+  let hashPath = hash.includes('/') ? (hash.split('?')[0] ?? '').trim() : ''
+  if (hashPath && !hashPath.startsWith('/')) hashPath = `/${hashPath}`
+  if (hashPath) {
+    for (const re of pathPatterns) {
+      const m = hashPath.match(re)
+      if (m) {
+        const seg = safeDecodePathSegment(m[1] ?? '')
+        if (isPlausibleSupplierIdToken(seg)) return seg
+      }
+    }
+    const hm = hashPath.match(UUID_RE)
+    if (hm) return hm[0]
+  }
+
+  const searchParamKeys = [
+    'supplier_id',
+    'supplierId',
+    'supplier',
+    'id',
+    'vendor_id',
+    'vendorId',
+    'rekki_supplier_id',
+    'sid',
+  ]
+  for (const key of searchParamKeys) {
     const v = url.searchParams.get(key)?.trim()
-    if (v && v.length >= 4 && v.length <= 128) return v
+    if (v && isPlausibleSupplierIdToken(v)) return v
+  }
+
+  const hashParams = new URLSearchParams(hash.includes('?') ? hash.slice(hash.indexOf('?')) : '')
+  for (const key of searchParamKeys) {
+    const v = hashParams.get(key)?.trim()
+    if (v && isPlausibleSupplierIdToken(v)) return v
   }
 
   const parts = path.split('/').filter(Boolean)
   for (let i = parts.length - 1; i >= 0; i--) {
-    const seg = decodeURIComponent(parts[i] ?? '').trim()
+    const seg = safeDecodePathSegment(parts[i] ?? '')
     const um = seg.match(UUID_RE)
     if (um) return um[0]
   }
 
-  const anywhere = s.match(UUID_RE)
-  if (anywhere && looksLikeRekkiHost(url.hostname)) return anywhere[0]
+  const anywhere = s0.match(UUID_RE)
+  if (anywhere) return anywhere[0]
 
   return null
 }
+
+/** Alias esplicito per documentazione / import esterni. */
+export const extractRekkiIdFromUrl = extractRekkiSupplierIdFromUrl

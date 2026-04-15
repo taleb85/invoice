@@ -19,8 +19,20 @@ import {
   fornitoreFatturaDeepLink,
   fornitoreSupplierClearDocParams,
 } from '@/lib/fornitore-supplier-url'
+import {
+  checkResultMatchesVerificaProdotto,
+  extractListinoSrcFatturaId,
+  LISTINO_SRC_FATTURA_MARK,
+  parseListinoNoteParts,
+  referencePriceForListinoRow,
+  stripListinoSrcMachineSuffix,
+} from '@/lib/listino-display'
 import FornitoreDocDetailLayer from '@/components/FornitoreDocDetailLayer'
 import { createClient } from '@/utils/supabase/client'
+import {
+  countSupplierMonthRekkiPriceAnomalies,
+  statementMatchesCalendarWindow,
+} from '@/lib/rekki-price-anomalies'
 import { PendingMatchesTab, VerificationStatusTab } from '@/app/(app)/statements/statements-views'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
@@ -168,20 +180,8 @@ type SupplierPeriodStats = {
   listinoProdottiDistinti: number
   statementsInPeriod: number
   statementsWithIssues: number
-}
-
-/** Conta uno statement nel mese `[from, to)` se ricezione o data emissione PDF cade in quel mese. */
-function statementInSupplierPeriod(
-  row: { received_at: string; extracted_pdf_dates: unknown },
-  from: string,
-  to: string,
-): boolean {
-  const rec = String(row.received_at ?? '').slice(0, 10)
-  if (rec >= from && rec < to) return true
-  const pdf = row.extracted_pdf_dates as { issued_date?: string | null } | null | undefined
-  const issued = pdf?.issued_date?.trim()
-  if (issued && issued >= from && issued < to) return true
-  return false
+  /** Stessa logica del KPI listino dashboard: anomalie Rekki (estratto + bolla vs `prezzo_rekki`). */
+  rekkiPriceAnomalies: number
 }
 
 const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
@@ -195,6 +195,7 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   listinoProdottiDistinti: 0,
   statementsInPeriod: 0,
   statementsWithIssues: 0,
+  rekkiPriceAnomalies: 0,
 }
 
 function useSupplierPeriodStats(fornitoreId: string, year: number, month: number) {
@@ -250,8 +251,9 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
         .eq('fornitore_id', fornitoreId)
         .gte('created_at', from)
         .lt('created_at', to),
+      countSupplierMonthRekkiPriceAnomalies(supabase, fornitoreId, from, to),
     ])
-      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes, ordiniRes]) => {
+      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes, ordiniRes, rekkiAnom]) => {
         if (cancelled) return
         const totaleSpesa = ((fattureRes.data ?? []) as { importo: number | null }[]).reduce((s, f) => s + (f.importo ?? 0), 0)
         const listinoRowsData = (listinoRes.data ?? []) as { prodotto: string }[]
@@ -266,7 +268,7 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
               received_at: string
               extracted_pdf_dates: unknown
             }[])
-        const stmtInMonth = stmtData.filter((s) => statementInSupplierPeriod(s, from, to))
+        const stmtInMonth = stmtData.filter((s) => statementMatchesCalendarWindow(s, from, to))
         const statementsInPeriod = stmtInMonth.length
         const statementsWithIssues = stmtInMonth.filter((s) => (s.missing_rows ?? 0) > 0).length
         const ordiniNelPeriodo = ordiniRes.error ? 0 : (ordiniRes.count ?? 0)
@@ -281,6 +283,7 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
           listinoProdottiDistinti,
           statementsInPeriod,
           statementsWithIssues,
+          rekkiPriceAnomalies: typeof rekkiAnom === 'number' ? rekkiAnom : 0,
         })
       })
       .catch(() => {
@@ -437,12 +440,19 @@ function buildSupplierKpiItems(
         </svg>
       ),
       sub:
-        (stats?.listinoRows ?? 0) === 0
-          ? t.fornitori.subListinoPeriodoVuoto
-          : t.fornitori.subListinoProdottiEAggiornamenti
-              .replace('{p}', String(stats?.listinoProdottiDistinti ?? 0))
-              .replace('{u}', String(stats?.listinoRows ?? 0)),
-      subColor: (stats?.listinoRows ?? 0) > 0 ? l.subStrong : 'text-app-fg-muted',
+        (stats?.rekkiPriceAnomalies ?? 0) > 0
+          ? t.fornitori.subListinoPriceAnomalies.replace('{n}', String(stats?.rekkiPriceAnomalies ?? 0))
+          : (stats?.listinoRows ?? 0) === 0
+            ? t.fornitori.subListinoPeriodoVuoto
+            : t.fornitori.subListinoProdottiEAggiornamenti
+                .replace('{p}', String(stats?.listinoProdottiDistinti ?? 0))
+                .replace('{u}', String(stats?.listinoRows ?? 0)),
+      subColor:
+        (stats?.rekkiPriceAnomalies ?? 0) > 0
+          ? 'text-rose-300'
+          : (stats?.listinoRows ?? 0) > 0
+            ? l.subStrong
+            : 'text-app-fg-muted',
     },
     {
       label: t.fornitori.kpiPending,
@@ -673,7 +683,7 @@ function useSupplierMonthlyDocSummary(
           }[]
           for (const w of windows) {
             const k = supplierMonthKey(w.y, w.m)
-            const n = stmtRows.filter((s) => statementInSupplierPeriod(s, w.from, w.to)).length
+            const n = stmtRows.filter((s) => statementMatchesCalendarWindow(s, w.from, w.to)).length
             if (n > 0) {
               const cell = agg.get(k)
               if (cell) cell.statements = n
@@ -1351,6 +1361,7 @@ function DashboardTab({
       <RekkiSupplierIntegration
         fornitoreId={fornitoreId}
         piva={fornitore.piva}
+        supplierDisplayName={fornitore.nome}
         initialRekkiId={fornitore.rekki_supplier_id}
         initialRekkiLink={fornitore.rekki_link}
         onSaved={onFornitoreReload}
@@ -1860,10 +1871,27 @@ ALTER TABLE public.listino_prezzi ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "listino_select" ON public.listino_prezzi
   FOR SELECT USING (auth.role() IN ('authenticated','service_role'));`
 
-function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?: boolean }) {
+function ListinoTab({
+  fornitoreId,
+  fornitoreNome,
+  rekkiLinked,
+  countryCode,
+  currency,
+  readOnly,
+}: {
+  fornitoreId: string
+  fornitoreNome: string
+  rekkiLinked: boolean
+  countryCode: string
+  currency?: string
+  readOnly?: boolean
+}) {
   const t = useT()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { locale, timezone } = useLocale()
   const formatDate = useAppFormatDate()
+  const fmtMoney = (n: number) => formatCurrency(n, currency ?? 'EUR', locale)
   const [rows, setRows]               = useState<ListinoRow[]>([])
   const [listino, setListino]         = useState<ListinoProdotto[]>([])
   const [listTabloExists, setListTabloExists] = useState<boolean | null>(null)
@@ -1896,8 +1924,12 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
     isNew: boolean                  // product not found in listino
   }
   const [showImport, setShowImport]       = useState(false)
-  const [importFattureList, setImportFattureList] = useState<{ id: string; label: string; file_url: string | null }[]>([])
+  const [importFattureList, setImportFattureList] = useState<
+    { id: string; label: string; file_url: string | null; analizzata: boolean }[]
+  >([])
   const [selectedFatturaId, setSelectedFatturaId] = useState('')
+  /** Filtro KPI: restringe l’elenco prodotti (origine fattura / data allineata a bolla). */
+  const [listinoSpendFilter, setListinoSpendFilter] = useState<'all' | 'fatture' | 'bolle'>('all')
   const [importLoading, setImportLoading] = useState(false)
   const [importError, setImportError]     = useState<string | null>(null)
   const [importItems, setImportItems]     = useState<ImportItem[]>([])
@@ -1952,6 +1984,10 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
       }
       setLoading(false)
     })
+  }, [fornitoreId])
+
+  useEffect(() => {
+    setListinoSpendFilter('all')
   }, [fornitoreId])
 
   // ── Price comparison helpers ────────────────────────────────────────
@@ -2027,23 +2063,56 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
     setShowForm(false)
     setImportError(null)
     setImportItems([])
-    if (importFattureList.length === 0) {
-      const supabase = createClient()
-      const { data } = await supabase
-        .from('fatture')
-        .select('id, data, numero_fattura, file_url')
-        .eq('fornitore_id', fornitoreId)
-        .not('file_url', 'is', null)
-        .order('data', { ascending: false })
-      const list = (data ?? []).map((f: { id: string; data: string; numero_fattura: string | null; file_url: string | null }) => ({
+    const supabase = createClient()
+    const { data, error } = await supabase
+      .from('fatture')
+      .select('id, data, numero_fattura, file_url, analizzata')
+      .eq('fornitore_id', fornitoreId)
+      .not('file_url', 'is', null)
+      .order('data', { ascending: false })
+    if (error) {
+      const missingCol =
+        error.code === '42703' ||
+        (error.message?.toLowerCase().includes('analizzata') ?? false)
+      if (missingCol) {
+        const { data: fallback } = await supabase
+          .from('fatture')
+          .select('id, data, numero_fattura, file_url')
+          .eq('fornitore_id', fornitoreId)
+          .not('file_url', 'is', null)
+          .order('data', { ascending: false })
+        const list = (fallback ?? []).map(
+          (f: { id: string; data: string; numero_fattura: string | null; file_url: string | null }) => ({
+            id: f.id,
+            label: f.numero_fattura
+              ? `${t.fatture.invoice} ${f.numero_fattura} — ${formatDate(f.data)}`
+              : `${t.fatture.invoice} · ${formatDate(f.data)}`,
+            file_url: f.file_url,
+            analizzata: false,
+          }),
+        )
+        setImportFattureList(list)
+        if (list.length > 0) {
+          setSelectedFatturaId((prev) => (list.some((x: { id: string }) => x.id === prev) ? prev : list[0]!.id))
+        }
+        return
+      }
+      setImportFattureList([])
+      return
+    }
+    const list = (data ?? []).map(
+      (f: { id: string; data: string; numero_fattura: string | null; file_url: string | null; analizzata?: boolean | null }) => ({
         id: f.id,
         label: f.numero_fattura
           ? `${t.fatture.invoice} ${f.numero_fattura} — ${formatDate(f.data)}`
           : `${t.fatture.invoice} · ${formatDate(f.data)}`,
         file_url: f.file_url,
-      }))
-      setImportFattureList(list)
-      if (list.length > 0) setSelectedFatturaId(list[0].id)
+        analizzata: Boolean(f.analizzata),
+      }),
+    )
+    setImportFattureList(list)
+    if (list.length > 0) {
+      setSelectedFatturaId((prev) => (list.some((x: { id: string }) => x.id === prev) ? prev : list[0]!.id))
     }
   }
 
@@ -2060,11 +2129,24 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Errore sconosciuto')
-      if (json.items.length === 0) {
+      const items = Array.isArray(json.items) ? json.items : []
+      const supabase = createClient()
+      const { error: upErr } = await supabase
+        .from('fatture')
+        .update({ analizzata: true })
+        .eq('id', selectedFatturaId)
+        .eq('fornitore_id', fornitoreId)
+      if (upErr) {
+        console.warn('[listino] aggiornamento analizzata:', upErr.message)
+      }
+      setImportFattureList((prev) =>
+        prev.map((f) => (f.id === selectedFatturaId ? { ...f, analizzata: true } : f)),
+      )
+      if (items.length === 0) {
         setImportError('Nessun prodotto trovato in questa fattura. Prova con un\'altra.')
       } else {
         const enriched = enrichWithComparison(
-          json.items.map(
+          items.map(
             (item: {
               prodotto: string
               prezzo: number
@@ -2097,19 +2179,28 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
     if (!toSave.length) return
     setImportSaving(true)
     setImportError(null)
-    const rows = toSave.map(i => ({
-      prodotto: i.prodotto,
-      prezzo: i.prezzo,
-      data_prezzo: importDate,
-      note:
+    const srcFattura = importFattureList.find(f => f.id === selectedFatturaId)
+    const originMachine =
+      selectedFatturaId && srcFattura
+        ? ` — Origine: ${srcFattura.label}${LISTINO_SRC_FATTURA_MARK}${selectedFatturaId}|`
+        : ''
+    const rows = toSave.map(i => {
+      const base =
         [
           i.codice_prodotto?.trim() ? `Codice: ${i.codice_prodotto.trim()}` : null,
           i.unita ? `Unità: ${i.unita}` : null,
           i.note,
         ]
           .filter(Boolean)
-          .join(' — ') || null,
-    }))
+          .join(' — ') || null
+      const note = originMachine ? (base ? `${base}${originMachine}` : `Origine listino${originMachine}`) : base
+      return {
+        prodotto: i.prodotto,
+        prezzo: i.prezzo,
+        data_prezzo: importDate,
+        note,
+      }
+    })
     try {
       const res = await fetch('/api/listino/prezzi', {
         method: 'POST',
@@ -2206,6 +2297,34 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
     return acc
   }, {})
 
+  const fatturaIdsInRows = useMemo(
+    () => new Set(rows.filter((r) => r.tipo === 'fattura').map((r) => r.id)),
+    [rows],
+  )
+  const bollaDatesInRows = useMemo(
+    () => new Set(rows.filter((r) => r.tipo === 'bolla').map((r) => r.data.slice(0, 10))),
+    [rows],
+  )
+  const filteredListinoByProduct = useMemo(() => {
+    if (listinoSpendFilter === 'all') return listinoByProduct
+    const out: Record<string, ListinoProdotto[]> = {}
+    for (const [name, prezzi] of Object.entries(listinoByProduct)) {
+      const sorted = [...prezzi].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+      const ultimo = sorted[sorted.length - 1]!
+      if (listinoSpendFilter === 'fatture') {
+        const fid = extractListinoSrcFatturaId(ultimo.note)
+        if (fid && fatturaIdsInRows.has(fid)) out[name] = prezzi
+      } else {
+        const d = ultimo.data_prezzo.slice(0, 10)
+        if (bollaDatesInRows.has(d)) out[name] = prezzi
+      }
+    }
+    return out
+  }, [listinoByProduct, listinoSpendFilter, fatturaIdsInRows, bollaDatesInRows])
+
+  const nListinoProducts = Object.keys(listinoByProduct).length
+  const nFilteredProducts = Object.keys(filteredListinoByProduct).length
+
   const copy = () => {
     navigator.clipboard.writeText(MIGRATION_SQL).then(() => {
       setCopied(true)
@@ -2301,9 +2420,10 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
           <div className="px-5 py-3 border-b border-app-line-22 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoProdotti}</p>
             <div className="flex items-center gap-2">
-              {Object.keys(listinoByProduct).length > 0 && (
+              {nListinoProducts > 0 && (
                 <span className="rounded-full border border-app-soft-border app-workspace-inset-bg px-2 py-0.5 text-[10px] font-medium text-app-fg-muted">
-                  {Object.keys(listinoByProduct).length} {t.fornitori.listinoProdottiTracked}
+                  {listinoSpendFilter !== 'all' ? `${nFilteredProducts} / ${nListinoProducts}` : nListinoProducts}{' '}
+                  {t.fornitori.listinoProdottiTracked}
                 </span>
               )}
               {!readOnly ? (
@@ -2346,7 +2466,7 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
               ) : (
                 <>
                   <div className="mb-3 flex items-end gap-3">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">{t.appStrings.listinoImportSelectInvoiceLabel}</label>
                       <select
                         value={selectedFatturaId}
@@ -2354,9 +2474,33 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
                         className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
                       >
                         {importFattureList.map(f => (
-                          <option key={f.id} value={f.id}>{f.label}</option>
+                          <option key={f.id} value={f.id}>
+                            {f.analizzata ? `\u2713 ${f.label}` : f.label}
+                          </option>
                         ))}
                       </select>
+                      {(() => {
+                        const sel = importFattureList.find((f) => f.id === selectedFatturaId)
+                        if (!sel) return null
+                        return (
+                          <div
+                            className={`mt-2 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-opacity ${
+                              sel.analizzata
+                                ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-100'
+                                : 'border-app-line-22 app-workspace-inset-bg-soft text-app-fg-muted opacity-[0.88]'
+                            }`}
+                          >
+                            <span className={`min-w-0 flex-1 truncate font-medium ${sel.analizzata ? 'text-emerald-50' : 'text-app-fg'}`}>
+                              {sel.label}
+                            </span>
+                            {sel.analizzata ? (
+                              <span className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">
+                                {t.appStrings.listinoInvoiceAnalyzedBadge}
+                              </span>
+                            ) : null}
+                          </div>
+                        )
+                      })()}
                     </div>
                     <button
                       onClick={handleImportAnalyze}
@@ -2634,66 +2778,150 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
             </div>
           )}
 
+          {nListinoProducts > 0 && nFilteredProducts === 0 && (
+            <div className="border-b border-app-line-22 px-5 py-8 text-center">
+              <p className="text-sm text-app-fg-muted">{t.fornitori.listinoFilterEmptyKpi}</p>
+              <button
+                type="button"
+                onClick={() => setListinoSpendFilter('all')}
+                className="mt-3 rounded-lg border border-app-line-28 bg-app-line-10 px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-violet-500/40 hover:text-violet-200"
+              >
+                {t.fornitori.listinoClearKpiFilter}
+              </button>
+            </div>
+          )}
+
           {/* Product rows */}
-          {Object.keys(listinoByProduct).length > 0 && (
+          {nListinoProducts > 0 && nFilteredProducts > 0 && (
             <div className={APP_SECTION_DIVIDE_ROWS}>
-              {Object.entries(listinoByProduct).map(([prodotto, prezzi]) => {
+              {Object.entries(filteredListinoByProduct).map(([prodotto, prezzi]) => {
                 const sorted = [...prezzi].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
-                const ultimo = sorted[sorted.length - 1]
-                const penultimo = sorted.length > 1 ? sorted[sorted.length - 2] : null
-                const delta = penultimo ? ultimo.prezzo - penultimo.prezzo : 0
-                const pct   = penultimo ? (delta / penultimo.prezzo) * 100 : 0
-                const isRincaro = delta > 0
-                const isRibasso = delta < 0
+                const ultimo = sorted[sorted.length - 1]!
+                const { ref } = referencePriceForListinoRow(sorted, ultimo)
+                const priceDelta = ref ? ultimo.prezzo - ref.prezzo : 0
+                const pct = ref && Math.abs(ref.prezzo) > 1e-9 ? (priceDelta / ref.prezzo) * 100 : 0
+                const up = Boolean(ref && priceDelta > 0.0001)
+                const down = Boolean(ref && priceDelta < -0.0001)
+                const pctLabel = `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`
+                const summaryLine =
+                  ref == null
+                    ? null
+                    : up
+                      ? t.fornitori.listinoLastIncrease
+                          .replace('{delta}', fmtMoney(priceDelta))
+                          .replace('{pct}', pctLabel)
+                      : down
+                        ? t.fornitori.listinoLastDecrease
+                            .replace('{delta}', fmtMoney(Math.abs(priceDelta)))
+                            .replace('{pct}', pctLabel)
+                        : t.fornitori.listinoLastFlat.replace('{pct}', pctLabel)
+                const parsed = parseListinoNoteParts(ultimo.note)
+                const fid = extractListinoSrcFatturaId(ultimo.note)
+                const originRow = fid ? rows.find((r) => r.tipo === 'fattura' && r.id === fid) : null
+                const originLine = originRow
+                  ? t.fornitori.listinoOriginInvoice
+                      .replace('{inv}', originRow.numero ?? '—')
+                      .replace('{data}', formatDate(originRow.data))
+                      .replace('{supplier}', fornitoreNome)
+                  : parsed.humanTail?.toLowerCase().includes('origine')
+                    ? parsed.humanTail
+                    : null
+                const verificaQ = new URLSearchParams(searchParams.toString())
+                fornitoreSupplierClearDocParams(verificaQ)
+                verificaQ.set('tab', 'verifica')
+                verificaQ.set('stato', 'rekki_prezzo_discordanza')
+                verificaQ.set('verifica_prodotto', prodotto)
+                const verificaHref = `${pathname}?${verificaQ.toString()}`
+                const noteDisplay = stripListinoSrcMachineSuffix(ultimo.note)
 
                 return (
                   <div key={prodotto} className="px-5 py-3.5">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-semibold text-app-fg">{prodotto}</p>
-                          {penultimo && (
-                            <div className={`flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              isRincaro ? 'bg-red-500/15 text-red-300' : isRibasso ? 'bg-emerald-500/15 text-emerald-300' : 'border border-app-soft-border app-workspace-inset-bg text-app-fg-muted'
-                            }`}>
-                              {isRincaro ? '▲' : isRibasso ? '▼' : '='} {Math.abs(pct).toFixed(1)}%
-                            </div>
-                          )}
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                          {sorted.map((p, i) => (
-                            <span key={p.id} className="flex items-center gap-1">
-                              <span className="text-[10px] text-app-fg-muted">
-                                {formatDateLib(p.data_prezzo, locale, timezone, { month: 'short', year: '2-digit' })}
-                              </span>
-                              <span className={`text-xs font-bold ${
-                                i === sorted.length - 1 && isRincaro ? 'text-red-300' :
-                                i === sorted.length - 1 && isRibasso ? 'text-emerald-300' :
-                                'text-app-fg-muted'
-                              }`}>
-                                £{p.prezzo.toFixed(2)}
-                              </span>
-                              {i < sorted.length - 1 && <span className="text-[10px] text-app-fg-muted">→</span>}
+                          {parsed.codice ? (
+                            <span className="rounded border border-app-line-28 bg-app-line-10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-app-fg-muted">
+                              {parsed.codice}
                             </span>
-                          ))}
+                          ) : null}
+                          {parsed.unita ? (
+                            <span className="rounded border border-cyan-500/25 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
+                              {parsed.unita}
+                            </span>
+                          ) : null}
                         </div>
-                        {ultimo.note && <p className="mt-0.5 text-[10px] italic text-app-fg-muted">{ultimo.note}</p>}
+                        {summaryLine ? (
+                          <p className="text-[11px] leading-snug text-app-fg-muted">
+                            <span className="font-medium text-app-fg">{summaryLine}</span>
+                            <span className="ml-1 text-[10px] opacity-80">{t.fornitori.listinoVsReferenceHint}</span>
+                          </p>
+                        ) : null}
+                        {originLine ? (
+                          <p className="text-[10px] leading-snug text-violet-200/90">{originLine}</p>
+                        ) : null}
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-lg font-bold tabular-nums tracking-tight text-app-fg">
+                            {fmtMoney(ultimo.prezzo)}
+                          </span>
+                          {ref && up ? (
+                            <span className="inline-flex items-center gap-1 text-sm font-bold text-red-300 tabular-nums">
+                              <span aria-hidden>⚠️</span>
+                              {pctLabel}
+                            </span>
+                          ) : ref && down ? (
+                            <span className="text-sm font-bold text-emerald-300 tabular-nums">{pctLabel}</span>
+                          ) : null}
+                          {rekkiLinked ? (
+                            <span className="rounded border border-fuchsia-500/30 bg-fuchsia-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-fuchsia-200">
+                              {t.fornitori.listinoRekkiListBadge}
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-[10px] text-app-fg-muted">
+                          {t.fornitori.listinoColData}:{' '}
+                          <span className="font-medium text-app-fg-muted">
+                            {formatDateLib(ultimo.data_prezzo, locale, timezone, { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          {sorted.length > 1 ? (
+                            <span className="ml-1 opacity-70">
+                              · {t.fornitori.listinoHistoryDepth.replace('{n}', String(sorted.length - 1))}
+                            </span>
+                          ) : null}
+                        </p>
+                        {noteDisplay ? (
+                          <p className="text-[10px] leading-relaxed text-app-fg-muted/90">{noteDisplay}</p>
+                        ) : null}
                       </div>
 
-                      {/* Delete last entry button */}
                       {!readOnly ? (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(ultimo.id)}
-                        disabled={deletingId === ultimo.id}
-                        title="Rimuovi ultimo prezzo"
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-app-fg-muted transition-colors hover:bg-red-500/15 hover:text-red-400 disabled:opacity-40"
-                      >
-                        {deletingId === ultimo.id
-                          ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                          : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        }
-                      </button>
+                        <div className="flex shrink-0 flex-col items-end gap-1.5">
+                          <Link
+                            href={verificaHref}
+                            className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/20"
+                            title={t.fornitori.listinoVerifyAnomaliesTitle}
+                          >
+                            {t.fornitori.listinoVerifyAnomalies}
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(ultimo.id)}
+                            disabled={deletingId === ultimo.id}
+                            title="Rimuovi ultimo prezzo"
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-app-fg-muted transition-colors hover:bg-red-500/15 hover:text-red-400 disabled:opacity-40"
+                          >
+                            {deletingId === ultimo.id ? (
+                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                       ) : null}
                     </div>
                   </div>
@@ -2704,39 +2932,53 @@ function ListinoTab({ fornitoreId, readOnly }: { fornitoreId: string; readOnly?:
         </div>
       ) : null}
 
-      {/* ── Totali ── */}
+      {/* ── Totali (KPI cliccabili → filtro elenco prodotti) ── */}
       {rows.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[
-            {
-              label: t.fornitori.listinoTotale,
-              value: totale,
-              cls: 'border-app-line-22 bg-transparent text-app-fg',
-              bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar,
-            },
-            {
-              label: t.fornitori.listinoDaBolle,
-              value: totBolle,
-              cls: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
-              bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar,
-            },
-            {
-              label: t.fornitori.listinoDaFatture,
-              value: totFatture,
-              cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
-              bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar,
-            },
-          ].map(({ label, value, cls, bar }) => (
-            <div
+          {(
+            [
+              {
+                key: 'all' as const,
+                label: t.fornitori.listinoTotale,
+                value: totale,
+                cls: 'border-app-line-22 bg-transparent text-app-fg',
+                bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar,
+                aria: t.fornitori.listinoKpiAriaAll,
+              },
+              {
+                key: 'bolle' as const,
+                label: t.fornitori.listinoDaBolle,
+                value: totBolle,
+                cls: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
+                bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar,
+                aria: t.fornitori.listinoKpiAriaBolle,
+              },
+              {
+                key: 'fatture' as const,
+                label: t.fornitori.listinoDaFatture,
+                value: totFatture,
+                cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
+                bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar,
+                aria: t.fornitori.listinoKpiAriaFatture,
+              },
+            ] as const
+          ).map(({ key, label, value, cls, bar, aria }) => (
+            <button
               key={label}
-              className={`relative flex flex-col overflow-hidden rounded-xl border shadow-none ${cls}`}
+              type="button"
+              aria-pressed={listinoSpendFilter === key}
+              aria-label={aria}
+              onClick={() => setListinoSpendFilter((prev) => (prev === key ? 'all' : key))}
+              className={`relative flex flex-col overflow-hidden rounded-xl border text-left shadow-none transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_0_24px_-8px_rgba(6,182,212,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
+                listinoSpendFilter === key ? 'ring-2 ring-cyan-400/45 ring-offset-2 ring-offset-slate-950' : ''
+              } ${cls}`}
             >
               <div className={`app-card-bar-accent shrink-0 ${bar}`} aria-hidden />
               <div className="p-4">
                 <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
-                <p className="text-xl font-bold tabular-nums">£{value.toFixed(2)}</p>
+                <p className="text-xl font-bold tabular-nums">{fmtMoney(value)}</p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -3038,7 +3280,18 @@ function FornitoreDetailClient({
           readOnly={supplierReadOnlyMobile}
         />
       )}
-      {displayTab === 'listino' && <ListinoTab fornitoreId={fornitore.id} readOnly={supplierReadOnlyMobile} />}
+      {displayTab === 'listino' && (
+        <ListinoTab
+          fornitoreId={fornitore.id}
+          fornitoreNome={fornitore.nome}
+          rekkiLinked={Boolean(
+            String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
+          )}
+          countryCode={countryCode}
+          currency={currency}
+          readOnly={supplierReadOnlyMobile}
+        />
+      )}
       {displayTab === 'conferme' && (
         <FornitoreConfermeOrdineTab
           fornitoreId={fornitore.id}

@@ -1,8 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT } from '@/lib/use-t'
 import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
+import {
+  buildGoogleSiteRekkiSearchUrlForCompany,
+  buildGoogleSiteRekkiSearchUrlForVat,
+  type RekkiLookupFallbackHints,
+} from '@/lib/rekki-supplier-lookup'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
 type RekkiHit = { id: string; name: string }
@@ -10,6 +15,7 @@ type RekkiHit = { id: string; name: string }
 export default function RekkiSupplierIntegration({
   fornitoreId,
   piva,
+  supplierDisplayName,
   initialRekkiId,
   initialRekkiLink,
   onSaved,
@@ -19,6 +25,8 @@ export default function RekkiSupplierIntegration({
 }: {
   fornitoreId: string
   piva: string | null
+  /** Ragione sociale / nome: ricerca Google fallback e hint. */
+  supplierDisplayName?: string | null
   initialRekkiId?: string | null
   initialRekkiLink?: string | null
   onSaved?: () => void
@@ -34,7 +42,9 @@ export default function RekkiSupplierIntegration({
   const [rekkiLink, setRekkiLink] = useState(initialRekkiLink?.trim() ?? '')
   const [lookupMsg, setLookupMsg] = useState<string | null>(null)
   const [hits, setHits] = useState<RekkiHit[]>([])
+  const [fallbackHints, setFallbackHints] = useState<RekkiLookupFallbackHints | null>(null)
   const [loading, setLoading] = useState<'lookup' | 'save' | null>(null)
+  const extractTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const nextLink = initialRekkiLink?.trim() ?? ''
@@ -71,30 +81,67 @@ export default function RekkiSupplierIntegration({
     }
   }
 
-  const applyIdFromLink = () => {
+  const applyIdFromLink = useCallback(() => {
     const extracted = extractRekkiSupplierIdFromUrl(rekkiLink)
-    if (!extracted || extracted === rekkiId.trim()) return
+    if (!extracted) return
+    if (extracted === rekkiId.trim()) return
     setRekkiId(extracted)
     setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
+  }, [rekkiLink, rekkiId, t.fornitori.rekkiIdExtractedFromLink])
+
+  /** Estrazione immediata mentre si incolla / si modifica il link (debounce leggero). */
+  useEffect(() => {
+    if (extractTimer.current) clearTimeout(extractTimer.current)
+    extractTimer.current = setTimeout(() => {
+      const extracted = extractRekkiSupplierIdFromUrl(rekkiLink)
+      if (extracted && extracted !== rekkiId.trim()) {
+        setRekkiId(extracted)
+        setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
+      }
+    }, 120)
+    return () => {
+      if (extractTimer.current) clearTimeout(extractTimer.current)
+    }
+  }, [rekkiLink, rekkiId, t.fornitori.rekkiIdExtractedFromLink])
+
+  const openGoogleRekkiByVat = () => {
+    const u = buildGoogleSiteRekkiSearchUrlForVat(piva ?? '')
+    if (u) window.open(u, '_blank', 'noopener,noreferrer')
+  }
+
+  const openGoogleRekkiByName = () => {
+    const u = buildGoogleSiteRekkiSearchUrlForCompany(supplierDisplayName ?? '')
+    if (u) window.open(u, '_blank', 'noopener,noreferrer')
   }
 
   const lookup = async () => {
     if (!piva?.trim()) {
       setLookupMsg(t.fornitori.rekkiLookupNeedVat)
+      setFallbackHints(null)
       return
     }
     const hadNoRekkiId = !rekkiId.trim()
     setLoading('lookup')
     setLookupMsg(null)
     setHits([])
+    setFallbackHints(null)
     try {
       const res = await fetch('/api/fornitore-rekki', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'lookup', piva }),
+        body: JSON.stringify({
+          action: 'lookup',
+          piva,
+          supplierName: supplierDisplayName ?? null,
+        }),
       })
-      const j = (await res.json()) as { suppliers?: RekkiHit[]; message?: string }
+      const j = (await res.json()) as {
+        suppliers?: RekkiHit[]
+        message?: string
+        fallback?: RekkiLookupFallbackHints | null
+      }
       const suppliers = Array.isArray(j.suppliers) ? j.suppliers : []
+      setFallbackHints(j.fallback ?? null)
 
       if (suppliers.length === 1 && hadNoRekkiId) {
         const only = suppliers[0]
@@ -143,6 +190,15 @@ export default function RekkiSupplierIntegration({
   /** Stesso filo della scheda modifica fornitore: contorno + ombra, corpo trasparente sul canvas. */
   const rekkiShellCls =
     'relative overflow-hidden rounded-2xl bg-transparent text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.28),0_16px_40px_-14px_rgba(0,0,0,0.22)] ring-1 ring-inset ring-white/10'
+
+  const vatSearchAvailable = (piva ?? '').replace(/\D/g, '').length >= 7
+  const nameSearchAvailable = (supplierDisplayName ?? '').trim().length >= 2
+  const showGuidedPaste =
+    fallbackHints != null ||
+    (Boolean(lookupMsg) &&
+      hits.length === 0 &&
+      lookupMsg !== t.fornitori.rekkiAutoLinkedSingle &&
+      lookupMsg !== t.fornitori.rekkiLookupNeedVat)
 
   if (readOnly) {
     const id = initialRekkiId?.trim() ?? rekkiId.trim()
@@ -203,6 +259,26 @@ export default function RekkiSupplierIntegration({
           >
             {loading === 'lookup' ? t.common.loading : t.fornitori.rekkiLookupByVat}
           </button>
+          {vatSearchAvailable ? (
+            <button
+              type="button"
+              onClick={() => openGoogleRekkiByVat()}
+              disabled={loading !== null}
+              className="rounded-lg border border-violet-500/45 bg-violet-500/10 px-3 py-2 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:opacity-40"
+            >
+              {t.fornitori.rekkiSearchOnRekkiGoogle}
+            </button>
+          ) : null}
+          {nameSearchAvailable ? (
+            <button
+              type="button"
+              onClick={() => openGoogleRekkiByName()}
+              disabled={loading !== null}
+              className="rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-white/[0.06] disabled:opacity-40"
+            >
+              {t.fornitori.rekkiSearchOnRekkiGoogleByName}
+            </button>
+          ) : null}
           {piva?.trim() ? (
             <span className="font-mono text-[11px] text-app-fg-muted">VAT: {piva}</span>
           ) : (
@@ -210,6 +286,14 @@ export default function RekkiSupplierIntegration({
           )}
         </div>
         {lookupMsg && <p className="text-xs text-app-fg-muted">{lookupMsg}</p>}
+        {fallbackHints?.envSetupHint ? (
+          <p className="rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2 text-[11px] leading-relaxed text-amber-100/95">
+            {fallbackHints.envSetupHint}
+          </p>
+        ) : null}
+        {showGuidedPaste ? (
+          <p className="text-[11px] leading-relaxed text-app-fg-muted">{t.fornitori.rekkiGuidedPasteHint}</p>
+        ) : null}
         {hits.length > 0 && (
           <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-app-line-22 app-workspace-inset-bg-soft p-2">
             {hits.map((h) => (
@@ -244,6 +328,16 @@ export default function RekkiSupplierIntegration({
               value={rekkiLink}
               onChange={(e) => setRekkiLink(e.target.value)}
               onBlur={() => applyIdFromLink()}
+              onPaste={(e) => {
+                const pasted = e.clipboardData?.getData('text/plain')?.trim() ?? ''
+                if (!pasted) return
+                const extracted = extractRekkiSupplierIdFromUrl(pasted)
+                if (!extracted) return
+                window.setTimeout(() => {
+                  setRekkiId(extracted)
+                  setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
+                }, 0)
+              }}
               placeholder={t.fornitori.rekkiLinkPlaceholder}
               className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />

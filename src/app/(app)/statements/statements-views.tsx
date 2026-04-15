@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState, useCallback, useRef, useMemo, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { thumbnailUrl } from '@/lib/storage-transform'
 import { getLocale, formatCurrency } from '@/lib/localization'
@@ -31,6 +31,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
+import { checkResultMatchesVerificaProdotto } from '@/lib/listino-display'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
@@ -2465,6 +2466,15 @@ export function VerificationStatusTab({
   type SollecitoEntry = { status: 'idle'|'loading'|'sent'|'error'; sentAt?: string }
   const [solleciti,      setSolleciti]      = useState<Record<string, SollecitoEntry>>({})
   const [checkFilter,    setCheckFilter]    = useState<'all'|'ok'|'fattura_mancante'|'bolle_mancanti'|'errore_importo'|'rekki_prezzo_discordanza'>('all')
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const raw = searchParams.get('stato')?.trim().toLowerCase()
+    if (raw === 'anomalia' || raw === 'rekki_prezzo_discordanza') {
+      setCheckFilter('rekki_prezzo_discordanza')
+    }
+  }, [searchParams])
+
+  const verificaProdottoRaw = searchParams.get('verifica_prodotto')?.trim() ?? ''
 
   /* ── Classic bolla/fattura overview state ─────────── */
   // Use external year/month when provided (controlled by parent), otherwise local state
@@ -3081,7 +3091,11 @@ export function VerificationStatusTab({
 
             {/* Per-line results — mobile cards */}
             <div className="md:hidden divide-y divide-app-soft-border">
-            {checkResults.filter(r => checkFilter === 'all' || r.status === checkFilter).map(r => {
+            {checkResults.filter(
+              r =>
+                (checkFilter === 'all' || r.status === checkFilter) &&
+                checkResultMatchesVerificaProdotto(r, verificaProdottoRaw),
+            ).map(r => {
               const cfg        = STATUS_CONFIG[r.status]
               const needAction =
                 r.status === 'fattura_mancante' ||
@@ -3276,7 +3290,11 @@ export function VerificationStatusTab({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-app-line-15">
-                  {checkResults.filter(r => checkFilter === 'all' || r.status === checkFilter).map(r => {
+                  {checkResults.filter(
+                    r =>
+                      (checkFilter === 'all' || r.status === checkFilter) &&
+                      checkResultMatchesVerificaProdotto(r, verificaProdottoRaw),
+                  ).map(r => {
                     const cfg        = STATUS_CONFIG[r.status]
                     const needAction =
                       r.status === 'fattura_mancante' ||
