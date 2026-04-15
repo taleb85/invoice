@@ -100,7 +100,7 @@ async function readDuplicateReportNdjsonStream(
 }
 
 const toolbarStripBtnCls =
-  'inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-2.5 text-[11px] font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
+  'inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-app-line-35 app-workspace-inset-bg px-2.5 text-[11px] font-semibold text-app-fg transition-colors hover:border-app-line-50 hover:brightness-110'
 const defaultBtnCls =
   'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
 
@@ -242,20 +242,20 @@ export default function DashboardDuplicateFattureButton({
     open && mounted
       ? createPortal(
           <div
-            className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+            className="fixed inset-0 z-[80] flex items-end justify-center app-workspace-inset-bg p-3 backdrop-blur-sm sm:items-center sm:p-6"
             role="dialog"
             aria-modal="true"
             aria-labelledby="dup-fatture-title"
             onClick={(e) => e.target === e.currentTarget && setOpen(false)}
           >
-            <div className="flex max-h-[min(90vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-b from-slate-900 to-slate-950 shadow-[0_0_40px_-12px_rgba(245,158,11,0.35)]">
+            <div className="flex max-h-[min(90vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-amber-500/35 app-workspace-surface-elevated shadow-[0_0_40px_-12px_rgba(245,158,11,0.35)]">
               <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
                 <div className="min-w-0">
                   <h2 id="dup-fatture-title" className="text-base font-bold text-amber-100 sm:text-lg">
                     {t.dashboard.duplicateFattureModalTitle}
                   </h2>
                   {data && !loading ? (
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-app-fg-muted">
                       {t.dashboard.duplicateFattureRowsAnalyzed.replace(
                         '{n}',
                         data.scannedRows.toLocaleString(locale),
@@ -266,7 +266,7 @@ export default function DashboardDuplicateFattureButton({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="shrink-0 rounded-lg border border-white/15 px-2.5 py-1 text-xs font-semibold text-slate-200 transition-colors hover:bg-white/10"
+                  className="shrink-0 rounded-lg border border-app-line-30 app-workspace-inset-bg-soft px-2.5 py-1 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-a-45 hover:bg-app-line-10 hover:text-app-fg"
                 >
                   {t.dashboard.duplicateFattureClose}
                 </button>
@@ -293,14 +293,14 @@ export default function DashboardDuplicateFattureButton({
                         d="M4 12a8 8 0 018-8v8z"
                       />
                     </svg>
-                    <p className="text-center text-sm text-slate-300">{t.dashboard.duplicateFattureScanning}</p>
-                    <p className="text-center text-xs text-slate-400">
+                    <p className="text-center text-sm text-app-fg-muted">{t.dashboard.duplicateFattureScanning}</p>
+                    <p className="text-center text-xs text-app-fg-muted">
                       {t.dashboard.duplicateFattureRowsAnalyzed.replace(
                         '{n}',
                         progressScanned.toLocaleString(locale),
                       )}
                     </p>
-                    <p className="tabular-nums text-xs text-slate-500">
+                    <p className="tabular-nums text-xs text-app-fg-muted">
                       {scanElapsedSec > 0 ? `${scanElapsedSec}s` : '…'}
                     </p>
                     <div className="w-full max-w-lg px-1">
@@ -308,32 +308,32 @@ export default function DashboardDuplicateFattureButton({
                         {t.dashboard.duplicateFattureScanningBatch}
                       </p>
                       <ul
-                        className="max-h-48 min-h-[5rem] space-y-1.5 overflow-y-auto rounded-lg border border-white/10 bg-slate-900/50 px-2 py-2 text-left"
+                        className="max-h-48 min-h-[5rem] space-y-1.5 overflow-y-auto rounded-lg border border-white/10 app-workspace-inset-bg-soft px-2 py-2 text-left"
                         aria-label={t.dashboard.duplicateFattureScanningBatch}
                       >
                         {progressSample.length > 0 ? (
                           progressSample.map((row) => (
                             <li
                               key={row.id}
-                              className="border-b border-white/5 pb-1.5 text-[11px] text-slate-300 last:border-0 last:pb-0"
+                              className="border-b border-white/5 pb-1.5 text-[11px] text-app-fg-muted last:border-0 last:pb-0"
                             >
-                              <div className="truncate font-medium text-slate-200">
+                              <div className="truncate font-medium text-app-fg-muted">
                                 {row.fornitore_nome ?? '—'}
-                                <span className="font-normal text-slate-500">
+                                <span className="font-normal text-app-fg-muted">
                                   {' '}
                                   · {formatDate(row.data)}
                                   {row.numero_fattura ? ` · ${row.numero_fattura}` : ''}
                                 </span>
                               </div>
                               {row.file_label ? (
-                                <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500" title={row.file_label}>
+                                <div className="mt-0.5 truncate font-mono text-[10px] text-app-fg-muted" title={row.file_label}>
                                   {row.file_label}
                                 </div>
                               ) : null}
                             </li>
                           ))
                         ) : (
-                          <li className="list-none py-5 text-center text-[11px] leading-relaxed text-slate-500">
+                          <li className="list-none py-5 text-center text-[11px] leading-relaxed text-app-fg-muted">
                             {t.dashboard.duplicateFattureScanningAwaitingRows}
                           </li>
                         )}
@@ -343,7 +343,7 @@ export default function DashboardDuplicateFattureButton({
                 ) : error ? (
                   <p className="py-10 text-center text-sm text-red-300">{error}</p>
                 ) : data && data.groups.length === 0 ? (
-                  <p className="py-10 text-center text-sm leading-relaxed text-slate-300">
+                  <p className="py-10 text-center text-sm leading-relaxed text-app-fg-muted">
                     {t.dashboard.duplicateFattureNone}
                   </p>
                 ) : data ? (
@@ -356,12 +356,12 @@ export default function DashboardDuplicateFattureButton({
                     {data.groups.map((g) => (
                       <div
                         key={`${g.sede_id ?? 'x'}-${g.fornitore_id}-${g.data}-${g.numero_normalizzato}`}
-                        className="rounded-xl border border-white/10 bg-slate-800/40 px-3 py-3 sm:px-4"
+                        className="rounded-xl border border-white/10 app-workspace-inset-bg-soft px-3 py-3 sm:px-4"
                       >
                         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                          <p className="text-sm font-semibold text-slate-100">
+                          <p className="text-sm font-semibold text-app-fg">
                             {g.fornitore_nome ?? '—'}
-                            <span className="ml-2 font-normal text-slate-400">
+                            <span className="ml-2 font-normal text-app-fg-muted">
                               · {formatDate(g.data)} · {g.numero_normalizzato}
                             </span>
                           </p>
@@ -369,7 +369,7 @@ export default function DashboardDuplicateFattureButton({
                             {t.dashboard.duplicateFattureGroupCount.replace('{n}', String(g.fatture.length))}
                           </span>
                         </div>
-                        <p className="mb-2 text-[11px] text-slate-500">
+                        <p className="mb-2 text-[11px] text-app-fg-muted">
                           {g.sede_nome ?? t.dashboard.duplicateFattureSedeUnassigned}
                         </p>
                         <ul className="flex flex-col gap-1.5">
@@ -377,16 +377,16 @@ export default function DashboardDuplicateFattureButton({
                             <li key={f.id} className="flex items-stretch gap-2">
                               <Link
                                 href={`/fatture/${f.id}`}
-                                className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-cyan-500/20 bg-cyan-950/20 px-2.5 py-2 text-xs transition-colors hover:border-cyan-400/40 hover:bg-cyan-950/35 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                                className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-app-soft-border bg-cyan-950/20 px-2.5 py-2 text-xs transition-colors hover:border-app-a-40 hover:bg-cyan-950/35 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
                                 onClick={() => setOpen(false)}
                               >
-                                <span className="font-mono text-[11px] text-cyan-200/90">{f.id.slice(0, 8)}…</span>
-                                <span className="font-semibold text-slate-200 sm:text-right">
+                                <span className="font-mono text-[11px] text-app-fg-muted">{f.id.slice(0, 8)}…</span>
+                                <span className="font-semibold text-app-fg-muted sm:text-right">
                                   {f.importo != null && !Number.isNaN(f.importo)
                                     ? formatCurrency(f.importo, currency, locale)
                                     : '—'}
                                 </span>
-                                <span className="col-span-2 text-cyan-300 underline decoration-cyan-500/50 sm:col-span-1 sm:text-right">
+                                <span className="col-span-2 text-app-fg-muted underline decoration-app-line-50 sm:col-span-1 sm:text-right">
                                   {t.common.detail} →
                                 </span>
                               </Link>

@@ -461,15 +461,16 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     router.push('/'); router.refresh()
   }
 
-  const inputCls = 'w-full px-4 py-3 text-sm border border-slate-600/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 bg-slate-700/70 text-slate-100 placeholder:text-slate-500 transition'
+  const inputCls =
+    'w-full rounded-xl border border-app-line-30 app-workspace-inset-bg px-4 py-3 text-sm text-app-fg ring-1 ring-inset ring-white/5 transition placeholder:text-app-fg-muted focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
   if (sessionGateNext && (!gateUiReady || meLoading)) {
     return (
       <div className="mx-auto flex min-h-[50vh] w-full max-w-xs flex-col items-center justify-center gap-3 px-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-        <p className="text-sm text-slate-300">{t.common.loading}</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
+        <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
       </div>
     )
   }
@@ -483,7 +484,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       <div className="app-card-login">
         <div className="app-card-bar" aria-hidden />
 
-        <div className="space-y-4 p-6 text-center">
+        <div className="space-y-4 p-6 text-center text-app-fg">
 
         {mode === 'name' ? (
           /* ── OPERATORE: Nome + PIN a 4 cifre — niente autofill / salvataggio credenziali browser ── */
@@ -498,7 +499,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
             {/* Nome */}
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">{t.login.nameLabel}</label>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.login.nameLabel}</label>
               <input
                 type="text"
                 name="fluxo-branch-display"
@@ -551,7 +552,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               {/* Badge sede */}
               <div className="mt-2 flex h-6 min-h-6 items-center justify-center">
                 {lookingUp && (
-                  <span className="text-xs text-slate-200 flex items-center gap-1.5">
+                  <span className="text-xs text-app-fg-muted flex items-center gap-1.5">
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -560,27 +561,27 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                   </span>
                 )}
                 {!lookingUp && sedeNome && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-cyan-500/10 text-cyan-300 text-xs font-semibold rounded-lg border border-cyan-500/20">
-                    <svg className="w-3 h-3 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-app-line-10 text-app-fg-muted text-xs font-semibold rounded-lg border border-app-soft-border">
+                    <svg className="w-3 h-3 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                     {sedeNome}
                   </span>
                 )}
                 {!lookingUp && !sedeNome && name.trim().length > 1 && !nameReady && (
-                  <span className="text-xs text-slate-500">{t.login.enterFirstName}</span>
+                  <span className="text-xs text-app-fg-muted">{t.login.enterFirstName}</span>
                 )}
               </div>
             </div>
 
             {/* PIN a 4 caselle */}
             <div>
-              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                 <span>{t.login.pinLabel}</span>
-                <span className="font-normal normal-case text-gray-400"> {t.login.pinDigits}</span>
+                <span className="font-normal normal-case text-app-fg-muted"> {t.login.pinDigits}</span>
               </label>
               <div
-                className="flex gap-3 justify-center rounded-xl border border-cyan-500/35 bg-slate-800/30 px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+                className="flex gap-3 justify-center rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
                 onPaste={handlePinPaste}
               >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -600,12 +601,12 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                       'w-14 h-14 text-center text-xl font-bold border-2 rounded-xl transition-all',
                       'focus:outline-none focus:ring-0',
                       loading
-                        ? 'border-slate-700 bg-slate-700/50 text-slate-600'
+                        ? 'border-app-line-30 app-workspace-inset-bg-soft text-app-fg-muted'
                         : pin[idx]
-                          ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
+                          ? 'border-app-a-70 bg-app-line-15 text-app-fg-muted shadow-sm shadow-app-line-20'
                           : nameReady
-                            ? 'border-slate-600 bg-slate-700/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10'
-                            : 'border-slate-700/50 bg-slate-700/30 text-slate-600 cursor-not-allowed',
+                            ? 'border-app-line-28 app-workspace-inset-bg-soft text-app-fg hover:border-app-line-50 focus:border-app-a-55 focus:bg-app-line-10'
+                            : 'border-app-line-22 app-workspace-inset-bg-soft text-app-fg-muted cursor-not-allowed',
                     ].join(' ')}
                   />
                 ))}
@@ -616,7 +617,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 {Array.from({ length: PIN_LENGTH }).map((_, i) => (
                     <span key={i} className={[
                     'w-1.5 h-1.5 rounded-full transition-all duration-200',
-                    pin[i] ? 'bg-cyan-400 scale-110 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-slate-600',
+                    pin[i] ? 'bg-app-cyan-400 scale-110 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-cyan-950/55',
                   ].join(' ')} />
                 ))}
               </div>
@@ -648,19 +649,19 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           >
             {adminGateEnabled === null ? (
               <div className="flex justify-center py-12" role="status" aria-live="polite">
-                <svg className="h-8 w-8 animate-spin text-cyan-400" fill="none" viewBox="0 0 24 24">
+                <svg className="h-8 w-8 animate-spin text-app-cyan-500" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
               </div>
             ) : !adminGateUnlocked ? (
               <div className="space-y-4">
-                <label className="block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                   {t.login.adminGateLabel}
                 </label>
-                <p className="px-0.5 text-[11px] leading-relaxed text-slate-500">{t.login.adminGateHint}</p>
+                <p className="px-0.5 text-[11px] leading-relaxed text-app-fg-muted">{t.login.adminGateHint}</p>
                 <div
-                  className="flex flex-wrap justify-center gap-2 rounded-xl border border-cyan-500/35 bg-slate-800/30 px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+                  className="flex flex-wrap justify-center gap-2 rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
                   onPaste={handleAdminGatePinPaste}
                 >
                   {Array.from({ length: adminGatePinLen }).map((_, idx) => {
@@ -683,17 +684,17 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                           'border-2 text-center font-bold transition-all',
                           'rounded-xl focus:outline-none focus:ring-0',
                           adminGateVerifying
-                            ? 'border-slate-700 bg-slate-700/50 text-slate-600'
+                            ? 'border-app-line-30 app-workspace-inset-bg-soft text-app-fg-muted'
                             : adminGatePin[idx]
-                              ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
-                              : 'border-slate-600 bg-slate-700/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10',
+                              ? 'border-app-a-70 bg-app-line-15 text-app-fg-muted shadow-sm shadow-app-line-20'
+                              : 'border-app-line-28 app-workspace-inset-bg-soft text-app-fg hover:border-app-line-50 focus:border-app-a-55 focus:bg-app-line-10',
                         ].join(' ')}
                       />
                     )
                   })}
                 </div>
                 {adminGateVerifying && (
-                  <p className="mt-1 flex items-center justify-center gap-2 text-xs text-cyan-400">
+                  <p className="mt-1 flex items-center justify-center gap-2 text-xs text-app-cyan-500">
                     <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -706,7 +707,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             ) : (
               <>
                 <div className="relative text-left">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">{t.login.emailLabel}</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.login.emailLabel}</label>
                   <input
                     ref={emailRef}
                     type="email"
@@ -720,15 +721,15 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     className={inputCls}
                   />
                   {showSugg && (
-                    <ul className="absolute left-0 right-0 z-10 mt-1 overflow-hidden rounded-xl border border-slate-600/60 bg-slate-700 text-sm shadow-xl">
+                    <ul className="absolute left-0 right-0 z-10 mt-1 overflow-hidden rounded-xl border border-app-line-28 app-workspace-surface-elevated text-sm shadow-xl">
                       {suggestions.map(s => {
                         const at = s.indexOf('@')
                         return (
                           <li key={s}>
                             <button type="button" onMouseDown={() => { setEmail(s); setSuggestions([]); setShowSugg(false) }}
-                              className="flex w-full items-center gap-1 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/60">
-                              <span className="text-slate-200">{s.slice(0, at + 1)}</span>
-                              <span className="font-medium text-slate-100">{s.slice(at + 1)}</span>
+                              className="flex w-full items-center gap-1 px-4 py-2.5 text-left transition-colors hover:bg-app-line-10">
+                              <span className="text-app-fg-muted">{s.slice(0, at + 1)}</span>
+                              <span className="font-medium text-app-fg">{s.slice(at + 1)}</span>
                             </button>
                           </li>
                         )
@@ -738,7 +739,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 </div>
 
                 <div className="text-left">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">{t.login.passwordLabel}</label>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.login.passwordLabel}</label>
                   <div className="relative">
                     <input
                       type={showPw ? 'text' : 'password'}
@@ -748,7 +749,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                       onChange={e => setAdminPw(e.target.value)} className={inputCls + ' pr-11'}
                     />
                     <button type="button" tabIndex={-1} onClick={() => setShowPw(v => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-200 hover:text-slate-200">
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
                       {showPw ? (
                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
@@ -766,7 +767,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 {message && <FeedbackMsg msg={message} />}
 
                 <button type="submit" disabled={loading || !email || !adminPw || !adminGateUnlocked}
-                  className="app-glow-cyan flex w-full items-center justify-center gap-2 rounded-full bg-cyan-500 py-3 text-sm font-bold uppercase tracking-wide text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50">
+                  className="app-glow-cyan flex w-full items-center justify-center gap-2 rounded-full bg-app-cyan-500 py-3 text-sm font-bold uppercase tracking-wide text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 disabled:opacity-50">
                   {loading
                     ? <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                     : <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
@@ -840,20 +841,20 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             </svg>
           </button>
           {langOpen && (
-            <div className="absolute bottom-full mb-1 right-0 z-50 w-36 overflow-hidden rounded-xl border border-white/10 bg-[#0f2040] shadow-xl">
+            <div className="absolute bottom-full right-0 z-50 mb-1 w-36 overflow-hidden rounded-xl border border-app-line-25 app-workspace-surface-elevated shadow-[0_12px_32px_-8px_rgba(0,0,0,0.45),0_0_24px_-10px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-white/10 backdrop-blur-xl">
               {LOCALES.map(l => (
                 <button
                   key={l.code}
                   type="button"
                   onClick={() => { setLocale(l.code); setLangOpen(false) }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
-                    locale === l.code ? 'bg-white/15 text-white' : 'text-white/50 hover:bg-white/10 hover:text-white'
+                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
+                    locale === l.code ? 'bg-app-line-18 text-app-fg' : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
                   }`}
                 >
                   <span className="text-sm">{l.flag}</span>
                   <span>{l.label}</span>
                   {locale === l.code && (
-                    <svg className="w-3 h-3 ml-auto text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="ml-auto h-3 w-3 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
                     </svg>
                   )}

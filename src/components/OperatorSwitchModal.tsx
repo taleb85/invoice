@@ -229,36 +229,33 @@ export default function OperatorSwitchModal() {
       role="dialog"
       aria-modal
       aria-labelledby="operator-switch-modal-title"
-      className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-950/60 px-4 pt-4 backdrop-blur-md max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
+      className="fixed inset-0 z-[220] flex items-center justify-center app-workspace-scrim px-4 pt-4 ring-1 ring-inset ring-app-line-10 max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose()
       }}
     >
       <div
-        className="pointer-events-auto flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-600/45 bg-slate-700/95 shadow-2xl shadow-black/50 ring-1 ring-inset ring-cyan-400/10 backdrop-blur-xl"
+        className="app-card pointer-events-auto flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden p-0 text-app-fg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="h-0.5 w-full shrink-0 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-300"
-          aria-hidden
-        />
+        <div className="app-card-bar shrink-0" aria-hidden />
 
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-600/50 px-4 py-4 sm:px-5">
+        <div className="flex shrink-0 items-center justify-between border-b border-app-line-15 app-workspace-inset-bg-soft px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/25 bg-cyan-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-line-35 bg-app-line-15 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <svg className="h-5 w-5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
               </svg>
             </div>
             <div className="min-w-0">
-              <p id="operator-switch-modal-title" className="text-base font-semibold tracking-tight text-slate-100">
+              <p id="operator-switch-modal-title" className="text-base font-semibold tracking-tight text-app-fg">
                 {t.ui.changeOperator}
               </p>
               {activeOperator && (
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-app-fg-muted">
                   {t.ui.currentlyActive}{' '}
-                  <span className="font-medium text-cyan-200/90 uppercase tracking-wide">
+                  <span className="font-medium text-app-fg-muted uppercase tracking-wide">
                     {activeOperator.full_name.toUpperCase()}
                   </span>
                 </p>
@@ -268,7 +265,7 @@ export default function OperatorSwitchModal() {
           <button
             type="button"
             onClick={handleClose}
-            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-600/40 hover:text-slate-100 touch-manipulation"
+            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg touch-manipulation"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
@@ -277,29 +274,29 @@ export default function OperatorSwitchModal() {
         </div>
 
         {/* Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain app-workspace-inset-bg p-4 sm:p-5">
 
           {/* ─ Step: select operator ─ */}
           {step === 'select' && (
             <div className="space-y-4">
               {loadingOps ? (
                 <div className="py-8 flex justify-center">
-                  <svg className="w-6 h-6 text-cyan-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-app-cyan-500 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
                 </div>
               ) : noSedeContext ? (
-                <p className="px-1 py-6 text-center text-sm text-slate-400">
+                <p className="px-1 py-6 text-center text-sm text-app-fg-muted">
                   {t.ui.noSedeForOperators}
                 </p>
               ) : operators.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-400">
+                <p className="py-6 text-center text-sm text-app-fg-muted">
                   {t.ui.noOperatorsFound}
                 </p>
               ) : (
                 <>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-cyan-400/85">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                     {t.ui.selectOperator}
                   </p>
                   <div className="space-y-2">
@@ -310,27 +307,22 @@ export default function OperatorSwitchModal() {
                         ref={op.id === operators[0].id ? firstBtnRef : undefined}
                         onClick={() => { setSelected(op); setStep('pin'); setPin(Array(PIN_LENGTH).fill('')); setError('') }}
                         className={[
-                          'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left shadow-sm transition-all touch-manipulation active:scale-[0.99]',
+                          'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all touch-manipulation active:scale-[0.99]',
                           selected?.id === op.id
-                            ? 'border-cyan-400/45 bg-cyan-500/12 text-white shadow-[0_0_24px_-8px_rgba(34,211,238,0.35)]'
-                            : 'border-slate-600/50 bg-slate-800/35 text-slate-200 hover:border-cyan-500/25 hover:bg-slate-800/55',
+                            ? 'border-app-a-50 bg-app-line-18 text-app-fg shadow-[0_0_24px_-8px_rgba(34,211,238,0.4)] ring-1 ring-app-a-25'
+                            : 'border-app-line-25 app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-40 hover:bg-black/18',
                         ].join(' ')}
                       >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-500/35 bg-slate-700/80 text-sm font-bold text-slate-100 ring-1 ring-inset ring-white/5">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-line-35 bg-app-line-15 text-sm font-bold text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                           {(op.full_name.trim().toUpperCase() || '?').charAt(0)}
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                           <span className="text-sm font-semibold uppercase tracking-wide">
                             {op.full_name.toUpperCase()}
                           </span>
-                          {op.role === 'admin_sede' && (
-                            <span className="text-[10px] font-medium text-violet-300/90">
-                              {t.sedi.adminSedeRole}
-                            </span>
-                          )}
                         </div>
                         {activeOperator?.id === op.id && (
-                          <span className="ml-auto shrink-0 text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full font-semibold">
+                          <span className="ml-auto shrink-0 text-[10px] bg-app-line-20 text-app-cyan-500 px-2 py-0.5 rounded-full font-semibold">
                             {t.ui.activeOperator}
                           </span>
                         )}
@@ -350,20 +342,20 @@ export default function OperatorSwitchModal() {
                 <button
                   type="button"
                   onClick={() => { setStep('select'); clearPin() }}
-                  className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-600/35 hover:text-slate-100"
+                  className="rounded-lg p-1.5 text-app-fg-muted transition-colors hover:bg-app-line-12 hover:text-app-fg"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
                   </svg>
                 </button>
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/10 text-sm font-bold text-cyan-300">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-line-35 bg-app-line-15 text-sm font-bold text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                   {(selected?.full_name.trim().toUpperCase() || '?').charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-100">
+                  <p className="text-sm font-semibold uppercase tracking-wide text-app-fg">
                     {selected?.full_name.toUpperCase()}
                   </p>
-                  <p className="text-[11px] text-slate-400">{t.login.pinLabel}</p>
+                  <p className="text-[11px] text-app-fg-muted">{t.login.pinLabel}</p>
                 </div>
               </div>
 
@@ -375,8 +367,8 @@ export default function OperatorSwitchModal() {
                     className={[
                       'w-4 h-4 rounded-full transition-all duration-150',
                       pin[i]
-                        ? 'bg-cyan-400 scale-110 shadow-[0_0_8px_rgba(34,211,238,0.6)]'
-                        : 'border border-slate-600/80 bg-slate-800/80',
+                        ? 'bg-app-cyan-400 scale-110 shadow-[0_0_10px_rgba(34,211,238,0.65)]'
+                        : 'border border-app-line-35 app-workspace-inset-bg',
                     ].join(' ')}
                   />
                 ))}
@@ -384,18 +376,18 @@ export default function OperatorSwitchModal() {
 
               {/* Error */}
               {error && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <svg className="w-3.5 h-3.5 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-2 rounded-lg border border-red-400/35 bg-red-950/40 px-3 py-2 ring-1 ring-red-500/15">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
-                  <span className="text-xs text-red-300">{error}</span>
+                  <span className="text-xs text-red-200">{error}</span>
                 </div>
               )}
 
               {/* Keypad — tablet optimized */}
               {loading ? (
                 <div className="py-6 flex justify-center">
-                  <svg className="w-8 h-8 text-cyan-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-app-cyan-500 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
@@ -417,12 +409,12 @@ export default function OperatorSwitchModal() {
                           if (isClear)  clearPin()
                         }}
                         className={[
-                          'min-h-[52px] rounded-2xl border text-xl font-bold transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg',
+                          'min-h-[52px] rounded-2xl border text-xl font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg',
                           isDigit
-                            ? 'border-slate-600/60 bg-slate-800/90 text-white shadow-sm hover:border-cyan-500/35 hover:bg-slate-800'
+                            ? 'border-app-line-35 app-workspace-surface-elevated text-app-fg ring-1 ring-app-line-10 hover:border-app-a-50 hover:brightness-110'
                             : isClear
-                              ? 'border-slate-600/45 bg-slate-800/50 text-slate-300 hover:border-slate-500/50 hover:bg-slate-800/70'
-                              : 'border-slate-600/45 bg-slate-800/50 text-slate-300 hover:border-slate-500/50 hover:bg-slate-800/70',
+                              ? 'border-app-soft-border app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-35 hover:bg-black/18'
+                              : 'border-app-soft-border app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-35 hover:bg-black/18',
                         ].join(' ')}
                       >
                         {key}

@@ -1,7 +1,9 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { LogOut } from 'lucide-react'
 import {
   fornitoreIdFromProfilePath,
   isFornitoreProfileRoute,
@@ -14,6 +16,8 @@ import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import ConnectionStatusDot from '@/components/ConnectionStatusDot'
 
+const LANG_DIALOG_ID = 'mobile-topbar-lang-dialog'
+
 export default function MobileTopbar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -21,22 +25,23 @@ export default function MobileTopbar() {
   const t = useT()
   const { locale, setLocale } = useLocale()
   const [langOpen, setLangOpen] = useState(false)
-  const langWrapRef = useRef<HTMLDivElement>(null)
+  const langTitleId = useId()
+  const langCloseBtnRef = useRef<HTMLButtonElement>(null)
+
   useEffect(() => {
     if (!langOpen) return
-    const onDoc = (e: MouseEvent) => {
-      if (langWrapRef.current && !langWrapRef.current.contains(e.target as Node)) {
-        setLangOpen(false)
-      }
-    }
+    document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setLangOpen(false)
     }
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey)
+    const raf = requestAnimationFrame(() => {
+      langCloseBtnRef.current?.focus()
+    })
     return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+      cancelAnimationFrame(raf)
     }
   }, [langOpen])
 
@@ -131,7 +136,7 @@ export default function MobileTopbar() {
                 FLUXO
               </text>
             </svg>
-            <span className="-mt-0.5 block truncate text-[8px] font-semibold uppercase tracking-wider text-slate-200 sm:text-[9px]">
+            <span className="-mt-0.5 block truncate text-[8px] font-semibold uppercase tracking-wider text-app-fg-muted sm:text-[9px]">
               {t.ui.tagline}
             </span>
           </div>
@@ -139,23 +144,24 @@ export default function MobileTopbar() {
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <ConnectionStatusDot />
-          <div className="relative" ref={langWrapRef}>
+          <div className="relative">
             <button
               type="button"
               onClick={() => setLangOpen((o) => !o)}
               className={`flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center gap-1 rounded-xl px-2 transition-colors ${
                 langOpen
-                  ? 'bg-white/12 text-slate-100'
-                  : 'text-slate-200 hover:bg-white/10 hover:text-white active:bg-white/15'
+                  ? 'bg-app-line-15 text-app-fg ring-1 ring-app-a-30'
+                  : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15'
               }`}
               aria-expanded={langOpen}
-              aria-haspopup="listbox"
+              aria-haspopup="dialog"
+              aria-controls={LANG_DIALOG_ID}
               aria-label={t.ui.languageTooltip}
               title={currentLocale ? `${t.ui.languageTooltip}: ${currentLocale.label}` : t.ui.languageTooltip}
             >
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-200">{locale}</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-app-fg-muted">{locale}</span>
               <svg
-                className={`h-3 w-3 shrink-0 text-slate-500 transition-transform ${langOpen ? 'rotate-180' : ''}`}
+                className={`h-3 w-3 shrink-0 text-app-cyan-500 opacity-70 transition-transform ${langOpen ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -164,65 +170,93 @@ export default function MobileTopbar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            {langOpen && (
-              <div
-                className="absolute right-0 top-full z-50 mt-1 w-44 overflow-hidden rounded-xl border border-slate-500/50 bg-slate-600 py-1 shadow-2xl shadow-black/40"
-                role="listbox"
-              >
-                {LOCALES.map((l) => (
-                  <button
-                    key={l.code}
-                    type="button"
-                    role="option"
-                    aria-selected={locale === l.code}
-                    onClick={() => {
-                      if (l.code === locale) {
-                        setLangOpen(false)
-                        return
-                      }
-                      setLocale(l.code)
-                      setLangOpen(false)
-                    }}
-                    className={`flex w-full touch-manipulation items-center gap-2.5 px-3 py-2.5 text-left text-[11px] font-medium transition-colors ${
-                      locale === l.code
-                        ? 'bg-cyan-500/15 text-white'
-                        : 'text-slate-200 hover:bg-white/10 hover:text-slate-100'
-                    }`}
+            {langOpen &&
+              createPortal(
+                <div
+                  id={LANG_DIALOG_ID}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby={langTitleId}
+                  className="fixed inset-0 z-[200] flex items-center justify-center app-workspace-scrim px-4 pt-4 ring-1 ring-inset ring-app-line-10 max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) setLangOpen(false)
+                  }}
+                >
+                  <div
+                    className="app-card pointer-events-auto flex w-full max-w-sm flex-col overflow-hidden p-0 text-app-fg"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <span className="text-base leading-none">{l.flag}</span>
-                    <span className="truncate">{l.label}</span>
-                    {locale === l.code && (
-                      <svg
-                        className="ml-auto h-3 w-3 shrink-0 text-cyan-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        aria-hidden
+                    <div className="app-card-bar shrink-0" aria-hidden />
+                    <div className="flex shrink-0 items-center justify-between border-b border-app-line-15 app-workspace-inset-bg-soft px-3 py-2.5 sm:px-4 sm:py-3">
+                      <p id={langTitleId} className="text-base font-semibold tracking-tight text-app-fg">
+                        {t.ui.languageTooltip}
+                      </p>
+                      <button
+                        ref={langCloseBtnRef}
+                        type="button"
+                        onClick={() => setLangOpen(false)}
+                        className="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg"
+                        aria-label={t.ui.closeMenu}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div
+                      className="max-h-[min(60dvh,22rem)] divide-y divide-app-line-10 overflow-y-auto overscroll-contain app-workspace-inset-bg py-0"
+                      role="listbox"
+                    >
+                      {LOCALES.map((l) => (
+                        <button
+                          key={l.code}
+                          type="button"
+                          role="option"
+                          aria-selected={locale === l.code}
+                          onClick={() => {
+                            if (l.code === locale) {
+                              setLangOpen(false)
+                              return
+                            }
+                            setLocale(l.code)
+                            setLangOpen(false)
+                          }}
+                          className={`flex w-full touch-manipulation items-center gap-2.5 px-4 py-3 text-left text-sm font-medium transition-colors sm:px-5 sm:py-3.5 ${
+                            locale === l.code
+                              ? 'bg-app-line-18 text-app-fg'
+                              : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
+                          }`}
+                        >
+                          <span className="text-lg leading-none">{l.flag}</span>
+                          <span className="truncate">{l.label}</span>
+                          {locale === l.code && (
+                            <svg
+                              className="ml-auto h-4 w-4 shrink-0 text-app-cyan-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>,
+                document.body,
+              )}
           </div>
 
           <button
             type="button"
             onClick={() => void handleLogout()}
-            className="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl text-slate-200 transition-colors hover:bg-white/10 hover:text-cyan-300 active:bg-white/15"
+            className="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15"
             aria-label={t.nav.esci}
             title={t.nav.esci}
           >
-            <svg className="size-5 shrink-0 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              />
-            </svg>
+            <LogOut className="size-5 shrink-0" strokeWidth={2} aria-hidden />
           </button>
         </div>
       </div>

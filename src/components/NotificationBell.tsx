@@ -60,25 +60,25 @@ export default function NotificationBell({
   const showBadge = badgeCount > 0
   const badgeColor =
     badgeVariant === 'error'
-      ? 'bg-red-600 text-white ring-2 ring-slate-700'
+      ? 'bg-red-600 text-white ring-2 ring-cyan-950/80'
       : badgeVariant === 'pending'
-        ? 'bg-amber-500 text-slate-950 ring-2 ring-slate-700'
+        ? 'bg-amber-500 text-cyan-950 ring-2 ring-cyan-950/80'
         : ''
 
   const buttonClass =
     variant === 'header'
-      ? `relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-visible rounded-xl border border-slate-500/45 bg-slate-600/35 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-slate-400/50 hover:bg-slate-600/55 hover:text-white touch-manipulation`
+      ? `relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-visible rounded-xl border border-app-line-40 bg-app-line-15 text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_20px_-8px_rgba(34,211,238,0.2)] transition-colors hover:border-app-a-55 hover:bg-app-line-25 hover:text-app-fg touch-manipulation`
       : variant === 'inline'
-        ? `relative inline-flex h-8 min-w-8 shrink-0 items-center justify-center overflow-visible rounded-lg border border-slate-700/80 bg-slate-700/90 px-1 text-slate-200 transition-colors hover:border-slate-600 hover:bg-slate-700 touch-manipulation`
-        : `relative flex h-12 w-12 shrink-0 items-center justify-center overflow-visible rounded-full border border-slate-600/90 bg-slate-700/95 text-slate-100 shadow-lg shadow-black/40 backdrop-blur-sm transition-colors hover:border-cyan-500/40 hover:bg-slate-700/95 touch-manipulation`
+        ? `relative inline-flex h-8 min-w-8 shrink-0 items-center justify-center overflow-visible rounded-lg border border-app-line-35 app-workspace-inset-bg px-1 text-app-fg-muted transition-colors hover:border-app-a-45 hover:bg-app-line-10 touch-manipulation`
+        : `relative flex h-12 w-12 shrink-0 items-center justify-center overflow-visible rounded-full border border-app-line-40 app-workspace-inset-bg text-app-fg shadow-lg shadow-cyan-950/50 backdrop-blur-sm transition-colors hover:border-app-a-55 hover:bg-app-line-15 touch-manipulation`
 
   const menuPosition =
     variant === 'fab' ? 'bottom-full right-0 mb-2' : 'right-0 top-full mt-1.5'
 
   const menuSurface =
     variant === 'header'
-      ? 'border border-slate-500/50 bg-slate-600 shadow-2xl shadow-black/40 backdrop-blur-md'
-      : 'border border-slate-700/80 bg-slate-700/98 shadow-xl shadow-black/50 backdrop-blur-md'
+      ? 'border border-app-line-30 app-workspace-surface-elevated shadow-[0_16px_40px_-8px_rgba(0,0,0,0.5),0_0_28px_-10px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-white/10 backdrop-blur-xl'
+      : 'border border-app-line-30 app-workspace-surface-elevated shadow-xl shadow-black/40 ring-1 ring-inset ring-white/10 backdrop-blur-xl'
 
   const menu = open ? (
     <div
@@ -87,7 +87,7 @@ export default function NotificationBell({
       aria-labelledby={btnId}
       className={`absolute z-[120] min-w-[14rem] rounded-xl py-2 ${menuSurface} ${menuPosition}`}
     >
-      <p className="border-b border-slate-600/80 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-200">
+      <p className="border-b border-app-soft-border px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
         {t.nav.notifications}
       </p>
       <div className="px-2 pt-2">
@@ -105,7 +105,7 @@ export default function NotificationBell({
               </span>
             </Link>
           ) : (
-            <p className="px-2 py-2 text-sm text-slate-500">{t.nav.noNotifications}</p>
+            <p className="px-2 py-2 text-sm text-app-fg-muted">{t.nav.noNotifications}</p>
           )
         ) : operatorPendingDocs > 0 || operatorLogErrors24h > 0 ? (
           <div className="flex flex-col gap-1 px-2 pt-2">
@@ -137,7 +137,7 @@ export default function NotificationBell({
             ) : null}
           </div>
         ) : (
-          <p className="px-2 py-2 text-sm text-slate-500">{t.nav.noNotifications}</p>
+          <p className="px-2 py-2 text-sm text-app-fg-muted">{t.nav.noNotifications}</p>
         )}
       </div>
     </div>

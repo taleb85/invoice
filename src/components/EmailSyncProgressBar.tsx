@@ -47,7 +47,7 @@ function AttemptProgressTrack(props: {
                 ? isRed
                   ? 'w-7 bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.45)]'
                   : 'w-7 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.45)]'
-                : 'w-5 bg-slate-600/70'
+                : 'w-5 bg-cyan-950/60'
             }`}
           />
         ))}
@@ -70,17 +70,17 @@ function mailLineClass(
   }
   if (variant === 'completionOk') {
     if (key === 'imported') return `${base} text-emerald-200/95`
-    if (key === 'processed') return `${base} text-cyan-100/95`
-    if (key === 'already') return `${base} text-slate-200`
-    if (key === 'ignored' || key === 'drafts') return `${base} text-slate-200`
-    return `${base} text-cyan-100/95`
+    if (key === 'processed') return `${base} text-app-fg-muted`
+    if (key === 'already') return `${base} text-app-fg-muted`
+    if (key === 'ignored' || key === 'drafts') return `${base} text-app-fg-muted`
+    return `${base} text-app-fg-muted`
   }
   // live cyan box
   if (key === 'imported') return `${base} text-emerald-200/90 [text-shadow:0_0_20px_rgba(52,211,153,0.1)]`
-  if (key === 'processed') return `${base} text-cyan-50/95 [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
-  if (key === 'already') return `${base} text-slate-200`
-  if (key === 'ignored' || key === 'drafts') return `${base} text-slate-200`
-  return `${base} text-cyan-100/95 [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
+  if (key === 'processed') return `${base} text-app-fg [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
+  if (key === 'already') return `${base} text-app-fg-muted`
+  if (key === 'ignored' || key === 'drafts') return `${base} text-app-fg-muted`
+  return `${base} text-app-fg-muted [text-shadow:0_0_24px_rgba(34,211,238,0.12)]`
 }
 
 /**
@@ -167,12 +167,12 @@ export default function EmailSyncProgressBar() {
         barError
           ? 'border-red-500/40 bg-red-950/90 shadow-[0_4px_24px_-8px_rgba(239,68,68,0.35)]'
           : completionWarn
-            ? 'border-amber-500/35 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(245,158,11,0.28)]'
+            ? 'border-amber-500/35 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(245,158,11,0.28)]'
             : showCompletionSummary
-              ? 'border-emerald-500/35 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(16,185,129,0.3)]'
+              ? 'border-emerald-500/35 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(16,185,129,0.3)]'
               : stalledActive
-                ? 'border-amber-500/30 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(245,158,11,0.2)]'
-                : 'border-cyan-500/25 bg-slate-700/95 shadow-[0_4px_24px_-8px_rgba(6,182,212,0.35)]'
+                ? 'border-amber-500/30 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(245,158,11,0.2)]'
+                : 'border-app-line-25 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(6,182,212,0.35)]'
       }`}
       role="status"
       aria-live="polite"
@@ -189,8 +189,8 @@ export default function EmailSyncProgressBar() {
                   : showCompletionSummary
                     ? 'text-emerald-100/95'
                     : stalledActive
-                      ? 'text-cyan-100/90'
-                      : 'text-cyan-100/95'
+                      ? 'text-app-fg-muted'
+                      : 'text-app-fg-muted'
             }`}
           >
             {label}
@@ -219,7 +219,7 @@ export default function EmailSyncProgressBar() {
                     ? 'border-red-400/50 text-red-100 hover:bg-red-500/15'
                     : stalledActive
                       ? 'border-amber-400/45 text-amber-100 hover:bg-amber-500/15'
-                      : 'border-cyan-400/45 text-cyan-100 hover:bg-cyan-500/15'
+                      : 'border-app-a-45 text-app-fg-muted hover:bg-app-line-15'
                 }`}
                 aria-label={t.dashboard.emailSyncStopAria}
               >
@@ -236,7 +236,7 @@ export default function EmailSyncProgressBar() {
                       ? 'text-emerald-100 [text-shadow:0_0_12px_rgba(110,231,183,0.55),0_0_22px_rgba(16,185,129,0.32)]'
                       : stalledActive
                         ? 'text-amber-100 [text-shadow:0_0_12px_rgba(253,230,138,0.45),0_0_20px_rgba(245,158,11,0.22)]'
-                        : 'text-cyan-50 [text-shadow:0_0_12px_rgba(103,232,249,0.7),0_0_24px_rgba(6,182,212,0.35)]'
+                        : 'text-app-fg [text-shadow:0_0_12px_rgba(103,232,249,0.7),0_0_24px_rgba(6,182,212,0.35)]'
               }`}
             >
               {Math.round(pct)}%
@@ -262,7 +262,7 @@ export default function EmailSyncProgressBar() {
         ) : null}
 
         {progress.stalled && progress.active && !barError ? (
-          <div className="rounded-xl border border-amber-500/35 bg-gradient-to-br from-amber-950/50 via-slate-800/45 to-slate-800/55 px-3 py-3 shadow-inner shadow-amber-950/20 sm:px-4">
+          <div className="rounded-xl border border-amber-500/35 bg-gradient-to-br from-amber-950/50 via-[rgb(30_41_59/0.44)] to-[rgb(30_27_75/0.55)] px-3 py-3 shadow-inner shadow-amber-950/20 sm:px-4">
             <div className="flex gap-3 sm:gap-4">
               <div className="flex shrink-0 flex-col items-center pt-1" aria-hidden>
                 <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-400/30">
@@ -293,8 +293,8 @@ export default function EmailSyncProgressBar() {
                   ? 'bg-amber-950/50 ring-1 ring-amber-500/20'
                   : 'bg-emerald-950/40 ring-1 ring-emerald-500/20'
                 : stalledActive
-                  ? 'bg-slate-700/90 ring-1 ring-amber-500/25'
-                  : 'bg-slate-700/90'
+                  ? 'app-workspace-surface-elevated ring-1 ring-amber-500/25'
+                  : 'app-workspace-surface-elevated'
           }`}
         >
           <div
@@ -306,8 +306,8 @@ export default function EmailSyncProgressBar() {
                   : showCompletionSummary
                     ? 'bg-gradient-to-r from-emerald-600 to-teal-500'
                     : stalledActive
-                      ? 'animate-pulse bg-gradient-to-r from-cyan-500 to-emerald-500'
-                      : 'bg-gradient-to-r from-cyan-500 to-emerald-500'
+                      ? 'animate-pulse bg-gradient-to-r from-app-cyan-500 to-emerald-500'
+                      : 'bg-gradient-to-r from-app-cyan-500 to-emerald-500'
             }`}
             style={{ width: `${pct}%` }}
           />
@@ -316,8 +316,8 @@ export default function EmailSyncProgressBar() {
           <div
             className={`rounded-xl border px-3 py-3 shadow-inner sm:px-4 ${
               completionWarn
-                ? 'border-amber-500/35 bg-gradient-to-br from-amber-950/40 via-slate-800/38 to-slate-800/50 shadow-amber-950/15'
-                : 'border-emerald-500/35 bg-gradient-to-br from-emerald-950/40 via-slate-800/38 to-slate-800/50 shadow-emerald-950/20'
+                ? 'border-amber-500/35 bg-gradient-to-br from-amber-950/40 via-[rgb(30_41_59/0.38)] to-[rgb(30_27_75/0.5)] shadow-amber-950/15'
+                : 'border-emerald-500/35 bg-gradient-to-br from-emerald-950/40 via-[rgb(30_41_59/0.38)] to-[rgb(30_27_75/0.5)] shadow-emerald-950/20'
             }`}
           >
             <div className="flex gap-3 sm:gap-4">
@@ -402,16 +402,16 @@ export default function EmailSyncProgressBar() {
           <>
             {showLiveStatsPanel && (
               <div
-                className="relative overflow-visible rounded-lg border border-cyan-500/25 bg-gradient-to-br from-cyan-950/35 via-slate-800/42 to-slate-800/52 shadow-inner shadow-cyan-950/20"
+                className="relative overflow-visible rounded-lg border border-app-line-25 bg-gradient-to-br from-cyan-950/35 via-[rgb(30_41_59/0.42)] to-[rgb(30_27_75/0.52)] shadow-inner shadow-cyan-950/20"
                 title={statsTitle || t.dashboard.emailSyncCountsHint}
               >
                 <div className="min-w-0 px-3 py-3 sm:px-4">
                   {supplierFilterLine ? (
-                    <p className="text-xs font-medium text-cyan-200/90 sm:text-sm">{supplierFilterLine}</p>
+                    <p className="text-xs font-medium text-app-fg-muted sm:text-sm">{supplierFilterLine}</p>
                   ) : null}
                   <ul
                     className={`list-none space-y-2 text-xs leading-snug sm:text-sm ${
-                      supplierFilterLine ? 'mt-2 border-t border-cyan-500/20 pt-2' : ''
+                      supplierFilterLine ? 'mt-2 border-t border-app-soft-border pt-2' : ''
                     }`}
                   >
                     {mailLines.map(({ key, text }) => (

@@ -114,7 +114,7 @@ export default function OperatorPinStepUpModal({
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-700/75 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-center justify-center app-workspace-scrim p-4 pt-4 ring-1 ring-inset ring-app-line-10 max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
       role="dialog"
       aria-modal
       aria-labelledby="operator-pin-stepup-title"
@@ -123,29 +123,31 @@ export default function OperatorPinStepUpModal({
       }}
     >
       <div
-        className="pointer-events-auto relative w-full max-w-sm overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-700/80 shadow-2xl shadow-black/40 backdrop-blur-xl sm:max-h-[90vh]"
+        className="app-card pointer-events-auto relative flex w-full max-w-sm flex-col overflow-hidden p-0 sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="h-0.5 w-full bg-gradient-to-r from-blue-500 via-cyan-400 to-cyan-300" />
+        <div className="app-card-bar shrink-0" aria-hidden />
 
-        <div className="max-h-[min(90vh,32rem)] overflow-y-auto p-6">
-          <h2 id="operator-pin-stepup-title" className="text-lg font-bold tracking-tight text-slate-100">
+        <div className="max-h-[min(90vh,32rem)] overflow-y-auto overscroll-contain app-workspace-inset-bg-soft p-6">
+          <h2 id="operator-pin-stepup-title" className="text-lg font-bold tracking-tight text-app-fg">
             {t.ui.operatorPinStepUpTitle}
           </h2>
-          <p className="mt-1 text-xs leading-relaxed text-slate-200">{t.ui.operatorPinStepUpHint}</p>
+          <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{t.ui.operatorPinStepUpHint}</p>
           {canEnterPin ? (
-            <p className="mt-2 text-sm font-medium text-cyan-300/90">
-              <span className="text-slate-500">{t.ui.currentlyActive}</span>{' '}
-              <span className="uppercase tracking-wide">{operatorName.toUpperCase()}</span>
+            <p className="mt-2 text-sm font-medium text-app-fg-muted">
+              <span className="text-app-fg-muted">{t.ui.currentlyActive}</span>{' '}
+              <span className="uppercase tracking-wide text-app-fg">{operatorName.toUpperCase()}</span>
             </p>
           ) : (
             <>
-              <p className="mt-2 text-sm text-amber-400/90">{t.ui.operatorPinStepUpNoActive}</p>
+              <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-950/25 px-3 py-2 text-sm text-amber-100/95">
+                {t.ui.operatorPinStepUpNoActive}
+              </p>
               <button
                 type="button"
                 onClick={() => openSwitchModal()}
                 disabled={loading}
-                className="mt-4 w-full rounded-xl bg-cyan-500/90 px-4 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:opacity-50"
+                className="mt-4 w-full rounded-xl bg-gradient-to-r from-app-cyan-500 to-app-cyan-400 px-4 py-3 text-sm font-semibold text-cyan-950 shadow-[0_0_20px_rgba(34,211,238,0.35)] transition-opacity hover:opacity-95 disabled:opacity-50"
               >
                 {t.ui.operatorPinStepUpChooseOperator}
               </button>
@@ -154,9 +156,9 @@ export default function OperatorPinStepUpModal({
 
           <div className="mt-5 space-y-5">
             <div>
-              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                 {t.login.pinLabel}
-                <span className="ml-1.5 font-normal normal-case text-slate-500">{t.login.pinDigits}</span>
+                <span className="ml-1.5 font-normal normal-case text-app-fg-muted">{t.login.pinDigits}</span>
               </label>
               <div className="flex justify-center gap-3" onPaste={handlePinPaste}>
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -174,12 +176,12 @@ export default function OperatorPinStepUpModal({
                     disabled={loading || !canEnterPin}
                     autoFocus={canEnterPin && idx === 0}
                     className={[
-                      'h-14 w-14 rounded-xl border-2 text-center text-xl font-bold transition-all focus:outline-none focus:ring-0',
+                      'h-14 w-14 rounded-xl border-2 text-center text-xl font-bold transition-all focus:outline-none focus:ring-2 focus:ring-app-a-35',
                       loading || !canEnterPin
-                        ? 'border-slate-700 bg-slate-700/50 text-slate-600'
+                        ? 'border-app-line-10 app-workspace-inset-bg text-app-fg-muted'
                         : pin[idx]
-                          ? 'border-cyan-400/70 bg-cyan-500/15 text-cyan-200 shadow-sm shadow-cyan-500/20'
-                          : 'border-slate-600 bg-slate-700/60 text-slate-100 hover:border-cyan-500/50 focus:border-cyan-400 focus:bg-cyan-500/10',
+                          ? 'border-app-a-70 bg-app-line-15 text-app-fg-muted shadow-[0_0_16px_-4px_rgba(34,211,238,0.35)]'
+                          : 'border-app-line-35 app-workspace-inset-bg text-app-fg hover:border-app-a-55 focus:border-app-a-55 focus:bg-app-line-10',
                     ].join(' ')}
                     aria-label={`${t.login.pinLabel} ${idx + 1}/${PIN_LENGTH}`}
                   />
@@ -191,13 +193,13 @@ export default function OperatorPinStepUpModal({
                     key={i}
                     className={[
                       'h-1.5 w-1.5 rounded-full transition-all duration-200',
-                      pin[i] ? 'scale-110 bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-slate-600',
+                      pin[i] ? 'scale-110 bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-cyan-800/70',
                     ].join(' ')}
                   />
                 ))}
               </div>
               {loading ? (
-                <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-cyan-400/90">
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-app-fg-muted">
                   <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path
@@ -218,7 +220,7 @@ export default function OperatorPinStepUpModal({
                 type="button"
                 onClick={onClose}
                 disabled={loading}
-                className="w-full rounded-xl border border-slate-600/80 bg-slate-700/80 px-3 py-3 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
+                className="w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-3 text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-45 hover:bg-app-line-10 hover:text-app-fg disabled:opacity-50"
               >
                 {t.common.cancel}
               </button>

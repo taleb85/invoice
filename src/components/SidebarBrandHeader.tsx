@@ -5,33 +5,23 @@ import { useLocale } from '@/lib/locale-context'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
 
-/** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop. */
+/** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop sopra il main. */
 export const DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID = 'desktop-header-page-actions'
 
 /**
- * Logo FLUXO nella striscia unificata con `#app-desktop-header-nav-progress` (solo md+).
+ * Fascia brand 48px (md+): logo, tagline (tap → home).
+ * Fascia brand 48px in cima al solo `aside` (colonna sinistra fissa) in `AppShell`.
  */
-export function SidebarBrandHeader({
-  collapsed,
-  onExpand,
-}: {
-  collapsed: boolean
-  onExpand: () => void
-}) {
+export function SidebarRailBrand() {
   const router = useRouter()
   const { t } = useLocale()
-  const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
 
   return (
-    <div className="relative flex min-h-[48px] min-w-0 flex-1 items-center gap-2 bg-transparent pl-3.5 pr-2.5 lg:gap-3 lg:pl-5 lg:pr-3 text-cyan-100">
+    <div className="app-shell-rail-panel flex h-full min-h-[48px] w-full shrink-0 flex-row items-center gap-1.5 px-2 text-app-fg lg:gap-2 lg:px-2.5">
       <div
-        className="flex min-w-0 shrink-0 cursor-pointer items-center gap-2"
+        className="app-shell-rail-panel flex min-w-0 flex-1 cursor-pointer items-center gap-1.5"
         onClick={() => {
           if (typeof window === 'undefined' || window.innerWidth < 768) return
-          if (collapsed) {
-            onExpand()
-            return
-          }
           router.push('/')
         }}
         role="button"
@@ -40,23 +30,26 @@ export function SidebarBrandHeader({
           if (e.key !== 'Enter' && e.key !== ' ') return
           e.preventDefault()
           if (typeof window === 'undefined' || window.innerWidth < 768) return
-          if (collapsed) onExpand()
-          else router.push('/')
+          router.push('/')
         }}
-        title={collapsed ? t.ui.expandSidebar : undefined}
       >
-        <svg viewBox="0 0 96 56" className="h-[28px] w-[2.9rem] shrink-0" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <svg
+          viewBox="0 0 96 56"
+          className="h-[26px] w-[2.65rem] shrink-0 lg:h-[28px] lg:w-[2.9rem]"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden
+        >
           <defs>
-            <linearGradient id="fx-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1e3a5f"/>
-              <stop offset="100%" stopColor="#172554"/>
+            <linearGradient id="fx-rail-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e3a5f" />
+              <stop offset="100%" stopColor="#172554" />
             </linearGradient>
-            <linearGradient id="fx-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#5b7cf9"/>
-              <stop offset="50%" stopColor="#38bdf8"/>
-              <stop offset="100%" stopColor="#22d3ee"/>
+            <linearGradient id="fx-rail-wave" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#5b7cf9" />
+              <stop offset="50%" stopColor="#38bdf8" />
+              <stop offset="100%" stopColor="#22d3ee" />
             </linearGradient>
-            <filter id="fx-wave-fluo" x="-60%" y="-60%" width="220%" height="220%" filterUnits="objectBoundingBox">
+            <filter id="fx-rail-wave-fluo" x="-60%" y="-60%" width="220%" height="220%" filterUnits="objectBoundingBox">
               <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b1" />
               <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" result="b2" />
               <feMerge>
@@ -66,44 +59,69 @@ export function SidebarBrandHeader({
               </feMerge>
             </filter>
           </defs>
-          <rect width="56" height="56" rx="13" fill="url(#fx-card-bg)"/>
+          <rect width="56" height="56" rx="13" fill="url(#fx-rail-card-bg)" />
           <path
             d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
-            stroke="url(#fx-wave)"
+            stroke="url(#fx-rail-wave)"
             strokeWidth="3.5"
             fill="none"
             strokeLinecap="round"
-            filter="url(#fx-wave-fluo)"
+            filter="url(#fx-rail-wave-fluo)"
           />
-          <circle cx="7"  cy="28" r="3.5" fill="#5b7cf9"/>
-          <circle cx="48" cy="28" r="3.5" fill="#38bdf8"/>
-          <circle cx="88" cy="28" r="3.5" fill="#22d3ee"/>
+          <circle cx="7" cy="28" r="3.5" fill="#5b7cf9" />
+          <circle cx="48" cy="28" r="3.5" fill="#38bdf8" />
+          <circle cx="88" cy="28" r="3.5" fill="#22d3ee" />
         </svg>
 
-        <div className="min-w-0">
-          <svg viewBox="0 0 130 32" className="h-auto w-[5.6rem] max-w-full" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+        <div className="app-shell-rail-panel min-w-0">
+          <svg
+            viewBox="0 0 130 32"
+            className="h-auto max-w-[min(100%,5.25rem)] w-[4.75rem] lg:w-[5.6rem]"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden
+          >
             <defs>
-              <linearGradient id="fx-text" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#6b8ef5"/>
-                <stop offset="100%" stopColor="#22d3ee"/>
+              <linearGradient id="fx-rail-text" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#6b8ef5" />
+                <stop offset="100%" stopColor="#22d3ee" />
               </linearGradient>
             </defs>
-            <text x="0" y="24" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="24" fill="url(#fx-text)">FLUXO</text>
+            <text
+              x="0"
+              y="24"
+              fontFamily="Arial Black, Arial, sans-serif"
+              fontWeight="900"
+              fontSize="24"
+              fill="url(#fx-rail-text)"
+            >
+              FLUXO
+            </text>
           </svg>
-          <p className="-mt-1 text-[9px] font-semibold uppercase tracking-wider text-cyan-100/85 [text-shadow:0_0_14px_rgba(34,211,238,0.25)]">
+          <p className="-mt-0.5 truncate text-[8px] font-semibold uppercase tracking-wider text-app-fg-muted lg:text-[9px]">
             {t.ui.tagline}
           </p>
         </div>
       </div>
-      <div className="ml-auto flex min-h-0 min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-2 self-center sm:gap-2.5 lg:gap-3">
-        <div
-          ref={registerPageActionsHost}
-          id={DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID}
-          data-fluxo-desktop-header-actions-host
-          className="flex min-h-0 min-w-0 max-w-full shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5 lg:gap-3"
-        />
-        <ScanEmailButton placement="desktopHeader" />
-      </div>
+    </div>
+  )
+}
+
+/**
+ * Fascia desktop sopra il main: portal azioni pagina + Sincronizza email.
+ * Host per `NavigationTopProgress` (`desktopHost` in AppShell).
+ */
+export function DesktopHeaderActionsStrip() {
+  const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
+
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-end gap-2 self-stretch bg-transparent ps-2 pe-2.5 text-app-fg sm:gap-2.5 lg:gap-3 lg:pe-3">
+      <div
+        ref={registerPageActionsHost}
+        id={DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID}
+        data-fluxo-desktop-header-actions-host
+        className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-2 bg-transparent sm:gap-2.5 lg:gap-3"
+      />
+      <ScanEmailButton placement="desktopHeader" />
     </div>
   )
 }

@@ -9,6 +9,15 @@ import { segmentParam } from '@/lib/segment-param'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import {
+  APP_SECTION_DIVIDE_ROWS,
+  APP_SECTION_MOBILE_LIST,
+  APP_SECTION_MOBILE_ROW,
+  APP_SECTION_TABLE_HEAD_ROW,
+  APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_TR,
+} from '@/lib/app-shell-layout'
 import { useT } from '@/lib/use-t'
 
 interface FornitoreRow {
@@ -83,19 +92,19 @@ function AddFornitoreModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-800/35 backdrop-blur-sm"
+        className="absolute inset-0 app-workspace-scrim backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md bg-slate-700/90 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="relative w-full max-w-md app-workspace-surface-elevated rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-app-line-22 flex items-center justify-between">
           <h2 className="text-base font-semibold text-gray-900">Nuovo Fornitore</h2>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700/80 rounded-lg transition-colors"
+            className="p-1.5 text-app-fg-muted hover:text-app-fg hover:bg-black/18 rounded-lg transition-colors"
             aria-label="Chiudi"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +135,7 @@ function AddFornitoreModal({
               value={nome}
               onChange={e => setNome(e.target.value)}
               placeholder="es. Mario Rossi S.r.l."
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-muted"
               required
             />
           </div>
@@ -144,7 +153,7 @@ function AddFornitoreModal({
               placeholder="es. 01234567890"
               maxLength={11}
               inputMode="numeric"
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-muted"
             />
           </div>
 
@@ -159,7 +168,7 @@ function AddFornitoreModal({
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="es. fatture@fornitore.it"
-              className="w-full px-3.5 py-2.5 text-sm border border-slate-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500 placeholder:text-gray-400"
+              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-muted"
             />
             <p className="mt-1.5 text-xs text-gray-400">
               Questa email verrà usata per abbinare automaticamente le fatture ricevute.
@@ -172,14 +181,14 @@ function AddFornitoreModal({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-slate-200 hover:text-slate-200 hover:bg-slate-700/80 rounded-lg transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-app-fg-muted hover:text-app-fg hover:bg-black/18 rounded-lg transition-colors disabled:opacity-50"
             >
               Annulla
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -292,7 +301,7 @@ export default function SedeFornitoriPage() {
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
+              className="flex items-center gap-2 rounded-lg bg-app-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -310,56 +319,73 @@ export default function SedeFornitoriPage() {
         />
 
         {/* Table / Empty state */}
-        <div className="bg-slate-700/90 rounded-xl border border-slate-700/50 overflow-hidden">
+        <div className="app-workspace-surface-elevated rounded-xl border border-app-line-22 overflow-hidden">
           {loading ? (
-            <div className="divide-y divide-gray-50">
+            <div className={APP_SECTION_DIVIDE_ROWS}>
               {[...Array(4)].map((_, i) => (
                 <div key={i} className="px-6 py-4 flex gap-4 animate-pulse">
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-700/80 rounded w-1/3" />
-                    <div className="h-3 bg-slate-700/80 rounded w-1/2" />
+                    <div className="h-4 app-workspace-inset-bg rounded w-1/3" />
+                    <div className="h-3 app-workspace-inset-bg rounded w-1/2" />
                   </div>
-                  <div className="h-4 bg-slate-700/80 rounded w-24" />
+                  <div className="h-4 app-workspace-inset-bg rounded w-24" />
                 </div>
               ))}
             </div>
           ) : fornitori.length === 0 ? (
-            <div className="px-6 py-16 text-center">
-              <svg className="w-14 h-14 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <p className="text-gray-400 text-sm font-medium mb-1">Nessun fornitore ancora registrato</p>
-              <p className="text-gray-400 text-xs mb-4">Aggiungi il primo fornitore oppure usa il Discovery per importarli dalle email.</p>
+            <AppSectionEmptyState message="Nessun fornitore ancora registrato" density="comfortable" icon={
+                <svg
+                  className="mx-auto mb-4 h-14 w-14 text-app-fg-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              }
+            >
+              <p className="mx-auto mt-1 max-w-sm text-xs font-normal text-app-fg-muted">
+                Aggiungi il primo fornitore oppure usa il Discovery per importarli dalle email.
+              </p>
               <button
+                type="button"
                 onClick={() => setShowModal(true)}
-                className="inline-flex items-center gap-1.5 text-sm text-cyan-600 font-medium hover:underline"
+                className="mt-4 inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-app-cyan-500 transition-colors hover:text-app-fg"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 Aggiungi il primo fornitore
               </button>
-            </div>
+            </AppSectionEmptyState>
           ) : (
             <>
               {/* Mobile cards */}
-              <div className="md:hidden divide-y divide-gray-50">
+              <div className={APP_SECTION_MOBILE_LIST}>
                 {fornitori.map((f) => (
-                  <div key={f.id} className="px-4 py-4">
+                  <div key={f.id} className={APP_SECTION_MOBILE_ROW}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-gray-900 truncate">{f.nome}</p>
+                        <p className="truncate font-semibold text-app-fg">{f.nome}</p>
                         {f.email && (
-                          <p className="text-sm text-gray-500 mt-0.5 truncate">{f.email}</p>
+                          <p className="mt-0.5 truncate text-sm text-app-fg-muted">{f.email}</p>
                         )}
                         {f.piva && (
-                          <p className="text-xs text-gray-400 mt-0.5">{getLocale(countryCode).vatLabel} {f.piva}</p>
+                          <p className="mt-0.5 text-xs text-app-fg-muted">
+                            {getLocale(countryCode).vatLabel} {f.piva}
+                          </p>
                         )}
                       </div>
                       <button
                         onClick={() => handleDelete(f.id, f.nome)}
                         disabled={deleting === f.id}
-                        className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                        className="rounded-lg p-2 text-app-fg-muted transition-colors hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
                         title="Elimina fornitore"
                         aria-label="Elimina fornitore"
                       >
@@ -382,35 +408,43 @@ export default function SedeFornitoriPage() {
               {/* Desktop table */}
               <table className="hidden md:table w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700/50 text-xs text-gray-500 font-medium uppercase tracking-wide">
-                    <th className="text-left px-6 py-3">Ragione Sociale</th>
-                    <th className="text-left px-6 py-3">{getLocale(countryCode).vatLabel}</th>
-                    <th className="text-left px-6 py-3">Email Principale</th>
-                    <th className="px-6 py-3" />
+                  <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-app-fg-muted">
+                      Ragione Sociale
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-app-fg-muted">
+                      {getLocale(countryCode).vatLabel}
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-app-fg-muted">
+                      Email Principale
+                    </th>
+                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-app-fg-muted" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className={APP_SECTION_TABLE_TBODY}>
                   {fornitori.map((f) => (
-                    <tr key={f.id} className="hover:bg-slate-700/70 transition-colors group">
-                      <td className="px-6 py-4 font-medium text-gray-900">{f.nome}</td>
-                      <td className="px-6 py-4 text-gray-500 tabular-nums">{f.piva ?? <span className="text-gray-300">—</span>}</td>
-                      <td className="px-6 py-4 text-gray-500">
+                    <tr key={f.id} className={`group ${APP_SECTION_TABLE_TR}`}>
+                      <td className="px-6 py-4 font-medium text-app-fg">{f.nome}</td>
+                      <td className="px-6 py-4 tabular-nums text-app-fg-muted">
+                        {f.piva ?? <span className="text-app-fg-muted">—</span>}
+                      </td>
+                      <td className="px-6 py-4 text-app-fg-muted">
                         {f.email ? (
                           <a
                             href={`mailto:${f.email}`}
-                            className="hover:text-cyan-600 hover:underline transition-colors"
+                            className="text-app-cyan-500 transition-colors hover:text-app-fg hover:underline"
                           >
                             {f.email}
                           </a>
                         ) : (
-                          <span className="text-gray-300">—</span>
+                          <span className="text-app-fg-muted">—</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleDelete(f.id, f.nome)}
                           disabled={deleting === f.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-40"
+                          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-app-fg-muted opacity-0 transition-colors hover:bg-red-950/35 hover:text-red-300 group-hover:opacity-100 disabled:opacity-40"
                           title="Elimina fornitore"
                         >
                           {deleting === f.id ? (
@@ -436,9 +470,9 @@ export default function SedeFornitoriPage() {
 
         {/* Footer hint */}
         {!loading && fornitori.length > 0 && (
-          <p className="mt-4 text-xs text-gray-400 text-center">
+          <p className="mt-4 text-center text-xs text-app-fg-muted">
             Vuoi importare altri fornitori dalle email?{' '}
-            <Link href={`/sedi/${sede_id}/discovery`} className="text-cyan-600 hover:underline font-medium">
+            <Link href={`/sedi/${sede_id}/discovery`} className="font-medium text-app-cyan-500 transition-colors hover:text-app-fg hover:underline">
               Vai al Rilevamento Fornitori →
             </Link>
           </p>
