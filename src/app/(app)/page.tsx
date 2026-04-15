@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import SollecitiButton from '@/components/SollecitiButton'
 import ScanEmailButton from '@/components/ScanEmailButton'
-import DashboardHubQuickActions from '@/components/DashboardHubQuickActions'
 import DashboardScannerFlowCard from '@/components/DashboardScannerFlowCard'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
@@ -72,7 +71,7 @@ export default async function DashboardPage() {
               <p className="mt-1 hidden text-sm text-slate-100/90 md:block">{t.sedi.subtitleGlobalAdmin}</p>
             </AppPageHeaderTitleWithDashboardShortcut>
             <div className="flex w-full min-w-0 max-w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 md:gap-3">
-              <div className="hidden min-w-0 md:flex md:flex-row md:flex-wrap md:items-center md:justify-end md:gap-2 lg:gap-3">
+              <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-2 lg:gap-3 md:overflow-x-auto">
                 <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
                 <ScanEmailButton alwaysShowLabel />
               </div>
@@ -271,12 +270,12 @@ export default async function DashboardPage() {
           dashboardLabel={t.nav.dashboard}
           showDashboardShortcut={false}
         >
-          <h1 className="app-page-title text-xl font-bold md:text-2xl">
+          <h1 className="app-page-title min-w-0 truncate text-xl font-bold md:text-2xl">
             {dashboardSedeNome ?? t.dashboard.title}
           </h1>
-          <p className="mt-0.5 hidden text-sm text-slate-200 md:block">{t.dashboard.subtitle}</p>
+          <p className="mt-0.5 hidden min-w-0 truncate text-sm text-slate-200 md:block">{t.dashboard.subtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="hidden w-full min-w-0 max-w-full md:flex md:flex-row md:flex-wrap md:items-center md:justify-end md:gap-2 lg:gap-3">
+        <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-2 lg:gap-3 md:overflow-x-auto">
           <ScanEmailButton alwaysShowLabel sedeId={adminViewSedeId ?? undefined} />
           <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
         </div>
@@ -289,10 +288,11 @@ export default async function DashboardPage() {
       )}
       {supplierHint && (
         <div className="hidden rounded-xl border border-violet-400/55 bg-gradient-to-br from-violet-900/70 via-violet-800/55 to-fuchsia-950/60 px-4 py-3 text-sm shadow-[0_8px_32px_-8px_rgba(91,33,182,0.45),inset_0_1px_0_rgba(196,181,253,0.12)] ring-1 ring-violet-400/25 md:block">
-          <p className="font-semibold leading-snug text-violet-50 [text-shadow:0_0_28px_rgba(167,139,250,0.4)]">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+          <p className="min-w-0 flex-1 font-semibold leading-snug text-violet-50 [text-shadow:0_0_28px_rgba(167,139,250,0.4)]">
             {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex w-fit max-w-full shrink-0 flex-wrap justify-end gap-2 md:mr-12">
             <Link
               href={supplierHint.newFornitoreHref}
               className="inline-flex items-center rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-violet-950/40 ring-1 ring-violet-300/35 transition-colors hover:bg-violet-400 hover:ring-violet-200/40"
@@ -311,6 +311,7 @@ export default async function DashboardPage() {
             >
               {t.statements.tabDocumenti} →
             </Link>
+          </div>
           </div>
         </div>
       )}
@@ -338,21 +339,6 @@ export default async function DashboardPage() {
               </Link>
             </div>
           ) : null}
-          <Link
-            href="/bolle/new"
-            className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500/15 to-violet-500/10 px-4 py-3 text-sm font-bold text-cyan-100 shadow-[0_0_24px_-8px_rgba(6,182,212,0.45)] transition-colors hover:border-cyan-400/50 hover:from-cyan-500/25 md:hidden"
-          >
-            <svg
-              className="h-5 w-5 shrink-0 text-cyan-200 drop-shadow-[0_0_10px_rgba(34,211,238,0.45)]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-            </svg>
-            <span className="text-center leading-tight">{t.bolle.scannerTitle}</span>
-          </Link>
           {dashboardAdminSedeUi && sedeId ? (
             <div className="grid grid-cols-1 gap-2 md:hidden">
               <Link
@@ -375,8 +361,6 @@ export default async function DashboardPage() {
               </Link>
             </div>
           ) : null}
-          <DashboardHubQuickActions />
-          <DashboardScannerFlowCard summary={scannerFlowToday} t={t} />
         </>
       ) : null}
       <div className="hidden md:block">
@@ -385,6 +369,10 @@ export default async function DashboardPage() {
         </h2>
         <DashboardOperatorKpiGrid kpis={kpis} t={t} locale={locale} currency={currency} />
       </div>
+
+      {operatorScoped ? (
+        <DashboardScannerFlowCard summary={scannerFlowToday} t={t} />
+      ) : null}
 
       <div className="hidden md:block">
         <div className={`app-card overflow-hidden ${SUMMARY_HIGHLIGHT_ACCENTS.cyan.border}`}>
