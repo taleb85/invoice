@@ -6,7 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Fornitore } from '@/types'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
-import { findDuplicateFatturaId, normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
+import {
+  findDuplicateFatturaId,
+  findDuplicateFatturaSansNumeroByImporto,
+  normalizeNumeroFattura,
+} from '@/lib/fattura-duplicate-check'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate } from '@/lib/locale-shared'
@@ -319,6 +323,21 @@ export default function NuovaBollaForm() {
           setError(t.fatture.duplicateInvoiceSameSupplierDateNumber)
           setSaving(false)
           return
+        }
+      } else {
+        const importoFinale = importo ? parseFloat(importo) : null
+        if (importoFinale != null && Number.isFinite(importoFinale)) {
+          const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {
+            sedeId,
+            fornitoreId,
+            data,
+            importo: importoFinale,
+          })
+          if (dupSans) {
+            setError(t.fatture.duplicateInvoiceSameSupplierDateAmountNoNumber)
+            setSaving(false)
+            return
+          }
         }
       }
     }

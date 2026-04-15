@@ -16,13 +16,20 @@ import {
 } from '@/lib/locale-server'
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 
 export const dynamic = 'force-dynamic'
 
-export default async function FattureRiepilogoPage() {
+export default async function FattureRiepilogoPage({
+  searchParams: searchParamsPromise,
+}: {
+  searchParams?: Promise<{ fy?: string }>
+}) {
+  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
   const [t, locale, tz, currency, cookieStore] = await Promise.all([
     getT(),
     getLocale(),
@@ -51,16 +58,18 @@ export default async function FattureRiepilogoPage() {
     rows = []
   } else if (!sedeId && isMasterAdmin) {
     ;[summary, rows] = await Promise.all([
-      fetchFattureTotaleSummary(supabase, null),
-      fetchFattureRiepilogoRows(supabase, null),
+      fetchFattureTotaleSummary(supabase, null, null),
+      fetchFattureRiepilogoRows(supabase, null, null),
     ])
   } else if (sedeId && fornitoreIds.length === 0) {
     summary = { totaleImporto: 0, fattureCount: 0 }
     rows = []
   } else {
+    const fiscal = await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy)
+    const b = fiscal?.bounds ?? null
     ;[summary, rows] = await Promise.all([
-      fetchFattureTotaleSummary(supabase, fornitoreIds),
-      fetchFattureRiepilogoRows(supabase, fornitoreIds),
+      fetchFattureTotaleSummary(supabase, fornitoreIds, b),
+      fetchFattureRiepilogoRows(supabase, fornitoreIds, b),
     ])
   }
 
@@ -74,6 +83,7 @@ export default async function FattureRiepilogoPage() {
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.fattureRiepilogoTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
+        <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (

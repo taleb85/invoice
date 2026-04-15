@@ -1,9 +1,20 @@
 import Link from 'next/link'
-import { getRequestAuth } from '@/utils/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
-import { getT, getLocale, getTimezone, getCurrency, formatDate as fmtDate } from '@/lib/locale-server'
+import {
+  getT,
+  getLocale,
+  getTimezone,
+  getCurrency,
+  getCookieStore,
+  formatDate as fmtDate,
+} from '@/lib/locale-server'
+import { fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
+import { resolveFiscalFilterForSede, type FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
@@ -11,6 +22,7 @@ import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 type FatturaListRow = {
   id: string
   data: string
+  numero_fattura: string | null
   file_url: string | null
   bolla_id: string | null
   fornitore_id: string | null
@@ -18,24 +30,62 @@ type FatturaListRow = {
   fornitore: { nome: string } | null
 }
 
-async function getFatture(): Promise<FatturaListRow[]> {
-  const { supabase } = await getRequestAuth()
-  const { data } = await supabase
+async function getFatture(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null,
+  fiscalBounds: FiscalPgBounds | null,
+): Promise<FatturaListRow[]> {
+  let q = supabase
     .from('fatture')
-    .select('id, data, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome)')
+    .select('id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome)')
     .order('data', { ascending: false })
+  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  if (fiscalBounds) {
+    q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
+  }
+  const { data } = await q
   /* Tipi Supabase sull’embed `fornitore` possono essere array in inference; a runtime è un oggetto. */
   return (data ?? []) as unknown as FatturaListRow[]
 }
 
-export default async function FatturePage() {
-  const [fatture, t, locale, tz, currency] = await Promise.all([
-    getFatture(),
+export default async function FatturePage({
+  searchParams: searchParamsPromise,
+}: {
+  searchParams?: Promise<{ fy?: string }>
+}) {
+  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
+  const [t, locale, tz, currency, cookieStore, profile, { supabase }] = await Promise.all([
     getT(),
     getLocale(),
     getTimezone(),
     getCurrency(),
+    getCookieStore(),
+    getProfile(),
+    getRequestAuth(),
   ])
+
+  const isMasterAdmin = profile?.role === 'admin'
+  const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
+  let adminViewSedeId: string | null = null
+  if (isMasterAdmin && adminPick) {
+    const { data } = await supabase.from('sedi').select('id').eq('id', adminPick).maybeSingle()
+    if (data?.id) adminViewSedeId = data.id
+  }
+
+  const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
+  const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
+
+  let fatture: FatturaListRow[] = []
+  if (!sedeId && !isMasterAdmin) {
+    fatture = []
+  } else if (!sedeId && isMasterAdmin) {
+    fatture = await getFatture(supabase, null, null)
+  } else if (sedeId && fornitoreIds.length === 0) {
+    fatture = []
+  } else {
+    const fiscal = await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy)
+    fatture = await getFatture(supabase, fornitoreIds, fiscal?.bounds ?? null)
+  }
   const formatDate = (d: string) => fmtDate(d, locale, tz)
   const totaleImporto = fatture.reduce((s, f) => s + (Number(f.importo) || 0), 0)
 
@@ -45,18 +95,14 @@ export default async function FatturePage() {
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-2xl font-bold">{t.fatture.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-          <Link
-            href="/fatture/new"
-            className="flex items-center gap-2 rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
-          >
-            <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">{t.fatture.new}</span>
-          </Link>
-        </div>
+        <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>
+
+      {!sedeId && !isMasterAdmin ? (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+          {t.dashboard.operatorNoSede}
+        </div>
+      ) : null}
 
       <AppSummaryHighlightCard
         accent="emerald"
@@ -102,6 +148,10 @@ export default async function FatturePage() {
                       {formatDate(f.data)}
                     </Link>
                   </div>
+                  <p className="mb-2 text-xs text-slate-400">
+                    <span className="font-medium text-slate-500">{t.fatture.colNumFattura}</span>{' '}
+                    <span className="text-slate-300">{f.numero_fattura?.trim() || '—'}</span>
+                  </p>
                   <div className="flex flex-wrap items-center gap-3">
                     {f.bolla_id && (
                       <Link
@@ -132,6 +182,7 @@ export default async function FatturePage() {
                 <tr className="border-b border-slate-700/60 bg-slate-700/40 text-xs font-medium uppercase tracking-wide text-slate-200">
                   <th className="px-6 py-3 text-left">{t.common.supplier}</th>
                   <th className="px-6 py-3 text-left">{t.common.date}</th>
+                  <th className="px-6 py-3 text-left">{t.fatture.colNumFattura}</th>
                   <th className="px-6 py-3 text-left">{t.fatture.headerBolla}</th>
                   <th className="px-6 py-3 text-left">{t.fatture.headerAllegato}</th>
                   <th className="px-6 py-3"></th>
@@ -158,6 +209,11 @@ export default async function FatturePage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-slate-200">{formatDate(f.data)}</td>
+                    <td className="max-w-[12rem] px-6 py-4 text-slate-200">
+                      <span className="line-clamp-2 break-words" title={f.numero_fattura?.trim() || undefined}>
+                        {f.numero_fattura?.trim() || '—'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       {f.bolla_id ? (
                         <Link href={`/bolle/${f.bolla_id}`} className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline">

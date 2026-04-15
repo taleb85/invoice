@@ -4,6 +4,17 @@ import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 const PAGE_SIZE = 1000
 export const DUPLICATE_FATTURE_REPORT_MAX_ROWS = 50_000
 
+/** Evita di monopolizzare l’event loop (dev server / un solo worker) durante scan lunghi. */
+function yieldEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
+function checkAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw new DOMException('Operazione annullata', 'AbortError')
+  }
+}
+
 export type DuplicateFatturaReportRow = {
   id: string
   fornitore_id: string
@@ -11,7 +22,6 @@ export type DuplicateFatturaReportRow = {
   data: string
   numero_fattura: string | null
   importo: number | null
-  created_at: string
   fornitore: { nome: string } | null
   sede: { nome: string } | null
 }
@@ -24,6 +34,32 @@ export type DuplicateFatturaReportGroup = {
   data: string
   numero_normalizzato: string
   fatture: DuplicateFatturaReportRow[]
+}
+
+/** Anteprima durante lo scan (streaming): ultimo lotto letto da DB. */
+export type DuplicateFatturaScanProgressItem = {
+  id: string
+  data: string
+  numero_fattura: string | null
+  fornitore_nome: string | null
+  /** Nome file da `file_url` (path/segmento), se presente. */
+  file_label: string | null
+}
+
+function fileLabelFromUrl(url: string | null | undefined): string | null {
+  if (url == null) return null
+  const s = String(url).trim()
+  if (!s) return null
+  try {
+    const decoded = decodeURIComponent(s)
+    const noQuery = decoded.split('?')[0] ?? decoded
+    const parts = noQuery.split('/').filter(Boolean)
+    const last = parts[parts.length - 1]
+    if (last && last.length <= 160) return last
+    return decoded.length > 72 ? `${decoded.slice(0, 72)}…` : decoded
+  } catch {
+    return s.length > 72 ? `${s.slice(0, 72)}…` : s
+  }
 }
 
 function embedFornitoreSede(row: unknown): DuplicateFatturaReportRow {
@@ -45,40 +81,69 @@ function embedFornitoreSede(row: unknown): DuplicateFatturaReportRow {
     data: String(r.data ?? ''),
     numero_fattura: (r.numero_fattura as string | null) ?? null,
     importo: r.importo != null ? Number(r.importo) : null,
-    created_at: String(r.created_at ?? ''),
     fornitore: fornitore?.nome != null ? { nome: String(fornitore.nome) } : null,
     sede: sede?.nome != null ? { nome: String(sede.nome) } : null,
   }
 }
 
-/**
- * Elenca gruppi di fatture duplicate visibili al client Supabase (RLS).
- * Stessa chiave dell’app: fornitore + data + numero normalizzato + sede.
- */
-export async function fetchDuplicateFattureReport(supabase: SupabaseClient): Promise<{
+/** Nessun `updated_at`/`created_at`: su DB legacy spesso assenti; `data`+`id` danno paginazione stabile. */
+const FATTURE_SELECT =
+  'id, fornitore_id, sede_id, data, numero_fattura, importo, file_url, fornitore:fornitori(nome), sede:sedi(nome)'
+
+export type DuplicateFattureReportResult = {
   groups: DuplicateFatturaReportGroup[]
   scannedRows: number
   truncated: boolean
-}> {
+}
+
+/**
+ * Elenca gruppi di fatture duplicate visibili al client Supabase (RLS).
+ * `onProgress` viene chiamato dopo ogni batch (ultime ~12 righe del lotto come anteprima).
+ */
+export async function runDuplicateFattureReport(
+  supabase: SupabaseClient,
+  onProgress?: (p: { scannedSoFar: number; sample: DuplicateFatturaScanProgressItem[] }) => void,
+  signal?: AbortSignal,
+): Promise<DuplicateFattureReportResult> {
   const all: DuplicateFatturaReportRow[] = []
   let from = 0
   let truncated = false
 
   for (;;) {
+    checkAborted(signal)
     const to = from + PAGE_SIZE - 1
     const { data, error } = await supabase
       .from('fatture')
-      .select(
-        'id, fornitore_id, sede_id, data, numero_fattura, importo, created_at, fornitore:fornitori(nome), sede:sedi(nome)',
-      )
-      .order('created_at', { ascending: true })
+      .select(FATTURE_SELECT)
+      .order('data', { ascending: true })
+      .order('id', { ascending: true })
       .range(from, to)
 
     if (error) throw new Error(error.message)
 
-    const batch = (data ?? []).map((row) => embedFornitoreSede(row))
+    const rawBatch = data ?? []
+    const batch = rawBatch.map((row) => embedFornitoreSede(row))
     if (batch.length === 0) break
     all.push(...batch)
+
+    if (onProgress && rawBatch.length > 0) {
+      const slice = rawBatch.slice(-12)
+      const sample: DuplicateFatturaScanProgressItem[] = slice.map((raw) => {
+        const emb = embedFornitoreSede(raw)
+        const fr = raw as Record<string, unknown>
+        return {
+          id: emb.id,
+          data: emb.data,
+          numero_fattura: emb.numero_fattura,
+          fornitore_nome: emb.fornitore?.nome ?? null,
+          file_label: fileLabelFromUrl(fr.file_url as string | null | undefined),
+        }
+      })
+      onProgress({ scannedSoFar: all.length, sample })
+    }
+
+    await yieldEventLoop()
+
     if (all.length >= DUPLICATE_FATTURE_REPORT_MAX_ROWS) {
       truncated = true
       break
@@ -87,10 +152,17 @@ export async function fetchDuplicateFattureReport(supabase: SupabaseClient): Pro
     from += PAGE_SIZE
   }
 
+  checkAborted(signal)
   const withNum = all.filter((r) => normalizeNumeroFattura(r.numero_fattura))
   const map = new Map<string, DuplicateFatturaReportRow[]>()
 
+  let idx = 0
   for (const r of withNum) {
+    idx++
+    if (idx % 4000 === 0) {
+      checkAborted(signal)
+      await yieldEventLoop()
+    }
     const nn = normalizeNumeroFattura(r.numero_fattura)!
     const key = `${r.sede_id ?? '\0'}|${r.fornitore_id}|${r.data}|${nn.toLowerCase()}`
     const arr = map.get(key)
@@ -98,10 +170,17 @@ export async function fetchDuplicateFattureReport(supabase: SupabaseClient): Pro
     else map.set(key, [r])
   }
 
+  checkAborted(signal)
   const groups: DuplicateFatturaReportGroup[] = []
+  let gidx = 0
   for (const rows of map.values()) {
+    gidx++
+    if (gidx % 2000 === 0) {
+      checkAborted(signal)
+      await yieldEventLoop()
+    }
     if (rows.length < 2) continue
-    rows.sort((a, b) => a.created_at.localeCompare(b.created_at))
+    rows.sort((a, b) => a.data.localeCompare(b.data) || a.id.localeCompare(b.id))
     const first = rows[0]!
     groups.push({
       sede_id: first.sede_id,
@@ -114,7 +193,12 @@ export async function fetchDuplicateFattureReport(supabase: SupabaseClient): Pro
     })
   }
 
+  await yieldEventLoop()
   groups.sort((a, b) => b.fatture.length - a.fatture.length || b.data.localeCompare(a.data))
 
   return { groups, scannedRows: all.length, truncated }
+}
+
+export async function fetchDuplicateFattureReport(supabase: SupabaseClient): Promise<DuplicateFattureReportResult> {
+  return runDuplicateFattureReport(supabase, undefined, undefined)
 }

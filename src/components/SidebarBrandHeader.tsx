@@ -3,6 +3,10 @@
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
 import ScanEmailButton from '@/components/ScanEmailButton'
+import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
+
+/** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop. */
+export const DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID = 'desktop-header-page-actions'
 
 /**
  * Logo FLUXO nella striscia unificata con `#app-desktop-header-nav-progress` (solo md+).
@@ -16,6 +20,7 @@ export function SidebarBrandHeader({
 }) {
   const router = useRouter()
   const { t } = useLocale()
+  const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
 
   return (
     <div className="relative flex min-h-[48px] min-w-0 flex-1 items-center gap-2 bg-transparent pl-3.5 pr-2.5 lg:gap-3 lg:pl-5 lg:pr-3 text-cyan-100">
@@ -90,7 +95,15 @@ export function SidebarBrandHeader({
           </p>
         </div>
       </div>
-      <ScanEmailButton placement="desktopHeader" />
+      <div className="ml-auto flex min-h-0 min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-2 self-center sm:gap-2.5 lg:gap-3">
+        <div
+          ref={registerPageActionsHost}
+          id={DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID}
+          data-fluxo-desktop-header-actions-host
+          className="flex min-h-0 min-w-0 max-w-full shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5 lg:gap-3"
+        />
+        <ScanEmailButton placement="desktopHeader" />
+      </div>
     </div>
   )
 }

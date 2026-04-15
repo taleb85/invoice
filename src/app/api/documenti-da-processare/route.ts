@@ -4,8 +4,10 @@ import { recordManualSupplierAssociation } from '@/lib/mittente-fornitore-assoc'
 import { mergeFornitoreMissingFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
 import { recordLearnedKindFromDocMetadata } from '@/lib/fornitore-doc-type-hints'
 import {
+  FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT,
   FATTURA_DUPLICATE_USER_MESSAGE_IT,
   findDuplicateFatturaId,
+  findDuplicateFatturaSansNumeroByImporto,
   normalizeNumeroFattura,
   numeroFatturaFromDocMetadata,
 } from '@/lib/fattura-duplicate-check'
@@ -90,6 +92,22 @@ async function finalizePendingByTipo(
       })
       if (dupId) {
         return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
+      }
+    } else if (m.totale_iva_inclusa != null) {
+      const imp = Number(m.totale_iva_inclusa)
+      if (Number.isFinite(imp)) {
+        const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {
+          sedeId: sedeDefinitiva,
+          fornitoreId: doc.fornitore_id,
+          data: dataDoc,
+          importo: imp,
+        })
+        if (dupSans) {
+          return NextResponse.json(
+            { error: FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT, code: 'duplicate_fattura_sans_numero_importo' },
+            { status: 409 },
+          )
+        }
       }
     }
     const { data: fattura, error: insErr } = await supabase
@@ -501,6 +519,22 @@ export async function POST(req: NextRequest) {
       })
       if (dupId) {
         return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
+      }
+    } else {
+      const insImporto = importoTotale > 0 ? importoTotale : null
+      if (insImporto != null) {
+        const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {
+          sedeId: sedeDefinitiva,
+          fornitoreId: primaBolla.fornitore_id,
+          data: dataFatturaAssocia,
+          importo: insImporto,
+        })
+        if (dupSans) {
+          return NextResponse.json(
+            { error: FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT, code: 'duplicate_fattura_sans_numero_importo' },
+            { status: 409 },
+          )
+        }
       }
     }
 

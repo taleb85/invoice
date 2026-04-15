@@ -5,6 +5,7 @@ import type { Translations, Locale } from '@/lib/translations'
 import type { ReactNode } from 'react'
 import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
 import { operatorKpiVisual } from '@/lib/kpi-accent-palette'
+import { withFiscalYearQuery } from '@/lib/fiscal-link'
 
 /** Alone KPI: alone dominante sul colore della card (non più cyan fisso). */
 function operatorKpiCardShadow(glowRgb: string) {
@@ -18,14 +19,15 @@ function operatorKpiCardShadow(glowRgb: string) {
 
 const kpiGridPanelClass = [
   'app-card',
-  'mb-10',
-  'px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-4',
+  /* Sotto: allineato alle altre card (md:mb-8); evita mb-10 + gap pagina sulla dashboard */
+  'mb-6 md:mb-8',
+  'px-3 py-2.5 sm:px-4 sm:py-3 md:px-5 md:py-3.5',
 ].join(' ')
 
 export function DashboardOperatorKpiSkeleton() {
   return (
     <div className={kpiGridPanelClass}>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 md:gap-3.5 xl:grid-cols-4 xl:gap-4">
         {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
           const ov = operatorKpiVisual[i]
           return (
@@ -35,18 +37,16 @@ export function DashboardOperatorKpiSkeleton() {
               style={{ boxShadow: operatorKpiCardShadow(ov.glowRgb) }}
             >
               <KpiLAccentOverlay accentHex={ov.accentHex} edgePx={4} />
-              <div className="relative z-[1] flex flex-1 flex-col p-4 sm:p-5">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="h-3 flex-1 rounded bg-slate-700/80" />
-                  <div className="h-6 w-6 shrink-0 rounded-lg bg-slate-700/80" />
+              <div className="relative z-[1] grid min-h-[5.5rem] flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[minmax(2rem,auto)_minmax(2.75rem,auto)] gap-x-2 gap-y-2 p-3.5 sm:min-h-[5.75rem] sm:p-4">
+                <div className="col-start-1 row-start-1 flex items-center">
+                  <div className="h-3 w-4/5 max-w-[9rem] rounded bg-slate-700/80" />
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex flex-1 items-center gap-2">
-                    <div className="h-8 w-12 rounded bg-slate-700/80" />
-                    <div className="h-3 flex-1 rounded bg-slate-700/80" />
-                  </div>
-                  <div className="h-3.5 w-3.5 shrink-0 rounded bg-slate-700/80" />
+                <div className="col-start-2 row-start-1 h-6 w-6 shrink-0 justify-self-end rounded-lg bg-slate-700/80" />
+                <div className="col-start-1 row-start-2 flex min-w-0 items-end gap-2">
+                  <div className="h-7 w-11 shrink-0 rounded bg-slate-700/80 sm:h-8 sm:w-12" />
+                  <div className="h-3 min-h-[2rem] flex-1 rounded bg-slate-700/80" />
                 </div>
+                <div className="col-start-2 row-start-2 h-3.5 w-3.5 shrink-0 self-end justify-self-end rounded bg-slate-700/80" />
               </div>
             </div>
           )
@@ -77,6 +77,7 @@ export default function DashboardOperatorKpiGrid({
   locale,
   currency,
   hideBelowLg = false,
+  fiscalYear,
 }: {
   kpis: OperatorDashboardKpis
   t: Translations
@@ -84,7 +85,10 @@ export default function DashboardOperatorKpiGrid({
   currency: string
   /** Sotto 1024px nasconde tutta la griglia (evita che resti visibile se il layout padre viene sovrascritto). */
   hideBelowLg?: boolean
+  /** Se impostato, aggiunge `?fy=` (e `tutte=1` su Bolle) ai link delle schede. */
+  fiscalYear?: number
 }) {
+  const fy = fiscalYear
   let stmtSub: string
   let stmtSubClass: string
   if (k.statementsTotal === 0) {
@@ -155,7 +159,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/ordini',
+      href: withFiscalYearQuery('/ordini', fy),
       label: t.fornitori.kpiOrdini,
       value: k.ordiniCount,
       sub: t.dashboard.kpiOrdiniSub,
@@ -184,7 +188,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/bolle',
+      href: withFiscalYearQuery('/bolle', fy, { tutte: '1' }),
       label: t.fornitori.kpiBolleTotal,
       value: k.bolleTotal,
       sub: `${k.bolleInAttesa} ${t.fornitori.subAperte}`,
@@ -213,7 +217,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/fatture',
+      href: withFiscalYearQuery('/fatture', fy),
       label: t.fornitori.kpiFatture,
       value: k.fattureCount,
       sub: t.fornitori.subConfermate,
@@ -242,7 +246,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/statements/verifica',
+      href: withFiscalYearQuery('/statements/verifica', fy),
       label: t.statements.tabVerifica,
       value: k.statementsWithIssues,
       sub: stmtSub,
@@ -271,7 +275,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/listino',
+      href: withFiscalYearQuery('/listino', fy),
       label: t.fornitori.tabListino,
       value: k.listinoRows,
       sub: t.dashboard.kpiPriceListSub,
@@ -295,7 +299,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: '/fatture/riepilogo',
+      href: withFiscalYearQuery('/fatture/riepilogo', fy),
       label: t.common.total,
       value: formatCurrency(k.totaleImporto, currency, locale),
       sub: `${k.fattureCount} ${t.nav.fatture.toLowerCase()}`,
@@ -327,7 +331,7 @@ export default function DashboardOperatorKpiGrid({
 
   const panel = (
     <div className={kpiGridPanelClass}>
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 md:gap-3.5 xl:grid-cols-4 xl:gap-4">
         {items.map((item) => (
           <Link
             key={`${item.href}-${item.label}`}
@@ -336,30 +340,30 @@ export default function DashboardOperatorKpiGrid({
             style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
           >
             <KpiLAccentOverlay accentHex={item.accentHex} edgePx={4} />
-            <div className="relative z-[1] flex flex-1 flex-col p-4 sm:p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase leading-tight tracking-wide text-white/95 sm:text-xs [text-shadow:0_0_14px_rgba(255,255,255,0.08)]">
-                  {item.label}
+            <div className="relative z-[1] grid min-h-[5.5rem] flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[minmax(2rem,auto)_minmax(2.75rem,auto)] gap-x-2 gap-y-2 p-3.5 sm:min-h-[5.75rem] sm:p-4">
+              <p className="col-start-1 row-start-1 min-w-0 self-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-white/95 line-clamp-2 sm:text-xs [text-shadow:0_0_14px_rgba(255,255,255,0.08)]">
+                {item.label}
+              </p>
+              <span className="col-start-2 row-start-1 shrink-0 self-start justify-self-end pt-0.5">{item.icon}</span>
+              <div className="col-start-1 row-start-2 flex min-w-0 flex-row flex-nowrap items-end gap-x-2">
+                <p className="shrink-0 text-xl font-bold tabular-nums text-white sm:text-2xl xl:text-3xl [text-shadow:0_0_20px_rgba(255,255,255,0.06)]">
+                  {item.value}
                 </p>
-                <span className="shrink-0">{item.icon}</span>
-              </div>
-              <div className="mt-1 flex min-w-0 flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-                <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                  <p className="break-words text-2xl font-bold tabular-nums text-white sm:text-3xl [text-shadow:0_0_20px_rgba(255,255,255,0.06)]">
-                    {item.value}
-                  </p>
-                  <p className={`min-w-0 text-[10px] leading-snug sm:text-xs ${item.subClass}`}>{item.sub}</p>
-                </div>
-                <svg
-                  className={`h-3.5 w-3.5 shrink-0 self-center ${item.chevronClass}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden
+                <p
+                  className={`min-h-[2rem] min-w-0 flex-1 text-[10px] leading-snug sm:text-xs ${item.subClass} line-clamp-2 break-words`}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                  {item.sub}
+                </p>
               </div>
+              <svg
+                className={`col-start-2 row-start-2 h-3.5 w-3.5 shrink-0 self-end justify-self-end ${item.chevronClass}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           </Link>
         ))}

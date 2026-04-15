@@ -32,7 +32,11 @@ import {
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
-import { findDuplicateFatturaId, normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
+import {
+  findDuplicateFatturaId,
+  findDuplicateFatturaSansNumeroByImporto,
+  normalizeNumeroFattura,
+} from '@/lib/fattura-duplicate-check'
 
 /**
  * Limite durata funzione su Vercel/hosting (secondi).
@@ -1293,6 +1297,29 @@ async function processEmails(
               mailDebugLog(
                 `[BOZZA] Fattura bozza saltata: già registrata id=${dupId} n.fattura=${numNorm} fornitore="${fornitore.nome}"`,
               )
+            }
+          }
+          if (
+            !skipFatturaBozza &&
+            !numNorm &&
+            fornitore.id &&
+            documentSedeId &&
+            ocr.totale_iva_inclusa != null
+          ) {
+            const imp = Number(ocr.totale_iva_inclusa)
+            if (Number.isFinite(imp)) {
+              const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {
+                sedeId: documentSedeId,
+                fornitoreId: fornitore.id,
+                data: dataDoc,
+                importo: imp,
+              })
+              if (dupSans) {
+                skipFatturaBozza = true
+                mailDebugLog(
+                  `[BOZZA] Fattura bozza saltata (senza n.): già registrata id=${dupSans} importo=${imp} fornitore="${fornitore.nome}"`,
+                )
+              }
             }
           }
           if (!skipFatturaBozza) {

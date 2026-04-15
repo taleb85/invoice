@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect } from 'react'
+import { Suspense, useLayoutEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -9,6 +9,7 @@ import {
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import DashboardFiscalYearHeaderSelectMe from '@/components/DashboardFiscalYearHeaderSelectMe'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 
 export default function StatementsLayout({ children }: { children: React.ReactNode }) {
@@ -48,6 +49,9 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
             {isVerifica ? t.statements.heading : t.statements.tabDocumenti}
           </h1>
         </AppPageHeaderTitleWithDashboardShortcut>
+        <Suspense fallback={null}>
+          <DashboardFiscalYearHeaderSelectMe />
+        </Suspense>
       </AppPageHeaderStrip>
 
       <StatementsSummaryHighlight />

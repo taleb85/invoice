@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
-import { findDuplicateFatturaId, normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
+import {
+  findDuplicateFatturaId,
+  findDuplicateFatturaSansNumeroByImporto,
+  normalizeNumeroFattura,
+} from '@/lib/fattura-duplicate-check'
 import { useT } from '@/lib/use-t'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
@@ -171,6 +175,23 @@ export default function NuovaFatturaForm() {
       })
       if (dupId) {
         setError(t.fatture.duplicateInvoiceSameSupplierDateNumber)
+        setSaving(false)
+        return
+      }
+    } else if (
+      fornitoreIdParam &&
+      !numFatt &&
+      importoFinale != null &&
+      Number.isFinite(importoFinale)
+    ) {
+      const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {
+        sedeId,
+        fornitoreId: fornitoreIdParam,
+        data,
+        importo: importoFinale,
+      })
+      if (dupSans) {
+        setError(t.fatture.duplicateInvoiceSameSupplierDateAmountNoNumber)
         setSaving(false)
         return
       }

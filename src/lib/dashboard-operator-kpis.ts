@@ -4,6 +4,8 @@ import {
   countPendingDocumentiSessionScoped,
   countSyncLogErrors24h,
 } from '@/lib/dashboard-notification-counts'
+import { getFiscalYearPgBounds } from '@/lib/fiscal-year'
+import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 
 export type ListinoOverviewRow = {
@@ -21,7 +23,8 @@ const LISTINO_OVERVIEW_LIMIT = 500
 /** Righe `listino_prezzi` con nome fornitore, per la pagina /listino. */
 export async function fetchListinoOverviewRows(
   supabase: SupabaseClient,
-  fornitoreIds: string[] | null
+  fornitoreIds: string[] | null,
+  fiscalBounds?: FiscalPgBounds | null
 ): Promise<ListinoOverviewRow[]> {
   let q = supabase
     .from('listino_prezzi')
@@ -30,6 +33,9 @@ export async function fetchListinoOverviewRows(
     .limit(LISTINO_OVERVIEW_LIMIT)
   if (fornitoreIds?.length) {
     q = q.in('fornitore_id', fornitoreIds)
+  }
+  if (fiscalBounds) {
+    q = q.gte('data_prezzo', fiscalBounds.dateFrom).lt('data_prezzo', fiscalBounds.dateToExclusive)
   }
   const { data, error } = await q
   if (error || !data?.length) return []
@@ -63,10 +69,14 @@ const FATTURE_RIEPILOGO_LIMIT = 500
 /** Somma importi e conteggio fatture (stesso ambito dei KPI dashboard). */
 export async function fetchFattureTotaleSummary(
   supabase: SupabaseClient,
-  fornitoreIds: string[] | null
+  fornitoreIds: string[] | null,
+  fiscalBounds?: FiscalPgBounds | null
 ): Promise<{ totaleImporto: number; fattureCount: number }> {
   let q = supabase.from('fatture').select('importo')
   if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  if (fiscalBounds) {
+    q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
+  }
   const { data, error } = await q
   if (error) return { totaleImporto: 0, fattureCount: 0 }
   const rows = (data ?? []) as { importo: number | null }[]
@@ -76,7 +86,8 @@ export async function fetchFattureTotaleSummary(
 /** Ultime fatture per data, per la tabella in /fatture/riepilogo. */
 export async function fetchFattureRiepilogoRows(
   supabase: SupabaseClient,
-  fornitoreIds: string[] | null
+  fornitoreIds: string[] | null,
+  fiscalBounds?: FiscalPgBounds | null
 ): Promise<FatturaRiepilogoRow[]> {
   let q = supabase
     .from('fatture')
@@ -84,6 +95,9 @@ export async function fetchFattureRiepilogoRows(
     .order('data', { ascending: false })
     .limit(FATTURE_RIEPILOGO_LIMIT)
   if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  if (fiscalBounds) {
+    q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
+  }
   const { data, error } = await q
   if (error || !data?.length) return []
   type Fn = { nome?: string | null; display_name?: string | null }
@@ -117,7 +131,8 @@ const ORDINI_OVERVIEW_LIMIT = 200
 /** Conferme ordine con nome fornitore, per la pagina /ordini. */
 export async function fetchOrdiniOverviewRows(
   supabase: SupabaseClient,
-  fornitoreIds: string[] | null
+  fornitoreIds: string[] | null,
+  fiscalBounds?: FiscalPgBounds | null
 ): Promise<OrdineOverviewRow[]> {
   let q = supabase
     .from('conferme_ordine')
@@ -125,6 +140,9 @@ export async function fetchOrdiniOverviewRows(
     .order('created_at', { ascending: false })
     .limit(ORDINI_OVERVIEW_LIMIT)
   if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+  if (fiscalBounds) {
+    q = q.gte('created_at', fiscalBounds.tsFrom).lt('created_at', fiscalBounds.tsToExclusive)
+  }
   const { data, error } = await q
   if (error || !data?.length) return []
   type Fn = { nome?: string | null; display_name?: string | null }
@@ -142,6 +160,12 @@ export async function fetchOrdiniOverviewRows(
       file_name: (r.file_name as string | null) ?? null,
     }
   })
+}
+
+/** Filtro KPI per anno fiscale sede (stessa logica di sync email / `fiscal-year.ts`). */
+export type OperatorKpiFiscalFilter = {
+  countryCode: string
+  labelYear: number
 }
 
 export type OperatorDashboardKpis = {
@@ -201,13 +225,16 @@ function sumImporti(rows: { importo: number | null }[] | null): number {
 /**
  * KPI dashboard operatore: con `sedeId` i conteggi sono limitati a fornitori / documenti di quella sede.
  * Senza sede si affida all’RLS (stessa visibilità della vecchia `getStats`).
+ * Con `fiscal` i conteggi data-driven (bolle, fatture, ordini, listino, estratti) sono limitati all’anno fiscale.
  */
 export async function fetchOperatorDashboardKpis(
   supabase: SupabaseClient,
   sedeId: string | null,
   /** Evita una seconda query se già calcolati (es. da `page.tsx`). */
-  prefetchedFornitoreIds?: string[] | null
+  prefetchedFornitoreIds?: string[] | null,
+  fiscal?: OperatorKpiFiscalFilter | null
 ): Promise<OperatorDashboardKpis> {
+  const bounds = fiscal ? getFiscalYearPgBounds(fiscal.countryCode, fiscal.labelYear) : null
   const [erroriRecenti, documentiPendingGlobal] = await Promise.all([
     countSyncLogErrors24h(supabase),
     sedeId
@@ -225,9 +252,15 @@ export async function fetchOperatorDashboardKpis(
 
   if (emptyScope) {
     const documentiPending = documentiPendingGlobal
+    let stmtCountQ = supabase.from('statements').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
+    let stmtRowsQ = supabase.from('statements').select('missing_rows').eq('sede_id', sedeId)
+    if (bounds) {
+      stmtCountQ = stmtCountQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+      stmtRowsQ = stmtRowsQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+    }
     const [{ count: stmtTotal }, { data: stmtRows }, { count: docDaAssoc }] = await Promise.all([
-      supabase.from('statements').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
-      supabase.from('statements').select('missing_rows').eq('sede_id', sedeId),
+      stmtCountQ,
+      stmtRowsQ,
       supabase
         .from('documenti_da_processare')
         .select('*', { count: 'exact', head: true })
@@ -264,6 +297,50 @@ export async function fetchOperatorDashboardKpis(
     ? supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
     : supabase.from('fornitori').select('*', { count: 'exact', head: true })
 
+  let bolleTotalQ = fid
+    ? supabase.from('bolle').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
+    : supabase.from('bolle').select('*', { count: 'exact', head: true })
+  let bolleAttesaQ = fid
+    ? supabase
+        .from('bolle')
+        .select('*', { count: 'exact', head: true })
+        .in('fornitore_id', fid)
+        .eq('stato', 'in attesa')
+    : supabase.from('bolle').select('*', { count: 'exact', head: true }).eq('stato', 'in attesa')
+  let fattureCountQ = fid
+    ? supabase.from('fatture').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
+    : supabase.from('fatture').select('*', { count: 'exact', head: true })
+  let fattureImportiQ = fid
+    ? supabase.from('fatture').select('importo').in('fornitore_id', fid)
+    : supabase.from('fatture').select('importo')
+  let listinoQ = fid
+    ? supabase.from('listino_prezzi').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
+    : supabase.from('listino_prezzi').select('*', { count: 'exact', head: true })
+  let ordiniQ = fid
+    ? supabase.from('conferme_ordine').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
+    : supabase.from('conferme_ordine').select('*', { count: 'exact', head: true })
+  let stmtCountQ = sedeId
+    ? supabase.from('statements').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
+    : supabase.from('statements').select('*', { count: 'exact', head: true })
+  let stmtIssuesQ = sedeId
+    ? supabase
+        .from('statements')
+        .select('*', { count: 'exact', head: true })
+        .eq('sede_id', sedeId)
+        .gt('missing_rows', 0)
+    : supabase.from('statements').select('*', { count: 'exact', head: true }).gt('missing_rows', 0)
+
+  if (bounds) {
+    bolleTotalQ = bolleTotalQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
+    bolleAttesaQ = bolleAttesaQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
+    fattureCountQ = fattureCountQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
+    fattureImportiQ = fattureImportiQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
+    listinoQ = listinoQ.gte('data_prezzo', bounds.dateFrom).lt('data_prezzo', bounds.dateToExclusive)
+    ordiniQ = ordiniQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+    stmtCountQ = stmtCountQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+    stmtIssuesQ = stmtIssuesQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+  }
+
   const [
     bolleRes,
     bolleAttesaRes,
@@ -276,38 +353,14 @@ export async function fetchOperatorDashboardKpis(
     docDaAssocRes,
     fornitoriCountRes,
   ] = await Promise.all([
-    fid
-      ? supabase.from('bolle').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
-      : supabase.from('bolle').select('*', { count: 'exact', head: true }),
-    fid
-      ? supabase
-          .from('bolle')
-          .select('*', { count: 'exact', head: true })
-          .in('fornitore_id', fid)
-          .eq('stato', 'in attesa')
-      : supabase.from('bolle').select('*', { count: 'exact', head: true }).eq('stato', 'in attesa'),
-    fid
-      ? supabase.from('fatture').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
-      : supabase.from('fatture').select('*', { count: 'exact', head: true }),
-    fid
-      ? supabase.from('fatture').select('importo').in('fornitore_id', fid)
-      : supabase.from('fatture').select('importo'),
-    fid
-      ? supabase.from('listino_prezzi').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
-      : supabase.from('listino_prezzi').select('*', { count: 'exact', head: true }),
-    fid
-      ? supabase.from('conferme_ordine').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
-      : supabase.from('conferme_ordine').select('*', { count: 'exact', head: true }),
-    sedeId
-      ? supabase.from('statements').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
-      : supabase.from('statements').select('*', { count: 'exact', head: true }),
-    sedeId
-      ? supabase
-          .from('statements')
-          .select('*', { count: 'exact', head: true })
-          .eq('sede_id', sedeId)
-          .gt('missing_rows', 0)
-      : supabase.from('statements').select('*', { count: 'exact', head: true }).gt('missing_rows', 0),
+    bolleTotalQ,
+    bolleAttesaQ,
+    fattureCountQ,
+    fattureImportiQ,
+    listinoQ,
+    ordiniQ,
+    stmtCountQ,
+    stmtIssuesQ,
     docDaAssocQ,
     fornitoriCountQ,
   ])

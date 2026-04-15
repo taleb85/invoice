@@ -453,7 +453,7 @@ body {
 }
 
 /*
- * Dashboard home (`page.tsx`): colonna KPI solo ≥1024px; stack Scanner + Bolle recenti visibile
+ * Dashboard home (`page.tsx`): colonna KPI solo ≥1024px; blocco Scanner visibile
  * su tutte le larghezze (sotto i KPI su desktop). Fuori da @layer per evitare override Tailwind.
  */
 .dashboard-operator-scanner-bolle-stack {

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createServiceClient } from '@/utils/supabase/server'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
@@ -7,10 +8,12 @@ import CountrySelector from '@/components/CountrySelector'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import { getLocale } from '@/lib/localization'
 import { getT, getLocale as getAppLocale, getCurrency } from '@/lib/locale-server'
+import { parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import { fetchOperatorDashboardKpis, fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
-import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
+import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
 
 interface SedeProfile {
   id: string
@@ -48,11 +51,18 @@ async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
   }
 }
 
-export default async function SedeProfilePage({ params }: { params: Promise<{ sede_id: string }> }) {
+export default async function SedeProfilePage({
+  params,
+  searchParams: searchParamsPromise,
+}: {
+  params: Promise<{ sede_id: string }>
+  searchParams?: Promise<{ fy?: string }>
+}) {
   const { supabase, user } = await getRequestAuth()
   if (!user) redirect('/login')
 
   const { sede_id } = await params
+  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
   const sede = await fetchSedeProfile(sede_id)
   if (!sede) redirect('/sedi')
 
@@ -67,7 +77,11 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
     getCurrency(),
     fornitoreIdsForSede(supabase, sede_id),
   ])
-  const sedeKpis = await fetchOperatorDashboardKpis(supabase, sede_id, fornitoreIds)
+  const fiscalYear = parseFiscalYearQueryParam(searchParams.fy, sede.country_code)
+  const sedeKpis = await fetchOperatorDashboardKpis(supabase, sede_id, fornitoreIds, {
+    countryCode: sede.country_code,
+    labelYear: fiscalYear,
+  })
 
   const imapConfigured = !!(sede.imap_host && sede.imap_user)
 
@@ -123,6 +137,9 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
             </div>
           </div>
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
+            <Suspense fallback={null}>
+              <DashboardFiscalYearHeaderSelect countryCode={sede.country_code} selectedFiscalYear={fiscalYear} />
+            </Suspense>
             <ScanEmailButton sedeId={sede_id} alwaysShowLabel />
           </div>
         </div>
@@ -158,13 +175,21 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
         </section>
       ) : null}
 
-      <DashboardOperatorKpiGrid
-        kpis={sedeKpis}
-        t={tDashboard}
-        locale={appLocale}
-        currency={currency}
-        hideBelowLg
-      />
+      <Suspense fallback={<DashboardOperatorKpiSkeleton />}>
+        <div>
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
+            {tDashboard.fornitori.tabRiepilogo}
+          </h2>
+          <DashboardOperatorKpiGrid
+            kpis={sedeKpis}
+            t={tDashboard}
+            locale={appLocale}
+            currency={currency}
+            hideBelowLg
+            fiscalYear={fiscalYear}
+          />
+        </div>
+      </Suspense>
 
       {/* Quick-action cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

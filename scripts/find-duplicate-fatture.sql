@@ -23,7 +23,6 @@ WITH norm AS (
     sede_id,
     data,
     numero_fattura,
-    created_at,
     lower(
       regexp_replace(trim(numero_fattura), '\s+', ' ', 'g')
     ) AS num_norm
@@ -38,8 +37,8 @@ dup_keys AS (
     data,
     num_norm,
     count(*)::int AS quante,
-    min(created_at) AS prima_creazione,
-    max(created_at) AS ultima_creazione
+    min(id::text) AS prima_id_ord,
+    max(id::text) AS ultima_id_ord
   FROM norm
   GROUP BY sede_id, fornitore_id, data, num_norm
   HAVING count(*) > 1
@@ -52,10 +51,10 @@ SELECT
   s.nome AS sede,
   d.sede_id,
   d.fornitore_id,
-  d.prima_creazione,
-  d.ultima_creazione,
+  d.prima_id_ord,
+  d.ultima_id_ord,
   (
-    SELECT array_agg(n.id ORDER BY n.created_at)
+    SELECT array_agg(n.id ORDER BY n.id)
     FROM norm n
     WHERE n.sede_id IS NOT DISTINCT FROM d.sede_id
       AND n.fornitore_id = d.fornitore_id
@@ -65,11 +64,11 @@ SELECT
 FROM dup_keys d
 LEFT JOIN public.fornitori f ON f.id = d.fornitore_id
 LEFT JOIN public.sedi s ON s.id = d.sede_id
-ORDER BY d.quante DESC, d.ultima_creazione DESC;
+ORDER BY d.quante DESC, d.data DESC;
 
 
 -- ═══════════════════════════════════════════════════════════════════════════
--- QUERY B — Dettaglio: ogni riga duplicata (importi, URL, bolla, date creazione)
+-- QUERY B — Dettaglio: ogni riga duplicata (importi, URL, bolla)
 -- ═══════════════════════════════════════════════════════════════════════════
 
 WITH norm AS (
@@ -82,7 +81,6 @@ WITH norm AS (
     importo,
     file_url,
     bolla_id,
-    created_at,
     lower(regexp_replace(trim(numero_fattura), '\s+', ' ', 'g')) AS num_norm
   FROM public.fatture
   WHERE numero_fattura IS NOT NULL
@@ -102,7 +100,6 @@ SELECT
   n.importo,
   left(n.file_url, 80) AS file_url_anteprima,
   n.bolla_id,
-  n.created_at,
   f.nome AS fornitore,
   s.nome AS sede
 FROM norm n
@@ -113,4 +110,4 @@ INNER JOIN dup_keys d
  AND n.num_norm = d.num_norm
 LEFT JOIN public.fornitori f ON f.id = n.fornitore_id
 LEFT JOIN public.sedi s ON s.id = n.sede_id
-ORDER BY n.fornitore_id, n.data, n.num_norm, n.created_at;
+ORDER BY n.fornitore_id, n.data, n.num_norm, n.id;

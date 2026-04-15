@@ -1,11 +1,16 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatCurrency } from '@/lib/locale-shared'
-import type { DuplicateFatturaReportGroup } from '@/lib/duplicate-fatture-report'
+import { createClient } from '@/utils/supabase/client'
+import type {
+  DuplicateFatturaReportGroup,
+  DuplicateFatturaScanProgressItem,
+} from '@/lib/duplicate-fatture-report'
 import Link from 'next/link'
 
 type ApiOk = {
@@ -15,25 +20,136 @@ type ApiOk = {
   truncated: boolean
 }
 
+function parseDuplicateReportNdjsonLine(
+  trimmed: string,
+  onProgress: (p: { scannedSoFar: number; sample: DuplicateFatturaScanProgressItem[] }) => void,
+): ApiOk | null {
+  let msg: Record<string, unknown>
+  try {
+    msg = JSON.parse(trimmed) as Record<string, unknown>
+  } catch {
+    return null
+  }
+  if (msg.type === 'progress') {
+    onProgress({
+      scannedSoFar: Number(msg.scannedSoFar) || 0,
+      sample: Array.isArray(msg.sample) ? (msg.sample as DuplicateFatturaScanProgressItem[]) : [],
+    })
+    return null
+  }
+  if (msg.type === 'done' && msg.ok === true) {
+    return {
+      ok: true,
+      groups: msg.groups as DuplicateFatturaReportGroup[],
+      scannedRows: Number(msg.scannedRows) || 0,
+      truncated: Boolean(msg.truncated),
+    }
+  }
+  if (msg.type === 'error') {
+    throw new Error(String(msg.error ?? 'Errore'))
+  }
+  return null
+}
+
+/**
+ * Legge NDJSON in streaming. Gestisce correttamente l’ultimo chunk (`done` + `value`)
+ * e corpi inviati in un solo blocco (altrimenti i `progress` non venivano mai parsati).
+ */
+async function readDuplicateReportNdjsonStream(
+  response: Response,
+  signal: AbortSignal,
+  onProgress: (p: { scannedSoFar: number; sample: DuplicateFatturaScanProgressItem[] }) => void,
+): Promise<ApiOk> {
+  if (!response.body) throw new Error('Nessun corpo risposta')
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (signal.aborted) {
+      await reader.cancel().catch(() => {})
+      throw new DOMException('Aborted', 'AbortError')
+    }
+    if (value) {
+      buffer += decoder.decode(value, { stream: true })
+    }
+    if (done) {
+      buffer += decoder.decode()
+    }
+
+    const parts = buffer.split('\n')
+    if (done) {
+      for (const line of parts) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        const result = parseDuplicateReportNdjsonLine(trimmed, onProgress)
+        if (result) return result
+      }
+      break
+    }
+
+    buffer = parts.pop() ?? ''
+    for (let i = 0; i < parts.length; i++) {
+      const trimmed = parts[i]!.trim()
+      if (!trimmed) continue
+      const result = parseDuplicateReportNdjsonLine(trimmed, onProgress)
+      if (result) return result
+    }
+  }
+  throw new Error('Flusso interrotto prima del risultato')
+}
+
+const toolbarStripBtnCls =
+  'inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-2.5 text-[11px] font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
+const defaultBtnCls =
+  'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
+
 export default function DashboardDuplicateFattureButton({
   className,
   alwaysShowLabel = false,
+  toolbarStrip = false,
 }: {
   className?: string
   /** Come ScanEmail: mostra il testo anche su schermi stretti */
   alwaysShowLabel?: boolean
+  /** Allinea a Sincronizza Email nella barra desktop (h-8, padding compatto). */
+  toolbarStrip?: boolean
 }) {
   const t = useT()
+  const router = useRouter()
   const { locale, timezone, currency } = useLocale()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<ApiOk | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [scanElapsedSec, setScanElapsedSec] = useState(0)
+  const [progressScanned, setProgressScanned] = useState(0)
+  const [progressSample, setProgressSample] = useState<DuplicateFatturaScanProgressItem[]>([])
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (!open) {
+      abortRef.current?.abort()
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!loading) {
+      setScanElapsedSec(0)
+      return
+    }
+    const start = Date.now()
+    const tick = () => setScanElapsedSec(Math.floor((Date.now() - start) / 1000))
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [loading])
 
   const formatDate = useCallback(
     (d: string) => {
@@ -49,19 +165,32 @@ export default function DashboardDuplicateFattureButton({
     [locale, timezone],
   )
 
-  const formatDt = useCallback(
-    (iso: string) => {
-      try {
-        return new Intl.DateTimeFormat(locale, {
-          timeZone: timezone,
-          dateStyle: 'short',
-          timeStyle: 'short',
-        }).format(new Date(iso))
-      } catch {
-        return iso
+  const pruneDeletedFattura = useCallback((fatturaId: string) => {
+    setData((prev) => {
+      if (!prev) return prev
+      const groups = prev.groups
+        .map((g) => ({ ...g, fatture: g.fatture.filter((f) => f.id !== fatturaId) }))
+        .filter((g) => g.fatture.length >= 2)
+      return { ...prev, groups }
+    })
+  }, [])
+
+  const handleDeleteDuplicate = useCallback(
+    async (event: React.MouseEvent, fatturaId: string) => {
+      event.preventDefault()
+      event.stopPropagation()
+      if (!window.confirm(t.dashboard.duplicateFattureDeleteConfirm)) return
+      setDeletingId(fatturaId)
+      const { error } = await createClient().from('fatture').delete().eq('id', fatturaId)
+      setDeletingId(null)
+      if (error) {
+        window.alert(`${t.appStrings.deleteFailed} ${error.message}`)
+        return
       }
+      pruneDeletedFattura(fatturaId)
+      router.refresh()
     },
-    [locale, timezone],
+    [pruneDeletedFattura, router, t.appStrings.deleteFailed, t.dashboard.duplicateFattureDeleteConfirm],
   )
 
   const runScan = useCallback(async () => {
@@ -69,16 +198,32 @@ export default function DashboardDuplicateFattureButton({
     setLoading(true)
     setError(null)
     setData(null)
+    setProgressScanned(0)
+    setProgressSample([])
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+    const { signal } = abortRef.current
     try {
-      const res = await fetch('/api/fatture/duplicate-report', { method: 'GET', cache: 'no-store' })
-      const json = (await res.json()) as ApiOk | { error?: string }
-      if (!res.ok || !('ok' in json) || !json.ok) {
-        setError((json as { error?: string }).error?.trim() || t.dashboard.duplicateFattureError)
+      const res = await fetch('/api/fatture/duplicate-report?stream=1', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: { Accept: 'application/x-ndjson' },
+        signal,
+      })
+      if (!res.ok) {
+        const json = (await res.json()) as { error?: string }
+        setError(json.error?.trim() || t.dashboard.duplicateFattureError)
         return
       }
-      setData(json)
-    } catch {
-      setError(t.dashboard.duplicateFattureError)
+      /** `?stream=1` ⇒ risposta NDJSON; lettura streaming anche se il proxy altera il Content-Type. */
+      const result = await readDuplicateReportNdjsonStream(res, signal, ({ scannedSoFar, sample }) => {
+        setProgressScanned(scannedSoFar)
+        setProgressSample(sample)
+      })
+      setData(result)
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
+      setError(e instanceof Error ? e.message : t.dashboard.duplicateFattureError)
     } finally {
       setLoading(false)
     }
@@ -129,7 +274,72 @@ export default function DashboardDuplicateFattureButton({
 
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4">
                 {loading ? (
-                  <p className="py-10 text-center text-sm text-slate-300">{t.dashboard.duplicateFattureScanning}</p>
+                  <div
+                    className="flex flex-col items-center gap-4 py-10"
+                    role="status"
+                    aria-live="polite"
+                    aria-busy="true"
+                  >
+                    <svg
+                      className="h-9 w-9 shrink-0 animate-spin text-amber-400/90"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-90"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
+                    </svg>
+                    <p className="text-center text-sm text-slate-300">{t.dashboard.duplicateFattureScanning}</p>
+                    <p className="text-center text-xs text-slate-400">
+                      {t.dashboard.duplicateFattureRowsAnalyzed.replace(
+                        '{n}',
+                        progressScanned.toLocaleString(locale),
+                      )}
+                    </p>
+                    <p className="tabular-nums text-xs text-slate-500">
+                      {scanElapsedSec > 0 ? `${scanElapsedSec}s` : '…'}
+                    </p>
+                    <div className="w-full max-w-lg px-1">
+                      <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-wide text-amber-200/80">
+                        {t.dashboard.duplicateFattureScanningBatch}
+                      </p>
+                      <ul
+                        className="max-h-48 min-h-[5rem] space-y-1.5 overflow-y-auto rounded-lg border border-white/10 bg-slate-900/50 px-2 py-2 text-left"
+                        aria-label={t.dashboard.duplicateFattureScanningBatch}
+                      >
+                        {progressSample.length > 0 ? (
+                          progressSample.map((row) => (
+                            <li
+                              key={row.id}
+                              className="border-b border-white/5 pb-1.5 text-[11px] text-slate-300 last:border-0 last:pb-0"
+                            >
+                              <div className="truncate font-medium text-slate-200">
+                                {row.fornitore_nome ?? '—'}
+                                <span className="font-normal text-slate-500">
+                                  {' '}
+                                  · {formatDate(row.data)}
+                                  {row.numero_fattura ? ` · ${row.numero_fattura}` : ''}
+                                </span>
+                              </div>
+                              {row.file_label ? (
+                                <div className="mt-0.5 truncate font-mono text-[10px] text-slate-500" title={row.file_label}>
+                                  {row.file_label}
+                                </div>
+                              ) : null}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="list-none py-5 text-center text-[11px] leading-relaxed text-slate-500">
+                            {t.dashboard.duplicateFattureScanningAwaitingRows}
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
                 ) : error ? (
                   <p className="py-10 text-center text-sm text-red-300">{error}</p>
                 ) : data && data.groups.length === 0 ? (
@@ -164,14 +374,13 @@ export default function DashboardDuplicateFattureButton({
                         </p>
                         <ul className="flex flex-col gap-1.5">
                           {g.fatture.map((f) => (
-                            <li key={f.id}>
+                            <li key={f.id} className="flex items-stretch gap-2">
                               <Link
                                 href={`/fatture/${f.id}`}
-                                className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-cyan-500/20 bg-cyan-950/20 px-2.5 py-2 text-xs transition-colors hover:border-cyan-400/40 hover:bg-cyan-950/35 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]"
+                                className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-cyan-500/20 bg-cyan-950/20 px-2.5 py-2 text-xs transition-colors hover:border-cyan-400/40 hover:bg-cyan-950/35 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
                                 onClick={() => setOpen(false)}
                               >
                                 <span className="font-mono text-[11px] text-cyan-200/90">{f.id.slice(0, 8)}…</span>
-                                <span className="text-slate-400 sm:text-right">{formatDt(f.created_at)}</span>
                                 <span className="font-semibold text-slate-200 sm:text-right">
                                   {f.importo != null && !Number.isNaN(f.importo)
                                     ? formatCurrency(f.importo, currency, locale)
@@ -181,6 +390,30 @@ export default function DashboardDuplicateFattureButton({
                                   {t.common.detail} →
                                 </span>
                               </Link>
+                              <button
+                                type="button"
+                                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-500/45 bg-red-950/35 px-2.5 py-2 text-red-200 transition-colors hover:border-red-400/65 hover:bg-red-950/55 disabled:cursor-not-allowed disabled:opacity-45"
+                                aria-label={t.dashboard.duplicateFattureDeleteAria}
+                                title={t.common.delete}
+                                disabled={deletingId !== null}
+                                onClick={(e) => void handleDeleteDuplicate(e, f.id)}
+                              >
+                                {deletingId === f.id ? (
+                                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                )}
+                              </button>
                             </li>
                           ))}
                         </ul>
@@ -200,12 +433,15 @@ export default function DashboardDuplicateFattureButton({
       <button
         type="button"
         onClick={() => void runScan()}
-        className={
-          className ??
-          'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
-        }
+        className={className ?? (toolbarStrip ? toolbarStripBtnCls : defaultBtnCls)}
       >
-        <svg className="h-4 w-4 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg
+          className={`${toolbarStrip ? 'h-3.5 w-3.5' : 'h-4 w-4'} shrink-0 opacity-90`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"

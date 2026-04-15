@@ -66,6 +66,7 @@ const MIGRATIONS = [
   'supabase/migrations/listino-prezzi-rls-authenticated-write.sql',
   'supabase/migrations/add-conferme-ordine.sql',
   'supabase/migrations/fornitore-ocr-tipo-pending-kind-hints.sql',
+  'supabase/migrations/20260415_fatture_add_updated_at_if_missing.sql',
 ]
 
 function loadEnvLocal() {

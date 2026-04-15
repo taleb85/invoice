@@ -28,6 +28,7 @@ import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
 import { SidebarBrandHeader } from '@/components/SidebarBrandHeader'
+import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
 import BranchSessionGate from '@/components/BranchSessionGate'
 
 const SidebarController   = dynamic(() => import('./SidebarController'),    { ssr: false })
@@ -198,6 +199,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     : 'pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))]'
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-slate-950">
+      <DesktopHeaderPageActionsProvider>
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-col">
         {/* Desktop: striscia — brand sidebar | vetro; toast centrato */}
         <div
@@ -205,7 +207,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
           className={`relative z-30 hidden w-full shrink-0 items-stretch overflow-visible transition-[background,box-shadow] duration-300 md:flex md:min-h-[48px] ${headerGlass} ${headerNavBarSurface}`}
         >
-          <div className="relative z-20 flex min-h-[48px] min-w-0 flex-1 items-stretch overflow-x-hidden">
+          <div className="relative z-20 flex min-h-[48px] min-w-0 flex-1 items-stretch overflow-visible">
             <div className="flex h-full min-h-[48px] min-w-0 flex-1 items-stretch">
               <SidebarBrandHeader
                 collapsed={sidebarCollapsed}
@@ -249,6 +251,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      </DesktopHeaderPageActionsProvider>
     </div>
   )
 }

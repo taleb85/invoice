@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import SollecitiButton from '@/components/SollecitiButton'
 import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
+import DashboardDesktopHeaderActionsPortal from '@/components/DesktopHeaderPageActions'
 import DashboardScannerFlowCard from '@/components/DashboardScannerFlowCard'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
@@ -16,14 +18,21 @@ import {
 import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
-import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
+import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
+import { parseFiscalYearQueryParam } from '@/lib/fiscal-year'
+import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams: searchParamsPromise,
+}: {
+  searchParams?: Promise<{ fy?: string }>
+}) {
+  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
   const cookieStore = await getCookieStore()
   const [t, locale, tz, profile, currency] = await Promise.all([
     getT(),
@@ -60,6 +69,12 @@ export default async function DashboardPage() {
 
     return (
       <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6 app-shell-page-padding">
+        <DashboardDesktopHeaderActionsPortal>
+          <div className="flex min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-2 sm:gap-2.5 md:overflow-x-auto lg:gap-3">
+            <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
+            <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
+          </div>
+        </DashboardDesktopHeaderActionsPortal>
         <div className="w-full">
           <AppPageHeaderStrip embedded>
             <AppPageHeaderTitleWithDashboardShortcut
@@ -70,10 +85,6 @@ export default async function DashboardPage() {
               <p className="mt-1 hidden text-sm leading-snug text-slate-400 md:block">{t.sedi.subtitleGlobalAdmin}</p>
             </AppPageHeaderTitleWithDashboardShortcut>
             <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 md:gap-3">
-              <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-3 lg:gap-4 md:overflow-x-auto">
-                <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
-                <DashboardDuplicateFattureButton alwaysShowLabel />
-              </div>
               <Link
                 href="/log"
                 className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium transition-colors ${
@@ -222,20 +233,22 @@ export default async function DashboardPage() {
 
   const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
   let dashboardSedeNome: string | null = adminViewSedeNome
-  const needSedeNome = Boolean(sedeId && dashboardSedeNome == null)
-  const [fornitoreIds, sedeNomeRow] = await Promise.all([
+  const [fornitoreIds, sedeMetaRow] = await Promise.all([
     sedeId ? fornitoreIdsForSede(supabase, sedeId) : Promise.resolve([] as string[]),
-    needSedeNome && sedeId
-      ? supabase.from('sedi').select('nome').eq('id', sedeId).maybeSingle()
-      : Promise.resolve({ data: null as { nome: string | null } | null }),
+    sedeId
+      ? supabase.from('sedi').select('nome, country_code').eq('id', sedeId).maybeSingle()
+      : Promise.resolve({ data: null as { nome: string | null; country_code: string | null } | null }),
   ])
-  if (needSedeNome && sedeNomeRow.data) {
-    dashboardSedeNome = sedeNomeRow.data.nome ?? null
+  if (sedeId && sedeMetaRow.data?.nome && dashboardSedeNome == null) {
+    dashboardSedeNome = sedeMetaRow.data.nome ?? null
   }
+  const sedeCountryCode = (sedeMetaRow.data?.country_code ?? 'IT').trim() || 'IT'
   const operatorScoped = !!sedeId
+  const fiscalYear = operatorScoped ? parseFiscalYearQueryParam(searchParams.fy, sedeCountryCode) : 0
+  const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
   const [kpis, sollecitiFornitori, supplierHint, scannerFlowDetail] = await Promise.all([
     operatorScoped
-      ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds)
+      ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
       : Promise.resolve({
           bolleTotal: 0,
           bolleInAttesa: 0,
@@ -257,10 +270,15 @@ export default async function DashboardPage() {
       : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
   ])
   const formatScannerEventTime = (iso: string) => fmtDate(iso, locale, tz, { hour: '2-digit', minute: '2-digit' })
-  const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6 app-shell-page-padding">
+      <DashboardDesktopHeaderActionsPortal>
+        <div className="flex min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-2 sm:gap-2.5 md:overflow-x-auto lg:gap-3">
+          <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
+          <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
+        </div>
+      </DashboardDesktopHeaderActionsPortal>
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
@@ -273,10 +291,11 @@ export default async function DashboardPage() {
             {dashboardSedeNome ?? t.dashboard.title}
           </h1>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-3 lg:gap-4 md:overflow-x-auto">
-          <DashboardDuplicateFattureButton alwaysShowLabel />
-          <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
-        </div>
+        {operatorScoped ? (
+          <Suspense fallback={null}>
+            <DashboardFiscalYearHeaderSelect countryCode={sedeCountryCode} selectedFiscalYear={fiscalYear} />
+          </Suspense>
+        ) : null}
       </AppPageHeaderStrip>
 
       {!operatorScoped && (
@@ -382,53 +401,36 @@ export default async function DashboardPage() {
       {operatorScoped ? (
         <>
           <div className="dashboard-operator-desktop-column">
-            <div>
-              <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
-                {t.fornitori.tabRiepilogo}
-              </h2>
-              <DashboardOperatorKpiGrid
-                kpis={kpis}
-                t={t}
-                locale={locale}
-                currency={currency}
-                hideBelowLg
-              />
-            </div>
+            <Suspense fallback={<DashboardOperatorKpiSkeleton />}>
+              <div>
+                <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
+                  {t.fornitori.tabRiepilogo}
+                </h2>
+                <DashboardOperatorKpiGrid
+                  kpis={kpis}
+                  t={t}
+                  locale={locale}
+                  currency={currency}
+                  hideBelowLg
+                  fiscalYear={fiscalYear}
+                />
+              </div>
+            </Suspense>
           </div>
-          {/* Scanner + bolle: visibile su mobile e desktop (sotto i KPI ≥1024px). Vedi globals.css. */}
+          {/* Scanner: visibile su mobile e desktop (sotto i KPI ≥1024px). Vedi globals.css. */}
           <div className="dashboard-operator-scanner-bolle-stack">
             <DashboardScannerFlowCard
               summary={scannerFlowDetail.summary}
               events={scannerFlowDetail.events}
               formatEventTime={formatScannerEventTime}
               t={t}
+              headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
             />
-            <div className="min-h-0 min-w-0">
-              <DashboardRecentBolleCard
-                bolle={[]}
-                formatDate={formatDate}
-                surface="scanner-flow"
-                hideRecentList
-                hrefScannerEvents="/scanner/eventi"
-                labels={{
-                  title: t.dashboard.recentBills,
-                  newBill: t.bolle.new,
-                  viewAll: t.dashboard.viewAll,
-                  scannerHubTitle: t.dashboard.scannerFlowBolleHubTitle,
-                  scannerHubOpenScanner: t.dashboard.scannerFlowOpenScanner,
-                  scannerHubEventsLink: t.dashboard.scannerFlowEventsAllLink,
-                  noBills: t.bolle.noBills,
-                  addFirst: t.bolle.addFirst,
-                  completato: t.status.completato,
-                  inAttesa: t.status.inAttesa,
-                }}
-              />
-            </div>
           </div>
         </>
       ) : (
         <div className="dashboard-operator-empty-shell-desktop">
-          <DashboardRecentBolleCard shellOnly />
+          <DashboardRecentBolleCard />
         </div>
       )}
 

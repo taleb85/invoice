@@ -61,6 +61,28 @@ export function isValidFiscalYear(y: unknown): y is number {
   return typeof y === 'number' && Number.isFinite(y) && y >= FY_MIN && y <= FY_MAX
 }
 
+/** Bound per query Supabase: colonne `date` e `timestamptz` nell’intervallo anno fiscale (fine esclusiva). */
+export function getFiscalYearPgBounds(
+  countryCode: string,
+  labelYear: number
+): { dateFrom: string; dateToExclusive: string; tsFrom: string; tsToExclusive: string } {
+  const { start, endExclusive } = fiscalYearRangeUtc(countryCode, labelYear)
+  return {
+    dateFrom: start.toISOString().slice(0, 10),
+    dateToExclusive: endExclusive.toISOString().slice(0, 10),
+    tsFrom: start.toISOString(),
+    tsToExclusive: endExclusive.toISOString(),
+  }
+}
+
+/** `fy` in query string → etichetta anno; fuori range o assente → anno fiscale corrente per paese. */
+export function parseFiscalYearQueryParam(raw: string | undefined, countryCode: string): number {
+  if (raw === undefined || raw === '') return defaultFiscalYearLabel(countryCode, new Date())
+  const n = Number(raw)
+  if (isValidFiscalYear(n)) return n
+  return defaultFiscalYearLabel(countryCode, new Date())
+}
+
 /**
  * Etichetta breve per UI: UK `2025/26` (tax year che termina ad aprile `labelYear`);
  * IT/FR/DE/ES anno civile come stringa (`2025`).

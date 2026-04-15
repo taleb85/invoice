@@ -4,11 +4,14 @@ import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
+import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
+import { withFiscalYearQuery } from '@/lib/fiscal-link'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -56,7 +59,11 @@ async function getBolleForToday(timeZone: string, sedeId: string | null) {
   return data ?? []
 }
 
-async function getBolleAll(sedeId: string | null, pendingOnly: boolean) {
+async function getBolleAll(
+  sedeId: string | null,
+  pendingOnly: boolean,
+  fiscalDataBounds: { dateFrom: string; dateToExclusive: string } | null,
+) {
   const { supabase } = await getRequestAuth()
   let q = supabase
     .from('bolle')
@@ -66,6 +73,11 @@ async function getBolleAll(sedeId: string | null, pendingOnly: boolean) {
     .limit(BOLLE_LIST_LIMIT)
   if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
   if (pendingOnly) q = q.eq('stato', 'in attesa') as typeof q
+  if (fiscalDataBounds) {
+    q = q
+      .gte('data', fiscalDataBounds.dateFrom)
+      .lt('data', fiscalDataBounds.dateToExclusive) as typeof q
+  }
   const { data, error } = await q
 
   if (error) console.error('Errore caricamento bolle:', error.message)
@@ -75,14 +87,27 @@ async function getBolleAll(sedeId: string | null, pendingOnly: boolean) {
 export default async function BollePage({
   searchParams,
 }: {
-  searchParams?: Promise<{ tutte?: string; pending?: string }>
+  searchParams?: Promise<{ tutte?: string; pending?: string; fy?: string }>
 }) {
   const sp = searchParams ? await searchParams : {}
   const showAll = sp.tutte === '1' || sp.tutte === 'true'
   const pendingOnly = sp.pending === '1' || sp.pending === 'true'
 
-  const [tz, t, locale, sedeId] = await Promise.all([getTimezone(), getT(), getLocale(), getListSedeId()])
-  const bolle = showAll ? await getBolleAll(sedeId, pendingOnly) : await getBolleForToday(tz, sedeId)
+  const [tz, t, locale, sedeId, { supabase }] = await Promise.all([
+    getTimezone(),
+    getT(),
+    getLocale(),
+    getListSedeId(),
+    getRequestAuth(),
+  ])
+  const fiscal = sedeId ? await resolveFiscalFilterForSede(supabase, sedeId, sp.fy) : null
+  const fyForLinks = fiscal?.labelYear
+  const bolle =
+    showAll && sedeId
+      ? await getBolleAll(sedeId, pendingOnly, fiscal?.bounds ?? null)
+      : showAll
+        ? await getBolleAll(sedeId, pendingOnly, null)
+        : await getBolleForToday(tz, sedeId)
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   const subtitle = (() => {
@@ -109,17 +134,7 @@ export default async function BollePage({
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-2xl font-bold">{t.bolle.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-          <Link
-            href="/bolle/new"
-            className="flex shrink-0 items-center gap-2 self-start rounded-lg bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600 sm:self-center"
-          >
-            <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">{t.bolle.new}</span>
-          </Link>
-        </div>
+        <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
 
       <AppSummaryHighlightCard
@@ -130,13 +145,19 @@ export default async function BollePage({
         trailing={
           !showAll ? (
             <>
-              <Link href="/bolle?tutte=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
+              <Link
+                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
+                className="text-indigo-400 transition-colors hover:text-indigo-300"
+              >
                 {t.bolle.listShowAll}
               </Link>
               <span className="text-slate-600" aria-hidden>
                 ·
               </span>
-              <Link href="/bolle?tutte=1&pending=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
+              <Link
+                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
+                className="text-indigo-400 transition-colors hover:text-indigo-300"
+              >
                 {t.bolle.listAllPending}
               </Link>
             </>
@@ -148,7 +169,10 @@ export default async function BollePage({
               <span className="text-slate-600" aria-hidden>
                 ·
               </span>
-              <Link href="/bolle?tutte=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
+              <Link
+                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
+                className="text-indigo-400 transition-colors hover:text-indigo-300"
+              >
                 {t.bolle.listShowAll}
               </Link>
             </>
@@ -160,7 +184,10 @@ export default async function BollePage({
               <span className="text-slate-600" aria-hidden>
                 ·
               </span>
-              <Link href="/bolle?tutte=1&pending=1" className="text-indigo-400 transition-colors hover:text-indigo-300">
+              <Link
+                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
+                className="text-indigo-400 transition-colors hover:text-indigo-300"
+              >
                 {t.bolle.listAllPending}
               </Link>
             </>
@@ -183,7 +210,10 @@ export default async function BollePage({
               </svg>
               <p className="text-sm font-medium text-slate-200">{emptyMessage}</p>
               {!showAll ? (
-                <Link href="/bolle?tutte=1" className="mt-4 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300">
+                <Link
+                  href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
+                  className="mt-4 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300"
+                >
                   {t.bolle.listShowAll} →
                 </Link>
               ) : null}

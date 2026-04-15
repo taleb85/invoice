@@ -9,14 +9,21 @@ import {
   formatDate as fmtDate,
 } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OrdiniOverviewPage() {
+export default async function OrdiniOverviewPage({
+  searchParams: searchParamsPromise,
+}: {
+  searchParams?: Promise<{ fy?: string }>
+}) {
+  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
   const [t, locale, tz, cookieStore] = await Promise.all([
     getT(),
     getLocale(),
@@ -41,11 +48,12 @@ export default async function OrdiniOverviewPage() {
   if (!sedeId && !isMasterAdmin) {
     rows = []
   } else if (!sedeId && isMasterAdmin) {
-    rows = await fetchOrdiniOverviewRows(supabase, null)
+    rows = await fetchOrdiniOverviewRows(supabase, null, null)
   } else if (sedeId && fornitoreIds.length === 0) {
     rows = []
   } else {
-    rows = await fetchOrdiniOverviewRows(supabase, fornitoreIds)
+    const fiscal = await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy)
+    rows = await fetchOrdiniOverviewRows(supabase, fornitoreIds, fiscal?.bounds ?? null)
   }
 
   const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
@@ -57,6 +65,7 @@ export default async function OrdiniOverviewPage() {
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.nav.ordini}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
+        <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (
