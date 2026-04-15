@@ -27,7 +27,7 @@ const geistSans = Geist({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#475569",
+  themeColor: "#020617",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
   other: {
     "mobile-web-app-capable": "yes",
     "application-name": "FLUXO",
-    "msapplication-TileColor": "#475569",
+    "msapplication-TileColor": "#020617",
     "msapplication-TileImage": "/icons/icon-512.png",
   },
 };
@@ -70,8 +70,8 @@ export default function RootLayout({
   return (
     <html lang="it" className={`${geistSans.variable} h-full antialiased`}>
       <body
-        className="h-full min-h-dvh bg-slate-600 text-slate-100 antialiased"
-        style={{ backgroundColor: "#475569", color: "#f1f5f9" }}
+        className="h-full min-h-dvh bg-slate-950 text-app-fg-muted antialiased"
+        style={{ backgroundColor: "#020617", color: "#ecfeff" }}
       >
         <Script
           id="fluxo-app-locale-bootstrap"

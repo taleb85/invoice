@@ -103,12 +103,12 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
           <div
             id={menuId}
             role="menu"
-            className="absolute right-0 z-50 mt-1 min-w-[11rem] rounded-lg border border-slate-600/60 bg-slate-900 py-1 shadow-xl ring-1 ring-black/20"
+            className="absolute right-0 z-50 mt-1 min-w-[11rem] rounded-lg border border-app-line-28 app-workspace-surface-elevated py-1 shadow-xl ring-1 ring-black/20"
           >
             <button
               type="button"
               role="menuitem"
-              className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-100 transition-colors hover:bg-slate-700/80"
+              className="block w-full px-3 py-2 text-left text-xs font-medium text-app-fg transition-colors hover:bg-black/18"
               onClick={openPreview}
             >
               {labels.preview}
@@ -116,7 +116,7 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
             <button
               type="button"
               role="menuitem"
-              className="block w-full px-3 py-2 text-left text-xs font-medium text-slate-100 transition-colors hover:bg-slate-700/80"
+              className="block w-full px-3 py-2 text-left text-xs font-medium text-app-fg transition-colors hover:bg-black/18"
               onClick={() => void copy()}
             >
               {copied ? labels.linkCopied : labels.copyLink}
@@ -126,12 +126,12 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
       </div>
       {previewOpen ? (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/70 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
+          className="fixed inset-0 z-[200] flex items-center justify-center app-workspace-inset-bg p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
           onClick={() => setPreviewOpen(false)}
           role="presentation"
         >
           <div
-            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
+            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-app-line-25 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -139,7 +139,7 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
           >
             <button
               type="button"
-              className="absolute right-2 top-2 z-20 rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 py-1.5 text-sm font-medium text-slate-100 shadow-lg backdrop-blur-sm transition-colors hover:bg-slate-800 hover:text-white"
+              className="absolute right-2 top-2 z-20 rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
               onClick={() => setPreviewOpen(false)}
             >
               {t.statements.btnClose}

@@ -257,14 +257,14 @@ export default function NuovaFatturaForm() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#020817] via-primary to-[#0a1628]">
 
       {/* Header */}
       <div
         className="app-desktop-header-glass sticky top-0 z-10 flex items-center gap-3 px-4 py-4"
       >
         <button type="button" onClick={() => router.back()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-700 hover:text-slate-200">
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg">
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
@@ -272,7 +272,7 @@ export default function NuovaFatturaForm() {
         <div className="min-w-0 flex-1">
           <h1 className="app-page-title text-lg font-bold">{t.fatture.caricaFatturaTitle}</h1>
           {bolleSelezionate.size > 0 && (
-            <p className="mt-0.5 text-xs text-cyan-400">
+            <p className="mt-0.5 text-xs text-app-cyan-500">
               {bolleSelezionate.size} bolla{bolleSelezionate.size > 1 ? 'e' : ''} selezionata{bolleSelezionate.size > 1 ? '' : ''}
             </p>
           )}
@@ -284,14 +284,14 @@ export default function NuovaFatturaForm() {
 
         {/* Multi-bolla selector */}
         {fornitoreIdParam && (
-          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-cyan-500/20">
+          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-app-soft-border">
             <div className="app-card-bar shrink-0" aria-hidden />
             <div className="p-5">
-              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                 Bolle da coprire con questa fattura
               </label>
               {loadingBolle ? (
-                <p className="text-sm text-slate-500">Caricamento bolle…</p>
+                <p className="text-sm text-app-fg-muted">Caricamento bolle…</p>
               ) : bolleDisponibili.length === 0 ? (
                 <p className="text-sm text-amber-400">Nessuna bolla aperta per questo fornitore.</p>
               ) : (
@@ -300,18 +300,18 @@ export default function NuovaFatturaForm() {
                     const sel = bolleSelezionate.has(b.id)
                     return (
                       <label key={b.id}
-                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${sel ? 'border-cyan-500/40 bg-cyan-500/10' : 'border-slate-700/50 hover:bg-slate-700/60'}`}>
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${sel ? 'border-app-line-40 bg-app-line-10' : 'border-app-line-22 hover:bg-black/12'}`}>
                         <input type="checkbox" checked={sel} onChange={() => toggleBolla(b.id)}
-                          className="rounded border-slate-600 text-cyan-500 focus:ring-cyan-500" />
+                          className="rounded border-app-line-28 text-app-cyan-500 focus:ring-app-cyan-500" />
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-slate-100">
+                          <p className="text-sm font-medium text-app-fg">
                             {b.numero_bolla ? `${b.numero_bolla} · ` : ''}{fmt(b.data)}
                           </p>
                           {b.importo != null && (
-                            <p className="text-xs text-slate-200">£ {b.importo.toFixed(2)}</p>
+                            <p className="text-xs text-app-fg-muted">£ {b.importo.toFixed(2)}</p>
                           )}
                         </div>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sel ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-700 text-slate-500'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sel ? 'bg-app-line-20 text-app-fg-muted' : 'app-workspace-surface-elevated text-app-fg-muted'}`}>
                           {sel ? 'Inclusa' : 'Esclusa'}
                         </span>
                       </label>
@@ -319,11 +319,11 @@ export default function NuovaFatturaForm() {
                   })}
                   {/* Totale bolle selezionate */}
                   {bolleSelezionate.size > 0 && tutteConImporto && (
-                    <div className="mt-1 flex items-center justify-between rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2">
-                      <span className="text-xs font-semibold text-cyan-300">
+                    <div className="mt-1 flex items-center justify-between rounded-xl border border-app-line-30 bg-app-line-10 px-3 py-2">
+                      <span className="text-xs font-semibold text-app-fg-muted">
                         Totale {bolleSelezionate.size} boll{bolleSelezionate.size > 1 ? 'e' : 'a'}
                       </span>
-                      <span className="text-sm font-bold text-cyan-200">£ {importoCalcolato.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-app-fg-muted">£ {importoCalcolato.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
@@ -335,35 +335,35 @@ export default function NuovaFatturaForm() {
         {/* Numero fattura + importo */}
         <div className="app-card-login overflow-hidden rounded-2xl">
           <div className="app-card-bar" aria-hidden />
-          <div className="border-b border-slate-700/50 p-5">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
-              N° Fattura <span className="font-normal normal-case text-slate-600">(opzionale)</span>
+          <div className="border-b border-app-line-22 p-5">
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
+              N° Fattura <span className="font-normal normal-case text-app-fg-muted">(opzionale)</span>
             </label>
             <input
               type="text"
               placeholder="es. FT-2025-042"
               value={numeroFattura}
               onChange={e => setNumeroFattura(e.target.value)}
-              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-0"
+              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-0"
             />
           </div>
           <div className="p-5">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
               {t.appStrings.labelImportoTotale}{' '}
-              <span className="font-normal normal-case text-slate-600">
+              <span className="font-normal normal-case text-app-fg-muted">
                 {bolleSelezionate.size > 0 && tutteConImporto ? '— calcolato automaticamente' : '(IVA inclusa)'}
               </span>
             </label>
             {bolleSelezionate.size > 0 && tutteConImporto ? (
-              <p className="text-lg font-bold text-cyan-300">£ {importoCalcolato.toFixed(2)}</p>
+              <p className="text-lg font-bold text-app-fg-muted">£ {importoCalcolato.toFixed(2)}</p>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="text-base text-slate-500">£</span>
+                <span className="text-base text-app-fg-muted">£</span>
                 <input
                   type="number" min="0" step="0.01" placeholder="0.00"
                   value={importoManuale}
                   onChange={e => setImportoManuale(e.target.value)}
-                  className="flex-1 border-0 bg-transparent py-1 text-base text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-0"
+                  className="flex-1 border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-0"
                 />
               </div>
             )}
@@ -374,14 +374,14 @@ export default function NuovaFatturaForm() {
         <div className="app-card-login flex flex-col overflow-hidden">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-5">
-          <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
+          <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
             {t.fatture.fileFattura} <span className="text-red-400">*</span>
           </label>
 
           {!file && (
             <button type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex w-full flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/50 py-8 text-slate-500 transition-colors hover:border-cyan-500/50 hover:text-cyan-400">
+              className="flex w-full flex-col items-center gap-3 rounded-xl border-2 border-dashed border-app-line-25 py-8 text-app-fg-muted transition-colors hover:border-app-line-50 hover:text-app-cyan-500">
               <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
@@ -390,17 +390,17 @@ export default function NuovaFatturaForm() {
           )}
 
           {file?.type === 'application/pdf' && (
-            <div className="flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-700/50 p-4">
+            <div className="flex items-center gap-3 rounded-xl border border-app-line-22 app-workspace-inset-bg-soft p-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/15">
                 <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-100">{file.name}</p>
-                <p className="mt-0.5 text-xs text-slate-500">{(file.size / 1024).toFixed(0)} KB</p>
+                <p className="truncate text-sm font-medium text-app-fg">{file.name}</p>
+                <p className="mt-0.5 text-xs text-app-fg-muted">{(file.size / 1024).toFixed(0)} KB</p>
               </div>
-              <button type="button" onClick={removeFile} className="text-slate-600 transition-colors hover:text-red-400">
+              <button type="button" onClick={removeFile} className="text-app-fg-muted transition-colors hover:text-red-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -414,15 +414,15 @@ export default function NuovaFatturaForm() {
 
         {/* Registrato da */}
         {file && (
-          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-cyan-500/20">
+          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-app-soft-border">
             <div className="app-card-bar shrink-0" aria-hidden />
             <div className="p-5">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-slate-200">
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
               Registrato da
             </label>
             <input type="text" placeholder="Nome di chi ha registrato la fattura…"
               value={registratoDa} onChange={e => setRegistratoDa(e.target.value)}
-              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-0"
+              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-0"
             />
             </div>
           </div>
@@ -433,11 +433,11 @@ export default function NuovaFatturaForm() {
           <div className="app-card-bar" aria-hidden />
           <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : ''}`}>
             <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-200">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                 {t.fatture.dataFattura}
               </label>
               {ocrStatus === 'scanning' && (
-                <span className="flex items-center gap-1 text-xs text-slate-500">
+                <span className="flex items-center gap-1 text-xs text-app-fg-muted">
                   <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -456,12 +456,12 @@ export default function NuovaFatturaForm() {
             </div>
             <input type="date" required value={data}
               onChange={e => { setData(e.target.value); setDateFromOcr(false) }}
-              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-slate-100 [color-scheme:dark] focus:outline-none focus:ring-0"
+              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg [color-scheme:dark] focus:outline-none focus:ring-0"
             />
           </div>
-          <div className="flex items-center justify-between border-t border-slate-700/50 bg-slate-700/40 px-5 py-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Data caricamento</span>
-            <span className="text-sm font-medium text-slate-200">
+          <div className="flex items-center justify-between border-t border-app-line-22 app-workspace-inset-bg-soft px-5 py-3">
+            <span className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">Data caricamento</span>
+            <span className="text-sm font-medium text-app-fg-muted">
               {new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} — automatica
             </span>
           </div>
@@ -477,7 +477,7 @@ export default function NuovaFatturaForm() {
         )}
 
         <button type="submit" disabled={saving || ocrStatus === 'scanning'}
-          className="w-full py-4 bg-cyan-500 hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 text-white text-base font-semibold rounded-2xl transition-colors mt-auto shadow-sm flex items-center justify-center gap-2">
+          className="w-full py-4 bg-app-cyan-500 hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 text-white text-base font-semibold rounded-2xl transition-colors mt-auto shadow-sm flex items-center justify-center gap-2">
           {saving ? (
             <>
               <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">

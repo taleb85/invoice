@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getT } from '@/lib/locale-server'
 
 const secondaryBtn =
-  'inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-600/50 bg-slate-700/60 px-3 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700'
+  'inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-app-line-25 app-workspace-inset-bg-soft px-3 py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-40 hover:bg-app-line-10 hover:text-app-fg'
 
 /**
  * Bolla o fattura assente / non visibile (RLS): messaggio chiaro senza `notFound()` globale.
@@ -21,11 +21,11 @@ export default async function DocumentUnavailable({ kind }: { kind: 'bolla' | 'f
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="space-y-4 px-6 py-8">
           <h1 className="app-page-title text-xl font-bold">{title}</h1>
-          <p className="text-sm leading-relaxed text-slate-200">{desc}</p>
+          <p className="text-sm leading-relaxed text-app-fg-muted">{desc}</p>
           <div className="grid grid-cols-2 gap-2.5 pt-1">
             <Link
               href="/"
-              className="col-span-2 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
+              className="col-span-2 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
             >
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path
@@ -49,7 +49,7 @@ export default async function DocumentUnavailable({ kind }: { kind: 'bolla' | 'f
           </div>
           </div>
         </div>
-        <p className="text-xs text-slate-500">{t.appStrings.brandFooter}</p>
+        <p className="text-xs text-app-fg-muted">{t.appStrings.brandFooter}</p>
       </div>
     </div>
   )

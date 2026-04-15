@@ -17,6 +17,7 @@ import ToggleStato from '@/app/(app)/bolle/[id]/ToggleStato'
 import ReplaceFileButton from '@/app/(app)/fatture/[id]/ReplaceFileButton'
 import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
+import { APP_SECTION_TABLE_HEAD_ROW, APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
 
 type BollaPayload = {
   id: string
@@ -103,8 +104,8 @@ function FornitoreInlineDocPreview({
 
   const frameFixed = 'h-[min(78vh,880px)]'
   const shell = fill
-    ? 'flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-700'
-    : 'overflow-hidden rounded-xl border border-slate-700/60 bg-slate-700'
+    ? 'flex min-h-0 flex-1 flex-col overflow-hidden app-workspace-surface-elevated'
+    : 'overflow-hidden rounded-xl border border-app-line-22 app-workspace-surface-elevated'
   const frameLoading = fill ? 'flex flex-1 items-center justify-center' : `flex ${frameFixed} items-center justify-center`
   const frameFallback = fill ? 'flex flex-1 items-center justify-center p-4' : `flex ${frameFixed} items-center justify-center p-4`
 
@@ -112,7 +113,7 @@ function FornitoreInlineDocPreview({
     <div className={shell}>
       {loading && (
         <div className={frameLoading}>
-          <p className="text-xs text-slate-500">{t.common.loading}</p>
+          <p className="text-xs text-app-fg-muted">{t.common.loading}</p>
         </div>
       )}
       {!loading && signedUrl && kind === 'image' && (
@@ -133,8 +134,8 @@ function FornitoreInlineDocPreview({
           src={embedSrcForInlineViewer(signedUrl, kind)}
           className={
             fill
-              ? 'min-h-0 w-full flex-1 border-0 bg-slate-700'
-              : `${frameFixed} w-full border-0 bg-slate-700`
+              ? 'min-h-0 w-full flex-1 border-0 app-workspace-surface-elevated'
+              : `${frameFixed} w-full border-0 app-workspace-surface-elevated`
           }
         />
       )}
@@ -145,8 +146,8 @@ function FornitoreInlineDocPreview({
             src={hrefTab}
             className={
               fill
-                ? 'min-h-0 w-full flex-1 border-0 bg-slate-700'
-                : `${frameFixed} w-full border-0 bg-slate-700`
+                ? 'min-h-0 w-full flex-1 border-0 app-workspace-surface-elevated'
+                : `${frameFixed} w-full border-0 app-workspace-surface-elevated`
             }
           />
         </div>
@@ -189,7 +190,7 @@ export default function FornitoreDocDetailLayer({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-stretch justify-center bg-slate-700/80 p-0 backdrop-blur-sm md:p-6"
+      className="fixed inset-0 z-[80] flex items-stretch justify-center app-workspace-inset-bg p-0 backdrop-blur-sm md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fornitore-doc-detail-title"
@@ -200,15 +201,15 @@ export default function FornitoreDocDetailLayer({
         className="absolute inset-0 z-0 cursor-default md:hidden"
         onClick={close}
       />
-      <div className="relative z-10 flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none border border-slate-700/60 bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] shadow-2xl md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:rounded-xl">
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-700/60 px-3 py-2.5 md:px-4">
-          <h2 id="fornitore-doc-detail-title" className="min-w-0 truncate text-sm font-semibold text-slate-100">
+      <div className="relative z-10 flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none border border-app-line-22 bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] shadow-2xl md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:rounded-xl">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-app-line-22 px-3 py-2.5 md:px-4">
+          <h2 id="fornitore-doc-detail-title" className="min-w-0 truncate text-sm font-semibold text-app-fg">
             {showFattura ? t.fatture.invoice : t.bolle.dettaglio}
           </h2>
           <button
             type="button"
             onClick={close}
-            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-700/80 hover:text-slate-100"
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-black/18 hover:text-app-fg"
           >
             {t.statements.btnClose}
           </button>
@@ -299,15 +300,15 @@ function FatturaLayerBody({
   if (loading) {
     return (
       <div className={scrollPad}>
-        <p className="text-sm text-slate-200">{t.common.loading}</p>
+        <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
       </div>
     )
   }
   if (err || !fattura) {
     return (
       <div className={`${scrollPad} space-y-3 text-center`}>
-        <p className="text-sm text-slate-200">{t.appStrings.docUnavailableFatturaDesc}</p>
-        <Link href={`/fatture/${fatturaId}`} className="text-sm font-medium text-cyan-400 hover:text-cyan-300">
+        <p className="text-sm text-app-fg-muted">{t.appStrings.docUnavailableFatturaDesc}</p>
+        <Link href={`/fatture/${fatturaId}`} className="text-sm font-medium text-app-cyan-500 hover:text-app-fg-muted">
           {t.fatture.dettaglio} →
         </Link>
       </div>
@@ -328,45 +329,45 @@ function FatturaLayerBody({
   return (
     <div className={`${scrollPad} space-y-4`}>
       <div>
-        <h3 className="text-lg font-bold text-slate-100">
+        <h3 className="text-lg font-bold text-app-fg">
           {t.fatture.invoice} – {fattura.fornitore?.nome}
         </h3>
-        <p className="mt-0.5 text-sm text-slate-200">{formatDate(fattura.data)}</p>
+        <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(fattura.data)}</p>
       </div>
 
-      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
         <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
-          <h4 className="mb-3 text-sm font-semibold text-slate-100">{t.fatture.dettaglio}</h4>
+          <h4 className="mb-3 text-sm font-semibold text-app-fg">{t.fatture.dettaglio}</h4>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-200">{t.common.supplier}</dt>
-              <dd className="font-medium text-slate-100">{fattura.fornitore?.nome}</dd>
+              <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.supplier}</dt>
+              <dd className="font-medium text-app-fg">{fattura.fornitore?.nome}</dd>
             </div>
             {fattura.fornitore?.email && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.email}</dt>
-                <dd className="text-slate-200">{fattura.fornitore.email}</dd>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.fornitori.email}</dt>
+                <dd className="text-app-fg-muted">{fattura.fornitore.email}</dd>
               </div>
             )}
             {fattura.fornitore?.piva && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.piva}</dt>
-                <dd className="text-slate-200">{fattura.fornitore.piva}</dd>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.fornitori.piva}</dt>
+                <dd className="text-app-fg-muted">{fattura.fornitore.piva}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-200">{t.common.date}</dt>
-              <dd className="text-slate-200">{formatDate(fattura.data)}</dd>
+              <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.date}</dt>
+              <dd className="text-app-fg-muted">{formatDate(fattura.data)}</dd>
             </div>
             {fattura.bolla && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.fatture.bollaCollegata}</dt>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.fatture.bollaCollegata}</dt>
                 <dd>
                   <Link
                     href={fornitoreBollaDeepLink(pathname, searchParams, fattura.bolla.id)}
                     scroll={false}
-                    className="font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+                    className="font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
                   >
                     {formatDate(fattura.bolla.data)} →
                   </Link>
@@ -377,17 +378,17 @@ function FatturaLayerBody({
         </div>
       </div>
 
-      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
         <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
-          <h4 className="mb-3 text-sm font-semibold text-slate-100">{t.common.actions}</h4>
-          <p className="mb-3 text-sm text-slate-500">Nessun allegato</p>
+          <h4 className="mb-3 text-sm font-semibold text-app-fg">{t.common.actions}</h4>
+          <p className="mb-3 text-sm text-app-fg-muted">Nessun allegato</p>
           <ReplaceFileButton fatturaId={fattura.id} />
         </div>
       </div>
 
       <p className="text-center">
-        <Link href={`/fatture/${fattura.id}`} className="text-xs text-slate-500 underline hover:text-slate-200">
+        <Link href={`/fatture/${fattura.id}`} className="text-xs text-app-fg-muted underline hover:text-app-fg">
           {t.common.detail} — {t.nav.fatture}
         </Link>
       </p>
@@ -465,15 +466,15 @@ function BollaLayerBody({
   if (loading) {
     return (
       <div className={scrollPad}>
-        <p className="text-sm text-slate-200">{t.common.loading}</p>
+        <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
       </div>
     )
   }
   if (err || !bolla) {
     return (
       <div className={`${scrollPad} space-y-3 text-center`}>
-        <p className="text-sm text-slate-200">{t.appStrings.docUnavailableBollaDesc}</p>
-        <Link href={`/bolle/${bollaId}`} className="text-sm font-medium text-cyan-400 hover:text-cyan-300">
+        <p className="text-sm text-app-fg-muted">{t.appStrings.docUnavailableBollaDesc}</p>
+        <Link href={`/bolle/${bollaId}`} className="text-sm font-medium text-app-cyan-500 hover:text-app-fg-muted">
           {t.bolle.dettaglio} →
         </Link>
       </div>
@@ -492,42 +493,42 @@ function BollaLayerBody({
     <div className={`${scrollPad} space-y-4`}>
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-lg font-bold text-slate-100">{bolla.fornitore?.nome}</h3>
+          <h3 className="text-lg font-bold text-app-fg">{bolla.fornitore?.nome}</h3>
           {rekkiPrezzoFlag && (
             <span className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-amber-400/45 bg-amber-950/50 px-2 py-1 text-[10px] font-semibold text-amber-50">
               {t.bolle.rekkiPrezzoIndicativoBadge}
             </span>
           )}
         </div>
-        <p className="mt-0.5 text-sm text-slate-200">{formatDate(bolla.data)}</p>
+        <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(bolla.data)}</p>
       </div>
 
-      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
         <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h4 className="text-sm font-semibold text-slate-100">{t.bolle.dettaglio}</h4>
+            <h4 className="text-sm font-semibold text-app-fg">{t.bolle.dettaglio}</h4>
             <ToggleStato id={bolla.id} stato={bolla.stato} />
           </div>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-200">{t.common.supplier}</dt>
-              <dd className="font-medium text-slate-100">{bolla.fornitore?.nome}</dd>
+              <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.supplier}</dt>
+              <dd className="font-medium text-app-fg">{bolla.fornitore?.nome}</dd>
             </div>
             {bolla.numero_bolla && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.appStrings.colDeliveryNoteNum}</dt>
-                <dd className="font-mono font-medium text-slate-100">{bolla.numero_bolla}</dd>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.appStrings.colDeliveryNoteNum}</dt>
+                <dd className="font-mono font-medium text-app-fg">{bolla.numero_bolla}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-200">{t.common.date}</dt>
-              <dd className="text-slate-200">{formatDate(bolla.data)}</dd>
+              <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.date}</dt>
+              <dd className="text-app-fg-muted">{formatDate(bolla.data)}</dd>
             </div>
             {bolla.importo != null && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.statements.colAmount}</dt>
-                <dd className="font-semibold text-slate-100">£ {Number(bolla.importo).toFixed(2)}</dd>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.statements.colAmount}</dt>
+                <dd className="font-semibold text-app-fg">£ {Number(bolla.importo).toFixed(2)}</dd>
               </div>
             )}
           </dl>
@@ -535,31 +536,31 @@ function BollaLayerBody({
       </div>
 
       {fornitoreRekkiId && (
-        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-5">
-            <h4 className="mb-2 text-sm font-semibold text-slate-100">{t.bolle.listinoRekkiRefTitle}</h4>
-            <p className="mb-3 text-[11px] text-slate-500">{t.bolle.listinoRekkiRefHint}</p>
+            <h4 className="mb-2 text-sm font-semibold text-app-fg">{t.bolle.listinoRekkiRefTitle}</h4>
+            <p className="mb-3 text-[11px] text-app-fg-muted">{t.bolle.listinoRekkiRefHint}</p>
             {listinoRows.length === 0 ? (
-              <p className="text-sm text-slate-500">{t.bolle.listinoRekkiRefEmpty}</p>
+              <p className="text-sm text-app-fg-muted">{t.bolle.listinoRekkiRefEmpty}</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-700/60 text-slate-500">
+                    <tr className="border-b border-app-line-22 text-app-fg-muted">
                       <th className="py-2 pr-3 font-medium">{t.fornitori.listinoProdotti}</th>
                       <th className="py-2 pr-3 text-right font-medium">{t.fornitori.listinoColImporto}</th>
                       <th className="py-2 font-medium">{t.fornitori.listinoColData}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/80">
+                  <tbody className={APP_SECTION_TABLE_TBODY}>
                     {listinoRows.map((row) => (
                       <tr key={`${row.prodotto}-${row.data_prezzo}`}>
-                        <td className="max-w-[200px] truncate py-2 pr-3 text-slate-200">{row.prodotto}</td>
-                        <td className="py-2 pr-3 text-right font-mono tabular-nums text-slate-100">
+                        <td className="max-w-[200px] truncate py-2 pr-3 text-app-fg-muted">{row.prodotto}</td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums text-app-fg">
                           {Number(row.prezzo).toFixed(2)}
                         </td>
-                        <td className="whitespace-nowrap py-2 text-slate-500">{formatDate(row.data_prezzo)}</td>
+                        <td className="whitespace-nowrap py-2 text-app-fg-muted">{formatDate(row.data_prezzo)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -570,20 +571,20 @@ function BollaLayerBody({
         </div>
       )}
 
-      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+      <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
         <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h4 className="text-sm font-semibold text-slate-100">{t.bolle.fattureCollegate}</h4>
+            <h4 className="text-sm font-semibold text-app-fg">{t.bolle.fattureCollegate}</h4>
             <Link
               href={`/fatture/new?bolla_id=${bolla.id}&fornitore_id=${bolla.fornitore_id}`}
-              className="text-xs font-medium text-cyan-400 hover:text-cyan-300"
+              className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted"
             >
               {t.bolle.aggiungi}
             </Link>
           </div>
           {fatture.length === 0 ? (
-            <p className="text-sm text-slate-500">{t.bolle.nessunaFatturaCollegata}</p>
+            <p className="text-sm text-app-fg-muted">{t.bolle.nessunaFatturaCollegata}</p>
           ) : (
             <div className="space-y-1">
               {fatture.map((f) => (
@@ -591,10 +592,10 @@ function BollaLayerBody({
                   key={f.id}
                   href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)}
                   scroll={false}
-                  className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm text-slate-200 transition-colors hover:bg-slate-700/50"
+                  className="-mx-2 flex items-center justify-between rounded px-2 py-2 text-sm text-app-fg-muted transition-colors hover:bg-black/12"
                 >
                   <span>{formatDate(f.data)}</span>
-                  {f.file_url && <span className="text-xs font-medium text-cyan-400">{t.bolle.allegatoLink}</span>}
+                  {f.file_url && <span className="text-xs font-medium text-app-cyan-500">{t.bolle.allegatoLink}</span>}
                 </Link>
               ))}
             </div>
@@ -603,7 +604,7 @@ function BollaLayerBody({
       </div>
 
       <p className="text-center">
-        <Link href={`/bolle/${bolla.id}`} className="text-xs text-slate-500 underline hover:text-slate-200">
+        <Link href={`/bolle/${bolla.id}`} className="text-xs text-app-fg-muted underline hover:text-app-fg">
           {t.common.detail} — {t.nav.bolle}
         </Link>
       </p>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import LoginBrandedShell from '@/components/LoginBrandedShell'
 
 const INTERVAL_MS = 5000
 
@@ -53,7 +54,8 @@ export default function OfflinePage() {
   }, [router])
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 px-6 text-center">
+    <LoginBrandedShell>
+      <div className="flex w-full max-w-md flex-col items-center px-6 text-center">
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="mb-8 h-24 w-24">
         <defs>
           <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -91,11 +93,11 @@ export default function OfflinePage() {
       </svg>
 
       <h1 className="app-page-title mb-2 text-2xl font-bold">Sei offline</h1>
-      <p className="max-w-sm text-sm text-white/50">
+      <p className="max-w-sm text-sm text-app-fg-muted">
         Connettiti a internet per accedere a FLUXO. Riproveremo automaticamente ogni {INTERVAL_MS / 1000} secondi quando la
         connessione torna, oppure appena il browser segnala di essere di nuovo online.
       </p>
-      <p className="mt-3 max-w-sm text-xs text-white/35">
+      <p className="mt-3 max-w-sm text-xs text-app-fg-muted">
         Le pagine già visitate possono restare disponibili dalla cache del browser o della PWA.
       </p>
 
@@ -104,10 +106,11 @@ export default function OfflinePage() {
         onClick={() => {
           window.location.reload()
         }}
-        className="mt-8 rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+        className="mt-8 rounded-xl bg-gradient-to-r from-app-cyan-500 to-app-cyan-400 px-6 py-3 text-sm font-semibold text-cyan-950 shadow-[0_0_24px_rgba(34,211,238,0.35)] transition-opacity hover:opacity-95"
       >
         Riprova ora
       </button>
-    </div>
+      </div>
+    </LoginBrandedShell>
   )
 }

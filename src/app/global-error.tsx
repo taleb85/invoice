@@ -2,11 +2,14 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import './globals.css'
+import LoginBrandedShell from '@/components/LoginBrandedShell'
 import { getTranslations } from '@/lib/translations'
 import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
 
 /**
  * Root layout error boundary — must render its own <html> and <body>.
+ * Stesso linguaggio cromatico di `error.tsx` e login (vetro scuro + cyan).
  */
 export default function GlobalError({
   error,
@@ -23,92 +26,57 @@ export default function GlobalError({
   }, [error])
 
   return (
-    <html lang={locale}>
-      <body
-        style={{
-          margin: 0,
-          minHeight: '100vh',
-          background: '#f8fafc',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          fontFamily: 'system-ui, sans-serif',
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: '420px', textAlign: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: 16,
-              background: 'linear-gradient(135deg, #1e3a5f, #172554)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 4px 16px rgba(6,182,212,0.20)',
-            }}>
-              <svg width="32" height="32" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="ge-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#5b7cf9" />
-                    <stop offset="50%" stopColor="#38bdf8" />
-                    <stop offset="100%" stopColor="#22d3ee" />
-                  </linearGradient>
-                </defs>
-                <path d="M7 30 C13 18, 22 18, 29 30 S43 42, 49 30"
-                  stroke="url(#ge-wave)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-                <circle cx="7"  cy="30" r="3.5" fill="#5b7cf9" />
-                <circle cx="29" cy="30" r="3.5" fill="#38bdf8" />
-                <circle cx="49" cy="30" r="3.5" fill="#22d3ee" />
-              </svg>
+    <html lang={locale} className="h-full antialiased">
+      <body className="h-full min-h-dvh bg-[#020617] text-app-fg-muted">
+        <LoginBrandedShell>
+          <div className="w-full max-w-md space-y-6 text-center">
+            <div className="flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-app-a-35 bg-app-line-15 shadow-[0_0_28px_rgba(34,211,238,0.22)] ring-1 ring-inset ring-white/10">
+                <svg className="h-7 w-7 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
             </div>
-          </div>
 
-          <div style={{
-            background: '#ffffff', borderRadius: 20,
-            border: '1px solid #f1f5f9',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-            padding: '2rem',
-          }}>
-            <h1 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.5rem' }}>
-              {t.appStrings.errorFatalTitle}
-            </h1>
-            <p style={{ fontSize: '0.875rem', color: '#64748b', lineHeight: 1.6, margin: '0 0 1.5rem' }}>
-              {t.appStrings.errorFatalBody}
-              {error.digest && (
-                <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.75rem', fontFamily: 'monospace', color: '#94a3b8' }}>
-                  {t.appStrings.errorCodeLabel} {error.digest}
-                </span>
-              )}
-            </p>
+            <div className="app-card-login flex flex-col overflow-hidden text-left">
+              <div className="app-card-bar shrink-0" aria-hidden />
+              <div className="space-y-4 px-8 py-8">
+                <h1 className="app-page-title text-xl font-bold">{t.appStrings.errorFatalTitle}</h1>
+                <p className="text-sm leading-relaxed text-app-fg-muted">
+                  {t.appStrings.errorFatalBody}
+                  {error.digest ? (
+                    <span className="mt-2 block rounded-xl border border-app-line-25 app-workspace-inset-bg px-3 py-2 font-mono text-[11px] text-app-fg-muted ring-1 ring-inset ring-white/5">
+                      {t.appStrings.errorCodeLabel} {error.digest}
+                    </span>
+                  ) : null}
+                </p>
 
-            <div style={{ display: 'flex', gap: '0.75rem', flexDirection: 'column' }}>
-              <button
-                type="button"
-                onClick={reset}
-                style={{
-                  padding: '0.625rem 1rem', borderRadius: 12, border: 'none',
-                  background: '#06b6d4', color: '#ffffff',
-                  fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                {t.appStrings.tryAgain}
-              </button>
-              <Link
-                href="/"
-                style={{
-                  padding: '0.625rem 1rem', borderRadius: 12,
-                  background: '#f1f5f9', color: '#475569',
-                  fontSize: '0.875rem', fontWeight: 500,
-                  textDecoration: 'none', display: 'block',
-                }}
-              >
-                {t.appStrings.backToHome}
-              </Link>
+                <div className="flex flex-col gap-3 pt-1 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="flex-1 rounded-xl bg-gradient-to-r from-app-cyan-500 to-app-cyan-400 px-4 py-2.5 text-sm font-semibold text-cyan-950 shadow-[0_0_20px_rgba(34,211,238,0.35)] transition-opacity hover:opacity-95"
+                  >
+                    {t.appStrings.tryAgain}
+                  </button>
+                  <Link
+                    href="/"
+                    className="flex-1 rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-4 py-2.5 text-center text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-45 hover:bg-app-line-10 hover:text-app-fg"
+                  >
+                    {t.appStrings.backToHome}
+                  </Link>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#cbd5e1' }}>
-            {t.appStrings.brandFooter}
-          </p>
-        </div>
+            <p className="text-xs text-app-fg-muted">{t.appStrings.brandFooter}</p>
+          </div>
+        </LoginBrandedShell>
       </body>
     </html>
   )

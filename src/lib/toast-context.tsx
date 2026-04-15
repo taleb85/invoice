@@ -148,7 +148,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
               ? 'border-emerald-500/35 bg-emerald-950/90 text-emerald-50'
               : toast.type === 'error'
               ? 'border-red-500/35 bg-red-950/90 text-red-50'
-              : 'border-slate-600/70 bg-slate-700/95 text-slate-100'
+              : 'border-app-line-28 app-workspace-surface-elevated text-app-fg'
           }`}
         >
           {toast.type === 'success' && (
@@ -162,7 +162,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
             </svg>
           )}
           {toast.type === 'info' && (
-            <svg className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           )}
@@ -176,7 +176,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
                 ? 'text-emerald-200/80'
                 : toast.type === 'error'
                   ? 'text-red-200/80'
-                  : 'text-slate-200'
+                  : 'text-app-fg-muted'
             }`}
             aria-label={tr.appStrings.toastDismiss}
           >

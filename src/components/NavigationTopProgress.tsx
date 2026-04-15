@@ -40,7 +40,7 @@ export default function NavigationTopProgress({
   desktopHost,
 }: {
   placement?: NavigationProgressPlacement
-  /** Desktop (`AppShellMain`): host = riga intera logo + attività / rete (bordo progress su tutta la barra). */
+  /** Desktop (`AppShellMain`): host = `#app-desktop-header-nav-progress` (dentro `[data-app-desktop-canvas]`). */
   desktopHost: HTMLElement | null
 }) {
   const perimeterGradId = useId().replace(/[^a-zA-Z0-9_-]/g, '')

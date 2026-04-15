@@ -150,12 +150,12 @@ export function OpenDocumentInAppButton({
       </button>
       {open ? (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/70 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
+          className="fixed inset-0 z-[200] flex items-center justify-center app-workspace-inset-bg p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
           onClick={() => setOpen(false)}
           role="presentation"
         >
           <div
-            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-slate-600/50 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
+            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-app-line-25 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -163,7 +163,7 @@ export function OpenDocumentInAppButton({
           >
             <button
               type="button"
-              className="absolute right-2 top-2 z-20 rounded-lg border border-slate-600/80 bg-slate-900/90 px-3 py-1.5 text-sm font-medium text-slate-100 shadow-lg backdrop-blur-sm transition-colors hover:bg-slate-800 hover:text-white"
+              className="absolute right-2 top-2 z-20 rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
               onClick={() => setOpen(false)}
             >
               {t.statements.btnClose}
@@ -171,7 +171,7 @@ export function OpenDocumentInAppButton({
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 pt-12">
               {loading ? (
                 <div className="flex min-h-0 flex-1 items-center justify-center">
-                  <p className="text-sm text-slate-400">{t.common.loading}</p>
+                  <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
                 </div>
               ) : null}
               {!loading && signedUrl && kind === 'image' ? (

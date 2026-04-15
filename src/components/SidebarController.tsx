@@ -1,28 +1,15 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import MobileTopbar from './MobileTopbar'
 
-const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
-
 /**
- * Topbar mobile: sempre nel bundle (no dynamic) + `md:hidden` nel componente → niente primo paint senza logo/operatore/rete.
- * La sidebar resta dynamic ssr:false (pesante).
+ * Topbar mobile (`md:hidden` nel componente). Su desktop `md:contents` così la griglia in `AppShell`
+ * vede direttamente `aside` + header + main; la sidebar vive tutta nel solo `aside`.
  */
-export default function SidebarController({
-  sidebarCollapsed,
-  onSidebarCollapsedChange,
-}: {
-  sidebarCollapsed: boolean
-  onSidebarCollapsedChange: (collapsed: boolean) => void
-}) {
+export default function SidebarController() {
   return (
-    <div className="flex shrink-0 flex-col md:h-full md:min-h-0 md:min-w-0 md:overflow-visible">
+    <div className="flex shrink-0 flex-col md:contents">
       <MobileTopbar />
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={onSidebarCollapsedChange}
-      />
     </div>
   )
 }

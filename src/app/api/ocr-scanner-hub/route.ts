@@ -83,9 +83,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nessun file ricevuto.' }, { status: 400 })
     }
 
-    if (file.type !== 'application/pdf') {
+    const allowedMime = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const
+    if (!allowedMime.includes(file.type as (typeof allowedMime)[number])) {
       return NextResponse.json(
-        { error: 'Carica un PDF (fattura, bolla o estratto da mail). Le foto non sono supportate.' },
+        { error: 'Formato non supportato. Usa PDF oppure foto JPEG, PNG o WebP.' },
         { status: 400 },
       )
     }
@@ -121,14 +122,18 @@ export async function POST(req: NextRequest) {
     // intent === 'auto'
     const inv = await ocrInvoice(buf, file.type)
     let textForKind = ''
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mod = await import('pdf-parse') as any
-      const pdfParse = mod.default ?? mod
-      const pdfBuf = Buffer.from(buffer)
-      const result = await pdfParse(pdfBuf)
-      textForKind = (result.text ?? '').trim()
-    } catch {
+    if (file.type === 'application/pdf') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mod = await import('pdf-parse') as any
+        const pdfParse = mod.default ?? mod
+        const pdfBuf = Buffer.from(buffer)
+        const result = await pdfParse(pdfBuf)
+        textForKind = (result.text ?? '').trim()
+      } catch {
+        textForKind = [inv.nome, inv.numero_fattura, inv.piva].filter(Boolean).join(' ')
+      }
+    } else {
       textForKind = [inv.nome, inv.numero_fattura, inv.piva].filter(Boolean).join(' ')
     }
     const kind = textForKind.length > 40

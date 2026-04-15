@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import LoginBrandedShell from '@/components/LoginBrandedShell'
 import { getTranslations } from '@/lib/translations'
 import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
 
@@ -24,13 +25,17 @@ export default function RootErrorBoundary({
   }, [error])
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 p-4" lang={locale}>
-      <div className="w-full max-w-md space-y-6 text-center">
+    <LoginBrandedShell>
+      <div className="w-full max-w-md space-y-6 text-center" lang={locale}>
         <div className="flex justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-500 shadow-lg">
-            <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-app-a-35 bg-app-line-15 shadow-[0_0_28px_rgba(34,211,238,0.22)] ring-1 ring-inset ring-white/10">
+            <svg className="h-7 w-7 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
             </svg>
           </div>
         </div>
@@ -38,39 +43,35 @@ export default function RootErrorBoundary({
         <div className="app-card-login flex flex-col overflow-hidden">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="space-y-4 px-8 py-8">
-          <h1 className="app-page-title text-xl font-bold">
-            {t.appStrings.errorGenericTitle}
-          </h1>
-          <p className="text-sm leading-relaxed text-slate-200">
-            {t.appStrings.errorGenericBody}
-          </p>
+            <h1 className="app-page-title text-xl font-bold">{t.appStrings.errorGenericTitle}</h1>
+            <p className="text-sm leading-relaxed text-app-fg-muted">{t.appStrings.errorGenericBody}</p>
 
-          {error.digest && (
-            <p className="rounded-lg border border-slate-700/50 bg-slate-700/60 px-3 py-2 font-mono text-[11px] text-slate-200">
-              {t.appStrings.errorCodeLabel} {error.digest}
-            </p>
-          )}
+            {error.digest && (
+              <p className="rounded-xl border border-app-line-25 app-workspace-inset-bg px-3 py-2 font-mono text-[11px] text-app-fg-muted ring-1 ring-inset ring-white/5">
+                {t.appStrings.errorCodeLabel} {error.digest}
+              </p>
+            )}
 
-          <div className="flex flex-col gap-3 pt-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={reset}
-              className="flex-1 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-cyan-600"
-            >
-              {t.appStrings.tryAgain}
-            </button>
-            <Link
-              href="/"
-              className="flex-1 rounded-xl border border-slate-600/50 bg-slate-700/60 px-4 py-2.5 text-center text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
-            >
-              {t.appStrings.backToHome}
-            </Link>
-          </div>
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={reset}
+                className="flex-1 rounded-xl bg-gradient-to-r from-app-cyan-500 to-app-cyan-400 px-4 py-2.5 text-sm font-semibold text-cyan-950 shadow-[0_0_20px_rgba(34,211,238,0.35)] transition-opacity hover:opacity-95 active:opacity-90"
+              >
+                {t.appStrings.tryAgain}
+              </button>
+              <Link
+                href="/"
+                className="flex-1 rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-4 py-2.5 text-center text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-45 hover:bg-app-line-10 hover:text-app-fg"
+              >
+                {t.appStrings.backToHome}
+              </Link>
+            </div>
           </div>
         </div>
 
-        <p className="text-xs text-slate-500">{t.appStrings.brandFooter}</p>
+        <p className="text-xs text-app-fg-muted">{t.appStrings.brandFooter}</p>
       </div>
-    </div>
+    </LoginBrandedShell>
   )
 }

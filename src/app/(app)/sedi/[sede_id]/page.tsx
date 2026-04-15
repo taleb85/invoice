@@ -88,20 +88,20 @@ export default async function SedeProfilePage({
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
+      <div className="flex items-center gap-2 text-sm text-app-fg-muted mb-6">
         <Link
           href={profile?.role === 'admin' ? '/sedi' : '/'}
-          className="hover:text-slate-700 transition-colors"
+          className="hover:text-app-fg-muted transition-colors"
         >
           {profile?.role === 'admin' ? 'Sedi' : 'Dashboard'}
         </Link>
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        <span className="text-slate-800 font-medium">{sede.nome}</span>
+        <span className="font-medium text-app-fg">{sede.nome}</span>
       </div>
 
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip dense>
         <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
             <AppPageHeaderDashboardShortcut dashboardLabel={tDashboard.nav.dashboard} />
@@ -111,16 +111,21 @@ export default async function SedeProfilePage({
               </svg>
             </div>
             <div className="min-w-0">
-              <h1 className="app-page-title text-2xl font-bold">{sede.nome}</h1>
+              <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto sm:gap-x-3">
+                <h1 className="app-page-title min-w-0 flex-1 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl">{sede.nome}</h1>
+                <Suspense fallback={null}>
+                  <DashboardFiscalYearHeaderSelect countryCode={sede.country_code} selectedFiscalYear={fiscalYear} />
+                </Suspense>
+              </div>
               <div className="mt-1 flex flex-wrap items-center gap-3">
-                <span className="text-sm text-slate-500">
+                <span className="text-sm text-app-fg-muted">
                   {sede.operators_count} operatore{sede.operators_count !== 1 ? 'i' : ''}
                 </span>
-                <span className="text-slate-200">·</span>
-                <span className="text-sm text-slate-500">
+                <span className="text-app-fg-muted">·</span>
+                <span className="text-sm text-app-fg-muted">
                   {sede.fornitori_count} fornitore{sede.fornitori_count !== 1 ? 'i' : ''}
                 </span>
-                <span className="text-slate-200">·</span>
+                <span className="text-app-fg-muted">·</span>
                 {imapConfigured ? (
                   <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
                     <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,9 +142,6 @@ export default async function SedeProfilePage({
             </div>
           </div>
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-            <Suspense fallback={null}>
-              <DashboardFiscalYearHeaderSelect countryCode={sede.country_code} selectedFiscalYear={fiscalYear} />
-            </Suspense>
             <ScanEmailButton sedeId={sede_id} alwaysShowLabel />
           </div>
         </div>
@@ -152,17 +154,17 @@ export default async function SedeProfilePage({
           <div className="app-card mb-6 flex flex-col overflow-hidden">
             <div className="app-card-bar shrink-0" aria-hidden />
             <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-6">
-            <div className="flex shrink-0 items-center gap-2 text-sm text-slate-200">
+            <div className="flex shrink-0 items-center gap-2 text-sm text-app-fg-muted">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21l18-9-18-9v7l12 2-12 2v7z" />
               </svg>
               Paese sede
             </div>
             <CountrySelector sedeId={sede.id} initialCode={sede.country_code} />
-            <div className="ml-auto flex flex-wrap items-center gap-4 text-xs text-slate-200">
-              <span><span className="font-medium text-slate-200">{loc.vat}</span> · etichetta imposta</span>
-              <span><span className="font-medium text-slate-200">{loc.vatLabel}</span> · n. partita {loc.vat}</span>
-              <span><span className="font-medium text-slate-200">{loc.currency}</span> · valuta ({loc.flag})</span>
+            <div className="ml-auto flex flex-wrap items-center gap-4 text-xs text-app-fg-muted">
+              <span><span className="font-medium text-app-fg-muted">{loc.vat}</span> · etichetta imposta</span>
+              <span><span className="font-medium text-app-fg-muted">{loc.vatLabel}</span> · n. partita {loc.vat}</span>
+              <span><span className="font-medium text-app-fg-muted">{loc.currency}</span> · valuta ({loc.flag})</span>
             </div>
             </div>
           </div>
@@ -177,7 +179,7 @@ export default async function SedeProfilePage({
 
       <Suspense fallback={<DashboardOperatorKpiSkeleton />}>
         <div>
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
             {tDashboard.fornitori.tabRiepilogo}
           </h2>
           <DashboardOperatorKpiGrid
@@ -185,7 +187,6 @@ export default async function SedeProfilePage({
             t={tDashboard}
             locale={appLocale}
             currency={currency}
-            hideBelowLg
             fiscalYear={fiscalYear}
           />
         </div>
@@ -195,20 +196,20 @@ export default async function SedeProfilePage({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Link
           href={`/sedi/${sede_id}/statements`}
-          className="app-card group flex flex-col overflow-hidden transition-all hover:border-cyan-500/40"
+          className="app-card group flex flex-col overflow-hidden transition-all hover:border-app-line-40"
         >
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="flex flex-1 flex-col gap-3 p-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500/15 transition-colors group-hover:bg-cyan-500/25">
-            <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-app-line-15 transition-colors group-hover:bg-app-line-25">
+            <svg className="h-5 w-5 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-100">Estratti Conto</p>
-            <p className="mt-0.5 text-xs text-slate-200">Associa fatture alle bolle</p>
+            <p className="text-sm font-semibold text-app-fg">Estratti Conto</p>
+            <p className="mt-0.5 text-xs text-app-fg-muted">Associa fatture alle bolle</p>
           </div>
-          <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-auto h-4 w-4 self-end text-app-fg-muted transition-colors group-hover:text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
           </div>
@@ -226,10 +227,10 @@ export default async function SedeProfilePage({
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-100">Scopri Fornitori</p>
-            <p className="mt-0.5 text-xs text-slate-200">Trova mittenti sconosciuti</p>
+            <p className="text-sm font-semibold text-app-fg">Scopri Fornitori</p>
+            <p className="mt-0.5 text-xs text-app-fg-muted">Trova mittenti sconosciuti</p>
           </div>
-          <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-auto h-4 w-4 self-end text-app-fg-muted transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
           </div>
@@ -247,10 +248,10 @@ export default async function SedeProfilePage({
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-100">Fornitori</p>
-            <p className="mt-0.5 text-xs text-slate-200">{sede.fornitori_count} registrati</p>
+            <p className="text-sm font-semibold text-app-fg">Fornitori</p>
+            <p className="mt-0.5 text-xs text-app-fg-muted">{sede.fornitori_count} registrati</p>
           </div>
-          <svg className="mt-auto h-4 w-4 self-end text-slate-500 transition-colors group-hover:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mt-auto h-4 w-4 self-end text-app-fg-muted transition-colors group-hover:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
           </div>

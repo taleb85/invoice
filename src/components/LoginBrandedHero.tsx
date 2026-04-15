@@ -43,13 +43,13 @@ export default function LoginBrandedHero({ mode }: { mode: 'name' | 'admin' }) {
         {t.login.brandTagline}
       </p>
       {mode === 'name' ? (
-        <p className="mt-6 max-w-[20rem] px-1 text-xs leading-snug text-white/90 text-balance">{t.login.subtitle}</p>
+        <p className="mt-6 max-w-[20rem] px-1 text-xs leading-snug text-app-fg-muted text-balance">{t.login.subtitle}</p>
       ) : (
         <div className="mt-6 flex max-w-[20rem] flex-col items-center gap-1.5 px-1 text-center">
-          <p className="text-[0.8125rem] font-semibold leading-snug tracking-tight text-cyan-200/95 text-balance">
+          <p className="text-[0.8125rem] font-semibold leading-snug tracking-tight text-app-fg text-balance">
             {t.login.adminSubtitle}
           </p>
-          <p className="text-[11px] leading-relaxed text-slate-200 text-balance">{t.login.adminSubtitleHint}</p>
+          <p className="text-[11px] leading-relaxed text-app-fg-muted text-balance">{t.login.adminSubtitleHint}</p>
         </div>
       )}
     </div>

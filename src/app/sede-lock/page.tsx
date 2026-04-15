@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import LoginBrandedShell from '@/components/LoginBrandedShell'
 import { LocaleProvider, useLocale } from '@/lib/locale-context'
 
 const SEDE_ACCESS_PIN_LEN = 4
@@ -79,23 +80,21 @@ function SedeLockPageInner() {
   }
 
   const shell = (children: ReactNode) => (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-zinc-600 via-zinc-700 to-zinc-800 p-4">
-      <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="relative z-10 w-full max-w-sm">{children}</div>
-    </div>
+    <LoginBrandedShell>
+      <div className="w-full max-w-sm">{children}</div>
+    </LoginBrandedShell>
   )
 
   const lockDescription = (() => {
     const template = a.sedeLockDescription
     const parts = template.split('{name}')
     if (parts.length < 2) {
-      return <span className="text-slate-200">{template}</span>
+      return <span className="text-app-fg-muted">{template}</span>
     }
     return (
-      <span className="text-slate-200">
+      <span className="text-app-fg-muted">
         {parts[0]}
-        <strong className="font-semibold text-slate-200">{sedeName}</strong>
+        <strong className="font-semibold text-app-fg">{sedeName}</strong>
         {parts.slice(1).join('{name}')}
       </span>
     )
@@ -103,8 +102,8 @@ function SedeLockPageInner() {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-700">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#020617]">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
       </div>
     )
   }
@@ -118,7 +117,7 @@ function SedeLockPageInner() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="w-full rounded-lg bg-cyan-500 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400"
+          className="w-full rounded-lg bg-app-cyan-500 py-2.5 text-sm font-semibold text-cyan-950 transition-colors hover:bg-app-cyan-400"
         >
           {t.statements.btnRefresh}
         </button>
@@ -130,8 +129,8 @@ function SedeLockPageInner() {
   return shell(
     <>
       <div className="mb-8 flex flex-col items-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-700/50 bg-slate-700/80 shadow-lg shadow-black/20">
-          <svg className="h-8 w-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-app-a-35 bg-app-line-15 shadow-[0_0_28px_rgba(34,211,238,0.2)] ring-1 ring-inset ring-white/10">
+          <svg className="h-8 w-8 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
           </svg>
         </div>
@@ -143,7 +142,7 @@ function SedeLockPageInner() {
         <div className="app-card-bar shrink-0" aria-hidden />
         <div className="space-y-4 p-8">
         <div>
-          <label htmlFor="sede-access-code" className="mb-1.5 block text-sm font-medium text-slate-200">
+          <label htmlFor="sede-access-code" className="mb-1.5 block text-sm font-medium text-app-fg-muted">
             {a.sedeLockCodeLabel}
           </label>
           <input
@@ -162,7 +161,7 @@ function SedeLockPageInner() {
             placeholder={a.sedeLockPlaceholder}
             autoFocus
             required
-            className="w-full rounded-lg border border-slate-600/50 bg-slate-700/50 px-3 py-2.5 text-center text-lg tracking-[0.35em] text-slate-100 placeholder:text-slate-500 placeholder:tracking-widest focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            className="w-full rounded-lg border border-app-line-30 app-workspace-inset-bg px-3 py-2.5 text-center text-lg tracking-[0.35em] text-app-fg placeholder:text-app-fg-muted placeholder:tracking-widest ring-1 ring-inset ring-white/5 focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35"
           />
           {error && (
             <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">
@@ -177,7 +176,7 @@ function SedeLockPageInner() {
         <button
           type="submit"
           disabled={loading || code.length !== SEDE_ACCESS_PIN_LEN}
-          className="w-full rounded-lg bg-cyan-500 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-lg bg-app-cyan-500 py-2.5 text-sm font-semibold text-cyan-950 transition-colors hover:bg-app-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? t.login.verifying : t.login.loginBtn}
         </button>

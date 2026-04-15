@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom'
 
 type HostContextValue = {
   hostRef: RefObject<HTMLDivElement | null>
-  /** Chiamato da `SidebarBrandHeader` sul div host: aggiorna il ref e forza il re-render del portal. */
+  /** Chiamato da `DesktopHeaderActionsStrip` (host in AppShell): aggiorna il ref e forza il re-render del portal. */
   registerHost: (el: HTMLDivElement | null) => void
 }
 
@@ -36,7 +36,7 @@ export function DesktopHeaderPageActionsProvider({ children }: { children: React
   return <HostContext.Provider value={value}>{children}</HostContext.Provider>
 }
 
-/** Ref callback per il contenitore in `SidebarBrandHeader` (no-op se fuori dal provider). */
+/** Ref callback per il contenitore delle azioni desktop in AppShell (no-op se fuori dal provider). */
 export function useDesktopHeaderPageActionsRegisterHost(): (el: HTMLDivElement | null) => void {
   const ctx = useContext(HostContext)
   return ctx?.registerHost ?? noopRegisterHost
