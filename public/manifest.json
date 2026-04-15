@@ -40,11 +40,6 @@
       "name": "Nuova Bolla",
       "url": "/bolle/new",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Nuova Fattura",
-      "url": "/fatture/new",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

@@ -10,6 +10,7 @@ import { scannerFlowStepLabel } from '@/components/DashboardScannerFlowCard'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,11 +62,11 @@ export default async function ScannerEventiPage({
 
   const navBtnBase =
     'inline-flex min-h-[44px] items-center rounded-lg border px-4 py-2 text-sm font-semibold transition-colors touch-manipulation'
-  const navBtnActive = `${navBtnBase} border-cyan-500/40 bg-cyan-500/15 text-cyan-100 hover:border-cyan-400/50 hover:bg-cyan-500/25`
-  const navBtnDisabled = `${navBtnBase} cursor-not-allowed border-slate-600/50 text-slate-500 opacity-60`
+  const navBtnActive = `${navBtnBase} border-app-line-40 bg-app-line-15 text-app-fg-muted hover:border-app-a-50 hover:bg-app-line-25`
+  const navBtnDisabled = `${navBtnBase} cursor-not-allowed border-app-line-25 text-app-fg-muted opacity-60`
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6 app-shell-page-padding">
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip>
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.scannerFlowEventsPageTitle}</h1>
@@ -73,23 +74,23 @@ export default async function ScannerEventiPage({
       </AppPageHeaderStrip>
 
       {rows.length === 0 ? (
-        <p className="rounded-xl border border-white/10 bg-slate-800/40 px-4 py-8 text-center text-sm text-slate-300">
+        <p className="rounded-xl border border-white/10 app-workspace-inset-bg-soft px-4 py-8 text-center text-sm text-app-fg-muted">
           {t.dashboard.scannerFlowEventsEmpty}
         </p>
       ) : (
-        <ul className="overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/10 to-violet-500/5 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.35)]">
+        <ul className="overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-10 to-violet-500/5 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.35)]">
           {rows.map((e) => (
             <li
               key={e.id}
               className="border-b border-white/10 px-4 py-3 last:border-b-0 sm:flex sm:items-start sm:gap-4 sm:px-5 sm:py-3.5"
             >
               <time
-                className="mb-1 block shrink-0 text-xs tabular-nums text-cyan-200/85 sm:mb-0 sm:w-44 sm:text-sm"
+                className="mb-1 block shrink-0 text-xs tabular-nums text-app-fg-muted sm:mb-0 sm:w-44 sm:text-sm"
                 dateTime={e.created_at}
               >
                 {formatDt(e.created_at)}
               </time>
-              <span className="block text-sm leading-snug text-cyan-50">{scannerFlowStepLabel(e.step, t)}</span>
+              <span className="block text-sm leading-snug text-app-fg">{scannerFlowStepLabel(e.step, t)}</span>
             </li>
           ))}
         </ul>
@@ -97,7 +98,7 @@ export default async function ScannerEventiPage({
 
       {total > 0 ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-slate-400 sm:text-sm">{pageOfLabel}</p>
+          <p className="text-xs text-app-fg-muted sm:text-sm">{pageOfLabel}</p>
           <div className="flex flex-wrap gap-2">
             {prevHref ? (
               <Link href={prevHref} className={navBtnActive} prefetch={false}>

@@ -40,7 +40,7 @@ const IT: GuidaContent = {
         { title: 'Tab Fatture', desc: '"Associata" (blu) = fattura collegata a bolle; "Senza Bolla" (grigio) = collegamento ancora mancante.' },
         { title: 'Tab Estratto Conto', desc: 'Mostra gli statement ricevuti da quel fornitore con il risultato del triple-check automatico. Da qui puoi inviare solleciti mirati.' },
         { title: 'KPI cliccabili', desc: 'I quattro riquadri nel riepilogo (Bolle, Fatture, Pending, Riconciliazione) sono attivi: cliccandoli si passa direttamente alla tab corrispondente.', tip: 'Riconciliazione 100% = tutte le bolle hanno una fattura associata.' },
-        { title: 'Nuova Bolla / Nuova Fattura', desc: 'I pulsanti nell\'intestazione aprono i form di creazione precompilati con il fornitore già selezionato.' },
+        { title: 'Nuova Bolla', desc: 'Il pulsante nell\'intestazione apre il form di creazione bolla con il fornitore già selezionato.' },
       ],
     },
     {

@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
+  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
   type SummaryHighlightAccent,
 } from '@/lib/summary-highlight-accent'
 
@@ -22,7 +24,7 @@ type AppSummaryHighlightCardProps = {
   className?: string
 }
 
-/** Riepilogo in evidenza (barra + bordo tinta come l’icona categoria nei KPI). */
+/** Riepilogo in evidenza: solo bordo + barra superiore (tinta KPI), corpo trasparente sul canvas. */
 export default function AppSummaryHighlightCard({
   label,
   primary,
@@ -40,9 +42,9 @@ export default function AppSummaryHighlightCard({
   const trailingWithLabel = hasTrailing && trailingAlign === 'with-label'
 
   return (
-    <div className={`app-card mb-6 overflow-hidden ${theme.border} ${className ?? ''}`}>
-      <div className={`app-card-bar ${theme.bar}`} aria-hidden />
-      <div className="px-3 py-4 sm:px-4 sm:py-5 md:px-6 lg:px-8 xl:px-10">
+    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 ${theme.border} ${className ?? ''}`}>
+      <div className={`app-card-bar-accent ${theme.bar}`} aria-hidden />
+      <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
         {trailingWithLabel ? (
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
             <p className={`text-[10px] font-bold uppercase tracking-widest ${theme.label}`}>{label}</p>
@@ -62,8 +64,8 @@ export default function AppSummaryHighlightCard({
             }
           >
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
-              <p className="text-2xl font-bold tabular-nums text-slate-50 sm:text-3xl">{primary}</p>
-              <p className="min-w-0 text-sm leading-snug text-slate-200">{secondary}</p>
+              <p className="text-2xl font-bold tabular-nums text-app-fg sm:text-3xl">{primary}</p>
+              <p className="min-w-0 text-sm leading-snug text-app-fg-muted">{secondary}</p>
             </div>
             {hasTrailing && !trailingWithLabel ? (
               <div className="flex min-w-0 w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold sm:w-auto sm:justify-end">
@@ -73,7 +75,7 @@ export default function AppSummaryHighlightCard({
           </div>
         ) : (
           <>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-slate-50 sm:text-3xl">{primary}</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg sm:text-3xl">{primary}</p>
             {hasTrailing && !trailingWithLabel ? (
               <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs font-semibold">
                 {trailing}
@@ -82,7 +84,7 @@ export default function AppSummaryHighlightCard({
           </>
         )}
         {hasFooter ? (
-          <div className="mt-2.5 border-t border-slate-600/35 pt-2.5">{footer}</div>
+          <div className="mt-2.5 border-t border-app-soft-border pt-2.5">{footer}</div>
         ) : null}
       </div>
     </div>
