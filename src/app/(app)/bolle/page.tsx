@@ -7,11 +7,31 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
-import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import {
+  SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
+  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+} from '@/lib/summary-highlight-accent'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
+import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import {
+  APP_SHELL_SECTION_PAGE_CLASS,
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SECTION_EMPTY_LINK_CLASS,
+  APP_SECTION_MOBILE_LIST,
+  APP_SECTION_MOBILE_ROW,
+  APP_SECTION_TABLE_CELL_LINK,
+  APP_SECTION_TABLE_HEAD_ROW,
+  APP_SECTION_TABLE_TH,
+  APP_SECTION_TABLE_TH_RIGHT,
+  APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_TR_GROUP,
+  APP_SECTION_TRAILING_LINK_CLASS,
+  APP_SECTION_TRAILING_SEP_CLASS,
+} from '@/lib/app-shell-layout'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -129,10 +149,10 @@ export default async function BollePage({
   const bolleListTheme = SUMMARY_HIGHLIGHT_ACCENTS.indigo
 
   return (
-    <div className="app-shell-page-padding">
+    <div className={APP_SHELL_SECTION_PAGE_CLASS}>
       <AppPageHeaderStrip accent="indigo">
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
-          <h1 className="app-page-title text-2xl font-bold">{t.bolle.title}</h1>
+          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.bolle.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
@@ -145,48 +165,42 @@ export default async function BollePage({
         trailing={
           !showAll ? (
             <>
-              <Link
-                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
-                className="text-indigo-400 transition-colors hover:text-indigo-300"
-              >
+              <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={APP_SECTION_TRAILING_LINK_CLASS}>
                 {t.bolle.listShowAll}
               </Link>
-              <span className="text-slate-600" aria-hidden>
+              <span className={APP_SECTION_TRAILING_SEP_CLASS} aria-hidden>
                 ·
               </span>
               <Link
                 href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
-                className="text-indigo-400 transition-colors hover:text-indigo-300"
+                className={APP_SECTION_TRAILING_LINK_CLASS}
               >
                 {t.bolle.listAllPending}
               </Link>
             </>
           ) : pendingOnly ? (
             <>
-              <Link href="/bolle" className="text-indigo-400 transition-colors hover:text-indigo-300">
+              <Link href="/bolle" className={APP_SECTION_TRAILING_LINK_CLASS}>
                 {t.bolle.listShowToday}
               </Link>
-              <span className="text-slate-600" aria-hidden>
+              <span className={APP_SECTION_TRAILING_SEP_CLASS} aria-hidden>
                 ·
               </span>
-              <Link
-                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
-                className="text-indigo-400 transition-colors hover:text-indigo-300"
-              >
+              <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={APP_SECTION_TRAILING_LINK_CLASS}>
                 {t.bolle.listShowAll}
               </Link>
             </>
           ) : (
             <>
-              <Link href="/bolle" className="text-indigo-400 transition-colors hover:text-indigo-300">
+              <Link href="/bolle" className={APP_SECTION_TRAILING_LINK_CLASS}>
                 {t.bolle.listShowToday}
               </Link>
-              <span className="text-slate-600" aria-hidden>
+              <span className={APP_SECTION_TRAILING_SEP_CLASS} aria-hidden>
                 ·
               </span>
               <Link
                 href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
-                className="text-indigo-400 transition-colors hover:text-indigo-300"
+                className={APP_SECTION_TRAILING_LINK_CLASS}
               >
                 {t.bolle.listAllPending}
               </Link>
@@ -195,43 +209,31 @@ export default async function BollePage({
         }
       />
 
-      <div className={`app-card overflow-hidden ${bolleListTheme.border}`}>
-        <div className={`app-card-bar ${bolleListTheme.bar}`} aria-hidden />
-        <div>
+      <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${bolleListTheme.border}`}>
+        <div className={`app-card-bar-accent ${bolleListTheme.bar}`} aria-hidden />
+        <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
           {bolle.length === 0 ? (
-            <div className="px-6 py-20 text-center">
-              <svg className="mx-auto mb-4 h-14 w-14 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              <p className="text-sm font-medium text-slate-200">{emptyMessage}</p>
+            <AppSectionEmptyState message={emptyMessage}>
               {!showAll ? (
-                <Link
-                  href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
-                  className="mt-4 inline-block text-sm font-semibold text-indigo-400 hover:text-indigo-300"
-                >
+                <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={APP_SECTION_EMPTY_LINK_CLASS}>
                   {t.bolle.listShowAll} →
                 </Link>
               ) : null}
-            </div>
+            </AppSectionEmptyState>
           ) : (
             <>
-              <div className="divide-y divide-slate-800/80 md:hidden">
+              <div className={APP_SECTION_MOBILE_LIST}>
                 {bolle.map((b: BollaListRow) => {
                   const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
                   return (
-                  <div key={b.id} className="px-4 py-4">
+                  <div key={b.id} className={APP_SECTION_MOBILE_ROW}>
                     <Link href={`/bolle/${b.id}`} className="mb-3 block text-left transition-colors hover:opacity-90">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-slate-100">
-                            {supplierLabel || <span className="text-slate-600">—</span>}
+                          <p className="truncate font-semibold text-app-fg">
+                            {supplierLabel || <span className="text-app-fg-muted">—</span>}
                           </p>
-                          <p className="mt-0.5 text-xs text-slate-200">{formatDate(b.data)}</p>
+                          <p className="mt-0.5 text-xs text-app-fg-muted">{formatDate(b.data)}</p>
                         </div>
                         {b.stato === 'completato' ? (
                           <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
@@ -276,34 +278,26 @@ export default async function BollePage({
 
               <table className="hidden w-full text-sm md:table">
                 <thead>
-                  <tr className="border-b border-slate-700/60 bg-slate-700/40">
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">
-                      {t.common.date}
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">
-                      {t.common.supplier}
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-200">
-                      {t.common.status}
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-200">
-                      {t.common.actions}
-                    </th>
+                  <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
+                    <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.common.actions}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80">
+                <tbody className={APP_SECTION_TABLE_TBODY}>
                   {bolle.map((b: BollaListRow) => {
                     const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
                     return (
-                    <tr key={b.id} className="group transition-colors hover:bg-slate-700/40">
-                      <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-200">
-                        <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-indigo-300">
+                    <tr key={b.id} className={APP_SECTION_TABLE_TR_GROUP}>
+                      <td className="whitespace-nowrap px-6 py-4 font-medium text-app-fg-muted">
+                        <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
                           {formatDate(b.data)}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 font-medium text-slate-100">
-                        <Link href={`/bolle/${b.id}`} className="transition-colors hover:text-indigo-300">
-                          {supplierLabel || <span className="text-slate-600">—</span>}
+                      <td className="px-6 py-4 font-medium text-app-fg">
+                        <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
+                          {supplierLabel || <span className="text-app-fg-muted">—</span>}
                         </Link>
                       </td>
                       <td className="px-6 py-4">

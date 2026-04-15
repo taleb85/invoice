@@ -12,11 +12,94 @@
   --app-design-phone-max: 480px;
   --app-design-tablet-min: 768px;
   --app-design-tablet-max: 1024px;
+
+  /**
+   * Palette canvas FLUXO (allineata a `main`: to-br slate-800 → blue-900/75 → indigo-950).
+   * Modifica qui per propagare sfondo + testo in shell / sidebar / pagine che usano le classi sotto.
+   */
+  --app-canvas-from: #1e293b; /* slate-800 */
+  --app-canvas-via: rgb(30 58 138 / 0.75); /* blue-900 @ 75% */
+  --app-canvas-to: #1e1b4b; /* indigo-950 */
+  --app-fg-body: rgb(236 254 255 / 0.95); /* cyan-50/95 */
+  --app-fg-muted: rgb(207 250 254); /* cyan-100 */
+  --app-border-cyan-soft: rgb(6 182 212 / 0.2); /* cyan-500/20 */
+  /* Scala unica cyan-500 (bordi / divide / ring / tinte bg) */
+  --app-line-5: rgb(6 182 212 / 0.05);
+  --app-line-10: rgb(6 182 212 / 0.1);
+  --app-line-12: rgb(6 182 212 / 0.12);
+  --app-line-15: rgb(6 182 212 / 0.15);
+  --app-line-18: rgb(6 182 212 / 0.18);
+  --app-line-20: rgb(6 182 212 / 0.2);
+  --app-line-22: rgb(6 182 212 / 0.22);
+  --app-line-25: rgb(6 182 212 / 0.25);
+  --app-line-28: rgb(6 182 212 / 0.28);
+  --app-line-30: rgb(6 182 212 / 0.3);
+  --app-line-32: rgb(6 182 212 / 0.32);
+  --app-line-35: rgb(6 182 212 / 0.35);
+  --app-line-38: rgb(6 182 212 / 0.38);
+  --app-line-40: rgb(6 182 212 / 0.4);
+  --app-line-45: rgb(6 182 212 / 0.45);
+  --app-line-50: rgb(6 182 212 / 0.5);
+  --app-line-80: rgb(6 182 212 / 0.8);
+  --app-line-85: rgb(6 182 212 / 0.85);
+  /* Accenti cyan-400 (bordi / ring focus) */
+  --app-a-20: rgb(34 211 238 / 0.2);
+  --app-a-25: rgb(34 211 238 / 0.25);
+  --app-a-30: rgb(34 211 238 / 0.3);
+  --app-a-35: rgb(34 211 238 / 0.35);
+  --app-a-38: rgb(34 211 238 / 0.38);
+  --app-a-40: rgb(34 211 238 / 0.4);
+  --app-a-45: rgb(34 211 238 / 0.45);
+  --app-a-50: rgb(34 211 238 / 0.5);
+  --app-a-55: rgb(34 211 238 / 0.55);
+  --app-a-70: rgb(34 211 238 / 0.7);
+  --app-tint-300-45: rgb(103 232 249 / 0.45);
+  --app-tint-300-30: rgb(103 232 249 / 0.3);
+  --app-cyan-300: #67e8f9;
+  --app-cyan-400: #22d3ee;
+  --app-cyan-500: #06b6d4;
 }
 
 /* `sm:` = sopra la fascia smartphone larga (480px); md/lg allineati a tablet. */
 @theme {
   --breakpoint-sm: 480px;
+  /* Token Tailwind v4: `text-app-fg`, `text-app-fg-muted`, `border-app-soft-border` */
+  --color-app-fg: var(--app-fg-body);
+  --color-app-fg-muted: var(--app-fg-muted);
+  --color-app-soft-border: var(--app-border-cyan-soft);
+  --color-app-line-5: var(--app-line-5);
+  --color-app-line-10: var(--app-line-10);
+  --color-app-line-12: var(--app-line-12);
+  --color-app-line-15: var(--app-line-15);
+  --color-app-line-18: var(--app-line-18);
+  --color-app-line-20: var(--app-line-20);
+  --color-app-line-22: var(--app-line-22);
+  --color-app-line-25: var(--app-line-25);
+  --color-app-line-28: var(--app-line-28);
+  --color-app-line-30: var(--app-line-30);
+  --color-app-line-32: var(--app-line-32);
+  --color-app-line-35: var(--app-line-35);
+  --color-app-line-38: var(--app-line-38);
+  --color-app-line-40: var(--app-line-40);
+  --color-app-line-45: var(--app-line-45);
+  --color-app-line-50: var(--app-line-50);
+  --color-app-line-80: var(--app-line-80);
+  --color-app-line-85: var(--app-line-85);
+  --color-app-a-20: var(--app-a-20);
+  --color-app-a-25: var(--app-a-25);
+  --color-app-a-30: var(--app-a-30);
+  --color-app-a-35: var(--app-a-35);
+  --color-app-a-38: var(--app-a-38);
+  --color-app-a-40: var(--app-a-40);
+  --color-app-a-45: var(--app-a-45);
+  --color-app-a-50: var(--app-a-50);
+  --color-app-a-55: var(--app-a-55);
+  --color-app-a-70: var(--app-a-70);
+  --color-app-tint-300-45: var(--app-tint-300-45);
+  --color-app-tint-300-30: var(--app-tint-300-30);
+  --color-app-cyan-300: var(--app-cyan-300);
+  --color-app-cyan-400: var(--app-cyan-400);
+  --color-app-cyan-500: var(--app-cyan-500);
 }
 
 @layer base {
@@ -59,8 +142,10 @@
 }
 
 /*
-  Tema “twilight”: canvas main grigio‑blu (slate-500–700), card più scure + neon cyan.
-  Canvas main ~ zinc-600–800; pannelli .app-card slate-800; sidebar bg-slate-700.
+  Tema FLUXO: canvas scuro (gradiente su :root `--app-canvas-*`), vetro cyan-viola (.app-card, header).
+  Testo primario: `--app-fg-body` — applicato da `.app-shell-workspace-canvas`, `.app-main-workspace-scroll`, sidebar.
+  Per nuove UI: `text-app-fg` / `text-app-fg-muted` (Tailwind @theme) o `var(--app-fg-body)`.
+  Superfici sopra il canvas (sezioni card, liste, overlay): `.app-workspace-inset-bg*`, `.app-workspace-overlay`.
 */
 
 @keyframes slideInRight {
@@ -133,36 +218,111 @@
    * Pannelli “vetro” unificati: gradiente cyan→viola, bordo cyan, alone soft (come card Scanner / bolle/new).
    * Le card con `theme.border` (accent) sovrascrivono solo il colore del bordo.
    */
-  /** KPI scheda fornitore: stesso guscio di .app-card; alone tile da `KpiLAccentOverlay`. */
+  /**
+   * Guscio tab / sezioni scheda fornitore: solo bordo + ring, corpo trasparente sul canvas
+   * (come header desktop fornitore + `AppSummaryHighlightCard`).
+   */
+  .supplier-detail-tab-shell {
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-transparent text-app-fg-muted ring-1 ring-inset ring-white/10;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /** KPI scheda fornitore: stesso contorno; accento da `KpiLAccentOverlay` sulla tile. */
   .supplier-desktop-kpi-card {
-    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
-    -webkit-backdrop-filter: blur(24px);
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-transparent text-app-fg-muted ring-1 ring-inset ring-white/10;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   /**
    * Solo orizzontale: stesso allineamento tra header interni (es. scheda fornitore) e corpo pagina.
    */
-  /** Sidebar desktop: più chiara dello slate-950, in linea con main + .app-card */
+  /**
+   * Sidebar desktop: stesso gradiente del canvas (`--app-canvas-*`) — colonna nav + footer = un’unica superficie.
+   */
   .app-sidebar-aside {
-    @apply border-r border-cyan-500/35 bg-gradient-to-b from-slate-800/92 via-cyan-500/8 to-indigo-900/78 text-cyan-100 backdrop-blur-xl;
+    @apply border-r border-app-line-25 ring-1 ring-inset ring-app-line-15;
+    color: var(--app-fg-body);
+    background-image: linear-gradient(
+      to bottom right,
+      var(--app-canvas-from),
+      var(--app-canvas-via),
+      var(--app-canvas-to)
+    );
     box-shadow:
-      4px 0 22px rgba(0, 0, 0, 0.2),
-      0 0 48px -10px rgba(34, 211, 238, 0.2),
-      inset -1px 0 0 rgba(34, 211, 238, 0.12);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
-  /** Fascia identità scheda fornitore (desktop) */
-  .app-fornitore-desktop-hero-band {
-    @apply bg-gradient-to-b from-cyan-400/18 via-slate-800/92 to-violet-900/72 backdrop-blur-xl;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 10px 28px -12px rgba(0, 0, 0, 0.35);
-    -webkit-backdrop-filter: blur(20px);
+      4px 0 28px rgba(0, 0, 0, 0.32),
+      inset -1px 0 0 var(--app-line-22);
+    -webkit-backdrop-filter: blur(18px) saturate(1.05);
+    backdrop-filter: blur(18px) saturate(1.05);
   }
 
   /**
-   * Barra header app (desktop strip + mobile topbar + sticky nuova fattura):
+   * Shell desktop: rail sopra il gradiente condiviso (`app-shell-workspace-canvas`) — niente tinta/blur propri.
+   */
+  .app-sidebar-aside.app-shell-rail-clear {
+    /* `bg-transparent` da solo non toglie il gradiente di `.app-sidebar-aside` (resta `background-image`). */
+    @apply bg-transparent ring-0;
+    background-image: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: inset -1px 0 0 var(--app-line-22);
+  }
+
+  /** Contenuti sopra il canvas (brand + colonna Sidebar): niente fill proprio. */
+  .app-shell-rail-panel {
+    background-color: transparent;
+    background-image: none;
+  }
+
+  /**
+   * Desktop AppShell: gradiente unico sotto rail + canvas (header trasparente + main md:transparent).
+   * Mobile: solo colore testo; il gradiente è su `.app-main-workspace-scroll`.
+   */
+  .app-shell-workspace-canvas {
+    color: var(--app-fg-body);
+  }
+
+  @media (min-width: 768px) {
+    .app-shell-workspace-canvas {
+      background-image: linear-gradient(
+        to bottom right,
+        var(--app-canvas-from),
+        var(--app-canvas-via),
+        var(--app-canvas-to)
+      );
+    }
+  }
+
+  /**
+   * `<main id="app-main" data-app-main-scroll>`: gradiente canvas su mobile/tablet; da md trasparente (vedi gradiente su `.app-shell-workspace-canvas`).
+   */
+  .app-main-workspace-scroll {
+    color: var(--app-fg-body);
+    background-image: linear-gradient(
+      to bottom right,
+      var(--app-canvas-from),
+      var(--app-canvas-via),
+      var(--app-canvas-to)
+    );
+  }
+
+  @media (min-width: 768px) {
+    .app-main-workspace-scroll {
+      background-image: none;
+      background-color: transparent;
+    }
+  }
+
+  /** Testo secondario coerente con il canvas (preferire `text-app-fg-muted` nei componenti). */
+  .app-text-fg-muted {
+    color: var(--app-fg-muted);
+  }
+
+  /**
+   * Barra header app (desktop strip + mobile topbar):
    * tinta leggera + blur forte — si vede attraverso (sfondo / contenuto dietro quando c’è overlap).
    */
   .app-desktop-header-glass {
@@ -204,14 +364,26 @@
   }
 
   .app-card {
-    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
   }
-  /** Shell card login: allineata a .app-card */
+  /** Shell card login: vetro come `.app-card`, testo come token `text-app-fg`. */
   .app-card-login {
-    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
   }
+
+  /** Dock navigazione mobile: stesso filo cromatico del canvas (prima era solo nel ramo `@supports not` → su browser con blur non aveva fill). */
+  .app-glass-dock {
+    @apply border-app-line-30;
+    background-image: linear-gradient(
+      to top,
+      rgb(15 23 42 / 0.94),
+      rgb(30 41 59 / 0.88),
+      rgb(30 27 75 / 0.82)
+    );
+  }
+
   /**
    * Safari iOS e browser senza backdrop-filter: evita vetro troppo trasparente.
    * Con blur attivo restano valide le classi Tailwind sui componenti.
@@ -219,19 +391,16 @@
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .app-card,
     .app-card-login,
-    .supplier-desktop-kpi-card,
     .operator-kpi-card {
       background: linear-gradient(to bottom, rgba(6, 182, 212, 0.22), rgba(91, 33, 182, 0.16)),
         rgb(15 23 42 / 0.92);
     }
     .app-sidebar-aside {
-      background: linear-gradient(to bottom, rgb(30 41 59 / 0.94), rgb(30 41 59 / 0.9), rgb(49 46 129 / 0.82));
+      background: linear-gradient(to bottom, rgb(30 41 59), rgb(30 58 138 / 0.78), rgb(30 27 75));
     }
-    .app-fornitore-desktop-hero-band {
-      background: linear-gradient(to bottom, rgba(34, 211, 238, 0.14), rgb(30 41 59 / 0.93), rgb(76 29 149 / 0.72));
-    }
-    .app-glass-dock {
-      @apply border-cyan-500/30 bg-slate-900/88;
+    .app-sidebar-aside.app-shell-rail-clear {
+      background: transparent;
+      background-image: none;
     }
   }
   /** Barra superiore condivisa (login, app-card, modali Ocean) — glow neon sotto il gradient */
@@ -248,9 +417,76 @@
       0 4px 22px rgba(34, 211, 238, 0.35);
   }
 
+  /**
+   * Solo struttura (stessa altezza di `.app-card-bar`): usare con classi `*.bar` / gradiente tema
+   * così il colore non viene coperto dal gradiente globale della barra default.
+   */
+  .app-card-bar-accent {
+    height: 0.25rem;
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  /**
+   * Pannelli interni / liste sopra il canvas: stesso “filo” cromatico di `--app-canvas-from` → `--app-canvas-to`
+   * (evita `bg-slate-950/*` piatto che stacca dal gradiente del `<main>`).
+   */
+  .app-workspace-inset-bg {
+    background-image: linear-gradient(
+      to bottom right,
+      rgb(30 41 59 / 0.55),
+      rgb(30 27 75 / 0.38)
+    );
+  }
+  .app-workspace-inset-bg-soft {
+    background-image: linear-gradient(
+      to bottom right,
+      rgb(30 41 59 / 0.4),
+      rgb(30 27 75 / 0.26)
+    );
+  }
+  /** Riga meta / footer dentro card (data caricamento, totali). */
+  .app-workspace-inset-footer-row {
+    @apply flex items-center justify-between border-t border-app-line-15 px-4 py-2;
+    background-image: linear-gradient(
+      to bottom right,
+      rgb(30 41 59 / 0.48),
+      rgb(30 27 75 / 0.34)
+    );
+  }
+  /** Overlay fullscreen (fotocamera, gate): radici canvas → nero. */
+  .app-workspace-overlay {
+    @apply ring-1 ring-inset ring-app-line-25;
+    background-image: linear-gradient(
+      to bottom,
+      rgba(30, 41, 59, 0.94),
+      rgba(30, 27, 75, 0.9),
+      rgb(0 0 0 / 0.92)
+    );
+  }
+
+  /** Input / toast / dropdown: più coprente, stessa famiglia cromatica del canvas. */
+  .app-workspace-surface-elevated {
+    background: linear-gradient(
+      to bottom right,
+      rgb(15 23 42 / 0.88),
+      rgb(30 27 75 / 0.72)
+    );
+  }
+
+  /** Backdrop modali centrati (click fuori, loading). */
+  .app-workspace-scrim {
+    @apply backdrop-blur-md;
+    background: linear-gradient(
+      to bottom,
+      rgb(15 23 42 / 0.52),
+      rgb(30 27 75 / 0.42)
+    );
+  }
+
   /** KPI dashboard operatore: stesso guscio .app-card; accento a L via `KpiLAccentOverlay`. */
   .operator-kpi-card {
-    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
   }
 
@@ -259,8 +495,8 @@
    * Usa: className="app-cta-pill-glow" (o componi .app-glow-cyan su altri bottoni).
    */
   .app-cta-pill-glow {
-    @apply inline-flex items-center justify-center rounded-full bg-cyan-400 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-slate-950 transition-colors;
-    @apply hover:bg-cyan-300 active:bg-cyan-500;
+    @apply inline-flex items-center justify-center rounded-full bg-app-cyan-400 px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-cyan-950 transition-colors;
+    @apply hover:bg-app-cyan-300 active:bg-app-cyan-500;
     box-shadow:
       0 0 0 1px rgba(103, 232, 249, 0.35),
       0 0 36px rgba(34, 211, 238, 0.55),
@@ -320,8 +556,8 @@
    * In utilities + !important così vince su altre utility Tailwind e su eventuali residui di tema.
    */
   .app-page-title {
-    color: #fff !important;
-    -webkit-text-fill-color: #fff;
+    color: rgb(236 254 255 / 0.95) !important;
+    -webkit-text-fill-color: rgb(236 254 255 / 0.95);
     background-image: none !important;
     -webkit-background-clip: border-box !important;
     background-clip: border-box !important;
@@ -332,27 +568,22 @@
   }
 
   /**
-   * Alone cyan attorno a bottoni già `bg-cyan-500` (es. barra mobile, login).
-   * Mantieni `text-white` o passa a pill con `app-cta-pill-glow`.
+   * CTA cyan: leggera profondità (inset + ombra neutra), senza alone neon attorno al colore.
    */
   .app-glow-cyan {
-    transition: box-shadow 0.35s ease, background-color 0.2s ease;
+    transition: box-shadow 0.2s ease, background-color 0.2s ease;
     box-shadow:
-      0 0 0 1px rgba(34, 211, 238, 0.22),
-      0 0 32px rgba(34, 211, 238, 0.5),
-      0 0 56px rgba(6, 182, 212, 0.35),
-      0 10px 32px rgba(0, 0, 0, 0.5);
+      inset 0 1px 0 rgb(255 255 255 / 0.07),
+      0 4px 14px rgb(0 0 0 / 0.28);
   }
   .app-glow-cyan:hover,
   .app-glow-cyan:focus-visible {
     box-shadow:
-      0 0 0 1px rgba(103, 232, 249, 0.35),
-      0 0 42px rgba(34, 211, 238, 0.6),
-      0 0 80px rgba(6, 182, 212, 0.28),
-      0 10px 32px rgba(0, 0, 0, 0.5);
+      inset 0 1px 0 rgb(255 255 255 / 0.09),
+      0 6px 18px rgb(0 0 0 / 0.34);
   }
   .app-glow-cyan:disabled {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 2px 8px rgb(0 0 0 / 0.22);
   }
 }
 
@@ -373,7 +604,7 @@ body {
 /* Link senza classi esplicite: leggibile su tema Deep Ocean */
 @layer base {
   a[href]:not([class]) {
-    @apply text-cyan-400 transition-colors hover:text-cyan-300;
+    @apply text-app-cyan-500 transition-colors hover:text-app-fg-muted;
   }
 }
 
@@ -453,8 +684,8 @@ body {
 }
 
 /*
- * Dashboard home (`page.tsx`): colonna KPI solo ≥1024px; blocco Scanner visibile
- * su tutte le larghezze (sotto i KPI su desktop). Fuori da @layer per evitare override Tailwind.
+ * Dashboard home (`page.tsx`): colonna riepilogo KPI + Scanner su tutte le larghezze;
+ * ordine verticale: KPI poi blocco scanner (sotto i KPI su desktop). Fuori da @layer.
  */
 .dashboard-operator-scanner-bolle-stack {
   display: flex;
@@ -471,28 +702,18 @@ body {
   }
 }
 .dashboard-operator-desktop-column {
-  display: none !important;
+  display: flex !important;
   min-height: 0;
   width: 100%;
   min-width: 0;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
+}
+@media (min-width: 768px) {
+  .dashboard-operator-desktop-column {
+    gap: 1.5rem;
+  }
 }
 .dashboard-operator-empty-shell-desktop {
-  display: none !important;
-}
-@media (min-width: 1024px) {
-  .dashboard-operator-desktop-column {
-    display: flex !important;
-  }
-  .dashboard-operator-empty-shell-desktop {
-    display: block !important;
-  }
-}
-
-/* Wrapper opzionale su `DashboardOperatorKpiGrid` (prop hideBelowLg). */
-@media (max-width: 1023.98px) {
-  .operator-kpi-grid-desktop-only {
-    display: none !important;
-  }
+  display: block !important;
 }

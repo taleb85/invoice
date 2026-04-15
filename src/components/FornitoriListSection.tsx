@@ -41,8 +41,9 @@ export default function FornitoriListSection({
   const isSearchEmpty = filtered.length === 0 && trimmed.length > 0 && fornitori.length > 0
 
   return (
-    <>
+    <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6">
       <AppSummaryHighlightCard
+        className="!mb-0"
         accent="sky"
         label={t.common.total}
         primary={fornitori.length}
@@ -52,7 +53,7 @@ export default function FornitoriListSection({
             <span className="sr-only">{t.nav.cerca}</span>
             <div className="relative">
               <svg
-                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500"
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sky-400/70"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -71,7 +72,7 @@ export default function FornitoriListSection({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.nav.cerca}
                 autoComplete="off"
-                className="w-full rounded-md border border-slate-600/60 bg-slate-800/90 py-1.5 pl-8 pr-2.5 text-xs font-normal text-slate-100 placeholder:text-slate-500 focus:border-sky-500/50 focus:outline-none focus:ring-2 focus:ring-sky-500/25"
+                className="w-full rounded-md border border-sky-500/35 app-workspace-inset-bg-soft py-1.5 pl-8 pr-2.5 text-xs font-normal text-app-fg placeholder:text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-sky-500/10 [color-scheme:dark] focus:border-sky-400/55 focus:outline-none focus:ring-2 focus:ring-sky-400/30"
               />
             </div>
           </label>
@@ -86,6 +87,6 @@ export default function FornitoriListSection({
         addFirstLabel={t.fornitori.addFirst}
         showAddWhenEmpty={!isSearchEmpty}
       />
-    </>
+    </div>
   )
 }

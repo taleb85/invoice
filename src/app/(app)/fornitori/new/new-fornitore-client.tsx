@@ -10,11 +10,12 @@ import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effec
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 
 const fieldBaseCls =
-  'w-full rounded-xl border border-slate-600/60 bg-slate-700 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition [color-scheme:dark] focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50'
+  'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
 const inputCls = `${fieldBaseCls} appearance-none`
-const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80'
+const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted'
 
 export default function NewFornitoreForm() {
   const router = useRouter()
@@ -105,20 +106,20 @@ export default function NewFornitoreForm() {
   }
 
   return (
-    <div className="mx-auto max-w-lg app-shell-page-padding">
-      <AppPageHeaderStrip>
+    <div className={APP_FORNITORE_FORM_PAGE_SHELL_CLASS}>
+      <AppPageHeaderStrip accent="sky" flushBottom>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <button
             type="button"
             onClick={() => router.back()}
-            className="shrink-0 text-slate-200 transition-colors hover:text-cyan-300"
+            className="shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
-          <h1 className="app-page-title min-w-0 text-2xl font-bold tracking-tight">{t.fornitori.new}</h1>
+          <h1 className={`app-page-title min-w-0 flex-1 ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>{t.fornitori.new}</h1>
         </div>
       </AppPageHeaderStrip>
 
@@ -146,7 +147,7 @@ export default function NewFornitoreForm() {
               }
               placeholder={t.fornitori.displayNamePlaceholder}
             />
-            <p className="mt-1 text-[11px] text-slate-200">{t.fornitori.displayNameHint}</p>
+            <p className="mt-1 text-[11px] text-app-fg-muted">{t.fornitori.displayNameHint}</p>
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.email}</label>
@@ -178,7 +179,7 @@ export default function NewFornitoreForm() {
           </div>
 
           {error && (
-            <p className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-2.5 text-sm text-red-300">
+            <p className="rounded-xl border border-red-500/35 app-workspace-inset-bg-soft px-4 py-2.5 text-sm text-red-200/95">
               {error}
             </p>
           )}
@@ -187,14 +188,14 @@ export default function NewFornitoreForm() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="flex-1 rounded-xl border border-slate-600/80 bg-slate-700/80 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80"
+              className="flex-1 rounded-xl border border-app-line-32 app-workspace-inset-bg py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:bg-black/18"
             >
               {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 rounded-xl bg-cyan-500 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:opacity-60"
+              className="flex-1 rounded-xl bg-app-cyan-500 py-2.5 text-sm font-semibold text-cyan-950 transition-colors hover:bg-app-cyan-400 disabled:opacity-60"
             >
               {saving ? t.fornitori.saving : t.common.save}
             </button>

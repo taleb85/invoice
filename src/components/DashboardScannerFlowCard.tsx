@@ -2,10 +2,15 @@ import Link from 'next/link'
 import type { ScannerFlowDaySummary, ScannerFlowEventRow, ScannerFlowEventStep } from '@/lib/dashboard-operator-kpis'
 import type { Translations } from '@/lib/translations'
 import HubScannerIcon from '@/components/HubScannerIcon'
+import {
+  SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
+  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+} from '@/lib/summary-highlight-accent'
 
 /** Bordo / alone come `scannerNavItemCls(false)` nella dock (titolo mobile, chip più grande). */
 const SCANNER_FLOW_MOBILE_TITLE_FRAME =
-  'rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 shadow-[0_0_24px_-8px_rgba(6,182,212,0.48)] ring-1 ring-inset ring-white/10'
+  'rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 shadow-[0_0_24px_-8px_rgba(6,182,212,0.48)] ring-1 ring-inset ring-white/10'
 
 export function scannerFlowStepLabel(step: ScannerFlowEventStep, t: Translations): string {
   switch (step) {
@@ -33,11 +38,11 @@ function ScannerFlowTodayActivity({
   t: Translations
   embedded: boolean
 }) {
-  const border = embedded ? 'border-slate-600/50' : 'border-white/10'
-  const titleCls = embedded ? 'text-slate-200' : 'text-cyan-100'
-  const emptyCls = embedded ? 'text-slate-400' : 'text-cyan-50/95'
-  const timeCls = embedded ? 'shrink-0 tabular-nums text-slate-400' : 'shrink-0 tabular-nums text-cyan-200/80'
-  const descCls = embedded ? 'min-w-0 text-slate-200' : 'min-w-0 text-cyan-50/95'
+  const border = embedded ? 'border-app-line-25' : 'border-white/10'
+  const titleCls = embedded ? 'text-app-fg-muted' : 'text-app-fg-muted'
+  const emptyCls = embedded ? 'text-app-fg-muted' : 'text-app-fg'
+  const timeCls = embedded ? 'shrink-0 tabular-nums text-app-fg-muted' : 'shrink-0 tabular-nums text-app-fg-muted'
+  const descCls = embedded ? 'min-w-0 text-app-fg-muted' : 'min-w-0 text-app-fg'
 
   return (
     <div className={`mt-4 shrink-0 border-t pb-1 pt-4 ${border}`}>
@@ -86,34 +91,34 @@ function ScannerFlowCardIntro({
     .replace('{ai}', String(summary.aiElaborate))
     .replace('{arch}', String(summary.archiviate))
 
-  const kpiNumCls = embedded ? 'text-slate-50 md:text-3xl' : 'text-cyan-50 md:text-3xl'
-  const kpiLabelCls = embedded ? 'text-slate-400 md:text-xs' : 'text-cyan-100/80 md:text-xs'
-  const kpiBoxBorder = embedded ? 'border-slate-600/60' : 'border-white/15'
-  const kpiBoxBg = embedded ? 'bg-slate-800/40' : 'bg-white/5'
+  const kpiNumCls = embedded ? 'text-app-fg md:text-3xl' : 'text-app-fg md:text-3xl'
+  const kpiLabelCls = embedded ? 'text-app-fg-muted md:text-xs' : 'text-app-fg-muted md:text-xs'
+  const kpiBoxBorder = embedded ? 'border-app-line-28' : 'border-app-line-30'
+  const kpiBoxBg = embedded ? 'app-workspace-inset-bg-soft' : 'app-workspace-inset-bg-soft shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10'
 
   const eventsInHeader = Boolean(headerLinks?.eventsHref?.trim())
   const showFooterEventsLink = Boolean(allEventsHref?.trim()) && !eventsInHeader
   const newScanLabel = t.dashboard.scannerFlowOpenScanner
   const eventsLinkLabel = t.dashboard.scannerFlowEventsAllLink
   const scannerEventsLinkClass =
-    'text-xs font-semibold text-cyan-200/95 hover:text-cyan-50 hover:underline sm:text-sm'
+    'text-xs font-semibold text-app-fg-muted hover:text-app-fg hover:underline sm:text-sm'
 
   return (
     <>
       {embedded ? (
         <>
-          <h2 className="text-sm font-semibold text-slate-100 md:text-base">{t.dashboard.scannerFlowCardTitle}</h2>
-          <p className="mt-1 text-xs leading-snug text-slate-300">{t.dashboard.scannerFlowCardHint}</p>
-          <p className="mt-2 text-xs font-medium text-slate-200">{todayLine}</p>
+          <h2 className="text-sm font-semibold text-app-fg md:text-base">{t.dashboard.scannerFlowCardTitle}</h2>
+          <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.dashboard.scannerFlowCardHint}</p>
+          <p className="mt-2 text-xs font-medium text-app-fg-muted">{todayLine}</p>
         </>
       ) : (
-        <div className="flex w-full flex-col gap-3 border-b border-white/10 pb-3 md:flex-row md:items-center md:justify-between md:pb-4">
+        <div className="flex w-full flex-col gap-3 border-b border-app-line-15 pb-3 md:flex-row md:items-center md:justify-between md:pb-4">
           <div className="flex w-full justify-center md:justify-start">
             <h2
               className={`m-0 inline-flex max-w-full min-w-0 min-h-[52px] flex-col items-center justify-center gap-1 px-5 py-3 text-center font-normal sm:min-h-14 sm:gap-1.5 sm:px-7 sm:py-4 md:min-h-0 md:flex-row md:items-center md:justify-start md:gap-2 md:px-3 md:py-2 md:text-left ${SCANNER_FLOW_MOBILE_TITLE_FRAME} md:shadow-[0_0_14px_-10px_rgba(6,182,212,0.38)]`}
             >
-              <HubScannerIcon className="h-7 w-7 shrink-0 text-cyan-200 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] sm:h-8 sm:w-8 md:h-5 md:w-5 md:drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" aria-hidden />
-              <span className="line-clamp-2 max-w-[18rem] text-center text-xs font-semibold leading-snug text-cyan-50 sm:max-w-[20rem] sm:text-sm md:line-clamp-1 md:max-w-none md:text-left md:text-xs [overflow-wrap:anywhere]">
+              <HubScannerIcon className="h-7 w-7 shrink-0 text-app-fg-muted drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] sm:h-8 sm:w-8 md:h-5 md:w-5 md:drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" aria-hidden />
+              <span className="line-clamp-2 max-w-[18rem] text-center text-xs font-semibold leading-snug text-app-fg sm:max-w-[20rem] sm:text-sm md:line-clamp-1 md:max-w-none md:text-left md:text-xs [overflow-wrap:anywhere]">
                 {t.nav.bottomNavScannerAi}
               </span>
             </h2>
@@ -124,7 +129,7 @@ function ScannerFlowCardIntro({
               {headerLinks.newScanHref?.trim() ? (
                 <Link
                   href={headerLinks.newScanHref}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_0_16px_-4px_rgba(6,182,212,0.45)] transition-colors hover:bg-cyan-400"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-app-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_0_18px_-4px_rgba(34,211,238,0.5)] ring-1 ring-app-tint-300-30 transition-colors hover:bg-app-cyan-400"
                 >
                   <HubScannerIcon className="h-3.5 w-3.5 shrink-0" />
                   {newScanLabel}
@@ -161,7 +166,7 @@ function ScannerFlowCardIntro({
         </div>
       </div>
       {!embedded && showFooterEventsLink && allEventsHref ? (
-        <div className="mt-3 flex justify-center border-t border-white/10 pt-3">
+        <div className="mt-3 flex justify-center border-t border-app-line-15 pt-3">
           <Link href={allEventsHref} className={scannerEventsLinkClass}>
             {eventsLinkLabel}
           </Link>
@@ -171,10 +176,10 @@ function ScannerFlowCardIntro({
         <ScannerFlowTodayActivity events={events} formatEventTime={formatEventTime} t={t} embedded />
       ) : null}
       {embedded && allEventsHref ? (
-        <div className="mt-3 flex justify-center border-t border-slate-600/50 pt-3">
+        <div className="mt-3 flex justify-center border-t border-app-line-25 pt-3">
           <Link
             href={allEventsHref}
-            className="text-xs font-semibold text-cyan-300 hover:text-cyan-100 hover:underline sm:text-sm"
+            className="text-xs font-semibold text-app-fg-muted hover:text-app-fg hover:underline sm:text-sm"
           >
             {t.dashboard.scannerFlowEventsAllLink}
           </Link>
@@ -214,7 +219,7 @@ export default function DashboardScannerFlowCard({
 
   if (embedded) {
     return (
-      <div className="px-4 py-4 sm:px-6 sm:py-5" aria-label={t.dashboard.scannerFlowCardTitle}>
+      <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS} aria-label={t.dashboard.scannerFlowCardTitle}>
         <ScannerFlowCardIntro
           summary={summary}
           t={t}
@@ -228,17 +233,22 @@ export default function DashboardScannerFlowCard({
     )
   }
 
+  const scannerShellTheme = SUMMARY_HIGHLIGHT_ACCENTS.cyan
+
   return (
-    <section className="app-card px-4 py-3 md:px-6 md:py-4">
-      <ScannerFlowCardIntro
-        summary={summary}
-        t={t}
-        events={events}
-        formatEventTime={formatEventTime}
-        embedded={false}
-        allEventsHref={allEventsHref}
-        headerLinks={headerLinks}
-      />
+    <section className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${scannerShellTheme.border}`}>
+      <div className={`app-card-bar-accent shrink-0 ${scannerShellTheme.bar}`} aria-hidden />
+      <div className={`w-full min-w-0 ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
+        <ScannerFlowCardIntro
+          summary={summary}
+          t={t}
+          events={events}
+          formatEventTime={formatEventTime}
+          embedded={false}
+          allEventsHref={allEventsHref}
+          headerLinks={headerLinks}
+        />
+      </div>
     </section>
   )
 }

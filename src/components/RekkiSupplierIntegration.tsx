@@ -140,38 +140,42 @@ export default function RekkiSupplierIntegration({
 
   const shell = SUMMARY_HIGHLIGHT_ACCENTS.cyan
 
+  /** Stesso filo della scheda modifica fornitore: contorno + ombra, corpo trasparente sul canvas. */
+  const rekkiShellCls =
+    'relative overflow-hidden rounded-2xl bg-transparent text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.28),0_16px_40px_-14px_rgba(0,0,0,0.22)] ring-1 ring-inset ring-white/10'
+
   if (readOnly) {
     const id = initialRekkiId?.trim() ?? rekkiId.trim()
     const link = initialRekkiLink?.trim() ?? rekkiLink.trim()
     return (
       <div
-        className={`app-card flex min-h-0 flex-1 flex-col overflow-hidden ${shell.border} ${className ?? ''}`}
+        className={`${rekkiShellCls} flex min-h-0 flex-1 flex-col overflow-hidden ${shell.border} ${className ?? ''}`}
       >
-        <div className={`app-card-bar ${shell.bar}`} aria-hidden />
-        <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
+        <div className={`app-card-bar-accent ${shell.bar}`} aria-hidden />
+        <div className="flex shrink-0 items-center gap-2 border-b border-app-line-22 bg-transparent px-5 py-3">
           <svg className="h-3.5 w-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-100">{t.fornitori.rekkiIntegrationTitle}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-app-fg">{t.fornitori.rekkiIntegrationTitle}</p>
         </div>
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm text-slate-200">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-transparent px-5 py-4 text-sm text-app-fg-muted">
           {id || link ? (
             <>
               {id ? (
                 <p>
-                  <span className="text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.rekkiIdLabel}</span>{' '}
-                  <span className="font-mono text-slate-100">{id}</span>
+                  <span className="text-[10px] font-semibold uppercase text-app-fg-muted">{t.fornitori.rekkiIdLabel}</span>{' '}
+                  <span className="font-mono text-app-fg">{id}</span>
                 </p>
               ) : null}
               {link ? (
                 <p className="break-words">
-                  <span className="text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.rekkiLinkLabel}</span>{' '}
-                  <span className="text-cyan-300">{link}</span>
+                  <span className="text-[10px] font-semibold uppercase text-app-fg-muted">{t.fornitori.rekkiLinkLabel}</span>{' '}
+                  <span className="text-app-fg-muted">{link}</span>
                 </p>
               ) : null}
             </>
           ) : (
-            <p className="text-xs italic text-slate-200">—</p>
+            <p className="text-xs italic text-app-fg-muted">—</p>
           )}
         </div>
       </div>
@@ -180,16 +184,16 @@ export default function RekkiSupplierIntegration({
 
   return (
     <div
-      className={`app-card flex min-h-0 flex-1 flex-col overflow-hidden ${shell.border} ${className ?? ''}`}
+      className={`${rekkiShellCls} flex min-h-0 flex-1 flex-col overflow-hidden ${shell.border} ${className ?? ''}`}
     >
-      <div className={`app-card-bar ${shell.bar}`} aria-hidden />
-      <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
+      <div className={`app-card-bar-accent ${shell.bar}`} aria-hidden />
+      <div className="flex shrink-0 items-center gap-2 border-b border-app-line-22 bg-transparent px-5 py-3">
         <svg className="h-3.5 w-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
         </svg>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-100">{t.fornitori.rekkiIntegrationTitle}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-app-fg">{t.fornitori.rekkiIntegrationTitle}</p>
       </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-transparent px-5 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -200,23 +204,23 @@ export default function RekkiSupplierIntegration({
             {loading === 'lookup' ? t.common.loading : t.fornitori.rekkiLookupByVat}
           </button>
           {piva?.trim() ? (
-            <span className="font-mono text-[11px] text-slate-200">VAT: {piva}</span>
+            <span className="font-mono text-[11px] text-app-fg-muted">VAT: {piva}</span>
           ) : (
             <span className="text-[11px] text-amber-400/90">{t.fornitori.rekkiLookupNeedVat}</span>
           )}
         </div>
-        {lookupMsg && <p className="text-xs text-slate-200">{lookupMsg}</p>}
+        {lookupMsg && <p className="text-xs text-app-fg-muted">{lookupMsg}</p>}
         {hits.length > 0 && (
-          <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-slate-700/60 bg-slate-700/50 p-2">
+          <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg border border-app-line-22 app-workspace-inset-bg-soft p-2">
             {hits.map((h) => (
               <li key={h.id}>
                 <button
                   type="button"
                   onClick={() => setRekkiId(h.id)}
-                  className="w-full rounded-md px-2 py-1.5 text-left text-xs text-slate-200 transition-colors hover:bg-slate-700/80"
+                  className="w-full rounded-md px-2 py-1.5 text-left text-xs text-app-fg-muted transition-colors hover:bg-black/18"
                 >
                   <span className="font-mono text-violet-300">{h.id}</span>
-                  <span className="ml-2 text-slate-200">{h.name}</span>
+                  <span className="ml-2 text-app-fg-muted">{h.name}</span>
                 </button>
               </li>
             ))}
@@ -224,24 +228,24 @@ export default function RekkiSupplierIntegration({
         )}
         <div className={`grid gap-3 ${compactFields ? 'grid-cols-1' : 'sm:grid-cols-2'}`}>
           <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.rekkiIdLabel}</label>
+            <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">{t.fornitori.rekkiIdLabel}</label>
             <input
               type="text"
               value={rekkiId}
               onChange={(e) => setRekkiId(e.target.value)}
               placeholder={t.fornitori.rekkiIdPlaceholder}
-              className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 font-mono text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+              className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 font-mono text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />
           </div>
           <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase text-slate-200">{t.fornitori.rekkiLinkLabel}</label>
+            <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">{t.fornitori.rekkiLinkLabel}</label>
             <input
               type="url"
               value={rekkiLink}
               onChange={(e) => setRekkiLink(e.target.value)}
               onBlur={() => applyIdFromLink()}
               placeholder={t.fornitori.rekkiLinkPlaceholder}
-              className="w-full rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500/40"
+              className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />
           </div>
         </div>
@@ -249,7 +253,7 @@ export default function RekkiSupplierIntegration({
           type="button"
           onClick={() => void save()}
           disabled={loading !== null || !rekkiId.trim()}
-          className="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-cyan-500 disabled:opacity-40"
+          className="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-app-cyan-500 disabled:opacity-40"
         >
           {loading === 'save' ? t.common.saving : t.fornitori.rekkiSaveRekkiMapping}
         </button>

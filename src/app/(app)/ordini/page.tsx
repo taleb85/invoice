@@ -13,8 +13,24 @@ import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHe
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
-import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import {
+  SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
+  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+} from '@/lib/summary-highlight-accent'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
+import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import {
+  APP_SHELL_SECTION_PAGE_CLASS,
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SECTION_EMPTY_LINK_CLASS,
+  APP_SECTION_TABLE_CELL_LINK,
+  APP_SECTION_TABLE_HEAD_ROW,
+  APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_TH,
+  APP_SECTION_TABLE_TH_RIGHT,
+  APP_SECTION_TABLE_TR,
+} from '@/lib/app-shell-layout'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,10 +76,10 @@ export default async function OrdiniOverviewPage({
   const ordiniTheme = SUMMARY_HIGHLIGHT_ACCENTS.rose
 
   return (
-    <div className="w-full min-w-0 app-shell-page-padding">
+    <div className={APP_SHELL_SECTION_PAGE_CLASS}>
       <AppPageHeaderStrip accent="rose">
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
-          <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.nav.ordini}</h1>
+          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.nav.ordini}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>
@@ -80,30 +96,14 @@ export default async function OrdiniOverviewPage({
             primary={0}
             secondary={t.dashboard.kpiOrdiniSub}
           />
-          <div className={`app-card overflow-hidden ${ordiniTheme.border}`}>
-            <div className={`app-card-bar ${ordiniTheme.bar}`} aria-hidden />
-            <div className="px-6 py-14 text-center">
-              <svg
-                className="mx-auto mb-3 h-12 w-12 text-slate-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              <p className="text-sm text-slate-200">{t.dashboard.ordiniOverviewEmpty}</p>
-              <Link
-                href="/fornitori"
-                className="mt-4 inline-block text-sm font-medium text-rose-400 hover:text-rose-300 hover:underline"
-              >
-                {t.nav.fornitori} →
-              </Link>
+          <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${ordiniTheme.border}`}>
+            <div className={`app-card-bar-accent ${ordiniTheme.bar}`} aria-hidden />
+            <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
+              <AppSectionEmptyState message={t.dashboard.ordiniOverviewEmpty}>
+                <Link href="/fornitori" className={`${APP_SECTION_EMPTY_LINK_CLASS} hover:underline`}>
+                  {t.nav.fornitori} →
+                </Link>
+              </AppSectionEmptyState>
             </div>
           </div>
         </>
@@ -115,50 +115,37 @@ export default async function OrdiniOverviewPage({
             primary={rows.length}
             secondary={t.dashboard.ordiniOverviewLimitNote.replace(/\{n\}/g, String(rows.length))}
           />
-          <div className={`app-card overflow-hidden ${ordiniTheme.border}`}>
-            <div className={`app-card-bar ${ordiniTheme.bar}`} aria-hidden />
-            <div className="overflow-x-auto">
+          <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${ordiniTheme.border}`}>
+            <div className={`app-card-bar-accent ${ordiniTheme.bar}`} aria-hidden />
+            <div className={`${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS} overflow-x-auto`}>
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700/60 bg-slate-700/50">
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.dashboard.ordiniColSupplier}
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.dashboard.ordiniColTitle}
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.dashboard.ordiniColOrderDate}
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.dashboard.ordiniColRegistered}
-                    </th>
-                    <th className="w-36 px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {' '}
-                    </th>
+                  <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                    <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColSupplier}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColTitle}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColOrderDate}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColRegistered}</th>
+                    <th className={`w-36 ${APP_SECTION_TABLE_TH_RIGHT}`}>{' '}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80">
+                <tbody className={APP_SECTION_TABLE_TBODY}>
                   {rows.map((r) => (
-                    <tr key={r.id} className="transition-colors hover:bg-slate-700/30">
-                      <td className="max-w-[200px] px-4 py-3">
-                        <Link
-                          href={`/fornitori/${r.fornitore_id}?tab=conferme`}
-                          className="font-medium text-cyan-400 transition-colors hover:text-cyan-300"
-                        >
+                    <tr key={r.id} className={APP_SECTION_TABLE_TR}>
+                      <td className="max-w-[200px] px-6 py-4">
+                        <Link href={`/fornitori/${r.fornitore_id}?tab=conferme`} className={APP_SECTION_TABLE_CELL_LINK}>
                           {r.fornitore_nome}
                         </Link>
                       </td>
-                      <td className="max-w-xs px-4 py-3 text-slate-200">{r.titolo?.trim() || r.file_name || '—'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-200">
+                      <td className="max-w-xs px-6 py-4 text-app-fg-muted">{r.titolo?.trim() || r.file_name || '—'}</td>
+                      <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">
                         {r.data_ordine ? formatDate(r.data_ordine) : '—'}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-200">{formatDate(r.created_at)}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">{formatDate(r.created_at)}</td>
+                      <td className="px-6 py-4 text-right">
                         <PublicPdfOpenMenu
                           fileUrl={r.file_url}
                           triggerLabel={t.dashboard.ordiniOpenPdf}
-                          triggerClassName="text-xs font-semibold text-slate-200 transition-colors hover:text-cyan-300"
+                          triggerClassName="text-xs font-semibold text-app-fg-muted transition-colors hover:text-app-fg"
                           labels={{
                             preview: t.dashboard.ordiniPdfPreview,
                             copyLink: t.dashboard.ordiniPdfCopyLink,

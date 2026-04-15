@@ -21,7 +21,12 @@ import {
 } from '@/lib/auto-resolve-pending-doc'
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
-import { SUMMARY_HIGHLIGHT_ACCENTS, type SummaryHighlightAccent } from '@/lib/summary-highlight-accent'
+import {
+  SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+  type SummaryHighlightAccent,
+} from '@/lib/summary-highlight-accent'
+import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
@@ -1445,6 +1450,15 @@ export function PendingMatchesTab({
   const bozzeCreate = docs.filter(d => d.stato === 'bozza_creata').length
 
   const listShellTheme = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
+  /** In scheda fornitore: stesso guscio/tab «Documenti» del resto della pagina. */
+  const supplierDocShell = Boolean(fornitoreId)
+  const queueShellClass = supplierDocShell ? 'supplier-detail-tab-shell' : SUMMARY_HIGHLIGHT_SURFACE_CLASS
+  const queueShellBorder = supplierDocShell
+    ? SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti.border
+    : listShellTheme.border
+  const queueShellBar = supplierDocShell
+    ? SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti.bar
+    : listShellTheme.bar
 
   const pendingDocRowTheme = (docStato: Documento['stato']) => {
     if (docStato === 'associato') return SUMMARY_HIGHLIGHT_ACCENTS.emerald
@@ -1478,21 +1492,27 @@ export function PendingMatchesTab({
             className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
               filter === 'in_attesa'
                 ? 'border border-orange-500/45 bg-orange-500/15 text-orange-50 shadow-[0_0_20px_-8px_rgba(249,115,22,0.35)]'
-                : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
+                : supplierDocShell
+                  ? 'border border-transparent bg-transparent text-app-fg-muted hover:bg-amber-500/10 hover:text-app-fg'
+                  : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}>
             {t.statements.tabPending} {inAttesa > 0 && <span className="ml-1 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950">{inAttesa}</span>}
           </button>
           <button onClick={() => setFilter('tutti')}
             className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
               filter === 'tutti'
-                ? 'border border-slate-500/55 bg-slate-800/90 text-slate-50 ring-1 ring-white/5'
-                : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
+                ? supplierDocShell
+                  ? 'border border-app-line-35 bg-transparent text-app-fg ring-1 ring-white/10'
+                  : 'border border-slate-500/55 bg-slate-800/90 text-slate-50 ring-1 ring-white/5'
+                : supplierDocShell
+                  ? 'border border-transparent bg-transparent text-app-fg-muted hover:bg-white/[0.05] hover:text-app-fg'
+                  : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}>
             {t.statements.tabAll}
           </button>
         </div>
         <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-x-2 gap-y-1">
-          <p className="text-xs font-medium text-slate-300">
+          <p className={`text-xs font-medium ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>
             {bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}
           </p>
           <button
@@ -1580,20 +1600,25 @@ export function PendingMatchesTab({
       )}
 
       {loading ? (
-        <div className={`app-card overflow-hidden ${listShellTheme.border}`}>
-          <div className={`app-card-bar ${listShellTheme.bar}`} aria-hidden />
+        <div className={`${queueShellClass} overflow-hidden ${queueShellBorder}`}>
+          <div className={`app-card-bar-accent ${queueShellBar}`} aria-hidden />
           <div className="px-6 py-16 text-center">
-            <p className="text-sm text-slate-300">{t.common.loading}</p>
+            <p className={`text-sm ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>{t.common.loading}</p>
           </div>
         </div>
       ) : docs.length === 0 ? (
-        <div className={`app-card overflow-hidden ${listShellTheme.border}`}>
-          <div className={`app-card-bar ${listShellTheme.bar}`} aria-hidden />
+        <div className={`${queueShellClass} overflow-hidden ${queueShellBorder}`}>
+          <div className={`app-card-bar-accent ${queueShellBar}`} aria-hidden />
           <div className="px-6 py-16 text-center">
-            <svg className="mx-auto mb-4 h-14 w-14 text-slate-400 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className={`mx-auto mb-4 h-14 w-14 opacity-90 ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-400'}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="text-sm font-medium text-slate-300">
+            <p className={`text-sm font-medium ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>
               {filter === 'in_attesa' ? t.statements.noPendingDocs : t.statements.noDocsFound}
             </p>
           </div>
@@ -1615,11 +1640,13 @@ export function PendingMatchesTab({
             return (
               <div
                 key={doc.id}
-                className={`app-card overflow-hidden transition-opacity ${
-                  stato === 'done' ? 'opacity-[0.58] saturate-[0.85]' : ''
-                } ${rowTheme.border}`}
+                className={`${
+                  supplierDocShell ? 'supplier-detail-tab-shell' : SUMMARY_HIGHLIGHT_SURFACE_CLASS
+                } overflow-hidden transition-opacity ${stato === 'done' ? 'opacity-[0.58] saturate-[0.85]' : ''} ${
+                  rowTheme.border
+                }`}
               >
-                <div className={`app-card-bar ${rowTheme.bar}`} aria-hidden />
+                <div className={`app-card-bar-accent ${rowTheme.bar}`} aria-hidden />
                 <div className="flex gap-3 p-3 md:gap-3 md:p-4">
                   {/* Thumbnail */}
                   <button
@@ -1632,7 +1659,7 @@ export function PendingMatchesTab({
                         /* ignore */
                       }
                     }}
-                    className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-600/50 bg-slate-900/40 transition-opacity hover:opacity-80 md:h-10 md:w-10"
+                    className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-app-line-28 bg-transparent transition-opacity hover:opacity-80 md:h-10 md:w-10`}
                   >
                     {thumb
                       ? (
@@ -1645,20 +1672,42 @@ export function PendingMatchesTab({
                           className="h-full w-full object-cover"
                         />
                       )
-                      : <svg className="h-7 w-7 text-slate-400 md:h-5 md:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+                      : (
+                        <svg
+                          className={`h-7 w-7 md:h-5 md:w-5 ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      )}
                   </button>
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-start justify-between gap-2">
                       <div className="relative flex min-w-0 items-center gap-1.5">
-                        <p className={`truncate text-sm font-semibold ${isUnknown ? 'text-orange-200' : 'text-slate-100'}`}>
+                        <p
+                          className={`truncate text-sm font-semibold ${
+                            isUnknown ? 'text-orange-200' : supplierDocShell ? 'text-slate-100' : 'text-app-fg'
+                          }`}
+                        >
                           {nomeFornitore ?? `⚠ ${t.statements.unknownSender}`}
                         </p>
                         {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (
                           <button onClick={() => setEditSupplier(editSupplier === doc.id ? null : doc.id)}
                             title={t.statements.editSupplierTitle}
-                            className="shrink-0 rounded-md p-1 text-slate-300 transition-colors hover:bg-slate-700/80 hover:text-cyan-200">
+                            className={`shrink-0 rounded-md p-1 transition-colors hover:text-cyan-200 ${
+                              supplierDocShell
+                                ? 'text-slate-300 hover:bg-slate-700/80'
+                                : 'text-app-fg-muted hover:bg-app-line-10'
+                            }`}>
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
@@ -1723,7 +1772,9 @@ export function PendingMatchesTab({
                                   title={title}
                                   aria-pressed={pk === kind}
                                   className={`min-h-[28px] rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors touch-manipulation disabled:opacity-50 ${
-                                    pk === kind ? activeCls : 'border-slate-500/55 bg-slate-900/45 text-slate-100 hover:border-slate-400/50 hover:bg-slate-800/90'
+                                    pk === kind
+                                      ? activeCls
+                                      : 'border-app-line-30 bg-transparent text-app-fg-muted hover:border-app-line-35 hover:bg-app-line-10 hover:text-app-fg'
                                   }`}
                                 >
                                   {label}
@@ -1798,8 +1849,14 @@ export function PendingMatchesTab({
                       </div>
                     </div>
 
-                    <p className="mb-0.5 truncate text-xs text-slate-300">{doc.oggetto_mail ?? doc.mittente}</p>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
+                    <p
+                      className={`mb-0.5 truncate text-xs ${supplierDocShell ? 'text-slate-300' : 'text-app-fg-muted'}`}
+                    >
+                      {doc.oggetto_mail ?? doc.mittente}
+                    </p>
+                    <div
+                      className={`flex flex-wrap items-center gap-3 text-xs ${supplierDocShell ? 'text-slate-300' : 'text-app-fg-muted'}`}
+                    >
                       {officialDocDateIso ? (
                         <span className="font-medium text-cyan-300">
                           {t.statements.labelDocDate} {fmt(officialDocDateIso)}
@@ -1832,8 +1889,16 @@ export function PendingMatchesTab({
 
                 {addressClusterPeersByDocId.has(doc.id) &&
                   (doc.stato === 'in_attesa' || doc.stato === 'da_associare' || doc.stato === 'bozza_creata') && (
-                  <div className="mx-3 mb-2 rounded-lg border border-cyan-500/35 bg-cyan-950/40 px-3 py-2 ring-1 ring-inset ring-cyan-400/10">
-                    <p className="text-[11px] leading-snug text-cyan-50/95">
+                  <div
+                    className={`mx-3 mb-2 rounded-lg border border-cyan-500/35 px-3 py-2 ring-1 ring-inset ring-cyan-400/10 ${
+                      supplierDocShell ? 'bg-cyan-950/40' : 'bg-transparent'
+                    }`}
+                  >
+                    <p
+                      className={`text-[11px] leading-snug ${
+                        supplierDocShell ? 'text-cyan-50/95' : 'text-app-fg-muted'
+                      }`}
+                    >
                       {t.statements.sameAddressClusterHint.replace(
                         /\{names\}/g,
                         addressClusterPeersByDocId.get(doc.id)!.join(' · '),
@@ -1895,14 +1960,35 @@ export function PendingMatchesTab({
                     <div className="px-3 pb-3 space-y-1.5">
                       {/* Bolle checkboxes grouped by supplier */}
                       {bolleAperte.length === 0 ? (
-                        <p className="py-2 text-xs text-slate-400">{t.statements.noBolleAttesa}</p>
+                        <p
+                          className={`py-2 text-xs ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
+                        >
+                          {t.statements.noBolleAttesa}
+                        </p>
                       ) : (
-                        <div className="divide-y divide-slate-600/45 overflow-hidden rounded-lg border border-slate-600/45 bg-slate-900/25">
+                        <div
+                          className={`divide-y overflow-hidden rounded-lg border ${
+                            supplierDocShell
+                              ? 'divide-slate-600/45 border-slate-600/45 bg-slate-900/25'
+                              : 'divide-app-line-15 border-app-line-28 bg-transparent'
+                          }`}
+                        >
                           {/* Auto-suggest button */}
                           {ocrTotal !== null && (bolleSameSupplier.length > 0 || bolleOther.length > 0) && (
-                            <div className="flex items-center justify-between gap-2 bg-slate-900/40 px-3 py-2">
-                              <span className="text-[11px] text-slate-200">
-                                {t.statements.docTotalLabel} <span className="font-semibold text-slate-100">{formatCurrency(ocrTotal, countryCode, rowCurrency)}</span>
+                            <div
+                              className={`flex items-center justify-between gap-2 px-3 py-2 ${
+                                supplierDocShell ? 'bg-slate-900/40' : 'border-b border-app-line-15 bg-transparent'
+                              }`}
+                            >
+                              <span
+                                className={`text-[11px] ${supplierDocShell ? 'text-slate-200' : 'text-app-fg-muted'}`}
+                              >
+                                {t.statements.docTotalLabel}{' '}
+                                <span
+                                  className={`font-semibold ${supplierDocShell ? 'text-slate-100' : 'text-app-fg'}`}
+                                >
+                                  {formatCurrency(ocrTotal, countryCode, rowCurrency)}
+                                </span>
                               </span>
                               <button
                                 onClick={() => autoSuggest(doc.id, [...bolleSameSupplier, ...bolleOther], ocrTotal)}
@@ -1916,23 +2002,50 @@ export function PendingMatchesTab({
                           {/* Same supplier bolle */}
                           {bolleSameSupplier.length > 0 && (
                             <>
-                              <div className="bg-slate-900/55 px-3 py-1.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                              <div
+                                className={`px-3 py-1.5 ${supplierDocShell ? 'bg-slate-900/55' : 'border-b border-app-line-15 bg-transparent'}`}
+                              >
+                                <span
+                                  className={`text-[10px] font-semibold uppercase tracking-wide ${
+                                    supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'
+                                  }`}
+                                >
                                   {nomeFornitore ?? 'Stesso fornitore'} · {bolleSameSupplier.length} bolla{bolleSameSupplier.length !== 1 ? 'e' : ''}
                                 </span>
                               </div>
                               {bolleSameSupplier.map(b => {
                                 const checked = selIds.includes(b.id)
                                 return (
-                                  <label key={b.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-800/55 ${checked ? 'bg-cyan-500/12' : ''}`}>
+                                  <label
+                                    key={b.id}
+                                    className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors ${
+                                      supplierDocShell
+                                        ? `hover:bg-slate-800/55 ${checked ? 'bg-cyan-500/12' : ''}`
+                                        : `hover:bg-app-line-10 ${checked ? 'bg-cyan-500/[0.08]' : ''}`
+                                    }`}
+                                  >
                                     <input type="checkbox" checked={checked} onChange={() => toggleBolla(b.id)}
-                                      className="h-4 w-4 cursor-pointer rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40" />
-                                    <span className="flex-1 text-sm text-slate-200">
+                                      className="h-4 w-4 cursor-pointer rounded border-app-line-35 bg-transparent text-cyan-500 focus:ring-cyan-500/40" />
+                                    <span
+                                      className={`flex-1 text-sm ${supplierDocShell ? 'text-slate-200' : 'text-app-fg'}`}
+                                    >
                                       {b.numero_bolla ? <span className="font-mono font-medium">#{b.numero_bolla}</span> : '—'}{' '}
-                                      <span className="text-xs text-slate-400">· {fmt(b.data)}</span>
+                                      <span
+                                        className={`text-xs ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
+                                      >
+                                        · {fmt(b.data)}
+                                      </span>
                                     </span>
                                     {b.importo !== null && (
-                                      <span className={`text-sm font-semibold tabular-nums ${checked ? 'text-cyan-300' : 'text-slate-200'}`}>
+                                      <span
+                                        className={`text-sm font-semibold tabular-nums ${
+                                          checked
+                                            ? 'text-cyan-300'
+                                            : supplierDocShell
+                                              ? 'text-slate-200'
+                                              : 'text-app-fg-muted'
+                                        }`}
+                                      >
                                         {formatCurrency(b.importo, countryCode, rowCurrency)}
                                       </span>
                                     )}
@@ -1945,24 +2058,49 @@ export function PendingMatchesTab({
                           {/* Other supplier bolle */}
                           {bolleOther.length > 0 && (
                             <>
-                              <div className="bg-slate-900/55 px-3 py-1.5">
-                                <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                              <div
+                                className={`px-3 py-1.5 ${supplierDocShell ? 'bg-slate-900/55' : 'border-b border-app-line-15 bg-transparent'}`}
+                              >
+                                <span
+                                  className={`text-[10px] font-semibold uppercase tracking-wide ${
+                                    supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'
+                                  }`}
+                                >
                                   Altri fornitori · {bolleOther.length}
                                 </span>
                               </div>
                               {bolleOther.map(b => {
                                 const checked = selIds.includes(b.id)
                                 return (
-                                  <label key={b.id} className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-800/55 ${checked ? 'bg-cyan-500/12' : ''}`}>
+                                  <label
+                                    key={b.id}
+                                    className={`flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors ${
+                                      supplierDocShell
+                                        ? `hover:bg-slate-800/55 ${checked ? 'bg-cyan-500/12' : ''}`
+                                        : `hover:bg-app-line-10 ${checked ? 'bg-cyan-500/[0.08]' : ''}`
+                                    }`}
+                                  >
                                     <input type="checkbox" checked={checked} onChange={() => toggleBolla(b.id)}
-                                      className="h-4 w-4 cursor-pointer rounded border-slate-500 bg-slate-800 text-cyan-500 focus:ring-cyan-500/40" />
-                                    <span className="flex-1 text-sm text-slate-200">
-                                      <span className="text-[11px] text-slate-400">{b.fornitore_nome} · </span>
+                                      className="h-4 w-4 cursor-pointer rounded border-app-line-35 bg-transparent text-cyan-500 focus:ring-cyan-500/40" />
+                                    <span className={`flex-1 text-sm ${supplierDocShell ? 'text-slate-200' : 'text-app-fg'}`}>
+                                      <span
+                                        className={`text-[11px] ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
+                                      >
+                                        {b.fornitore_nome} ·{' '}
+                                      </span>
                                       {b.numero_bolla ? <span className="font-mono font-medium">#{b.numero_bolla}</span> : '—'}{' '}
-                                      <span className="text-xs text-slate-400">· {fmt(b.data)}</span>
+                                      <span
+                                        className={`text-xs ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
+                                      >
+                                        · {fmt(b.data)}
+                                      </span>
                                     </span>
                                     {b.importo !== null && (
-                                      <span className="text-sm font-semibold tabular-nums text-slate-200">
+                                      <span
+                                        className={`text-sm font-semibold tabular-nums ${
+                                          supplierDocShell ? 'text-slate-200' : 'text-app-fg-muted'
+                                        }`}
+                                      >
                                         {formatCurrency(b.importo, countryCode, rowCurrency)}
                                       </span>
                                     )}
@@ -1978,9 +2116,13 @@ export function PendingMatchesTab({
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* Selected sum */}
                         {hasSel && (
-                          <span className="text-xs font-medium text-slate-400">
+                          <span
+                            className={`text-xs font-medium ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
+                          >
                             {t.statements.selectedSumLabel}{' '}
-                            <span className="font-bold text-slate-100">{formatCurrency(selSum, countryCode, rowCurrency)}</span>
+                            <span className={`font-bold ${supplierDocShell ? 'text-slate-100' : 'text-app-fg'}`}>
+                              {formatCurrency(selSum, countryCode, rowCurrency)}
+                            </span>
                             {' '}
                             {(selIds.length === 1 ? t.statements.selectedBolle_one : t.statements.selectedBolle_other).replace(/\{n\}/g, String(selIds.length))}
                           </span>
@@ -2194,8 +2336,8 @@ function MigrationCard() {
     })
   }
   return (
-    <div className="app-card mb-6 overflow-hidden border-amber-500/25">
-      <div className={`app-card-bar ${SUMMARY_HIGHLIGHT_ACCENTS.amber.bar}`} aria-hidden />
+    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 overflow-hidden border-amber-500/25`}>
+      <div className={`app-card-bar-accent ${SUMMARY_HIGHLIGHT_ACCENTS.amber.bar}`} aria-hidden />
       <div className="flex items-start gap-3 px-5 py-4">
         <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -2236,6 +2378,8 @@ function MigrationCard() {
   )
 }
 
+export type SupplierDesktopVerificaMode = 'full' | 'classicToolbar' | 'statementsPanel'
+
 export function VerificationStatusTab({
   sedeId,
   fornitoreId,
@@ -2244,6 +2388,7 @@ export function VerificationStatusTab({
   year,
   month,
   cardAccent = 'cyan',
+  supplierDesktopVerificaMode,
 }: {
   sedeId?: string
   fornitoreId?: string
@@ -2253,6 +2398,11 @@ export function VerificationStatusTab({
   month?: number
   /** Scheda fornitore: allinea barra/bordo al tab (es. `cyan` per «Verifica»). */
   cardAccent?: SummaryHighlightAccent
+  /**
+   * Desktop scheda fornitore: split «bolle periodo» sopra la griglia KPI vs inbox nel pannello.
+   * Solo con `fornitoreId`; altrimenti ignorato.
+   */
+  supplierDesktopVerificaMode?: SupplierDesktopVerificaMode
 }) {
   const router = useRouter()
   const [stmtHeaderRefreshPending, startStmtHeaderRefresh] = useTransition()
@@ -2265,6 +2415,31 @@ export function VerificationStatusTab({
   const MONTHS = t.statements.months
   const STATUS_CONFIG = useStatusConfig()
   const shell = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
+  const vsEmbeddedSupplier = Boolean(fornitoreId)
+  const vsTabHi = vsEmbeddedSupplier ? SUPPLIER_DETAIL_TAB_HIGHLIGHT.verifica : null
+  const vsCardWrap = vsEmbeddedSupplier ? 'supplier-detail-tab-shell' : SUMMARY_HIGHLIGHT_SURFACE_CLASS
+  const vsCardBorder = vsEmbeddedSupplier ? vsTabHi!.border : shell.border
+  const vsCardBar = vsEmbeddedSupplier ? vsTabHi!.bar : shell.bar
+  const vsBarEl = 'app-card-bar-accent'
+  /** Inside unified Section 2 shell on supplier desktop: one accent bar only — nested blocks use border tokens. */
+  const vsS2NestedBorder = 'rounded-xl border border-app-line-15 overflow-hidden'
+  const vsS2KpiCard = vsEmbeddedSupplier
+    ? `${vsS2NestedBorder} flex flex-col text-center`
+    : `${vsCardWrap} flex flex-col overflow-hidden text-center ${vsCardBorder}`
+  const vsS2LoadingEmptyWrap = vsEmbeddedSupplier
+    ? 'flex flex-col overflow-hidden text-center py-12'
+    : `${vsCardWrap} flex flex-col overflow-hidden text-center ${vsCardBorder}`
+  const vsS2GroupWrap = vsEmbeddedSupplier
+    ? vsS2NestedBorder
+    : `${vsCardWrap} overflow-hidden ${vsCardBorder}`
+
+  const verificaMode: SupplierDesktopVerificaMode =
+    fornitoreId && supplierDesktopVerificaMode ? supplierDesktopVerificaMode : 'full'
+  const s2ShellMb = verificaMode === 'classicToolbar' ? 'mb-0' : 'mb-5'
+  /** Blocco «bolle periodo» sotto inbox su desktop fornitore: layout più denso. */
+  const vsCompactS2 = verificaMode === 'classicToolbar'
+  /** Inbox estratti in cima al pannello tab Verifica (desktop fornitore): card più compatta. */
+  const vsCompactS1 = verificaMode === 'statementsPanel' && vsEmbeddedSupplier
 
   /* ── Statement list (received via email) ─────────────────── */
   type StmtRecord = {
@@ -2335,10 +2510,14 @@ export function VerificationStatusTab({
     setLoading(false)
   }, [anno, mese, sedeId, fornitoreId, t.statements.unknownSupplier])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    if (verificaMode === 'statementsPanel') return
+    fetchData()
+  }, [fetchData, verificaMode])
 
   // Restore sent-sollecito state from server logs on mount
   useEffect(() => {
+    if (verificaMode === 'statementsPanel') return
     if (!sedeId) return
     fetch(`/api/invia-sollecito?sede_id=${sedeId}`)
       .then(r => r.ok ? r.json() : [])
@@ -2351,7 +2530,7 @@ export function VerificationStatusTab({
         setSolleciti(prev => ({ ...restored, ...prev }))
       })
       .catch(() => { /* non-critical */ })
-  }, [sedeId])
+  }, [sedeId, verificaMode])
 
   async function requestSingle(bollaId: string) {
     setInvio(p => ({ ...p, [bollaId]: 'loading' }))
@@ -2421,16 +2600,19 @@ export function VerificationStatusTab({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sedeId, fornitoreId])
 
-  useEffect(() => { fetchStmts(true) }, [fetchStmts])
+  useEffect(() => {
+    if (verificaMode === 'classicToolbar') return
+    void fetchStmts(true)
+  }, [fetchStmts, verificaMode])
 
   useEffect(() => {
     const onLayoutRefresh = () => {
-      void fetchStmts(false)
-      void fetchData()
+      if (verificaMode !== 'classicToolbar') void fetchStmts(false)
+      if (verificaMode !== 'statementsPanel') void fetchData()
     }
     window.addEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, onLayoutRefresh)
     return () => window.removeEventListener(STATEMENTS_LAYOUT_REFRESH_EVENT, onLayoutRefresh)
-  }, [fetchStmts, fetchData])
+  }, [fetchStmts, fetchData, verificaMode])
 
   useEffect(() => {
     setSelectedStmt(null)
@@ -2531,18 +2713,67 @@ export function VerificationStatusTab({
   const mancantiIds = tutteBolle.filter(b => !b.fattura).map(b => b.id)
   const anni        = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i)
 
+  const periodSelectCls = vsEmbeddedSupplier
+    ? vsCompactS2
+      ? 'rounded-md border border-app-line-28 bg-transparent px-2 py-1.5 text-xs text-app-fg focus:border-app-line-40 focus:outline-none focus:ring-1 focus:ring-app-line-30 [color-scheme:dark]'
+      : 'rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-app-line-40 focus:outline-none focus:ring-1 focus:ring-app-line-30 [color-scheme:dark]'
+    : 'rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-app-line-40 focus:outline-none focus:ring-1 focus:ring-app-line-30 [color-scheme:dark]'
+
+  const periodSelects = (
+    <>
+      <select value={mese} onChange={(e) => setMese(Number(e.target.value))} className={periodSelectCls}>
+        {MONTHS.map((m, i) => (
+          <option key={i + 1} value={i + 1}>
+            {m}
+          </option>
+        ))}
+      </select>
+      <select value={anno} onChange={(e) => setAnno(Number(e.target.value))} className={periodSelectCls}>
+        {anni.map((a) => (
+          <option key={a} value={a}>
+            {a}
+          </option>
+        ))}
+      </select>
+    </>
+  )
+
   return (
     <>
+      {/* ── Migration guide (shown only when tables are missing) ── */}
+      {needsMigration && verificaMode !== 'classicToolbar' && (
+        <MigrationCard />
+      )}
+
+      {verificaMode !== 'classicToolbar' && (
+      <>
       {/* ════════ SECTION 1 — Statement inbox (received via email) ════════ */}
-      <div className={`app-card mb-4 w-full min-w-0 overflow-hidden ${shell.border}`}>
-        <div className={`app-card-bar ${shell.bar}`} aria-hidden />
+      <div className={`${vsCardWrap} ${vsCompactS1 ? 'mb-3' : 'mb-4'} w-full min-w-0 overflow-hidden ${vsCardBorder}`}>
+        <div className={`${vsBarEl} ${vsCardBar}`} aria-hidden />
         {/* Header */}
-        <div className="flex min-h-10 items-center justify-between gap-3 border-b border-slate-700/50 bg-slate-700/70 px-4 py-2.5">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            <svg className="h-3.5 w-3.5 shrink-0 text-cyan-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div
+          className={
+            vsEmbeddedSupplier
+              ? vsCompactS1
+                ? 'flex items-center justify-between gap-2 border-b border-app-soft-border bg-transparent px-3 py-2'
+                : 'flex min-h-10 items-center justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5'
+              : 'flex min-h-10 items-center justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5'
+          }
+        >
+          <div className={`flex min-w-0 flex-1 items-center ${vsCompactS1 ? 'gap-1.5' : 'gap-2'}`}>
+            <svg
+              className={`${vsCompactS1 ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 text-cyan-400/90`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
-            <p className="text-sm font-semibold text-slate-100">{t.statements.stmtReceived}</p>
+            <p
+              className={`font-semibold ${vsCompactS1 ? 'text-xs' : 'text-sm'} text-app-fg`}
+            >
+              {t.statements.stmtReceived}
+            </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
             {selectedStmt && (
@@ -2553,9 +2784,15 @@ export function VerificationStatusTab({
                   setCheckResults(null)
                   setCheckError(null)
                 }}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+                className={
+                  vsEmbeddedSupplier
+                    ? vsCompactS1
+                      ? 'inline-flex items-center gap-1 rounded-md border border-app-line-28 bg-transparent px-2 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
+                      : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
+                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
+                }
               >
-                <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`${vsCompactS1 ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 opacity-90`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 {t.statements.stmtBackToList}
@@ -2572,10 +2809,16 @@ export function VerificationStatusTab({
                   void fetchStmts(false)
                 })
               }
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 disabled:pointer-events-none disabled:opacity-50"
+              className={
+                vsEmbeddedSupplier
+                  ? vsCompactS1
+                    ? 'inline-flex items-center gap-1 rounded-md border border-app-line-28 bg-transparent px-2 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
+                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
+                  : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
+              }
             >
               <svg
-                className={`h-3.5 w-3.5 shrink-0 opacity-90 ${stmtHeaderRefreshPending ? 'animate-spin' : ''}`}
+                className={`${vsCompactS1 ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 opacity-90 ${stmtHeaderRefreshPending ? 'animate-spin' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -2595,8 +2838,13 @@ export function VerificationStatusTab({
 
         {/* Migration needed */}
         {needsMigration && (
-          <div className="flex items-start gap-2.5 px-4 py-4">
-            <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className={vsCompactS1 ? 'flex items-start gap-2 px-3 py-3' : 'flex items-start gap-2.5 px-4 py-4'}>
+            <svg
+              className={`${vsCompactS1 ? 'h-4 w-4' : 'w-5 h-5'} shrink-0 text-amber-500 mt-0.5`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <div>
@@ -2611,9 +2859,11 @@ export function VerificationStatusTab({
         {/* Statement list */}
         {!needsMigration && !selectedStmt && (
           stmtsLoading ? (
-            <div className="px-4 py-6 text-center">
-              <div className="inline-flex items-center gap-2 text-sm text-slate-300">
-                <svg className="w-4 h-4 animate-spin text-cyan-500" fill="none" viewBox="0 0 24 24">
+            <div className={vsCompactS1 ? 'px-3 py-4 text-center' : 'px-4 py-6 text-center'}>
+              <div
+                className={`inline-flex items-center gap-2 ${vsCompactS1 ? 'text-xs' : 'text-sm'} text-app-fg-muted`}
+              >
+                <svg className={`${vsCompactS1 ? 'h-3.5 w-3.5' : 'h-4 w-4'} animate-spin text-cyan-500`} fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                 </svg>
@@ -2621,17 +2871,28 @@ export function VerificationStatusTab({
               </div>
             </div>
           ) : stmts.length === 0 ? (
-            <div className="px-4 py-6 text-center">
-              <p className="text-sm font-medium text-slate-200">{t.statements.stmtEmpty}</p>
-              <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-slate-300">
+            <div className={vsCompactS1 ? 'px-3 py-4 text-center' : 'px-4 py-6 text-center'}>
+              <p className={`font-medium ${vsCompactS1 ? 'text-xs' : 'text-sm'} text-app-fg`}>
+                {t.statements.stmtEmpty}
+              </p>
+              <p
+                className={`mx-auto mt-1 text-xs leading-snug sm:leading-relaxed ${vsCompactS1 ? 'max-w-2xl' : 'max-w-xs'} text-app-fg-muted`}
+              >
                 {t.statements.stmtInboxEmptyDetail}
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-800/60">
+            <div className="divide-y divide-app-line-15">
               {stmts.map(s => (
                 <button key={s.id} onClick={() => loadStatementRows(s)}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-slate-700/60 active:bg-slate-700/90">
+                  className={
+                    vsEmbeddedSupplier
+                      ? vsCompactS1
+                        ? 'flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
+                        : 'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
+                      : 'flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cyan-500/[0.08] active:bg-cyan-500/[0.12]'
+                  }
+                >
                   {/* Status dot */}
                   <div className={`w-2 h-2 rounded-full shrink-0 ${
                     s.status === 'processing' ? 'bg-blue-400 animate-pulse' :
@@ -2639,21 +2900,27 @@ export function VerificationStatusTab({
                   }`} />
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-100 truncate">
+                    <p
+                      className={`truncate font-medium ${vsCompactS1 && vsEmbeddedSupplier ? 'text-xs' : 'text-sm'} text-app-fg`}
+                    >
                       {s.fornitore_nome ?? s.email_subject ?? 'Statement'}
                     </p>
                     {s.email_subject && s.fornitore_nome && (
-                      <p className="text-xs text-slate-300 truncate">{s.email_subject}</p>
+                      <p className="truncate text-xs text-app-fg-muted">
+                        {s.email_subject}
+                      </p>
                     )}
-                    <p className="mt-0.5 text-xs text-slate-300">
+                    <p className="mt-0.5 text-xs text-app-fg-muted">
                       {(() => {
                         const official = stmtOfficialDateIso(s)
                         if (official) {
                           return (
                             <>
-                              <span className="font-medium tabular-nums text-slate-100">{formatStmtDate(official)}</span>
-                              <span className="text-slate-500"> · </span>
-                              <span className="text-slate-400">
+                              <span className="font-medium tabular-nums text-app-fg">
+                                {formatStmtDate(official)}
+                              </span>
+                              <span className="text-app-fg-muted"> · </span>
+                              <span className="text-app-fg-muted">
                                 {t.statements.labelReceived} {formatStmtDate(s.received_at)}
                               </span>
                             </>
@@ -2670,7 +2937,9 @@ export function VerificationStatusTab({
                     <span className="text-xs text-red-500 font-medium">{t.statements.stmtListParseError}</span>
                   ) : (
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-semibold text-slate-200">{t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}</p>
+                      <p className="text-xs font-semibold text-app-fg-muted">
+                        {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
+                      </p>
                       {s.missing_rows > 0 ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-red-500/35 bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
                           {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
@@ -2680,7 +2949,12 @@ export function VerificationStatusTab({
                       )}
                     </div>
                   )}
-                  <svg className="w-4 h-4 shrink-0 text-slate-300 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-4 h-4 shrink-0 opacity-80 text-app-fg-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
@@ -2691,15 +2965,19 @@ export function VerificationStatusTab({
 
         {/* Selected statement — loading rows */}
         {selectedStmt && checkLoading && (
-          <div className="px-4 py-6 text-center text-sm text-slate-300">{t.statements.loadingResults}</div>
+          <div
+            className="px-4 py-6 text-center text-sm text-app-fg-muted"
+          >
+            {t.statements.loadingResults}
+          </div>
         )}
         {/* errors are shown as toasts — no inline error block needed */}
 
         {/* Intestazione estratto + riepilogo campi letti dal PDF (account, plafond, ultimo pagamento, …) */}
         {selectedStmt && (
-          <div className="flex min-h-10 items-start justify-between gap-3 border-b border-slate-700/50 bg-slate-700/70 px-4 py-2.5">
+          <div className="flex min-h-10 items-start justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5">
             <div className="min-w-0 flex-1 pr-2">
-              <p className="truncate text-sm font-semibold text-slate-100">
+              <p className="truncate text-sm font-semibold text-app-fg">
                 {selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement'}
               </p>
               {hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) && (
@@ -2711,19 +2989,17 @@ export function VerificationStatusTab({
                 />
               )}
               <div
-                className={`text-xs font-normal text-slate-400 ${
-                  hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'
-                }`}
+                className={`text-xs font-normal text-app-fg-muted ${hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'}`}
               >
-                <span className="text-slate-400">{t.statements.receivedOn}</span>{' '}
-                <span className="tabular-nums text-slate-300">{formatStmtDate(selectedStmt.received_at)}</span>
+                <span className="text-app-fg-muted">{t.statements.receivedOn}</span>{' '}
+                <span className="tabular-nums text-app-fg">{formatStmtDate(selectedStmt.received_at)}</span>
                 {selectedStmt.file_url && (
                   <>
-                    <span className="text-slate-500"> · </span>
+                    <span className="text-app-fg-muted"> · </span>
                     <OpenDocumentInAppButton
                       statementId={selectedStmt.id}
                       fileUrl={selectedStmt.file_url}
-                      className="ml-0.5 inline-flex shrink-0 items-center rounded-lg border border-cyan-500/45 bg-cyan-500/15 px-2.5 py-1.5 text-xs font-semibold text-cyan-100 shadow-sm transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+                      className="ml-0.5 inline-flex shrink-0 items-center rounded-lg border border-app-cyan-400/40 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-cyan-200 transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
                     >
                       {t.statements.openPdf}
                     </OpenDocumentInAppButton>
@@ -2736,7 +3012,7 @@ export function VerificationStatusTab({
               onClick={() =>
                 fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`).then(() => loadStatementRows(selectedStmt))
               }
-              className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+              className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
             >
               <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path
@@ -2769,15 +3045,17 @@ export function VerificationStatusTab({
                 { id: 'rekki_prezzo_discordanza', dot: 'bg-amber-300', label: t.statements.statusRekkiPrezzo, count: countRK  },
               ]
               return (
-                <div className="flex min-h-10 flex-wrap items-center gap-2 border-b border-slate-700/50 bg-slate-700/70 px-4 py-2.5">
-                  <span className="shrink-0 text-sm font-bold text-slate-100">{t.statements.tabVerifica}</span>
+                <div className="flex min-h-10 flex-wrap items-center gap-2 border-b border-app-soft-border bg-transparent px-4 py-2.5">
+                  <span className="shrink-0 text-sm font-bold text-app-fg">
+                    {t.statements.tabVerifica}
+                  </span>
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     {chips.map(chip => (
                       <button key={chip.id} onClick={() => setCheckFilter(checkFilter === chip.id ? 'all' : chip.id)}
                         className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
                           checkFilter === chip.id
-                            ? 'bg-gray-900 text-white border-gray-900'
-                            : 'bg-slate-700/90 text-slate-200 border-slate-600/50 hover:border-slate-500'
+                            ? 'border-app-cyan-400/45 bg-cyan-500/15 text-app-fg'
+                            : 'border-app-line-28 bg-transparent text-app-fg-muted hover:border-app-line-40 hover:bg-white/[0.04]'
                         }`}>
                         <span className={`w-2 h-2 rounded-full ${chip.dot} ${checkFilter === chip.id ? 'opacity-80' : ''}`} />
                         {chip.label}
@@ -2789,7 +3067,7 @@ export function VerificationStatusTab({
                     <button
                       type="button"
                       onClick={() => setCheckFilter('all')}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-600/80 bg-slate-800/90 px-2.5 py-1.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:border-cyan-500/35 hover:bg-slate-700/90 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
                     >
                       <svg className="h-3.5 w-3.5 shrink-0 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2802,7 +3080,7 @@ export function VerificationStatusTab({
             })()}
 
             {/* Per-line results — mobile cards */}
-            <div className="md:hidden divide-y divide-slate-800/60">
+            <div className="md:hidden divide-y divide-app-soft-border">
             {checkResults.filter(r => checkFilter === 'all' || r.status === checkFilter).map(r => {
               const cfg        = STATUS_CONFIG[r.status]
               const needAction =
@@ -2815,28 +3093,45 @@ export function VerificationStatusTab({
               const hasEmail   = !!(r.fornitore?.email)
 
               return (
-                <div key={r.numero} className={`flex items-start gap-3 px-4 py-3 border-b border-slate-600/50 last:border-0 ${
-                  r.status === 'rekki_prezzo_discordanza'
-                    ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
-                    : r.status === 'errore_importo'
-                      ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15'
-                      : r.status === 'pending'
-                        ? 'bg-slate-700/40'
-                        : r.status !== 'ok'
-                          ? 'bg-slate-700/50'
-                          : ''
-                }`}>
+                <div
+                  key={r.numero}
+                  className={`flex items-start gap-3 border-b border-app-line-15 px-4 py-3 last:border-0 ${
+                    r.status === 'rekki_prezzo_discordanza'
+                      ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
+                      : r.status === 'errore_importo'
+                        ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15'
+                        : r.status === 'pending'
+                          ? vsEmbeddedSupplier
+                            ? 'bg-slate-700/40'
+                            : 'bg-transparent'
+                          : r.status !== 'ok'
+                            ? vsEmbeddedSupplier
+                              ? 'bg-slate-700/50'
+                              : 'bg-transparent'
+                            : ''
+                  }`}
+                >
                   <div className={`mt-0.5 w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className={`text-sm font-semibold font-mono ${r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-slate-100'}`}>{r.numero}</span>
+                      <span
+                        className={`text-sm font-semibold font-mono ${
+                          r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
+                        }`}
+                      >
+                        {r.numero}
+                      </span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.cls}`}>{cfg.icon} {cfg.label}</span>
                       {r.status === 'ok' && (
                         <span className="text-xs font-medium text-emerald-400">{formatCurrency(r.importoStatement, countryCode, resolvedCurrency)} ✓</span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-200 space-y-0.5">
-                      <p>{t.statements.reconcileStatement} <span className="font-semibold text-slate-200">{formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}</span>
+                    <div className="space-y-0.5 text-xs text-app-fg-muted">
+                      <p>
+                        {t.statements.reconcileStatement}{' '}
+                        <span className="font-semibold text-app-fg">
+                          {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
+                        </span>
                         {r.fattura?.importo !== null && r.fattura?.importo !== undefined && (
                           <> · {t.statements.reconcileDB}{' '}
                             <span className={`font-semibold ${
@@ -2844,7 +3139,7 @@ export function VerificationStatusTab({
                                 ? 'text-red-300'
                                 : r.status === 'rekki_prezzo_discordanza'
                                   ? 'text-amber-400'
-                                  : 'text-slate-200'
+                                  : 'text-app-fg'
                             }`}>{formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)}</span>
                             {r.status === 'rekki_prezzo_discordanza' && (
                               <span className="ml-1 block text-[10px] font-medium text-amber-100">{t.bolle.verificaPrezzoFornitore} · {t.bolle.prezzoDaApp}</span>
@@ -2858,7 +3153,9 @@ export function VerificationStatusTab({
                         )}
                       </p>
                       {r.fattura && (
-                        <p>{t.fatture.invoice}: <span className="font-medium text-slate-200">{r.fattura.numero_fattura ?? '—'}</span>
+                        <p>
+                          {t.fatture.invoice}:{' '}
+                          <span className="font-medium text-app-fg">{r.fattura.numero_fattura ?? '—'}</span>
                           {r.fattura.file_url && (
                             <OpenDocumentInAppButton
                               fatturaId={r.fattura.id}
@@ -2873,14 +3170,19 @@ export function VerificationStatusTab({
                       {r.bolle.length > 0 && (
                         <p>{t.nav.bolle}: {r.bolle.map(b => (
                           <span key={b.id} className="inline-flex items-center gap-1 mr-1.5">
-                            <span className="font-mono text-slate-200">{b.numero_bolla ?? '—'}</span>
-                            {b.importo !== null && <span className="text-slate-200">({formatCurrency(b.importo, countryCode, resolvedCurrency)})</span>}
+                            <span className="font-mono text-app-fg">{b.numero_bolla ?? '—'}</span>
+                            {b.importo !== null && (
+                              <span className="text-app-fg">({formatCurrency(b.importo, countryCode, resolvedCurrency)})</span>
+                            )}
                           </span>
                         ))}</p>
                       )}
                       {r.status === 'bolle_mancanti' && <p className="text-orange-300 font-medium">{t.statements.noBolleDelivery}</p>}
                       {r.fornitore && (
-                        <p className="text-slate-300">{r.fornitore.nome}{r.fornitore.email && <span> · {r.fornitore.email}</span>}</p>
+                        <p className="text-app-fg-muted">
+                          {r.fornitore.nome}
+                          {r.fornitore.email && <span> · {r.fornitore.email}</span>}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -2891,13 +3193,29 @@ export function VerificationStatusTab({
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                           {t.statements.btnSent}
                         </span>
-                        {sollEntry.sentAt && <span className="text-[10px] text-slate-300">{new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(sollEntry.sentAt))}</span>}
-                        <button onClick={() => inviaSollecito(r)} className="text-[10px] font-medium text-slate-300 hover:text-white underline underline-offset-2 mt-0.5">{t.statements.btnSendReminder}</button>
+                        {sollEntry.sentAt && (
+                          <span className="text-[10px] text-app-fg-muted">
+                            {new Intl.DateTimeFormat(loc.currencyLocale, {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }).format(new Date(sollEntry.sentAt))}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => inviaSollecito(r)}
+                          className="mt-0.5 text-[10px] font-medium text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
+                        >
+                          {t.statements.btnSendReminder}
+                        </button>
                       </div>
                     ) : (
                       <button onClick={() => inviaSollecito(r)} disabled={!hasEmail || sollecitoState === 'loading'} title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
                         className={`shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors min-h-[38px] touch-manipulation ${
-                          !hasEmail ? 'cursor-not-allowed border-slate-600/50 bg-slate-700/60 text-slate-400'
+                          !hasEmail
+                            ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
                           : r.status === 'fattura_mancante' ? 'border-yellow-500/40 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
                           : 'border-orange-500/40 bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'}`}>
                         {sollecitoState === 'loading' ? (
@@ -2929,35 +3247,35 @@ export function VerificationStatusTab({
                   <col className="w-[20%]" />
                 </colgroup>
                 <thead>
-                  <tr className="border-b border-slate-700/50">
+                  <tr className="border-b border-app-line-15">
                     <th className="py-2 pl-1 pr-0" />
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.colRef}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.colStatus}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.tripleColStmtDate}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 pl-0 pr-1 text-left text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.tripleColSysDate}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.tripleColStmtAmount}
                     </th>
-                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 pl-0 pr-1 text-right text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.tripleColSysAmount}
                     </th>
-                    <th className="py-2 px-0.5 text-center text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 px-0.5 text-center text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.tripleColChecks}
                     </th>
-                    <th className="py-2 pl-1 pr-2 text-center text-[10px] font-bold uppercase tracking-wide text-slate-200">
+                    <th className="py-2 pl-1 pr-2 text-center text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
                       {t.statements.colAction}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-700/50">
+                <tbody className="divide-y divide-app-line-15">
                   {checkResults.filter(r => checkFilter === 'all' || r.status === checkFilter).map(r => {
                     const cfg        = STATUS_CONFIG[r.status]
                     const needAction =
@@ -2980,16 +3298,23 @@ export function VerificationStatusTab({
                     ]
 
                     return (
-                      <tr key={r.numero} className={`hover:bg-slate-700/60 transition-colors group ${
+                      <tr
+                        key={r.numero}
+                        className={`hover:bg-cyan-500/[0.06] transition-colors group ${
                         r.status === 'rekki_prezzo_discordanza'
                           ? 'bg-amber-950/45 ring-1 ring-inset ring-amber-400/35'
                           : r.status === 'errore_importo'
                             ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15'
                             : ''
-                      }`}>
+                      }`}
+                      >
                         {/* Chevron */}
                         <td className="py-2 pl-1 pr-0 align-middle">
-                          <svg className="mx-auto h-3 w-3 text-slate-300 transition-colors group-hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+                          <svg
+                            className="mx-auto h-3 w-3 text-app-fg-muted transition-colors group-hover:text-app-fg"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
                             <path d="M7 10l5 5 5-5z" />
                           </svg>
                         </td>
@@ -2997,7 +3322,9 @@ export function VerificationStatusTab({
                         {/* Reference */}
                         <td className="min-w-0 py-2 pl-0 pr-1 align-middle">
                           <span
-                            className={`block truncate font-mono text-xs font-bold ${r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-slate-100'}`}
+                            className={`block truncate font-mono text-xs font-bold ${
+                              r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
+                            }`}
                             title={r.numero}
                           >
                             {r.numero}
@@ -3015,19 +3342,19 @@ export function VerificationStatusTab({
                         </td>
 
                         {/* Stmt Date */}
-                        <td className="py-2 pl-0 pr-1 align-middle text-xs text-slate-200 whitespace-nowrap">
+                        <td className="whitespace-nowrap py-2 pl-0 pr-1 align-middle text-xs text-app-fg-muted">
                           {fmtDate(r.data_doc)}
                         </td>
 
                         {/* Sys Date (fattura date) */}
-                        <td className="py-2 pl-0 pr-1 align-middle text-xs text-slate-200 whitespace-nowrap">
+                        <td className="whitespace-nowrap py-2 pl-0 pr-1 align-middle text-xs text-app-fg-muted">
                           {fmtDate(r.fattura?.data)}
                         </td>
 
                         {/* Stmt Amount */}
                         <td
-                          className={`py-2 pl-0 pr-1 text-right align-middle text-sm font-bold tabular-nums tracking-tight whitespace-nowrap ${
-                            r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-slate-100'
+                          className={`whitespace-nowrap py-2 pl-0 pr-1 text-right align-middle text-sm font-bold tabular-nums tracking-tight ${
+                            r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-app-fg'
                           }`}
                         >
                           {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
@@ -3042,7 +3369,7 @@ export function VerificationStatusTab({
                                   ? 'text-red-300 font-bold'
                                   : r.status === 'rekki_prezzo_discordanza'
                                     ? 'text-amber-400 font-bold'
-                                    : 'text-slate-200'
+                                    : 'text-app-fg'
                               }>
                                 {formatCurrency(r.fattura.importo, countryCode, resolvedCurrency)}
                               </span>
@@ -3058,7 +3385,7 @@ export function VerificationStatusTab({
                               )}
                             </div>
                           ) : (
-                            <span className="text-sm text-slate-400">—</span>
+                            <span className="text-sm text-app-fg-muted">—</span>
                           )}
                         </td>
 
@@ -3079,7 +3406,7 @@ export function VerificationStatusTab({
                               return (
                                 <div
                                   key={i}
-                                  className={`h-2 w-5 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-slate-600'}`}
+                                  className={`h-2 w-5 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-app-line-35'}`}
                                 />
                               )
                             })}
@@ -3098,7 +3425,7 @@ export function VerificationStatusTab({
                                   {t.statements.btnSent}
                                 </span>
                                 {sollEntry.sentAt && (
-                                  <span className="text-[10px] text-slate-400">
+                                  <span className="text-[10px] text-app-fg-muted">
                                     {new Intl.DateTimeFormat(loc.currencyLocale, { day: '2-digit', month: 'short' }).format(
                                       new Date(sollEntry.sentAt),
                                     )}
@@ -3113,7 +3440,7 @@ export function VerificationStatusTab({
                                 title={!hasEmail ? t.statements.noEmailForSupplier : undefined}
                                 className={`mx-auto flex w-full max-w-[9.5rem] items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-bold transition-colors ${
                                   !hasEmail
-                                    ? 'cursor-not-allowed border-slate-600/50 bg-slate-700/60 text-slate-400'
+                                    ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
                                     : 'border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
                                 }`}
                               >
@@ -3148,42 +3475,81 @@ export function VerificationStatusTab({
           </div>
         )}
       </div>
-
-      {/* ── Migration guide (shown only when tables are missing) ── */}
-      {needsMigration && (
-        <MigrationCard />
+      </>
       )}
-
+      {verificaMode !== 'statementsPanel' && (
+      <>
       {/* ════════ SECTION 2 — Classic bolla/fattura overview ════════ */}
-      <div className="mb-3">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t.statements.bolleSummaryByPeriod}</p>
-      </div>
+      <div
+        className={
+          vsEmbeddedSupplier
+            ? `supplier-detail-tab-shell ${s2ShellMb} overflow-hidden ${vsTabHi!.border}`
+            : 'contents'
+        }
+      >
+        {vsEmbeddedSupplier ? (
+          <>
+            <div className={`app-card-bar-accent ${vsTabHi!.bar}`} aria-hidden />
+            <div
+              className={
+                vsCompactS2
+                  ? 'flex min-w-0 flex-nowrap items-center justify-between gap-2 overflow-x-auto border-b border-app-line-20 px-3 py-2 sm:gap-3 sm:px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+                  : 'flex min-w-0 flex-nowrap items-center justify-between gap-3 overflow-x-auto border-b border-app-line-20 px-4 py-2.5 sm:px-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
+              }
+            >
+              <p
+                className={
+                  vsCompactS2
+                    ? 'min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted'
+                    : 'min-w-0 flex-1 truncate text-xs font-semibold uppercase tracking-wide text-app-fg-muted'
+                }
+              >
+                {t.statements.bolleSummaryByPeriod}
+              </p>
+              <div className={vsCompactS2 ? 'flex shrink-0 items-center gap-2' : 'flex shrink-0 items-center gap-3'}>
+                {periodSelects}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
+                {t.statements.bolleSummaryByPeriod}
+              </p>
+            </div>
+            <div className="mb-5 flex flex-wrap gap-3">{periodSelects}</div>
+          </>
+        )}
 
-      {/* Period selector */}
-      <div className="flex flex-wrap gap-3 mb-5">
-        <select value={mese} onChange={e => setMese(Number(e.target.value))}
-          className="rounded-lg border border-slate-600/50 bg-slate-700/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
-          {MONTHS.map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
-        </select>
-        <select value={anno} onChange={e => setAnno(Number(e.target.value))}
-          className="rounded-lg border border-slate-600/50 bg-slate-700/90 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 [color-scheme:dark]">
-          {anni.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
-      </div>
-
+        <div
+          className={
+            vsEmbeddedSupplier
+              ? vsCompactS2
+                ? 'space-y-2 px-3 pb-3 pt-1.5 sm:px-4 sm:pb-3'
+                : 'space-y-4 px-4 pb-4 pt-2 sm:px-5 sm:pb-5'
+              : undefined
+          }
+        >
       {/* Global KPIs */}
       {!loading && tutteBolle.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className={`grid grid-cols-3 ${vsCompactS2 ? 'gap-2' : 'gap-3'} ${vsEmbeddedSupplier ? '' : 'mb-5'}`}>
           {[
-            { label: t.bolle.title,       value: tutteBolle.length, cls: 'text-slate-100' },
+            { label: t.bolle.title, value: tutteBolle.length, cls: 'text-app-fg' },
             { label: t.statements.classicComplete, value: completi, cls: 'text-emerald-400' },
             { label: t.statements.classicMissing,  value: mancanti, cls: 'text-red-500' },
           ].map(c => (
-            <div key={c.label} className={`app-card flex flex-col overflow-hidden text-center ${shell.border}`}>
-              <div className={`app-card-bar shrink-0 ${shell.bar}`} aria-hidden />
-              <div className="p-4">
-                <p className={`text-2xl font-bold ${c.cls}`}>{c.value}</p>
-                <p className="text-xs text-slate-200 mt-0.5 uppercase tracking-wide">{c.label}</p>
+            <div key={c.label} className={vsS2KpiCard}>
+              {!vsEmbeddedSupplier ? (
+                <div className={`${vsBarEl} shrink-0 ${vsCardBar}`} aria-hidden />
+              ) : null}
+              <div className={vsCompactS2 ? 'p-2.5 sm:p-3' : 'p-4'}>
+                <p className={`${vsCompactS2 ? 'text-xl' : 'text-2xl'} font-bold ${c.cls}`}>{c.value}</p>
+                <p
+                  className="mt-0.5 text-xs uppercase tracking-wide text-app-fg-muted"
+                >
+                  {c.label}
+                </p>
               </div>
             </div>
           ))}
@@ -3203,7 +3569,13 @@ export function VerificationStatusTab({
             </svg>
             {invioMultiplo === 'loading' ? t.statements.classicRequesting : invioMultiplo === 'sent' ? t.statements.classicSent : t.statements.classicRequestAll}
           </button>
-          <button onClick={() => setSelezione(new Set())} className="text-xs text-slate-400 hover:text-slate-200">{t.common.cancel}</button>
+          <button
+            type="button"
+            onClick={() => setSelezione(new Set())}
+            className="text-xs text-app-fg-muted hover:text-app-fg"
+          >
+            {t.common.cancel}
+          </button>
         </div>
       )}
 
@@ -3215,17 +3587,59 @@ export function VerificationStatusTab({
       )}
 
       {loading ? (
-        <div className={`app-card flex flex-col overflow-hidden text-center ${shell.border}`}>
-          <div className={`app-card-bar shrink-0 ${shell.bar}`} aria-hidden />
-          <div className="px-6 py-16">
-            <p className="text-sm text-slate-200">{t.common.loading}</p>
+        <div
+          className={
+            vsEmbeddedSupplier && vsCompactS2
+              ? 'flex flex-col overflow-hidden text-center py-5'
+              : vsS2LoadingEmptyWrap
+          }
+        >
+          {!vsEmbeddedSupplier ? (
+            <div className={`${vsBarEl} shrink-0 ${vsCardBar}`} aria-hidden />
+          ) : null}
+          <div
+            className={
+              vsEmbeddedSupplier
+                ? vsCompactS2
+                  ? 'px-4 py-4'
+                  : 'px-6 py-8'
+                : 'px-6 py-16'
+            }
+          >
+            <p
+              className={
+                vsCompactS2 && vsEmbeddedSupplier ? 'text-xs text-app-fg-muted' : 'text-sm text-app-fg-muted'
+              }
+            >
+              {t.common.loading}
+            </p>
           </div>
         </div>
       ) : gruppi.length === 0 ? (
-        <div className={`app-card flex flex-col overflow-hidden text-center ${shell.border}`}>
-          <div className={`app-card-bar shrink-0 ${shell.bar}`} aria-hidden />
-          <div className="px-6 py-16">
-            <p className="text-sm font-medium text-slate-200">{t.statements.stmtEmpty} — {t.statements.months[mese-1]} {anno}</p>
+        <div
+          className={
+            vsEmbeddedSupplier && vsCompactS2
+              ? 'flex flex-col overflow-hidden text-center py-5'
+              : vsS2LoadingEmptyWrap
+          }
+        >
+          {!vsEmbeddedSupplier ? (
+            <div className={`${vsBarEl} shrink-0 ${vsCardBar}`} aria-hidden />
+          ) : null}
+          <div
+            className={
+              vsEmbeddedSupplier
+                ? vsCompactS2
+                  ? 'px-4 py-5'
+                  : 'px-6 py-10'
+                : 'px-6 py-16'
+            }
+          >
+            <p
+              className={`${vsCompactS2 && vsEmbeddedSupplier ? 'text-xs' : 'text-sm'} font-medium text-app-fg-muted`}
+            >
+              {t.statements.bollePeriodEmpty} — {t.statements.months[mese - 1]} {anno}
+            </p>
           </div>
         </div>
       ) : (
@@ -3237,32 +3651,48 @@ export function VerificationStatusTab({
             const allGood   = gMissing === 0
 
             return (
-              <div key={g.fornitore_id} className={`app-card overflow-hidden ${shell.border}`}>
-                <div className={`app-card-bar ${shell.bar}`} aria-hidden />
+              <div key={g.fornitore_id} className={vsS2GroupWrap}>
+                {!vsEmbeddedSupplier ? (
+                  <div className={`${vsBarEl} ${vsCardBar}`} aria-hidden />
+                ) : null}
                 {/* Supplier header with Verification Triangle */}
-                <div className="border-b border-slate-700/50 bg-slate-700/60 px-5 py-4">
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="border-b border-app-soft-border bg-transparent px-5 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <h2 className="font-semibold text-slate-100">{g.nome}</h2>
-                      <p className="text-xs text-slate-400 mt-0.5">{gTotal} bolla{gTotal !== 1 ? 'e' : ''} nel periodo</p>
+                      <h2 className="font-semibold text-app-fg">{g.nome}</h2>
+                      <p className="mt-0.5 text-xs text-app-fg-muted">
+                        {gTotal} bolla{gTotal !== 1 ? 'e' : ''} nel periodo
+                      </p>
                     </div>
                     {/* Verification Triangle */}
                     <div className="flex items-center gap-2">
-                      <div className="flex flex-col items-center px-3 py-1.5 bg-slate-700/90 border border-slate-600/50 rounded-lg min-w-[60px]">
-                        <span className="text-xs font-bold text-slate-200">{gTotal}</span>
-                        <span className="text-[9px] text-slate-400 uppercase tracking-wide">Bolle</span>
+                      <div
+                        className="flex min-w-[60px] flex-col items-center rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5"
+                      >
+                        <span className="text-xs font-bold text-app-fg">{gTotal}</span>
+                        <span className="text-[9px] uppercase tracking-wide text-app-fg-muted">Bolle</span>
                       </div>
-                      <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-3 w-3 text-app-fg-muted"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
-                      <div className="flex flex-col items-center px-3 py-1.5 bg-slate-700/90 border border-slate-600/50 rounded-lg min-w-[60px]">
+                      <div
+                        className="flex min-w-[60px] flex-col items-center rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5"
+                      >
                         <span className="text-xs font-bold text-emerald-400">{gVerified}</span>
-                        <span className="text-[9px] text-slate-400 uppercase tracking-wide">Fatture</span>
+                        <span className="text-[9px] uppercase tracking-wide text-app-fg-muted">Fatture</span>
                       </div>
-                      <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-3 w-3 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
-                      <div className={`flex min-w-[60px] flex-col items-center rounded-lg border px-3 py-1.5 ${allGood ? 'border-emerald-500/35 bg-emerald-500/10' : 'border-red-500/35 bg-red-500/10'}`}>
+                      <div
+                        className={`flex min-w-[60px] flex-col items-center rounded-lg border px-3 py-1.5 ${
+                          allGood ? 'border-emerald-500/35 bg-emerald-500/10' : 'border-red-500/35 bg-red-500/10'
+                        }`}
+                      >
                         <span className={`text-xs font-bold ${allGood ? 'text-emerald-300' : 'text-red-300'}`}>{gMissing}</span>
                         <span className={`text-[9px] uppercase tracking-wide ${allGood ? 'text-green-400' : 'text-red-400'}`}>Diff.</span>
                       </div>
@@ -3271,12 +3701,17 @@ export function VerificationStatusTab({
                 </div>
 
                 {/* GRN rows */}
-                <div className="divide-y divide-slate-800/60">
+                <div className="divide-y divide-app-soft-border">
                   {g.bolle.map(bolla => {
                     const missing = !bolla.fattura
                     const stato   = invio[bolla.id]
                     return (
-                      <div key={bolla.id} className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${missing ? 'bg-amber-500/10' : ''}`}>
+                      <div
+                        key={bolla.id}
+                        className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${
+                          missing ? 'bg-amber-500/[0.08]' : ''
+                        }`}
+                      >
                         {missing && (
                           <input type="checkbox" checked={selezione.has(bolla.id)}
                             onChange={() => setSelezione(p => {
@@ -3284,10 +3719,10 @@ export function VerificationStatusTab({
                               if (n.has(bolla.id)) n.delete(bolla.id); else n.add(bolla.id)
                               return n
                             })}
-                            className="rounded border-slate-600 text-cyan-400 focus:ring-cyan-500"
+                            className="rounded border-app-line-35 bg-transparent text-cyan-400 focus:ring-cyan-500"
                           />
                         )}
-                        <span className="text-sm text-slate-200 font-medium">{fmt(bolla.data)}</span>
+                        <span className="text-sm font-medium text-app-fg">{fmt(bolla.data)}</span>
                         <span className="flex-1" />
                         {bolla.fattura ? (
                           <>
@@ -3340,6 +3775,13 @@ export function VerificationStatusTab({
           })}
         </div>
       )}
+        </div>
+      </div>
+      </>
+      )}
+
+
+
     </>
   )
 }

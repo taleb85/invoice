@@ -19,8 +19,25 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
-import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import {
+  SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
+  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+} from '@/lib/summary-highlight-accent'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
+import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import {
+  APP_SHELL_SECTION_PAGE_CLASS,
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SECTION_EMPTY_LINK_CLASS,
+  APP_SECTION_ROW_ACTION_PILL,
+  APP_SECTION_TABLE_CELL_LINK,
+  APP_SECTION_TABLE_HEAD_ROW,
+  APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_TH,
+  APP_SECTION_TABLE_TH_RIGHT,
+  APP_SECTION_TABLE_TR,
+} from '@/lib/app-shell-layout'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,10 +95,10 @@ export default async function FattureRiepilogoPage({
   const riepilogoTheme = SUMMARY_HIGHLIGHT_ACCENTS.violet
 
   return (
-    <div className="w-full min-w-0 app-shell-page-padding">
+    <div className={APP_SHELL_SECTION_PAGE_CLASS}>
       <AppPageHeaderStrip accent="violet">
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
-          <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.fattureRiepilogoTitle}</h1>
+          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.dashboard.fattureRiepilogoTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>
@@ -91,30 +108,14 @@ export default async function FattureRiepilogoPage({
           {t.dashboard.operatorNoSede}
         </div>
       ) : summary.fattureCount === 0 ? (
-        <div className={`app-card overflow-hidden ${riepilogoTheme.border}`}>
-          <div className={`app-card-bar ${riepilogoTheme.bar}`} aria-hidden />
-          <div className="px-6 py-14 text-center">
-            <svg
-              className="mx-auto mb-3 h-12 w-12 text-slate-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <p className="text-sm text-slate-200">{t.dashboard.fattureRiepilogoEmpty}</p>
-            <Link
-              href="/fatture"
-              className="mt-4 inline-block text-sm font-medium text-violet-400 hover:text-violet-300 hover:underline"
-            >
-              {t.dashboard.fattureRiepilogoLinkAll}
-            </Link>
+        <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${riepilogoTheme.border}`}>
+          <div className={`app-card-bar-accent ${riepilogoTheme.bar}`} aria-hidden />
+          <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
+            <AppSectionEmptyState message={t.dashboard.fattureRiepilogoEmpty}>
+              <Link href="/fatture" className={`${APP_SECTION_EMPTY_LINK_CLASS} hover:underline`}>
+                {t.dashboard.fattureRiepilogoLinkAll}
+              </Link>
+            </AppSectionEmptyState>
           </div>
         </div>
       ) : (
@@ -126,53 +127,37 @@ export default async function FattureRiepilogoPage({
             secondary={countLabel}
           />
 
-          <p className="mb-3 text-xs leading-relaxed text-slate-400">
+          <p className="mb-3 text-xs leading-relaxed text-app-fg-muted">
             {t.dashboard.fattureRiepilogoLimitNote.replace(/\{n\}/g, String(rows.length))}
           </p>
-          <div className={`app-card overflow-hidden ${riepilogoTheme.border}`}>
-            <div className={`app-card-bar ${riepilogoTheme.bar}`} aria-hidden />
-            <div className="overflow-x-auto">
+          <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${riepilogoTheme.border}`}>
+            <div className={`app-card-bar-accent ${riepilogoTheme.bar}`} aria-hidden />
+            <div className={`${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS} overflow-x-auto`}>
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700/60 bg-slate-700/50">
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.common.date}
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.common.supplier}
-                    </th>
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.common.invoiceNum}
-                    </th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {t.fornitori.listinoColImporto}
-                    </th>
-                    <th className="w-40 px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-200">
-                      {' '}
-                    </th>
+                  <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.invoiceNum}</th>
+                    <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.fornitori.listinoColImporto}</th>
+                    <th className={`w-40 ${APP_SECTION_TABLE_TH_RIGHT}`}>{' '}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80">
+                <tbody className={APP_SECTION_TABLE_TBODY}>
                   {rows.map((r) => (
-                    <tr key={r.id} className="transition-colors hover:bg-slate-700/30">
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-200">{formatDate(r.data)}</td>
-                      <td className="max-w-[200px] px-4 py-3">
-                        <Link
-                          href={`/fornitori/${r.fornitore_id}`}
-                          className="font-medium text-violet-400 transition-colors hover:text-violet-300"
-                        >
+                    <tr key={r.id} className={APP_SECTION_TABLE_TR}>
+                      <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">{formatDate(r.data)}</td>
+                      <td className="max-w-[200px] px-6 py-4">
+                        <Link href={`/fornitori/${r.fornitore_id}`} className={APP_SECTION_TABLE_CELL_LINK}>
                           {r.fornitore_nome}
                         </Link>
                       </td>
-                      <td className="max-w-[140px] px-4 py-3 text-slate-200">{r.numero_fattura?.trim() || '—'}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-slate-100">
+                      <td className="max-w-[140px] px-6 py-4 text-app-fg-muted">{r.numero_fattura?.trim() || '—'}</td>
+                      <td className="whitespace-nowrap px-6 py-4 text-right font-semibold tabular-nums text-app-fg">
                         {formatCurrency(Number(r.importo) || 0, currency, locale)}
                       </td>
-                      <td className="px-4 py-3 text-right align-middle">
-                        <Link
-                          href={`/fatture/${r.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-violet-500/15 px-3 py-1.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/25"
-                        >
+                      <td className="px-6 py-4 text-right align-middle">
+                        <Link href={`/fatture/${r.id}`} className={APP_SECTION_ROW_ACTION_PILL}>
                           {t.dashboard.fattureRiepilogoOpenInvoice}
                         </Link>
                       </td>
@@ -186,7 +171,7 @@ export default async function FattureRiepilogoPage({
           <div className="mt-4 text-center md:text-left">
             <Link
               href="/fatture"
-              className="text-sm font-medium text-slate-200 transition-colors hover:text-violet-300 hover:underline"
+              className="text-sm font-medium text-app-fg-muted transition-colors hover:text-app-fg hover:underline"
             >
               {t.dashboard.fattureRiepilogoLinkAll}
             </Link>

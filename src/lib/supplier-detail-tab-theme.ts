@@ -1,7 +1,7 @@
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
 /**
- * Barra superiore `.app-card-bar` + bordo card allineati ai KPI della scheda fornitore
+ * Barra superiore `.app-card-bar-accent` + classi `*.bar` + bordo card, allineati ai KPI della scheda fornitore
  * (`buildSupplierKpiItems` in `fornitori/[id]/page.tsx`).
  */
 export const SUPPLIER_DETAIL_TAB_HIGHLIGHT = {
@@ -10,11 +10,22 @@ export const SUPPLIER_DETAIL_TAB_HIGHLIGHT = {
   bolle: SUMMARY_HIGHLIGHT_ACCENTS.indigo,
   fatture: SUMMARY_HIGHLIGHT_ACCENTS.emerald,
   verifica: SUMMARY_HIGHLIGHT_ACCENTS.cyan,
-  listino: SUMMARY_HIGHLIGHT_ACCENTS.lime,
+  listino: SUMMARY_HIGHLIGHT_ACCENTS.fuchsia,
   documenti: SUMMARY_HIGHLIGHT_ACCENTS.amber,
 } as const
 
 export type SupplierDetailTabKey = keyof typeof SUPPLIER_DETAIL_TAB_HIGHLIGHT
+
+/** Bordo inferiore tab attiva (desktop fornitore), allineato a `SUPPLIER_DETAIL_TAB_HIGHLIGHT` / barra `.app-card-bar-accent`. */
+export const SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE: Record<SupplierDetailTabKey, string> = {
+  dashboard: 'border-b-app-cyan-400',
+  bolle: 'border-b-indigo-400',
+  fatture: 'border-b-emerald-400',
+  listino: 'border-b-fuchsia-400',
+  conferme: 'border-b-rose-400',
+  documenti: 'border-b-amber-400',
+  verifica: 'border-b-app-cyan-400',
+}
 
 /** Tabella «riepilogo per mese»: stessi accenti della card del tab attivo (fatture, bolle, …). */
 export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
@@ -32,14 +43,14 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
   }
 > = {
   dashboard: {
-    selectionRow: 'bg-cyan-500/10',
-    monthSelected: 'text-cyan-200',
-    cellHover: 'hover:text-cyan-200',
-    focusRing: 'focus-visible:ring-cyan-500/40',
-    resetNav: 'text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300',
+    selectionRow: 'bg-app-line-10',
+    monthSelected: 'text-app-fg-muted',
+    cellHover: 'hover:text-app-fg',
+    focusRing: 'focus-visible:ring-app-line-40',
+    resetNav: 'text-app-cyan-500 hover:bg-app-line-20 hover:text-app-fg-muted',
     periodNavWrap:
-      'border-cyan-500/40 bg-cyan-500/[0.09] shadow-[inset_0_0_0_1px_rgba(34,211,238,0.08)]',
-    periodNavIconBtn: 'text-cyan-100/90 hover:bg-cyan-500/20 hover:text-white',
+      'border-app-line-40 bg-app-line-10 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.08)]',
+    periodNavIconBtn: 'text-app-fg-muted hover:bg-app-line-20 hover:text-white',
   },
   conferme: {
     selectionRow: 'bg-rose-500/10',
@@ -72,24 +83,24 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     periodNavIconBtn: 'text-emerald-100/90 hover:bg-emerald-500/20 hover:text-white',
   },
   verifica: {
-    selectionRow: 'bg-cyan-500/10',
-    monthSelected: 'text-cyan-200',
-    cellHover: 'hover:text-cyan-200',
-    focusRing: 'focus-visible:ring-cyan-500/40',
-    resetNav: 'text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300',
+    selectionRow: 'bg-app-line-10',
+    monthSelected: 'text-app-fg-muted',
+    cellHover: 'hover:text-app-fg',
+    focusRing: 'focus-visible:ring-app-line-40',
+    resetNav: 'text-app-cyan-500 hover:bg-app-line-20 hover:text-app-fg-muted',
     periodNavWrap:
-      'border-cyan-500/40 bg-cyan-500/[0.09] shadow-[inset_0_0_0_1px_rgba(34,211,238,0.08)]',
-    periodNavIconBtn: 'text-cyan-100/90 hover:bg-cyan-500/20 hover:text-white',
+      'border-app-line-40 bg-app-line-10 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.08)]',
+    periodNavIconBtn: 'text-app-fg-muted hover:bg-app-line-20 hover:text-white',
   },
   listino: {
-    selectionRow: 'bg-lime-500/10',
-    monthSelected: 'text-lime-200',
-    cellHover: 'hover:text-lime-200',
-    focusRing: 'focus-visible:ring-lime-500/40',
-    resetNav: 'text-lime-400 hover:bg-lime-500/20 hover:text-lime-300',
+    selectionRow: 'bg-fuchsia-500/10',
+    monthSelected: 'text-fuchsia-200',
+    cellHover: 'hover:text-fuchsia-200',
+    focusRing: 'focus-visible:ring-fuchsia-500/40',
+    resetNav: 'text-fuchsia-400 hover:bg-fuchsia-500/20 hover:text-fuchsia-300',
     periodNavWrap:
-      'border-lime-500/40 bg-lime-500/[0.09] shadow-[inset_0_0_0_1px_rgba(163,230,53,0.1)]',
-    periodNavIconBtn: 'text-lime-100/90 hover:bg-lime-500/20 hover:text-white',
+      'border-fuchsia-500/40 bg-fuchsia-500/[0.09] shadow-[inset_0_0_0_1px_rgba(192,38,211,0.1)]',
+    periodNavIconBtn: 'text-fuchsia-100/90 hover:bg-fuchsia-500/20 hover:text-white',
   },
   documenti: {
     selectionRow: 'bg-amber-500/10',

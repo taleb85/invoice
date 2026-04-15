@@ -1,6 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+const SCAN_ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const
+
+function isAllowedScanMime(ct: string): boolean {
+  return (SCAN_ALLOWED_MIME as readonly string[]).includes(ct)
+}
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -79,6 +85,10 @@ export default function NuovaBollaForm() {
   const preselectedFornitoreId = searchParams.get('fornitore_id') ?? ''
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [scanPreviewUrl, setScanPreviewUrl] = useState<string | null>(null)
   /** Stessa sede della dashboard (cookie admin / operatore attivo / profilo). */
   const { effectiveSedeId: sedeId } = useManualDeliverySede()
   const t = useT()
@@ -138,6 +148,61 @@ export default function NuovaBollaForm() {
       }
     })
   }, [supabase, preselectedFornitoreId])
+
+  useEffect(() => {
+    if (!file || file.type === 'application/pdf') {
+      setScanPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev)
+        return null
+      })
+      return
+    }
+    const url = URL.createObjectURL(file)
+    setScanPreviewUrl(url)
+    return () => {
+      URL.revokeObjectURL(url)
+    }
+  }, [file])
+
+  useEffect(() => {
+    if (!cameraOpen) return
+    const video = videoRef.current
+    const stream = streamRef.current
+    if (!video || !stream) return
+    video.srcObject = stream
+    void video.play().catch(() => {})
+    return () => {
+      video.srcObject = null
+    }
+  }, [cameraOpen])
+
+  useEffect(
+    () => () => {
+      streamRef.current?.getTracks().forEach((tr) => tr.stop())
+      streamRef.current = null
+    },
+    [],
+  )
+
+  const stopCameraStream = useCallback(() => {
+    streamRef.current?.getTracks().forEach((tr) => tr.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+  }, [])
+
+  const closeCameraModal = useCallback(() => {
+    stopCameraStream()
+    setCameraOpen(false)
+  }, [stopCameraStream])
+
+  useEffect(() => {
+    if (!cameraOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeCameraModal()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [cameraOpen, closeCameraModal])
 
   const navigateToImport = useCallback((nome: string | null, piva: string | null, indirizzo?: string | null) => {
     const q = new URLSearchParams()
@@ -260,26 +325,79 @@ export default function NuovaBollaForm() {
     }
   }, [applyHubResult, sedeId, supabase])
 
+  const applyScanFile = useCallback(
+    (f: File) => {
+      setError(null)
+      setFile(f)
+      setOcrStatus('idle')
+      setMatchedFornitore(null)
+      setOcrNome(null)
+      setOcrPiva(null)
+      setOcrIndirizzo(null)
+      setNeedsSupplierDeepExtract(false)
+      setDateFromOcr(false)
+      setRegistrationTarget('bolla')
+      void runScannerHub(f, scanIntent, fornitori)
+    },
+    [fornitori, runScannerHub, scanIntent],
+  )
+
+  const openCamera = useCallback(async () => {
+    setError(null)
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setError(t.bolle.scannerCameraPermissionDenied)
+      return
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      })
+      streamRef.current = stream
+      setCameraOpen(true)
+    } catch {
+      setError(t.bolle.scannerCameraPermissionDenied)
+    }
+  }, [t])
+
+  const capturePhoto = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+    const w = video.videoWidth
+    const h = video.videoHeight
+    if (!w || !h) return
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.drawImage(video, 0, 0)
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) return
+        const f = new File([blob], `bolla-scan-${Date.now()}.jpg`, { type: 'image/jpeg' })
+        stopCameraStream()
+        setCameraOpen(false)
+        applyScanFile(f)
+      },
+      'image/jpeg',
+      0.92,
+    )
+  }, [applyScanFile, stopCameraStream])
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null
-    setError(null)
-    if (f && f.type !== 'application/pdf') {
-      setError('Carica un PDF (documento ricevuto per email: fattura, bolla o estratto).')
+    if (!f) return
+    if (!isAllowedScanMime(f.type)) {
+      setError(t.bolle.scannerFileScanTypeError)
       e.target.value = ''
       return
     }
-    setFile(f)
-    setOcrStatus('idle')
-    setMatchedFornitore(null)
-    setOcrNome(null)
-    setOcrPiva(null)
-    setOcrIndirizzo(null)
-    setNeedsSupplierDeepExtract(false)
-    setDateFromOcr(false)
-    setRegistrationTarget('bolla')
-    if (f) {
-      void runScannerHub(f, scanIntent, fornitori)
-    }
+    applyScanFile(f)
   }
 
   const handleIntentChange = (next: ScanIntent) => {
@@ -416,21 +534,20 @@ export default function NuovaBollaForm() {
     router.refresh()
   }
 
-  const fieldLabelTextCls =
-    'text-xs font-bold uppercase tracking-wider text-cyan-50 [text-shadow:0_0_18px_rgba(34,211,238,0.2)]'
+  const fieldLabelTextCls = 'text-xs font-bold uppercase tracking-wider text-app-fg-muted'
   const fieldLabelCls = `mb-2 block ${fieldLabelTextCls}`
-  const fieldHintCls = 'font-semibold normal-case tracking-normal text-cyan-100/85'
+  const fieldHintCls = 'font-semibold normal-case tracking-normal text-app-fg-muted'
   const fieldInputCls =
-    'w-full rounded-xl border-0 bg-transparent py-1 -mx-1 text-base font-semibold text-white placeholder:text-cyan-200/55 focus:outline-none focus:ring-0'
-  /** Campo «Registrato da»: bordo visibile (gli altri campi testuali restano flat nel layout). */
+    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 placeholder:text-app-fg-muted transition-[border-color,box-shadow] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30'
+  /** Campo «Registrato da»: stesso guscio bordato degli altri input dello scanner. */
   const registeredByInputCls =
-    'w-full rounded-xl border border-cyan-500/35 bg-white/[0.07] px-3 py-2 text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] placeholder:text-cyan-200/55 transition-[border-color,box-shadow] focus:border-cyan-400/55 focus:outline-none focus:ring-2 focus:ring-cyan-400/25'
+    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 placeholder:text-app-fg-muted transition-[border-color,box-shadow] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30'
 
   const intentBtn = (active: boolean) =>
-    `rounded-lg px-2 py-1 text-[11px] font-bold transition-colors sm:px-2.5 sm:py-1 sm:text-xs ${
+    `rounded-lg border px-2 py-1 text-[11px] font-bold transition-colors sm:px-2.5 sm:py-1 sm:text-xs ${
       active
-        ? 'bg-cyan-500/35 text-white ring-1 ring-cyan-300/50 shadow-[0_0_14px_-3px_rgba(6,182,212,0.45)]'
-        : 'bg-white/10 text-cyan-50 hover:bg-white/15 hover:text-white'
+        ? 'border-app-a-45 bg-app-line-30 text-app-fg shadow-[0_0_14px_-3px_rgba(6,182,212,0.45)] ring-1 ring-app-tint-300-45'
+        : 'border-app-line-25 app-workspace-inset-bg-soft text-app-fg-muted hover:border-app-a-40 hover:brightness-110 hover:text-app-fg'
     }`
 
   return (
@@ -453,12 +570,12 @@ export default function NuovaBollaForm() {
             : 'max-md:top-[calc(3.5rem+env(safe-area-inset-top,0px))]'
         }`}
       >
-        <AppPageHeaderStrip dense className="!mb-0">
+        <AppPageHeaderStrip dense flushBottom>
           <AppPageHeaderTitleWithDashboardShortcut
             dashboardLabel={t.nav.dashboard}
             className="min-w-0 w-full items-center gap-2 sm:flex-1"
           >
-            <h1 className="app-page-title text-lg font-extrabold tracking-tight text-white [text-shadow:0_0_24px_rgba(34,211,238,0.35)] md:text-xl">
+            <h1 className="app-page-title text-lg font-extrabold tracking-tight md:text-xl">
               {t.bolle.scannerTitle}
             </h1>
           </AppPageHeaderTitleWithDashboardShortcut>
@@ -467,10 +584,14 @@ export default function NuovaBollaForm() {
       {/* Riserva altezza strip + barra neon + padding (allineato a `AppPageHeaderStrip`). */}
       <div className="h-[5.125rem] shrink-0 md:hidden" aria-hidden />
 
-      <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-3 p-3 pb-6 sm:p-4 sm:pb-7">
+      <form
+        onSubmit={handleSubmit}
+        className="mx-auto flex min-w-0 w-full max-w-lg flex-1 flex-col gap-3 p-3 pb-6 sm:p-4 sm:pb-7"
+      >
 
-        <div className="app-card">
-          <div className="space-y-2 p-4">
+        <div className="app-card overflow-hidden">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="space-y-2 border-t border-app-line-10 app-workspace-inset-bg p-4">
             <p className={fieldLabelCls}>{t.bolle.scannerWhatLabel}</p>
             <div className="flex flex-wrap gap-1.5">
               <button type="button" className={intentBtn(scanIntent === 'auto')} onClick={() => handleIntentChange('auto')}>
@@ -489,29 +610,52 @@ export default function NuovaBollaForm() {
           </div>
         </div>
 
-        <div className="app-card">
-          <div className="p-4">
+        <div className="app-card overflow-hidden">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
           <label className={fieldLabelCls}>
             {t.bolle.fotoLabel}
           </label>
 
           {!file && (
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-cyan-300/45 py-6 text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-white/10 hover:text-white active:bg-white/15"
-            >
-              <svg className="h-8 w-8 text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-              <span className="text-sm font-bold tracking-tight">{t.bolle.fileBtn} (PDF)</span>
-            </button>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-app-tint-300-45 py-5 text-app-fg-muted transition-colors hover:border-app-tint-300-45 hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15 sm:py-6"
+              >
+                <svg className="h-8 w-8 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <span className="text-center text-sm font-bold tracking-tight">{t.bolle.fileBtn} (PDF)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void openCamera()}
+                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-app-tint-300-45 py-5 text-app-fg-muted transition-colors hover:border-app-tint-300-45 hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15 sm:py-6"
+              >
+                <svg className="h-8 w-8 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="text-center text-sm font-bold tracking-tight">{t.bolle.cameraBtn}</span>
+              </button>
+            </div>
           )}
 
-          {file?.type === 'application/pdf' && (
-            <div className="relative rounded-xl border border-white/15 bg-white/5 px-3 py-6 text-center text-sm font-semibold text-white">
-              <p>{t.bolle.scannerPdfPreview}</p>
-              <p className="mt-1.5 truncate text-xs font-medium text-cyan-100">{file.name}</p>
+          {file && (
+            <div className="relative rounded-xl border border-app-line-25 app-workspace-inset-bg-soft px-3 py-6 text-center text-sm font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10">
+              {scanPreviewUrl ? (
+                // Anteprima da object URL (foto scattata / file immagine); next/image non adatto ai blob.
+                // eslint-disable-next-line @next/next/no-img-element -- preview locale scanner
+                <img
+                  src={scanPreviewUrl}
+                  alt=""
+                  className="mx-auto mb-3 max-h-[min(50vh,280px)] w-full rounded-lg border border-app-soft-border object-contain"
+                />
+              ) : null}
+              <p>{file.type === 'application/pdf' ? t.bolle.scannerPdfPreview : t.bolle.scannerImageAttached}</p>
+              <p className="mt-1.5 truncate text-xs font-medium text-app-fg-muted">{file.name}</p>
               <button
                 type="button"
                 onClick={handleRemoveFile}
@@ -520,7 +664,7 @@ export default function NuovaBollaForm() {
                 {t.common.delete}
               </button>
               {ocrStatus === 'scanning' && (
-                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-cyan-200">
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-app-fg-muted">
                   <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -550,7 +694,7 @@ export default function NuovaBollaForm() {
           <input
             ref={fileRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,image/jpeg,image/png,image/webp"
             onChange={handleFile}
             className="hidden"
           />
@@ -558,8 +702,9 @@ export default function NuovaBollaForm() {
         </div>
 
         {file && (
-          <div className="app-card ring-1 ring-cyan-400/30">
-            <div className="p-4">
+          <div className="app-card overflow-hidden ring-1 ring-app-a-30">
+            <div className="app-card-bar shrink-0" aria-hidden />
+            <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
             <label className={fieldLabelCls}>
               Registrato da
             </label>
@@ -578,14 +723,15 @@ export default function NuovaBollaForm() {
           </div>
         )}
 
-        <div className="app-card">
-          <div className="p-4">
+        <div className="app-card overflow-hidden">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
           <div className="mb-1.5 flex items-center justify-between">
             <label className={`min-w-0 shrink ${fieldLabelTextCls}`}>
               {t.bolle.fornitoreLabel}
             </label>
             {ocrStatus === 'scanning' && (
-              <span className="flex items-center gap-1 text-xs font-bold text-cyan-100">
+              <span className="flex items-center gap-1 text-xs font-bold text-app-fg-muted">
                 <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -611,7 +757,10 @@ export default function NuovaBollaForm() {
           {fornitori.length === 0 ? (
             <p className="text-sm font-semibold text-amber-100">
               {t.fornitori.noSuppliers}{' '}
-              <Link href="/fornitori/new" className="font-bold text-cyan-100 underline decoration-cyan-400/40 underline-offset-2 transition-colors hover:text-white">
+              <Link
+                href="/fornitori/new"
+                className="font-bold text-app-fg-muted underline decoration-app-a-45 underline-offset-2 transition-colors hover:text-app-fg"
+              >
                 {t.fornitori.addFirst}
               </Link>
             </p>
@@ -626,7 +775,7 @@ export default function NuovaBollaForm() {
                   setMatchedFornitore(null)
                 }
               }}
-              className={`mt-0.5 w-full cursor-pointer rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-base font-semibold text-white focus:border-cyan-300/55 focus:outline-none focus:ring-2 focus:ring-cyan-300/40 ${
+              className={`mt-0.5 w-full cursor-pointer rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30 ${
                 ocrStatus === 'matched' ? 'font-bold' : ''
               }`}
             >
@@ -648,7 +797,7 @@ export default function NuovaBollaForm() {
           {needsSupplierDeepExtract && file && ocrStatus === 'not_found' && (
             <button
               type="button"
-              className="mt-2 w-full rounded-xl border border-cyan-400/45 bg-cyan-950/40 py-2 text-sm font-bold text-cyan-50 transition-colors hover:bg-cyan-900/50"
+              className="mt-2 w-full rounded-xl border border-app-a-45 app-workspace-inset-bg py-2 text-sm font-bold text-app-fg transition-colors hover:brightness-110"
               onClick={() => void runScannerHub(file, 'nuovo_fornitore', fornitori)}
             >
               {t.bolle.scannerCreateSupplierFromUnrecognized}
@@ -658,7 +807,8 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card overflow-hidden">
-          <div className="border-b border-white/10 p-4">
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className="border-b border-app-line-15 app-workspace-inset-bg-soft p-4">
             <label className={fieldLabelCls}>
               {registrationTarget === 'fattura' ? t.fatture.colNumFattura : `N° Bolla / DDT`}{' '}
               <span className={fieldHintCls}>(opzionale)</span>
@@ -671,13 +821,13 @@ export default function NuovaBollaForm() {
               className={fieldInputCls}
             />
           </div>
-          <div className="p-4">
+          <div className="border-t border-app-line-10 app-workspace-inset-bg-soft p-4">
             <label className={fieldLabelCls}>
               {t.appStrings.labelImportoTotale}{' '}
               <span className={fieldHintCls}>(IVA inclusa, opzionale)</span>
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-base font-bold text-cyan-100">£</span>
+              <span className="text-base font-bold text-app-fg-muted">£</span>
               <input
                 type="number"
                 min="0"
@@ -692,7 +842,8 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card overflow-hidden">
-          <div className={`p-4 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : ''}`}>
+          <div className="app-card-bar shrink-0" aria-hidden />
+          <div className={`border-t border-app-line-10 p-4 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : 'app-workspace-inset-bg-soft'}`}>
             <div className="mb-1.5 flex items-center justify-between">
               <label className={`min-w-0 shrink ${fieldLabelTextCls}`}>
                 {registrationTarget === 'fattura' ? t.fatture.dataFattura : t.bolle.dataLabel}
@@ -705,7 +856,7 @@ export default function NuovaBollaForm() {
                   {t.bolle.ocrAutoRecognized}
                 </span>
               ) : (
-                <span className="text-[11px] font-semibold text-cyan-100">{t.bolle.dateFromDocumentHint}</span>
+                <span className="text-[11px] font-semibold text-app-fg-muted">{t.bolle.dateFromDocumentHint}</span>
               )}
             </div>
             <input
@@ -717,11 +868,11 @@ export default function NuovaBollaForm() {
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-white/10 bg-white/5 px-4 py-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-cyan-100">
+          <div className="app-workspace-inset-footer-row">
+            <span className="text-xs font-bold uppercase tracking-wider text-app-fg-muted">
               {t.appStrings.uploadDateLabel}
             </span>
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-bold text-app-fg">
               {todayRegistrationLabel} — {t.appStrings.uploadDateAutomatic}
             </span>
           </div>
@@ -734,7 +885,7 @@ export default function NuovaBollaForm() {
         <button
           type="submit"
           disabled={saving || fornitori.length === 0 || ocrStatus === 'scanning' || !file}
-          className="app-glow-cyan mt-auto w-full rounded-2xl border border-cyan-300/40 bg-cyan-500 py-3 text-base font-extrabold tracking-tight text-slate-950 shadow-[0_0_24px_-4px_rgba(6,182,212,0.5)] transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50"
+          className="app-glow-cyan mt-auto w-full rounded-2xl border border-app-line-35 bg-app-cyan-500 py-3 text-base font-extrabold tracking-tight text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 disabled:opacity-50"
         >
           {saving
             ? (registrationTarget === 'fattura' ? t.bolle.scannerSavingFattura : t.bolle.savingNote)
@@ -745,6 +896,42 @@ export default function NuovaBollaForm() {
                 : t.bolle.saveNote}
         </button>
       </form>
+
+      {cameraOpen ? (
+        <div
+          className="app-workspace-overlay fixed inset-0 z-[100] flex flex-col p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="nuova-bolla-camera-title"
+        >
+          <p id="nuova-bolla-camera-title" className="sr-only">
+            {t.bolle.cameraBtn}
+          </p>
+          <video
+            ref={videoRef}
+            className="min-h-0 w-full flex-1 rounded-xl border border-app-line-25 bg-black object-contain"
+            playsInline
+            muted
+            autoPlay
+          />
+          <div className="mt-3 flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={closeCameraModal}
+              className="flex-1 rounded-xl border border-app-line-30 app-workspace-inset-bg-soft py-3 text-sm font-bold text-app-fg-muted transition-colors hover:border-app-a-45 hover:brightness-110 hover:text-app-fg"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              type="button"
+              onClick={capturePhoto}
+              className="app-glow-cyan flex-1 rounded-xl border border-app-line-35 bg-app-cyan-500 py-3 text-sm font-extrabold text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600"
+            >
+              {t.bolle.scannerCameraCapture}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

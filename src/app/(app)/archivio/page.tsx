@@ -6,6 +6,8 @@ import ExportZipButton from './ExportZipButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SECTION_TABLE_HEAD_ROW } from '@/lib/app-shell-layout'
 
 interface Bolla {
   id: string
@@ -76,7 +78,7 @@ export default async function ArchivioPage() {
     <div className="app-shell-page-padding">
       <Link
         href="/"
-        className="mb-5 inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/60 hover:text-cyan-300 touch-manipulation md:min-h-0 md:py-0"
+        className="mb-5 inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-app-fg-muted transition-colors hover:bg-black/12 hover:text-app-fg-muted touch-manipulation md:min-h-0 md:py-0"
       >
         <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -100,7 +102,7 @@ export default async function ArchivioPage() {
         secondary={
           <>
             {totBolle} {t.archivio.bollaP}
-            <span className="mx-1.5 text-slate-500" aria-hidden>
+            <span className="mx-1.5 text-app-fg-muted" aria-hidden>
               ·
             </span>
             {totFatture} {t.archivio.fatturaP}
@@ -109,12 +111,13 @@ export default async function ArchivioPage() {
       />
 
       {archivio.length === 0 ? (
-        <div className="app-card overflow-hidden px-6 py-16 text-center">
+        <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
-          <p className="text-sm text-slate-500">{t.fornitori.noSuppliers}</p>
-          <Link href="/fornitori/new" className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300">
-            {t.fornitori.addFirst}
-          </Link>
+          <AppSectionEmptyState message={t.fornitori.noSuppliers} messageClassName="text-app-fg-muted" density="comfortable">
+            <Link href="/fornitori/new" className={APP_SECTION_EMPTY_LINK_CLASS_COMPACT}>
+              {t.fornitori.addFirst}
+            </Link>
+          </AppSectionEmptyState>
         </div>
       ) : (
         <div className="space-y-4">
@@ -123,18 +126,18 @@ export default async function ArchivioPage() {
               <div className="app-card-bar" aria-hidden />
 
               {/* Header fornitore */}
-              <div className="flex items-center gap-3 border-b border-slate-700/50 bg-slate-700/40 px-4 py-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
+              <div className={`flex items-center gap-3 px-4 py-3 ${APP_SECTION_TABLE_HEAD_ROW}`}>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-app-cyan-500 to-blue-600">
                   <span className="text-sm font-bold text-white">{f.nome.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-100">{f.nome}</p>
+                  <p className="truncate text-sm font-semibold text-app-fg">{f.nome}</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                    <span className="flex items-center gap-1 text-[11px] text-slate-200">
+                    <span className="flex items-center gap-1 text-[11px] text-app-fg-muted">
                       <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                       {f.bolle.length} {f.bolle.length === 1 ? t.archivio.bollaS : t.archivio.bollaP}
                     </span>
-                    <span className="flex items-center gap-1 text-[11px] text-slate-200">
+                    <span className="flex items-center gap-1 text-[11px] text-app-fg-muted">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                       {f.fatture.length + f.documenti.length}{' '}
                       {(f.fatture.length + f.documenti.length) === 1 ? t.archivio.fatturaS : t.archivio.fatturaP}
@@ -148,7 +151,7 @@ export default async function ArchivioPage() {
                 </div>
                 <Link
                   href={`/fornitori/${f.id}/edit`}
-                  className="min-h-[36px] shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-cyan-400 transition-colors hover:bg-slate-700/50 hover:text-cyan-300 touch-manipulation"
+                  className="min-h-[36px] shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-app-cyan-500 transition-colors hover:bg-black/12 hover:text-app-fg-muted touch-manipulation"
                 >
                   {t.archivio.editLink} →
                 </Link>
@@ -157,22 +160,22 @@ export default async function ArchivioPage() {
               {/* Sezione Bolle */}
               <div className="px-4 pb-2 pt-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.bolle.title}</h3>
-                  <Link href="/bolle/new" className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 hover:underline">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-app-fg-muted">{t.bolle.title}</h3>
+                  <Link href="/bolle/new" className="text-[11px] font-semibold text-app-cyan-500 hover:text-app-fg-muted hover:underline">
                     + {t.archivio.nuova}
                   </Link>
                 </div>
                 {f.bolle.length === 0 ? (
-                  <p className="py-1.5 text-xs italic text-slate-500">{t.archivio.noBills}</p>
+                  <p className="py-1.5 text-xs italic text-app-fg-muted">{t.archivio.noBills}</p>
                 ) : (
                   <div className="space-y-1.5">
                     {f.bolle.map((b) => (
-                      <div key={b.id} className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
+                      <div key={b.id} className="flex items-center justify-between rounded-lg app-workspace-inset-bg-soft px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <span
                             className={`h-2 w-2 shrink-0 rounded-full ${b.stato === 'completato' ? 'bg-emerald-400' : 'bg-amber-400'}`}
                           />
-                          <span className="whitespace-nowrap text-sm font-medium text-slate-200">{formatDate(b.data)}</span>
+                          <span className="whitespace-nowrap text-sm font-medium text-app-fg-muted">{formatDate(b.data)}</span>
                           <span
                             className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                               b.stato === 'completato'
@@ -188,7 +191,7 @@ export default async function ArchivioPage() {
                             <OpenDocumentInAppButton
                               bollaId={b.id}
                               fileUrl={b.file_url}
-                              className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+                              className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
                             >
                               {t.archivio.documento}
                             </OpenDocumentInAppButton>
@@ -196,7 +199,7 @@ export default async function ArchivioPage() {
                           {b.stato === 'in attesa' && (
                             <Link
                               href={`/fatture/new?bolla_id=${b.id}&fornitore_id=${f.id}`}
-                              className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+                              className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
                             >
                               {t.archivio.nuovaFattura}
                             </Link>
@@ -209,33 +212,27 @@ export default async function ArchivioPage() {
               </div>
 
               {/* Sezione Fatture */}
-              <div className="mt-2 border-t border-slate-700/50 px-4 pb-3 pt-2">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{t.fatture.title}</h3>
-                  <Link
-                    href={`/fatture/new?fornitore_id=${f.id}`}
-                    className="text-[11px] font-semibold text-cyan-400 hover:text-cyan-300 hover:underline"
-                  >
-                    + {t.archivio.nuova}
-                  </Link>
+              <div className="mt-2 border-t border-app-line-22 px-4 pb-3 pt-2">
+                <div className="mb-2">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider text-app-fg-muted">{t.fatture.title}</h3>
                 </div>
 
                 {f.fatture.length === 0 && f.documenti.length === 0 ? (
-                  <p className="py-1.5 text-xs italic text-slate-500">{t.archivio.noInvoices}</p>
+                  <p className="py-1.5 text-xs italic text-app-fg-muted">{t.archivio.noInvoices}</p>
                 ) : (
                   <div className="space-y-1.5">
                     {/* Confirmed invoices (linked to a GRN) */}
                     {f.fatture.map((fa) => (
-                      <div key={fa.id} className="flex items-center justify-between rounded-lg bg-slate-700/50 px-3 py-2">
+                      <div key={fa.id} className="flex items-center justify-between rounded-lg app-workspace-inset-bg-soft px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
-                          <span className="whitespace-nowrap text-sm font-medium text-slate-200">{formatDate(fa.data)}</span>
+                          <span className="whitespace-nowrap text-sm font-medium text-app-fg-muted">{formatDate(fa.data)}</span>
                           {fa.bolla_id ? (
-                            <span className="whitespace-nowrap rounded-full border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
+                            <span className="whitespace-nowrap rounded-full border border-app-line-30 bg-app-line-10 px-1.5 py-0.5 text-[10px] font-semibold text-app-fg-muted">
                               {t.archivio.withBill}
                             </span>
                           ) : (
-                            <span className="whitespace-nowrap rounded-full border border-slate-600/60 bg-slate-700/80 px-1.5 py-0.5 text-[10px] font-semibold text-slate-200">
+                            <span className="whitespace-nowrap rounded-full border border-app-line-28 app-workspace-inset-bg px-1.5 py-0.5 text-[10px] font-semibold text-app-fg-muted">
                               {t.fatture.statusSenzaBolla}
                             </span>
                           )}
@@ -244,7 +241,7 @@ export default async function ArchivioPage() {
                           <OpenDocumentInAppButton
                             fatturaId={fa.id}
                             fileUrl={fa.file_url}
-                            className="ml-2 shrink-0 text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+                            className="ml-2 shrink-0 text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
                           >
                             {t.archivio.documento}
                           </OpenDocumentInAppButton>
@@ -260,7 +257,7 @@ export default async function ArchivioPage() {
                       >
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
-                          <span className="whitespace-nowrap text-sm font-medium text-slate-200">
+                          <span className="whitespace-nowrap text-sm font-medium text-app-fg-muted">
                             {doc.data_documento ? formatDate(doc.data_documento) : formatDate(doc.created_at)}
                           </span>
                           <span className="whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
@@ -272,7 +269,7 @@ export default async function ArchivioPage() {
                             <OpenDocumentInAppButton
                               documentoId={doc.id}
                               fileUrl={doc.file_url}
-                              className="text-xs font-medium text-cyan-400 hover:text-cyan-300 hover:underline"
+                              className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
                             >
                               {t.archivio.documento}
                             </OpenDocumentInAppButton>

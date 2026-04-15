@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import type { Fornitore } from '@/types'
 import OperatorPinStepUpModal from '@/components/OperatorPinStepUpModal'
@@ -13,7 +13,7 @@ import { useT } from '@/lib/use-t'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import { cacheFornitoriList, readCachedFornitoriList } from '@/lib/app-data-cache'
 import { useNetworkStatusOptional } from '@/lib/network-context'
-import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import { SUMMARY_HIGHLIGHT_ACCENTS, SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 
 /** Allineato al KPI «Fornitori» (`operatorKpiVisual` sky) e a `AppSummaryHighlightCard accent="sky"`. */
 const fornitoriCardTheme = SUMMARY_HIGHLIGHT_ACCENTS.sky
@@ -43,6 +43,14 @@ export default function FornitoriCardsGrid({
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
   const isAdmin = effectiveIsFornitoreGridAdmin(me, activeOperator)
+  /** PIN step-up: il contesto «operatore attivo» è opzionale; in accesso sede il profilo sessione è già l’operatore. */
+  const pinStepUpOperatorName = useMemo(() => {
+    const fromCtx = activeOperator?.full_name?.trim()
+    if (fromCtx) return fromCtx
+    const n = me?.full_name?.trim()
+    if (n && (me?.role === 'operatore' || me?.role === 'admin_sede')) return n
+    return undefined
+  }, [activeOperator?.full_name, me?.full_name, me?.role])
   const net = useNetworkStatusOptional()
 
   const [rows, setRows] = useState<Fornitore[]>(fornitori)
@@ -124,6 +132,10 @@ export default function FornitoriCardsGrid({
   const request = useCallback(
     (action: Gate['action'], id: string, nome: string) => {
       if (action === 'unlock') {
+        if (isAdmin) {
+          setUnlockedIds((prev) => new Set(prev).add(id))
+          return
+        }
         setGate({ action: 'unlock', id, nome })
         return
       }
@@ -163,23 +175,23 @@ export default function FornitoriCardsGrid({
   const detailCls =
     'text-[10px] font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-0.5 transition-colors sm:text-[11px] sm:gap-1'
   const editCls =
-    'inline-flex items-center gap-0.5 rounded-lg p-1 text-[10px] font-semibold text-slate-200 transition-colors hover:bg-sky-500/10 hover:text-sky-300 sm:gap-1 sm:p-1.5 sm:text-[11px]'
+    'inline-flex items-center gap-0.5 rounded-lg p-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:bg-sky-500/15 hover:text-sky-200 sm:gap-1 sm:p-1.5 sm:text-[11px]'
 
   if (!cacheReady) {
     return (
-      <div className={`app-card overflow-hidden ${fornitoriCardTheme.border}`}>
-        <div className={`app-card-bar ${fornitoriCardTheme.bar}`} aria-hidden />
-        <div className="h-32 animate-pulse bg-slate-700/40" />
+      <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${fornitoriCardTheme.border}`}>
+        <div className={`app-card-bar-accent ${fornitoriCardTheme.bar}`} aria-hidden />
+        <div className="h-32 animate-pulse app-workspace-inset-bg" />
       </div>
     )
   }
 
   if (rows.length === 0) {
     return (
-      <div className={`app-card overflow-hidden ${fornitoriCardTheme.border}`}>
-        <div className={`app-card-bar ${fornitoriCardTheme.bar}`} aria-hidden />
+      <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${fornitoriCardTheme.border}`}>
+        <div className={`app-card-bar-accent ${fornitoriCardTheme.bar}`} aria-hidden />
         <div className="px-4 py-12 text-center sm:px-6 sm:py-16">
-          <svg className="mx-auto mb-4 h-14 w-14 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="mx-auto mb-4 h-14 w-14 text-sky-500/35" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -187,7 +199,7 @@ export default function FornitoriCardsGrid({
               d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
             />
           </svg>
-          <p className="text-sm font-medium text-slate-200">{emptyState}</p>
+          <p className="text-sm font-medium text-app-fg-muted">{emptyState}</p>
           {showAddWhenEmpty ? (
             <Link
               href="/fornitori/new"
@@ -207,7 +219,7 @@ export default function FornitoriCardsGrid({
         open={gate !== null}
         onClose={() => setGate(null)}
         onVerified={onVerified}
-        defaultOperatorName={activeOperator?.full_name}
+        defaultOperatorName={pinStepUpOperatorName}
       />
 
       {listSource === 'cache' && (
@@ -216,7 +228,7 @@ export default function FornitoriCardsGrid({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:gap-6">
         {rows.map((f) => {
           const display = fornitoreDisplayLabel(f)
           const hasDisplayAlias = !!(f.display_name?.trim())
@@ -230,20 +242,22 @@ export default function FornitoriCardsGrid({
             .toUpperCase() || '?'
 
           const bodyClasses =
-            'flex min-h-0 w-full flex-1 flex-col gap-0 p-2.5 pb-2 items-stretch sm:gap-4 sm:p-5 sm:pb-4'
+            'flex min-h-0 w-full flex-1 flex-col gap-2 p-2.5 pb-2 items-stretch sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-5 sm:pb-4 lg:gap-6 lg:p-6'
           const avatarShell =
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 via-sky-500 to-blue-600 text-xs font-bold text-white shadow-md shadow-sky-950/40 ring-2 ring-slate-600/50 ring-offset-1 ring-offset-slate-700/95 sm:h-14 sm:w-14 sm:text-base sm:ring-offset-2'
-          const pivaPillSm = f.piva ? (
-            <p className="hidden rounded-full border border-slate-500/45 bg-slate-800/90 px-3 py-1 font-mono text-[10px] text-slate-200 sm:inline-block">
-              {t.fornitori.pivaLabel} {f.piva}
-            </p>
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 via-sky-500 to-cyan-600 text-xs font-bold text-white shadow-md shadow-sky-950/45 ring-2 ring-sky-500/35 ring-offset-1 ring-offset-[rgb(2_6_23/0.9)] sm:h-14 sm:w-14 sm:rounded-2xl sm:text-base sm:ring-offset-2 lg:h-16 lg:w-16 lg:text-lg'
+          const pivaEl = f.piva ? (
+            <div className="mt-0.5 flex min-w-0 shrink-0 flex-col items-stretch self-start sm:mt-0 sm:max-w-[min(100%,13rem)] sm:items-end sm:justify-start sm:pl-3 lg:max-w-[15rem] lg:pl-5">
+              <p className="truncate rounded-md border border-sky-500/25 app-workspace-inset-bg-soft px-2 py-1 text-left font-mono text-[10px] leading-tight text-app-fg-muted sm:rounded-full sm:border-sky-500/30 sm:app-workspace-inset-bg sm:px-3 sm:py-1 sm:text-right sm:text-[11px] lg:text-xs">
+                {t.fornitori.pivaLabel} {f.piva}
+              </p>
+            </div>
           ) : null
           const headBlock = (
             <>
               <div className={`${avatarShell} self-start`}>{initials}</div>
               <div className="min-w-0 flex-1 text-left">
                 <div className="flex min-w-0 flex-row flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  <p className="min-w-0 max-w-full truncate text-sm font-bold leading-tight text-slate-100 transition-colors group-hover:text-sky-300 sm:flex-1 sm:text-base">
+                  <p className="min-w-0 max-w-full truncate text-sm font-bold leading-tight text-app-fg transition-colors group-hover:text-sky-200 sm:flex-1 sm:text-base lg:text-lg">
                     {display}
                   </p>
                   {rekkiMapped ? (
@@ -253,46 +267,40 @@ export default function FornitoriCardsGrid({
                   ) : null}
                 </div>
                 {hasDisplayAlias ? (
-                  <p className="mt-0.5 truncate text-[10px] text-slate-500 sm:mt-1 sm:text-[11px]">{f.nome}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-app-fg-muted sm:mt-1 sm:text-[11px]">{f.nome}</p>
                 ) : null}
                 {f.email ? (
-                  <p className="mt-0.5 truncate text-[11px] text-slate-300 sm:mt-1 sm:text-xs">{f.email}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-app-fg-muted sm:mt-1 sm:text-xs">{f.email}</p>
                 ) : null}
               </div>
             </>
           )
-          const pivaBlock = (
-            <div className="mt-auto hidden min-h-0 items-end justify-start sm:flex sm:min-h-[2.5rem]">
-              {pivaPillSm}
-            </div>
-          )
-
           return (
             <div
               key={f.id}
-              className={`app-card group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all sm:rounded-3xl ${fornitoriCardTheme.border} hover:border-sky-400/45 hover:shadow-lg hover:shadow-sky-500/12`}
+              className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} group relative flex h-full flex-col sm:rounded-3xl transition-all ${fornitoriCardTheme.border} hover:border-sky-400/45 hover:shadow-lg hover:shadow-sky-500/12`}
             >
               <div
-                className={`app-card-bar h-0.5 shrink-0 rounded-t-2xl sm:h-1 sm:rounded-t-3xl ${fornitoriCardTheme.bar}`}
+                className={`h-0.5 w-full shrink-0 rounded-t-2xl sm:h-1 sm:rounded-t-3xl ${fornitoriCardTheme.bar}`}
                 aria-hidden
               />
               {isAdmin ? (
                 <button type="button" className={bodyClasses} onClick={() => request('detail', f.id, f.nome)}>
-                  <div className="flex min-w-0 flex-1 flex-row items-start gap-2 sm:gap-4">
+                  <div className="flex min-w-0 flex-1 flex-row items-start gap-2 sm:min-w-0 sm:gap-4">
                     {headBlock}
                   </div>
-                  {pivaBlock}
+                  {pivaEl}
                 </button>
               ) : (
                 <Link href={`/fornitori/${f.id}`} className={bodyClasses}>
-                  <div className="flex min-w-0 flex-1 flex-row items-start gap-2 sm:gap-4">
+                  <div className="flex min-w-0 flex-1 flex-row items-start gap-2 sm:min-w-0 sm:gap-4">
                     {headBlock}
                   </div>
-                  {pivaBlock}
+                  {pivaEl}
                 </Link>
               )}
 
-              <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-2xl border-t border-slate-600/35 bg-slate-800/35 px-2 py-1.5 backdrop-blur-sm sm:rounded-b-3xl sm:px-4 sm:py-2.5">
+              <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-2xl border-t border-sky-500/20 app-workspace-inset-bg-soft px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm sm:rounded-b-3xl sm:px-4 sm:py-2.5">
                 {unlockedIds.has(f.id) ? (
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>
@@ -340,7 +348,7 @@ export default function FornitoriCardsGrid({
                   <button
                     type="button"
                     onClick={() => request('unlock', f.id, f.nome)}
-                    className="flex min-h-[44px] w-full max-w-full items-center justify-center gap-2 rounded-lg px-2 text-amber-400/95 transition-colors hover:bg-amber-950/25 hover:text-amber-300 touch-manipulation"
+                    className="flex min-h-[44px] w-full max-w-full items-center justify-center gap-2 rounded-lg border border-sky-500/15 app-workspace-inset-bg-soft px-2 text-amber-300/95 transition-colors hover:border-amber-500/25 hover:bg-amber-950/20 hover:text-amber-200 touch-manipulation"
                     title={t.ui.operatorPinStepUpHint}
                     aria-label={`${t.ui.operatorPinStepUpTitle} — ${t.fornitori.cardFooterUnlockPin}`}
                   >
@@ -358,7 +366,7 @@ export default function FornitoriCardsGrid({
                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                       />
                     </svg>
-                    <span className="min-w-0 truncate text-left text-[11px] font-semibold leading-tight text-slate-200 sm:text-xs">
+                    <span className="min-w-0 truncate text-left text-[11px] font-semibold leading-tight text-app-fg-muted sm:text-xs">
                       {t.fornitori.cardFooterUnlockPin}
                     </span>
                   </button>

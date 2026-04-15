@@ -176,9 +176,9 @@ export default function ScanEmailButton({
     'h-6 py-0 pl-0.5 pr-4 text-left text-[10px] font-medium leading-6 md:pl-1 md:pr-5 md:text-[11px] xl:h-9 xl:pl-1.5 xl:pr-7 xl:text-[11px] xl:leading-9'
 
   const headerTriggerBtnCls =
-    'inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-cyan-400/50 bg-cyan-500/25 px-2 text-[10px] font-bold text-cyan-50 shadow-sm shadow-cyan-950/40 transition-colors hover:bg-cyan-500/35 active:bg-cyan-500/30 whitespace-nowrap sm:px-2.5 sm:text-[11px]'
+    'inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap sm:px-2.5 sm:text-[11px]'
 
-  const selectOptionSurface = 'bg-slate-700 text-slate-100'
+  const selectOptionSurface = 'app-workspace-surface-elevated text-app-fg-muted'
   const controlsDisabled = loading || emailSync?.progress.active || !!disabledProp
 
   const selectValue = scopePrefs.mode === 'lookback' ? 'lb' : `fy:${scopePrefs.fiscalYear}`
@@ -189,11 +189,11 @@ export default function ScanEmailButton({
 
   /** Stili select nel pannello header (stessa logica della variante pagina default, non supplier). */
   const popRound = 'rounded-lg'
-  const popFocus = 'focus:outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-400/40'
+  const popFocus = 'focus:outline-none focus:border-app-a-50 focus:ring-2 focus:ring-app-a-35'
   const popSurface =
-    'border border-slate-500/45 bg-slate-800/90 text-slate-100 shadow-md shadow-black/30 backdrop-blur-sm'
+    'border border-app-line-30 app-workspace-surface-elevated text-app-fg-muted shadow-md shadow-black/30 ring-1 ring-inset ring-white/8 backdrop-blur-xl'
   const popSelectBase = `w-full cursor-pointer appearance-none ${popRound} ${popSurface} ${selectSize} transition-colors ${popFocus} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`
-  const popChevron = 'pointer-events-none absolute top-1/2 right-2 h-3 w-3 -translate-y-1/2 text-slate-200'
+  const popChevron = 'pointer-events-none absolute top-1/2 right-2 h-3 w-3 -translate-y-1/2 text-app-fg-muted'
 
   if (isHeaderPlacement) {
     return (
@@ -216,7 +216,7 @@ export default function ScanEmailButton({
           </svg>
           <span>{t.dashboard.syncEmail}</span>
           <svg
-            className={`h-3 w-3 shrink-0 text-cyan-200/90 transition-transform ${headerMenuOpen ? 'rotate-180' : ''}`}
+            className={`h-3 w-3 shrink-0 text-app-fg-muted transition-transform ${headerMenuOpen ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -231,7 +231,7 @@ export default function ScanEmailButton({
             id={headerMenuId}
             role="dialog"
             aria-label={t.dashboard.syncEmail}
-            className="absolute right-0 top-[calc(100%+8px)] z-[200] w-[min(calc(100vw-2rem),19rem)] rounded-xl border border-cyan-500/25 bg-slate-900/95 p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
+            className="absolute right-0 top-[calc(100%+8px)] z-[200] w-[min(calc(100vw-2rem),19rem)] rounded-xl border border-app-line-25 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
           >
             <div className="flex flex-col gap-2.5">
               <div className="relative w-full shrink-0">
@@ -374,7 +374,7 @@ export default function ScanEmailButton({
                   setHeaderMenuOpen(false)
                 }}
                 disabled={controlsDisabled}
-                className="mt-1 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-cyan-400/55 bg-cyan-500/30 text-xs font-bold text-cyan-50 shadow-sm shadow-cyan-950/30 transition-colors hover:bg-cyan-500/40 active:bg-cyan-500/35 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-1 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-app-a-55 bg-app-line-30 text-xs font-bold text-app-fg shadow-sm shadow-cyan-950/30 transition-colors hover:bg-app-line-40 active:bg-app-line-35 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <>
@@ -424,12 +424,12 @@ export default function ScanEmailButton({
   const lookbackSelectSize = isSupplierVariant ? selectSizeSupplierLookback : selectSize
   const selectRound = isSupplierVariant ? 'rounded-md' : 'rounded-lg'
   const selectFocusRing = isSupplierVariant
-    ? 'focus:ring-1 focus:ring-cyan-500/30'
-    : 'focus:ring-2 focus:ring-slate-400/40'
+    ? 'focus:ring-1 focus:ring-app-line-30'
+    : 'focus:ring-2 focus:ring-app-line-40'
   const selectSurface = isSupplierVariant
-    ? 'border-white/10 bg-white/5 text-slate-100 shadow-none shadow-black/0'
-    : 'border-slate-500/45 bg-slate-800/85 text-slate-100 shadow-sm shadow-black/25'
-  const selectChevronCls = isSupplierVariant ? 'text-slate-300' : 'text-slate-200'
+    ? 'border-white/10 bg-white/5 text-app-fg shadow-none shadow-black/0'
+    : 'border-app-line-35 app-workspace-surface-elevated text-app-fg shadow-sm shadow-black/25'
+  const selectChevronCls = isSupplierVariant ? 'text-app-fg-muted' : 'text-app-fg-muted'
   const selectChevronAbs = isSupplierVariant
     ? 'right-1 h-2 w-2 md:right-1.5 md:h-2.5 md:w-2.5 xl:right-2 xl:h-3 xl:w-3'
     : 'right-2 h-3 w-3'
@@ -437,8 +437,8 @@ export default function ScanEmailButton({
     'right-0.5 h-1.5 w-1.5 md:right-1 md:h-2 md:w-2 xl:right-1.5 xl:h-2.5 xl:w-2.5'
   const narrowRowChevronAbs = isSupplierVariant ? supplierNarrowChevronAbs : selectChevronAbs
   const btnPrimaryCls = isSupplierVariant
-    ? `${btnSize} rounded-md border border-cyan-500/40 bg-cyan-500/15 text-[10px] font-bold text-cyan-100 transition-colors hover:bg-cyan-500/25 active:bg-cyan-500/30 whitespace-nowrap touch-manipulation md:text-[11px]`
-    : `${btnSize} rounded-lg border border-slate-400/35 bg-slate-200 font-semibold text-xs text-slate-900 shadow-sm transition-colors hover:bg-white active:bg-slate-100 whitespace-nowrap touch-manipulation`
+    ? `${btnSize} rounded-md border border-app-line-40 bg-app-line-15 text-[10px] font-bold text-app-fg-muted transition-colors hover:bg-app-line-25 active:bg-app-line-30 whitespace-nowrap touch-manipulation md:text-[11px]`
+    : `${btnSize} rounded-lg border border-slate-400/35 bg-slate-200 font-semibold text-xs text-cyan-950 shadow-sm transition-colors hover:bg-white active:bg-slate-100 whitespace-nowrap touch-manipulation`
 
   return (
     <div
@@ -504,7 +504,7 @@ export default function ScanEmailButton({
             writeEmailSyncScopePrefs(n)
             setScopePrefs(n)
           }}
-          className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${fiscalSelectSize} backdrop-blur-sm transition-colors focus:outline-none ${isSupplierVariant ? 'focus:border-cyan-500' : 'focus:border-slate-400'} ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+          className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${fiscalSelectSize} backdrop-blur-sm transition-colors focus:outline-none ${isSupplierVariant ? 'focus:border-app-cyan-500' : 'focus:border-app-line-40'} ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
         >
           <option className={selectOptionSurface} value="lb">
             {t.dashboard.emailSyncScopeLookback}
@@ -557,7 +557,7 @@ export default function ScanEmailButton({
               writeEmailSyncScopePrefs(n)
               setScopePrefs(n)
             }}
-            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${lookbackSelectSize} backdrop-blur-sm transition-colors focus:outline-none ${isSupplierVariant ? 'focus:border-cyan-500' : 'focus:border-slate-400'} ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${lookbackSelectSize} backdrop-blur-sm transition-colors focus:outline-none ${isSupplierVariant ? 'focus:border-app-cyan-500' : 'focus:border-app-line-40'} ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
           >
             <option className={selectOptionSurface} value="def">
               {t.dashboard.emailSyncLookbackSedeDefault}
@@ -609,7 +609,7 @@ export default function ScanEmailButton({
               writeEmailSyncScopePrefs(n)
               setScopePrefs(n)
             }}
-            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${selectSizeEffective} backdrop-blur-sm transition-colors focus:outline-none ${isSupplierVariant ? 'focus:border-cyan-500' : 'focus:border-slate-400'} ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
+            className={`w-full cursor-pointer appearance-none border ${selectRound} ${selectSurface} ${selectSizeEffective} backdrop-blur-sm transition-colors focus:outline-none ${isSupplierVariant ? 'focus:border-app-cyan-500' : 'focus:border-app-line-40'} ${selectFocusRing} disabled:cursor-not-allowed disabled:opacity-50 [color-scheme:dark]`}
           >
             <option className={selectOptionSurface} value="all">
               {t.dashboard.emailSyncDocumentKindAll}
@@ -673,9 +673,9 @@ export default function ScanEmailButton({
 
       {toast && (
         <p className={`text-xs font-medium px-2 py-1 rounded-lg w-full max-w-full text-right sm:max-w-[220px] ${
-          toast.type === 'ok' ? 'bg-slate-700/90 text-green-300' :
-          toast.type === 'warn' ? 'bg-slate-700/90 text-amber-200' :
-          'bg-slate-700/90 text-red-300'
+          toast.type === 'ok' ? 'app-workspace-surface-elevated text-green-300' :
+          toast.type === 'warn' ? 'app-workspace-surface-elevated text-amber-200' :
+          'app-workspace-surface-elevated text-red-300'
         }`}>
           {toast.text}
         </p>

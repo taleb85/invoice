@@ -2,63 +2,93 @@
  * Palette KPI unica: scheda fornitore (`SupplierDesktopKpiGrid`),
  * dashboard operatore (`DashboardOperatorKpiGrid`) ed elenchi collegati.
  */
+
+/**
+ * Griglia KPI scheda fornitore desktop (6 tile): 2 → 3 → 6 colonne.
+ */
+export const SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS =
+  'mb-0 grid w-full max-w-none grid-cols-2 gap-2 md:mb-5 md:gap-3 lg:grid-cols-3 lg:gap-2.5 xl:grid-cols-6 xl:gap-2'
+
+/**
+ * Dashboard operatore: **Fornitori + 6 KPI** (7 tile).
+ * Da `lg`: 4 colonne → **due righe** (4 + 3); sotto `lg` resta 2 colonne.
+ */
+export const DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS =
+  'mb-0 grid w-full max-w-none grid-cols-2 gap-2.5 md:mb-5 md:gap-3.5 lg:grid-cols-4 lg:gap-3 xl:gap-3.5'
+
 export const supplierKpiPalette = {
   conferme: {
     hex: '#f43f5e',
     accent: 'border-l-rose-500',
-    iconClass: 'text-rose-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(244,63,94,0.42)]',
-    chevronHoverClass: 'group-hover:text-rose-300',
+    iconClass: 'text-rose-300',
+    iconDropShadow: 'drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]',
+    chevronClass: 'text-rose-400',
+    chevronHoverClass: 'group-hover:text-rose-200',
     subStrong: 'text-rose-300',
+    /** Separatore tra titolo e corpo tile (stessa famiglia cromatica della tab). */
+    headerRule: 'border-b border-rose-500/25',
   },
   bolle: {
     hex: '#6366f1',
     accent: 'border-l-indigo-500',
-    iconClass: 'text-indigo-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(129,140,248,0.4)]',
-    chevronHoverClass: 'group-hover:text-indigo-300',
-    subStrong: 'text-amber-400',
+    iconClass: 'text-indigo-300',
+    iconDropShadow: 'drop-shadow-[0_0_10px_rgba(129,140,248,0.48)]',
+    chevronClass: 'text-indigo-400',
+    chevronHoverClass: 'group-hover:text-indigo-200',
+    subStrong: 'text-indigo-300',
+    headerRule: 'border-b border-indigo-500/25',
   },
   /** Allineato a emerald KPI operatore / tab fatture (`rgb(52,211,153)`). */
   fatture: {
     hex: '#34d399',
     accent: 'border-l-emerald-400',
-    iconClass: 'text-emerald-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]',
-    chevronHoverClass: 'group-hover:text-emerald-300',
-    subStrong: 'text-slate-200',
+    iconClass: 'text-emerald-300',
+    iconDropShadow: 'drop-shadow-[0_0_10px_rgba(52,211,153,0.48)]',
+    chevronClass: 'text-emerald-400',
+    chevronHoverClass: 'group-hover:text-emerald-200',
+    subStrong: 'text-emerald-300',
+    headerRule: 'border-b border-emerald-500/25',
   },
   verifica: {
     hex: '#06b6d4',
-    accent: 'border-l-cyan-500',
-    iconClass: 'text-cyan-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]',
-    chevronHoverClass: 'group-hover:text-cyan-300',
-    subStrong: 'text-slate-200',
+    accent: 'border-l-app-cyan-500',
+    iconClass: 'text-cyan-300',
+    iconDropShadow: 'drop-shadow-[0_0_10px_rgba(34,211,238,0.48)]',
+    chevronClass: 'text-cyan-400',
+    chevronHoverClass: 'group-hover:text-cyan-200',
+    subStrong: 'text-cyan-200/90',
+    headerRule: 'border-b border-cyan-500/25',
   },
+  /** Listino: fucsia (lontano da smeraldo fatture, ambra documenti, cyan verifica). */
   listino: {
-    hex: '#84cc16',
-    accent: 'border-l-lime-500',
-    iconClass: 'text-lime-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(163,230,53,0.4)]',
-    chevronHoverClass: 'group-hover:text-lime-300',
-    subStrong: 'text-slate-200',
+    hex: '#c026d3',
+    accent: 'border-l-fuchsia-600',
+    iconClass: 'text-fuchsia-300',
+    iconDropShadow: 'drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]',
+    chevronClass: 'text-fuchsia-400',
+    chevronHoverClass: 'group-hover:text-fuchsia-200',
+    subStrong: 'text-fuchsia-300',
+    headerRule: 'border-b border-fuchsia-500/25',
   },
   totaleSpesa: {
     hex: '#7c3aed',
     accent: 'border-l-violet-600',
-    iconClass: 'text-violet-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(167,139,250,0.4)]',
-    chevronHoverClass: 'group-hover:text-violet-300',
-    subStrong: 'text-slate-200',
+    iconClass: 'text-violet-300',
+    iconDropShadow: 'drop-shadow-[0_0_10px_rgba(167,139,250,0.48)]',
+    chevronClass: 'text-violet-400',
+    chevronHoverClass: 'group-hover:text-violet-200',
+    subStrong: 'text-violet-300',
+    headerRule: 'border-b border-violet-500/25',
   },
   documenti: {
     hex: '#f59e0b',
     accent: 'border-l-amber-500',
-    iconClass: 'text-amber-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]',
-    chevronHoverClass: 'group-hover:text-amber-300',
-    subStrong: 'text-amber-400',
+    iconClass: 'text-amber-300',
+    iconDropShadow: 'drop-shadow-[0_0_12px_rgba(251,191,36,0.55)]',
+    chevronClass: 'text-amber-400',
+    chevronHoverClass: 'group-hover:text-amber-200',
+    subStrong: 'text-amber-300',
+    headerRule: 'border-b border-amber-500/25',
   },
 } as const
 
@@ -78,114 +108,97 @@ export function supplierDesktopKpiOuterShadow(hex: string): string {
   ].join(', ')
 }
 
-/** Ordine righe = `DashboardOperatorKpiGrid` (fornitori → … → totale). */
+/**
+ * Accenti per tile `DashboardOperatorKpiGrid` (bordo, alone, hover, icona, chevron).
+ * Ogni voce ha `iconWrapClass` / `iconSvgClass` / `chevronClass` allineati al bordo tile.
+ */
 export const operatorKpiVisual = [
   {
     accentHex: '#0ea5e9',
     borderClass: 'border-sky-500/32',
     glowRgb: '14,165,233',
-    iconClass: 'text-sky-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(56,189,248,0.38)]',
-    subIdleClass: 'text-sky-100/90',
     ringClass: 'ring-sky-400/10',
     hoverClass:
       'hover:border-sky-400/38 hover:shadow-[0_0_0_1px_rgba(56,189,248,0.12)]',
-    chevronClass:
-      'text-sky-400/70 transition-colors group-hover:text-sky-200 group-hover:drop-shadow-[0_0_5px_rgba(56,189,248,0.35)]',
+    iconWrapClass: 'bg-sky-500/14 ring-1 ring-sky-400/25',
+    iconSvgClass: 'text-sky-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.42)]',
+    chevronClass: 'text-sky-400 group-hover:text-sky-100 group-hover:opacity-100',
   },
   {
     accentHex: '#f59e0b',
     borderClass: 'border-amber-500/32',
     glowRgb: '245,158,11',
-    iconClass: 'text-amber-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(251,191,36,0.38)]',
-    subIdleClass: 'text-slate-100',
-    subPositiveClass: 'text-amber-300',
     ringClass: 'ring-amber-400/10',
     hoverClass:
       'hover:border-amber-400/38 hover:shadow-[0_0_0_1px_rgba(251,191,36,0.12)]',
-    chevronClass:
-      'text-amber-400/70 transition-colors group-hover:text-amber-200 group-hover:drop-shadow-[0_0_5px_rgba(251,191,36,0.35)]',
+    iconWrapClass: 'bg-amber-500/14 ring-1 ring-amber-400/25',
+    iconSvgClass: 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]',
+    chevronClass: 'text-amber-400 group-hover:text-amber-100 group-hover:opacity-100',
   },
   {
     accentHex: '#f43f5e',
     borderClass: 'border-rose-500/32',
     glowRgb: '244,63,94',
-    iconClass: 'text-rose-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(244,63,94,0.4)]',
-    subIdleClass: 'text-slate-100',
-    subPositiveClass: 'text-rose-200',
     ringClass: 'ring-rose-400/10',
     hoverClass:
       'hover:border-rose-400/38 hover:shadow-[0_0_0_1px_rgba(251,113,133,0.12)]',
-    chevronClass:
-      'text-rose-400/70 transition-colors group-hover:text-rose-200 group-hover:drop-shadow-[0_0_5px_rgba(251,113,133,0.35)]',
+    iconWrapClass: 'bg-rose-500/14 ring-1 ring-rose-400/25',
+    iconSvgClass: 'text-rose-300 drop-shadow-[0_0_8px_rgba(251,113,133,0.45)]',
+    chevronClass: 'text-rose-400 group-hover:text-rose-100 group-hover:opacity-100',
   },
   {
     accentHex: '#6366f1',
     borderClass: 'border-indigo-500/32',
     glowRgb: '99,102,241',
-    iconClass: 'text-indigo-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(129,140,248,0.38)]',
-    subIdleClass: 'text-indigo-100/85',
-    subPositiveClass: 'text-amber-300',
     ringClass: 'ring-indigo-400/10',
     hoverClass:
       'hover:border-indigo-400/38 hover:shadow-[0_0_0_1px_rgba(129,140,248,0.12)]',
-    chevronClass:
-      'text-indigo-400/70 transition-colors group-hover:text-indigo-200 group-hover:drop-shadow-[0_0_5px_rgba(129,140,248,0.35)]',
+    iconWrapClass: 'bg-indigo-500/14 ring-1 ring-indigo-400/25',
+    iconSvgClass: 'text-indigo-300 drop-shadow-[0_0_8px_rgba(129,140,248,0.48)]',
+    chevronClass: 'text-indigo-400 group-hover:text-indigo-100 group-hover:opacity-100',
   },
   {
     accentHex: '#34d399',
     borderClass: 'border-emerald-500/32',
     glowRgb: '52,211,153',
-    iconClass: 'text-emerald-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(52,211,153,0.38)]',
-    subIdleClass: 'text-emerald-100/90',
     ringClass: 'ring-emerald-400/10',
     hoverClass:
       'hover:border-emerald-400/38 hover:shadow-[0_0_0_1px_rgba(52,211,153,0.12)]',
-    chevronClass:
-      'text-emerald-400/70 transition-colors group-hover:text-emerald-200 group-hover:drop-shadow-[0_0_5px_rgba(52,211,153,0.35)]',
+    iconWrapClass: 'bg-emerald-500/14 ring-1 ring-emerald-400/25',
+    iconSvgClass: 'text-emerald-300 drop-shadow-[0_0_8px_rgba(52,211,153,0.45)]',
+    chevronClass: 'text-emerald-400 group-hover:text-emerald-100 group-hover:opacity-100',
   },
   {
     accentHex: '#06b6d4',
-    borderClass: 'border-cyan-500/32',
+    borderClass: 'border-app-line-32',
     glowRgb: '6,182,212',
-    iconClass: 'text-cyan-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(34,211,238,0.38)]',
-    subIdleClass: 'text-slate-100',
-    ringClass: 'ring-cyan-400/10',
+    ringClass: 'ring-app-a-20',
     hoverClass:
-      'hover:border-cyan-400/38 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.12)]',
-    chevronClass:
-      'text-cyan-400/70 transition-colors group-hover:text-cyan-200 group-hover:drop-shadow-[0_0_5px_rgba(34,211,238,0.35)]',
+      'hover:border-app-a-38 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.12)]',
+    iconWrapClass: 'bg-cyan-500/14 ring-1 ring-cyan-400/25',
+    iconSvgClass: 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.45)]',
+    chevronClass: 'text-cyan-400 group-hover:text-cyan-100 group-hover:opacity-100',
   },
   {
     accentHex: '#84cc16',
     borderClass: 'border-lime-500/32',
     glowRgb: '132,204,22',
-    iconClass: 'text-lime-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(163,230,53,0.4)]',
-    subIdleClass: 'text-slate-200',
-    subPositiveClass: 'text-lime-100/90',
     ringClass: 'ring-lime-400/10',
     hoverClass:
       'hover:border-lime-400/38 hover:shadow-[0_0_0_1px_rgba(163,230,53,0.12)]',
-    chevronClass:
-      'text-lime-400/70 transition-colors group-hover:text-lime-200 group-hover:drop-shadow-[0_0_5px_rgba(163,230,53,0.35)]',
+    iconWrapClass: 'bg-lime-500/14 ring-1 ring-lime-400/25',
+    iconSvgClass: 'text-lime-300 drop-shadow-[0_0_8px_rgba(163,230,53,0.42)]',
+    chevronClass: 'text-lime-400 group-hover:text-lime-100 group-hover:opacity-100',
   },
   {
     accentHex: '#7c3aed',
     borderClass: 'border-violet-600/32',
     glowRgb: '124,58,237',
-    iconClass: 'text-violet-400',
-    iconDropShadow: 'drop-shadow-[0_0_8px_rgba(167,139,250,0.38)]',
-    subIdleClass: 'text-violet-100/90',
     ringClass: 'ring-violet-400/10',
     hoverClass:
       'hover:border-violet-500/38 hover:shadow-[0_0_0_1px_rgba(167,139,250,0.12)]',
-    chevronClass:
-      'text-violet-400/70 transition-colors group-hover:text-violet-200 group-hover:drop-shadow-[0_0_5px_rgba(167,139,250,0.35)]',
+    iconWrapClass: 'bg-violet-500/14 ring-1 ring-violet-400/25',
+    iconSvgClass: 'text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.48)]',
+    chevronClass: 'text-violet-400 group-hover:text-violet-100 group-hover:opacity-100',
   },
 ] as const

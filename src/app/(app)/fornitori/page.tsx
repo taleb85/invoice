@@ -6,6 +6,10 @@ import FornitoriListSection from '@/components/FornitoriListSection'
 import { getT } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import {
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
+} from '@/lib/app-shell-layout'
 
 async function getFornitori(): Promise<{
   fornitori: Fornitore[]
@@ -46,17 +50,17 @@ export default async function FornitoriPage() {
   const [{ fornitori, sedeNome, sedeScope }, t] = await Promise.all([getFornitori(), getT()])
 
   return (
-    <div className="app-shell-page-padding">
-      <AppPageHeaderStrip accent="sky">
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+      <AppPageHeaderStrip accent="sky" flushBottom>
         <AppPageHeaderTitleWithDashboardShortcut
           dashboardLabel={t.nav.dashboard}
           className="min-w-0 items-center gap-3 sm:flex-1 sm:flex-initial"
           dashboardShortcutClassName="hidden md:flex"
         >
           <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:gap-3">
-            <h1 className="app-page-title min-w-0 flex-1 truncate pr-2 text-2xl font-bold">{t.fornitori.title}</h1>
+            <h1 className={`min-w-0 flex-1 truncate pr-2 ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>{t.fornitori.title}</h1>
             {sedeNome ? (
-              <span className="inline-flex max-w-[min(100%,11rem)] shrink-0 items-center gap-1 rounded-full border border-cyan-500/35 bg-cyan-500/15 px-2 py-0.5 text-[11px] font-medium text-cyan-200 sm:max-w-[min(100%,14rem)]">
+              <span className="inline-flex max-w-[min(100%,11rem)] shrink-0 items-center gap-1 rounded-full border border-app-line-35 bg-app-line-15 px-2 py-0.5 text-[11px] font-medium text-app-fg-muted sm:max-w-[min(100%,14rem)]">
                 <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -69,16 +73,16 @@ export default async function FornitoriPage() {
         <div className="hidden min-w-0 max-w-full flex-row flex-wrap items-center justify-end gap-2 sm:gap-3 md:flex md:shrink-0">
           <Link
             href="/fornitori/import"
-            className="hidden items-center gap-1.5 rounded-lg border border-slate-600/80 bg-slate-700/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700 md:flex"
+            className="hidden items-center gap-1.5 rounded-lg border border-app-line-35 app-workspace-inset-bg-soft px-3 py-1.5 text-xs font-semibold text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 transition-colors hover:border-app-a-50 hover:bg-black/12 md:flex"
           >
-            <svg className="w-3.5 h-3.5 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-3.5 h-3.5 shrink-0 text-sky-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             {t.fornitori.importaDaFattura}
           </Link>
           <Link
             href="/fornitori/new"
-            className="hidden items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-cyan-600 md:flex"
+            className="hidden items-center gap-1.5 rounded-lg bg-app-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_0_14px_-4px_rgba(34,211,238,0.45)] ring-1 ring-app-tint-300-30 transition-colors hover:bg-app-cyan-400 md:flex"
           >
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

@@ -33,7 +33,7 @@ function ProfileMobileHub() {
   const showPickSedeForOperators = masterPlane && !sedeId
 
   const rowCls =
-    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-white/10 bg-slate-700/40 px-3 py-3 text-sm font-semibold text-slate-100 backdrop-blur-sm transition-colors hover:bg-slate-700/70 active:scale-[0.99]'
+    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-app-line-25 app-workspace-inset-bg-soft px-3 py-3 text-sm font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-a-40 hover:bg-black/12 active:scale-[0.99]'
 
   const handleLogout = async () => {
     try {
@@ -49,14 +49,16 @@ function ProfileMobileHub() {
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-white/10 bg-slate-700/50 p-3 shadow-lg shadow-black/20 backdrop-blur-md">
+    <div className="app-card overflow-hidden">
+      <div className="app-card-bar" aria-hidden />
+      <div className="space-y-3 border-t border-app-line-15 app-workspace-inset-bg-soft p-3 sm:p-4">
       {showOperatorForm && sedeId ? <SedeAddOperatorForm sedeId={sedeId} embedded /> : null}
       {showPickSedeForOperators ? (
         <div className="space-y-2">
-          <p className="px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.sedi.addOperatorSedeTitle}</p>
-          <p className="px-0.5 text-xs leading-snug text-slate-200">{t.impostazioni.addOperatorsPickSede}</p>
+          <p className="px-0.5 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">{t.sedi.addOperatorSedeTitle}</p>
+          <p className="px-0.5 text-xs leading-snug text-app-fg-muted">{t.impostazioni.addOperatorsPickSede}</p>
           <Link href="/sedi" className={rowCls}>
-            <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <svg className="h-4 w-4 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -69,13 +71,13 @@ function ProfileMobileHub() {
         </div>
       ) : null}
       {showOperatorForm || showPickSedeForOperators ? (
-        <div className="my-3 border-t border-white/10" aria-hidden />
+        <div className="my-3 border-t border-app-soft-border" aria-hidden />
       ) : null}
-      <p className="mb-2 px-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t.impostazioni.accountSection}</p>
+      <p className="mb-2 px-0.5 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">{t.impostazioni.accountSection}</p>
       <div className="flex flex-col gap-2">
         {showChangeSede && (
           <Link href="/sedi" className={rowCls}>
-            <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <svg className="h-4 w-4 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -100,13 +102,14 @@ function ProfileMobileHub() {
         <button
           type="button"
           onClick={handleLogout}
-          className={`${rowCls} border-red-500/25 bg-red-950/20 text-red-200 hover:bg-red-950/40`}
+          className={`${rowCls} border-red-500/35 bg-red-950/35 text-red-100 hover:border-red-400/45 hover:bg-red-950/50`}
         >
           <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
           {t.nav.esci}
         </button>
+      </div>
       </div>
     </div>
   )
@@ -137,8 +140,8 @@ export default function ImpostazioniPage() {
   }
 
   const selectCls =
-    'w-full rounded-xl border border-slate-600/60 bg-slate-700/70 px-3.5 py-2.5 text-sm text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40'
-  const labelCls = 'mb-1.5 block text-sm font-medium text-slate-200'
+    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
+  const labelCls = 'mb-1.5 block text-sm font-medium text-app-fg-muted'
 
   const intlLocale =
     locale === 'it' ? 'it-IT'
@@ -161,9 +164,9 @@ export default function ImpostazioniPage() {
     : '…'
 
   const FormBody = () => (
-    <div className="space-y-6">
+    <div className="space-y-8 md:space-y-6">
       {/* Currency + Timezone — side by side on desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-5">
         {/* Valuta */}
         <div>
           <div className="flex items-center gap-2.5 mb-3">
@@ -200,22 +203,22 @@ export default function ImpostazioniPage() {
       </div>
 
       {/* Live preview */}
-      <div className="rounded-xl border border-slate-700/60 bg-slate-700/40 p-4">
-        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>{t.impostazioni.preview}</p>
+      <div className="rounded-xl border border-app-line-25 app-workspace-inset-bg-soft p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10">
+        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>{t.impostazioni.preview}</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Date</p>
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
-              <svg className="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Date</p>
+            <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+              <svg className="h-4 w-4 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span suppressHydrationWarning>{previewData}</span>
             </div>
           </div>
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Currency</p>
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-200">
-              <svg className="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Currency</p>
+            <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+              <svg className="h-4 w-4 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span suppressHydrationWarning>{previewValuta}</span>
@@ -229,29 +232,29 @@ export default function ImpostazioniPage() {
   return (
     <>
       {/* ══ MOBILE layout (Help /guida: solo qui, non in MobileTopbar) ══ */}
-      <div className="md:hidden p-4 max-w-lg">
-        <AppPageHeaderStrip>
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-4 text-app-fg md:hidden">
+        <AppPageHeaderStrip dense flushBottom>
           <AppPageHeaderTitleWithDashboardShortcut
             dashboardLabel={t.nav.dashboard}
-            className="min-w-0 w-full flex-1 items-center gap-3"
+            className="min-w-0 w-full flex-1 items-center gap-2 sm:gap-3"
             showDashboardShortcut={false}
           >
-            <div className="flex w-full min-w-0 items-center justify-between gap-3">
-              <div className="min-w-0 flex-1 py-0.5 pr-2">
-                <h1 className="app-page-title text-xl font-bold leading-tight" suppressHydrationWarning>
+            <div className="flex w-full min-w-0 items-center justify-between gap-2">
+              <div className="min-w-0 flex-1 pr-1.5">
+                <h1
+                  className="app-page-title truncate text-lg font-bold leading-snug sm:text-xl"
+                  suppressHydrationWarning
+                >
                   {mounted ? t.impostazioni.title : ''}
                 </h1>
-                <p className="mt-1 text-sm leading-snug text-slate-200" suppressHydrationWarning>
-                  {mounted ? t.impostazioni.subtitle : ''}
-                </p>
               </div>
               <Link
                 href="/guida"
-                className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center self-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-slate-900/20 transition-all hover:border-cyan-400/35 hover:brightness-110 active:scale-[0.98] sm:h-11 sm:w-11"
+                className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center self-center rounded-lg border border-app-line-35 bg-gradient-to-br from-[rgb(30_41_59/0.95)] via-cyan-950/40 to-indigo-950/90 shadow-md shadow-black/30 ring-1 ring-app-line-15 transition-all hover:border-app-a-55 hover:brightness-110 active:scale-[0.98] sm:h-10 sm:w-10 sm:rounded-xl"
                 aria-label={t.nav.guida}
                 title={t.nav.guida}
               >
-                <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" aria-hidden>
                   <defs>
                     <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="#6b8ef5" />
@@ -272,7 +275,7 @@ export default function ImpostazioniPage() {
         </AppPageHeaderStrip>
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
-          <div className="space-y-5 p-5">
+          <div className="space-y-5 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
           <FormBody />
           {saved && (
             <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
@@ -281,7 +284,7 @@ export default function ImpostazioniPage() {
             </div>
           )}
           <button onClick={handleSave}
-            className="flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-cyan-500 py-3 text-sm font-bold text-white transition-colors hover:bg-cyan-600 active:bg-cyan-700">
+            className="flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 py-3 text-sm font-bold text-white shadow-[0_0_18px_-6px_rgba(34,211,238,0.45)] ring-1 ring-app-tint-300-30 transition-colors hover:bg-app-cyan-400 hover:shadow-[0_0_22px_-5px_rgba(34,211,238,0.55)] active:bg-cyan-600">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
             <span suppressHydrationWarning>{t.common.save}</span>
           </button>
@@ -295,24 +298,21 @@ export default function ImpostazioniPage() {
         <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 lg:px-8">
           <div className="app-card overflow-hidden">
             <div className="app-card-bar" aria-hidden />
-            <div className="border-b border-slate-600/80/80 px-6 py-5 sm:px-8">
+            <div className="border-b border-app-line-30 px-6 py-5 sm:px-8">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15">
-                    <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-app-line-15">
+                    <svg className="h-5 w-5 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
                       {mounted ? t.impostazioni.sectionLocalisation : ''}
                     </p>
                     <h1 className="app-page-title mt-0.5 text-xl font-bold" suppressHydrationWarning>
                       {mounted ? t.impostazioni.title : ''}
                     </h1>
-                    <p className="mt-1 text-sm text-slate-200" suppressHydrationWarning>
-                      {mounted ? t.impostazioni.subtitle : ''}
-                    </p>
                   </div>
                 </div>
                 <AppPageHeaderDesktopTray className="pt-0.5" />
@@ -329,11 +329,11 @@ export default function ImpostazioniPage() {
                 </div>
               )}
             </div>
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-600/80/80 bg-slate-700/40 px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+            <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
               <button
                 type="button"
                 onClick={handleSave}
-                className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
+                className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

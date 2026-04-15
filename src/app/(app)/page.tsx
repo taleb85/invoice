@@ -19,11 +19,18 @@ import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
+import DashboardWorkspaceQuickNav from '@/components/DashboardWorkspaceQuickNav'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
 import { parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
+import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import {
+  SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
+  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+} from '@/lib/summary-highlight-accent'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,49 +75,47 @@ export default async function DashboardPage({
     ])
 
     return (
-      <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6 app-shell-page-padding">
+      <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
         <DashboardDesktopHeaderActionsPortal>
           <div className="flex min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-2 sm:gap-2.5 md:overflow-x-auto lg:gap-3">
             <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
             <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
           </div>
         </DashboardDesktopHeaderActionsPortal>
-        <div className="w-full">
-          <AppPageHeaderStrip embedded>
-            <AppPageHeaderTitleWithDashboardShortcut
-              dashboardLabel={t.nav.dashboard}
-              showDashboardShortcut={false}
+        <AppPageHeaderStrip embedded>
+          <AppPageHeaderTitleWithDashboardShortcut
+            dashboardLabel={t.nav.dashboard}
+            showDashboardShortcut={false}
+          >
+            <h1 className="app-page-title text-xl font-bold leading-tight md:text-2xl">{t.dashboard.title}</h1>
+            <p className="mt-1 hidden text-sm leading-snug text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
+          </AppPageHeaderTitleWithDashboardShortcut>
+          <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 md:gap-3">
+            <Link
+              href="/log"
+              className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium transition-colors ${
+                erroriRecenti > 0
+                  ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
+                  : 'app-workspace-surface-elevated text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+              }`}
             >
-              <h1 className="app-page-title text-xl font-bold leading-tight md:text-2xl">{t.dashboard.title}</h1>
-              <p className="mt-1 hidden text-sm leading-snug text-slate-400 md:block">{t.sedi.subtitleGlobalAdmin}</p>
-            </AppPageHeaderTitleWithDashboardShortcut>
-            <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 md:gap-3">
-              <Link
-                href="/log"
-                className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium transition-colors ${
-                  erroriRecenti > 0
-                    ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
-                    : 'bg-slate-700/90 text-slate-200 hover:bg-slate-700'
-                }`}
-              >
-                {erroriRecenti > 0 && (
-                  <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-0.5 text-[10px] font-bold text-white">
-                    {erroriRecenti > 9 ? '9+' : erroriRecenti}
-                  </span>
-                )}
-                <span className="hidden md:inline">{t.dashboard.viewLog}</span>
-                <svg className="h-4 w-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                  />
-                </svg>
-              </Link>
-            </div>
-          </AppPageHeaderStrip>
-        </div>
+              {erroriRecenti > 0 && (
+                <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-600 px-0.5 text-[10px] font-bold text-white">
+                  {erroriRecenti > 9 ? '9+' : erroriRecenti}
+                </span>
+              )}
+              <span className="hidden md:inline">{t.dashboard.viewLog}</span>
+              <svg className="h-4 w-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                />
+              </svg>
+            </Link>
+          </div>
+        </AppPageHeaderStrip>
 
         {emailBodySupplierHints.length > 0 ? (
           <div className="flex flex-col gap-2">
@@ -135,8 +140,8 @@ export default async function DashboardPage({
         ) : null}
 
         {sediStats.length === 0 ? (
-          <div className="rounded-xl border border-slate-600/80 bg-slate-700/50 px-6 py-16 text-center">
-            <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <div className="rounded-xl border border-app-line-32 app-workspace-inset-bg-soft px-6 py-16 text-center">
+            <svg className="mx-auto mb-3 h-12 w-12 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -144,7 +149,7 @@ export default async function DashboardPage({
                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
               />
             </svg>
-            <p className="text-sm text-slate-200">{t.sedi.noSedi}</p>
+            <p className="text-sm text-app-fg-muted">{t.sedi.noSedi}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -155,16 +160,16 @@ export default async function DashboardPage({
               return (
               <div
                 key={sede.id}
-                className={`rounded-xl border bg-slate-700/45 p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] ${
+                className={`rounded-xl border app-workspace-inset-bg p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] ${
                   unhealthy
                     ? 'border-red-500/45 ring-1 ring-red-500/25'
-                    : 'border-cyan-500/20'
+                    : 'border-app-soft-border'
                 }`}
               >
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/20">
-                      <svg className="h-4 w-4 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-app-line-20">
+                      <svg className="h-4 w-4 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -173,11 +178,11 @@ export default async function DashboardPage({
                         />
                       </svg>
                     </div>
-                    <span className="min-w-0 font-semibold text-slate-100">{sede.nome}</span>
+                    <span className="min-w-0 font-semibold text-app-fg">{sede.nome}</span>
                   </div>
                   <AdminSelectSedeButton
                     sedeId={sede.id}
-                    className="shrink-0 rounded-lg border border-slate-600/80 bg-slate-700/90 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 transition-colors hover:border-cyan-500/40 hover:bg-slate-700"
+                    className="shrink-0 rounded-lg border border-app-line-32 app-workspace-surface-elevated px-2.5 py-1.5 text-[11px] font-semibold text-app-fg-muted transition-colors hover:border-app-line-40 hover:bg-app-line-12"
                   >
                     {t.dashboard.enterAsSede}
                   </AdminSelectSedeButton>
@@ -258,6 +263,7 @@ export default async function DashboardPage({
           documentiDaAssociare: 0,
           totaleImporto: 0,
           listinoRows: 0,
+          listinoProdottiDistinti: 0,
           ordiniCount: 0,
           statementsTotal: 0,
           statementsWithIssues: 0,
@@ -272,30 +278,39 @@ export default async function DashboardPage({
   const formatScannerEventTime = (iso: string) => fmtDate(iso, locale, tz, { hour: '2-digit', minute: '2-digit' })
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6 app-shell-page-padding">
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <DashboardDesktopHeaderActionsPortal>
-        <div className="flex min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-2 sm:gap-2.5 md:overflow-x-auto lg:gap-3">
-          <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
-          <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
+        <div
+          className={`flex min-w-0 w-full max-w-full shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5 md:overflow-x-auto lg:gap-3 ${
+            operatorScoped ? 'justify-between' : 'justify-end'
+          }`}
+        >
+          {operatorScoped ? <DashboardWorkspaceQuickNav t={t} fiscalYear={fiscalYear} /> : null}
+          <div className="flex shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5 lg:gap-3">
+            <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
+            <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
+          </div>
         </div>
       </DashboardDesktopHeaderActionsPortal>
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
-      <AppPageHeaderStrip className="!mb-0">
+      <AppPageHeaderStrip dense accent="sky" flushBottom>
         <AppPageHeaderTitleWithDashboardShortcut
           dashboardLabel={t.nav.dashboard}
           showDashboardShortcut={false}
         >
-          <h1 className="app-page-title min-w-0 truncate text-xl font-bold leading-tight md:text-2xl">
-            {dashboardSedeNome ?? t.dashboard.title}
-          </h1>
+          <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto sm:gap-x-3">
+            <h1 className="app-page-title min-w-0 flex-1 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl md:leading-tight">
+              {dashboardSedeNome ?? t.dashboard.title}
+            </h1>
+            {operatorScoped ? (
+              <Suspense fallback={null}>
+                <DashboardFiscalYearHeaderSelect countryCode={sedeCountryCode} selectedFiscalYear={fiscalYear} />
+              </Suspense>
+            ) : null}
+          </div>
         </AppPageHeaderTitleWithDashboardShortcut>
-        {operatorScoped ? (
-          <Suspense fallback={null}>
-            <DashboardFiscalYearHeaderSelect countryCode={sedeCountryCode} selectedFiscalYear={fiscalYear} />
-          </Suspense>
-        ) : null}
       </AppPageHeaderStrip>
 
       {!operatorScoped && (
@@ -304,31 +319,34 @@ export default async function DashboardPage({
         </div>
       )}
       {supplierHint && (
-        <div className="hidden rounded-xl border border-violet-400/55 bg-gradient-to-br from-violet-900/70 via-violet-800/55 to-fuchsia-950/60 px-4 py-3 text-sm shadow-[0_8px_32px_-8px_rgba(91,33,182,0.45),inset_0_1px_0_rgba(196,181,253,0.12)] ring-1 ring-violet-400/25 md:block">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
-          <p className="min-w-0 flex-1 font-semibold leading-snug text-violet-50 [text-shadow:0_0_28px_rgba(167,139,250,0.4)]">
-            {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
-          </p>
-          <div className="flex w-fit max-w-full shrink-0 flex-wrap justify-end gap-2 md:mr-12">
-            <Link
-              href={supplierHint.newFornitoreHref}
-              className="inline-flex items-center rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-violet-950/40 ring-1 ring-violet-300/35 transition-colors hover:bg-violet-400 hover:ring-violet-200/40"
-            >
-              {t.dashboard.suggestedSupplierAdd}
-            </Link>
-            <Link
-              href={supplierHint.importHref}
-              className="inline-flex items-center rounded-lg border border-violet-400/60 bg-violet-800/45 px-3 py-2 text-xs font-semibold text-violet-100 transition-colors hover:border-violet-300/70 hover:bg-violet-700/50 hover:text-white"
-            >
-              {t.dashboard.suggestedSupplierImport}
-            </Link>
-            <Link
-              href="/statements/da-processare"
-              className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-violet-300 underline decoration-violet-400/60 underline-offset-2 transition-colors hover:text-violet-100 hover:decoration-violet-200"
-            >
-              {t.statements.tabDocumenti} →
-            </Link>
-          </div>
+        <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${SUMMARY_HIGHLIGHT_ACCENTS.violet.border}`}>
+          <div className={`app-card-bar-accent ${SUMMARY_HIGHLIGHT_ACCENTS.violet.bar}`} aria-hidden />
+          <div className={`app-workspace-surface-elevated ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+              <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-app-fg">
+                {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
+              </p>
+              <div className="flex w-fit max-w-full shrink-0 flex-wrap justify-end gap-2">
+                <Link
+                  href={supplierHint.newFornitoreHref}
+                  className="inline-flex items-center rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-violet-950/40 ring-1 ring-violet-300/35 transition-colors hover:bg-violet-400 hover:ring-violet-200/40"
+                >
+                  {t.dashboard.suggestedSupplierAdd}
+                </Link>
+                <Link
+                  href={supplierHint.importHref}
+                  className="inline-flex items-center rounded-lg border border-violet-400/60 bg-violet-800/45 px-3 py-2 text-xs font-semibold text-violet-100 transition-colors hover:border-violet-300/70 hover:bg-violet-700/50 hover:text-white"
+                >
+                  {t.dashboard.suggestedSupplierImport}
+                </Link>
+                <Link
+                  href="/statements/da-processare"
+                  className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-violet-300 underline decoration-violet-400/60 underline-offset-2 transition-colors hover:text-violet-100 hover:decoration-violet-200"
+                >
+                  {t.statements.tabDocumenti} →
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -350,7 +368,7 @@ export default async function DashboardPage({
               </Link>
               <Link
                 href="/log"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-200 transition-colors hover:bg-slate-700/60"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-28 px-3 py-2 text-xs font-medium text-app-fg-muted transition-colors hover:bg-black/12"
               >
                 {t.nav.logEmail}
               </Link>
@@ -372,7 +390,7 @@ export default async function DashboardPage({
               </Link>
               <Link
                 href="/log"
-                className="flex min-h-[44px] items-center justify-center rounded-xl border border-slate-600/60 px-3 py-2 text-xs font-medium text-slate-200"
+                className="flex min-h-[44px] items-center justify-center rounded-xl border border-app-line-28 px-3 py-2 text-xs font-medium text-app-fg-muted"
               >
                 {t.nav.logEmail}
               </Link>
@@ -384,7 +402,7 @@ export default async function DashboardPage({
       {!operatorScoped ? (
         <div className="dashboard-operator-desktop-column">
           <div>
-            <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
+            <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
               {t.fornitori.tabRiepilogo}
             </h2>
             <DashboardOperatorKpiGrid
@@ -392,7 +410,6 @@ export default async function DashboardPage({
               t={t}
               locale={locale}
               currency={currency}
-              hideBelowLg
             />
           </div>
         </div>
@@ -403,7 +420,7 @@ export default async function DashboardPage({
           <div className="dashboard-operator-desktop-column">
             <Suspense fallback={<DashboardOperatorKpiSkeleton />}>
               <div>
-                <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
+                <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
                   {t.fornitori.tabRiepilogo}
                 </h2>
                 <DashboardOperatorKpiGrid
@@ -411,7 +428,6 @@ export default async function DashboardPage({
                   t={t}
                   locale={locale}
                   currency={currency}
-                  hideBelowLg
                   fiscalYear={fiscalYear}
                 />
               </div>

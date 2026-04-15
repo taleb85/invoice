@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 
 interface AliasEmail {
   id: string
@@ -13,12 +14,18 @@ interface AliasEmail {
   label: string | null
 }
 
+/** Campi su canvas / guscio trasparente: leggibilità senza secondo strato “vetro”. */
 const fieldBaseCls =
-  'w-full rounded-xl border border-slate-600/60 bg-slate-700 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition [color-scheme:dark] focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50'
+  'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
 /** `appearance-none` su input evita lo stile nativo chiaro su mobile; il select resta nativo per il menu. */
 const inputCls = `${fieldBaseCls} appearance-none`
 const selectCls = fieldBaseCls
-const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80'
+const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted'
+
+/** Sezioni modulo: stesso contorno di `.app-card` ma `bg-transparent` così il gradiente `#app-main` resta visibile. */
+const editSectionShellCls =
+  'relative overflow-hidden rounded-2xl border border-app-line-35 bg-transparent text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.28),0_16px_40px_-14px_rgba(0,0,0,0.22)] ring-1 ring-inset ring-white/10'
+const editSectionBodyCls = 'space-y-4 bg-transparent p-6'
 
 export default function EditFornitore() {
   const router = useRouter()
@@ -142,7 +149,7 @@ export default function EditFornitore() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg app-shell-page-padding">
+      <div className={APP_FORNITORE_FORM_PAGE_SHELL_CLASS}>
         <div
           className="flex min-h-[12rem] items-center justify-center"
           role="status"
@@ -151,7 +158,7 @@ export default function EditFornitore() {
           aria-label={t.appStrings.loadingPage}
         >
           <div
-            className="size-6 shrink-0 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent"
+            className="size-6 shrink-0 animate-spin rounded-full border-2 border-app-cyan-500 border-t-transparent"
             aria-hidden
           />
         </div>
@@ -160,27 +167,17 @@ export default function EditFornitore() {
   }
 
   return (
-    <div className="mx-auto max-w-lg app-shell-page-padding">
-      <AppPageHeaderStrip>
+    <div className={APP_FORNITORE_FORM_PAGE_SHELL_CLASS}>
+      <AppPageHeaderStrip accent="sky" flushBottom>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
-          <button
-            type="button"
-            onClick={handleCloseEdit}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-700/90 hover:text-white"
-            aria-label={t.statements.btnClose}
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <h1 className="app-page-title min-w-0 flex-1 text-2xl font-bold tracking-tight">{t.fornitori.editTitle}</h1>
+          <h1 className={`app-page-title min-w-0 flex-1 ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>{t.fornitori.editTitle}</h1>
         </div>
       </AppPageHeaderStrip>
 
-      <form onSubmit={handleSubmit} className="app-card mb-6">
+      <form onSubmit={handleSubmit} className={`${editSectionShellCls} mb-6`}>
         <div className="app-card-bar" aria-hidden />
-        <div className="space-y-4 p-6">
+        <div className={editSectionBodyCls}>
           <div>
             <label className={labelCls}>{t.fornitori.nome} *</label>
             <input
@@ -202,7 +199,7 @@ export default function EditFornitore() {
               }
               placeholder={t.fornitori.displayNamePlaceholder}
             />
-            <p className="mt-1 text-[11px] text-slate-200">{t.fornitori.displayNameHint}</p>
+            <p className="mt-1 text-[11px] text-app-fg-muted">{t.fornitori.displayNameHint}</p>
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.logoUrlLabel}</label>
@@ -215,7 +212,7 @@ export default function EditFornitore() {
               inputMode="url"
               autoComplete="off"
             />
-            <p className="mt-1 text-[11px] text-slate-200">{t.fornitori.logoUrlHint}</p>
+            <p className="mt-1 text-[11px] text-app-fg-muted">{t.fornitori.logoUrlHint}</p>
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.email}</label>
@@ -281,7 +278,7 @@ export default function EditFornitore() {
           </div>
 
           {error && (
-            <p className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-2.5 text-sm text-red-300">
+            <p className="rounded-xl border border-red-500/35 app-workspace-inset-bg-soft px-4 py-2.5 text-sm text-red-200/95">
               {error}
             </p>
           )}
@@ -290,14 +287,14 @@ export default function EditFornitore() {
             <button
               type="button"
               onClick={handleCloseEdit}
-              className="flex-1 rounded-xl border border-slate-600/80 bg-slate-700/80 py-2.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700/80"
+              className="flex-1 rounded-xl border border-app-line-32 app-workspace-inset-bg py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:bg-black/18"
             >
               {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 rounded-xl bg-cyan-500 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:opacity-60"
+              className="flex-1 rounded-xl bg-app-cyan-500 py-2.5 text-sm font-semibold text-cyan-950 transition-colors hover:bg-app-cyan-400 disabled:opacity-60"
             >
               {saving ? t.fornitori.saving : t.fornitori.saveChanges}
             </button>
@@ -305,12 +302,12 @@ export default function EditFornitore() {
         </div>
       </form>
 
-      <div className="app-card">
+      <div className={editSectionShellCls}>
         <div className="app-card-bar" aria-hidden />
-        <div className="space-y-4 p-6">
+        <div className={editSectionBodyCls}>
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">{t.fornitori.recognizedEmailsTitle}</h2>
-            <p className="mt-0.5 text-xs text-slate-500">{t.fornitori.recognizedEmailsHint}</p>
+            <h2 className="text-sm font-semibold text-app-fg">{t.fornitori.recognizedEmailsTitle}</h2>
+            <p className="mt-0.5 text-xs text-app-fg-muted">{t.fornitori.recognizedEmailsHint}</p>
           </div>
 
           {aliases.length > 0 && (
@@ -318,17 +315,17 @@ export default function EditFornitore() {
               {aliases.map((a) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-700/50 bg-slate-700/50 px-3 py-2"
+                  className="flex items-center justify-between rounded-lg border border-app-line-22 app-workspace-inset-bg-soft px-3 py-2"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-200">{a.email}</p>
-                    {a.label && <p className="text-xs text-slate-500">{a.label}</p>}
+                    <p className="truncate text-sm font-medium text-app-fg">{a.email}</p>
+                    {a.label && <p className="text-xs text-app-fg-muted">{a.label}</p>}
                   </div>
                   <button
                     type="button"
                     onClick={() => handleDeleteAlias(a.id)}
                     disabled={deletingAliasId === a.id}
-                    className="shrink-0 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-red-950/40 hover:text-red-400 disabled:opacity-40"
+                    className="shrink-0 rounded-lg p-1.5 text-app-fg-muted transition-colors hover:bg-red-950/40 hover:text-red-400 disabled:opacity-40"
                   >
                     {deletingAliasId === a.id ? (
                       <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -369,7 +366,7 @@ export default function EditFornitore() {
               type="button"
               onClick={handleAddAlias}
               disabled={addingAlias || !newAlias.email.trim()}
-              className="w-full rounded-xl border border-dashed border-slate-600 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-cyan-500/50 hover:text-cyan-300 disabled:opacity-40"
+              className="w-full rounded-xl border border-dashed border-app-line-28 py-2 text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-45 hover:bg-app-line-10 hover:text-app-fg disabled:opacity-40"
             >
               {addingAlias ? t.appStrings.addingAlias : t.appStrings.addEmailAlias}
             </button>

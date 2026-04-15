@@ -27,11 +27,12 @@ import { NetworkProvider } from '@/lib/network-context'
 import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
-import { SidebarBrandHeader } from '@/components/SidebarBrandHeader'
+import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/SidebarBrandHeader'
 import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
 import BranchSessionGate from '@/components/BranchSessionGate'
 
-const SidebarController   = dynamic(() => import('./SidebarController'),    { ssr: false })
+const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
+const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
 const OperatorSwitchModal = dynamic(() => import('./OperatorSwitchModal'), { ssr: false })
 
 /**
@@ -170,7 +171,7 @@ function desktopToastBannerTextClass(
   if (!banner) return ''
   if (banner.type === 'success') return 'text-emerald-50'
   if (banner.type === 'error') return 'text-red-50'
-  return 'text-slate-100'
+  return 'text-app-fg'
 }
 
 function AppShellMain({ children }: { children: React.ReactNode }) {
@@ -181,14 +182,16 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const { activeOperator } = useActiveOperator()
   const headerToastBanner = useDesktopHeaderToastBanner()
   const headerNavBarSurface = desktopHeaderBarSurfaceClass(headerToastBanner)
-  const headerGlass =
-    !headerToastBanner || headerToastBanner.type === 'info' ? 'app-desktop-header-glass' : ''
+  /** Toast success/error: superficie opaca. Altrimenti trasparente su md (gradiente sul contenitore griglia). */
+  const desktopHeaderCanvas =
+    headerToastBanner && headerToastBanner.type !== 'info'
+      ? headerNavBarSurface
+      : 'md:bg-transparent md:shadow-none [color:var(--app-fg-body)]'
   const headerBannerTextCls = desktopToastBannerTextClass(headerToastBanner)
   const [desktopNavHost, setDesktopNavHost] = useState<HTMLDivElement | null>(null)
   const bindDesktopNavHost = useCallback((el: HTMLDivElement | null) => {
     setDesktopNavHost(el)
   }, [])
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   /** Dock compatto (solo icone) per operatore hub; dock più alto con riga operatore per admin e scheda fornitore. */
   const tallMobileDock =
     (loading && !me) ||
@@ -201,54 +204,66 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     <div className="flex h-full min-h-0 w-full flex-col bg-slate-950">
       <DesktopHeaderPageActionsProvider>
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-col">
-        {/* Desktop: striscia — brand sidebar | vetro; toast centrato */}
-        <div
-          ref={bindDesktopNavHost}
-          id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-          className={`relative z-30 hidden w-full shrink-0 items-stretch overflow-visible transition-[background,box-shadow] duration-300 md:flex md:min-h-[48px] ${headerGlass} ${headerNavBarSurface}`}
-        >
-          <div className="relative z-20 flex min-h-[48px] min-w-0 flex-1 items-stretch overflow-visible">
-            <div className="flex h-full min-h-[48px] min-w-0 flex-1 items-stretch">
-              <SidebarBrandHeader
-                collapsed={sidebarCollapsed}
-                onExpand={() => setSidebarCollapsed(false)}
-              />
-            </div>
-          </div>
-          {headerToastBanner ? (
-            <div
-              className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-28 sm:px-36"
-              aria-live="polite"
-              role="status"
-            >
-              <span
-                className={`max-w-full truncate text-center text-sm font-semibold leading-tight ${headerBannerTextCls}`}
-              >
-                {headerToastBanner.message}
-              </span>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex min-h-0 min-w-0 flex-1">
-          <SidebarController
-            sidebarCollapsed={sidebarCollapsed}
-            onSidebarCollapsedChange={setSidebarCollapsed}
-          />
-          <main
-            data-app-main-scroll
-            className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-gradient-to-br from-slate-800 via-blue-900/75 to-indigo-950 text-slate-100 ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] md:pt-0 ${
-              normalized === '/bolle/new'
-                ? 'pt-0'
-                : 'pt-[calc(3.5rem+env(safe-area-inset-top,0px))]'
-            } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
+        {/*
+          Desktop: griglia a una riga — (1) `aside` unico: brand + `Sidebar`;
+          (2) colonna destra unica: `#app-desktop-header-nav-progress` + `main` nello stesso contenitore flex.
+        */}
+        <div className="app-shell-workspace-canvas flex min-h-0 min-w-0 flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[13rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <SidebarController />
+          <aside
+            suppressHydrationWarning
+            aria-label="Navigazione principale"
+            className={[
+              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 md:col-start-1 md:row-start-1 md:flex md:h-full md:min-h-0 md:flex-col md:self-stretch md:overflow-visible md:relative md:z-auto',
+            ].join(' ')}
           >
-            <Suspense fallback={null}>
-              <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
-            </Suspense>
-            <EmailSyncProgressBar />
-            <BranchSessionGate>{children}</BranchSessionGate>
-          </main>
+            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 md:min-h-[48px]">
+              <SidebarRailBrand />
+            </div>
+            <Sidebar />
+          </aside>
+          <div
+            data-app-desktop-canvas
+            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent md:col-start-2 md:row-start-1 md:h-full md:min-h-0 md:overflow-hidden"
+          >
+            <div
+              ref={bindDesktopNavHost}
+              id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
+              className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[48px] md:w-full ${desktopHeaderCanvas}`}
+            >
+              <div className="relative z-20 flex min-h-[48px] min-w-0 flex-1 items-stretch overflow-visible">
+                <DesktopHeaderActionsStrip />
+              </div>
+              {headerToastBanner ? (
+                <div
+                  className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-28 sm:px-36"
+                  aria-live="polite"
+                  role="status"
+                >
+                  <span
+                    className={`max-w-full truncate text-center text-sm font-semibold leading-tight ${headerBannerTextCls}`}
+                  >
+                    {headerToastBanner.message}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+            <main
+              id="app-main"
+              data-app-main-scroll
+              className={`app-main-workspace-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] md:pt-0 ${
+                normalized === '/bolle/new'
+                  ? 'pt-0'
+                  : 'pt-[calc(3.5rem+env(safe-area-inset-top,0px))]'
+              } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
+            >
+              <Suspense fallback={null}>
+                <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
+              </Suspense>
+              <EmailSyncProgressBar />
+              <BranchSessionGate>{children}</BranchSessionGate>
+            </main>
+          </div>
         </div>
       </div>
       </DesktopHeaderPageActionsProvider>
