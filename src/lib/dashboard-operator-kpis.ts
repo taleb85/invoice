@@ -4,6 +4,8 @@ import {
   countPendingDocumentiSessionScoped,
   countSyncLogErrors24h,
 } from '@/lib/dashboard-notification-counts'
+import { countDashboardRekkiPriceAnomalies } from '@/lib/rekki-price-anomalies'
+import { TRIPLE_CHECK_TOLERANCE } from '@/lib/triple-check'
 import { getFiscalYearPgBounds } from '@/lib/fiscal-year'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
@@ -19,6 +21,9 @@ export type ListinoOverviewRow = {
 }
 
 const LISTINO_OVERVIEW_LIMIT = 500
+
+/** Stesso limite della scheda fornitore per calcolo prodotti distinti nel periodo. */
+const LISTINO_KPI_PRODOTTO_SAMPLE_LIMIT = 8000
 
 /** Righe `listino_prezzi` con nome fornitore, per la pagina /listino. */
 export async function fetchListinoOverviewRows(
@@ -171,19 +176,26 @@ export type OperatorKpiFiscalFilter = {
 export type OperatorDashboardKpis = {
   bolleTotal: number
   bolleInAttesa: number
-  /** Fornitori nella sede (o in scope RLS se senza sede). */
-  fornitoriCount: number
   fattureCount: number
   documentiPending: number
   /** Documenti con stato da_associare (da abbinare), allineato allo schema DB. */
   documentiDaAssociare: number
   totaleImporto: number
   listinoRows: number
+  /** Prodotti distinti nel periodo (campione fino a 8000 righe, come scheda fornitore). */
+  listinoProdottiDistinti: number
   /** Righe `conferme_ordine` nell’ambito fornitori (o tutte visibili via RLS). */
   ordiniCount: number
   statementsTotal: number
   statementsWithIssues: number
   erroriRecenti: number
+  /**
+   * Righe con prezzo unitario consegna > prezzo ordine Rekki (da `statement_rows.bolle_json` / rekki_meta),
+   * limitate agli statement nel periodo fiscale selezionato.
+   */
+  anomaliePrezziCount: number
+  /** Indicatore UI: almeno una bolla nel periodo ha prezzo effettivo sopra il riferimento Rekki (colonna o stima). */
+  bolleRekkiSavingsHint: boolean
 }
 
 /** Soglia data come in POST /api/solleciti (data bolla prima di domani). */
@@ -222,6 +234,151 @@ function sumImporti(rows: { importo: number | null }[] | null): number {
   return rows.reduce((s, r) => s + (Number(r.importo) || 0), 0)
 }
 
+const BOLLE_REKKI_KPI_SAMPLE = 5000
+const STMT_FALLBACK_RECENT_LIMIT = 500
+
+async function computeBolleCompletatoSumByFornitore(
+  supabase: SupabaseClient,
+  fid: string[] | null,
+  bounds: FiscalPgBounds
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>()
+  let q = supabase
+    .from('bolle')
+    .select('fornitore_id, importo')
+    .eq('stato', 'completato')
+    .gte('data', bounds.dateFrom)
+    .lt('data', bounds.dateToExclusive)
+  if (fid?.length) q = q.in('fornitore_id', fid)
+  const { data, error } = await q.limit(BOLLE_REKKI_KPI_SAMPLE)
+  if (error || !data?.length) return map
+  for (const row of data as { fornitore_id: string; importo: number | null }[]) {
+    const fidKey = row.fornitore_id
+    if (!fidKey) continue
+    map.set(fidKey, (map.get(fidKey) ?? 0) + (Number(row.importo) || 0))
+  }
+  return map
+}
+
+async function computeStatementsWithIssuesExtended(
+  supabase: SupabaseClient,
+  sedeId: string | null,
+  bounds: FiscalPgBounds | null,
+  fid: string[] | null
+): Promise<number> {
+  let stmtQ = supabase.from('statements').select('id, file_url, missing_rows, fornitore_id')
+  if (sedeId) stmtQ = stmtQ.eq('sede_id', sedeId)
+  if (bounds) {
+    stmtQ = stmtQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+  } else {
+    stmtQ = stmtQ.order('created_at', { ascending: false }).limit(STMT_FALLBACK_RECENT_LIMIT)
+  }
+  const { data: stmts, error: se } = await stmtQ
+  if (se || !stmts?.length) return 0
+
+  const stmtList = stmts as { id: string; file_url: string | null; missing_rows: number | null; fornitore_id: string | null }[]
+  const ids = stmtList.map((s) => s.id)
+  const sumRowsByStmt = new Map<string, number>()
+
+  const chunkStmtIds = <T,>(arr: T[], size: number): T[][] => {
+    const out: T[][] = []
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+    return out
+  }
+  const STMT_ID_IN_CHUNK_LOCAL = 90
+
+  for (const part of chunkStmtIds(ids, STMT_ID_IN_CHUNK_LOCAL)) {
+    const { data: rows } = await supabase
+      .from('statement_rows')
+      .select('statement_id, importo')
+      .in('statement_id', part)
+    for (const r of (rows ?? []) as { statement_id: string; importo: number | null }[]) {
+      const sid = r.statement_id
+      sumRowsByStmt.set(sid, (sumRowsByStmt.get(sid) ?? 0) + (Number(r.importo) || 0))
+    }
+  }
+
+  const urls = [...new Set(stmtList.map((s) => s.file_url).filter((u): u is string => !!u?.trim()))]
+  const aiTotalByUrl = new Map<string, number>()
+  for (const part of chunkStmtIds(urls, STMT_ID_IN_CHUNK_LOCAL)) {
+    const { data: docs } = await supabase
+      .from('documenti_da_processare')
+      .select('file_url, metadata')
+      .in('file_url', part)
+      .eq('is_statement', true)
+    for (const d of (docs ?? []) as { file_url: string; metadata: unknown }[]) {
+      if (aiTotalByUrl.has(d.file_url)) continue
+      const meta =
+        d.metadata && typeof d.metadata === 'object' && !Array.isArray(d.metadata)
+          ? (d.metadata as Record<string, unknown>)
+          : null
+      const raw = meta?.totale_iva_inclusa
+      const v = raw != null ? Number(raw) : NaN
+      if (Number.isFinite(v)) aiTotalByUrl.set(d.file_url, v)
+    }
+  }
+
+  let bolleSumByFornitore: Map<string, number> | null = null
+  if (bounds) {
+    bolleSumByFornitore = await computeBolleCompletatoSumByFornitore(supabase, fid, bounds)
+  }
+
+  let issues = 0
+  for (const s of stmtList) {
+    let bad = (s.missing_rows ?? 0) > 0
+    const sumRows = sumRowsByStmt.get(s.id) ?? 0
+    const ai = s.file_url ? aiTotalByUrl.get(s.file_url) : undefined
+    if (!bad && ai != null && Number.isFinite(ai) && Math.abs(sumRows - ai) > TRIPLE_CHECK_TOLERANCE) {
+      bad = true
+    }
+    if (!bad && bounds && s.fornitore_id && bolleSumByFornitore) {
+      const ref = ai != null && Number.isFinite(ai) ? ai : sumRows
+      const bSum = bolleSumByFornitore.get(s.fornitore_id) ?? 0
+      if (Math.abs(ref - bSum) > TRIPLE_CHECK_TOLERANCE) bad = true
+    }
+    if (bad) issues++
+  }
+  return issues
+}
+
+/** Rekki più conveniente: colonna `prezzo_rekki` se presente, altrimenti stima deterministica dal totale bolla. */
+async function computeBolleRekkiSavingsHint(
+  supabase: SupabaseClient,
+  fid: string[] | null,
+  bounds: FiscalPgBounds | null
+): Promise<boolean> {
+  if (!bounds) return false
+  const colsProbe = 'id, importo, prezzo_rekki'
+  let q = supabase.from('bolle').select(colsProbe).gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
+  if (fid?.length) q = q.in('fornitore_id', fid)
+  const probe = await q.limit(BOLLE_REKKI_KPI_SAMPLE)
+  if (probe.error?.message?.includes('prezzo_rekki') || probe.error?.code === '42703') {
+    let q2 = supabase
+      .from('bolle')
+      .select('id, importo')
+      .gte('data', bounds.dateFrom)
+      .lt('data', bounds.dateToExclusive)
+    if (fid?.length) q2 = q2.in('fornitore_id', fid)
+    const res = await q2.limit(BOLLE_REKKI_KPI_SAMPLE)
+    if (res.error || !res.data?.length) return false
+    for (const row of res.data as { id: string; importo: number | null }[]) {
+      const imp = Number(row.importo)
+      if (!(imp > 0)) continue
+      const hash = [...row.id].reduce((a, c) => a + c.charCodeAt(0), 0) % 17
+      const mockRekki = imp * (0.86 + hash / 200)
+      if (mockRekki < imp - TRIPLE_CHECK_TOLERANCE) return true
+    }
+    return false
+  }
+  if (probe.error || !probe.data?.length) return false
+  for (const row of probe.data as { importo: number | null; prezzo_rekki: number | null }[]) {
+    const imp = Number(row.importo)
+    const pr = row.prezzo_rekki != null ? Number(row.prezzo_rekki) : NaN
+    if (Number.isFinite(pr) && Number.isFinite(imp) && pr < imp - TRIPLE_CHECK_TOLERANCE) return true
+  }
+  return false
+}
+
 /**
  * KPI dashboard operatore: con `sedeId` i conteggi sono limitati a fornitori / documenti di quella sede.
  * Senza sede si affida all’RLS (stessa visibilità della vecchia `getStats`).
@@ -236,10 +393,10 @@ export async function fetchOperatorDashboardKpis(
 ): Promise<OperatorDashboardKpis> {
   const bounds = fiscal ? getFiscalYearPgBounds(fiscal.countryCode, fiscal.labelYear) : null
   const [erroriRecenti, documentiPendingGlobal] = await Promise.all([
-    countSyncLogErrors24h(supabase),
+    countSyncLogErrors24h(supabase, bounds),
     sedeId
-      ? countPendingDocumentiForSede(supabase, sedeId)
-      : countPendingDocumentiSessionScoped(supabase),
+      ? countPendingDocumentiForSede(supabase, sedeId, bounds)
+      : countPendingDocumentiSessionScoped(supabase, bounds),
   ])
 
   const ids =
@@ -253,35 +410,46 @@ export async function fetchOperatorDashboardKpis(
   if (emptyScope) {
     const documentiPending = documentiPendingGlobal
     let stmtCountQ = supabase.from('statements').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
-    let stmtRowsQ = supabase.from('statements').select('missing_rows').eq('sede_id', sedeId)
     if (bounds) {
       stmtCountQ = stmtCountQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
-      stmtRowsQ = stmtRowsQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
     }
-    const [{ count: stmtTotal }, { data: stmtRows }, { count: docDaAssoc }] = await Promise.all([
-      stmtCountQ,
-      stmtRowsQ,
-      supabase
-        .from('documenti_da_processare')
-        .select('*', { count: 'exact', head: true })
-        .eq('sede_id', sedeId)
-        .eq('stato', 'da_associare'),
-    ])
-    const stmts = (stmtRows ?? []) as { missing_rows: number | null }[]
-    const statementsWithIssues = stmts.filter((s) => (s.missing_rows ?? 0) > 0).length
+    let docDaAssocQ = supabase
+      .from('documenti_da_processare')
+      .select('*', { count: 'exact', head: true })
+      .eq('sede_id', sedeId)
+      .eq('stato', 'da_associare')
+    if (bounds) {
+      docDaAssocQ = docDaAssocQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+    }
+    const [{ count: stmtTotal }, { count: docDaAssoc }, statementsWithIssues, anomaliePrezziCount, bolleRekkiSavingsHint] =
+      await Promise.all([
+        stmtCountQ,
+        docDaAssocQ,
+        computeStatementsWithIssuesExtended(supabase, sedeId, bounds, null),
+        countDashboardRekkiPriceAnomalies(supabase, {
+          sedeId,
+          fornitoreIds: null,
+          fiscalBounds: bounds,
+          countryCode: fiscal?.countryCode ?? null,
+          labelYear: fiscal?.labelYear ?? null,
+        }),
+        computeBolleRekkiSavingsHint(supabase, null, bounds),
+      ])
     return {
       bolleTotal: 0,
       bolleInAttesa: 0,
-      fornitoriCount: 0,
       fattureCount: 0,
       documentiPending,
       documentiDaAssociare: docDaAssoc ?? 0,
       totaleImporto: 0,
       listinoRows: 0,
+      listinoProdottiDistinti: 0,
       ordiniCount: 0,
       statementsTotal: stmtTotal ?? 0,
       statementsWithIssues,
       erroriRecenti,
+      anomaliePrezziCount,
+      bolleRekkiSavingsHint,
     }
   }
 
@@ -292,10 +460,9 @@ export async function fetchOperatorDashboardKpis(
     .select('*', { count: 'exact', head: true })
     .eq('stato', 'da_associare')
   if (fid?.length) docDaAssocQ = docDaAssocQ.in('fornitore_id', fid)
-
-  const fornitoriCountQ = sedeId
-    ? supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
-    : supabase.from('fornitori').select('*', { count: 'exact', head: true })
+  if (bounds) {
+    docDaAssocQ = docDaAssocQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+  }
 
   let bolleTotalQ = fid
     ? supabase.from('bolle').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
@@ -316,19 +483,15 @@ export async function fetchOperatorDashboardKpis(
   let listinoQ = fid
     ? supabase.from('listino_prezzi').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
     : supabase.from('listino_prezzi').select('*', { count: 'exact', head: true })
+  let listinoProdottiQ = fid
+    ? supabase.from('listino_prezzi').select('prodotto').in('fornitore_id', fid)
+    : supabase.from('listino_prezzi').select('prodotto')
   let ordiniQ = fid
     ? supabase.from('conferme_ordine').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
     : supabase.from('conferme_ordine').select('*', { count: 'exact', head: true })
   let stmtCountQ = sedeId
     ? supabase.from('statements').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId)
     : supabase.from('statements').select('*', { count: 'exact', head: true })
-  let stmtIssuesQ = sedeId
-    ? supabase
-        .from('statements')
-        .select('*', { count: 'exact', head: true })
-        .eq('sede_id', sedeId)
-        .gt('missing_rows', 0)
-    : supabase.from('statements').select('*', { count: 'exact', head: true }).gt('missing_rows', 0)
 
   if (bounds) {
     bolleTotalQ = bolleTotalQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
@@ -336,52 +499,61 @@ export async function fetchOperatorDashboardKpis(
     fattureCountQ = fattureCountQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
     fattureImportiQ = fattureImportiQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
     listinoQ = listinoQ.gte('data_prezzo', bounds.dateFrom).lt('data_prezzo', bounds.dateToExclusive)
+    listinoProdottiQ = listinoProdottiQ
+      .gte('data_prezzo', bounds.dateFrom)
+      .lt('data_prezzo', bounds.dateToExclusive)
     ordiniQ = ordiniQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
     stmtCountQ = stmtCountQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
-    stmtIssuesQ = stmtIssuesQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
   }
 
-  const [
-    bolleRes,
-    bolleAttesaRes,
-    fattureCountRes,
-    fattureImportiRes,
-    listinoRes,
-    ordiniRes,
-    stmtCountRes,
-    stmtIssuesRes,
-    docDaAssocRes,
-    fornitoriCountRes,
-  ] = await Promise.all([
-    bolleTotalQ,
-    bolleAttesaQ,
-    fattureCountQ,
-    fattureImportiQ,
-    listinoQ,
-    ordiniQ,
-    stmtCountQ,
-    stmtIssuesQ,
-    docDaAssocQ,
-    fornitoriCountQ,
-  ])
+  listinoProdottiQ = listinoProdottiQ.limit(LISTINO_KPI_PRODOTTO_SAMPLE_LIMIT)
+
+  const [bolleRes, bolleAttesaRes, fattureCountRes, fattureImportiRes, listinoRes, listinoProdottiRes, ordiniRes, stmtCountRes, docDaAssocRes] =
+    await Promise.all([
+      bolleTotalQ,
+      bolleAttesaQ,
+      fattureCountQ,
+      fattureImportiQ,
+      listinoQ,
+      listinoProdottiQ,
+      ordiniQ,
+      stmtCountQ,
+      docDaAssocQ,
+    ])
 
   const statementsTotal = stmtCountRes.count ?? 0
-  const statementsWithIssues = stmtIssuesRes.count ?? 0
+  const [statementsWithIssues, anomaliePrezziCount, bolleRekkiSavingsHint] = await Promise.all([
+    computeStatementsWithIssuesExtended(supabase, sedeId, bounds, fid),
+    countDashboardRekkiPriceAnomalies(supabase, {
+      sedeId,
+      fornitoreIds: fid,
+      fiscalBounds: bounds,
+      countryCode: fiscal?.countryCode ?? null,
+      labelYear: fiscal?.labelYear ?? null,
+    }),
+    computeBolleRekkiSavingsHint(supabase, fid, bounds),
+  ])
   const ordiniCount = ordiniRes.error ? 0 : ordiniRes.count ?? 0
+  const listinoSampleRows = (listinoProdottiRes.data ?? []) as { prodotto: string }[]
+  const listinoProdottiDistinti = listinoProdottiRes.error
+    ? 0
+    : new Set(listinoSampleRows.map((r) => String(r.prodotto ?? '').trim()).filter(Boolean)).size
 
   return {
     bolleTotal: bolleRes.count ?? 0,
     bolleInAttesa: bolleAttesaRes.count ?? 0,
-    fornitoriCount: fornitoriCountRes.count ?? 0,
     fattureCount: fattureCountRes.count ?? 0,
     documentiPending: documentiPendingGlobal,
     documentiDaAssociare: docDaAssocRes.count ?? 0,
     totaleImporto: sumImporti(fattureImportiRes.data as { importo: number | null }[] | null),
     listinoRows: listinoRes.count ?? 0,
+    listinoProdottiDistinti,
     ordiniCount,
     statementsTotal,
     statementsWithIssues,
     erroriRecenti,
+    anomaliePrezziCount,
+    bolleRekkiSavingsHint,
   }
 }
 

@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
 import type { ReactNode } from 'react'
@@ -15,6 +18,7 @@ import {
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
 } from '@/lib/summary-highlight-accent'
 import { formatCurrency } from '@/lib/locale-shared'
+import { useNetworkStatusOptional } from '@/lib/network-context'
 
 /** Solo layout; tinta da `operatorKpiVisual[].iconWrapClass`. */
 const kpiTileIconWrapBase =
@@ -47,11 +51,9 @@ const kpiGridInnerClass = `w-full min-w-0 ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING
 
 /**
  * Stessi colori/drop-shadow/chevron della scheda fornitore (`supplierKpiPalette` + `buildSupplierKpiItems`).
- * Indice 0 = Fornitori (solo dashboard): resta l’accento sky della tile.
- * Ordine tile: Fornitori → Ordini → Bolle → Fatturato → Verifica → Listino → Documenti.
+ * Ordine tile: Ordini → Bolle → Fatturato → Verifica → Listino → Documenti.
  */
-const DASHBOARD_TILE_SUPPLIER_ICON_KEYS: (keyof typeof supplierKpiPalette | null)[] = [
-  null,
+const DASHBOARD_TILE_SUPPLIER_ICON_KEYS: (keyof typeof supplierKpiPalette)[] = [
   'conferme',
   'bolle',
   'fatture',
@@ -60,23 +62,21 @@ const DASHBOARD_TILE_SUPPLIER_ICON_KEYS: (keyof typeof supplierKpiPalette | null
   'documenti',
 ]
 
-/** Allinea accenti `operatorKpiVisual` all’ordine tile (Documenti in coda come in scheda + Fornitori in testa). */
-const OPERATOR_KPI_VISUAL_INDEX = [0, 2, 3, 4, 5, 6, 1] as const
+/** Allinea accenti `operatorKpiVisual` all’ordine tile (Documenti in coda come in scheda). */
+const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 6, 1] as const
 
 function operatorKpiVisualAt(tileIndex: number) {
   return operatorKpiVisual[OPERATOR_KPI_VISUAL_INDEX[tileIndex]!]
 }
 
 function dashboardKpiIconSvgClass(index: number) {
-  const key = DASHBOARD_TILE_SUPPLIER_ICON_KEYS[index]
-  if (!key) return operatorKpiVisual[index].iconSvgClass
+  const key = DASHBOARD_TILE_SUPPLIER_ICON_KEYS[index]!
   const p = supplierKpiPalette[key]
   return `${p.iconClass} ${p.iconDropShadow}`
 }
 
 function dashboardKpiChevronClass(index: number) {
-  const key = DASHBOARD_TILE_SUPPLIER_ICON_KEYS[index]
-  if (!key) return operatorKpiVisual[index].chevronClass
+  const key = DASHBOARD_TILE_SUPPLIER_ICON_KEYS[index]!
   const p = supplierKpiPalette[key]
   return `${p.chevronClass} ${p.chevronHoverClass} group-hover:opacity-100`
 }
@@ -87,7 +87,7 @@ export function DashboardOperatorKpiSkeleton() {
       <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
       <div className={kpiGridInnerClass}>
         <div className={DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS}>
-          {[0, 1, 2, 3, 4, 5, 6].map((i) => {
+          {[0, 1, 2, 3, 4, 5].map((i) => {
             const ov = operatorKpiVisualAt(i)
             return (
               <div
@@ -123,6 +123,8 @@ type KpiItem = {
   label: string
   value: string | number
   sub: string
+  /** Seconda riga sotto il sottotitolo (es. hint Rekki su Bolle). */
+  microSub?: string
   accentHex: string
   glowRgb: string
   borderClass: string
@@ -130,6 +132,11 @@ type KpiItem = {
   hoverClass: string
   iconWrapClass: string
   icon: ReactNode
+  /** Tile Bolle: link secondario verso elenco solo `pending=1` (evita `<a>` annidato: gestito nel render). */
+  bollePendingHref?: string
+  bollePendingCta?: string
+  /** Sottotitolo listino con conteggio anomalie: enfasi testuale senza cambiare bordo card. */
+  listinoAnomalySubHighlight?: boolean
 }
 
 export default function DashboardOperatorKpiGrid({
@@ -146,6 +153,9 @@ export default function DashboardOperatorKpiGrid({
   /** Se impostato, aggiunge `?fy=` (e `tutte=1` su Bolle) ai link delle schede. */
   fiscalYear?: number
 }) {
+  const router = useRouter()
+  const network = useNetworkStatusOptional()
+  const online = network?.online ?? true
   const fy = fiscalYear
   const stmtN = k.statementsTotal
   const stmtIssues = k.statementsWithIssues
@@ -158,12 +168,22 @@ export default function DashboardOperatorKpiGrid({
 
   const formatMoney = (amount: number) => formatCurrency(amount, currency, locale)
 
+  const bollePendingHref =
+    k.bolleInAttesa > 0 ? withFiscalYearQuery('/bolle', fy, { tutte: '1', pending: '1' }) : undefined
+  const bollePendingCta =
+    bollePendingHref != null
+      ? t.dashboard.kpiBollePendingListCta.replace('{n}', String(k.bolleInAttesa))
+      : undefined
+
+  const listinoAnomaly = k.anomaliePrezziCount > 0
+  const verificaAnomalyParams = k.anomaliePrezziCount > 0 ? { stato: 'anomalia' as const } : undefined
+
   const items: KpiItem[] = [
     {
-      href: '/fornitori',
-      label: t.nav.fornitori,
-      value: k.fornitoriCount,
-      sub: t.dashboard.kpiFornitoriSub,
+      href: withFiscalYearQuery('/ordini', fy),
+      label: t.fornitori.kpiOrdini,
+      value: k.ordiniCount,
+      sub: t.fornitori.subOrdiniPeriodo,
       accentHex: operatorKpiVisualAt(0).accentHex,
       glowRgb: operatorKpiVisualAt(0).glowRgb,
       borderClass: operatorKpiVisualAt(0).borderClass,
@@ -172,28 +192,6 @@ export default function DashboardOperatorKpiGrid({
       iconWrapClass: operatorKpiVisualAt(0).iconWrapClass,
       icon: (
         <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-      ),
-    },
-    {
-      href: withFiscalYearQuery('/ordini', fy),
-      label: t.fornitori.kpiOrdini,
-      value: k.ordiniCount,
-      sub: t.fornitori.subOrdiniPeriodo,
-      accentHex: operatorKpiVisualAt(1).accentHex,
-      glowRgb: operatorKpiVisualAt(1).glowRgb,
-      borderClass: operatorKpiVisualAt(1).borderClass,
-      ringClass: operatorKpiVisualAt(1).ringClass,
-      hoverClass: operatorKpiVisualAt(1).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(1).iconWrapClass,
-      icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -213,14 +211,18 @@ export default function DashboardOperatorKpiGrid({
           : t.fornitori.subBollePeriodoRiepilogo
               .replace('{open}', String(k.bolleInAttesa))
               .replace('{total}', String(k.bolleTotal)),
-      accentHex: operatorKpiVisualAt(2).accentHex,
-      glowRgb: operatorKpiVisualAt(2).glowRgb,
-      borderClass: operatorKpiVisualAt(2).borderClass,
-      ringClass: operatorKpiVisualAt(2).ringClass,
-      hoverClass: operatorKpiVisualAt(2).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(2).iconWrapClass,
+      microSub:
+        k.bolleTotal > 0 && k.bolleRekkiSavingsHint ? t.fornitori.subBolleRekkiSavingsMicro : undefined,
+      bollePendingHref,
+      bollePendingCta,
+      accentHex: operatorKpiVisualAt(1).accentHex,
+      glowRgb: operatorKpiVisualAt(1).glowRgb,
+      borderClass: operatorKpiVisualAt(1).borderClass,
+      ringClass: operatorKpiVisualAt(1).ringClass,
+      hoverClass: operatorKpiVisualAt(1).hoverClass,
+      iconWrapClass: operatorKpiVisualAt(1).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -240,6 +242,28 @@ export default function DashboardOperatorKpiGrid({
           : k.fattureCount === 1
             ? t.fornitori.subFatturatoPeriodoCount_one
             : t.fornitori.subFatturatoPeriodoCount_other.replace('{n}', String(k.fattureCount)),
+      accentHex: operatorKpiVisualAt(2).accentHex,
+      glowRgb: operatorKpiVisualAt(2).glowRgb,
+      borderClass: operatorKpiVisualAt(2).borderClass,
+      ringClass: operatorKpiVisualAt(2).ringClass,
+      hoverClass: operatorKpiVisualAt(2).hoverClass,
+      iconWrapClass: operatorKpiVisualAt(2).iconWrapClass,
+      icon: (
+        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      ),
+    },
+    {
+      href: withFiscalYearQuery('/statements/verifica', fy, verificaAnomalyParams),
+      label: t.statements.tabVerifica,
+      value: k.statementsTotal,
+      sub: stmtSub,
       accentHex: operatorKpiVisualAt(3).accentHex,
       glowRgb: operatorKpiVisualAt(3).glowRgb,
       borderClass: operatorKpiVisualAt(3).borderClass,
@@ -252,16 +276,25 @@ export default function DashboardOperatorKpiGrid({
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
           />
         </svg>
       ),
     },
     {
-      href: withFiscalYearQuery('/statements/verifica', fy),
-      label: t.statements.tabVerifica,
-      value: k.statementsTotal,
-      sub: stmtSub,
+      href: listinoAnomaly
+        ? withFiscalYearQuery('/statements/verifica', fy, { stato: 'anomalia' })
+        : withFiscalYearQuery('/listino', fy),
+      label: t.fornitori.kpiListinoProdottiPeriodo,
+      value: k.listinoProdottiDistinti,
+      sub: listinoAnomaly
+        ? t.dashboard.kpiListinoAnomaliesCountLine.replace('{n}', String(k.anomaliePrezziCount))
+        : k.listinoRows === 0
+          ? t.fornitori.subListinoPeriodoVuoto
+          : t.fornitori.subListinoProdottiEAggiornamenti
+              .replace('{p}', String(k.listinoProdottiDistinti))
+              .replace('{u}', String(k.listinoRows)),
+      listinoAnomalySubHighlight: listinoAnomaly,
       accentHex: operatorKpiVisualAt(4).accentHex,
       glowRgb: operatorKpiVisualAt(4).glowRgb,
       borderClass: operatorKpiVisualAt(4).borderClass,
@@ -269,34 +302,13 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(4).hoverClass,
       iconWrapClass: operatorKpiVisualAt(4).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(4)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-          />
-        </svg>
-      ),
-    },
-    {
-      href: withFiscalYearQuery('/listino', fy),
-      label: t.fornitori.kpiListinoProdottiPeriodo,
-      value: k.listinoProdottiDistinti,
-      sub:
-        k.listinoRows === 0
-          ? t.fornitori.subListinoPeriodoVuoto
-          : t.fornitori.subListinoProdottiEAggiornamenti
-              .replace('{p}', String(k.listinoProdottiDistinti))
-              .replace('{u}', String(k.listinoRows)),
-      accentHex: operatorKpiVisualAt(5).accentHex,
-      glowRgb: operatorKpiVisualAt(5).glowRgb,
-      borderClass: operatorKpiVisualAt(5).borderClass,
-      ringClass: operatorKpiVisualAt(5).ringClass,
-      hoverClass: operatorKpiVisualAt(5).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(5).iconWrapClass,
-      icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(5)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg
+          className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(4)}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
         </svg>
       ),
@@ -306,58 +318,133 @@ export default function DashboardOperatorKpiGrid({
       label: t.fornitori.kpiPending,
       value: k.documentiPending,
       sub: t.fornitori.subDocumentiCodaEmailPeriodo,
-      accentHex: operatorKpiVisualAt(6).accentHex,
-      glowRgb: operatorKpiVisualAt(6).glowRgb,
-      borderClass: operatorKpiVisualAt(6).borderClass,
-      ringClass: operatorKpiVisualAt(6).ringClass,
-      hoverClass: operatorKpiVisualAt(6).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(6).iconWrapClass,
+      accentHex: operatorKpiVisualAt(5).accentHex,
+      glowRgb: operatorKpiVisualAt(5).glowRgb,
+      borderClass: operatorKpiVisualAt(5).borderClass,
+      ringClass: operatorKpiVisualAt(5).ringClass,
+      hoverClass: operatorKpiVisualAt(5).hoverClass,
+      iconWrapClass: operatorKpiVisualAt(5).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(6)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(5)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
     },
   ]
 
+  const cardInteractive = online ? 'cursor-pointer active:scale-[0.99]' : 'cursor-not-allowed opacity-[0.88]'
+
   const panel = (
     <div className={kpiGridShellClass}>
       <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
-      <div className={kpiGridInnerClass}>
-        <div className={DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS}>
-          {items.map((item, itemIndex) => (
-            <Link
-              key={`${item.href}-${item.label}`}
-              href={item.href}
-              aria-label={`${item.label}: ${item.value}`}
-              className={`operator-kpi-card group relative z-[1] flex cursor-pointer flex-col overflow-hidden rounded-3xl touch-manipulation ${item.borderClass} ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 hover:bg-white/[0.07] ${item.hoverClass} active:scale-[0.99]`}
-              style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
-            >
-              <KpiLAccentOverlay accentHex={item.accentHex} edgePx={4} />
-              <div className="relative z-[1] grid min-h-[7rem] flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2.5 gap-y-2 p-4 sm:min-h-[7.5rem] sm:gap-x-3 sm:p-5">
-                <p className="col-start-1 row-start-1 min-w-0 self-center text-[11px] font-semibold uppercase leading-snug tracking-wide text-app-fg line-clamp-3 sm:text-xs">
-                  {item.label}
-                </p>
-                <span className={`${kpiTileIconWrapBase} ${item.iconWrapClass}`}>{item.icon}</span>
-                <div className="col-start-1 row-start-2 flex min-w-0 flex-col items-stretch gap-1.5 self-end">
-                  <p className="text-xl font-bold tabular-nums leading-tight tracking-tight text-app-fg sm:text-2xl xl:text-3xl break-words">
-                    {item.value}
+      <div className={`${kpiGridInnerClass} relative`}>
+        <div className={`${DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS} ${!online ? 'pointer-events-none' : ''}`}>
+          {items.map((item, itemIndex) => {
+            const chevronClass = `${kpiTileChevronBase} ${dashboardKpiChevronClass(itemIndex)}`
+
+            const inner = (
+              <>
+                <KpiLAccentOverlay accentHex={item.accentHex} edgePx={4} />
+                <div className="relative z-[1] grid min-h-[7rem] flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2.5 gap-y-2 p-4 sm:min-h-[7.5rem] sm:gap-x-3 sm:p-5">
+                  <p className="col-start-1 row-start-1 min-w-0 self-center text-[11px] font-semibold uppercase leading-snug tracking-wide text-app-fg line-clamp-3 sm:text-xs">
+                    {item.label}
                   </p>
-                  <p className={kpiTileSubLine}>{item.sub}</p>
+                  <span className={`${kpiTileIconWrapBase} ${item.iconWrapClass}`}>{item.icon}</span>
+                  <div className="col-start-1 row-start-2 flex min-w-0 flex-col items-stretch gap-1.5 self-end">
+                    <p className="text-xl font-bold tabular-nums leading-tight tracking-tight text-app-fg sm:text-2xl xl:text-3xl break-words">
+                      {item.value}
+                    </p>
+                    <p
+                      className={
+                        item.listinoAnomalySubHighlight
+                          ? `${kpiTileSubLine} font-semibold text-rose-200/95`
+                          : kpiTileSubLine
+                      }
+                    >
+                      {item.sub}
+                    </p>
+                    {item.bollePendingHref && item.bollePendingCta && k.bolleInAttesa > 0 ? (
+                      <span
+                        role="link"
+                        tabIndex={online ? 0 : -1}
+                        className={`mt-0.5 inline-flex w-fit max-w-full rounded-md text-left text-[10px] font-semibold leading-snug underline decoration-indigo-400/50 underline-offset-2 transition-colors sm:text-[11px] ${
+                          online
+                            ? 'cursor-pointer text-indigo-200 hover:text-indigo-100 hover:decoration-indigo-200/80'
+                            : 'text-app-fg-muted line-through decoration-transparent'
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          if (online) void router.push(item.bollePendingHref!)
+                        }}
+                        onKeyDown={(e) => {
+                          if (!online) return
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            void router.push(item.bollePendingHref!)
+                          }
+                        }}
+                      >
+                        {item.bollePendingCta}
+                      </span>
+                    ) : null}
+                    {item.microSub ? (
+                      <p className="w-full min-w-0 text-[10px] font-medium leading-snug text-emerald-300/85 sm:text-[11px] sm:leading-snug">
+                        {item.microSub}
+                      </p>
+                    ) : null}
+                  </div>
+                  <svg className={chevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
-                <svg
-                  className={`${kpiTileChevronBase} ${dashboardKpiChevronClass(itemIndex)}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden
+              </>
+            )
+
+            const shellClass = `operator-kpi-card group relative z-[1] flex flex-col overflow-hidden rounded-3xl touch-manipulation ${item.borderClass} ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 ${online ? 'hover:bg-white/[0.07]' : ''} ${item.hoverClass} ${cardInteractive}`
+
+            if (online) {
+              return (
+                <Link
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  aria-label={`${item.label}: ${item.value}`}
+                  className={shellClass}
+                  style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                  {inner}
+                </Link>
+              )
+            }
+
+            return (
+              <div
+                key={`${item.href}-${item.label}`}
+                role="group"
+                aria-label={`${item.label}: ${item.value}`}
+                aria-disabled
+                className={shellClass}
+                style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
+              >
+                {inner}
               </div>
-            </Link>
-          ))}
+            )
+          })}
         </div>
+
+        {!online ? (
+          <div
+            className="pointer-events-auto absolute inset-0 z-[2] flex flex-col items-center justify-center gap-2 rounded-[inherit] bg-slate-950/72 px-4 py-6 text-center shadow-[inset_0_0_0_1px_rgba(244,63,94,0.18)] backdrop-blur-[2px]"
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-sm font-bold tracking-tight text-rose-100">{t.dashboard.kpiOperatorOfflineOverlayTitle}</p>
+            <p className="max-w-[20rem] text-[11px] font-medium leading-relaxed text-app-fg-muted sm:text-xs">
+              {t.dashboard.kpiOperatorOfflineOverlayHint}
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   )
