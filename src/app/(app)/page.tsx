@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import SollecitiButton from '@/components/SollecitiButton'
-import ScanEmailButton from '@/components/ScanEmailButton'
+import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import DashboardScannerFlowCard from '@/components/DashboardScannerFlowCard'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
@@ -10,8 +10,7 @@ import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
   countFornitoriWithOverdueBolle,
   fetchOperatorDashboardKpis,
-  fetchRecentBolleScoped,
-  fetchTodayScannerFlowSummary,
+  fetchTodayScannerFlowDetail,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
 import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
@@ -20,7 +19,7 @@ import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-ove
 import DashboardOperatorKpiGrid from '@/components/DashboardOperatorKpiGrid'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
+import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,17 +66,17 @@ export default async function DashboardPage() {
               dashboardLabel={t.nav.dashboard}
               showDashboardShortcut={false}
             >
-              <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.title}</h1>
-              <p className="mt-1 hidden text-sm text-slate-100/90 md:block">{t.sedi.subtitleGlobalAdmin}</p>
+              <h1 className="app-page-title text-xl font-bold leading-tight md:text-2xl">{t.dashboard.title}</h1>
+              <p className="mt-1 hidden text-sm leading-snug text-slate-400 md:block">{t.sedi.subtitleGlobalAdmin}</p>
             </AppPageHeaderTitleWithDashboardShortcut>
-            <div className="flex w-full min-w-0 max-w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 md:gap-3">
-              <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-2 lg:gap-3 md:overflow-x-auto">
+            <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 md:gap-3">
+              <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-3 lg:gap-4 md:overflow-x-auto">
                 <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
-                <ScanEmailButton alwaysShowLabel />
+                <DashboardDuplicateFattureButton alwaysShowLabel />
               </div>
               <Link
                 href="/log"
-                className={`inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-medium transition-colors ${
+                className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 text-xs font-medium transition-colors ${
                   erroriRecenti > 0
                     ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
                     : 'bg-slate-700/90 text-slate-200 hover:bg-slate-700'
@@ -234,7 +233,7 @@ export default async function DashboardPage() {
     dashboardSedeNome = sedeNomeRow.data.nome ?? null
   }
   const operatorScoped = !!sedeId
-  const [kpis, bolle, sollecitiFornitori, supplierHint, scannerFlowToday] = await Promise.all([
+  const [kpis, sollecitiFornitori, supplierHint, scannerFlowDetail] = await Promise.all([
     operatorScoped
       ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds)
       : Promise.resolve({
@@ -251,13 +250,13 @@ export default async function DashboardPage() {
           statementsWithIssues: 0,
           erroriRecenti: 0,
         }),
-    operatorScoped ? fetchRecentBolleScoped(supabase, fornitoreIds) : Promise.resolve([]),
     countFornitoriWithOverdueBolle(supabase, operatorScoped ? fornitoreIds : null),
     operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
     operatorScoped && sedeId
-      ? fetchTodayScannerFlowSummary(supabase, sedeId, tz)
-      : Promise.resolve({ aiElaborate: 0, archiviate: 0 }),
+      ? fetchTodayScannerFlowDetail(supabase, sedeId, tz)
+      : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
   ])
+  const formatScannerEventTime = (iso: string) => fmtDate(iso, locale, tz, { hour: '2-digit', minute: '2-digit' })
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   return (
@@ -270,13 +269,12 @@ export default async function DashboardPage() {
           dashboardLabel={t.nav.dashboard}
           showDashboardShortcut={false}
         >
-          <h1 className="app-page-title min-w-0 truncate text-xl font-bold md:text-2xl">
+          <h1 className="app-page-title min-w-0 truncate text-xl font-bold leading-tight md:text-2xl">
             {dashboardSedeNome ?? t.dashboard.title}
           </h1>
-          <p className="mt-0.5 hidden min-w-0 truncate text-sm text-slate-200 md:block">{t.dashboard.subtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-2 lg:gap-3 md:overflow-x-auto">
-          <ScanEmailButton alwaysShowLabel sedeId={adminViewSedeId ?? undefined} />
+        <div className="hidden min-w-0 shrink-0 md:flex md:w-auto md:max-w-none md:self-center md:flex-row md:flex-nowrap md:items-center md:justify-end md:gap-3 lg:gap-4 md:overflow-x-auto">
+          <DashboardDuplicateFattureButton alwaysShowLabel />
           <SollecitiButton fornitoriInScadenza={sollecitiFornitori} />
         </div>
       </AppPageHeaderStrip>
@@ -363,80 +361,76 @@ export default async function DashboardPage() {
           ) : null}
         </>
       ) : null}
-      <div className="hidden md:block">
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
-          {t.fornitori.tabRiepilogo}
-        </h2>
-        <DashboardOperatorKpiGrid kpis={kpis} t={t} locale={locale} currency={currency} />
-      </div>
 
-      {operatorScoped ? (
-        <DashboardScannerFlowCard summary={scannerFlowToday} t={t} />
+      {!operatorScoped ? (
+        <div className="dashboard-operator-desktop-column">
+          <div>
+            <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
+              {t.fornitori.tabRiepilogo}
+            </h2>
+            <DashboardOperatorKpiGrid
+              kpis={kpis}
+              t={t}
+              locale={locale}
+              currency={currency}
+              hideBelowLg
+            />
+          </div>
+        </div>
       ) : null}
 
-      <div className="hidden md:block">
-        <div className={`app-card overflow-hidden ${SUMMARY_HIGHLIGHT_ACCENTS.cyan.border}`}>
-          <div className={`app-card-bar ${SUMMARY_HIGHLIGHT_ACCENTS.cyan.bar}`} aria-hidden />
-          <div className="flex flex-col gap-3 border-b border-slate-600/80/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <h2 className="font-semibold text-slate-100">{t.dashboard.recentBills}</h2>
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/bolle/new"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-cyan-600"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                {t.bolle.new}
-              </Link>
-              <Link href="/bolle" className="text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-                {t.dashboard.viewAll} →
-              </Link>
+      {operatorScoped ? (
+        <>
+          <div className="dashboard-operator-desktop-column">
+            <div>
+              <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-200">
+                {t.fornitori.tabRiepilogo}
+              </h2>
+              <DashboardOperatorKpiGrid
+                kpis={kpis}
+                t={t}
+                locale={locale}
+                currency={currency}
+                hideBelowLg
+              />
             </div>
           </div>
-
-          {bolle.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <svg className="mx-auto mb-3 h-12 w-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              <p className="text-sm text-slate-200">{t.bolle.noBills}</p>
-              <Link href="/bolle/new" className="mt-3 inline-block text-sm font-medium text-cyan-400 hover:text-cyan-300 hover:underline">
-                {t.bolle.addFirst}
-              </Link>
+          {/* Scanner + bolle: visibile su mobile e desktop (sotto i KPI ≥1024px). Vedi globals.css. */}
+          <div className="dashboard-operator-scanner-bolle-stack">
+            <DashboardScannerFlowCard
+              summary={scannerFlowDetail.summary}
+              events={scannerFlowDetail.events}
+              formatEventTime={formatScannerEventTime}
+              t={t}
+            />
+            <div className="min-h-0 min-w-0">
+              <DashboardRecentBolleCard
+                bolle={[]}
+                formatDate={formatDate}
+                surface="scanner-flow"
+                hideRecentList
+                hrefScannerEvents="/scanner/eventi"
+                labels={{
+                  title: t.dashboard.recentBills,
+                  newBill: t.bolle.new,
+                  viewAll: t.dashboard.viewAll,
+                  scannerHubTitle: t.dashboard.scannerFlowBolleHubTitle,
+                  scannerHubOpenScanner: t.dashboard.scannerFlowOpenScanner,
+                  scannerHubEventsLink: t.dashboard.scannerFlowEventsAllLink,
+                  noBills: t.bolle.noBills,
+                  addFirst: t.bolle.addFirst,
+                  completato: t.status.completato,
+                  inAttesa: t.status.inAttesa,
+                }}
+              />
             </div>
-          ) : (
-            <div className="divide-y divide-slate-800/80">
-              {bolle.map((b: { id: string; data: string; stato: string; fornitori?: { nome?: string | null } | null }) => (
-                <Link
-                  key={b.id}
-                  href={`/bolle/${b.id}`}
-                  className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-slate-700/40"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-slate-100">{b.fornitori?.nome ?? '—'}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{formatDate(b.data)}</p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      b.stato === 'completato'
-                        ? 'bg-green-500/15 text-green-300 ring-1 ring-green-500/30'
-                        : 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/30'
-                    }`}
-                  >
-                    {b.stato === 'completato' ? t.status.completato : t.status.inAttesa}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
+          </div>
+        </>
+      ) : (
+        <div className="dashboard-operator-empty-shell-desktop">
+          <DashboardRecentBolleCard shellOnly />
         </div>
-      </div>
+      )}
 
     </div>
   )

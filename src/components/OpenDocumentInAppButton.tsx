@@ -88,12 +88,9 @@ export function OpenDocumentInAppButton({
   const [loading, setLoading] = useState(false)
 
   const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId })
-  if (!hrefs) return null
-  if (!fileUrl?.trim()) return null
-
-  const { jsonHref, tabHref } = hrefs
-  const kind = attachmentKindFromFileUrl(fileUrl)
-  const triggerClass = className ?? CYAN_TABLE_PILL_LINK_CLASSNAME
+  const jsonHref = hrefs?.jsonHref ?? ''
+  const tabHref = hrefs?.tabHref ?? ''
+  const canOpen = Boolean(hrefs && fileUrl?.trim())
 
   useEffect(() => {
     if (!open) {
@@ -101,6 +98,7 @@ export function OpenDocumentInAppButton({
       setLoading(false)
       return
     }
+    if (!jsonHref) return
     let cancelled = false
     setLoading(true)
     setSignedUrl(null)
@@ -124,13 +122,18 @@ export function OpenDocumentInAppButton({
   }, [open, jsonHref])
 
   useEffect(() => {
-    if (!open) return
+    if (!open || !canOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open])
+  }, [open, canOpen])
+
+  if (!canOpen) return null
+
+  const kind = attachmentKindFromFileUrl(fileUrl!)
+  const triggerClass = className ?? CYAN_TABLE_PILL_LINK_CLASSNAME
 
   return (
     <>

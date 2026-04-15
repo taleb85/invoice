@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
+import ScanEmailButton from '@/components/ScanEmailButton'
 
 /**
  * Logo FLUXO nella striscia unificata con `#app-desktop-header-nav-progress` (solo md+).
@@ -17,9 +18,9 @@ export function SidebarBrandHeader({
   const { t } = useLocale()
 
   return (
-    <div className="relative flex min-h-[48px] min-w-0 flex-1 items-center gap-1.5 pl-3.5 pr-2.5 lg:pl-5 lg:pr-3">
+    <div className="relative flex min-h-[48px] min-w-0 flex-1 items-center gap-2 bg-transparent pl-3.5 pr-2.5 lg:gap-3 lg:pl-5 lg:pr-3 text-cyan-100">
       <div
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
+        className="flex min-w-0 shrink-0 cursor-pointer items-center gap-2"
         onClick={() => {
           if (typeof window === 'undefined' || window.innerWidth < 768) return
           if (collapsed) {
@@ -84,11 +85,12 @@ export function SidebarBrandHeader({
             </defs>
             <text x="0" y="24" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="24" fill="url(#fx-text)">FLUXO</text>
           </svg>
-          <p className="-mt-1 text-[9px] font-semibold uppercase tracking-wider text-white [text-shadow:0_0_18px_rgba(255,255,255,0.2)]">
+          <p className="-mt-1 text-[9px] font-semibold uppercase tracking-wider text-cyan-100/85 [text-shadow:0_0_14px_rgba(34,211,238,0.25)]">
             {t.ui.tagline}
           </p>
         </div>
       </div>
+      <ScanEmailButton placement="desktopHeader" />
     </div>
   )
 }

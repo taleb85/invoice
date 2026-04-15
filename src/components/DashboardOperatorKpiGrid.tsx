@@ -3,7 +3,6 @@ import { formatCurrency } from '@/lib/locale-shared'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
 import type { ReactNode } from 'react'
-import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
 import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
 import { operatorKpiVisual } from '@/lib/kpi-accent-palette'
 
@@ -17,7 +16,11 @@ function operatorKpiCardShadow(glowRgb: string) {
   ].join(', ')
 }
 
-const kpiGridPanelClass = `mb-10 rounded-2xl border px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-4 ${desktopHeaderBarDefaultBorderColor} ${desktopHeaderBarDefaultFill}`
+const kpiGridPanelClass = [
+  'app-card',
+  'mb-10',
+  'px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-4',
+].join(' ')
 
 export function DashboardOperatorKpiSkeleton() {
   return (
@@ -28,7 +31,7 @@ export function DashboardOperatorKpiSkeleton() {
           return (
             <div
               key={i}
-              className={`operator-kpi-card relative flex animate-pulse flex-col overflow-hidden rounded-2xl border-slate-600/55 ${ov.ringClass}`}
+              className={`operator-kpi-card relative flex animate-pulse flex-col overflow-hidden rounded-2xl ${ov.borderClass} ${ov.ringClass}`}
               style={{ boxShadow: operatorKpiCardShadow(ov.glowRgb) }}
             >
               <KpiLAccentOverlay accentHex={ov.accentHex} edgePx={4} />
@@ -61,6 +64,7 @@ type KpiItem = {
   subClass: string
   accentHex: string
   glowRgb: string
+  borderClass: string
   ringClass: string
   hoverClass: string
   chevronClass: string
@@ -72,11 +76,14 @@ export default function DashboardOperatorKpiGrid({
   t,
   locale,
   currency,
+  hideBelowLg = false,
 }: {
   kpis: OperatorDashboardKpis
   t: Translations
   locale: Locale
   currency: string
+  /** Sotto 1024px nasconde tutta la griglia (evita che resti visibile se il layout padre viene sovrascritto). */
+  hideBelowLg?: boolean
 }) {
   let stmtSub: string
   let stmtSubClass: string
@@ -102,6 +109,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: ov[0].subIdleClass,
       accentHex: ov[0].accentHex,
       glowRgb: ov[0].glowRgb,
+      borderClass: ov[0].borderClass,
       ringClass: ov[0].ringClass,
       hoverClass: ov[0].hoverClass,
       chevronClass: ov[0].chevronClass,
@@ -130,6 +138,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: k.documentiPending > 0 ? ov[1].subPositiveClass! : ov[1].subIdleClass,
       accentHex: ov[1].accentHex,
       glowRgb: ov[1].glowRgb,
+      borderClass: ov[1].borderClass,
       ringClass: ov[1].ringClass,
       hoverClass: ov[1].hoverClass,
       chevronClass: ov[1].chevronClass,
@@ -153,6 +162,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: k.ordiniCount > 0 ? ov[2].subPositiveClass! : ov[2].subIdleClass,
       accentHex: ov[2].accentHex,
       glowRgb: ov[2].glowRgb,
+      borderClass: ov[2].borderClass,
       ringClass: ov[2].ringClass,
       hoverClass: ov[2].hoverClass,
       chevronClass: ov[2].chevronClass,
@@ -181,6 +191,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: k.bolleInAttesa > 0 ? ov[3].subPositiveClass! : ov[3].subIdleClass,
       accentHex: ov[3].accentHex,
       glowRgb: ov[3].glowRgb,
+      borderClass: ov[3].borderClass,
       ringClass: ov[3].ringClass,
       hoverClass: ov[3].hoverClass,
       chevronClass: ov[3].chevronClass,
@@ -209,6 +220,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: ov[4].subIdleClass,
       accentHex: ov[4].accentHex,
       glowRgb: ov[4].glowRgb,
+      borderClass: ov[4].borderClass,
       ringClass: ov[4].ringClass,
       hoverClass: ov[4].hoverClass,
       chevronClass: ov[4].chevronClass,
@@ -237,6 +249,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: stmtSubClass,
       accentHex: ov[5].accentHex,
       glowRgb: ov[5].glowRgb,
+      borderClass: ov[5].borderClass,
       ringClass: ov[5].ringClass,
       hoverClass: ov[5].hoverClass,
       chevronClass: ov[5].chevronClass,
@@ -265,6 +278,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: k.listinoRows > 0 ? ov[6].subPositiveClass! : ov[6].subIdleClass,
       accentHex: ov[6].accentHex,
       glowRgb: ov[6].glowRgb,
+      borderClass: ov[6].borderClass,
       ringClass: ov[6].ringClass,
       hoverClass: ov[6].hoverClass,
       chevronClass: ov[6].chevronClass,
@@ -288,6 +302,7 @@ export default function DashboardOperatorKpiGrid({
       subClass: ov[7].subIdleClass,
       accentHex: ov[7].accentHex,
       glowRgb: ov[7].glowRgb,
+      borderClass: ov[7].borderClass,
       ringClass: ov[7].ringClass,
       hoverClass: ov[7].hoverClass,
       chevronClass: ov[7].chevronClass,
@@ -310,14 +325,14 @@ export default function DashboardOperatorKpiGrid({
     },
   ]
 
-  return (
+  const panel = (
     <div className={kpiGridPanelClass}>
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
         {items.map((item) => (
           <Link
             key={`${item.href}-${item.label}`}
             href={item.href}
-            className={`operator-kpi-card group relative flex flex-col overflow-hidden rounded-2xl border-slate-600/55 ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 hover:bg-slate-700/90 ${item.hoverClass} active:scale-[0.99]`}
+            className={`operator-kpi-card group relative flex flex-col overflow-hidden rounded-2xl ${item.borderClass} ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 hover:bg-slate-700/90 ${item.hoverClass} active:scale-[0.99]`}
             style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
           >
             <KpiLAccentOverlay accentHex={item.accentHex} edgePx={4} />
@@ -351,4 +366,10 @@ export default function DashboardOperatorKpiGrid({
       </div>
     </div>
   )
+
+  if (hideBelowLg) {
+    return <div className="operator-kpi-grid-desktop-only">{panel}</div>
+  }
+
+  return panel
 }

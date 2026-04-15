@@ -144,7 +144,9 @@ export default function RekkiSupplierIntegration({
     const id = initialRekkiId?.trim() ?? rekkiId.trim()
     const link = initialRekkiLink?.trim() ?? rekkiLink.trim()
     return (
-      <div className={`app-card overflow-hidden ${shell.border} ${className ?? ''}`}>
+      <div
+        className={`app-card flex min-h-0 flex-1 flex-col overflow-hidden ${shell.border} ${className ?? ''}`}
+      >
         <div className={`app-card-bar ${shell.bar}`} aria-hidden />
         <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
           <svg className="h-3.5 w-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +154,7 @@ export default function RekkiSupplierIntegration({
           </svg>
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-100">{t.fornitori.rekkiIntegrationTitle}</p>
         </div>
-        <div className="space-y-3 px-5 py-4 text-sm text-slate-200">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm text-slate-200">
           {id || link ? (
             <>
               {id ? (
@@ -177,7 +179,9 @@ export default function RekkiSupplierIntegration({
   }
 
   return (
-    <div className={`app-card overflow-hidden ${shell.border} ${className ?? ''}`}>
+    <div
+      className={`app-card flex min-h-0 flex-1 flex-col overflow-hidden ${shell.border} ${className ?? ''}`}
+    >
       <div className={`app-card-bar ${shell.bar}`} aria-hidden />
       <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
         <svg className="h-3.5 w-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

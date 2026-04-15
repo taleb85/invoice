@@ -67,7 +67,7 @@ export default function NotificationBell({
 
   const buttonClass =
     variant === 'header'
-      ? `relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-visible rounded-xl border border-slate-500/45 bg-slate-600/35 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-cyan-500/35 hover:bg-slate-600/55 hover:text-cyan-100 touch-manipulation`
+      ? `relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-visible rounded-xl border border-slate-500/45 bg-slate-600/35 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-slate-400/50 hover:bg-slate-600/55 hover:text-white touch-manipulation`
       : variant === 'inline'
         ? `relative inline-flex h-8 min-w-8 shrink-0 items-center justify-center overflow-visible rounded-lg border border-slate-700/80 bg-slate-700/90 px-1 text-slate-200 transition-colors hover:border-slate-600 hover:bg-slate-700 touch-manipulation`
         : `relative flex h-12 w-12 shrink-0 items-center justify-center overflow-visible rounded-full border border-slate-600/90 bg-slate-700/95 text-slate-100 shadow-lg shadow-black/40 backdrop-blur-sm transition-colors hover:border-cyan-500/40 hover:bg-slate-700/95 touch-manipulation`

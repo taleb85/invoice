@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { useSedeId } from '@/lib/use-sede'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { findDuplicateFatturaId, normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 import { useT } from '@/lib/use-t'
-import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 
 type OcrStatus = 'idle' | 'scanning' | 'done' | 'error'
 
@@ -27,7 +28,7 @@ export default function NuovaFatturaForm() {
   const searchParams = useSearchParams()
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
-  const { sedeId } = useSedeId()
+  const { effectiveSedeId: sedeId } = useManualDeliverySede()
   const t = useT()
   const { activeOperator } = useActiveOperator()
 
@@ -160,6 +161,21 @@ export default function NuovaFatturaForm() {
     setSaving(true)
     setError(null)
 
+    const numFatt = normalizeNumeroFattura(numeroFattura)
+    if (fornitoreIdParam && numFatt) {
+      const dupId = await findDuplicateFatturaId(supabase, {
+        sedeId,
+        fornitoreId: fornitoreIdParam,
+        data,
+        numeroFattura: numFatt,
+      })
+      if (dupId) {
+        setError(t.fatture.duplicateInvoiceSameSupplierDateNumber)
+        setSaving(false)
+        return
+      }
+    }
+
     const ext = file.name.split('.').pop() ?? 'pdf'
     const uniqueName = `${crypto.randomUUID()}.${ext}`
 
@@ -189,7 +205,7 @@ export default function NuovaFatturaForm() {
         data,
         file_url,
         registrato_da: registratoDa.trim() || null,
-        numero_fattura: numeroFattura.trim() || null,
+        numero_fattura: numFatt || null,
         importo: importoFinale,
       }])
       .select('id')
@@ -215,7 +231,7 @@ export default function NuovaFatturaForm() {
       await supabase.from('bolle').update({ stato: 'completato' }).in('id', bolleIds)
     }
 
-    router.push('/bolle')
+    router.push('/fatture')
     router.refresh()
   }
 
@@ -224,15 +240,15 @@ export default function NuovaFatturaForm() {
 
       {/* Header */}
       <div
-        className={`sticky top-0 z-10 flex items-center gap-3 border-b px-4 py-4 backdrop-blur-md ${desktopHeaderBarDefaultBorderColor} ${desktopHeaderBarDefaultFill}`}
+        className="app-desktop-header-glass sticky top-0 z-10 flex items-center gap-3 px-4 py-4"
       >
         <button type="button" onClick={() => router.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-700 hover:text-slate-200">
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-700 hover:text-slate-200">
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
         </button>
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="app-page-title text-lg font-bold">{t.fatture.caricaFatturaTitle}</h1>
           {bolleSelezionate.size > 0 && (
             <p className="mt-0.5 text-xs text-cyan-400">
@@ -240,6 +256,7 @@ export default function NuovaFatturaForm() {
             </p>
           )}
         </div>
+        <AppPageHeaderDesktopTray />
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4 p-4 max-w-lg mx-auto w-full">

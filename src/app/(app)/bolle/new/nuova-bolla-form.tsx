@@ -5,14 +5,15 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Fornitore } from '@/types'
-import { useSedeId } from '@/lib/use-sede'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { findDuplicateFatturaId, normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate } from '@/lib/locale-shared'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
-import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
-
 function ymdTodayInTimezone(tz: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: tz,
@@ -74,7 +75,8 @@ export default function NuovaBollaForm() {
   const preselectedFornitoreId = searchParams.get('fornitore_id') ?? ''
   const supabase = createClient()
   const fileRef = useRef<HTMLInputElement>(null)
-  const { sedeId } = useSedeId()
+  /** Stessa sede della dashboard (cookie admin / operatore attivo / profilo). */
+  const { effectiveSedeId: sedeId } = useManualDeliverySede()
   const t = useT()
   const { locale, timezone } = useLocale()
   const { activeOperator } = useActiveOperator()
@@ -104,7 +106,7 @@ export default function NuovaBollaForm() {
 
   useEffect(() => {
     if (activeOperator?.full_name) {
-      setRegistratoDa(activeOperator.full_name)
+      setRegistratoDa(activeOperator.full_name.toUpperCase())
     }
   }, [activeOperator])
   const [scanIntent, setScanIntent] = useState<ScanIntent>('auto')
@@ -304,6 +306,23 @@ export default function NuovaBollaForm() {
     setSaving(true)
     setError(null)
 
+    if (registrationTarget === 'fattura') {
+      const num = normalizeNumeroFattura(numeroBolla)
+      if (num) {
+        const dupId = await findDuplicateFatturaId(supabase, {
+          sedeId,
+          fornitoreId,
+          data,
+          numeroFattura: num,
+        })
+        if (dupId) {
+          setError(t.fatture.duplicateInvoiceSameSupplierDateNumber)
+          setSaving(false)
+          return
+        }
+      }
+    }
+
     const ext = file.name.split('.').pop() ?? 'pdf'
     const uniqueName = `${crypto.randomUUID()}.${ext}`
 
@@ -331,8 +350,8 @@ export default function NuovaBollaForm() {
         sede_id: sedeId,
         data,
         file_url,
-        registrato_da: registratoDa.trim() || null,
-        numero_fattura: numeroBolla.trim() || null,
+        registrato_da: registratoDa.trim().toUpperCase() || null,
+        numero_fattura: normalizeNumeroFattura(numeroBolla) || null,
         importo: importoFinale,
       }])
 
@@ -358,7 +377,7 @@ export default function NuovaBollaForm() {
       data,
       file_url,
       stato: 'in attesa',
-      registrato_da: registratoDa.trim() || null,
+      registrato_da: registratoDa.trim().toUpperCase() || null,
       numero_bolla: numeroBolla.trim() || null,
       importo: importo ? parseFloat(importo) : null,
     }])
@@ -374,20 +393,25 @@ export default function NuovaBollaForm() {
       void supabase.from('scanner_flow_events').insert({ sede_id: sedeId, step: 'archiviata_bolla' })
     }
 
-    router.push('/bolle')
+    router.push('/bolle?tutte=1')
     router.refresh()
   }
 
-  const fieldLabelCls =
-    'mb-3 block text-xs font-semibold uppercase tracking-wide text-cyan-400/80'
+  const fieldLabelTextCls =
+    'text-xs font-bold uppercase tracking-wider text-cyan-50 [text-shadow:0_0_18px_rgba(34,211,238,0.2)]'
+  const fieldLabelCls = `mb-2 block ${fieldLabelTextCls}`
+  const fieldHintCls = 'font-semibold normal-case tracking-normal text-cyan-100/85'
   const fieldInputCls =
-    'w-full rounded-xl border-0 bg-transparent py-1 -mx-1 text-base text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-0'
+    'w-full rounded-xl border-0 bg-transparent py-1 -mx-1 text-base font-semibold text-white placeholder:text-cyan-200/55 focus:outline-none focus:ring-0'
+  /** Campo «Registrato da»: bordo visibile (gli altri campi testuali restano flat nel layout). */
+  const registeredByInputCls =
+    'w-full rounded-xl border border-cyan-500/35 bg-white/[0.07] px-3 py-2 text-base font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] placeholder:text-cyan-200/55 transition-[border-color,box-shadow] focus:border-cyan-400/55 focus:outline-none focus:ring-2 focus:ring-cyan-400/25'
 
   const intentBtn = (active: boolean) =>
-    `rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-xs ${
+    `rounded-lg px-2 py-1 text-[11px] font-bold transition-colors sm:px-2.5 sm:py-1 sm:text-xs ${
       active
-        ? 'bg-cyan-500/25 text-cyan-100 ring-1 ring-cyan-500/40'
-        : 'bg-slate-700/80 text-slate-200 hover:bg-slate-700 hover:text-slate-200'
+        ? 'bg-cyan-500/35 text-white ring-1 ring-cyan-300/50 shadow-[0_0_14px_-3px_rgba(6,182,212,0.45)]'
+        : 'bg-white/10 text-cyan-50 hover:bg-white/15 hover:text-white'
     }`
 
   return (
@@ -401,40 +425,35 @@ export default function NuovaBollaForm() {
       ) : null}
       {/*
         Mobile: `fixed` sotto topbar (o sotto topbar+sync). Desktop: sticky in cima al contenuto.
+        Stessa forma della strip dashboard (`AppPageHeaderStrip`: card + app-card-bar + padding interno).
       */}
       <div
-        className={`z-10 flex items-center gap-3 border-b px-4 py-3 backdrop-blur-md max-md:fixed max-md:left-0 max-md:right-0 md:sticky md:top-0 ${desktopHeaderBarDefaultBorderColor} ${desktopHeaderBarDefaultFill} ${
+        className={`app-shell-page-padding-x z-10 max-md:fixed max-md:left-0 max-md:right-0 md:sticky md:top-0 max-md:mt-2 md:mt-2 ${
           emailSyncBannerVisible
             ? 'max-md:top-[calc(3.5rem+6.5rem+env(safe-area-inset-top,0px))]'
             : 'max-md:top-[calc(3.5rem+env(safe-area-inset-top,0px))]'
         }`}
       >
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-slate-700 hover:text-cyan-300"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </button>
-        <div className="min-w-0 flex-1">
-          <h1 className="app-page-title text-lg font-bold tracking-tight">{t.bolle.scannerTitle}</h1>
-          <p className="truncate text-[11px] text-slate-500 sm:text-xs">
-            {registrationTarget === 'fattura' ? t.bolle.scannerFlowFattura : t.bolle.scannerFlowBolla}
-          </p>
-        </div>
+        <AppPageHeaderStrip dense className="!mb-0">
+          <AppPageHeaderTitleWithDashboardShortcut
+            dashboardLabel={t.nav.dashboard}
+            className="min-w-0 w-full items-center gap-2 sm:flex-1"
+          >
+            <h1 className="app-page-title text-lg font-extrabold tracking-tight text-white [text-shadow:0_0_24px_rgba(34,211,238,0.35)] md:text-xl">
+              {t.bolle.scannerTitle}
+            </h1>
+          </AppPageHeaderTitleWithDashboardShortcut>
+        </AppPageHeaderStrip>
       </div>
-      {/* Riserva altezza dell’header fisso su mobile (≈ py-3 + riga titolo + bordo). */}
-      <div className="h-[4.375rem] shrink-0 md:hidden" aria-hidden />
+      {/* Riserva altezza strip + barra neon + padding (allineato a `AppPageHeaderStrip`). */}
+      <div className="h-[5.125rem] shrink-0 md:hidden" aria-hidden />
 
-      <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-4 p-4 pb-8">
+      <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-lg flex-1 flex-col gap-3 p-3 pb-6 sm:p-4 sm:pb-7">
 
         <div className="app-card">
-          <div className="app-card-bar" aria-hidden />
-          <div className="space-y-3 p-5">
+          <div className="space-y-2 p-4">
             <p className={fieldLabelCls}>{t.bolle.scannerWhatLabel}</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               <button type="button" className={intentBtn(scanIntent === 'auto')} onClick={() => handleIntentChange('auto')}>
                 {t.bolle.scannerModeAuto}
               </button>
@@ -452,8 +471,7 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card">
-          <div className="app-card-bar" aria-hidden />
-          <div className="p-5">
+          <div className="p-4">
           <label className={fieldLabelCls}>
             {t.bolle.fotoLabel}
           </label>
@@ -462,28 +480,28 @@ export default function NuovaBollaForm() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex w-full flex-col items-center gap-3 rounded-xl border-2 border-dashed border-slate-600/70 py-8 text-slate-500 transition-colors hover:border-cyan-500/45 hover:text-cyan-300 active:bg-slate-700/50"
+              className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-cyan-300/45 py-6 text-cyan-100 transition-colors hover:border-cyan-200/60 hover:bg-white/10 hover:text-white active:bg-white/15"
             >
-              <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="h-8 w-8 text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
-              <span className="text-sm font-semibold">{t.bolle.fileBtn} (PDF)</span>
+              <span className="text-sm font-bold tracking-tight">{t.bolle.fileBtn} (PDF)</span>
             </button>
           )}
 
           {file?.type === 'application/pdf' && (
-            <div className="relative rounded-xl border border-slate-600/60 bg-slate-700/50 px-4 py-8 text-center text-sm text-slate-200">
+            <div className="relative rounded-xl border border-white/15 bg-white/5 px-3 py-6 text-center text-sm font-semibold text-white">
               <p>{t.bolle.scannerPdfPreview}</p>
-              <p className="mt-2 truncate text-xs text-slate-500">{file.name}</p>
+              <p className="mt-1.5 truncate text-xs font-medium text-cyan-100">{file.name}</p>
               <button
                 type="button"
                 onClick={handleRemoveFile}
-                className="mt-4 text-xs font-semibold text-red-400 hover:text-red-300"
+                className="mt-3 text-xs font-bold text-red-300 underline decoration-red-400/50 underline-offset-2 hover:text-red-200"
               >
                 {t.common.delete}
               </button>
               {ocrStatus === 'scanning' && (
-                <p className="mt-3 flex items-center justify-center gap-2 text-xs text-cyan-300">
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-cyan-200">
                   <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -492,7 +510,7 @@ export default function NuovaBollaForm() {
                 </p>
               )}
               {ocrStatus === 'matched' && (
-                <p className="mt-3 flex items-center justify-center gap-2 text-xs text-emerald-300">
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-200">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
                   </svg>
@@ -500,7 +518,7 @@ export default function NuovaBollaForm() {
                 </p>
               )}
               {ocrStatus === 'not_found' && (
-                <p className="mt-3 flex items-center justify-center gap-2 text-xs text-amber-300">
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-200">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>
@@ -521,9 +539,8 @@ export default function NuovaBollaForm() {
         </div>
 
         {file && (
-          <div className="app-card ring-1 ring-cyan-500/20">
-            <div className="app-card-bar" aria-hidden />
-            <div className="p-5">
+          <div className="app-card ring-1 ring-cyan-400/30">
+            <div className="p-4">
             <label className={fieldLabelCls}>
               Registrato da
             </label>
@@ -531,23 +548,25 @@ export default function NuovaBollaForm() {
               type="text"
               placeholder="Nome di chi ha registrato la bolla…"
               value={registratoDa}
-              onChange={(e) => setRegistratoDa(e.target.value)}
+              onChange={(e) => setRegistratoDa(e.target.value.toUpperCase())}
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus
-              className={fieldInputCls}
+              className={registeredByInputCls}
             />
             </div>
           </div>
         )}
 
         <div className="app-card">
-          <div className="app-card-bar" aria-hidden />
-          <div className="p-5">
-          <div className="mb-2 flex items-center justify-between">
-            <label className="text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
+          <div className="p-4">
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className={`min-w-0 shrink ${fieldLabelTextCls}`}>
               {t.bolle.fornitoreLabel}
             </label>
             {ocrStatus === 'scanning' && (
-              <span className="flex items-center gap-1 text-xs text-slate-500">
+              <span className="flex items-center gap-1 text-xs font-bold text-cyan-100">
                 <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -556,7 +575,7 @@ export default function NuovaBollaForm() {
               </span>
             )}
             {ocrStatus === 'matched' && matchedFornitore && (
-              <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/30">
+              <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-200 ring-1 ring-emerald-400/40">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
                 </svg>
@@ -564,16 +583,16 @@ export default function NuovaBollaForm() {
               </span>
             )}
             {ocrStatus === 'not_found' && ocrNome && (
-              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs text-amber-200 ring-1 ring-amber-500/25">
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-100 ring-1 ring-amber-400/35">
                 {t.bolle.ocrRead} &quot;{ocrNome.length > 20 ? ocrNome.slice(0, 20) + '…' : ocrNome}&quot;
               </span>
             )}
           </div>
 
           {fornitori.length === 0 ? (
-            <p className="text-sm text-amber-300">
+            <p className="text-sm font-semibold text-amber-100">
               {t.fornitori.noSuppliers}{' '}
-              <Link href="/fornitori/new" className="font-medium text-cyan-400 underline transition-colors hover:text-cyan-300">
+              <Link href="/fornitori/new" className="font-bold text-cyan-100 underline decoration-cyan-400/40 underline-offset-2 transition-colors hover:text-white">
                 {t.fornitori.addFirst}
               </Link>
             </p>
@@ -588,8 +607,8 @@ export default function NuovaBollaForm() {
                   setMatchedFornitore(null)
                 }
               }}
-              className={`mt-1 w-full cursor-pointer rounded-xl border border-slate-600/60 bg-slate-700/70 px-3 py-2.5 text-base text-slate-100 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 ${
-                ocrStatus === 'matched' ? 'font-semibold text-cyan-100' : ''
+              className={`mt-0.5 w-full cursor-pointer rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-base font-semibold text-white focus:border-cyan-300/55 focus:outline-none focus:ring-2 focus:ring-cyan-300/40 ${
+                ocrStatus === 'matched' ? 'font-bold' : ''
               }`}
             >
               {fornitori.map((f) => (
@@ -601,7 +620,7 @@ export default function NuovaBollaForm() {
           {ocrStatus === 'not_found' && (ocrNome || ocrPiva) && (
             <button
               type="button"
-              className="mt-3 w-full rounded-xl border border-violet-500/35 bg-violet-950/40 py-2.5 text-sm font-semibold text-violet-100 transition-colors hover:bg-violet-950/55"
+              className="mt-2 w-full rounded-xl border border-violet-400/40 bg-violet-950/45 py-2 text-sm font-bold text-violet-50 transition-colors hover:bg-violet-900/55"
               onClick={() => navigateToImport(ocrNome, ocrPiva, ocrIndirizzo)}
             >
               {t.bolle.scannerCreateSupplierCta}
@@ -610,7 +629,7 @@ export default function NuovaBollaForm() {
           {needsSupplierDeepExtract && file && ocrStatus === 'not_found' && (
             <button
               type="button"
-              className="mt-3 w-full rounded-xl border border-cyan-500/40 bg-cyan-950/35 py-2.5 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-950/50"
+              className="mt-2 w-full rounded-xl border border-cyan-400/45 bg-cyan-950/40 py-2 text-sm font-bold text-cyan-50 transition-colors hover:bg-cyan-900/50"
               onClick={() => void runScannerHub(file, 'nuovo_fornitore', fornitori)}
             >
               {t.bolle.scannerCreateSupplierFromUnrecognized}
@@ -620,11 +639,10 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
-          <div className="border-b border-slate-700/50 p-5">
+          <div className="border-b border-white/10 p-4">
             <label className={fieldLabelCls}>
               {registrationTarget === 'fattura' ? t.fatture.colNumFattura : `N° Bolla / DDT`}{' '}
-              <span className="font-normal normal-case text-slate-500">(opzionale)</span>
+              <span className={fieldHintCls}>(opzionale)</span>
             </label>
             <input
               type="text"
@@ -634,13 +652,13 @@ export default function NuovaBollaForm() {
               className={fieldInputCls}
             />
           </div>
-          <div className="p-5">
+          <div className="p-4">
             <label className={fieldLabelCls}>
               {t.appStrings.labelImportoTotale}{' '}
-              <span className="font-normal normal-case text-slate-500">(IVA inclusa, opzionale)</span>
+              <span className={fieldHintCls}>(IVA inclusa, opzionale)</span>
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-base text-slate-500">£</span>
+              <span className="text-base font-bold text-cyan-100">£</span>
               <input
                 type="number"
                 min="0"
@@ -655,21 +673,20 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
-          <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-emerald-500/5' : ''}`}>
-            <div className="mb-2 flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-wide text-cyan-400/80">
+          <div className={`p-4 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : ''}`}>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className={`min-w-0 shrink ${fieldLabelTextCls}`}>
                 {registrationTarget === 'fattura' ? t.fatture.dataFattura : t.bolle.dataLabel}
               </label>
               {dateFromOcr ? (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-500/30">
+                <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-200 ring-1 ring-emerald-400/40">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
                   </svg>
                   {t.bolle.ocrAutoRecognized}
                 </span>
               ) : (
-                <span className="text-[11px] text-slate-500">{t.bolle.dateFromDocumentHint}</span>
+                <span className="text-[11px] font-semibold text-cyan-100">{t.bolle.dateFromDocumentHint}</span>
               )}
             </div>
             <input
@@ -681,24 +698,24 @@ export default function NuovaBollaForm() {
             />
           </div>
 
-          <div className="flex items-center justify-between border-t border-slate-700/50 bg-slate-700/30 px-5 py-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="flex items-center justify-between border-t border-white/10 bg-white/5 px-4 py-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-cyan-100">
               {t.appStrings.uploadDateLabel}
             </span>
-            <span className="text-sm font-medium text-slate-200">
+            <span className="text-sm font-bold text-white">
               {todayRegistrationLabel} — {t.appStrings.uploadDateAutomatic}
             </span>
           </div>
         </div>
 
         {error && (
-          <p className="rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300">{error}</p>
+          <p className="rounded-xl border border-red-400/40 bg-red-950/50 px-3 py-2 text-sm font-semibold text-red-200">{error}</p>
         )}
 
         <button
           type="submit"
           disabled={saving || fornitori.length === 0 || ocrStatus === 'scanning' || !file}
-          className="app-glow-cyan mt-auto w-full rounded-2xl bg-cyan-500 py-4 text-base font-semibold text-slate-950 transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50"
+          className="app-glow-cyan mt-auto w-full rounded-2xl border border-cyan-300/40 bg-cyan-500 py-3 text-base font-extrabold tracking-tight text-slate-950 shadow-[0_0_24px_-4px_rgba(6,182,212,0.5)] transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50"
         >
           {saving
             ? (registrationTarget === 'fattura' ? t.bolle.scannerSavingFattura : t.bolle.savingNote)

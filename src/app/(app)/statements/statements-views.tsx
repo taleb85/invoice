@@ -1221,7 +1221,6 @@ export function PendingMatchesTab({
         }
       }
     })()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- statementDocs: re-run quando cambia set locale estratti
   }, [loading, docs, statementDocs])
 
   // Auto-associa bolle when totale OCR matches a unique greedy subset (same heuristic as checkbox suggest)

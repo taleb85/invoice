@@ -32,6 +32,7 @@ import {
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
+import { findDuplicateFatturaId, normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 
 /**
  * Limite durata funzione su Vercel/hosting (secondi).
@@ -1278,27 +1279,45 @@ async function processEmails(
         }
 
         if (createFatturaBozza) {
-          const { data: newFattura, error: fatturaErr } = await supabase
-            .from('fatture')
-            .insert([{
-              fornitore_id:             fornitore.id,
-              sede_id:                  documentSedeId,
-              data:                     dataDoc,
-              numero_fattura:           numRef,
-              importo:                  ocr.totale_iva_inclusa ?? null,
-              verificata_estratto_conto: false,
-              file_url,
-            }])
-            .select('id')
-            .single()
+          const numNorm = normalizeNumeroFattura(numRef ?? '')
+          let skipFatturaBozza = false
+          if (numNorm && fornitore.id && documentSedeId) {
+            const dupId = await findDuplicateFatturaId(supabase, {
+              sedeId: documentSedeId,
+              fornitoreId: fornitore.id,
+              data: dataDoc,
+              numeroFattura: numNorm,
+            })
+            if (dupId) {
+              skipFatturaBozza = true
+              mailDebugLog(
+                `[BOZZA] Fattura bozza saltata: già registrata id=${dupId} n.fattura=${numNorm} fornitore="${fornitore.nome}"`,
+              )
+            }
+          }
+          if (!skipFatturaBozza) {
+            const { data: newFattura, error: fatturaErr } = await supabase
+              .from('fatture')
+              .insert([{
+                fornitore_id:             fornitore.id,
+                sede_id:                  documentSedeId,
+                data:                     dataDoc,
+                numero_fattura:           numNorm || null,
+                importo:                  ocr.totale_iva_inclusa ?? null,
+                verificata_estratto_conto: false,
+                file_url,
+              }])
+              .select('id')
+              .single()
 
-          if (fatturaErr) {
-            console.warn(`[BOZZA] Fattura bozza non creata per "${fornitore.nome}": ${fatturaErr.message}`)
-          } else if (newFattura) {
-            bozzaId = newFattura.id
-            bozzaTipo = 'fattura'
-            bozzaCreate++
-            mailDebugLog(`[BOZZA] ✅ Fattura bozza creata: id=${bozzaId} n.fattura=${numRef ?? '—'}`)
+            if (fatturaErr) {
+              console.warn(`[BOZZA] Fattura bozza non creata per "${fornitore.nome}": ${fatturaErr.message}`)
+            } else if (newFattura) {
+              bozzaId = newFattura.id
+              bozzaTipo = 'fattura'
+              bozzaCreate++
+              mailDebugLog(`[BOZZA] ✅ Fattura bozza creata: id=${bozzaId} n.fattura=${numNorm || numRef || '—'}`)
+            }
           }
         } else {
           const { data: newBolla, error: bollaErr } = await supabase

@@ -13,6 +13,7 @@ import {
   normalizeAppPath,
 } from '@/lib/mobile-hub-routes'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
+import HubScannerIcon from '@/components/HubScannerIcon'
 
 /**
  * Glass dock — allineato a `.app-card` (globals): vetro scuro, blur forte, ombra.
@@ -32,20 +33,6 @@ const fornitoreIconsRow = 'flex w-full min-h-[48px] flex-1 items-stretch justify
 const BOTTOM_NAV_ARIA_MAIN = 'Navigazione principale'
 const BOTTOM_NAV_ARIA_ADMIN = 'Navigazione amministratore'
 const BOTTOM_NAV_ARIA_FORNITORE = 'Navigazione fornitore'
-
-/** Stessa icona del CTA «Scanner» sulla dashboard mobile (`page.tsx` → /bolle/new). */
-function HubScannerIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-      />
-    </svg>
-  )
-}
 
 function BottomNavOperatorRow() {
   const t = useT()

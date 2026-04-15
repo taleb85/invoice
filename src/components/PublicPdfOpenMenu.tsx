@@ -30,15 +30,14 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
   const [previewOpen, setPreviewOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const url = fileUrl?.trim()
-  if (!url) return null
+  const url = fileUrl?.trim() ?? ''
   const attachKind = attachmentKindFromFileUrl(url)
   const previewSrc = embedSrcForInlineViewer(url, attachKind)
 
   const closeMenu = useCallback(() => setMenuOpen(false), [])
 
   useEffect(() => {
-    if (!menuOpen) return
+    if (!url || !menuOpen) return
     const onDoc = (e: MouseEvent) => {
       const el = wrapRef.current
       if (el && !el.contains(e.target as Node)) closeMenu()
@@ -52,16 +51,18 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
     }
-  }, [menuOpen, closeMenu])
+  }, [menuOpen, closeMenu, url])
 
   useEffect(() => {
-    if (!previewOpen) return
+    if (!url || !previewOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setPreviewOpen(false)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [previewOpen])
+  }, [previewOpen, url])
+
+  if (!url) return null
 
   const copy = async () => {
     try {

@@ -158,7 +158,13 @@ export default async function SedeProfilePage({ params }: { params: Promise<{ se
         </section>
       ) : null}
 
-      <DashboardOperatorKpiGrid kpis={sedeKpis} t={tDashboard} locale={appLocale} currency={currency} />
+      <DashboardOperatorKpiGrid
+        kpis={sedeKpis}
+        t={tDashboard}
+        locale={appLocale}
+        currency={currency}
+        hideBelowLg
+      />
 
       {/* Quick-action cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

@@ -346,6 +346,25 @@ export async function fetchRecentBolleScoped(
 
 export type ScannerFlowDaySummary = { aiElaborate: number; archiviate: number }
 
+export type ScannerFlowEventStep = 'ai_elaborata' | 'archiviata_bolla' | 'archiviata_fattura'
+
+export type ScannerFlowEventRow = {
+  id: string
+  created_at: string
+  step: ScannerFlowEventStep
+}
+
+export type ScannerFlowDayDetail = {
+  summary: ScannerFlowDaySummary
+  events: ScannerFlowEventRow[]
+}
+
+const SCANNER_FLOW_TODAY_EVENTS_LIMIT = 20
+
+function isScannerFlowEventStep(s: string): s is ScannerFlowEventStep {
+  return s === 'ai_elaborata' || s === 'archiviata_bolla' || s === 'archiviata_fattura'
+}
+
 /** Conteggi `scanner_flow_events` per sede nella giornata (fuso `ianaTimeZone`). Tabella assente → zeri. */
 export async function fetchTodayScannerFlowSummary(
   supabase: SupabaseClient,
@@ -375,3 +394,63 @@ export async function fetchTodayScannerFlowSummary(
   return { aiElaborate: aiRes.count ?? 0, archiviate: archRes.count ?? 0 }
 }
 
+/** Conteggi giornalieri + ultimi eventi (descrizione attività Scanner AI nella giornata). */
+export async function fetchTodayScannerFlowDetail(
+  supabase: SupabaseClient,
+  sedeId: string,
+  ianaTimeZone: string
+): Promise<ScannerFlowDayDetail> {
+  const { start, endExclusive } = utcBoundsForZonedCalendarDay(ianaTimeZone)
+  const [summary, eventsRes] = await Promise.all([
+    fetchTodayScannerFlowSummary(supabase, sedeId, ianaTimeZone),
+    supabase
+      .from('scanner_flow_events')
+      .select('id, created_at, step')
+      .eq('sede_id', sedeId)
+      .gte('created_at', start)
+      .lt('created_at', endExclusive)
+      .order('created_at', { ascending: false })
+      .limit(SCANNER_FLOW_TODAY_EVENTS_LIMIT),
+  ])
+  if (eventsRes.error || !eventsRes.data) {
+    return { summary, events: [] }
+  }
+  const events: ScannerFlowEventRow[] = []
+  for (const row of eventsRes.data) {
+    if (row.id && row.created_at && typeof row.step === 'string' && isScannerFlowEventStep(row.step)) {
+      events.push({ id: row.id, created_at: row.created_at, step: row.step })
+    }
+  }
+  return { summary, events }
+}
+
+const SCANNER_FLOW_EVENTS_PAGE_SIZE = 50
+
+export { SCANNER_FLOW_EVENTS_PAGE_SIZE }
+
+/** Elenco paginato `scanner_flow_events` per sede (tutte le date, più recenti prima). */
+export async function fetchScannerFlowEventsPage(
+  supabase: SupabaseClient,
+  sedeId: string,
+  page: number
+): Promise<{ rows: ScannerFlowEventRow[]; total: number }> {
+  const safePage = Number.isFinite(page) && page >= 1 ? Math.floor(page) : 1
+  const from = (safePage - 1) * SCANNER_FLOW_EVENTS_PAGE_SIZE
+  const to = from + SCANNER_FLOW_EVENTS_PAGE_SIZE - 1
+  const { data, error, count } = await supabase
+    .from('scanner_flow_events')
+    .select('id, created_at, step', { count: 'exact' })
+    .eq('sede_id', sedeId)
+    .order('created_at', { ascending: false })
+    .range(from, to)
+  if (error || !data) {
+    return { rows: [], total: 0 }
+  }
+  const rows: ScannerFlowEventRow[] = []
+  for (const row of data) {
+    if (row.id && row.created_at && typeof row.step === 'string' && isScannerFlowEventStep(row.step)) {
+      rows.push({ id: row.id, created_at: row.created_at, step: row.step })
+    }
+  }
+  return { rows, total: count ?? rows.length }
+}

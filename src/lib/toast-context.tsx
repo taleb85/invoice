@@ -10,8 +10,6 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '@/lib/use-t'
-import { desktopHeaderBarDefaultBorderColor, desktopHeaderBarDefaultFill } from '@/lib/desktop-header-bar-surface'
-
 export type ToastType = 'success' | 'error' | 'info'
 
 interface Toast {
@@ -46,18 +44,18 @@ export function useDesktopHeaderToastBanner(): DesktopHeaderToastBanner {
   return useContext(DesktopHeaderToastBannerContext)
 }
 
-/** Barra `#app-desktop-header-nav-progress` e riga logo sidebar: stesso bordo/sfondo (toast inclusi). */
+/**
+ * Barra `#app-desktop-header-nav-progress`: solo toast success/error (opachi).
+ * Stato default e `info` usano `.app-desktop-header-glass` in AppShell.
+ */
 export function desktopHeaderBarSurfaceClass(banner: DesktopHeaderToastBanner): string {
-  if (!banner) {
-    return `border-b ${desktopHeaderBarDefaultBorderColor} ${desktopHeaderBarDefaultFill}`
+  if (!banner || banner.type === 'info') {
+    return ''
   }
   if (banner.type === 'success') {
-    return 'border-b border-emerald-400/55 bg-gradient-to-r from-[#042f23]/98 via-emerald-950/92 to-[#042f23]/98 shadow-[0_6px_36px_rgba(16,185,129,0.22),inset_0_1px_0_rgba(52,211,153,0.16)]'
+    return 'bg-gradient-to-r from-[#042f23]/98 via-emerald-950/92 to-[#042f23]/98 shadow-[0_6px_36px_rgba(16,185,129,0.22),inset_0_1px_0_rgba(52,211,153,0.16)]'
   }
-  if (banner.type === 'error') {
-    return 'border-b border-red-400/55 bg-gradient-to-r from-[#3a0a0f]/98 via-red-950/92 to-[#3a0a0f]/98 shadow-[0_6px_36px_rgba(239,68,68,0.24),inset_0_1px_0_rgba(248,113,113,0.14)]'
-  }
-  return 'border-b border-cyan-400/40 bg-gradient-to-r from-slate-700 via-slate-600 to-slate-700 shadow-[0_1px_0_rgba(34,211,238,0.14),inset_0_1px_0_rgba(255,255,255,0.05)]'
+  return 'bg-gradient-to-r from-[#3a0a0f]/98 via-red-950/92 to-[#3a0a0f]/98 shadow-[0_6px_36px_rgba(239,68,68,0.24),inset_0_1px_0_rgba(248,113,113,0.14)]'
 }
 
 const MD_MIN_WIDTH = 768

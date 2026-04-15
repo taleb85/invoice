@@ -130,18 +130,62 @@
 
 @layer components {
   /*
-   * Deep Ocean + neon (mock dashboard): pannelli sollevati, alone cyan soft,
-   * barra superiore gradient con glow (senza cambiare layout).
+   * Pannelli “vetro” unificati: gradiente cyan→viola, bordo cyan, alone soft (come card Scanner / bolle/new).
+   * Le card con `theme.border` (accent) sovrascrivono solo il colore del bordo.
    */
-  /** KPI scheda fornitore: stesso vetro di .app-card ma alone legato all’accento (inline), non cyan fisso. */
+  /** KPI scheda fornitore: stesso guscio di .app-card; alone tile da `KpiLAccentOverlay`. */
   .supplier-desktop-kpi-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-600/55 bg-slate-700/95 backdrop-blur-xl;
+    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
   }
 
   /**
    * Solo orizzontale: stesso allineamento tra header interni (es. scheda fornitore) e corpo pagina.
    */
+  /** Sidebar desktop: più chiara dello slate-950, in linea con main + .app-card */
+  .app-sidebar-aside {
+    @apply border-r border-cyan-500/35 bg-gradient-to-b from-slate-800/92 via-cyan-500/8 to-indigo-900/78 text-cyan-100 backdrop-blur-xl;
+    box-shadow:
+      4px 0 22px rgba(0, 0, 0, 0.2),
+      0 0 48px -10px rgba(34, 211, 238, 0.2),
+      inset -1px 0 0 rgba(34, 211, 238, 0.12);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /** Fascia identità scheda fornitore (desktop) */
+  .app-fornitore-desktop-hero-band {
+    @apply bg-gradient-to-b from-cyan-400/18 via-slate-800/92 to-violet-900/72 backdrop-blur-xl;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 10px 28px -12px rgba(0, 0, 0, 0.35);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /**
+   * Barra header app (desktop strip + mobile topbar + sticky nuova fattura):
+   * tinta leggera + blur forte — si vede attraverso (sfondo / contenuto dietro quando c’è overlap).
+   */
+  .app-desktop-header-glass {
+    background: linear-gradient(
+      to bottom,
+      rgba(15, 23, 42, 0.12) 0%,
+      rgba(49, 46, 129, 0.06) 50%,
+      rgba(30, 27, 75, 0.1) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 6px 24px -12px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(26px) saturate(1.12);
+    -webkit-backdrop-filter: blur(26px) saturate(1.12);
+  }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .app-desktop-header-glass {
+      background: rgba(15, 23, 42, 0.88);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+  }
+
   .app-shell-page-padding-x {
     @apply px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10;
   }
@@ -160,22 +204,12 @@
   }
 
   .app-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-600/40 bg-slate-700/95 shadow-2xl shadow-black/45 backdrop-blur-xl ring-1 ring-inset ring-cyan-400/12;
-    box-shadow:
-      0 0 0 1px rgba(34, 211, 238, 0.09),
-      0 0 48px -16px rgba(34, 211, 238, 0.14),
-      0 0 72px -22px rgba(6, 182, 212, 0.06),
-      0 20px 40px -10px rgba(0, 0, 0, 0.45);
+    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
   }
-  /** Shell card login: come .app-card ma rounded-2xl (schermata /login) */
+  /** Shell card login: allineata a .app-card */
   .app-card-login {
-    @apply relative overflow-hidden rounded-2xl border border-slate-600/40 bg-slate-700/95 shadow-2xl shadow-black/45 backdrop-blur-xl ring-1 ring-inset ring-cyan-400/12;
-    box-shadow:
-      0 0 0 1px rgba(34, 211, 238, 0.1),
-      0 0 52px -18px rgba(34, 211, 238, 0.16),
-      0 0 80px -26px rgba(6, 182, 212, 0.07),
-      0 20px 40px -10px rgba(0, 0, 0, 0.45);
+    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
   }
   /**
@@ -185,11 +219,19 @@
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .app-card,
     .app-card-login,
-    .supplier-desktop-kpi-card {
-      @apply bg-slate-700/98;
+    .supplier-desktop-kpi-card,
+    .operator-kpi-card {
+      background: linear-gradient(to bottom, rgba(6, 182, 212, 0.22), rgba(91, 33, 182, 0.16)),
+        rgb(15 23 42 / 0.92);
+    }
+    .app-sidebar-aside {
+      background: linear-gradient(to bottom, rgb(30 41 59 / 0.94), rgb(30 41 59 / 0.9), rgb(49 46 129 / 0.82));
+    }
+    .app-fornitore-desktop-hero-band {
+      background: linear-gradient(to bottom, rgba(34, 211, 238, 0.14), rgb(30 41 59 / 0.93), rgb(76 29 149 / 0.72));
     }
     .app-glass-dock {
-      @apply border-slate-600/70 bg-slate-700/92;
+      @apply border-cyan-500/30 bg-slate-900/88;
     }
   }
   /** Barra superiore condivisa (login, app-card, modali Ocean) — glow neon sotto il gradient */
@@ -206,9 +248,10 @@
       0 4px 22px rgba(34, 211, 238, 0.35);
   }
 
-  /** KPI dashboard operatore: accento a L via `KpiLAccentOverlay` (come tile scheda fornitore). */
+  /** KPI dashboard operatore: stesso guscio .app-card; accento a L via `KpiLAccentOverlay`. */
   .operator-kpi-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-600/45 bg-slate-700/95 shadow-xl shadow-black/40 backdrop-blur-xl ring-1 ring-inset;
+    @apply relative overflow-hidden rounded-2xl border border-cyan-500/35 bg-gradient-to-b from-cyan-500/15 to-violet-500/10 text-cyan-100 shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
+    -webkit-backdrop-filter: blur(24px);
   }
 
   /**
@@ -406,5 +449,50 @@ body {
   .animate-fluxo-supplier-profile-loading-bar {
     animation: none;
     left: 30%;
+  }
+}
+
+/*
+ * Dashboard home (`page.tsx`): colonna KPI solo ≥1024px; stack Scanner + Bolle recenti visibile
+ * su tutte le larghezze (sotto i KPI su desktop). Fuori da @layer per evitare override Tailwind.
+ */
+.dashboard-operator-scanner-bolle-stack {
+  display: flex;
+  flex-direction: column;
+  /* Allineato a `gap-5 md:gap-6` del contenitore pagina dashboard */
+  gap: 1.25rem;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .dashboard-operator-scanner-bolle-stack {
+    gap: 1.5rem;
+  }
+}
+.dashboard-operator-desktop-column {
+  display: none !important;
+  min-height: 0;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.dashboard-operator-empty-shell-desktop {
+  display: none !important;
+}
+@media (min-width: 1024px) {
+  .dashboard-operator-desktop-column {
+    display: flex !important;
+  }
+  .dashboard-operator-empty-shell-desktop {
+    display: block !important;
+  }
+}
+
+/* Wrapper opzionale su `DashboardOperatorKpiGrid` (prop hideBelowLg). */
+@media (max-width: 1023.98px) {
+  .operator-kpi-grid-desktop-only {
+    display: none !important;
   }
 }

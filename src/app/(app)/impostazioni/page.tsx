@@ -12,6 +12,7 @@ import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 function ProfileMobileHub() {
@@ -295,23 +296,26 @@ export default function ImpostazioniPage() {
           <div className="app-card overflow-hidden">
             <div className="app-card-bar" aria-hidden />
             <div className="border-b border-slate-600/80/80 px-6 py-5 sm:px-8">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15">
-                  <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15">
+                    <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>
+                      {mounted ? t.impostazioni.sectionLocalisation : ''}
+                    </p>
+                    <h1 className="app-page-title mt-0.5 text-xl font-bold" suppressHydrationWarning>
+                      {mounted ? t.impostazioni.title : ''}
+                    </h1>
+                    <p className="mt-1 text-sm text-slate-200" suppressHydrationWarning>
+                      {mounted ? t.impostazioni.subtitle : ''}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500" suppressHydrationWarning>
-                    {mounted ? t.impostazioni.sectionLocalisation : ''}
-                  </p>
-                  <h1 className="app-page-title mt-0.5 text-xl font-bold" suppressHydrationWarning>
-                    {mounted ? t.impostazioni.title : ''}
-                  </h1>
-                  <p className="mt-1 text-sm text-slate-200" suppressHydrationWarning>
-                    {mounted ? t.impostazioni.subtitle : ''}
-                  </p>
-                </div>
+                <AppPageHeaderDesktopTray className="pt-0.5" />
               </div>
             </div>
             <div className="space-y-6 px-6 py-6 sm:px-8">

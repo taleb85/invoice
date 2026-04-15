@@ -27,6 +27,7 @@ import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 import ScanEmailButton from '@/components/ScanEmailButton'
+import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
@@ -1206,14 +1207,14 @@ function DashboardTab({
       </div>
       ) : null}
 
-      {/* Desktop md+: tre tessere quadrate (contatti | scheda | Rekki); senza contatti → 2 colonne. */}
+      {/* Desktop md+: tre colonne stessa altezza (stretch + scroll interno); senza contatti → 2 colonne. */}
       <div
-        className={`grid grid-cols-1 gap-6 md:gap-4 ${contattiError ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}
+        className={`grid grid-cols-1 gap-6 md:grid md:items-stretch md:gap-4 ${contattiError ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}
       >
       {/* ── Contacts section ── */}
       {!contattiError && (
-        <div className="min-w-0 md:aspect-square">
-        <div className={`app-card h-full overflow-hidden md:flex md:min-h-0 md:flex-col ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+        <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
+        <div className={`app-card flex h-full min-h-0 flex-1 flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
           <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
           <div className="flex shrink-0 items-center justify-between border-b border-slate-700/60 px-4 py-2.5 md:px-5 md:py-3">
             <div className="flex items-center gap-2">
@@ -1343,8 +1344,8 @@ function DashboardTab({
       )}
 
       {/* Supplier info card */}
-      <div className="min-w-0 md:aspect-square">
-      <div className={`app-card h-full overflow-hidden md:flex md:min-h-0 md:flex-col ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+      <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
+      <div className={`app-card flex h-full min-h-0 flex-1 flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
         <div className={`app-card-bar ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
         <div className="flex shrink-0 items-center gap-2 border-b border-slate-700/60 px-5 py-3">
           <svg className="h-3.5 w-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
@@ -1423,14 +1424,14 @@ function DashboardTab({
       </div>
       </div>
 
-      <div className="min-w-0 md:aspect-square">
+      <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
       <RekkiSupplierIntegration
         fornitoreId={fornitoreId}
         piva={fornitore.piva}
         initialRekkiId={fornitore.rekki_supplier_id}
         initialRekkiLink={fornitore.rekki_link}
         onSaved={onFornitoreReload}
-        className="h-full min-h-0 flex flex-col"
+        className="h-full min-h-0 w-full"
         compactFields
         readOnly={readOnly}
       />
@@ -3190,13 +3191,13 @@ function FornitoreDetailClient({
       {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
       <div className="hidden md:block">
         {/* Barra grigia full-bleed nel main; contenuto allineato al corpo (83rem + fornitore-desktop-main-x). */}
-        <div className="w-full bg-slate-700 pt-2 pb-1">
+        <div className="app-fornitore-desktop-hero-band sticky top-0 z-20 w-full pt-2 pb-1">
         <div className="fornitore-desktop-main-x mx-auto w-full max-w-[83rem]">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
-          <div className="flex flex-col gap-2 border-b border-white/10 pb-2 xl:flex-row xl:items-center xl:gap-3 xl:min-h-9">
+          <div className="flex flex-col gap-2 pb-2 xl:flex-row xl:items-center xl:gap-3 xl:min-h-9">
             <div className="flex min-w-0 items-start gap-2.5 xl:min-w-0 xl:max-w-[min(100%,40rem)] xl:shrink-0 xl:items-center">
               <FornitoreAvatar
                 nome={fornitore.nome}
@@ -3206,11 +3207,11 @@ function FornitoreDetailClient({
               />
 
               <div className="min-w-0 flex-1 pr-1">
-                <h1 className="app-page-title text-[13px] font-bold leading-tight text-slate-100 break-words [overflow-wrap:anywhere] xl:text-sm xl:leading-snug">
+                <h1 className="app-page-title text-[13px] font-bold leading-tight text-cyan-50 break-words [overflow-wrap:anywhere] xl:text-sm xl:leading-snug">
                   {fornitore.nome}
                 </h1>
                 {fornitore.email && (
-                  <p className="mt-0.5 break-words text-[11px] leading-snug text-slate-200 [overflow-wrap:anywhere]">
+                  <p className="mt-0.5 break-words text-[11px] leading-snug text-cyan-100/88 [overflow-wrap:anywhere]">
                     {fornitore.email}
                   </p>
                 )}
@@ -3242,7 +3243,7 @@ function FornitoreDetailClient({
               </Link>
               <Link
                 href={`/fatture/new?fornitore_id=${fornitore.id}`}
-                className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md border border-cyan-500/45 bg-slate-700/50 px-2 text-[11px] font-semibold leading-none text-cyan-100 shadow-[0_0_20px_-8px_rgba(34,211,238,0.25)] transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/10 hover:text-white xl:h-9 xl:gap-1.5 xl:px-2.5"
+                className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md border border-cyan-500/45 bg-cyan-500/12 px-2 text-[11px] font-semibold leading-none text-cyan-50 shadow-[0_0_20px_-8px_rgba(34,211,238,0.25)] transition-colors hover:border-cyan-400/70 hover:bg-cyan-500/18 hover:text-white xl:h-9 xl:gap-1.5 xl:px-2.5"
               >
                 <svg className="h-3.5 w-3.5 xl:h-4 xl:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -3258,11 +3259,12 @@ function FornitoreDetailClient({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </Link>
+              <AppPageHeaderDesktopTray className="ms-1 xl:ms-2" />
             </div>
           </div>
 
           {/* Tab bar + navigatore mese: tab e mese ancorati in basso (self-end sul mese, stessa h delle tab) */}
-          <div className="flex w-full min-w-0 items-stretch gap-2 border-t border-white/10 bg-black/[0.06] pt-0.5 pb-0 xl:gap-3 xl:pt-1 xl:pb-0">
+          <div className="flex w-full min-w-0 items-stretch gap-2 bg-white/[0.05] pt-0.5 pb-0 xl:gap-3 xl:pt-1 xl:pb-0">
             <div className="flex min-h-6 min-w-0 flex-1 items-end gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-9">
               {tabs.map((tb) => (
                 <button
@@ -3272,7 +3274,7 @@ function FornitoreDetailClient({
                   className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[11px] font-semibold leading-none transition-colors border-b-2 -mb-px xl:min-h-9 xl:px-2.5 ${
                     tab === tb.id
                       ? 'border-b-cyan-400 bg-white/[0.06] text-white shadow-[0_6px_24px_-8px_rgba(34,211,238,0.35)]'
-                      : 'border-b-transparent text-slate-200 hover:bg-white/[0.04] hover:text-white'
+                      : 'border-b-transparent text-cyan-100/82 hover:bg-white/[0.07] hover:text-white'
                   }`}
                 >
                   {tb.label}

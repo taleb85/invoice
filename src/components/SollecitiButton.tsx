@@ -46,7 +46,7 @@ export default function SollecitiButton({ fornitoriInScadenza = 0 }: Props) {
       <button
         onClick={handleClick}
         disabled={loading}
-        className="inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation"
+        className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation"
       >
         {loading ? (
           <>

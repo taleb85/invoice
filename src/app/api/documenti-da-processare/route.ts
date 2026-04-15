@@ -3,6 +3,12 @@ import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { recordManualSupplierAssociation } from '@/lib/mittente-fornitore-assoc'
 import { mergeFornitoreMissingFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
 import { recordLearnedKindFromDocMetadata } from '@/lib/fornitore-doc-type-hints'
+import {
+  FATTURA_DUPLICATE_USER_MESSAGE_IT,
+  findDuplicateFatturaId,
+  normalizeNumeroFattura,
+  numeroFatturaFromDocMetadata,
+} from '@/lib/fattura-duplicate-check'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 type DocRowFinalizza = {
@@ -71,6 +77,21 @@ async function finalizePendingByTipo(
   }
 
   if (tipo === 'fattura') {
+    const numeroNorm =
+      typeof m.numero_fattura === 'string' && m.numero_fattura.trim()
+        ? normalizeNumeroFattura(m.numero_fattura)
+        : null
+    if (numeroNorm) {
+      const dupId = await findDuplicateFatturaId(supabase, {
+        sedeId: sedeDefinitiva,
+        fornitoreId: doc.fornitore_id,
+        data: dataDoc,
+        numeroFattura: numeroNorm,
+      })
+      if (dupId) {
+        return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
+      }
+    }
     const { data: fattura, error: insErr } = await supabase
       .from('fatture')
       .insert([{
@@ -81,7 +102,7 @@ async function finalizePendingByTipo(
         file_url: doc.file_url,
         importo: m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null,
         verificata_estratto_conto: false,
-        numero_fattura: typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null,
+        numero_fattura: numeroNorm,
       }])
       .select('id')
       .single()
@@ -469,6 +490,19 @@ export async function POST(req: NextRequest) {
     const oggi        = new Date().toISOString().split('T')[0]
     const sedeDefinitiva  = primaBolla.sede_id ?? doc.sede_id ?? null
     const importoTotale   = bolleRows.reduce((s, b) => s + (b.importo ?? 0), 0)
+    const dataFatturaAssocia = doc.data_documento ?? oggi
+    const numeroDaMeta = numeroFatturaFromDocMetadata(doc.metadata)
+    if (numeroDaMeta) {
+      const dupId = await findDuplicateFatturaId(supabase, {
+        sedeId: sedeDefinitiva,
+        fornitoreId: primaBolla.fornitore_id,
+        data: dataFatturaAssocia,
+        numeroFattura: numeroDaMeta,
+      })
+      if (dupId) {
+        return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
+      }
+    }
 
     // Create one fattura covering all selected bolle.
     // bolla_id is set to the first bolla for backward-compatibility (schema has single FK).
@@ -478,7 +512,7 @@ export async function POST(req: NextRequest) {
         fornitore_id:             primaBolla.fornitore_id,
         bolla_id:                 primaBolla.id,
         sede_id:                  sedeDefinitiva,
-        data:                     doc.data_documento ?? oggi,
+        data:                     dataFatturaAssocia,
         file_url:                 doc.file_url,
         importo:                  importoTotale > 0 ? importoTotale : null,
         verificata_estratto_conto: false,

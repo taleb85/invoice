@@ -24,9 +24,6 @@ import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
 import EmailSyncProgressBar from './EmailSyncProgressBar'
 import { isFornitoreProfileRoute, normalizeAppPath, showsMobileBottomBar } from '@/lib/mobile-hub-routes'
 import { NetworkProvider } from '@/lib/network-context'
-import ConnectionStatusDot from '@/components/ConnectionStatusDot'
-import DesktopHeaderToolbar from '@/components/DesktopHeaderToolbar'
-import AppShellActivityStrip from '@/components/AppShellActivityStrip'
 import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
@@ -181,9 +178,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const hub = showsMobileBottomBar()
   const { me, loading } = useMe()
   const { activeOperator } = useActiveOperator()
-  const isAdmin = Boolean(me?.is_admin)
   const headerToastBanner = useDesktopHeaderToastBanner()
   const headerNavBarSurface = desktopHeaderBarSurfaceClass(headerToastBanner)
+  const headerGlass =
+    !headerToastBanner || headerToastBanner.type === 'info' ? 'app-desktop-header-glass' : ''
   const headerBannerTextCls = desktopToastBannerTextClass(headerToastBanner)
   const [desktopNavHost, setDesktopNavHost] = useState<HTMLDivElement | null>(null)
   const bindDesktopNavHost = useCallback((el: HTMLDivElement | null) => {
@@ -201,42 +199,33 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-slate-950">
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-col">
-        {/* Desktop: un’unica striscia — brand sidebar | attività / toast / rete */}
+        {/* Desktop: striscia — brand sidebar | vetro; toast centrato */}
         <div
           ref={bindDesktopNavHost}
           id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-          className={`relative z-30 hidden w-full shrink-0 items-stretch overflow-visible backdrop-blur-sm transition-[background,box-shadow,border-color] duration-300 md:flex md:min-h-[48px] ${headerNavBarSurface}`}
+          className={`relative z-30 hidden w-full shrink-0 items-stretch overflow-visible transition-[background,box-shadow] duration-300 md:flex md:min-h-[48px] ${headerGlass} ${headerNavBarSurface}`}
         >
-          <div className="relative z-20 w-52 shrink-0 overflow-x-hidden lg:w-56">
-            <div className="flex h-full min-h-[48px] min-w-0 items-stretch">
+          <div className="relative z-20 flex min-h-[48px] min-w-0 flex-1 items-stretch overflow-x-hidden">
+            <div className="flex h-full min-h-[48px] min-w-0 flex-1 items-stretch">
               <SidebarBrandHeader
                 collapsed={sidebarCollapsed}
                 onExpand={() => setSidebarCollapsed(false)}
               />
             </div>
           </div>
-          <div className="app-shell-page-padding-x relative z-10 flex min-h-[48px] min-w-0 flex-1 items-center gap-2 overflow-visible py-2 sm:gap-3 lg:gap-4">
-            <div className="relative z-[2] min-w-0 flex-1 overflow-hidden">
-              <AppShellActivityStrip />
-            </div>
-            {headerToastBanner ? (
-              <div
-                className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-28 sm:px-36"
-                aria-live="polite"
-                role="status"
+          {headerToastBanner ? (
+            <div
+              className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-28 sm:px-36"
+              aria-live="polite"
+              role="status"
+            >
+              <span
+                className={`max-w-full truncate text-center text-sm font-semibold leading-tight ${headerBannerTextCls}`}
               >
-                <span
-                  className={`max-w-full truncate text-center text-sm font-semibold leading-tight ${headerBannerTextCls}`}
-                >
-                  {headerToastBanner.message}
-                </span>
-              </div>
-            ) : null}
-            <div className="relative z-[2] flex shrink-0 items-center gap-2">
-              <DesktopHeaderToolbar />
-              <ConnectionStatusDot />
+                {headerToastBanner.message}
+              </span>
             </div>
-          </div>
+          ) : null}
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1">

@@ -4,7 +4,6 @@ import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import RetryButton from '@/components/RetryButton'
 import DeleteButton from '@/components/DeleteButton'
-import ScanEmailButton from '@/components/ScanEmailButton'
 import LogSupplierAiSuggest from '@/components/LogSupplierAiSuggest'
 import { getT, getLocale, getTimezone } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -126,9 +125,6 @@ export default async function LogPage() {
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
           <p className="mt-1 text-xs leading-snug text-slate-200">{t.log.subtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 pt-0.5 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-          <ScanEmailButton alwaysShowLabel />
-        </div>
       </AppPageHeaderStrip>
 
       <AppSummaryHighlightCard
