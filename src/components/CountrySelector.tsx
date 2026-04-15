@@ -52,7 +52,7 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
           value={code}
           onChange={e => save(e.target.value)}
           disabled={saving}
-          className="cursor-pointer appearance-none rounded-lg border border-slate-600/50 bg-slate-700/90 py-1.5 pl-8 pr-7 text-sm text-slate-100 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 disabled:opacity-50 [color-scheme:dark]"
+          className="cursor-pointer appearance-none rounded-lg border border-app-line-25 app-workspace-surface-elevated py-1.5 pl-8 pr-7 text-sm text-app-fg focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-30 disabled:opacity-50 [color-scheme:dark]"
         >
           {COUNTRY_OPTIONS.map(o => (
             <option key={o.code} value={o.code}>
@@ -65,13 +65,13 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
           {current.flag}
         </span>
         {/* Chevron */}
-        <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </div>
 
       {saving && (
-        <span className="text-xs text-slate-500 flex items-center gap-1">
+        <span className="text-xs text-app-fg-muted flex items-center gap-1">
           <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>

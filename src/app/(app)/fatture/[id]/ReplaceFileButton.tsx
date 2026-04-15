@@ -81,7 +81,7 @@ export default function ReplaceFileButton({ fatturaId }: Props) {
       {!open && !loading && status !== 'done' && (
         <button
           onClick={() => setOpen(true)}
-          className="flex items-center gap-2 text-sm font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+          className="flex items-center gap-2 text-sm font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -94,7 +94,7 @@ export default function ReplaceFileButton({ fatturaId }: Props) {
         <div className="mt-2 flex flex-col gap-2">
           <button
             onClick={() => { setOpen(false); setTimeout(() => fileRef.current?.click(), 50) }}
-            className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-600/50 py-5 text-slate-500 transition-colors hover:border-cyan-500/50 hover:text-cyan-400 active:bg-slate-700/80"
+            className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-app-line-25 py-5 text-app-fg-muted transition-colors hover:border-app-line-50 hover:text-app-cyan-500 active:brightness-95"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -103,7 +103,7 @@ export default function ReplaceFileButton({ fatturaId }: Props) {
           </button>
           <button
             onClick={() => setOpen(false)}
-            className="py-1 text-xs text-slate-500 transition-colors hover:text-slate-200"
+            className="py-1 text-xs text-app-fg-muted transition-colors hover:text-app-fg"
           >
             Annulla
           </button>
@@ -111,7 +111,7 @@ export default function ReplaceFileButton({ fatturaId }: Props) {
       )}
 
       {loading && (
-        <p className="mt-2 flex items-center gap-2 text-sm text-slate-200">
+        <p className="mt-2 flex items-center gap-2 text-sm text-app-fg-muted">
           <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>

@@ -176,7 +176,7 @@ export default function ScanEmailButton({
     'h-6 py-0 pl-0.5 pr-4 text-left text-[10px] font-medium leading-6 md:pl-1 md:pr-5 md:text-[11px] xl:h-9 xl:pl-1.5 xl:pr-7 xl:text-[11px] xl:leading-9'
 
   const headerTriggerBtnCls =
-    'inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap sm:px-2.5 sm:text-[11px]'
+    'inline-flex h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-1.5 text-[9px] font-bold text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap sm:gap-1 sm:rounded-lg sm:px-2 sm:text-[10px] md:px-2.5 md:text-[11px]'
 
   const selectOptionSurface = 'app-workspace-surface-elevated text-app-fg-muted'
   const controlsDisabled = loading || emailSync?.progress.active || !!disabledProp
@@ -211,7 +211,7 @@ export default function ScanEmailButton({
           aria-controls={headerMenuId}
           onClick={() => setHeaderMenuOpen((o) => !o)}
         >
-          <svg className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <span>{t.dashboard.syncEmail}</span>

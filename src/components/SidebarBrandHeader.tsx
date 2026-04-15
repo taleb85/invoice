@@ -114,12 +114,12 @@ export function DesktopHeaderActionsStrip() {
   const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-end gap-2 self-stretch bg-transparent ps-2 pe-2.5 text-app-fg sm:gap-2.5 lg:gap-3 lg:pe-3">
+    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-end gap-1.5 self-stretch bg-transparent ps-1.5 pe-2 text-app-fg sm:gap-2 sm:pe-2.5">
       <div
         ref={registerPageActionsHost}
         id={DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID}
         data-fluxo-desktop-header-actions-host
-        className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-2 bg-transparent sm:gap-2.5 lg:gap-3"
+        className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-1.5 bg-transparent sm:gap-2"
       />
       <ScanEmailButton placement="desktopHeader" />
     </div>

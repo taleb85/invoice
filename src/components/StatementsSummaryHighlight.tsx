@@ -93,12 +93,12 @@ export default function StatementsSummaryHighlight({
           className={`${tabBtnBase} font-semibold ${
             (activeTabProp ?? 'pending') === 'pending'
               ? 'text-amber-200'
-              : 'text-slate-500 hover:text-amber-300/80'
+              : 'text-app-fg-muted hover:text-amber-300/80'
           }`}
         >
           {t.statements.tabDocumenti}
         </button>
-        <span className="text-slate-600" aria-hidden>
+        <span className="text-app-fg-muted" aria-hidden>
           ·
         </span>
         <button
@@ -106,8 +106,8 @@ export default function StatementsSummaryHighlight({
           onClick={() => onTabChange('status')}
           className={`${tabBtnBase} font-semibold ${
             activeTabProp === 'status'
-              ? 'text-cyan-200'
-              : 'text-slate-500 hover:text-cyan-300/80'
+              ? 'text-app-fg-muted'
+              : 'text-app-fg-muted hover:text-app-fg-muted/80'
           }`}
         >
           {t.statements.tabVerifica}

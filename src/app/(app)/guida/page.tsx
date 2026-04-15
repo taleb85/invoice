@@ -8,12 +8,12 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 
 const COLOR_MAP: Record<string, { bg: string; text: string; border: string; dot: string; chip: string }> = {
   blue:   { bg: 'bg-blue-500/10',   text: 'text-blue-200',   border: 'border-blue-500/30',   dot: 'bg-blue-500',   chip: 'bg-blue-500/20 text-blue-200' },
-  cyan:   { bg: 'bg-cyan-500/10',   text: 'text-cyan-200',   border: 'border-cyan-500/30',   dot: 'bg-cyan-500',   chip: 'bg-cyan-500/20 text-cyan-200' },
+  cyan:   { bg: 'bg-app-line-10',   text: 'text-app-fg-muted',   border: 'border-app-line-30',   dot: 'bg-app-cyan-500',   chip: 'bg-app-line-20 text-app-fg-muted' },
   green:  { bg: 'bg-emerald-500/10',  text: 'text-emerald-200',  border: 'border-emerald-500/30',  dot: 'bg-emerald-500',  chip: 'bg-emerald-500/20 text-emerald-200' },
   purple: { bg: 'bg-purple-500/10', text: 'text-purple-200', border: 'border-purple-500/30', dot: 'bg-purple-500', chip: 'bg-purple-500/20 text-purple-200' },
   orange: { bg: 'bg-orange-500/10', text: 'text-orange-200', border: 'border-orange-500/30', dot: 'bg-orange-500', chip: 'bg-orange-500/20 text-orange-200' },
   amber:  { bg: 'bg-amber-500/10',  text: 'text-amber-200',  border: 'border-amber-500/30',  dot: 'bg-amber-500',  chip: 'bg-amber-500/20 text-amber-200' },
-  slate:  { bg: 'bg-slate-700/60',  text: 'text-slate-100',  border: 'border-slate-600/50',  dot: 'bg-slate-500',  chip: 'bg-slate-700/80 text-slate-200' },
+  slate:  { bg: 'app-workspace-inset-bg-soft',  text: 'text-app-fg',  border: 'border-app-line-25',  dot: 'bg-white/40',  chip: 'app-workspace-inset-bg text-app-fg-muted' },
 }
 
 const SECTION_ICONS: Record<string, React.ReactNode> = {
@@ -68,7 +68,7 @@ export default function GuidaPage() {
       <AppPageHeaderStrip>
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className="app-page-title text-2xl font-bold">{content.pageTitle}</h1>
-          <p className="mt-1 text-sm text-slate-200">{content.pageSubtitle}</p>
+          <p className="mt-1 text-sm text-app-fg-muted">{content.pageSubtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 
@@ -87,10 +87,10 @@ export default function GuidaPage() {
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-all ${
                     isActive
                       ? `${sc.bg} ${sc.text} border ${sc.border}`
-                      : 'text-slate-200 hover:bg-slate-700/70 hover:text-slate-100'
+                      : 'text-app-fg-muted hover:bg-black/12 hover:text-app-fg'
                   }`}
                 >
-                  <span className={isActive ? sc.text : 'text-slate-500'}>
+                  <span className={isActive ? sc.text : 'text-app-fg-muted'}>
                     {SECTION_ICONS[s.id]}
                   </span>
                   {s.title}
@@ -122,8 +122,8 @@ export default function GuidaPage() {
                       <span className="text-[10px] font-bold text-white">{i + 1}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="mb-1 text-sm font-semibold text-slate-100">{item.title}</p>
-                      <p className="text-sm leading-relaxed text-slate-200">{item.desc}</p>
+                      <p className="mb-1 text-sm font-semibold text-app-fg">{item.title}</p>
+                      <p className="text-sm leading-relaxed text-app-fg-muted">{item.desc}</p>
                       {item.tip && (
                         <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
                           <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

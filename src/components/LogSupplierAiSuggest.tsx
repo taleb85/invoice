@@ -71,42 +71,42 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
         {t.log.aiSuggest}
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/35 p-4 backdrop-blur-sm sm:items-center" role="dialog">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-slate-700 bg-slate-700 p-5 shadow-xl">
-            <h3 className="text-sm font-semibold text-slate-100">{t.log.aiSuggestTitle}</h3>
-            {loading && <p className="mt-3 text-xs text-slate-200">{t.log.aiSuggestLoading}</p>}
+        <div className="fixed inset-0 z-50 flex items-end justify-center app-workspace-scrim p-4 backdrop-blur-sm sm:items-center" role="dialog">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-app-line-30 app-workspace-surface-elevated p-5 shadow-xl">
+            <h3 className="text-sm font-semibold text-app-fg">{t.log.aiSuggestTitle}</h3>
+            {loading && <p className="mt-3 text-xs text-app-fg-muted">{t.log.aiSuggestLoading}</p>}
             {err && (
               <p className="mt-3 rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-xs text-red-200">{err}</p>
             )}
             {!loading && !err && (
               <dl className="mt-4 space-y-2 text-xs">
                 <div>
-                  <dt className="text-slate-500">{t.fornitori.nome}</dt>
-                  <dd className="font-medium text-slate-100">{nome ?? '—'}</dd>
+                  <dt className="text-app-fg-muted">{t.fornitori.nome}</dt>
+                  <dd className="font-medium text-app-fg">{nome ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">{t.fornitori.pivaLabel}</dt>
-                  <dd className="font-mono text-slate-100">{piva ?? '—'}</dd>
+                  <dt className="text-app-fg-muted">{t.fornitori.pivaLabel}</dt>
+                  <dd className="font-mono text-app-fg">{piva ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">{t.fornitori.email}</dt>
-                  <dd className="text-slate-100">{email ?? mittente ?? '—'}</dd>
+                  <dt className="text-app-fg-muted">{t.fornitori.email}</dt>
+                  <dd className="text-app-fg">{email ?? mittente ?? '—'}</dd>
                 </div>
               </dl>
             )}
-            <p className="mt-4 text-[11px] leading-snug text-slate-500">{t.log.associateRememberHint}</p>
+            <p className="mt-4 text-[11px] leading-snug text-app-fg-muted">{t.log.associateRememberHint}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg border border-slate-600 px-3 py-2 text-xs font-medium text-slate-200 hover:bg-slate-700"
+                className="rounded-lg border border-app-line-28 px-3 py-2 text-xs font-medium text-app-fg-muted hover:bg-app-line-12"
               >
                 {t.statements.btnClose}
               </button>
               {!loading && !err && (
                 <Link
                   href={buildNewHref()}
-                  className="rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white hover:bg-cyan-500"
+                  className="rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white hover:bg-app-cyan-500"
                   onClick={() => setOpen(false)}
                 >
                   {t.log.openCreateSupplier}

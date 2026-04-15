@@ -11,7 +11,6 @@ import {
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -75,9 +74,18 @@ export default async function OrdiniOverviewPage({
   const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
   const ordiniTheme = SUMMARY_HIGHLIGHT_ACCENTS.rose
 
+  const ordiniMergedSummary = {
+    label: t.common.total,
+    primary: rows.length,
+    secondary:
+      rows.length === 0
+        ? t.dashboard.kpiOrdiniSub
+        : t.dashboard.ordiniOverviewLimitNote.replace(/\{n\}/g, String(rows.length)),
+  }
+
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
-      <AppPageHeaderStrip accent="rose">
+      <AppPageHeaderStrip accent="rose" mergedSummary={ordiniMergedSummary}>
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.nav.ordini}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
@@ -90,12 +98,6 @@ export default async function OrdiniOverviewPage({
         </div>
       ) : rows.length === 0 ? (
         <>
-          <AppSummaryHighlightCard
-            accent="rose"
-            label={t.common.total}
-            primary={0}
-            secondary={t.dashboard.kpiOrdiniSub}
-          />
           <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${ordiniTheme.border}`}>
             <div className={`app-card-bar-accent ${ordiniTheme.bar}`} aria-hidden />
             <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
@@ -109,12 +111,6 @@ export default async function OrdiniOverviewPage({
         </>
       ) : (
         <>
-          <AppSummaryHighlightCard
-            accent="rose"
-            label={t.common.total}
-            primary={rows.length}
-            secondary={t.dashboard.ordiniOverviewLimitNote.replace(/\{n\}/g, String(rows.length))}
-          />
           <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${ordiniTheme.border}`}>
             <div className={`app-card-bar-accent ${ordiniTheme.bar}`} aria-hidden />
             <div className={`${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS} overflow-x-auto`}>

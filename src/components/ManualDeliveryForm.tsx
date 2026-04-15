@@ -16,7 +16,7 @@ export type ManualDeliveryFormProps = {
 }
 
 const inputCls =
-  'mb-3 w-full resize-y rounded-lg border border-slate-600/60 bg-slate-700/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/40 transition-shadow disabled:opacity-60'
+  'mb-3 w-full resize-y rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-40 transition-shadow disabled:opacity-60'
 
 /** Mobile-first: testo libero e/o foto + "Registra Consegna". */
 export default function ManualDeliveryForm({
@@ -157,7 +157,7 @@ export default function ManualDeliveryForm({
       <div className="p-4 md:p-5">
         <label
           htmlFor="manual-delivery-text"
-          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-200"
+          className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted"
         >
           {t.dashboard.manualReceiptLabel}
         </label>
@@ -174,7 +174,7 @@ export default function ManualDeliveryForm({
           enterKeyHint="done"
         />
 
-        <p className="mb-2 text-[11px] text-slate-500">{t.bolle.takePhotoOrFile}</p>
+        <p className="mb-2 text-[11px] text-app-fg-muted">{t.bolle.takePhotoOrFile}</p>
         <div className="mb-3 flex flex-wrap gap-2">
           <input
             ref={cameraRef}
@@ -203,7 +203,7 @@ export default function ManualDeliveryForm({
             type="button"
             disabled={loading}
             onClick={() => cameraRef.current?.click()}
-            className="touch-manipulation rounded-lg border border-slate-600/70 bg-slate-700/80 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
+            className="touch-manipulation rounded-lg border border-app-line-28 app-workspace-inset-bg px-3 py-2 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-black/18 disabled:opacity-50"
           >
             {t.bolle.cameraBtn}
           </button>
@@ -211,7 +211,7 @@ export default function ManualDeliveryForm({
             type="button"
             disabled={loading}
             onClick={() => fileRef.current?.click()}
-            className="touch-manipulation rounded-lg border border-slate-600/70 bg-slate-700/80 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-700/80 disabled:opacity-50"
+            className="touch-manipulation rounded-lg border border-app-line-28 app-workspace-inset-bg px-3 py-2 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-black/18 disabled:opacity-50"
           >
             {t.bolle.fileBtn}
           </button>
@@ -227,17 +227,17 @@ export default function ManualDeliveryForm({
           ) : null}
         </div>
         {preview ? (
-          <div className="mb-3 overflow-hidden rounded-lg border border-slate-600/50">
+          <div className="mb-3 overflow-hidden rounded-lg border border-app-line-25">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="" className="max-h-40 w-full object-contain bg-slate-700/50" />
+            <img src={preview} alt="" className="max-h-40 w-full object-contain app-workspace-inset-bg-soft" />
           </div>
         ) : null}
 
         <label
           className={`mb-3 flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left text-xs leading-snug transition-colors ${
             supplierEmail?.trim()
-              ? 'border-cyan-500/25 bg-cyan-500/5 text-slate-200'
-              : 'cursor-not-allowed border-slate-700/60 bg-slate-700/40 text-slate-500'
+              ? 'border-app-line-25 bg-app-line-5 text-app-fg-muted'
+              : 'cursor-not-allowed border-app-line-22 app-workspace-inset-bg-soft text-app-fg-muted'
           }`}
         >
           <input
@@ -245,12 +245,12 @@ export default function ManualDeliveryForm({
             checked={Boolean(supplierEmail?.trim() && emailSupplier)}
             disabled={loading || !supplierEmail?.trim()}
             onChange={(e) => setEmailSupplier(e.target.checked)}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-500 bg-slate-700 text-cyan-500 focus:ring-cyan-500/40 disabled:opacity-40"
+            className="mt-0.5 size-4 shrink-0 rounded border-app-line-35 app-workspace-surface-elevated text-app-cyan-500 focus:ring-app-line-40 disabled:opacity-40"
           />
           <span>
-            <span className="font-semibold text-slate-100">{t.dashboard.manualReceiptEmailSupplierLabel}</span>
+            <span className="font-semibold text-app-fg">{t.dashboard.manualReceiptEmailSupplierLabel}</span>
             {!supplierEmail?.trim() ? (
-              <span className="mt-1 block text-[11px] text-slate-500">{t.dashboard.manualReceiptEmailSupplierHint}</span>
+              <span className="mt-1 block text-[11px] text-app-fg-muted">{t.dashboard.manualReceiptEmailSupplierHint}</span>
             ) : null}
           </span>
         </label>
@@ -268,7 +268,7 @@ export default function ManualDeliveryForm({
         <button
           type="submit"
           disabled={loading || !canSubmit}
-          className="min-h-[48px] w-full touch-manipulation rounded-lg bg-cyan-500 px-4 py-3 text-xs font-bold text-white transition-colors hover:bg-cyan-400 active:bg-cyan-600 disabled:opacity-50"
+          className="min-h-[48px] w-full touch-manipulation rounded-lg bg-app-cyan-500 px-4 py-3 text-xs font-bold text-white transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 disabled:opacity-50"
         >
           {loading ? t.dashboard.manualReceiptRegistering : t.dashboard.manualReceiptRegister}
         </button>

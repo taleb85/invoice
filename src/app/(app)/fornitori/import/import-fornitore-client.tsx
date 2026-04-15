@@ -129,8 +129,8 @@ export default function ImportFornitoreInner() {
     router.refresh()
   }
 
-  const inputCls = 'w-full rounded-lg border border-slate-600/50 bg-slate-700/90 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500'
-  const labelCls = 'block text-xs font-medium text-slate-200 mb-1'
+  const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-app-cyan-500'
+  const labelCls = 'block text-xs font-medium text-app-fg-muted mb-1'
 
   return (
     <div className="app-shell-page-padding max-w-lg">
@@ -139,7 +139,7 @@ export default function ImportFornitoreInner() {
           <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <button
             onClick={() => router.back()}
-            className="mt-0.5 shrink-0 text-slate-500 transition-colors hover:text-slate-200"
+            className="mt-0.5 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -147,13 +147,13 @@ export default function ImportFornitoreInner() {
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="app-page-title text-2xl font-bold">{t.fornitori.importaDaFattura}</h1>
-            <p className="mt-0.5 text-sm text-slate-200">{t.bolle.ocrHint}</p>
+            <p className="mt-0.5 text-sm text-app-fg-muted">{t.bolle.ocrHint}</p>
           </div>
         </div>
       </AppPageHeaderStrip>
 
       {(step === 'upload' || step === 'loading') && (
-        <div className="bg-slate-700/90 rounded-xl border border-slate-700/50 p-6">
+        <div className="app-workspace-surface-elevated rounded-xl border border-app-line-22 p-6">
           <input
             ref={fileRef}
             type="file"
@@ -169,25 +169,25 @@ export default function ImportFornitoreInner() {
                 <div className="absolute inset-0 flex items-center justify-center text-xl">🤖</div>
               </div>
               <div className="text-center">
-                <p className="font-medium text-slate-100">{t.bolle.ocrAnalyzing}</p>
-                <p className="text-sm text-slate-200 mt-1">{t.bolle.analyzingNote}</p>
+                <p className="font-medium text-app-fg">{t.bolle.ocrAnalyzing}</p>
+                <p className="text-sm text-app-fg-muted mt-1">{t.bolle.analyzingNote}</p>
               </div>
             </div>
           ) : (
-            <div className="w-full border-2 border-dashed border-slate-600/50 rounded-xl p-8 flex flex-col items-center gap-4">
-              <div className="w-14 h-14 bg-slate-700/80 rounded-xl flex items-center justify-center">
-                <svg className="w-7 h-7 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-full border-2 border-dashed border-app-line-25 rounded-xl p-8 flex flex-col items-center gap-4">
+              <div className="w-14 h-14 app-workspace-inset-bg rounded-xl flex items-center justify-center">
+                <svg className="w-7 h-7 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div className="text-center">
-                <p className="font-semibold text-slate-100">{t.fatture.caricaFatturaTitle}</p>
-                <p className="text-sm text-slate-200 mt-1">PDF (documento da mail o allegato)</p>
+                <p className="font-semibold text-app-fg">{t.fatture.caricaFatturaTitle}</p>
+                <p className="text-sm text-app-fg-muted mt-1">PDF (documento da mail o allegato)</p>
               </div>
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex w-full items-center justify-center gap-2 px-4 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -206,11 +206,11 @@ export default function ImportFornitoreInner() {
       {(step === 'confirm' || step === 'saving') && (
         <div className="space-y-4">
           {uploadedFileName && (
-            <div className="flex items-center gap-3 rounded-xl border border-slate-700/50 bg-slate-700/90 px-4 py-3">
+            <div className="flex items-center gap-3 rounded-xl border border-app-line-22 app-workspace-surface-elevated px-4 py-3">
               <svg className="h-8 w-8 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
-              <p className="min-w-0 truncate text-sm text-slate-200">{uploadedFileName}</p>
+              <p className="min-w-0 truncate text-sm text-app-fg-muted">{uploadedFileName}</p>
             </div>
           )}
 
@@ -221,8 +221,8 @@ export default function ImportFornitoreInner() {
             {!extracted.nome && <span className="text-xs px-2.5 py-1 border border-amber-500/35 bg-amber-500/15 text-amber-200 rounded-full font-medium">⚠ {t.bolle.ocrNotFound}</span>}
           </div>
 
-          <form onSubmit={handleSave} className="bg-slate-700/90 rounded-xl border border-slate-700/50 p-6 space-y-4">
-            <p className="text-sm text-slate-200 font-medium">{t.bolle.ocrMatched}:</p>
+          <form onSubmit={handleSave} className="app-workspace-surface-elevated rounded-xl border border-app-line-22 p-6 space-y-4">
+            <p className="text-sm text-app-fg-muted font-medium">{t.bolle.ocrMatched}:</p>
 
             <div>
               <label className={labelCls}>{t.fornitori.nome} *</label>
@@ -269,14 +269,14 @@ export default function ImportFornitoreInner() {
               <button
                 type="button"
                 onClick={() => { setStep('upload'); setUploadedFileName(null); prefillApplied.current = false; if (fileRef.current) fileRef.current.value = '' }}
-                className="flex-1 py-2.5 text-sm font-medium text-slate-200 border border-slate-600/50 rounded-lg hover:bg-slate-700/60 transition-colors"
+                className="flex-1 py-2.5 text-sm font-medium text-app-fg-muted border border-app-line-25 rounded-lg hover:bg-black/12 transition-colors"
               >
                 {t.log.retry}
               </button>
               <button
                 type="submit"
                 disabled={step === 'saving'}
-                className="flex-1 py-2.5 text-sm font-medium bg-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors"
+                className="flex-1 py-2.5 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors"
               >
                 {step === 'saving' ? t.fornitori.saving : t.fornitori.new}
               </button>

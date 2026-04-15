@@ -36,7 +36,7 @@ export default function FornitoreAvatar({
 
   return (
     <div
-      className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-sm font-bold text-white ${className}`}
+      className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-app-cyan-500 to-blue-600 text-sm font-bold text-white ${className}`}
       aria-hidden={showImg}
     >
       {showImg ? (

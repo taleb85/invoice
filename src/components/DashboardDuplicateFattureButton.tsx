@@ -100,7 +100,7 @@ async function readDuplicateReportNdjsonStream(
 }
 
 const toolbarStripBtnCls =
-  'inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg border border-app-line-35 app-workspace-inset-bg px-2.5 text-[11px] font-semibold text-app-fg transition-colors hover:border-app-line-50 hover:brightness-110'
+  'inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-semibold text-app-fg transition-colors hover:border-app-line-50 hover:brightness-110 sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
 const defaultBtnCls =
   'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
 
@@ -112,7 +112,7 @@ export default function DashboardDuplicateFattureButton({
   className?: string
   /** Come ScanEmail: mostra il testo anche su schermi stretti */
   alwaysShowLabel?: boolean
-  /** Allinea a Sincronizza Email nella barra desktop (h-8, padding compatto). */
+  /** Allinea a Sincronizza Email nella barra desktop (h-7, padding compatto). */
   toolbarStrip?: boolean
 }) {
   const t = useT()
@@ -436,7 +436,7 @@ export default function DashboardDuplicateFattureButton({
         className={className ?? (toolbarStrip ? toolbarStripBtnCls : defaultBtnCls)}
       >
         <svg
-          className={`${toolbarStrip ? 'h-3.5 w-3.5' : 'h-4 w-4'} shrink-0 opacity-90`}
+          className={`${toolbarStrip ? 'h-3 w-3 sm:h-3.5 sm:w-3.5' : 'h-4 w-4'} shrink-0 opacity-90`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

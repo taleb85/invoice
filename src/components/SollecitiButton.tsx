@@ -7,7 +7,7 @@ interface Props {
   /** Fornitori con bolle «in attesa» in scadenza (stessa logica di POST /api/solleciti). */
   fornitoriInScadenza?: number
   /**
-   * Striscia desktop header: h-8 allineato a Sincronizza Email, toast in absolute (non allarga la barra).
+   * Striscia desktop header: h-7 allineato a Sincronizza Email, toast in absolute (non allarga la barra).
    */
   toolbarStrip?: boolean
 }
@@ -50,9 +50,9 @@ export default function SollecitiButton({ fornitoriInScadenza = 0, toolbarStrip 
     : 'flex shrink-0 flex-col items-end gap-1.5'
   /** Stessa “lingua” visiva di `ScanEmailButton` header (`headerTriggerBtnCls`), tinta arancio. */
   const btnCls = toolbarStrip
-    ? 'inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold text-app-fg shadow-sm transition-colors hover:brightness-110 active:brightness-95 whitespace-nowrap sm:px-2.5 sm:text-[11px] disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation'
+    ? 'inline-flex h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-1.5 text-[9px] font-bold text-app-fg shadow-sm transition-colors hover:brightness-110 active:brightness-95 whitespace-nowrap sm:gap-1 sm:rounded-lg sm:px-2 sm:text-[10px] md:px-2.5 md:text-[11px] disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation'
     : 'inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation'
-  const iconCls = toolbarStrip ? 'h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4' : 'w-4 h-4'
+  const iconCls = toolbarStrip ? 'h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4' : 'w-4 h-4'
 
   return (
     <div className={wrapCls}>
@@ -60,7 +60,7 @@ export default function SollecitiButton({ fornitoriInScadenza = 0, toolbarStrip 
         {loading ? (
           <>
             <svg
-              className={`${toolbarStrip ? 'h-3.5 w-3.5 sm:h-4 sm:w-4' : iconCls} animate-spin shrink-0`}
+              className={`${toolbarStrip ? 'h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4' : iconCls} animate-spin shrink-0`}
               fill="none"
               viewBox="0 0 24 24"
             >

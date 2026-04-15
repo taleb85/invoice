@@ -1,6 +1,10 @@
 import { Children, type ReactNode } from 'react'
+import AppSummaryHighlightMetrics, {
+  type AppSummaryHighlightMetricsProps,
+} from '@/components/AppSummaryHighlightMetrics'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
+  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
   type SummaryHighlightAccent,
 } from '@/lib/summary-highlight-accent'
@@ -32,6 +36,11 @@ export default function AppPageHeaderStrip({
   dense = false,
   /** Senza margine inferiore (es. dashboard / fornitori con `gap` sul contenitore pagina). */
   flushBottom = false,
+  /**
+   * Riepilogo metrico sotto la riga titolo/azioni, **nello stesso guscio** (un solo bordo + barra).
+   * Richiede `accent` (stessa tinta etichetta metriche).
+   */
+  mergedSummary,
 }: {
   children: ReactNode
   embedded?: boolean
@@ -40,6 +49,7 @@ export default function AppPageHeaderStrip({
   /** Padding e gap ridotti (es. `/bolle/new`). */
   dense?: boolean
   flushBottom?: boolean
+  mergedSummary?: Omit<AppSummaryHighlightMetricsProps, 'accent'>
 }) {
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
@@ -54,17 +64,31 @@ export default function AppPageHeaderStrip({
   const barClassName = theme ? `app-card-bar-accent shrink-0 ${theme.bar}` : 'app-card-bar shrink-0'
   const items = Children.toArray(children)
   const [first, ...rest] = items.length > 0 ? items : [null]
+  const showMerged = accent != null && mergedSummary != null
+
+  const headerRow = (
+    <div className={dense ? innerClsDense : innerCls}>
+      <div className="min-w-0 flex-1">{first}</div>
+      <div className={dense ? innerRightClsDense : innerRightCls}>
+        {rest}
+        <AppPageHeaderDesktopTray />
+      </div>
+    </div>
+  )
 
   return (
     <div className={outer}>
       <div className={barClassName} aria-hidden />
-      <div className={dense ? innerClsDense : innerCls}>
-        <div className="min-w-0 flex-1">{first}</div>
-        <div className={dense ? innerRightClsDense : innerRightCls}>
-          {rest}
-          <AppPageHeaderDesktopTray />
-        </div>
-      </div>
+      {showMerged ? (
+        <>
+          {headerRow}
+          <div className={`border-t border-app-soft-border ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
+            <AppSummaryHighlightMetrics accent={accent} {...mergedSummary} />
+          </div>
+        </>
+      ) : (
+        headerRow
+      )}
     </div>
   )
 }

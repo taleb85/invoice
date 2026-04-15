@@ -77,7 +77,7 @@ export default async function DashboardPage({
     return (
       <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
         <DashboardDesktopHeaderActionsPortal>
-          <div className="flex min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-2 sm:gap-2.5 md:overflow-x-auto lg:gap-3">
+          <div className="flex min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:overflow-x-auto">
             <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
             <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
           </div>
@@ -254,10 +254,9 @@ export default async function DashboardPage({
   const [kpis, sollecitiFornitori, supplierHint, scannerFlowDetail] = await Promise.all([
     operatorScoped
       ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
-      : Promise.resolve({
+        : Promise.resolve({
           bolleTotal: 0,
           bolleInAttesa: 0,
-          fornitoriCount: 0,
           fattureCount: 0,
           documentiPending: 0,
           documentiDaAssociare: 0,
@@ -268,6 +267,8 @@ export default async function DashboardPage({
           statementsTotal: 0,
           statementsWithIssues: 0,
           erroriRecenti: 0,
+          anomaliePrezziCount: 0,
+          bolleRekkiSavingsHint: false,
         }),
     countFornitoriWithOverdueBolle(supabase, operatorScoped ? fornitoreIds : null),
     operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
@@ -281,12 +282,12 @@ export default async function DashboardPage({
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <DashboardDesktopHeaderActionsPortal>
         <div
-          className={`flex min-w-0 w-full max-w-full shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5 md:overflow-x-auto lg:gap-3 ${
+          className={`flex min-w-0 w-full max-w-full shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 md:overflow-x-auto ${
             operatorScoped ? 'justify-between' : 'justify-end'
           }`}
         >
           {operatorScoped ? <DashboardWorkspaceQuickNav t={t} fiscalYear={fiscalYear} /> : null}
-          <div className="flex shrink-0 flex-nowrap items-center gap-2 sm:gap-2.5 lg:gap-3">
+          <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2">
             <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
             <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
           </div>

@@ -90,9 +90,13 @@ create table if not exists public.fatture (
   bolla_id     uuid references public.bolle(id) on delete set null,
   data         date not null,
   file_url     text,
+  analizzata   boolean not null default false,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
+
+-- DB esistenti (prima di questo file): aggiungi colonna se manca.
+alter table public.fatture add column if not exists analizzata boolean not null default false;
 
 create index if not exists fatture_user_id_idx      on public.fatture(user_id);
 create index if not exists fatture_fornitore_id_idx on public.fatture(fornitore_id);

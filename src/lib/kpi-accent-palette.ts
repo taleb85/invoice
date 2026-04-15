@@ -10,11 +10,11 @@ export const SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS =
   'mb-0 grid w-full max-w-none grid-cols-2 gap-2 md:mb-5 md:gap-3 lg:grid-cols-3 lg:gap-2.5 xl:grid-cols-6 xl:gap-2'
 
 /**
- * Dashboard operatore: **Fornitori + 6 KPI** (7 tile).
- * Da `lg`: 4 colonne → **due righe** (4 + 3); sotto `lg` resta 2 colonne.
+ * Dashboard operatore: **6 KPI** (senza tile Fornitori).
+ * Da `lg`: 3 colonne → **due righe** (3 + 3); sotto `lg` resta 2 colonne.
  */
 export const DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS =
-  'mb-0 grid w-full max-w-none grid-cols-2 gap-2.5 md:mb-5 md:gap-3.5 lg:grid-cols-4 lg:gap-3 xl:gap-3.5'
+  'mb-0 grid w-full max-w-none grid-cols-2 gap-2.5 md:mb-5 md:gap-3.5 lg:grid-cols-3 lg:gap-3 xl:gap-3.5'
 
 export const supplierKpiPalette = {
   conferme: {
@@ -180,15 +180,16 @@ export const operatorKpiVisual = [
     chevronClass: 'text-cyan-400 group-hover:text-cyan-100 group-hover:opacity-100',
   },
   {
-    accentHex: '#84cc16',
-    borderClass: 'border-lime-500/32',
-    glowRgb: '132,204,22',
-    ringClass: 'ring-lime-400/10',
+    /** Allineato a `supplierKpiPalette.listino` (tile listino dashboard / scheda). */
+    accentHex: '#c026d3',
+    borderClass: 'border-fuchsia-600/32',
+    glowRgb: '192,38,211',
+    ringClass: 'ring-fuchsia-400/10',
     hoverClass:
-      'hover:border-lime-400/38 hover:shadow-[0_0_0_1px_rgba(163,230,53,0.12)]',
-    iconWrapClass: 'bg-lime-500/14 ring-1 ring-lime-400/25',
-    iconSvgClass: 'text-lime-300 drop-shadow-[0_0_8px_rgba(163,230,53,0.42)]',
-    chevronClass: 'text-lime-400 group-hover:text-lime-100 group-hover:opacity-100',
+      'hover:border-fuchsia-500/38 hover:shadow-[0_0_0_1px_rgba(217,70,239,0.12)]',
+    iconWrapClass: 'bg-fuchsia-500/14 ring-1 ring-fuchsia-400/25',
+    iconSvgClass: 'text-fuchsia-300 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]',
+    chevronClass: 'text-fuchsia-400 group-hover:text-fuchsia-100 group-hover:opacity-100',
   },
   {
     accentHex: '#7c3aed',

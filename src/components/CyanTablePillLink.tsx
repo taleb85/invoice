@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 /** Classi condivise con `OpenDocumentInAppButton` (stesso aspetto del pill in tabella). */
 export const CYAN_TABLE_PILL_LINK_CLASSNAME =
-  'inline-flex items-center gap-1.5 rounded-lg bg-cyan-500/15 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/25'
+  'inline-flex items-center gap-1.5 rounded-lg bg-app-line-15 px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-25'
 
 const pillClass = CYAN_TABLE_PILL_LINK_CLASSNAME
 

@@ -20,7 +20,7 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
           <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <Link
             href="/fatture"
-            className="mt-1 shrink-0 text-slate-500 transition-colors hover:text-slate-200"
+            className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -30,42 +30,42 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
             <h1 className="app-page-title text-2xl font-bold">
               {t.fatture.invoice} – {fattura.fornitore?.nome}
             </h1>
-            <p className="mt-0.5 text-sm text-slate-200">{formatDate(fattura.data)}</p>
+            <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(fattura.data)}</p>
           </div>
         </div>
       </AppPageHeaderStrip>
 
       <div className="space-y-4">
-        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-6">
-          <h2 className="mb-4 text-sm font-semibold text-slate-100">{t.fatture.dettaglio}</h2>
+          <h2 className="mb-4 text-sm font-semibold text-app-fg">{t.fatture.dettaglio}</h2>
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-200">{t.common.supplier}</dt>
-              <dd className="font-medium text-slate-100">{fattura.fornitore?.nome}</dd>
+              <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.supplier}</dt>
+              <dd className="font-medium text-app-fg">{fattura.fornitore?.nome}</dd>
             </div>
             {fattura.fornitore?.email && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.email}</dt>
-                <dd className="text-slate-200">{fattura.fornitore.email}</dd>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.fornitori.email}</dt>
+                <dd className="text-app-fg-muted">{fattura.fornitore.email}</dd>
               </div>
             )}
             {fattura.fornitore?.piva && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.fornitori.piva}</dt>
-                <dd className="text-slate-200">{fattura.fornitore.piva}</dd>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.fornitori.piva}</dt>
+                <dd className="text-app-fg-muted">{fattura.fornitore.piva}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="w-28 shrink-0 text-slate-200">{t.common.date}</dt>
-              <dd className="text-slate-200">{formatDate(fattura.data)}</dd>
+              <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.date}</dt>
+              <dd className="text-app-fg-muted">{formatDate(fattura.data)}</dd>
             </div>
             {fattura.bolla && (
               <div className="flex gap-2">
-                <dt className="w-28 shrink-0 text-slate-200">{t.fatture.bollaCollegata}</dt>
+                <dt className="w-28 shrink-0 text-app-fg-muted">{t.fatture.bollaCollegata}</dt>
                 <dd>
-                  <Link href={`/bolle/${fattura.bolla.id}`} className="font-medium text-cyan-400 transition-colors hover:text-cyan-300">
+                  <Link href={`/bolle/${fattura.bolla.id}`} className="font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted">
                     {formatDate(fattura.bolla.data)} →
                   </Link>
                 </dd>
@@ -75,15 +75,15 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
 
-        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-slate-700/50">
+        <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-6">
-          <h2 className="mb-3 text-sm font-semibold text-slate-100">{t.common.attachment}</h2>
+          <h2 className="mb-3 text-sm font-semibold text-app-fg">{t.common.attachment}</h2>
           {fattura.file_url ? (
             <OpenDocumentInAppButton
               fatturaId={fattura.id}
               fileUrl={fattura.file_url}
-              className="flex items-center gap-2 text-sm font-medium text-cyan-400 transition-colors hover:text-cyan-300"
+              className="flex items-center gap-2 text-sm font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -91,7 +91,7 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
               {t.common.openAttachment}
             </OpenDocumentInAppButton>
           ) : (
-            <p className="text-sm text-slate-500">Nessun allegato</p>
+            <p className="text-sm text-app-fg-muted">Nessun allegato</p>
           )}
           <ReplaceFileButton fatturaId={fattura.id} />
           </div>

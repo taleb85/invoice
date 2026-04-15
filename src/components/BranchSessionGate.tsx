@@ -69,8 +69,8 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
         role="status"
         aria-live="polite"
       >
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-        <p className="text-sm text-slate-300">{t.common.loading}</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
+        <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
       </div>
     )
   }

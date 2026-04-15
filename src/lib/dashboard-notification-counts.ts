@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
 
 /** Stati “in coda” su `documenti_da_processare` (allineato a Statements / KPI). */
 export const PENDING_DOCUMENTI_STATI = ['in_attesa', 'da_associare', 'bozza_creata'] as const
@@ -9,13 +10,24 @@ function since24hIso(): string {
   return new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 }
 
-/** Errori log sincronizzazione ultime 24h — stessa logica di `page.tsx` / dashboard admin. */
-export async function countSyncLogErrors24h(supabase: SupabaseClient): Promise<number> {
-  const { count } = await supabase
+/**
+ * Errori log sincronizzazione: ultime 24h (badge / admin) oppure, con `fiscalBounds`,
+ * solo eventi nel periodo fiscale (KPI dashboard allineati al selettore anno).
+ */
+export async function countSyncLogErrors24h(
+  supabase: SupabaseClient,
+  fiscalBounds?: FiscalPgBounds | null
+): Promise<number> {
+  let q = supabase
     .from('log_sincronizzazione')
     .select('*', { count: 'exact', head: true })
     .in('stato', [...LOG_ERROR_STATI])
-    .gte('data', since24hIso())
+  if (fiscalBounds) {
+    q = q.gte('data', fiscalBounds.tsFrom).lt('data', fiscalBounds.tsToExclusive)
+  } else {
+    q = q.gte('data', since24hIso())
+  }
+  const { count } = await q
   return count ?? 0
 }
 
@@ -37,11 +49,18 @@ export async function countSyncLogErrors24hForSede(
  * Documenti in attesa visibili alla sessione (RLS / sede utente), senza filtro esplicito.
  * Allineato alla query aggregata della dashboard operatore.
  */
-export async function countPendingDocumentiSessionScoped(supabase: SupabaseClient): Promise<number> {
-  const { count } = await supabase
+export async function countPendingDocumentiSessionScoped(
+  supabase: SupabaseClient,
+  fiscalBounds?: FiscalPgBounds | null
+): Promise<number> {
+  let q = supabase
     .from('documenti_da_processare')
     .select('*', { count: 'exact', head: true })
     .in('stato', [...PENDING_DOCUMENTI_STATI])
+  if (fiscalBounds) {
+    q = q.gte('created_at', fiscalBounds.tsFrom).lt('created_at', fiscalBounds.tsToExclusive)
+  }
+  const { count } = await q
   return count ?? 0
 }
 
@@ -52,12 +71,17 @@ export async function countPendingDocumentiSessionScoped(supabase: SupabaseClien
  */
 export async function countPendingDocumentiForSede(
   supabase: SupabaseClient,
-  sedeId: string
+  sedeId: string,
+  fiscalBounds?: FiscalPgBounds | null
 ): Promise<number> {
-  const { count } = await supabase
+  let q = supabase
     .from('documenti_da_processare')
     .select('*', { count: 'exact', head: true })
     .or(`sede_id.eq.${sedeId},sede_id.is.null`)
     .in('stato', [...PENDING_DOCUMENTI_STATI])
+  if (fiscalBounds) {
+    q = q.gte('created_at', fiscalBounds.tsFrom).lt('created_at', fiscalBounds.tsToExclusive)
+  }
+  const { count } = await q
   return count ?? 0
 }

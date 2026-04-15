@@ -219,6 +219,18 @@ export async function POST(req: NextRequest) {
   }
 
   const { items, data_fattura } = parseLineItems(rawResponse)
+
+  const { error: analErr } = await service
+    .from('fatture')
+    .update({ analizzata: true })
+    .eq('id', fattura_id)
+  if (analErr) {
+    const msg = analErr.message ?? ''
+    if (!msg.includes('analizzata') && !msg.includes('42703')) {
+      console.warn('[listino/importa-da-fattura] aggiornamento analizzata:', msg)
+    }
+  }
+
   return NextResponse.json({
     items,
     data_fattura: data_fattura ?? fattura.data ?? new Date().toISOString().split('T')[0],
