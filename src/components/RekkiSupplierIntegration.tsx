@@ -44,6 +44,7 @@ export default function RekkiSupplierIntegration({
   const [hits, setHits] = useState<RekkiHit[]>([])
   const [fallbackHints, setFallbackHints] = useState<RekkiLookupFallbackHints | null>(null)
   const [loading, setLoading] = useState<'lookup' | 'save' | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const extractTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -74,9 +75,18 @@ export default function RekkiSupplierIntegration({
         }),
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
-      if (!res.ok) return j.error ?? t.common.error
+      if (!res.ok) {
+        const msg = j.error ?? t.common.error
+        console.error('[RekkiSupplierIntegration] persistMapping failed', {
+          status: res.status,
+          error: msg,
+          body: j,
+        })
+        return msg
+      }
       return null
-    } catch {
+    } catch (e) {
+      console.error('[RekkiSupplierIntegration] persistMapping network/parse error', e)
       return t.ui.networkError
     }
   }
@@ -123,6 +133,7 @@ export default function RekkiSupplierIntegration({
     const hadNoRekkiId = !rekkiId.trim()
     setLoading('lookup')
     setLookupMsg(null)
+    setSaveError(null)
     setHits([])
     setFallbackHints(null)
     try {
@@ -151,6 +162,7 @@ export default function RekkiSupplierIntegration({
         const err = await persistMapping(only.id, rekkiLink.trim() || null)
         if (err) {
           setLookupMsg(err)
+          setSaveError(err)
           setHits(suppliers)
         } else {
           setLookupMsg(t.fornitori.rekkiAutoLinkedSingle)
@@ -170,13 +182,24 @@ export default function RekkiSupplierIntegration({
   }
 
   const save = async () => {
-    const rid = rekkiId.trim()
+    setSaveError(null)
+    const trimmed = rekkiId.trim()
+    const extracted = extractRekkiSupplierIdFromUrl(trimmed)
+    const rid = (extracted ?? trimmed).trim()
     if (!rid) return
+    if (
+      !extracted &&
+      (/^https?:\/\//i.test(trimmed) || /rekki\.(com|app)/i.test(trimmed))
+    ) {
+      setSaveError(t.fornitori.rekkiIdUrlNotParsed)
+      return
+    }
+    if (extracted) setRekkiId(extracted)
     setLoading('save')
     try {
       const err = await persistMapping(rid, rekkiLink.trim() || null)
       if (err) {
-        alert(err)
+        setSaveError(err)
         return
       }
       onSaved?.()
@@ -286,6 +309,14 @@ export default function RekkiSupplierIntegration({
           )}
         </div>
         {lookupMsg && <p className="text-xs text-app-fg-muted">{lookupMsg}</p>}
+        {saveError && (
+          <p
+            role="alert"
+            className="rounded-lg border border-red-500/40 bg-red-950/35 px-3 py-2 text-xs leading-relaxed text-red-100"
+          >
+            {saveError}
+          </p>
+        )}
         {fallbackHints?.envSetupHint ? (
           <p className="rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2 text-[11px] leading-relaxed text-amber-100/95">
             {fallbackHints.envSetupHint}
@@ -317,6 +348,16 @@ export default function RekkiSupplierIntegration({
               type="text"
               value={rekkiId}
               onChange={(e) => setRekkiId(e.target.value)}
+              onPaste={(e) => {
+                const pasted = e.clipboardData?.getData('text/plain')?.trim() ?? ''
+                if (!pasted) return
+                const fromPaste = extractRekkiSupplierIdFromUrl(pasted)
+                if (!fromPaste) return
+                window.setTimeout(() => {
+                  setRekkiId(fromPaste)
+                  setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
+                }, 0)
+              }}
               placeholder={t.fornitori.rekkiIdPlaceholder}
               className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 font-mono text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
             />
@@ -347,9 +388,23 @@ export default function RekkiSupplierIntegration({
           type="button"
           onClick={() => void save()}
           disabled={loading !== null || !rekkiId.trim()}
-          className="rounded-lg bg-cyan-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-app-cyan-500 disabled:opacity-40"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-app-cyan-500 disabled:opacity-40"
         >
-          {loading === 'save' ? t.common.saving : t.fornitori.rekkiSaveRekkiMapping}
+          {loading === 'save' ? (
+            <>
+              <svg className="size-3.5 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path
+                  className="opacity-90"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                />
+              </svg>
+              <span>{t.common.loading}</span>
+            </>
+          ) : (
+            t.fornitori.rekkiSaveRekkiMapping
+          )}
         </button>
       </div>
     </div>

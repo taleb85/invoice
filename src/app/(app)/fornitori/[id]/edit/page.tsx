@@ -7,6 +7,7 @@ import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
+import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
 
 interface AliasEmail {
   id: string
@@ -128,6 +129,10 @@ export default function EditFornitore() {
     setSaving(true)
     setError(null)
 
+    const rawRekkiId = form.rekki_supplier_id.trim()
+    const rekkiSupplierId =
+      (extractRekkiSupplierIdFromUrl(rawRekkiId) ?? rawRekkiId).trim() || null
+
     const { error: err } = await supabase
       .from('fornitori')
       .update({
@@ -137,7 +142,7 @@ export default function EditFornitore() {
         piva: form.piva || null,
         indirizzo: form.indirizzo.trim() || null,
         rekki_link: form.rekki_link.trim() || null,
-        rekki_supplier_id: form.rekki_supplier_id.trim() || null,
+        rekki_supplier_id: rekkiSupplierId,
         language: form.language || null,
       })
       .eq('id', id)
