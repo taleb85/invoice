@@ -825,6 +825,8 @@ export function PendingMatchesTab({
   currency,
   year,
   month,
+  ledgerDateFrom,
+  ledgerDateToExclusive,
   cardAccent = 'amber',
 }: {
   sedeId?: string
@@ -833,6 +835,9 @@ export function PendingMatchesTab({
   currency?: string
   year?: number
   month?: number
+  /** Scheda fornitore: filtra `created_at` come le altre tab (Da / A, fine esclusa). */
+  ledgerDateFrom?: string
+  ledgerDateToExclusive?: string
   /** Scheda fornitore: allinea barra/bordo al tab (es. `amber` per «Documenti»). */
   cardAccent?: SummaryHighlightAccent
 }) {
@@ -908,7 +913,10 @@ export function PendingMatchesTab({
     if (filter === 'in_attesa') params.set('stati', 'in_attesa,da_associare,bozza_creata')
     if (sedeId) params.set('sede_id', sedeId)
     if (fornitoreId) params.set('fornitore_id', fornitoreId)
-    if (year && month) {
+    if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+      params.set('from', ledgerDateFrom)
+      params.set('to', ledgerDateToExclusive)
+    } else if (year && month) {
       params.set('from', `${year}-${String(month).padStart(2, '0')}-01`)
       params.set('to', new Date(year, month, 1).toISOString().split('T')[0])
     }
@@ -916,7 +924,7 @@ export function PendingMatchesTab({
     const data = res.ok ? await res.json() : []
     setDocs((data ?? []).map((d: Record<string, unknown>) => ({ ...d, is_statement: (d.is_statement as boolean | null) ?? false })) as Documento[])
     setLoading(false)
-  }, [filter, sedeId, fornitoreId, year, month])
+  }, [filter, sedeId, fornitoreId, year, month, ledgerDateFrom, ledgerDateToExclusive])
 
   const fetchBolleAperte = useCallback(async () => {
     const parts: string[] = []
@@ -1103,7 +1111,7 @@ export function PendingMatchesTab({
 
   useEffect(() => {
     autoPendingKindTriedRef.current = new Set()
-  }, [filter, sedeId, fornitoreId, year, month])
+  }, [filter, sedeId, fornitoreId, year, month, ledgerDateFrom, ledgerDateToExclusive])
 
   useEffect(() => {
     const onLayoutRefresh = () => {
@@ -2388,6 +2396,8 @@ export function VerificationStatusTab({
   currency,
   year,
   month,
+  ledgerDateFrom,
+  ledgerDateToExclusive,
   cardAccent = 'cyan',
   supplierDesktopVerificaMode,
 }: {
@@ -2397,6 +2407,9 @@ export function VerificationStatusTab({
   currency?: string
   year?: number
   month?: number
+  /** Scheda fornitore: stesso intervallo date del navigatore header (fine esclusa in query). */
+  ledgerDateFrom?: string
+  ledgerDateToExclusive?: string
   /** Scheda fornitore: allinea barra/bordo al tab (es. `cyan` per «Verifica»). */
   cardAccent?: SummaryHighlightAccent
   /**
@@ -2494,8 +2507,9 @@ export function VerificationStatusTab({
     setLoading(true)
     setSelezione(new Set())
     const supabase = createClient()
-    const from = `${anno}-${String(mese).padStart(2,'0')}-01`
-    const to   = new Date(anno, mese, 1).toISOString().split('T')[0]
+    const useLedgerRange = Boolean(fornitoreId && ledgerDateFrom && ledgerDateToExclusive)
+    const from = useLedgerRange ? ledgerDateFrom! : `${anno}-${String(mese).padStart(2,'0')}-01`
+    const to   = useLedgerRange ? ledgerDateToExclusive! : new Date(anno, mese, 1).toISOString().split('T')[0]
     let bolleQuery = supabase
       .from('bolle')
       .select('id, data, stato, fornitore_id, fornitori(nome), fatture(id, data, file_url)')
@@ -2518,7 +2532,7 @@ export function VerificationStatusTab({
     }
     setGruppi([...map.values()])
     setLoading(false)
-  }, [anno, mese, sedeId, fornitoreId, t.statements.unknownSupplier])
+  }, [anno, mese, sedeId, fornitoreId, ledgerDateFrom, ledgerDateToExclusive, t.statements.unknownSupplier])
 
   useEffect(() => {
     if (verificaMode === 'statementsPanel') return
@@ -2729,7 +2743,10 @@ export function VerificationStatusTab({
       : 'rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-app-line-40 focus:outline-none focus:ring-1 focus:ring-app-line-30 [color-scheme:dark]'
     : 'rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-app-line-40 focus:outline-none focus:ring-1 focus:ring-app-line-30 [color-scheme:dark]'
 
-  const periodSelects = (
+  const hideEmbeddedPeriodSelects =
+    Boolean(vsEmbeddedSupplier && ledgerDateFrom && ledgerDateToExclusive)
+
+  const periodSelects = hideEmbeddedPeriodSelects ? null : (
     <>
       <select value={mese} onChange={(e) => setMese(Number(e.target.value))} className={periodSelectCls}>
         {MONTHS.map((m, i) => (
