@@ -88,7 +88,7 @@ export default async function ArchivioPage() {
 
       <AppPageHeaderStrip>
         <div className="flex w-full min-w-0 flex-col gap-3">
-          <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+          <AppPageHeaderTitleWithDashboardShortcut>
             <h1 className="app-page-title text-2xl font-bold">{t.archivio.title}</h1>
           </AppPageHeaderTitleWithDashboardShortcut>
           <ExportZipButton />

@@ -9,7 +9,6 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 
 const fieldBaseCls =
@@ -109,7 +108,6 @@ export default function NewFornitoreForm() {
     <div className={APP_FORNITORE_FORM_PAGE_SHELL_CLASS}>
       <AppPageHeaderStrip accent="sky" flushBottom>
         <div className="flex min-w-0 flex-1 items-center gap-3">
-          <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <button
             type="button"
             onClick={() => router.back()}

@@ -10,9 +10,15 @@ interface Props {
    * Striscia desktop header: h-7 allineato a Sincronizza Email, toast in absolute (non allarga la barra).
    */
   toolbarStrip?: boolean
+  /** Menu dashboard: pulsante a tutta larghezza in colonna con duplicati / sync. */
+  stackedInPanel?: boolean
 }
 
-export default function SollecitiButton({ fornitoriInScadenza = 0, toolbarStrip = false }: Props) {
+export default function SollecitiButton({
+  fornitoriInScadenza = 0,
+  toolbarStrip = false,
+  stackedInPanel = false,
+}: Props) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ type: 'ok' | 'error'; text: string } | null>(null)
   const t = useT()
@@ -47,11 +53,15 @@ export default function SollecitiButton({ fornitoriInScadenza = 0, toolbarStrip 
 
   const wrapCls = toolbarStrip
     ? 'relative flex shrink-0 items-center'
-    : 'flex shrink-0 flex-col items-end gap-1.5'
-  /** Stessa “lingua” visiva di `ScanEmailButton` header (`headerTriggerBtnCls`), tinta arancio. */
+    : stackedInPanel
+      ? 'relative flex w-full min-w-0 flex-col items-stretch gap-2'
+      : 'flex shrink-0 flex-col items-end gap-1.5'
+  /** Toolbar: come sync header. Altrimenti: arancio (anche a tutta larghezza nel menu Strumenti). */
   const btnCls = toolbarStrip
-    ? 'inline-flex h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-1.5 text-[9px] font-bold text-app-fg shadow-sm transition-colors hover:brightness-110 active:brightness-95 whitespace-nowrap sm:gap-1 sm:rounded-lg sm:px-2 sm:text-[10px] md:px-2.5 md:text-[11px] disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation'
-    : 'inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation'
+    ? 'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:brightness-110 active:brightness-95 whitespace-nowrap sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px] disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation'
+    : stackedInPanel
+      ? 'flex h-9 w-full min-w-0 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-orange-500 px-3.5 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 touch-manipulation'
+      : 'inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-0 text-xs font-semibold text-white transition-colors hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 whitespace-nowrap touch-manipulation'
   const iconCls = toolbarStrip ? 'h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4' : 'w-4 h-4'
 
   return (
@@ -79,8 +89,8 @@ export default function SollecitiButton({ fornitoriInScadenza = 0, toolbarStrip 
             <span
               className={
                 toolbarStrip
-                  ? 'inline-flex h-3.5 min-w-3.5 shrink-0 items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/20 px-0.5 text-[8px] font-bold tabular-nums text-sky-100 sm:text-[9px]'
-                  : 'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full border border-sky-500/40 bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums text-sky-100'
+                  ? 'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-sky-500/40 bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums leading-none text-sky-100 sm:text-[10px]'
+                  : 'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-sky-500/40 bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums text-sky-100'
               }
             >
               {fornitoriInScadenza > 9 ? '9+' : fornitoriInScadenza}
@@ -98,9 +108,13 @@ export default function SollecitiButton({ fornitoriInScadenza = 0, toolbarStrip 
                     ? 'app-workspace-surface-elevated text-green-300 ring-1 ring-app-line-35'
                     : 'app-workspace-surface-elevated text-red-300 ring-1 ring-app-line-35'
                 }`
-              : `text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${
-                  toast.type === 'ok' ? 'app-workspace-surface-elevated text-green-300' : 'app-workspace-surface-elevated text-red-300'
-                }`
+              : stackedInPanel
+                ? `mt-1 w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium ${
+                    toast.type === 'ok' ? 'app-workspace-surface-elevated text-green-300' : 'app-workspace-surface-elevated text-red-300'
+                  }`
+                : `text-xs font-medium px-2 py-1 rounded-lg max-w-[220px] text-right ${
+                    toast.type === 'ok' ? 'app-workspace-surface-elevated text-green-300' : 'app-workspace-surface-elevated text-red-300'
+                  }`
           }
         >
           {toast.text}

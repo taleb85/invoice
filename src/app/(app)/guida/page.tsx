@@ -66,7 +66,7 @@ export default function GuidaPage() {
   return (
     <div className="app-shell-page-padding max-w-6xl">
       <AppPageHeaderStrip>
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className="app-page-title text-2xl font-bold">{content.pageTitle}</h1>
           <p className="mt-1 text-sm text-app-fg-muted">{content.pageSubtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>

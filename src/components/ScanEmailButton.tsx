@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo, useId } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useId } from 'react'
+import { createPortal } from 'react-dom'
 import { useT } from '@/lib/use-t'
 import { useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
@@ -25,6 +26,8 @@ interface Props {
   placement?: 'default' | 'desktopHeader'
   /** Classi aggiuntive sul wrapper radice */
   className?: string
+  /** Con `desktopHeader`: trigger e sottomenu a tutta larghezza (es. menu «Strumenti» dashboard). */
+  stackedHeaderTrigger?: boolean
   /** Se true mostra sempre il testo (non solo su desktop) */
   alwaysShowLabel?: boolean
   /**
@@ -45,6 +48,7 @@ interface Props {
 export default function ScanEmailButton({
   placement = 'default',
   className: classNameProp,
+  stackedHeaderTrigger = false,
   alwaysShowLabel = false,
   sedeId: propSedeId,
   fornitoreId,
@@ -56,7 +60,10 @@ export default function ScanEmailButton({
   const [toast, setToast] = useState<{ type: 'ok' | 'warn' | 'error'; text: string } | null>(null)
   const [scopePrefs, setScopePrefs] = useState<EmailSyncScopePrefs>(() => readEmailSyncScopePrefs())
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false)
+  const [headerMenuRect, setHeaderMenuRect] = useState<{ top: number; left: number; width: number } | null>(null)
   const headerWrapRef = useRef<HTMLDivElement>(null)
+  const headerTriggerRef = useRef<HTMLButtonElement>(null)
+  const headerMenuPanelRef = useRef<HTMLDivElement>(null)
   const headerMenuId = useId()
   const fallbackSedeIdRef = useRef<string | null>(null)
   const t = useT()
@@ -151,11 +158,36 @@ export default function ScanEmailButton({
   const labelVis = alwaysShowLabel ? '' : 'hidden md:inline'
   const isSupplierVariant = variant === 'supplier' && !isHeaderPlacement
 
+  useLayoutEffect(() => {
+    if (!isHeaderPlacement || !headerMenuOpen || !stackedHeaderTrigger) {
+      setHeaderMenuRect(null)
+      return
+    }
+    const measure = () => {
+      const el = headerTriggerRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const width = Math.min(320, Math.max(200, r.width))
+      const pad = 8
+      const left = Math.min(Math.max(pad, r.left), window.innerWidth - width - pad)
+      setHeaderMenuRect({ top: r.bottom + 8, left, width })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [isHeaderPlacement, headerMenuOpen, stackedHeaderTrigger])
+
   useEffect(() => {
     if (!isHeaderPlacement || !headerMenuOpen) return
     const onDoc = (e: MouseEvent) => {
-      const el = headerWrapRef.current
-      if (el && !el.contains(e.target as Node)) setHeaderMenuOpen(false)
+      const node = e.target as Node
+      if (headerWrapRef.current?.contains(node)) return
+      if (stackedHeaderTrigger && headerMenuPanelRef.current?.contains(node)) return
+      setHeaderMenuOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setHeaderMenuOpen(false)
@@ -166,7 +198,7 @@ export default function ScanEmailButton({
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
     }
-  }, [isHeaderPlacement, headerMenuOpen])
+  }, [isHeaderPlacement, headerMenuOpen, stackedHeaderTrigger])
 
   const selectSize =
     'h-9 py-0 pl-2.5 pr-8 text-left text-xs font-medium leading-9'
@@ -176,7 +208,7 @@ export default function ScanEmailButton({
     'h-6 py-0 pl-0.5 pr-4 text-left text-[10px] font-medium leading-6 md:pl-1 md:pr-5 md:text-[11px] xl:h-9 xl:pl-1.5 xl:pr-7 xl:text-[11px] xl:leading-9'
 
   const headerTriggerBtnCls =
-    'inline-flex h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-1.5 text-[9px] font-bold text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap sm:gap-1 sm:rounded-lg sm:px-2 sm:text-[10px] md:px-2.5 md:text-[11px]'
+    'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
 
   const selectOptionSurface = 'app-workspace-surface-elevated text-app-fg-muted'
   const controlsDisabled = loading || emailSync?.progress.active || !!disabledProp
@@ -196,16 +228,181 @@ export default function ScanEmailButton({
   const popChevron = 'pointer-events-none absolute top-1/2 right-2 h-3 w-3 -translate-y-1/2 text-app-fg-muted'
 
   if (isHeaderPlacement) {
+    const headerMenuInner = (
+      <div className="flex flex-col gap-2.5">
+        <div className="relative w-full shrink-0">
+          <select
+            value={selectValue}
+            disabled={controlsDisabled}
+            title={t.dashboard.emailSyncScopeHint}
+            aria-label={t.dashboard.emailSyncFiscalYearSelectAria}
+            onChange={(e) => {
+              const v = e.target.value
+              if (v === 'lb') {
+                const n: EmailSyncScopePrefs = {
+                  mode: 'lookback',
+                  fiscalYear: scopePrefs.fiscalYear,
+                  lookbackDays: scopePrefs.lookbackDays ?? null,
+                  documentKind: scopePrefs.documentKind,
+                }
+                writeEmailSyncScopePrefs(n)
+                setScopePrefs(n)
+                return
+              }
+              const y = Number(v.replace(/^fy:/, ''))
+              if (!Number.isFinite(y)) return
+              const n: EmailSyncScopePrefs = {
+                mode: 'fiscal_year',
+                fiscalYear: y,
+                lookbackDays: scopePrefs.lookbackDays ?? null,
+                documentKind: scopePrefs.documentKind,
+              }
+              writeEmailSyncScopePrefs(n)
+              setScopePrefs(n)
+            }}
+            className={popSelectBase}
+          >
+            <option className={selectOptionSurface} value="lb">
+              {t.dashboard.emailSyncScopeLookback}
+            </option>
+            {fiscalYearOptions.map((y) => (
+              <option key={y} className={selectOptionSurface} value={`fy:${y}`}>
+                {t.dashboard.emailSyncScopeFiscal}: {y}
+              </option>
+            ))}
+          </select>
+          <svg className={popChevron} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+
+        {scopePrefs.mode === 'lookback' ? (
+          <div className="relative w-full shrink-0">
+            <select
+              value={lookbackSelectValue}
+              disabled={controlsDisabled}
+              title={t.dashboard.emailSyncLookbackDaysHint}
+              aria-label={t.dashboard.emailSyncLookbackDaysAria}
+              onChange={(e) => {
+                const v = e.target.value
+                if (v === 'def') {
+                  const n: EmailSyncScopePrefs = {
+                    ...scopePrefs,
+                    lookbackDays: null,
+                  }
+                  writeEmailSyncScopePrefs(n)
+                  setScopePrefs(n)
+                  return
+                }
+                const days = Number(v)
+                if (!Number.isFinite(days) || days < 1) return
+                const n: EmailSyncScopePrefs = { ...scopePrefs, lookbackDays: days }
+                writeEmailSyncScopePrefs(n)
+                setScopePrefs(n)
+              }}
+              className={popSelectBase}
+            >
+              <option className={selectOptionSurface} value="def">
+                {t.dashboard.emailSyncLookbackSedeDefault}
+              </option>
+              {LOOKBACK_DAY_PRESETS.map((d) => (
+                <option key={d} className={selectOptionSurface} value={String(d)}>
+                  {t.dashboard.emailSyncLookbackDaysN.replace('{n}', String(d))}
+                </option>
+              ))}
+            </select>
+            <svg className={popChevron} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        ) : null}
+
+        {!fornitoreId ? (
+          <div className="relative w-full shrink-0">
+            <select
+              value={scopePrefs.documentKind}
+              disabled={controlsDisabled}
+              title={t.dashboard.emailSyncDocumentKindHint}
+              aria-label={t.dashboard.emailSyncDocumentKindAria}
+              onChange={(e) => {
+                const v = e.target.value as EmailSyncDocumentKind
+                if (
+                  v !== 'all' &&
+                  v !== 'fornitore' &&
+                  v !== 'bolla' &&
+                  v !== 'fattura' &&
+                  v !== 'estratto_conto'
+                ) {
+                  return
+                }
+                const n: EmailSyncScopePrefs = { ...scopePrefs, documentKind: v }
+                writeEmailSyncScopePrefs(n)
+                setScopePrefs(n)
+              }}
+              className={popSelectBase}
+            >
+              <option className={selectOptionSurface} value="all">
+                {t.dashboard.emailSyncDocumentKindAll}
+              </option>
+              <option className={selectOptionSurface} value="fornitore">
+                {t.dashboard.emailSyncDocumentKindFornitore}
+              </option>
+              <option className={selectOptionSurface} value="bolla">
+                {t.dashboard.emailSyncDocumentKindBolla}
+              </option>
+              <option className={selectOptionSurface} value="fattura">
+                {t.dashboard.emailSyncDocumentKindFattura}
+              </option>
+              <option className={selectOptionSurface} value="estratto_conto">
+                {t.dashboard.emailSyncDocumentKindEstratto}
+              </option>
+            </select>
+            <svg className={popChevron} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={async () => {
+            await handleClick()
+            setHeaderMenuOpen(false)
+          }}
+          disabled={controlsDisabled}
+          className="mt-1 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-app-a-55 bg-app-line-30 text-xs font-bold text-app-fg shadow-sm shadow-cyan-950/30 transition-colors hover:bg-app-line-40 active:bg-app-line-35 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              {t.dashboard.syncing}
+            </>
+          ) : (
+            <>
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {t.dashboard.syncEmail}
+            </>
+          )}
+        </button>
+      </div>
+    )
+
     return (
       <div
         ref={headerWrapRef}
         title={disabledProp && disabledReasonTitle ? disabledReasonTitle : undefined}
-        className={['relative shrink-0', classNameProp].filter(Boolean).join(' ')}
+        className={['relative shrink-0', stackedHeaderTrigger ? 'w-full min-w-0' : '', classNameProp].filter(Boolean).join(' ')}
       >
         <button
+          ref={headerTriggerRef}
           type="button"
           disabled={controlsDisabled}
-          className={`${headerTriggerBtnCls} disabled:cursor-not-allowed disabled:opacity-50`}
+          className={`${headerTriggerBtnCls} ${stackedHeaderTrigger ? 'w-full justify-center' : ''} disabled:cursor-not-allowed disabled:opacity-50`}
           aria-expanded={headerMenuOpen}
           aria-haspopup="dialog"
           aria-controls={headerMenuId}
@@ -226,180 +423,43 @@ export default function ScanEmailButton({
           </svg>
         </button>
 
-        {headerMenuOpen ? (
+        {headerMenuOpen && !stackedHeaderTrigger ? (
           <div
             id={headerMenuId}
             role="dialog"
             aria-label={t.dashboard.syncEmail}
             className="absolute right-0 top-[calc(100%+8px)] z-[200] w-[min(calc(100vw-2rem),19rem)] rounded-xl border border-app-line-25 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
           >
-            <div className="flex flex-col gap-2.5">
-              <div className="relative w-full shrink-0">
-                <select
-                  value={selectValue}
-                  disabled={controlsDisabled}
-                  title={t.dashboard.emailSyncScopeHint}
-                  aria-label={t.dashboard.emailSyncFiscalYearSelectAria}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    if (v === 'lb') {
-                      const n: EmailSyncScopePrefs = {
-                        mode: 'lookback',
-                        fiscalYear: scopePrefs.fiscalYear,
-                        lookbackDays: scopePrefs.lookbackDays ?? null,
-                        documentKind: scopePrefs.documentKind,
-                      }
-                      writeEmailSyncScopePrefs(n)
-                      setScopePrefs(n)
-                      return
-                    }
-                    const y = Number(v.replace(/^fy:/, ''))
-                    if (!Number.isFinite(y)) return
-                    const n: EmailSyncScopePrefs = {
-                      mode: 'fiscal_year',
-                      fiscalYear: y,
-                      lookbackDays: scopePrefs.lookbackDays ?? null,
-                      documentKind: scopePrefs.documentKind,
-                    }
-                    writeEmailSyncScopePrefs(n)
-                    setScopePrefs(n)
-                  }}
-                  className={popSelectBase}
-                >
-                  <option className={selectOptionSurface} value="lb">
-                    {t.dashboard.emailSyncScopeLookback}
-                  </option>
-                  {fiscalYearOptions.map((y) => (
-                    <option key={y} className={selectOptionSurface} value={`fy:${y}`}>
-                      {t.dashboard.emailSyncScopeFiscal}: {y}
-                    </option>
-                  ))}
-                </select>
-                <svg className={popChevron} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-
-              {scopePrefs.mode === 'lookback' ? (
-                <div className="relative w-full shrink-0">
-                  <select
-                    value={lookbackSelectValue}
-                    disabled={controlsDisabled}
-                    title={t.dashboard.emailSyncLookbackDaysHint}
-                    aria-label={t.dashboard.emailSyncLookbackDaysAria}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      if (v === 'def') {
-                        const n: EmailSyncScopePrefs = {
-                          ...scopePrefs,
-                          lookbackDays: null,
-                        }
-                        writeEmailSyncScopePrefs(n)
-                        setScopePrefs(n)
-                        return
-                      }
-                      const days = Number(v)
-                      if (!Number.isFinite(days) || days < 1) return
-                      const n: EmailSyncScopePrefs = { ...scopePrefs, lookbackDays: days }
-                      writeEmailSyncScopePrefs(n)
-                      setScopePrefs(n)
-                    }}
-                    className={popSelectBase}
-                  >
-                    <option className={selectOptionSurface} value="def">
-                      {t.dashboard.emailSyncLookbackSedeDefault}
-                    </option>
-                    {LOOKBACK_DAY_PRESETS.map((d) => (
-                      <option key={d} className={selectOptionSurface} value={String(d)}>
-                        {t.dashboard.emailSyncLookbackDaysN.replace('{n}', String(d))}
-                      </option>
-                    ))}
-                  </select>
-                  <svg className={popChevron} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              ) : null}
-
-              {!fornitoreId ? (
-                <div className="relative w-full shrink-0">
-                  <select
-                    value={scopePrefs.documentKind}
-                    disabled={controlsDisabled}
-                    title={t.dashboard.emailSyncDocumentKindHint}
-                    aria-label={t.dashboard.emailSyncDocumentKindAria}
-                    onChange={(e) => {
-                      const v = e.target.value as EmailSyncDocumentKind
-                      if (
-                        v !== 'all' &&
-                        v !== 'fornitore' &&
-                        v !== 'bolla' &&
-                        v !== 'fattura' &&
-                        v !== 'estratto_conto'
-                      ) {
-                        return
-                      }
-                      const n: EmailSyncScopePrefs = { ...scopePrefs, documentKind: v }
-                      writeEmailSyncScopePrefs(n)
-                      setScopePrefs(n)
-                    }}
-                    className={popSelectBase}
-                  >
-                    <option className={selectOptionSurface} value="all">
-                      {t.dashboard.emailSyncDocumentKindAll}
-                    </option>
-                    <option className={selectOptionSurface} value="fornitore">
-                      {t.dashboard.emailSyncDocumentKindFornitore}
-                    </option>
-                    <option className={selectOptionSurface} value="bolla">
-                      {t.dashboard.emailSyncDocumentKindBolla}
-                    </option>
-                    <option className={selectOptionSurface} value="fattura">
-                      {t.dashboard.emailSyncDocumentKindFattura}
-                    </option>
-                    <option className={selectOptionSurface} value="estratto_conto">
-                      {t.dashboard.emailSyncDocumentKindEstratto}
-                    </option>
-                  </select>
-                  <svg className={popChevron} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              ) : null}
-
-              <button
-                type="button"
-                onClick={async () => {
-                  await handleClick()
-                  setHeaderMenuOpen(false)
-                }}
-                disabled={controlsDisabled}
-                className="mt-1 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-app-a-55 bg-app-line-30 text-xs font-bold text-app-fg shadow-sm shadow-cyan-950/30 transition-colors hover:bg-app-line-40 active:bg-app-line-35 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                    {t.dashboard.syncing}
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    {t.dashboard.syncEmail}
-                  </>
-                )}
-              </button>
-            </div>
+            {headerMenuInner}
           </div>
         ) : null}
+        {headerMenuOpen && stackedHeaderTrigger && headerMenuRect != null && typeof document !== 'undefined'
+          ? createPortal(
+              <div
+                ref={headerMenuPanelRef}
+                id={headerMenuId}
+                role="dialog"
+                aria-label={t.dashboard.syncEmail}
+                style={{
+                  position: 'fixed',
+                  top: headerMenuRect.top,
+                  left: headerMenuRect.left,
+                  width: headerMenuRect.width,
+                  zIndex: 560,
+                }}
+                className="rounded-xl border border-app-line-25 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
+              >
+                {headerMenuInner}
+              </div>,
+              document.body,
+            )
+          : null}
 
         {toast ? (
           <p
-            className={`mt-1 max-w-[min(calc(100vw-2rem),19rem)] rounded-lg px-2 py-1.5 text-xs font-medium ${
+            className={`mt-1 rounded-lg px-2 py-1.5 text-xs font-medium ${
+              stackedHeaderTrigger ? 'w-full max-w-none' : 'max-w-[min(calc(100vw-2rem),19rem)]'
+            } ${
               toast.type === 'ok'
                 ? 'bg-emerald-950/50 text-emerald-200'
                 : toast.type === 'warn'

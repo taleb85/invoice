@@ -54,6 +54,7 @@ import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
+import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
 import FornitoreConfermeOrdineTab from '@/components/FornitoreConfermeOrdineTab'
@@ -156,7 +157,7 @@ function shiftLedgerPeriodByMonths(
   return clampLedgerPeriodToToday(localYmd(df), localYmd(dt), todayYmd)
 }
 
-/** Due `TabContent` (mobile/desktop); scrolla il pannello visibile dentro `<main data-app-main-scroll>`. */
+/** Due `TabContent` (mobile/desktop); stesso schema del tab Verifica: `DashboardTab` solo dove `mdUp` coincide (evita doppio Rekki nel DOM). */
 function scrollSupplierTabPanelIntoView() {
   if (typeof document === 'undefined') return
   const panel = [...document.querySelectorAll<HTMLElement>('.fornitore-tab-panel')].find((e) => e.offsetHeight > 0)
@@ -177,6 +178,7 @@ function scrollSupplierTabPanelIntoView() {
 interface Fornitore {
   id: string
   nome: string
+  display_name?: string | null
   email: string | null
   piva: string | null
   sede_id: string | null
@@ -1478,7 +1480,7 @@ function DashboardTab({
         key={fornitoreId}
         fornitoreId={fornitoreId}
         piva={fornitore.piva}
-        supplierDisplayName={fornitore.nome}
+        supplierDisplayName={fornitoreDisplayLabel(fornitore)}
         initialRekkiId={fornitore.rekki_supplier_id}
         initialRekkiLink={fornitore.rekki_link}
         onSaved={onFornitoreReload}
@@ -3775,14 +3777,15 @@ function FornitoreDetailClient({
 
   const TabContent = ({ variant }: { variant: 'mobile' | 'desktop' }) => (
     <>
-      {displayTab === 'dashboard' && (
-        <DashboardTab
-          fornitoreId={fornitore.id}
-          fornitore={fornitore}
-          onFornitoreReload={reloadFornitore}
-          readOnly={supplierReadOnlyMobile}
-        />
-      )}
+      {displayTab === 'dashboard' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <DashboardTab
+            fornitoreId={fornitore.id}
+            fornitore={fornitore}
+            onFornitoreReload={reloadFornitore}
+            readOnly={supplierReadOnlyMobile}
+          />
+        ) : null)}
       {displayTab === 'bolle' && (
         <BolleTab
           fornitoreId={fornitore.id}

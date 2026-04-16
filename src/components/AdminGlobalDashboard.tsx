@@ -42,7 +42,7 @@ export function AdminGlobalDashboard({
     <div className="max-w-5xl app-shell-page-padding">
       <div className="mb-8 w-full">
         <AppPageHeaderStrip embedded>
-          <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+          <AppPageHeaderTitleWithDashboardShortcut>
             <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.adminGlobalTitle}</h1>
             <p className="mt-1 hidden text-sm text-app-fg-muted md:block">{t.dashboard.adminGlobalSubtitle}</p>
             <p className="mt-1 text-xs text-app-fg-muted md:hidden">{t.dashboard.adminGlobalSubtitle}</p>

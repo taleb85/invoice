@@ -279,7 +279,7 @@ export function StatementsContent({
       {showPageHeader && (
         <>
           <AppPageHeaderStrip accent={active === 'pending' ? 'amber' : 'cyan'}>
-            <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+            <AppPageHeaderTitleWithDashboardShortcut>
               <h1 className="app-page-title text-2xl font-bold">{t.statements.heading}</h1>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>

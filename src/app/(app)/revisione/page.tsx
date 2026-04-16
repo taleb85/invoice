@@ -52,7 +52,7 @@ export default async function RevisioneInboxPage({
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
       <AppPageHeaderStrip accent="rose">
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.dashboard.inboxUrgentePageTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />

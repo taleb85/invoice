@@ -279,10 +279,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip>
-        <AppPageHeaderTitleWithDashboardShortcut
-          dashboardLabel={t.nav.dashboard}
-          className="min-w-0 flex-1 items-start gap-3"
-        >
+        <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2 text-sm text-app-fg-muted">
               <Link href="/impostazioni" className="shrink-0 transition-colors hover:text-app-fg">

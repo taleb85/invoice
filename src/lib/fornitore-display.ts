@@ -7,3 +7,14 @@ export function fornitoreDisplayLabel(row: {
   if (alias) return alias
   return row.nome?.trim() || ''
 }
+
+/**
+ * Prima parola dell’etichetta fornitore in maiuscolo, per ricerche Rekki compatte.
+ * Es. «Enotria Winecellars Ltd» → «ENOTRIA»; con alias «ENOTRIA WINE» → «ENOTRIA».
+ */
+export function supplierShortNameForRekkiSearch(displayOrNome: string | null | undefined): string {
+  const t = (displayOrNome ?? '').replace(/\s+/g, ' ').trim()
+  if (!t) return ''
+  const first = t.split(/\s+/)[0] ?? ''
+  return first.toLocaleUpperCase()
+}

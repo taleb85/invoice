@@ -4,7 +4,6 @@ import { getFatturaForViewer } from '@/lib/supabase-detail-for-viewer'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import ReplaceFileButton from './ReplaceFileButton'
 import { getRequestAuth, getProfile } from '@/utils/supabase/server'
 import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
@@ -39,7 +38,6 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
     <div className="max-w-2xl app-shell-page-padding">
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <AppPageHeaderDashboardShortcut dashboardLabel={t.nav.dashboard} />
           <Link
             href="/fatture"
             className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"

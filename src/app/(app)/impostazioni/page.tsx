@@ -234,11 +234,7 @@ export default function ImpostazioniPage() {
       {/* ══ MOBILE layout (Help /guida: solo qui, non in MobileTopbar) ══ */}
       <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-4 text-app-fg md:hidden">
         <AppPageHeaderStrip dense flushBottom>
-          <AppPageHeaderTitleWithDashboardShortcut
-            dashboardLabel={t.nav.dashboard}
-            className="min-w-0 w-full flex-1 items-center gap-2 sm:gap-3"
-            showDashboardShortcut={false}
-          >
+          <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 w-full flex-1 items-center gap-2 sm:gap-3">
             <div className="flex w-full min-w-0 items-center justify-between gap-2">
               <div className="min-w-0 flex-1 pr-1.5">
                 <h1

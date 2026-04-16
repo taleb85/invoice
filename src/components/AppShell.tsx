@@ -217,7 +217,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 md:col-start-1 md:row-start-1 md:flex md:h-full md:min-h-0 md:flex-col md:self-stretch md:overflow-visible md:relative md:z-auto',
             ].join(' ')}
           >
-            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 md:min-h-[48px]">
+            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 md:min-h-[40px]">
               <SidebarRailBrand />
             </div>
             <Sidebar />
@@ -229,9 +229,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             <div
               ref={bindDesktopNavHost}
               id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-              className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[48px] md:w-full ${desktopHeaderCanvas}`}
+              className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[40px] md:w-full ${desktopHeaderCanvas}`}
             >
-              <div className="relative z-20 flex min-h-[48px] min-w-0 flex-1 items-stretch overflow-visible">
+              <div className="relative z-20 flex min-h-[40px] min-w-0 flex-1 items-stretch overflow-visible">
                 <DesktopHeaderActionsStrip />
               </div>
               {headerToastBanner ? (

@@ -124,10 +124,7 @@ export default async function LogPage() {
   return (
     <div className="app-shell-page-padding">
       <AppPageHeaderStrip>
-        <AppPageHeaderTitleWithDashboardShortcut
-          dashboardLabel={t.nav.dashboard}
-          className="min-w-0 flex-1 items-start gap-3"
-        >
+        <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.subtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>

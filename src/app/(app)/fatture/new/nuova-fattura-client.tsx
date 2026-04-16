@@ -257,7 +257,7 @@ export default function NuovaFatturaForm() {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[#020817] via-primary to-[#0a1628]">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-br from-[var(--app-canvas-from)] via-[var(--app-canvas-via)] to-[var(--app-canvas-to)]">
 
       {/* Header */}
       <div

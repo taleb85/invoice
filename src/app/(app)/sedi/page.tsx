@@ -436,7 +436,7 @@ export default function SediPage() {
     <div className="w-full min-w-0 app-shell-page-padding space-y-6 md:space-y-8">
 
       <AppPageHeaderStrip>
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.sedi.titleGlobalAdmin}</h1>
           <p className="mt-1 hidden text-sm text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
         </AppPageHeaderTitleWithDashboardShortcut>

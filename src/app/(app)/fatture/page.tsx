@@ -15,7 +15,6 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { StandardCard } from '@/components/ui/StandardCard'
 import {
@@ -110,6 +109,14 @@ export default async function FatturePage({
   const totaleImportoRaw = fatture.reduce((s, f) => s + (Number(f.importo) || 0), 0)
   const totaleImporto = Math.max(0, totaleImportoRaw - dupDel.surplusImporto)
   const duplicatePayload = serializeFatturaDuplicateDeletionPayload(dupDel)
+  const fattureMergedSummary = {
+    label: t.common.total,
+    primary: (
+      <span className={APP_SECTION_AMOUNT_POSITIVE_CLASS}>{formatCurrency(totaleImporto, currency, locale)}</span>
+    ),
+    secondary: `${fatture.length} ${t.fatture.countLabel}`,
+  }
+
   const fattureRowsClient = fatture.map((f) => ({
     id: f.id,
     dataLabel: formatDate(f.data),
@@ -125,8 +132,8 @@ export default async function FatturePage({
   }))
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <AppPageHeaderStrip accent="emerald">
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+      <AppPageHeaderStrip accent="emerald" mergedSummary={fattureMergedSummary}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.fatture.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
@@ -140,15 +147,6 @@ export default async function FatturePage({
           {t.dashboard.operatorNoSede}
         </div>
       ) : null}
-
-      <AppSummaryHighlightCard
-        accent="emerald"
-        label={t.common.total}
-        primary={
-          <span className={APP_SECTION_AMOUNT_POSITIVE_CLASS}>{formatCurrency(totaleImporto, currency, locale)}</span>
-        }
-        secondary={`${fatture.length} ${t.fatture.countLabel}`}
-      />
 
       <StandardCard accent="emerald">
         {fatture.length === 0 ? (

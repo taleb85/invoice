@@ -10,11 +10,10 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react'
-import { createPortal } from 'react-dom'
 
 type HostContextValue = {
   hostRef: RefObject<HTMLDivElement | null>
-  /** Chiamato da `DesktopHeaderActionsStrip` (host in AppShell): aggiorna il ref e forza il re-render del portal. */
+  /** Chiamato da `DesktopHeaderActionsStrip` (host in AppShell): aggiorna il ref e forza il re-render del provider. */
   registerHost: (el: HTMLDivElement | null) => void
 }
 
@@ -24,11 +23,11 @@ const noopRegisterHost = (_el: HTMLDivElement | null) => {}
 
 export function DesktopHeaderPageActionsProvider({ children }: { children: ReactNode }) {
   const hostRef = useRef<HTMLDivElement | null>(null)
-  const [, setHostEpoch] = useState(0)
+  const [, bump] = useState(0)
 
   const registerHost = useCallback((el: HTMLDivElement | null) => {
     hostRef.current = el
-    setHostEpoch((n) => n + 1)
+    bump((n) => n + 1)
   }, [])
 
   const value = useMemo(() => ({ hostRef, registerHost }), [registerHost])
@@ -40,23 +39,4 @@ export function DesktopHeaderPageActionsProvider({ children }: { children: React
 export function useDesktopHeaderPageActionsRegisterHost(): (el: HTMLDivElement | null) => void {
   const ctx = useContext(HostContext)
   return ctx?.registerHost ?? noopRegisterHost
-}
-
-function useDesktopHeaderPageActionsHost(): HostContextValue {
-  const ctx = useContext(HostContext)
-  if (!ctx) {
-    throw new Error('DesktopHeaderPageActionsProvider is required around the app shell')
-  }
-  return ctx
-}
-
-/**
- * Monta azioni (es. dashboard) nella striscia desktop. Dipende da `registerHost` sulla header
- * (callback ref) così il portal si aggiorna sempre dopo che il nodo host esiste.
- */
-export default function DashboardDesktopHeaderActionsPortal({ children }: { children: ReactNode }) {
-  const { hostRef } = useDesktopHeaderPageActionsHost()
-
-  if (!hostRef.current) return null
-  return createPortal(children, hostRef.current)
 }

@@ -18,12 +18,7 @@ import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
-import {
-  SUMMARY_HIGHLIGHT_ACCENTS,
-  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
-  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
-} from '@/lib/summary-highlight-accent'
+import { StandardCard } from '@/components/ui/StandardCard'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
@@ -32,7 +27,7 @@ import {
   APP_SECTION_EMPTY_LINK_CLASS,
   APP_SECTION_ROW_ACTION_PILL,
   APP_SECTION_TABLE_CELL_LINK,
-  APP_SECTION_TABLE_HEAD_ROW,
+  appSectionTableHeadRowAccentClass,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
@@ -101,12 +96,16 @@ export default async function FattureRiepilogoPage({
 
   const formatDate = (d: string) => fmtDate(d, locale, tz)
   const countLabel = t.dashboard.fattureRiepilogoCountLabel.replace(/\{n\}/g, String(summary.fattureCount))
-  const riepilogoTheme = SUMMARY_HIGHLIGHT_ACCENTS.violet
+  const fattureRiepilogoMergedSummary = {
+    label: t.common.total,
+    primary: formatCurrency(summary.totaleImporto, currency, locale),
+    secondary: countLabel,
+  }
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
-      <AppPageHeaderStrip accent="violet">
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+      <AppPageHeaderStrip accent="violet" mergedSummary={fattureRiepilogoMergedSummary}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.dashboard.fattureRiepilogoTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
@@ -117,25 +116,15 @@ export default async function FattureRiepilogoPage({
           {t.dashboard.operatorNoSede}
         </div>
       ) : summary.fattureCount === 0 ? (
-        <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${riepilogoTheme.border}`}>
-          <div className={`app-card-bar-accent ${riepilogoTheme.bar}`} aria-hidden />
-          <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
-            <AppSectionEmptyState message={t.dashboard.fattureRiepilogoEmpty}>
-              <Link href="/fatture" className={`${APP_SECTION_EMPTY_LINK_CLASS} hover:underline`}>
-                {t.dashboard.fattureRiepilogoLinkAll}
-              </Link>
-            </AppSectionEmptyState>
-          </div>
-        </div>
+        <StandardCard accent="violet">
+          <AppSectionEmptyState message={t.dashboard.fattureRiepilogoEmpty}>
+            <Link href="/fatture" className={`${APP_SECTION_EMPTY_LINK_CLASS} hover:underline`}>
+              {t.dashboard.fattureRiepilogoLinkAll}
+            </Link>
+          </AppSectionEmptyState>
+        </StandardCard>
       ) : (
         <>
-          <AppSummaryHighlightCard
-            accent="violet"
-            label={t.common.total}
-            primary={formatCurrency(summary.totaleImporto, currency, locale)}
-            secondary={countLabel}
-          />
-
           {summary.duplicateFatturaSurplusCount > 0 ? (
             <p className="mb-3 text-xs font-semibold leading-relaxed text-orange-300 drop-shadow-[0_0_10px_rgba(251,146,60,0.4)]">
               {t.dashboard.kpiDuplicateInvoicesDetected.replace(
@@ -148,12 +137,11 @@ export default async function FattureRiepilogoPage({
           <p className="mb-3 text-xs leading-relaxed text-app-fg-muted">
             {t.dashboard.fattureRiepilogoLimitNote.replace(/\{n\}/g, String(rows.length))}
           </p>
-          <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${riepilogoTheme.border}`}>
-            <div className={`app-card-bar-accent ${riepilogoTheme.bar}`} aria-hidden />
-            <div className={`${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS} overflow-x-auto`}>
+          <StandardCard accent="violet">
+            <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                  <tr className={appSectionTableHeadRowAccentClass('violet')}>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.invoiceNum}</th>
@@ -189,7 +177,7 @@ export default async function FattureRiepilogoPage({
                 </tbody>
               </table>
             </div>
-          </div>
+          </StandardCard>
 
           <div className="mt-4 text-center md:text-left">
             <Link

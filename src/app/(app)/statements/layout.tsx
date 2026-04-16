@@ -47,7 +47,7 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
       <AppPageHeaderStrip accent={statementsPageAccent}>
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={`min-w-0 flex-1 truncate ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>
             {isVerifica ? t.statements.heading : t.statements.tabDocumenti}
           </h1>

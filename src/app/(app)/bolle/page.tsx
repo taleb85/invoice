@@ -8,7 +8,6 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import { StandardBadge } from '@/components/ui/StandardBadge'
 import { StandardCard } from '@/components/ui/StandardCard'
 import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
@@ -167,16 +166,20 @@ export default async function BollePage({
     return t.bolle.noBills
   })()
 
+  const bolleMergedSummary = {
+    label: t.common.total,
+    primary: bolle.length,
+    secondary: subtitle,
+  }
+
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <AppPageHeaderStrip accent="indigo">
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+      <AppPageHeaderStrip accent="indigo" mergedSummary={bolleMergedSummary}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.bolle.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
-
-      <AppSummaryHighlightCard accent="indigo" label={t.common.total} primary={bolle.length} secondary={subtitle} />
 
       <AppSectionFiltersBar>
         {!showAll ? (

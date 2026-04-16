@@ -253,15 +253,30 @@ export async function countFornitoriWithOverdueBolle(
 ): Promise<number> {
   if (fornitoreIds && fornitoreIds.length === 0) return 0
   const sogliaISO = sollecitoSogliaDateISO()
-  let q = supabase
-    .from('bolle')
-    .select('fornitore_id')
-    .eq('stato', 'in attesa')
-    .lt('data', sogliaISO)
-  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
-  const { data, error } = await q
-  if (error || !data?.length) return 0
-  return new Set((data as { fornitore_id: string }[]).map((r) => r.fornitore_id).filter(Boolean)).size
+  const pageSize = 1000
+  /** PostgREST limita a ~1000 righe per richiesta: paginiamo con `order id` stabile. */
+  const maxPages = 500
+  const distinct = new Set<string>()
+  for (let page = 0; page < maxPages; page++) {
+    const from = page * pageSize
+    const to = from + pageSize - 1
+    let q = supabase
+      .from('bolle')
+      .select('fornitore_id')
+      .eq('stato', 'in attesa')
+      .lt('data', sogliaISO)
+      .order('id', { ascending: true })
+    if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+    const { data, error } = await q.range(from, to)
+    if (error) return distinct.size
+    const rows = data as { fornitore_id: string }[] | null
+    if (!rows?.length) break
+    for (const row of rows) {
+      if (row.fornitore_id) distinct.add(row.fornitore_id)
+    }
+    if (rows.length < pageSize) break
+  }
+  return distinct.size
 }
 
 export async function fornitoreIdsForSede(supabase: SupabaseClient, sedeId: string): Promise<string[]> {

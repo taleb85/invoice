@@ -14,7 +14,7 @@ export const SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS =
  * Da `lg`: 3 colonne → **due righe** (3 + 3); sotto `lg` resta 2 colonne.
  */
 export const DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS =
-  'mb-0 grid w-full max-w-none grid-cols-2 items-stretch gap-2.5 md:mb-4 md:gap-3 lg:grid-cols-3 lg:gap-3'
+  'mb-0 grid w-full max-w-none grid-cols-2 items-stretch gap-2 md:mb-3 md:gap-2.5 lg:grid-cols-3 lg:gap-2.5'
 
 export const supplierKpiPalette = {
   conferme: {

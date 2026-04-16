@@ -15,8 +15,8 @@ export default function LoginBrandedHero({ mode }: { mode: 'name' | 'admin' }) {
       >
         <defs>
           <linearGradient id="lg-card" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#1e3a5f" />
-            <stop offset="100%" stopColor="#172554" />
+            <stop offset="0%" stopColor="var(--app-canvas-from)" />
+            <stop offset="100%" stopColor="var(--app-canvas-to)" />
           </linearGradient>
           <linearGradient id="lg-wave" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#5b7cf9" />

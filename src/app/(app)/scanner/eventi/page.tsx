@@ -68,7 +68,7 @@ export default async function ScannerEventiPage({
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip>
-        <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+        <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.scannerFlowEventsPageTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>

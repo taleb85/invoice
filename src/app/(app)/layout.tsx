@@ -3,6 +3,9 @@ import { getAppMeShellResult } from '@/lib/me-server'
 import { getCookieStore } from '@/lib/locale-server'
 import type { MeData } from '@/lib/me-context'
 
+/** Cookie + sessione: niente SSG per il guscio app (evita errori e log rumorosi in `next build`). */
+export const dynamic = 'force-dynamic'
+
 const SUPPORTED = ['it', 'en', 'fr', 'de', 'es']
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

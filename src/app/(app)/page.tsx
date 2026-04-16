@@ -1,25 +1,16 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
-import SollecitiButton from '@/components/SollecitiButton'
-import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
-import DashboardDesktopHeaderActionsPortal from '@/components/DesktopHeaderPageActions'
 import DashboardScannerFlowCard from '@/components/DashboardScannerFlowCard'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getTimezone, getCurrency, getCookieStore, formatDate as fmtDate } from '@/lib/locale-server'
 import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
-import {
-  countFornitoriWithOverdueBolle,
-  fetchOperatorDashboardKpis,
-  fetchTodayScannerFlowDetail,
-  fornitoreIdsForSede,
-} from '@/lib/dashboard-operator-kpis'
+import { fetchOperatorDashboardKpis, fetchTodayScannerFlowDetail, fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
 import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
-import DashboardWorkspaceQuickNav from '@/components/DashboardWorkspaceQuickNav'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
@@ -67,26 +58,16 @@ export default async function DashboardPage({
   }
 
   if (isMasterAdmin && !adminViewSedeId) {
-    const [sediStats, erroriRecenti, sollecitiFornitori, emailBodySupplierHints] = await Promise.all([
+    const [sediStats, erroriRecenti, emailBodySupplierHints] = await Promise.all([
       fetchAdminDashboardSediWithStats(supabase),
       countSyncLogErrors24h(supabase),
-      countFornitoriWithOverdueBolle(supabase, null),
       fetchRecurringEmailBodySupplierHints(supabase),
     ])
 
     return (
       <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-        <DashboardDesktopHeaderActionsPortal>
-          <div className="flex min-w-0 max-w-full shrink-0 flex-nowrap items-center justify-end gap-1.5 sm:gap-2 md:overflow-x-auto">
-            <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
-            <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
-          </div>
-        </DashboardDesktopHeaderActionsPortal>
         <AppPageHeaderStrip embedded>
-          <AppPageHeaderTitleWithDashboardShortcut
-            dashboardLabel={t.nav.dashboard}
-            showDashboardShortcut={false}
-          >
+          <AppPageHeaderTitleWithDashboardShortcut>
             <h1 className="app-page-title text-xl font-bold leading-tight md:text-2xl">{t.dashboard.title}</h1>
             <p className="mt-1 hidden text-sm leading-snug text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
@@ -251,7 +232,7 @@ export default async function DashboardPage({
   const operatorScoped = !!sedeId
   const fiscalYear = operatorScoped ? parseFiscalYearQueryParam(searchParams.fy, sedeCountryCode) : 0
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
-  const [kpis, sollecitiFornitori, supplierHint, scannerFlowDetail] = await Promise.all([
+  const [kpis, supplierHint, scannerFlowDetail] = await Promise.all([
     operatorScoped
       ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
         : Promise.resolve({
@@ -274,7 +255,6 @@ export default async function DashboardPage({
           anomaliePrezziCount: 0,
           bolleRekkiSavingsHint: false,
         }),
-    countFornitoriWithOverdueBolle(supabase, operatorScoped ? fornitoreIds : null),
     operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
     operatorScoped && sedeId
       ? fetchTodayScannerFlowDetail(supabase, sedeId, tz)
@@ -284,40 +264,11 @@ export default async function DashboardPage({
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <DashboardDesktopHeaderActionsPortal>
-        <div
-          className={`flex min-w-0 w-full max-w-full shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 md:overflow-x-auto ${
-            operatorScoped ? 'justify-between' : 'justify-end'
-          }`}
-        >
-          {operatorScoped ? (
-            <DashboardWorkspaceQuickNav
-              t={t}
-              fiscalYear={fiscalYear}
-              counts={{
-                ordini: kpis.ordiniCount,
-                bolle: kpis.bolleTotal,
-                fatture: kpis.fattureCount,
-                statements: kpis.statementsTotal,
-                listino: kpis.listinoProdottiDistinti,
-                documenti: kpis.documentiPending,
-              }}
-            />
-          ) : null}
-          <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2">
-            <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
-            <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
-          </div>
-        </div>
-      </DashboardDesktopHeaderActionsPortal>
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
       <AppPageHeaderStrip dense accent="sky" flushBottom>
-        <AppPageHeaderTitleWithDashboardShortcut
-          dashboardLabel={t.nav.dashboard}
-          showDashboardShortcut={false}
-        >
+        <AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto sm:gap-x-3">
             <h1 className="app-page-title min-w-0 flex-1 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl md:leading-tight">
               {dashboardSedeNome ?? t.dashboard.title}

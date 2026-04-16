@@ -571,10 +571,7 @@ export default function NuovaBollaForm() {
         }`}
       >
         <AppPageHeaderStrip dense flushBottom>
-          <AppPageHeaderTitleWithDashboardShortcut
-            dashboardLabel={t.nav.dashboard}
-            className="min-w-0 w-full items-center gap-2 sm:flex-1"
-          >
+          <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 w-full items-center gap-2 sm:flex-1">
             <h1 className="app-page-title text-lg font-extrabold tracking-tight md:text-xl">
               {t.bolle.scannerTitle}
             </h1>

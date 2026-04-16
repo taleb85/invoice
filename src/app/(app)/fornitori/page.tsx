@@ -53,11 +53,7 @@ export default async function FornitoriPage() {
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip accent="sky" flushBottom>
-        <AppPageHeaderTitleWithDashboardShortcut
-          dashboardLabel={t.nav.dashboard}
-          className="min-w-0 items-center gap-3 sm:flex-1 sm:flex-initial"
-          dashboardShortcutClassName="hidden md:flex"
-        >
+        <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 items-center gap-3 sm:flex-1 sm:flex-initial">
           <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:gap-3">
             <h1 className={`min-w-0 flex-1 truncate pr-2 ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>{t.fornitori.title}</h1>
             {sedeNome ? (

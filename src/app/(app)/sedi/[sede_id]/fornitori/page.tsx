@@ -294,7 +294,7 @@ export default function SedeFornitoriPage() {
         </nav>
 
         <AppPageHeaderStrip accent="sky">
-          <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
+          <AppPageHeaderTitleWithDashboardShortcut>
             <h1 className="app-page-title text-2xl font-bold">Fornitori</h1>
           </AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">

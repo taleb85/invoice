@@ -100,7 +100,7 @@ async function readDuplicateReportNdjsonStream(
 }
 
 const toolbarStripBtnCls =
-  'inline-flex h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-semibold text-app-fg transition-colors hover:border-app-line-50 hover:brightness-110 sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
+  'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-semibold leading-none text-app-fg transition-colors hover:border-app-line-50 hover:brightness-110 sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
 const defaultBtnCls =
   'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
 
@@ -112,7 +112,7 @@ export default function DashboardDuplicateFattureButton({
   className?: string
   /** Come ScanEmail: mostra il testo anche su schermi stretti */
   alwaysShowLabel?: boolean
-  /** Allinea a Sincronizza Email nella barra desktop (h-7, padding compatto). */
+  /** Allinea alla fascia desktop: altezza `h-7`, testo 10–11px come sync / solleciti. */
   toolbarStrip?: boolean
 }) {
   const t = useT()
