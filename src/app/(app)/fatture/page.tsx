@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
-import DeleteButton from '@/components/DeleteButton'
 import {
   getT,
   getLocale,
@@ -17,7 +16,6 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
-import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -28,15 +26,12 @@ import {
   APP_SHELL_SECTION_PAGE_CLASS,
   APP_SHELL_SECTION_PAGE_H1_CLASS,
   APP_SECTION_EMPTY_LINK_CLASS,
-  APP_SECTION_MOBILE_LIST,
-  APP_SECTION_MOBILE_ROW,
-  APP_SECTION_ROW_ACTION_CHIP,
-  APP_SECTION_TABLE_CELL_LINK,
-  APP_SECTION_TABLE_HEAD_ROW,
-  APP_SECTION_TABLE_TBODY,
-  APP_SECTION_TABLE_TH,
-  APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
+import {
+  analyzeFatturaDuplicatesForDeletion,
+  serializeFatturaDuplicateDeletionPayload,
+} from '@/lib/check-duplicates'
+import FattureListWithDuplicates from '@/components/FattureListWithDuplicates'
 
 type FatturaListRow = {
   id: string
@@ -106,7 +101,27 @@ export default async function FatturePage({
     fatture = await getFatture(supabase, fornitoreIds, fiscal?.bounds ?? null)
   }
   const formatDate = (d: string) => fmtDate(d, locale, tz)
-  const totaleImporto = fatture.reduce((s, f) => s + (Number(f.importo) || 0), 0)
+  const dupDel = analyzeFatturaDuplicatesForDeletion(
+    fatture.map((f) => ({
+      id: f.id,
+      numero_fattura: f.numero_fattura,
+      fornitore_id: f.fornitore_id ?? '',
+      importo: f.importo,
+      data: f.data,
+    })),
+  )
+  const totaleImportoRaw = fatture.reduce((s, f) => s + (Number(f.importo) || 0), 0)
+  const totaleImporto = Math.max(0, totaleImportoRaw - dupDel.surplusImporto)
+  const duplicatePayload = serializeFatturaDuplicateDeletionPayload(dupDel)
+  const fattureRowsClient = fatture.map((f) => ({
+    id: f.id,
+    dataLabel: formatDate(f.data),
+    numero_fattura: f.numero_fattura,
+    file_url: f.file_url,
+    bolla_id: f.bolla_id,
+    fornitore_id: f.fornitore_id,
+    fornitoreNome: f.fornitore?.nome ?? null,
+  }))
   const fattureTheme = SUMMARY_HIGHLIGHT_ACCENTS.emerald
 
   return (
@@ -141,109 +156,7 @@ export default async function FatturePage({
             </Link>
           </AppSectionEmptyState>
         ) : (
-          <>
-            {/* Mobile: card list */}
-            <div className={APP_SECTION_MOBILE_LIST}>
-              {fatture.map((f) => (
-                <div key={f.id} className={APP_SECTION_MOBILE_ROW}>
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    {f.fornitore_id ? (
-                      <Link href={`/fornitori/${f.fornitore_id}`} className={`truncate ${APP_SECTION_TABLE_CELL_LINK}`}>
-                        {f.fornitore?.nome ?? '—'}
-                      </Link>
-                    ) : (
-                      <p className="truncate font-semibold text-app-fg">{f.fornitore?.nome ?? '—'}</p>
-                    )}
-                    <Link
-                      href={`/fatture/${f.id}`}
-                      className="shrink-0 text-xs text-app-fg-muted transition-colors hover:text-app-fg-muted"
-                    >
-                      {formatDate(f.data)}
-                    </Link>
-                  </div>
-                  <p className="mb-2 text-xs text-app-fg-muted">
-                    <span className="font-medium text-app-fg-muted">{t.fatture.colNumFattura}</span>{' '}
-                    <span className="text-app-fg-muted">{f.numero_fattura?.trim() || '—'}</span>
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {f.bolla_id && (
-                      <Link href={`/bolle/${f.bolla_id}`} className={APP_SECTION_ROW_ACTION_CHIP}>
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-                        </svg>
-                        {t.fatture.openBill}
-                      </Link>
-                    )}
-                  </div>
-                  {f.file_url && (
-                    <div className="mt-2">
-                      <OpenDocumentInAppButton fatturaId={f.id} fileUrl={f.file_url}>
-                        {t.fatture.apri}
-                      </OpenDocumentInAppButton>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Desktop: table */}
-            <table className="hidden md:table w-full text-sm">
-              <thead>
-                <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                  <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.fatture.colNumFattura}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.fatture.headerBolla}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.fatture.headerAllegato}</th>
-                  <th className={APP_SECTION_TABLE_TH} />
-                </tr>
-              </thead>
-              <tbody className={APP_SECTION_TABLE_TBODY}>
-                {fatture.map((f) => (
-                  <tr key={f.id} className={APP_SECTION_TABLE_TR}>
-                    <td className="px-6 py-4">
-                      {f.fornitore_id ? (
-                        <Link href={`/fornitori/${f.fornitore_id}`} className={APP_SECTION_TABLE_CELL_LINK}>
-                          {f.fornitore?.nome ?? '—'}
-                        </Link>
-                      ) : (
-                        <Link href={`/fatture/${f.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
-                          {f.fornitore?.nome ?? '—'}
-                        </Link>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-app-fg-muted">{formatDate(f.data)}</td>
-                    <td className="max-w-[12rem] px-6 py-4 text-app-fg-muted">
-                      <span className="line-clamp-2 break-words" title={f.numero_fattura?.trim() || undefined}>
-                        {f.numero_fattura?.trim() || '—'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {f.bolla_id ? (
-                        <Link href={`/bolle/${f.bolla_id}`} className={`text-xs ${APP_SECTION_TABLE_CELL_LINK} hover:underline`}>
-                          {t.fatture.openBill}
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-app-fg-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {f.file_url ? (
-                        <OpenDocumentInAppButton fatturaId={f.id} fileUrl={f.file_url}>
-                          {t.fatture.apri}
-                        </OpenDocumentInAppButton>
-                      ) : (
-                        <span className="text-xs text-app-fg-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
+          <FattureListWithDuplicates rows={fattureRowsClient} duplicatePayload={duplicatePayload} />
         )}
         </div>
       </div>

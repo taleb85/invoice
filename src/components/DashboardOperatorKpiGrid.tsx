@@ -4,7 +4,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
-import type { ReactNode } from 'react'
+import {
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
 import {
   DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS,
@@ -12,22 +19,18 @@ import {
   supplierKpiPalette,
 } from '@/lib/kpi-accent-palette'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
-import {
-  SUMMARY_HIGHLIGHT_ACCENTS,
-  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
-  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
-} from '@/lib/summary-highlight-accent'
+import { SUMMARY_HIGHLIGHT_ACCENTS, SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { formatCurrency } from '@/lib/locale-shared'
 import { useNetworkStatusOptional } from '@/lib/network-context'
 
 /** Solo layout; tinta da `operatorKpiVisual[].iconWrapClass`. */
 const kpiTileIconWrapBase =
-  'col-start-2 row-start-1 flex h-10 w-10 shrink-0 items-center justify-center self-start justify-self-end rounded-lg sm:h-11 sm:w-11'
+  'col-start-2 row-start-1 flex h-9 w-9 shrink-0 items-center justify-center self-start justify-self-end rounded-md sm:h-10 sm:w-10'
 /** Sottotitolo sotto il valore: larghezza piena, niente affiancamento stretto al numero. */
 const kpiTileSubLine =
-  'w-full min-w-0 text-[11px] font-medium leading-relaxed text-app-fg-muted sm:text-xs sm:leading-relaxed'
+  'w-full min-w-0 text-[10px] font-medium leading-relaxed text-app-fg-muted sm:text-[11px] sm:leading-relaxed'
 const kpiTileChevronBase =
-  'col-start-2 row-start-2 h-4 w-4 shrink-0 self-end justify-self-end opacity-55 transition-colors sm:h-5 sm:w-5'
+  'col-start-2 row-start-2 h-3.5 w-3.5 shrink-0 self-end justify-self-end opacity-55 transition-colors sm:h-4 sm:w-4'
 
 /** Alone KPI: alone dominante sul colore della card (non più cyan fisso). */
 function operatorKpiCardShadow(glowRgb: string) {
@@ -46,8 +49,13 @@ const kpiGridShellClass = [
   kpiGridShellTheme.border,
   'flex flex-col overflow-hidden',
 ].join(' ')
-/** Stesso padding interno di `AppSummaryHighlightCard` / tabelle in guscio accent. */
-const kpiGridInnerClass = `w-full min-w-0 ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`
+/** Più compatto del padding generico riepilogo (`xl:px-10` altrimenti “gonfia” la fascia KPI). */
+const kpiGridInnerClass =
+  'w-full min-w-0 px-3 py-3 sm:px-4 sm:py-3.5 md:px-4 md:py-4 lg:px-5 lg:py-4 xl:px-6 xl:py-4'
+
+/** Corpo tile: stessa altezza minima e spaziatura su tutte le KPI (skeleton incluso). */
+const kpiTileInnerGridClass =
+  'relative z-[1] grid h-full min-h-[8.25rem] w-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2.5 gap-y-2 p-3.5 sm:min-h-[8.75rem] sm:p-4'
 
 /**
  * Stessi colori/drop-shadow/chevron della scheda fornitore (`supplierKpiPalette` + `buildSupplierKpiItems`).
@@ -87,27 +95,27 @@ export function DashboardOperatorKpiSkeleton() {
       <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
       <div className={kpiGridInnerClass}>
         <div className={DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS}>
-          {[0, 1, 2, 3, 4, 5].map((i) => {
+          {[0, 1, 2, 3, 4, 5, 6].map((i) => {
             const ov = operatorKpiVisualAt(i)
             return (
               <div
                 key={i}
-                className={`operator-kpi-card relative flex animate-pulse flex-col overflow-hidden rounded-3xl ${ov.borderClass} ${ov.ringClass}`}
+                className={`operator-kpi-card relative flex h-full min-h-0 min-w-0 w-full animate-pulse flex-col overflow-hidden rounded-2xl ${ov.borderClass} ${ov.ringClass}`}
                 style={{ boxShadow: operatorKpiCardShadow(ov.glowRgb) }}
               >
                 <KpiLAccentOverlay accentHex={ov.accentHex} edgePx={4} />
-                <div className="relative z-[1] grid min-h-[7rem] flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2.5 gap-y-2 p-4 sm:min-h-[7.5rem] sm:gap-x-3 sm:p-5">
-                  <div className="col-start-1 row-start-1 flex items-center">
-                    <div className="h-3.5 w-4/5 max-w-[10rem] rounded bg-white/12 sm:h-4" />
+                <div className={kpiTileInnerGridClass}>
+                  <div className="col-start-1 row-start-1 flex min-h-[2.5rem] items-start sm:min-h-[2.75rem]">
+                    <div className="mt-0.5 h-3 w-4/5 max-w-[9rem] rounded bg-white/12 sm:h-3.5" />
                   </div>
                   <div className={`${kpiTileIconWrapBase} ${ov.iconWrapClass} animate-pulse`}>
-                    <div className="h-5 w-5 rounded bg-white/15 sm:h-6 sm:w-6" />
+                    <div className="h-4 w-4 rounded bg-white/15 sm:h-[18px] sm:w-[18px]" />
                   </div>
-                  <div className="col-start-1 row-start-2 flex min-w-0 flex-col items-stretch gap-2">
+                  <div className="col-start-1 row-start-2 flex min-h-0 min-w-0 flex-col items-stretch gap-1.5 self-start">
                     <div className="h-8 w-16 shrink-0 rounded bg-white/12 sm:h-9 sm:w-20" />
-                    <div className="h-8 w-full rounded bg-white/10" />
+                    <div className="h-6 w-full rounded bg-white/10 sm:h-7" />
                   </div>
-                  <div className="col-start-2 row-start-2 h-4 w-4 shrink-0 self-end justify-self-end rounded bg-white/12 sm:h-5 sm:w-5" />
+                  <div className="col-start-2 row-start-2 h-3.5 w-3.5 shrink-0 self-end justify-self-end rounded bg-white/12 sm:h-4 sm:w-4" />
                 </div>
               </div>
             )
@@ -123,6 +131,8 @@ type KpiItem = {
   label: string
   value: string | number
   sub: string
+  /** Avviso duplicati bolle (arancio) sotto Rekki / sottotitolo. */
+  duplicateBolleSub?: string
   /** Seconda riga sotto il sottotitolo (es. hint Rekki su Bolle). */
   microSub?: string
   accentHex: string
@@ -137,6 +147,8 @@ type KpiItem = {
   bollePendingCta?: string
   /** Sottotitolo listino con conteggio anomalie: enfasi testuale senza cambiare bordo card. */
   listinoAnomalySubHighlight?: boolean
+  /** Tile fatturato: avviso duplicati (arancio / neon). */
+  duplicateInvoiceSub?: string
 }
 
 export default function DashboardOperatorKpiGrid({
@@ -178,6 +190,56 @@ export default function DashboardOperatorKpiGrid({
   const listinoAnomaly = k.anomaliePrezziCount > 0
   const verificaAnomalyParams = k.anomaliePrezziCount > 0 ? { stato: 'anomalia' as const } : undefined
 
+  const kpiLayoutFingerprint = useMemo(
+    () =>
+      [
+        online ? '1' : '0',
+        locale,
+        currency,
+        String(fy ?? ''),
+        k.bolleTotal,
+        k.bolleInAttesa,
+        k.bolleRekkiSavingsHint ? 1 : 0,
+        k.duplicatiBolleCount,
+        k.duplicatiOrdiniCount,
+        k.duplicatiCount,
+        k.documentiDaRevisionare,
+        k.documentiPending,
+        k.fattureCount,
+        k.listinoProdottiDistinti,
+        k.listinoRows,
+        k.ordiniCount,
+        k.statementsTotal,
+        k.statementsWithIssues,
+        k.anomaliePrezziCount,
+        k.totaleImporto,
+        bollePendingHref ?? '',
+      ].join('|'),
+    [
+      online,
+      locale,
+      currency,
+      fy,
+      bollePendingHref,
+      k.anomaliePrezziCount,
+      k.bolleInAttesa,
+      k.bolleRekkiSavingsHint,
+      k.bolleTotal,
+      k.documentiPending,
+      k.duplicatiBolleCount,
+      k.duplicatiOrdiniCount,
+      k.duplicatiCount,
+      k.documentiDaRevisionare,
+      k.fattureCount,
+      k.listinoProdottiDistinti,
+      k.listinoRows,
+      k.ordiniCount,
+      k.statementsTotal,
+      k.statementsWithIssues,
+      k.totaleImporto,
+    ],
+  )
+
   const items: KpiItem[] = [
     {
       href: withFiscalYearQuery('/ordini', fy),
@@ -191,7 +253,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(0).hoverClass,
       iconWrapClass: operatorKpiVisualAt(0).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${dashboardKpiIconSvgClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -213,6 +275,10 @@ export default function DashboardOperatorKpiGrid({
               .replace('{total}', String(k.bolleTotal)),
       microSub:
         k.bolleTotal > 0 && k.bolleRekkiSavingsHint ? t.fornitori.subBolleRekkiSavingsMicro : undefined,
+      duplicateBolleSub:
+        k.duplicatiBolleCount > 0
+          ? t.dashboard.kpiDuplicateBolleDetected.replace('{n}', String(k.duplicatiBolleCount))
+          : undefined,
       bollePendingHref,
       bollePendingCta,
       accentHex: operatorKpiVisualAt(1).accentHex,
@@ -222,7 +288,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(1).hoverClass,
       iconWrapClass: operatorKpiVisualAt(1).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${dashboardKpiIconSvgClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -242,6 +308,10 @@ export default function DashboardOperatorKpiGrid({
           : k.fattureCount === 1
             ? t.fornitori.subFatturatoPeriodoCount_one
             : t.fornitori.subFatturatoPeriodoCount_other.replace('{n}', String(k.fattureCount)),
+      duplicateInvoiceSub:
+        k.duplicatiCount > 0
+          ? t.dashboard.kpiDuplicateInvoicesDetected.replace('{n}', String(k.duplicatiCount))
+          : undefined,
       accentHex: operatorKpiVisualAt(2).accentHex,
       glowRgb: operatorKpiVisualAt(2).glowRgb,
       borderClass: operatorKpiVisualAt(2).borderClass,
@@ -249,7 +319,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(2).hoverClass,
       iconWrapClass: operatorKpiVisualAt(2).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${dashboardKpiIconSvgClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -271,7 +341,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(3).hoverClass,
       iconWrapClass: operatorKpiVisualAt(3).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(3)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${dashboardKpiIconSvgClass(3)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -303,7 +373,7 @@ export default function DashboardOperatorKpiGrid({
       iconWrapClass: operatorKpiVisualAt(4).iconWrapClass,
       icon: (
         <svg
-          className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(4)}`}
+          className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${dashboardKpiIconSvgClass(4)}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -325,33 +395,98 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(5).hoverClass,
       iconWrapClass: operatorKpiVisualAt(5).iconWrapClass,
       icon: (
-        <svg className={`h-5 w-5 shrink-0 sm:h-6 sm:w-6 ${dashboardKpiIconSvgClass(5)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${dashboardKpiIconSvgClass(5)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+    },
+    {
+      href: withFiscalYearQuery('/revisione', fy),
+      label: t.dashboard.kpiDocumentiDaRevisionareTitle,
+      value: k.documentiDaRevisionare,
+      sub: t.dashboard.kpiDocumentiDaRevisionareSub,
+      accentHex: operatorKpiVisual[2].accentHex,
+      glowRgb: operatorKpiVisual[2].glowRgb,
+      borderClass: operatorKpiVisual[2].borderClass,
+      ringClass: operatorKpiVisual[2].ringClass,
+      hoverClass: operatorKpiVisual[2].hoverClass,
+      iconWrapClass: operatorKpiVisual[2].iconWrapClass,
+      icon: (
+        <svg
+          className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${operatorKpiVisual[2].iconSvgClass}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
+          />
         </svg>
       ),
     },
   ]
 
+  /** Altezza unica (px) per tutte le tile: le righe della griglia possono avere altezze diverse senza questo. */
+  const kpiGridRef = useRef<HTMLDivElement>(null)
+  const uniformTileMinPxRef = useRef<number | undefined>(undefined)
+  const [, bumpUniformTileHeight] = useReducer((n: number) => n + 1, 0)
+
+  useLayoutEffect(() => {
+    const grid = kpiGridRef.current
+    if (!grid) return
+
+    const run = (clearIntrinsicMinHeight: boolean) => {
+      const tiles = [...grid.querySelectorAll<HTMLElement>(':scope > .operator-kpi-card')]
+      if (tiles.length === 0) return
+      if (clearIntrinsicMinHeight) {
+        for (const node of tiles) node.style.removeProperty('min-height')
+      }
+      const maxPx = Math.ceil(Math.max(1, ...tiles.map((node) => node.getBoundingClientRect().height)))
+      const prev = uniformTileMinPxRef.current
+      uniformTileMinPxRef.current = maxPx
+      if (prev !== maxPx || clearIntrinsicMinHeight) bumpUniformTileHeight()
+    }
+
+    run(true)
+
+    const onResize = () => run(true)
+    const ro = new ResizeObserver(onResize)
+    ro.observe(grid)
+    window.addEventListener('resize', onResize)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', onResize)
+    }
+  }, [kpiLayoutFingerprint])
+
+  const uniformTileMinPx = uniformTileMinPxRef.current
   const cardInteractive = online ? 'cursor-pointer active:scale-[0.99]' : 'cursor-not-allowed opacity-[0.88]'
 
   const panel = (
     <div className={kpiGridShellClass}>
       <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
       <div className={`${kpiGridInnerClass} relative`}>
-        <div className={`${DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS} ${!online ? 'pointer-events-none' : ''}`}>
+        <div
+          ref={kpiGridRef}
+          className={`${DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS} ${!online ? 'pointer-events-none' : ''}`}
+        >
           {items.map((item, itemIndex) => {
-            const chevronClass = `${kpiTileChevronBase} ${dashboardKpiChevronClass(itemIndex)}`
+            const chevronClass = `${kpiTileChevronBase} ${dashboardKpiChevronClass(itemIndex < 6 ? itemIndex : 5)}`
 
             const inner = (
               <>
                 <KpiLAccentOverlay accentHex={item.accentHex} edgePx={4} />
-                <div className="relative z-[1] grid min-h-[7rem] flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-2.5 gap-y-2 p-4 sm:min-h-[7.5rem] sm:gap-x-3 sm:p-5">
-                  <p className="col-start-1 row-start-1 min-w-0 self-center text-[11px] font-semibold uppercase leading-snug tracking-wide text-app-fg line-clamp-3 sm:text-xs">
+                <div className={kpiTileInnerGridClass}>
+                  <p className="col-start-1 row-start-1 flex min-h-[2.5rem] min-w-0 items-start self-start text-[10px] font-semibold uppercase leading-snug tracking-wide text-app-fg line-clamp-2 sm:min-h-[2.75rem] sm:text-[11px]">
                     {item.label}
                   </p>
                   <span className={`${kpiTileIconWrapBase} ${item.iconWrapClass}`}>{item.icon}</span>
-                  <div className="col-start-1 row-start-2 flex min-w-0 flex-col items-stretch gap-1.5 self-end">
-                    <p className="text-xl font-bold tabular-nums leading-tight tracking-tight text-app-fg sm:text-2xl xl:text-3xl break-words">
+                  <div className="col-start-1 row-start-2 flex min-h-0 min-w-0 flex-col items-stretch gap-1 self-start">
+                    <p className="break-words text-xl font-bold tabular-nums leading-tight tracking-tight text-app-fg sm:text-2xl">
                       {item.value}
                     </p>
                     <p
@@ -394,6 +529,16 @@ export default function DashboardOperatorKpiGrid({
                         {item.microSub}
                       </p>
                     ) : null}
+                    {item.duplicateInvoiceSub ? (
+                      <p className="w-full min-w-0 text-[10px] font-semibold leading-snug text-orange-300 drop-shadow-[0_0_8px_rgba(251,146,60,0.45)] sm:text-[11px] sm:leading-snug">
+                        {item.duplicateInvoiceSub}
+                      </p>
+                    ) : null}
+                    {item.duplicateBolleSub ? (
+                      <p className="w-full min-w-0 text-[10px] font-semibold leading-snug text-orange-300 drop-shadow-[0_0_8px_rgba(251,146,60,0.45)] sm:text-[11px] sm:leading-snug">
+                        {item.duplicateBolleSub}
+                      </p>
+                    ) : null}
                   </div>
                   <svg className={chevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -402,7 +547,11 @@ export default function DashboardOperatorKpiGrid({
               </>
             )
 
-            const shellClass = `operator-kpi-card group relative z-[1] flex flex-col overflow-hidden rounded-3xl touch-manipulation ${item.borderClass} ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 ${online ? 'hover:bg-white/[0.07]' : ''} ${item.hoverClass} ${cardInteractive}`
+            const shellClass = `operator-kpi-card group relative z-[1] flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${item.borderClass} ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 ${online ? 'hover:bg-white/[0.07]' : ''} ${item.hoverClass} ${cardInteractive}`
+            const shellStyle: CSSProperties = {
+              boxShadow: operatorKpiCardShadow(item.glowRgb),
+              ...(uniformTileMinPx != null ? { minHeight: uniformTileMinPx } : {}),
+            }
 
             if (online) {
               return (
@@ -411,7 +560,7 @@ export default function DashboardOperatorKpiGrid({
                   href={item.href}
                   aria-label={`${item.label}: ${item.value}`}
                   className={shellClass}
-                  style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
+                  style={shellStyle}
                 >
                   {inner}
                 </Link>
@@ -425,7 +574,7 @@ export default function DashboardOperatorKpiGrid({
                 aria-label={`${item.label}: ${item.value}`}
                 aria-disabled
                 className={shellClass}
-                style={{ boxShadow: operatorKpiCardShadow(item.glowRgb) }}
+                style={shellStyle}
               >
                 {inner}
               </div>

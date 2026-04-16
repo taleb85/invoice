@@ -65,6 +65,7 @@ import {
   supplierDesktopKpiOuterShadow,
   supplierKpiPalette,
 } from '@/lib/kpi-accent-palette'
+import { analyzeFatturaDuplicatesForDeletion } from '@/lib/check-duplicates'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
   APP_SECTION_DIVIDE_ROWS,
@@ -173,6 +174,9 @@ type SupplierPeriodStats = {
   fattureTotal: number
   ordiniNelPeriodo: number
   pending: number
+  /** Somma importi fatture nel periodo (include eventuali duplicati). */
+  totaleSpesaLordo: number
+  /** Somma netta: esclude importi delle copie duplicate rilevate. */
   totaleSpesa: number
   /** Righe `listino_prezzi` con `data_prezzo` nel periodo (aggiornamenti). */
   listinoRows: number
@@ -190,6 +194,7 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   fattureTotal: 0,
   ordiniNelPeriodo: 0,
   pending: 0,
+  totaleSpesaLordo: 0,
   totaleSpesa: 0,
   listinoRows: 0,
   listinoProdottiDistinti: 0,
@@ -230,7 +235,12 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
         .eq('stato', 'in attesa')
         .gte('data', from)
         .lt('data', to),
-      supabase.from('fatture').select('id, importo', { count: 'exact' }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
+      supabase
+        .from('fatture')
+        .select('id, data, numero_fattura, importo, fornitore_id', { count: 'exact' })
+        .eq('fornitore_id', fornitoreId)
+        .gte('data', from)
+        .lt('data', to),
       pendingCountPromise,
       supabase
         .from('listino_prezzi')
@@ -255,7 +265,16 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
     ])
       .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes, ordiniRes, rekkiAnom]) => {
         if (cancelled) return
-        const totaleSpesa = ((fattureRes.data ?? []) as { importo: number | null }[]).reduce((s, f) => s + (f.importo ?? 0), 0)
+        const fattureRows = (fattureRes.data ?? []) as {
+          id: string
+          data: string
+          numero_fattura: string | null
+          importo: number | null
+          fornitore_id: string
+        }[]
+        const totaleSpesaLordo = fattureRows.reduce((s, f) => s + (f.importo ?? 0), 0)
+        const dup = analyzeFatturaDuplicatesForDeletion(fattureRows)
+        const totaleSpesa = Math.max(0, totaleSpesaLordo - dup.surplusImporto)
         const listinoRowsData = (listinoRes.data ?? []) as { prodotto: string }[]
         const listinoRows = listinoRes.error ? 0 : listinoRowsData.length
         const listinoProdottiDistinti = listinoRes.error
@@ -278,6 +297,7 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
           fattureTotal: fattureRes.count ?? 0,
           ordiniNelPeriodo,
           pending: pendingCount,
+          totaleSpesaLordo,
           totaleSpesa,
           listinoRows,
           listinoProdottiDistinti,
@@ -316,6 +336,8 @@ type KpiDef = {
   headerRule: string
   /** Tile mobile «Totale spesa» (due righe con tab fatture). */
   isSpesaTotale?: boolean
+  /** Sotto il valore principale (es. totale lordo fatture se diverso dal reale). */
+  valueSupplement?: string
 }
 
 function buildSupplierKpiItems(
@@ -395,6 +417,10 @@ function buildSupplierKpiItems(
       chevronHoverClass: f.chevronHoverClass,
       headerRule: f.headerRule,
       isSpesaTotale: true,
+      valueSupplement:
+        (stats?.totaleSpesaLordo ?? 0) > (stats?.totaleSpesa ?? 0) + 0.005
+          ? t.fornitori.subFatturatoTotaleLordoMicro.replace('{amount}', formatMoney(stats?.totaleSpesaLordo ?? 0))
+          : undefined,
       icon: (
         <svg className={`${f.iconClass} ${f.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -531,9 +557,16 @@ function SupplierDesktopKpiGrid({
                 </p>
               </div>
               <div className="flex shrink-0 items-end justify-between gap-1">
-                <p className="min-w-0 flex-1 truncate text-left text-base font-bold tabular-nums leading-none tracking-tight text-app-fg md:text-xl">
-                  {k.value}
-                </p>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-base font-bold tabular-nums leading-none tracking-tight text-app-fg md:text-xl">
+                    {k.value}
+                  </p>
+                  {k.valueSupplement ? (
+                    <p className="mt-0.5 truncate text-[9px] font-medium leading-tight text-app-fg-muted md:text-[10px]">
+                      {k.valueSupplement}
+                    </p>
+                  ) : null}
+                </div>
                 <svg
                   className={`mb-0.5 h-3 w-3 shrink-0 self-end transition-colors md:mb-0.5 md:h-3.5 md:w-3.5 ${k.chevronClass} ${k.chevronHoverClass}`}
                   fill="none"

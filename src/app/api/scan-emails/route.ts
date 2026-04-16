@@ -17,6 +17,11 @@ import { MIN_EMAIL_BODY_CHARS_FOR_SCAN, emailHasScannableBody } from '@/lib/mail
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
+import {
+  resolveFornitoreByPartialName,
+  resolveFornitoreByRekkiSupplierId,
+  type FornitoreInferRow,
+} from '@/lib/fornitore-infer-from-document'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 import type { EmailScanMailboxContext, EmailScanStreamEvent } from '@/lib/email-scan-stream'
 import {
@@ -99,7 +104,10 @@ function queueEmailScan<T>(fn: () => Promise<T>): Promise<T> {
 
 /** Converte OcrResult in oggetto metadata da salvare in jsonb.
  *  Includes raw amount string and format hint for UI validation badge. */
-function buildMetadata(ocr: OcrResult, matchedBy: 'email' | 'alias' | 'domain' | 'piva' | 'unknown') {
+function buildMetadata(
+  ocr: OcrResult,
+  matchedBy: 'email' | 'alias' | 'domain' | 'piva' | 'ragione_sociale' | 'rekki_supplier' | 'unknown'
+) {
   return {
     ragione_sociale:    ocr.ragione_sociale,
     p_iva:              ocr.p_iva,
@@ -528,6 +536,30 @@ async function resolveFornitore(
  * Tentativo di matching per P.IVA (usato come fallback quando l'email è sconosciuta).
  * Normalizza la P.IVA rimuovendo prefisso paese e caratteri non numerici.
  */
+function inferRowToFornitore(r: FornitoreInferRow): Fornitore {
+  return {
+    id: r.id,
+    nome: r.nome,
+    sede_id: r.sede_id,
+    language: r.language,
+    rekki_link: r.rekki_link,
+    rekki_supplier_id: r.rekki_supplier_id,
+    email: r.email,
+  }
+}
+
+/** Cerca un ID fornitore Rekki nel corpo/oggetto (metadati testuali). */
+function extractRekkiSupplierIdFromEmailHint(email: ScannedEmail, ocr: OcrResult): string | null {
+  const blob = `${email.subject ?? ''}\n${email.bodyText ?? ''}`
+  const m =
+    blob.match(/rekki[_\s-]*supplier[_\s-]*id\s*[:=]\s*["']?([A-Za-z0-9_-]{2,64})/i) ??
+    blob.match(/supplier[_\s-]*id\s*[:=]\s*["']?([A-Za-z0-9_-]{2,64})/i)
+  if (m?.[1]) return m[1].trim()
+  const meta = ocr as unknown as { rekki_supplier_id?: string | null }
+  const fromOcr = meta.rekki_supplier_id?.trim()
+  return fromOcr && fromOcr.length >= 2 ? fromOcr : null
+}
+
 async function resolveFornitoreByPIVA(
   supabase: SupabaseClient,
   piva: string,
@@ -694,7 +726,11 @@ async function processEmails(
     attachment: ScannedEmail['attachments'][number] | null
     ocr?: OcrResult   // pre-computato se risolto via P.IVA
   }
-  type GroupEntry = { fornitore: Fornitore; items: Item[]; matchedBy: 'email' | 'alias' | 'domain' | 'piva' }
+  type GroupEntry = {
+    fornitore: Fornitore
+    items: Item[]
+    matchedBy: 'email' | 'alias' | 'domain' | 'piva' | 'ragione_sociale' | 'rekki_supplier'
+  }
   const groups = new Map<string, GroupEntry>()
   const noFornitore: ScannedEmail[] = []
   const noFornitoreBodyOnly: ScannedEmail[] = []
@@ -815,6 +851,27 @@ async function processEmails(
           mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via P.IVA → "${fornitore.nome}"`)
           continue
         }
+      }
+
+      const rekkiIdHint = extractRekkiSupplierIdFromEmailHint(email, ocr)
+      if (rekkiIdHint) {
+        const rkRow = await resolveFornitoreByRekkiSupplierId(supabase, rekkiIdHint, sedeFilter)
+        if (rkRow) {
+          const fornitore = inferRowToFornitore(rkRow)
+          if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'rekki_supplier' })
+          groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
+          mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via rekki_supplier_id → "${fornitore.nome}"`)
+          continue
+        }
+      }
+
+      const nomeRow = await resolveFornitoreByPartialName(supabase, ocr.ragione_sociale, sedeFilter)
+      if (nomeRow) {
+        const fornitore = inferRowToFornitore(nomeRow)
+        if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'ragione_sociale' })
+        groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
+        mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via ragione sociale parziale → "${fornitore.nome}"`)
+        continue
       }
 
       // 3a. Nessun match, dati solo da testo → documento sintetico [DA TESTO EMAIL]
@@ -1019,6 +1076,27 @@ async function processEmails(
         mailDebugLog(`[PROCESS] ✅ Testo email risolto via P.IVA → "${fornitore.nome}"`)
         continue
       }
+    }
+
+    const rekBody = extractRekkiSupplierIdFromEmailHint(email, ocr)
+    if (rekBody) {
+      const rkRow = await resolveFornitoreByRekkiSupplierId(supabase, rekBody, sedeFilter)
+      if (rkRow) {
+        const fornitore = inferRowToFornitore(rkRow)
+        if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'rekki_supplier' })
+        groups.get(fornitore.id)!.items.push({ email, attachment: null, ocr })
+        mailDebugLog(`[PROCESS] ✅ Testo email risolto via rekki_supplier_id → "${fornitore.nome}"`)
+        continue
+      }
+    }
+
+    const nomeBody = await resolveFornitoreByPartialName(supabase, ocr.ragione_sociale, sedeFilter)
+    if (nomeBody) {
+      const fornitore = inferRowToFornitore(nomeBody)
+      if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'ragione_sociale' })
+      groups.get(fornitore.id)!.items.push({ email, attachment: null, ocr })
+      mailDebugLog(`[PROCESS] ✅ Testo email risolto via ragione sociale parziale → "${fornitore.nome}"`)
+      continue
     }
 
     const syn = await uploadSyntheticEmailBodyDoc(supabase, email)

@@ -6,11 +6,11 @@ export default function LoginBrandedHero({ mode }: { mode: 'name' | 'admin' }) {
   const { t } = useLocale()
 
   return (
-    <div className="flex flex-col items-center text-center mb-6 -mt-4">
+    <div className="mb-5 flex w-full flex-col items-center text-center">
       <svg
         viewBox="0 0 96 56"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-28 h-[68px] shrink-0 drop-shadow-[0_6px_24px_rgba(6,182,212,0.45)] mb-4"
+        className="mb-3 h-[68px] w-28 shrink-0 drop-shadow-[0_6px_24px_rgba(6,182,212,0.45)]"
         aria-hidden
       >
         <defs>
@@ -36,16 +36,16 @@ export default function LoginBrandedHero({ mode }: { mode: 'name' | 'admin' }) {
         <circle cx="48" cy="28" r="3.5" fill="#38bdf8" />
         <circle cx="88" cy="28" r="3.5" fill="#22d3ee" />
       </svg>
-      <h1 className="text-5xl font-extrabold tracking-widest bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent leading-none drop-shadow-[0_0_20px_rgba(56,189,248,0.5)]">
+      <h1 className="bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-4xl font-extrabold leading-none tracking-[0.2em] text-transparent drop-shadow-[0_0_20px_rgba(56,189,248,0.5)] sm:text-5xl sm:tracking-widest">
         FLUXO
       </h1>
-      <p className="text-[11px] font-semibold tracking-[0.3em] uppercase mt-2 bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-transparent opacity-80">
+      <p className="mt-2 bg-gradient-to-r from-[#7c9dff] via-[#5dd8ff] to-[#2ee8ff] bg-clip-text text-[11px] font-semibold uppercase tracking-[0.28em] text-transparent opacity-80">
         {t.login.brandTagline}
       </p>
       {mode === 'name' ? (
-        <p className="mt-6 max-w-[20rem] px-1 text-xs leading-snug text-app-fg-muted text-balance">{t.login.subtitle}</p>
+        <p className="mt-5 max-w-sm px-1 text-xs leading-relaxed text-app-fg-muted text-balance">{t.login.subtitle}</p>
       ) : (
-        <div className="mt-6 flex max-w-[20rem] flex-col items-center gap-1.5 px-1 text-center">
+        <div className="mt-5 flex max-w-sm flex-col items-center gap-1.5 px-1 text-center">
           <p className="text-[0.8125rem] font-semibold leading-snug tracking-tight text-app-fg text-balance">
             {t.login.adminSubtitle}
           </p>

@@ -30,6 +30,8 @@ import {
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
+import { analyzeOrdineDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
+import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,6 +75,18 @@ export default async function OrdiniOverviewPage({
 
   const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
   const ordiniTheme = SUMMARY_HIGHLIGHT_ACCENTS.rose
+
+  const ordDupAnalysis = analyzeOrdineDuplicatesForDeletion(
+    rows.map((r) => ({
+      id: r.id,
+      fornitore_id: r.fornitore_id,
+      data_ordine: r.data_ordine,
+      numero_ordine: r.numero_ordine,
+      titolo: r.titolo,
+      created_at: r.created_at,
+    })),
+  )
+  const ordDupPayload = serializeFatturaDuplicateDeletionPayload(ordDupAnalysis)
 
   const ordiniMergedSummary = {
     label: t.common.total,
@@ -132,7 +146,20 @@ export default async function OrdiniOverviewPage({
                           {r.fornitore_nome}
                         </Link>
                       </td>
-                      <td className="max-w-xs px-6 py-4 text-app-fg-muted">{r.titolo?.trim() || r.file_name || '—'}</td>
+                      <td className="max-w-xs px-6 py-4 text-app-fg-muted">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span>{r.titolo?.trim() || r.numero_ordine?.trim() || r.file_name || '—'}</span>
+                          <DuplicateLedgerRowExtras
+                            rowId={r.id}
+                            payload={ordDupPayload}
+                            kind="ordine"
+                            duplicateBadgeLabel={t.common.duplicateBadge}
+                            duplicateDeleteConfirm={t.fornitori.confermeOrdineDuplicateCopyDeleteConfirm}
+                            removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                            deleteFailedPrefix={t.appStrings.deleteFailed}
+                          />
+                        </div>
+                      </td>
                       <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">
                         {r.data_ordine ? formatDate(r.data_ordine) : '—'}
                       </td>

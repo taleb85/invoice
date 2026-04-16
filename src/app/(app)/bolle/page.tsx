@@ -32,6 +32,8 @@ import {
   APP_SECTION_TRAILING_LINK_CLASS,
   APP_SECTION_TRAILING_SEP_CLASS,
 } from '@/lib/app-shell-layout'
+import { analyzeBolleDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
+import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -41,6 +43,7 @@ type BollaListRow = {
   stato: string
   file_url: string | null
   fornitore_id: string
+  numero_bolla?: string | null
   fornitori?: { nome: string; display_name?: string | null } | null
 }
 
@@ -51,6 +54,13 @@ function calendarDateInTimeZone(timeZone: string): string {
   } catch {
     return new Date().toISOString().slice(0, 10)
   }
+}
+
+function daysBetweenIsoCalendarDates(fromYmd: string, toYmd: string): number {
+  const a = Date.parse(`${fromYmd.slice(0, 10)}T12:00:00`)
+  const b = Date.parse(`${toYmd.slice(0, 10)}T12:00:00`)
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 0
+  return Math.floor((b - a) / 86_400_000)
 }
 
 async function getListSedeId(): Promise<string | null> {
@@ -122,12 +132,24 @@ export default async function BollePage({
   ])
   const fiscal = sedeId ? await resolveFiscalFilterForSede(supabase, sedeId, sp.fy) : null
   const fyForLinks = fiscal?.labelYear
-  const bolle =
+  const bolleRaw =
     showAll && sedeId
       ? await getBolleAll(sedeId, pendingOnly, fiscal?.bounds ?? null)
       : showAll
         ? await getBolleAll(sedeId, pendingOnly, null)
         : await getBolleForToday(tz, sedeId)
+  const bolle = bolleRaw as BollaListRow[]
+  const todayYmd = calendarDateInTimeZone(tz)
+  const dupAnalysis = analyzeBolleDuplicatesForDeletion(
+    bolle.map((b) => ({
+      id: b.id,
+      numero_bolla: b.numero_bolla ?? null,
+      fornitore_id: b.fornitore_id,
+      data: (b.data ?? '').trim().slice(0, 10),
+    })),
+  )
+  const dupPayload = serializeFatturaDuplicateDeletionPayload(dupAnalysis)
+  const excessBollaIds = dupAnalysis.excessIds
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   const subtitle = (() => {
@@ -223,29 +245,70 @@ export default async function BollePage({
           ) : (
             <>
               <div className={APP_SECTION_MOBILE_LIST}>
-                {bolle.map((b: BollaListRow) => {
+                {bolle.map((b) => {
                   const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
+                  const overdueInv =
+                    b.stato === 'in attesa' && daysBetweenIsoCalendarDates(b.data, todayYmd) > 7
                   return (
                   <div key={b.id} className={APP_SECTION_MOBILE_ROW}>
                     <Link href={`/bolle/${b.id}`} className="mb-3 block text-left transition-colors hover:opacity-90">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold text-app-fg">
+                          <p
+                            className={`truncate font-semibold ${overdueInv ? 'text-amber-200' : 'text-app-fg'}`}
+                          >
                             {supplierLabel || <span className="text-app-fg-muted">—</span>}
                           </p>
-                          <p className="mt-0.5 text-xs text-app-fg-muted">{formatDate(b.data)}</p>
+                          <p className={`mt-0.5 text-xs ${overdueInv ? 'text-amber-200/90' : 'text-app-fg-muted'}`}>
+                            {formatDate(b.data)}
+                          </p>
+                          <p className="mt-1 text-[11px] text-app-fg-muted">
+                            <span className="font-semibold uppercase tracking-wide text-app-fg-muted/90">
+                              {t.bolle.colNumero}
+                            </span>{' '}
+                            <span className={`font-mono ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
+                              {b.numero_bolla?.trim() || '—'}
+                            </span>
+                            <DuplicateLedgerRowExtras
+                              rowId={b.id}
+                              payload={dupPayload}
+                              kind="bolla"
+                              duplicateBadgeLabel={t.common.duplicateBadge}
+                              duplicateDeleteConfirm={t.bolle.duplicateCopyDeleteConfirm}
+                              removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                              deleteFailedPrefix={t.appStrings.deleteFailed}
+                            />
+                          </p>
                         </div>
-                        {b.stato === 'completato' ? (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                            {t.status.completato}
-                          </span>
-                        ) : (
-                          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                            {t.status.inAttesa}
-                          </span>
-                        )}
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          {overdueInv ? (
+                            <span
+                              className="inline-flex text-amber-400"
+                              title={t.bolle.pendingInvoiceOverdueHint}
+                              aria-label={t.bolle.pendingInvoiceOverdueHint}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
+                                />
+                              </svg>
+                            </span>
+                          ) : null}
+                          {b.stato === 'completato' ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                              {t.status.completato}
+                            </span>
+                          ) : (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                              {t.status.inAttesa}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </Link>
                     <div className="flex flex-wrap items-center gap-2">
@@ -269,7 +332,9 @@ export default async function BollePage({
                           {t.bolle.uploadInvoice}
                         </Link>
                       )}
-                      <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
+                      {!excessBollaIds.has(b.id) ? (
+                        <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
+                      ) : null}
                     </div>
                   </div>
                   )
@@ -280,38 +345,78 @@ export default async function BollePage({
                 <thead>
                   <tr className={APP_SECTION_TABLE_HEAD_ROW}>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.status}</th>
                     <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.common.actions}</th>
                   </tr>
                 </thead>
                 <tbody className={APP_SECTION_TABLE_TBODY}>
-                  {bolle.map((b: BollaListRow) => {
+                  {bolle.map((b) => {
                     const supplierLabel = b.fornitori ? fornitoreDisplayLabel(b.fornitori) : ''
+                    const overdueInv =
+                      b.stato === 'in attesa' && daysBetweenIsoCalendarDates(b.data, todayYmd) > 7
                     return (
                     <tr key={b.id} className={APP_SECTION_TABLE_TR_GROUP}>
-                      <td className="whitespace-nowrap px-6 py-4 font-medium text-app-fg-muted">
+                      <td
+                        className={`whitespace-nowrap px-6 py-4 font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
+                      >
                         <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
                           {formatDate(b.data)}
                         </Link>
                       </td>
-                      <td className="px-6 py-4 font-medium text-app-fg">
+                      <td className="max-w-[10rem] px-6 py-4 font-mono text-sm text-app-fg-muted">
+                        <Link
+                          href={`/bolle/${b.id}`}
+                          className={`${APP_SECTION_TABLE_CELL_LINK} ${overdueInv ? 'text-amber-100' : ''}`}
+                        >
+                          {b.numero_bolla?.trim() || '—'}
+                        </Link>
+                        <DuplicateLedgerRowExtras
+                          rowId={b.id}
+                          payload={dupPayload}
+                          kind="bolla"
+                          duplicateBadgeLabel={t.common.duplicateBadge}
+                          duplicateDeleteConfirm={t.bolle.duplicateCopyDeleteConfirm}
+                          removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                          deleteFailedPrefix={t.appStrings.deleteFailed}
+                        />
+                      </td>
+                      <td className={`px-6 py-4 font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
                         <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
                           {supplierLabel || <span className="text-app-fg-muted">—</span>}
                         </Link>
                       </td>
                       <td className="px-6 py-4">
-                        {b.stato === 'completato' ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/15 px-2.5 py-1 text-xs font-semibold text-green-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
-                            {t.status.completato}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-200">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                            {t.status.inAttesa}
-                          </span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {overdueInv ? (
+                            <span
+                              className="inline-flex text-amber-400"
+                              title={t.bolle.pendingInvoiceOverdueHint}
+                              aria-label={t.bolle.pendingInvoiceOverdueHint}
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
+                                />
+                              </svg>
+                            </span>
+                          ) : null}
+                          {b.stato === 'completato' ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/15 px-2.5 py-1 text-xs font-semibold text-green-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                              {t.status.completato}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-200">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                              {t.status.inAttesa}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
@@ -335,7 +440,9 @@ export default async function BollePage({
                               {t.bolle.uploadInvoice}
                             </Link>
                           )}
-                          <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
+                          {!excessBollaIds.has(b.id) ? (
+                            <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
+                          ) : null}
                         </div>
                       </td>
                     </tr>

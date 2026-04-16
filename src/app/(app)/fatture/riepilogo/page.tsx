@@ -39,6 +39,9 @@ import {
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
 
+const dupBadgeCls =
+  'ml-1.5 inline-flex shrink-0 align-middle rounded border border-orange-500/55 bg-orange-950/45 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.35)]'
+
 export const dynamic = 'force-dynamic'
 
 export default async function FattureRiepilogoPage({
@@ -68,10 +71,16 @@ export default async function FattureRiepilogoPage({
   const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
   const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
 
-  let summary = { totaleImporto: 0, fattureCount: 0 }
+  const emptySummary = {
+    totaleImporto: 0,
+    fattureCount: 0,
+    duplicateFatturaMemberIds: new Set<string>() as ReadonlySet<string>,
+    duplicateFatturaSurplusCount: 0,
+  }
+  let summary = emptySummary
   let rows: FatturaRiepilogoRow[] = []
   if (!sedeId && !isMasterAdmin) {
-    summary = { totaleImporto: 0, fattureCount: 0 }
+    summary = emptySummary
     rows = []
   } else if (!sedeId && isMasterAdmin) {
     ;[summary, rows] = await Promise.all([
@@ -79,7 +88,7 @@ export default async function FattureRiepilogoPage({
       fetchFattureRiepilogoRows(supabase, null, null),
     ])
   } else if (sedeId && fornitoreIds.length === 0) {
-    summary = { totaleImporto: 0, fattureCount: 0 }
+    summary = emptySummary
     rows = []
   } else {
     const fiscal = await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy)
@@ -127,6 +136,15 @@ export default async function FattureRiepilogoPage({
             secondary={countLabel}
           />
 
+          {summary.duplicateFatturaSurplusCount > 0 ? (
+            <p className="mb-3 text-xs font-semibold leading-relaxed text-orange-300 drop-shadow-[0_0_10px_rgba(251,146,60,0.4)]">
+              {t.dashboard.kpiDuplicateInvoicesDetected.replace(
+                '{n}',
+                String(summary.duplicateFatturaSurplusCount),
+              )}
+            </p>
+          ) : null}
+
           <p className="mb-3 text-xs leading-relaxed text-app-fg-muted">
             {t.dashboard.fattureRiepilogoLimitNote.replace(/\{n\}/g, String(rows.length))}
           </p>
@@ -152,7 +170,12 @@ export default async function FattureRiepilogoPage({
                           {r.fornitore_nome}
                         </Link>
                       </td>
-                      <td className="max-w-[140px] px-6 py-4 text-app-fg-muted">{r.numero_fattura?.trim() || '—'}</td>
+                      <td className="max-w-[200px] px-6 py-4 text-app-fg-muted">
+                        <span className="break-words">{r.numero_fattura?.trim() || '—'}</span>
+                        {summary.duplicateFatturaMemberIds.has(r.id) ? (
+                          <span className={dupBadgeCls}>{t.common.duplicateBadge}</span>
+                        ) : null}
+                      </td>
                       <td className="whitespace-nowrap px-6 py-4 text-right font-semibold tabular-nums text-app-fg">
                         {formatCurrency(Number(r.importo) || 0, currency, locale)}
                       </td>

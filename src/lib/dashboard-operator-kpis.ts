@@ -9,6 +9,14 @@ import { TRIPLE_CHECK_TOLERANCE } from '@/lib/triple-check'
 import { getFiscalYearPgBounds } from '@/lib/fiscal-year'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
+import {
+  analyzeBolleDuplicatesForDeletion,
+  analyzeFatturaDuplicateGroups,
+  DUPLICATE_SCAN_MAX_ROWS,
+  getDuplicateOrdiniCount,
+  type BollaDupProbe,
+  type FatturaDupProbe,
+} from '@/lib/check-duplicates'
 
 export type ListinoOverviewRow = {
   id: string
@@ -76,16 +84,38 @@ export async function fetchFattureTotaleSummary(
   supabase: SupabaseClient,
   fornitoreIds: string[] | null,
   fiscalBounds?: FiscalPgBounds | null
-): Promise<{ totaleImporto: number; fattureCount: number }> {
-  let q = supabase.from('fatture').select('importo')
+): Promise<{
+  totaleImporto: number
+  fattureCount: number
+  duplicateFatturaMemberIds: Set<string>
+  duplicateFatturaSurplusCount: number
+}> {
+  let q = supabase
+    .from('fatture')
+    .select('id, importo, numero_fattura, fornitore_id')
+    .limit(DUPLICATE_SCAN_MAX_ROWS)
   if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
   if (fiscalBounds) {
     q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
   }
   const { data, error } = await q
-  if (error) return { totaleImporto: 0, fattureCount: 0 }
-  const rows = (data ?? []) as { importo: number | null }[]
-  return { totaleImporto: sumImporti(rows), fattureCount: rows.length }
+  if (error) {
+    return {
+      totaleImporto: 0,
+      fattureCount: 0,
+      duplicateFatturaMemberIds: new Set(),
+      duplicateFatturaSurplusCount: 0,
+    }
+  }
+  const rows = (data ?? []) as FatturaDupProbe[]
+  const dup = analyzeFatturaDuplicateGroups(rows)
+  const rawSum = sumImporti(rows as unknown as { importo: number | null }[])
+  return {
+    totaleImporto: Math.max(0, rawSum - dup.surplusImporto),
+    fattureCount: rows.length,
+    duplicateFatturaMemberIds: dup.memberIds,
+    duplicateFatturaSurplusCount: dup.surplusCount,
+  }
 }
 
 /** Ultime fatture per data, per la tabella in /fatture/riepilogo. */
@@ -125,6 +155,8 @@ export type OrdineOverviewRow = {
   fornitore_id: string
   fornitore_nome: string
   titolo: string | null
+  /** Opzionale: se assente in DB, la dedup usa il titolo. */
+  numero_ordine: string | null
   data_ordine: string | null
   created_at: string
   file_url: string
@@ -141,7 +173,7 @@ export async function fetchOrdiniOverviewRows(
 ): Promise<OrdineOverviewRow[]> {
   let q = supabase
     .from('conferme_ordine')
-    .select('id, fornitore_id, titolo, data_ordine, created_at, file_url, file_name, fornitori(nome, display_name)')
+    .select('id, fornitore_id, titolo, numero_ordine, data_ordine, created_at, file_url, file_name, fornitori(nome, display_name)')
     .order('created_at', { ascending: false })
     .limit(ORDINI_OVERVIEW_LIMIT)
   if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
@@ -159,6 +191,7 @@ export async function fetchOrdiniOverviewRows(
       fornitore_id: r.fornitore_id as string,
       fornitore_nome: label,
       titolo: (r.titolo as string | null) ?? null,
+      numero_ordine: (r.numero_ordine as string | null) ?? null,
       data_ordine: r.data_ordine != null ? String(r.data_ordine) : null,
       created_at: String(r.created_at ?? ''),
       file_url: String(r.file_url ?? ''),
@@ -177,6 +210,14 @@ export type OperatorDashboardKpis = {
   bolleTotal: number
   bolleInAttesa: number
   fattureCount: number
+  /** Copie in eccesso (stesso fornitore, numero fattura, importo) nel campione KPI. */
+  duplicatiCount: number
+  /** Copie in eccesso bolle (stesso fornitore, numero bolla, data). */
+  duplicatiBolleCount: number
+  /** Copie in eccesso conferme ordine (stesso fornitore, numero/titolo, data ordine). */
+  duplicatiOrdiniCount: number
+  /** Somma: duplicati (fatture+bolle+ordini) + documenti da associare + anomalie prezzo Rekki. */
+  documentiDaRevisionare: number
   documentiPending: number
   /** Documenti con stato da_associare (da abbinare), allineato allo schema DB. */
   documentiDaAssociare: number
@@ -435,10 +476,15 @@ export async function fetchOperatorDashboardKpis(
         }),
         computeBolleRekkiSavingsHint(supabase, null, bounds),
       ])
+    const docRev = (docDaAssoc ?? 0) + (typeof anomaliePrezziCount === 'number' ? anomaliePrezziCount : 0)
     return {
       bolleTotal: 0,
       bolleInAttesa: 0,
       fattureCount: 0,
+      duplicatiCount: 0,
+      duplicatiBolleCount: 0,
+      duplicatiOrdiniCount: 0,
+      documentiDaRevisionare: docRev,
       documentiPending,
       documentiDaAssociare: docDaAssoc ?? 0,
       totaleImporto: 0,
@@ -478,8 +524,11 @@ export async function fetchOperatorDashboardKpis(
     ? supabase.from('fatture').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
     : supabase.from('fatture').select('*', { count: 'exact', head: true })
   let fattureImportiQ = fid
-    ? supabase.from('fatture').select('importo').in('fornitore_id', fid)
-    : supabase.from('fatture').select('importo')
+    ? supabase.from('fatture').select('id, importo, numero_fattura, fornitore_id').in('fornitore_id', fid)
+    : supabase.from('fatture').select('id, importo, numero_fattura, fornitore_id')
+  let bolleDupQ = fid
+    ? supabase.from('bolle').select('id, numero_bolla, fornitore_id, data').in('fornitore_id', fid)
+    : supabase.from('bolle').select('id, numero_bolla, fornitore_id, data')
   let listinoQ = fid
     ? supabase.from('listino_prezzi').select('*', { count: 'exact', head: true }).in('fornitore_id', fid)
     : supabase.from('listino_prezzi').select('*', { count: 'exact', head: true })
@@ -504,22 +553,39 @@ export async function fetchOperatorDashboardKpis(
       .lt('data_prezzo', bounds.dateToExclusive)
     ordiniQ = ordiniQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
     stmtCountQ = stmtCountQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
+    bolleDupQ = bolleDupQ.gte('data', bounds.dateFrom).lt('data', bounds.dateToExclusive)
   }
+
+  fattureImportiQ = fattureImportiQ.limit(DUPLICATE_SCAN_MAX_ROWS)
+  bolleDupQ = bolleDupQ.limit(DUPLICATE_SCAN_MAX_ROWS)
 
   listinoProdottiQ = listinoProdottiQ.limit(LISTINO_KPI_PRODOTTO_SAMPLE_LIMIT)
 
-  const [bolleRes, bolleAttesaRes, fattureCountRes, fattureImportiRes, listinoRes, listinoProdottiRes, ordiniRes, stmtCountRes, docDaAssocRes] =
-    await Promise.all([
-      bolleTotalQ,
-      bolleAttesaQ,
-      fattureCountQ,
-      fattureImportiQ,
-      listinoQ,
-      listinoProdottiQ,
-      ordiniQ,
-      stmtCountQ,
-      docDaAssocQ,
-    ])
+  const [
+    bolleRes,
+    bolleAttesaRes,
+    fattureCountRes,
+    fattureImportiRes,
+    bolleDupRes,
+    listinoRes,
+    listinoProdottiRes,
+    ordiniRes,
+    stmtCountRes,
+    docDaAssocRes,
+    duplicatiOrdiniCount,
+  ] = await Promise.all([
+    bolleTotalQ,
+    bolleAttesaQ,
+    fattureCountQ,
+    fattureImportiQ,
+    bolleDupQ,
+    listinoQ,
+    listinoProdottiQ,
+    ordiniQ,
+    stmtCountQ,
+    docDaAssocQ,
+    getDuplicateOrdiniCount(supabase, { fornitoreIds: fid, fiscalBounds: bounds }),
+  ])
 
   const statementsTotal = stmtCountRes.count ?? 0
   const [statementsWithIssues, anomaliePrezziCount, bolleRekkiSavingsHint] = await Promise.all([
@@ -539,13 +605,32 @@ export async function fetchOperatorDashboardKpis(
     ? 0
     : new Set(listinoSampleRows.map((r) => String(r.prodotto ?? '').trim()).filter(Boolean)).size
 
+  const fattureRows = (fattureImportiRes.data ?? []) as FatturaDupProbe[]
+  const fattDup = fattureImportiRes.error ? null : analyzeFatturaDuplicateGroups(fattureRows)
+  const bolleDupRows = (bolleDupRes.data ?? []) as BollaDupProbe[]
+  const bolleDupDel = bolleDupRes.error ? null : analyzeBolleDuplicatesForDeletion(bolleDupRows)
+
+  const rawFattureSum = sumImporti(fattureRows as unknown as { importo: number | null }[])
+  const totaleImportoDeduped = Math.max(0, rawFattureSum - (fattDup?.surplusImporto ?? 0))
+
+  const dupFatt = fattDup?.surplusCount ?? 0
+  const dupBolle = bolleDupDel?.surplusCount ?? 0
+  const dupOrd = duplicatiOrdiniCount ?? 0
+  const docAssoc = docDaAssocRes.count ?? 0
+  const anom = typeof anomaliePrezziCount === 'number' ? anomaliePrezziCount : 0
+  const documentiDaRevisionare = dupFatt + dupBolle + dupOrd + docAssoc + anom
+
   return {
     bolleTotal: bolleRes.count ?? 0,
     bolleInAttesa: bolleAttesaRes.count ?? 0,
     fattureCount: fattureCountRes.count ?? 0,
+    duplicatiCount: dupFatt,
+    duplicatiBolleCount: dupBolle,
+    duplicatiOrdiniCount: dupOrd,
+    documentiDaRevisionare,
     documentiPending: documentiPendingGlobal,
-    documentiDaAssociare: docDaAssocRes.count ?? 0,
-    totaleImporto: sumImporti(fattureImportiRes.data as { importo: number | null }[] | null),
+    documentiDaAssociare: docAssoc,
+    totaleImporto: totaleImportoDeduped,
     listinoRows: listinoRes.count ?? 0,
     listinoProdottiDistinti,
     ordiniCount,

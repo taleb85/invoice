@@ -79,11 +79,11 @@ export default async function ListinoOverviewPage({
   }
 
   const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
-  const listinoTheme = SUMMARY_HIGHLIGHT_ACCENTS.lime
+  const listinoTheme = SUMMARY_HIGHLIGHT_ACCENTS.fuchsia
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
-      <AppPageHeaderStrip accent="lime">
+      <AppPageHeaderStrip accent="fuchsia">
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.fornitori.tabListino}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
@@ -126,7 +126,7 @@ export default async function ListinoOverviewPage({
       ) : (
         <>
           <AppSummaryHighlightCard
-            accent="lime"
+            accent="fuchsia"
             label={t.common.total}
             primary={rows.length}
             secondary={t.dashboard.listinoOverviewLimitNote.replace(/\{n\}/g, String(rows.length))}

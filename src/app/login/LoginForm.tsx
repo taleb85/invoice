@@ -468,7 +468,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   if (sessionGateNext && (!gateUiReady || meLoading)) {
     return (
-      <div className="mx-auto flex min-h-[50vh] w-full max-w-xs flex-col items-center justify-center gap-3 px-4">
+      <div className="mx-auto flex min-h-[50vh] w-full max-w-sm flex-col items-center justify-center gap-3 px-1">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
         <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
       </div>
@@ -476,15 +476,15 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-xs">
+    <div className="w-full max-w-sm">
 
       <LoginBrandedHero mode={mode} />
 
       {/* Card — tema Deep Ocean; shell + barra = globals .app-card-login / .app-card-bar */}
-      <div className="app-card-login">
+      <div className="app-card-login flex flex-col overflow-hidden">
         <div className="app-card-bar" aria-hidden />
 
-        <div className="space-y-4 p-6 text-center text-app-fg">
+        <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
 
         {mode === 'name' ? (
           /* ── OPERATORE: Nome + PIN a 4 cifre — niente autofill / salvataggio credenziali browser ── */
@@ -498,7 +498,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           >
 
             {/* Nome */}
-            <div>
+            <div className="text-left sm:text-center">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.login.nameLabel}</label>
               <input
                 type="text"
@@ -545,12 +545,12 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                   setName(token)
                   void lookupSede(token, { silentNotFound: false })
                 }}
-                className={`${inputCls} text-center`}
+                className={`${inputCls} text-left sm:text-center`}
                 autoFocus
                 disabled={loading}
               />
               {/* Badge sede */}
-              <div className="mt-2 flex h-6 min-h-6 items-center justify-center">
+              <div className="mt-2 flex h-6 min-h-6 items-center justify-start sm:justify-center">
                 {lookingUp && (
                   <span className="text-xs text-app-fg-muted flex items-center gap-1.5">
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -575,13 +575,13 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             </div>
 
             {/* PIN a 4 caselle */}
-            <div>
+            <div className="text-left sm:text-center">
               <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                 <span>{t.login.pinLabel}</span>
                 <span className="font-normal normal-case text-app-fg-muted"> {t.login.pinDigits}</span>
               </label>
               <div
-                className="flex gap-3 justify-center rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+                className="flex justify-center gap-2 rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-2 py-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:gap-3 sm:px-3 sm:py-3"
                 onPaste={handlePinPaste}
               >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -598,7 +598,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     onKeyDown={e => handlePinKeyDown(idx, e)}
                     disabled={loading || (!nameReady && idx === 0 ? false : !nameReady)}
                     className={[
-                      'w-14 h-14 text-center text-xl font-bold border-2 rounded-xl transition-all',
+                      'h-12 w-12 rounded-xl border-2 text-center text-lg font-bold transition-all sm:h-14 sm:w-14 sm:text-xl',
                       'focus:outline-none focus:ring-0',
                       loading
                         ? 'border-app-line-30 app-workspace-inset-bg-soft text-app-fg-muted'
@@ -613,7 +613,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               </div>
 
               {/* Progress dots */}
-              <div className="flex justify-center gap-2 mt-3">
+              <div className="mt-3 flex justify-center gap-2">
                 {Array.from({ length: PIN_LENGTH }).map((_, i) => (
                     <span key={i} className={[
                     'w-1.5 h-1.5 rounded-full transition-all duration-200',
@@ -778,90 +778,111 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             )}
           </form>
         )}
-        </div>{/* fine p-8 */}
-      </div>{/* fine card */}
+        </div>
 
-      {/* Toggle admin + language selector row */}
-      <div
-        className={`mt-5 flex w-full items-center px-1 ${sessionGateNext ? 'justify-end' : 'justify-between'}`}
-      >
-        {!sessionGateNext &&
-          (mode === 'name' ? (
+        {/* Barra inferiore: stessa larghezza della card (link admin + lingua) */}
+        <div
+          className={`flex min-h-[3rem] items-center gap-3 border-t border-white/10 bg-black/[0.12] px-4 py-2.5 ${
+            sessionGateNext ? 'justify-center' : 'justify-between'
+          }`}
+        >
+          {!sessionGateNext &&
+            (mode === 'name' ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('admin')
+                  setMessage(null)
+                  setName('')
+                  setSedeNome(null)
+                  setNameReady(false)
+                  resolvedEmail.current = null
+                  setPin(Array(PIN_LENGTH).fill(''))
+                  setEmail('')
+                  setAdminPw('')
+                  setSuggestions([])
+                  setShowSugg(false)
+                }}
+                className="min-w-0 shrink text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
+              >
+                {t.login.adminLink}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('name')
+                  setMessage(null)
+                  setEmail('')
+                  setAdminPw('')
+                  setSuggestions([])
+                  setShowSugg(false)
+                  setName('')
+                  setSedeNome(null)
+                  setNameReady(false)
+                  resolvedEmail.current = null
+                  setPin(Array(PIN_LENGTH).fill(''))
+                }}
+                className="min-w-0 shrink text-left text-[11px] text-app-fg-muted/80 transition-colors hover:text-app-fg"
+              >
+                {t.login.operatorLink}
+              </button>
+            ))}
+
+          <div className="relative shrink-0">
             <button
               type="button"
-              onClick={() => {
-                setMode('admin')
-                setMessage(null)
-                setName('')
-                setSedeNome(null)
-                setNameReady(false)
-                resolvedEmail.current = null
-                setPin(Array(PIN_LENGTH).fill(''))
-                setEmail('')
-                setAdminPw('')
-                setSuggestions([])
-                setShowSugg(false)
-              }}
-              className="text-[11px] text-white/80 transition-colors hover:text-white"
+              onClick={() => setLangOpen(o => !o)}
+              className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11px] text-app-fg-muted transition-colors hover:bg-white/5 hover:text-app-fg"
+              aria-expanded={langOpen}
+              aria-haspopup="listbox"
             >
-              {t.login.adminLink}
+              <span className="text-base leading-none">{LOCALES.find(l => l.code === locale)?.flag}</span>
+              <span className="max-w-[5.5rem] truncate text-left font-medium">
+                {LOCALES.find(l => l.code === locale)?.label}
+              </span>
+              <svg
+                className={`h-2.5 w-2.5 shrink-0 transition-transform ${langOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setMode('name')
-                setMessage(null)
-                setEmail('')
-                setAdminPw('')
-                setSuggestions([])
-                setShowSugg(false)
-                setName('')
-                setSedeNome(null)
-                setNameReady(false)
-                resolvedEmail.current = null
-                setPin(Array(PIN_LENGTH).fill(''))
-              }}
-              className="text-[11px] text-white/50 transition-colors hover:text-white/80"
-            >
-              {t.login.operatorLink}
-            </button>
-          ))}
-
-        {/* Compact language switcher */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setLangOpen(o => !o)}
-            className="flex items-center gap-1 text-[11px] text-white/50 hover:text-white/80 transition-colors"
-          >
-            <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag}</span>
-            <svg className={`w-2.5 h-2.5 transition-transform ${langOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-            </svg>
-          </button>
-          {langOpen && (
-            <div className="absolute bottom-full right-0 z-50 mb-1 w-36 overflow-hidden rounded-xl border border-app-line-25 app-workspace-surface-elevated shadow-[0_12px_32px_-8px_rgba(0,0,0,0.45),0_0_24px_-10px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-white/10 backdrop-blur-xl">
-              {LOCALES.map(l => (
-                <button
-                  key={l.code}
-                  type="button"
-                  onClick={() => { setLocale(l.code); setLangOpen(false) }}
-                  className={`flex w-full items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
-                    locale === l.code ? 'bg-app-line-18 text-app-fg' : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
-                  }`}
-                >
-                  <span className="text-sm">{l.flag}</span>
-                  <span>{l.label}</span>
-                  {locale === l.code && (
-                    <svg className="ml-auto h-3 w-3 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                    </svg>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+            {langOpen && (
+              <div
+                className={`absolute bottom-full z-50 mb-1 w-40 overflow-hidden rounded-xl border border-app-line-25 app-workspace-surface-elevated shadow-[0_12px_32px_-8px_rgba(0,0,0,0.45),0_0_24px_-10px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-white/10 backdrop-blur-xl ${
+                  sessionGateNext ? 'left-1/2 right-auto -translate-x-1/2' : 'right-0'
+                }`}
+                role="listbox"
+              >
+                {LOCALES.map(l => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => {
+                      setLocale(l.code)
+                      setLangOpen(false)
+                    }}
+                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[11px] font-medium transition-colors ${
+                      locale === l.code
+                        ? 'bg-app-line-18 text-app-fg'
+                        : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
+                    }`}
+                  >
+                    <span className="text-sm">{l.flag}</span>
+                    <span>{l.label}</span>
+                    {locale === l.code && (
+                      <svg className="ml-auto h-3 w-3 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
