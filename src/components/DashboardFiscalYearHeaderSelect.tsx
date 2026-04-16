@@ -42,7 +42,7 @@ export default function DashboardFiscalYearHeaderSelect({
   }
 
   return (
-    <label className="flex min-w-0 shrink-0 flex-row flex-nowrap items-center gap-1.5 sm:gap-2">
+    <label className="hidden min-w-0 shrink-0 flex-row flex-nowrap items-center gap-1.5 sm:gap-2 md:flex">
       <span className="whitespace-nowrap text-[8px] font-semibold uppercase leading-tight tracking-wide text-white/95 sm:text-[9px]">
         {t.dashboard.kpiFiscalYearFilter}
       </span>

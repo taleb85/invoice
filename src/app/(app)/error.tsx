@@ -29,7 +29,7 @@ export default function AppError({
           </div>
         </div>
 
-        <div className="app-card overflow-hidden text-left">
+        <div className="app-card app-card-transparent overflow-hidden text-left">
           <div className="app-card-bar" aria-hidden />
           <div className="space-y-4 px-8 py-7 text-center">
           <h2 className="text-lg font-semibold text-app-fg">

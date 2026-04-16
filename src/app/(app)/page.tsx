@@ -288,7 +288,9 @@ export default async function DashboardPage({
         </div>
       )}
       {supplierHint && (
-        <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${SUMMARY_HIGHLIGHT_ACCENTS.violet.border}`}>
+        <div
+          className={`hidden md:block ${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${SUMMARY_HIGHLIGHT_ACCENTS.violet.border}`}
+        >
           <div className={`app-card-bar-accent ${SUMMARY_HIGHLIGHT_ACCENTS.violet.bar}`} aria-hidden />
           <div className={`app-workspace-surface-elevated ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
@@ -369,7 +371,7 @@ export default async function DashboardPage({
       ) : null}
 
       {!operatorScoped ? (
-        <div className="dashboard-operator-desktop-column">
+        <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
           <div>
             <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
               {t.fornitori.tabRiepilogo}
@@ -386,7 +388,7 @@ export default async function DashboardPage({
 
       {operatorScoped ? (
         <>
-          <div className="dashboard-operator-desktop-column">
+          <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
             <Suspense fallback={<DashboardOperatorKpiSkeleton />}>
               <div>
                 <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">

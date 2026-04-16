@@ -2,15 +2,12 @@ import Link from 'next/link'
 import type { ScannerFlowDaySummary, ScannerFlowEventRow, ScannerFlowEventStep } from '@/lib/dashboard-operator-kpis'
 import type { Translations } from '@/lib/translations'
 import HubScannerIcon from '@/components/HubScannerIcon'
+import { SCANNER_FLOW_MOBILE_TITLE_FRAME } from '@/lib/scanner-flow-title-frame'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
 } from '@/lib/summary-highlight-accent'
-
-/** Bordo / alone come `scannerNavItemCls(false)` nella dock (titolo mobile, chip più grande). */
-const SCANNER_FLOW_MOBILE_TITLE_FRAME =
-  'rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 shadow-[0_0_24px_-8px_rgba(6,182,212,0.48)] ring-1 ring-inset ring-white/10'
 
 export function scannerFlowStepLabel(step: ScannerFlowEventStep, t: Translations): string {
   switch (step) {
@@ -113,19 +110,19 @@ function ScannerFlowCardIntro({
         </>
       ) : (
         <div className="flex w-full flex-col gap-3 border-b border-app-line-15 pb-3 md:flex-row md:items-center md:justify-between md:pb-4">
-          <div className="flex w-full justify-center md:justify-start">
+          <div className="flex w-full justify-start">
             <h2
-              className={`m-0 inline-flex max-w-full min-w-0 min-h-[52px] flex-col items-center justify-center gap-1 px-5 py-3 text-center font-normal sm:min-h-14 sm:gap-1.5 sm:px-7 sm:py-4 md:min-h-0 md:flex-row md:items-center md:justify-start md:gap-2 md:px-3 md:py-2 md:text-left ${SCANNER_FLOW_MOBILE_TITLE_FRAME} md:shadow-[0_0_14px_-10px_rgba(6,182,212,0.38)]`}
+              className={`m-0 inline-flex max-w-full min-w-0 min-h-[40px] flex-row flex-nowrap items-center justify-start gap-1.5 px-3 py-1.5 text-left font-normal sm:min-h-[44px] sm:gap-2 sm:px-3.5 sm:py-2 md:min-h-0 md:gap-1.5 md:px-2.5 md:py-1.5 ${SCANNER_FLOW_MOBILE_TITLE_FRAME} md:shadow-[0_0_14px_-10px_rgba(6,182,212,0.38)]`}
             >
-              <HubScannerIcon className="h-7 w-7 shrink-0 text-app-fg-muted drop-shadow-[0_0_12px_rgba(34,211,238,0.5)] sm:h-8 sm:w-8 md:h-5 md:w-5 md:drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" aria-hidden />
-              <span className="line-clamp-2 max-w-[18rem] text-center text-xs font-semibold leading-snug text-app-fg sm:max-w-[20rem] sm:text-sm md:line-clamp-1 md:max-w-none md:text-left md:text-xs [overflow-wrap:anywhere]">
-                {t.nav.bottomNavScannerAi}
+              <HubScannerIcon className="h-5 w-5 shrink-0 text-app-fg-muted drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] sm:h-6 sm:w-6 md:h-5 md:w-5 md:drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" aria-hidden />
+              <span className="min-w-0 shrink truncate text-left text-[11px] font-semibold leading-tight text-app-fg sm:text-xs md:flex-1 md:basis-auto md:text-[11px]">
+                {t.fornitori.tabRiepilogo}
               </span>
             </h2>
           </div>
           {headerLinks &&
           (headerLinks.newScanHref?.trim() || headerLinks.eventsHref?.trim()) ? (
-            <div className="flex shrink-0 flex-nowrap items-center justify-center gap-2 sm:gap-3 md:justify-end">
+            <div className="hidden shrink-0 flex-nowrap items-center justify-center gap-2 sm:gap-3 md:flex md:justify-end">
               {headerLinks.newScanHref?.trim() ? (
                 <Link
                   href={headerLinks.newScanHref}

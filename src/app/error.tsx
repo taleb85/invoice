@@ -40,7 +40,7 @@ export default function RootErrorBoundary({
           </div>
         </div>
 
-        <div className="app-card-login flex flex-col overflow-hidden">
+        <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
           <div className="app-card-bar shrink-0" aria-hidden />
           <div className="space-y-4 px-8 py-8">
             <h1 className="app-page-title text-xl font-bold">{t.appStrings.errorGenericTitle}</h1>

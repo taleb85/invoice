@@ -246,7 +246,7 @@ export default function FornitoriCardsGrid({
           const avatarShell =
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 via-sky-500 to-cyan-600 text-xs font-bold text-white shadow-md shadow-sky-950/45 ring-2 ring-sky-500/35 ring-offset-1 ring-offset-[rgb(2_6_23/0.9)] sm:h-14 sm:w-14 sm:rounded-2xl sm:text-base sm:ring-offset-2 lg:h-16 lg:w-16 lg:text-lg'
           const pivaEl = f.piva ? (
-            <div className="mt-0.5 flex min-w-0 shrink-0 flex-col items-stretch self-start sm:mt-0 sm:max-w-[min(100%,13rem)] sm:items-end sm:justify-start sm:pl-3 lg:max-w-[15rem] lg:pl-5">
+            <div className="hidden min-w-0 shrink-0 flex-col items-stretch self-start md:mt-0 md:flex md:max-w-[min(100%,13rem)] md:items-end md:justify-start md:pl-3 lg:max-w-[15rem] lg:pl-5">
               <p className="truncate rounded-md border border-sky-500/25 app-workspace-inset-bg-soft px-2 py-1 text-left font-mono text-[10px] leading-tight text-app-fg-muted sm:rounded-full sm:border-sky-500/30 sm:app-workspace-inset-bg sm:px-3 sm:py-1 sm:text-right sm:text-[11px] lg:text-xs">
                 {t.fornitori.pivaLabel} {f.piva}
               </p>

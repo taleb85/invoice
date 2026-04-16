@@ -163,6 +163,17 @@
   to   { opacity: 0; }
 }
 
+/** Dashboard mobile: tile quadrato «Scanner AI» — pulsazione soft (solo transform) */
+@keyframes dashboard-scanner-mobile-tile-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
 /** Pallino stato rete (ConnectionStatusDot): lampeggio soft + glow */
 @keyframes connection-dot-pulse-green {
   0%, 100% {
@@ -373,15 +384,44 @@
     -webkit-backdrop-filter: blur(24px);
   }
 
-  /** Dock navigazione mobile: stesso filo cromatico del canvas (prima era solo nel ramo `@supports not` → su browser con blur non aveva fill). */
+  /** Error boundary su `LoginBrandedShell`: niente vetro pieno, canvas visibile sotto. */
+  .app-card-login-transparent {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    @apply border-app-line-30/50 ring-1 ring-inset ring-white/[0.06];
+  }
+
+  /** Segment error (`(app)/error.tsx`): stesso trattamento su canvas app. */
+  .app-card-transparent {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    @apply border-app-line-30/50 ring-1 ring-inset ring-white/[0.06];
+  }
+
+  /**
+   * Dock mobile: default trasparente. Con `app-glass-dock-opaque` (scroll: contenuto sotto al dock)
+   * si applica riempimento + blur da `DashboardMobileBottomNav`.
+   */
   .app-glass-dock {
-    @apply border-app-line-30;
+    background: transparent;
+    background-image: none;
+    background-color: transparent;
+  }
+
+  .app-glass-dock.app-glass-dock-opaque {
     background-image: linear-gradient(
       to top,
-      rgb(15 23 42 / 0.94),
-      rgb(30 41 59 / 0.88),
-      rgb(30 27 75 / 0.82)
+      rgb(15 23 42 / 0.97),
+      rgb(30 41 59 / 0.94),
+      rgb(30 27 75 / 0.9)
     );
+    background-color: rgb(15 23 42 / 0.96);
   }
 
   /**
@@ -389,8 +429,12 @@
    * Con blur attivo restano valide le classi Tailwind sui componenti.
    */
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-    .app-card,
-    .app-card-login,
+    .app-glass-dock.app-glass-dock-opaque {
+      background: linear-gradient(to top, rgb(15 23 42 / 0.98), rgb(30 41 59 / 0.95), rgb(30 27 75 / 0.92));
+      background-color: rgb(15 23 42 / 0.97);
+    }
+    .app-card:not(.app-card-transparent),
+    .app-card-login:not(.app-card-login-transparent),
     .operator-kpi-card {
       background: linear-gradient(to bottom, rgba(6, 182, 212, 0.22), rgba(91, 33, 182, 0.16)),
         rgb(15 23 42 / 0.92);
@@ -722,7 +766,6 @@ body {
   }
 }
 .dashboard-operator-desktop-column {
-  display: flex !important;
   min-height: 0;
   width: 100%;
   min-width: 0;
@@ -736,4 +779,40 @@ body {
 }
 .dashboard-operator-empty-shell-desktop {
   display: block !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dashboard-scanner-mobile-tile-pulse {
+    animation: dashboard-scanner-mobile-tile-breathe 2.35s ease-in-out infinite;
+    transform-origin: center center;
+    will-change: transform;
+  }
+
+  .group:hover .dashboard-scanner-mobile-tile-pulse,
+  .group:focus-visible .dashboard-scanner-mobile-tile-pulse {
+    animation: none;
+    transform: scale(1);
+  }
+}
+
+/*
+ * `/bolle/new` (NuovaBollaForm): su mobile senza pannello «vetro» così il canvas resta leggibile.
+ * Fuori da @layer per vincere su `.app-card` / `@supports not (backdrop-filter)`.
+ */
+@media (max-width: 767px) {
+  .nuova-bolla-scanner-mobile-header .app-card,
+  .nuova-bolla-scanner-mobile .app-card {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .nuova-bolla-scanner-mobile .app-workspace-inset-bg,
+  .nuova-bolla-scanner-mobile .app-workspace-inset-bg-soft,
+  .nuova-bolla-scanner-mobile .app-workspace-inset-footer-row {
+    background: transparent !important;
+    background-image: none !important;
+  }
 }

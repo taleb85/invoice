@@ -23,6 +23,7 @@ import { AppActivitiesProvider } from '@/lib/app-activities-context'
 import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
 import EmailSyncProgressBar from './EmailSyncProgressBar'
 import { isFornitoreProfileRoute, normalizeAppPath, showsMobileBottomBar } from '@/lib/mobile-hub-routes'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { NetworkProvider } from '@/lib/network-context'
 import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
@@ -180,6 +181,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const hub = showsMobileBottomBar()
   const { me, loading } = useMe()
   const { activeOperator } = useActiveOperator()
+  const { visible: homeScannerDockCtaVisible } = useManualDeliverySede()
   const headerToastBanner = useDesktopHeaderToastBanner()
   const headerNavBarSurface = desktopHeaderBarSurfaceClass(headerToastBanner)
   /** Toast success/error: superficie opaca. Altrimenti trasparente su md (gradiente sul contenitore griglia). */
@@ -197,9 +199,15 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     (loading && !me) ||
     effectiveIsMasterAdminPlane(me, activeOperator) ||
     isFornitoreProfileRoute(normalized)
-  const hubBottomPad = tallMobileDock
-    ? 'pb-[calc(10.5rem+env(safe-area-inset-bottom,0px))]'
-    : 'pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))]'
+  const homeScannerDockCta =
+    hub && (normalized === '/' || normalized === '') && homeScannerDockCtaVisible
+  const hubBottomPad = homeScannerDockCta
+    ? tallMobileDock
+      ? 'pb-[calc(22.5rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(19rem+env(safe-area-inset-bottom,0px))]'
+    : tallMobileDock
+      ? 'pb-[calc(10.5rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))]'
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-slate-950">
       <DesktopHeaderPageActionsProvider>

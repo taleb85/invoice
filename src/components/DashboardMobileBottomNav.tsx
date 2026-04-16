@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useLayoutEffect, useState } from 'react'
 import { FileText, Home, Plus, Settings, Users } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useT } from '@/lib/use-t'
@@ -13,17 +14,55 @@ import {
   normalizeAppPath,
 } from '@/lib/mobile-hub-routes'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
-import HubScannerIcon from '@/components/HubScannerIcon'
+import DashboardHomeScannerDockCta from '@/components/DashboardHomeScannerDockCta'
+
+/** Sotto al dock c’è ancora contenuto scrollabile (non sei a fondo pagina). */
+const DOCK_OVER_CONTENT_EPS_PX = 28
 
 /**
- * Glass dock — vetro cyan/slate come `.app-card`: bordo cyan, gradiente scuro, alone leggero, blur forte.
- * Padding basso: 2rem (≈ pb-8) + safe-area per ergonomia sopra la gesture bar.
+ * Dock mobile: default trasparente; con contenuto sotto (`#app-main` non a fondo) si applica
+ * `app-glass-dock-opaque` + blur (vedi `globals.css`). Bordo/ring 1px; pb 2rem + safe-area.
  */
-const navShell =
-  'app-glass-dock fixed bottom-0 left-1/2 z-[100] flex w-[min(100vw-1rem,var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch rounded-t-2xl border border-app-line-25 border-b-0 text-app-fg shadow-[0_-24px_48px_-14px_rgba(0,0,0,0.55),0_0_36px_-14px_rgba(34,211,238,0.14)] ring-1 ring-inset ring-white/10 backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-3 ps-[max(0.25rem,env(safe-area-inset-left,0px))] pe-[max(0.25rem,env(safe-area-inset-right,0px))] md:hidden'
+const NAV_SHELL_BASE =
+  'app-glass-dock fixed bottom-0 left-1/2 z-[100] flex w-[min(100vw-1rem,var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch rounded-t-2xl border border-app-line-35 border-b-0 text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_22px_-14px_rgba(34,211,238,0.14)] ring-1 ring-inset ring-app-a-35 pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pt-3 ps-[max(0.25rem,env(safe-area-inset-left,0px))] pe-[max(0.25rem,env(safe-area-inset-right,0px))] md:hidden'
 
-const navClsFornitore = `${navShell} flex-col gap-2 px-2 sm:gap-3 sm:px-4`
-const navClsHub = `${navShell} flex-col gap-2 px-2 sm:px-2`
+const NAV_SHELL_OPAQUE_GLASS =
+  'app-glass-dock-opaque backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150'
+
+const NAV_SHELL_CLEAR_GLASS =
+  'backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none] backdrop-saturate-100'
+
+function glassDockNavShellClass(opaque: boolean, layout: string) {
+  return `${NAV_SHELL_BASE} ${opaque ? NAV_SHELL_OPAQUE_GLASS : NAV_SHELL_CLEAR_GLASS} ${layout}`
+}
+
+function useGlassDockOverContent(): boolean {
+  const [over, setOver] = useState(false)
+
+  useLayoutEffect(() => {
+    const main = document.getElementById('app-main')
+    if (!main) {
+      setOver(false)
+      return
+    }
+    const tick = () => {
+      const gap = main.scrollHeight - main.scrollTop - main.clientHeight
+      setOver(gap > DOCK_OVER_CONTENT_EPS_PX)
+    }
+    tick()
+    main.addEventListener('scroll', tick, { passive: true })
+    window.addEventListener('resize', tick)
+    const ro = new ResizeObserver(tick)
+    ro.observe(main)
+    return () => {
+      main.removeEventListener('scroll', tick)
+      window.removeEventListener('resize', tick)
+      ro.disconnect()
+    }
+  }, [])
+
+  return over
+}
 
 const hubIconsRow =
   'flex w-full min-h-[48px] flex-1 items-stretch justify-between gap-0.5 sm:justify-around sm:gap-1'
@@ -98,9 +137,11 @@ function OperatorHubNavItem({ itemCls }: { itemCls: (active: boolean) => string 
 function FornitoreProfileBottomNav({
   normalized,
   itemCls,
+  dockOpaque,
 }: {
   normalized: string
   itemCls: (active: boolean) => string
+  dockOpaque: boolean
 }) {
   const pathname = usePathname() ?? ''
   const t = useT()
@@ -112,8 +153,10 @@ function FornitoreProfileBottomNav({
   const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const dashboardActive = pathname === '/' || pathname === ''
 
+  const navCls = glassDockNavShellClass(dockOpaque, 'flex-col gap-2 px-2 sm:gap-3 sm:px-4')
+
   return (
-    <nav className={navClsFornitore} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
+    <nav className={navCls} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
       {masterAdminNoOperator ? <BottomNavOperatorRow /> : null}
       <div className={fornitoreIconsRow}>
         <Link href="/fornitori" className={itemCls(false)} prefetch={false}>
@@ -141,6 +184,7 @@ export default function DashboardMobileBottomNav() {
   const t = useT()
   const { me, loading } = useMe()
   const { activeOperator } = useActiveOperator()
+  const dockOver = useGlassDockOverContent()
 
   const role: 'admin' | 'admin_sede' | 'operatore' | null = me?.role ?? null
 
@@ -149,6 +193,8 @@ export default function DashboardMobileBottomNav() {
   if (loading) {
     return null
   }
+
+  const navClsHub = glassDockNavShellClass(dockOver, 'flex-col gap-2 px-2 sm:px-2')
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === ''
@@ -160,26 +206,17 @@ export default function DashboardMobileBottomNav() {
       if (pathname === '/fornitori/import') return true
       return pathname === '/fornitori' || pathname.startsWith('/fornitori/')
     }
-    if (href === '/bolle/new') return pathname === '/bolle/new'
     if (href === '/impostazioni') return pathname === '/impostazioni' || pathname.startsWith('/impostazioni/')
     return pathname === href
   }
 
-  /** Voce compatta: Dashboard, Fornitori, Scanner, Bolle, Impostazioni */
+  /** Voce compatta: Dashboard, Fornitori, Bolle, Impostazioni (scanner: CTA in dashboard mobile). */
   const itemCls = (active: boolean) =>
     `flex min-h-[48px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-2 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-xs touch-manipulation transition-colors ${
       active
         ? 'text-app-fg-muted'
         : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15'
     } ${active ? 'bg-app-line-15 ring-1 ring-inset ring-app-a-20' : ''}`
-
-  /** Scanner AI — stesso filo del CTA dashboard (gradiente cyan/viola, alone). */
-  const scannerNavItemCls = (active: boolean) =>
-    `flex min-h-[48px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-2 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-xs touch-manipulation transition-all active:scale-[0.98] ${
-      active
-        ? 'border-app-a-50 bg-gradient-to-b from-app-line-30 to-violet-500/15 text-app-fg shadow-[0_0_22px_-8px_rgba(6,182,212,0.55)]'
-        : 'border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.42)] hover:border-app-a-45 hover:from-app-line-25 hover:to-violet-500/15 hover:text-white'
-    }`
 
   /** Tre colonne uguali sulla scheda fornitore (niente max-w 25%). */
   const fornitoreItemCls = (active: boolean) =>
@@ -190,11 +227,18 @@ export default function DashboardMobileBottomNav() {
     } ${active ? 'bg-app-line-15 ring-1 ring-inset ring-app-a-20' : ''}`
 
   if (isFornitoreProfileRoute(normalized)) {
-    return <FornitoreProfileBottomNav normalized={normalized} itemCls={fornitoreItemCls} />
+    return (
+      <FornitoreProfileBottomNav
+        normalized={normalized}
+        itemCls={fornitoreItemCls}
+        dockOpaque={dockOver}
+      />
+    )
   }
 
   const adminHubNav = () => (
     <nav className={navClsHub} aria-label={BOTTOM_NAV_ARIA_ADMIN}>
+      <DashboardHomeScannerDockCta />
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
           <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
@@ -203,10 +247,6 @@ export default function DashboardMobileBottomNav() {
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
           <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
-        </Link>
-        <Link href="/bolle/new" className={scannerNavItemCls(isActive('/bolle/new'))} prefetch={false}>
-          <HubScannerIcon className="h-5 w-5 shrink-0 text-app-fg-muted drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] sm:h-6 sm:w-6" />
-          <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavScannerAi}</span>
         </Link>
         <Link href="/bolle" className={itemCls(isActive('/bolle'))} prefetch={false}>
           <FileText className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
@@ -223,6 +263,7 @@ export default function DashboardMobileBottomNav() {
   /** Mobile operatore: azioni urgenti (fornitori/bolle estesi restano su desktop / griglia KPI). */
   const operatorHubNav = () => (
     <nav className={navClsHub} aria-label={BOTTOM_NAV_ARIA_MAIN}>
+      <DashboardHomeScannerDockCta />
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
           <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
@@ -231,10 +272,6 @@ export default function DashboardMobileBottomNav() {
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
           <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
-        </Link>
-        <Link href="/bolle/new" className={scannerNavItemCls(isActive('/bolle/new'))} prefetch={false}>
-          <HubScannerIcon className="h-5 w-5 shrink-0 text-app-fg-muted drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] sm:h-6 sm:w-6" />
-          <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bottomNavScannerAi}</span>
         </Link>
         <OperatorHubNavItem itemCls={itemCls} />
         <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>

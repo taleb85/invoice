@@ -3900,7 +3900,43 @@ function FornitoreDetailClient({
         </div>
 
         <div className="min-w-0">
-          <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
+          {supplierReadOnlyMobile ? (
+            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
+          ) : (
+            <div
+              className="-mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              role="navigation"
+              aria-label={fornitore.nome}
+            >
+              {tabs.map((tb) => (
+                <button
+                  key={tb.id}
+                  type="button"
+                  onClick={() => setTab(tb.id)}
+                  className={`box-border flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-t-md px-2.5 py-2 text-xs font-semibold leading-none transition-colors border-b-2 -mb-px touch-manipulation sm:min-h-10 sm:px-3 ${
+                    tab === tb.id
+                      ? `${SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE[tb.id]} bg-transparent text-app-fg`
+                      : 'border-b-transparent bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+                  }`}
+                >
+                  {tb.label}
+                  {tb.badge !== undefined && tb.badge > 0 ? (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        tab === tb.id
+                          ? tb.id === 'documenti'
+                            ? 'bg-amber-400/20 text-amber-300'
+                            : 'bg-app-a-20 text-app-fg-muted'
+                          : 'bg-white/10 text-app-fg-muted'
+                      }`}
+                    >
+                      {tb.badge}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border bg-transparent px-4 py-3">

@@ -564,7 +564,7 @@ export default function NuovaBollaForm() {
         Stessa forma della strip dashboard (`AppPageHeaderStrip`: card + app-card-bar + padding interno).
       */}
       <div
-        className={`app-shell-page-padding-x z-10 max-md:fixed max-md:left-0 max-md:right-0 md:sticky md:top-0 max-md:mt-2 md:mt-2 ${
+        className={`nuova-bolla-scanner-mobile-header app-shell-page-padding-x z-10 max-md:fixed max-md:left-0 max-md:right-0 md:sticky md:top-0 max-md:mt-2 md:mt-2 ${
           emailSyncBannerVisible
             ? 'max-md:top-[calc(3.5rem+6.5rem+env(safe-area-inset-top,0px))]'
             : 'max-md:top-[calc(3.5rem+env(safe-area-inset-top,0px))]'
@@ -583,7 +583,7 @@ export default function NuovaBollaForm() {
 
       <form
         onSubmit={handleSubmit}
-        className="mx-auto flex min-w-0 w-full max-w-lg flex-1 flex-col gap-3 p-3 pb-6 sm:p-4 sm:pb-7"
+        className="nuova-bolla-scanner-mobile mx-auto flex min-w-0 w-full max-w-lg flex-1 flex-col gap-3 p-3 pb-6 sm:p-4 sm:pb-7"
       >
 
         <div className="app-card overflow-hidden">
