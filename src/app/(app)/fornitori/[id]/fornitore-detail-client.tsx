@@ -65,16 +65,22 @@ import {
   supplierDesktopKpiOuterShadow,
   supplierKpiPalette,
 } from '@/lib/kpi-accent-palette'
-import { analyzeFatturaDuplicatesForDeletion } from '@/lib/check-duplicates'
+import {
+  analyzeBolleDuplicatesForDeletion,
+  analyzeFatturaDuplicatesForDeletion,
+  serializeFatturaDuplicateDeletionPayload,
+} from '@/lib/check-duplicates'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
+import { ActionLink } from '@/components/ui/ActionButton'
 import {
   APP_SECTION_DIVIDE_ROWS,
-  APP_SECTION_EMPTY_LINK_CLASS_COMPACT,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_TABLE_HEAD_ROW,
   APP_SECTION_TABLE_HEAD_ROW_STRONG,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR,
+  appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica'
@@ -131,6 +137,7 @@ interface Fattura {
   bolla_id: string | null
   numero_fattura: string | null
   importo: number | null
+  fornitore_id: string
 }
 
 interface ListinoRow {
@@ -203,7 +210,7 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   rekkiPriceAnomalies: 0,
 }
 
-function useSupplierPeriodStats(fornitoreId: string, year: number, month: number) {
+function useSupplierPeriodStats(fornitoreId: string, year: number, month: number, reloadEpoch = 0) {
   const [stats, setStats] = useState<SupplierPeriodStats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -316,7 +323,7 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
     return () => {
       cancelled = true
     }
-  }, [fornitoreId, year, month])
+  }, [fornitoreId, year, month, reloadEpoch])
 
   return { stats, loading }
 }
@@ -1458,6 +1465,8 @@ function BolleTab({
   pathname,
   searchParams,
   readOnly,
+  onLedgerMutated,
+  currency,
 }: {
   fornitoreId: string
   year: number
@@ -1465,9 +1474,12 @@ function BolleTab({
   pathname: string
   searchParams: ReadonlyURLSearchParams
   readOnly?: boolean
+  onLedgerMutated?: () => void
+  currency: string
 }) {
   const router = useRouter()
   const t = useT()
+  const { locale } = useLocale()
   const formatDate = useAppFormatDate()
   const [bolle, setBolle] = useState<Bolla[]>([])
   const [numeroDaCodaByFileUrl, setNumeroDaCodaByFileUrl] = useState<Record<string, string>>({})
@@ -1525,8 +1537,31 @@ function BolleTab({
     }
   }, [fornitoreId, year, month])
 
-  const numeroInElenco = (b: Bolla) =>
-    b.numero_bolla?.trim() || (b.file_url?.trim() ? numeroDaCodaByFileUrl[b.file_url.trim()] : '') || ''
+  const numeroInElenco = useCallback(
+    (b: Bolla) =>
+      b.numero_bolla?.trim() || (b.file_url?.trim() ? numeroDaCodaByFileUrl[b.file_url.trim()] : '') || '',
+    [numeroDaCodaByFileUrl],
+  )
+
+  const bollaDupPayload = useMemo(() => {
+    const analysis = analyzeBolleDuplicatesForDeletion(
+      bolle.map((b) => ({
+        id: b.id,
+        numero_bolla: numeroInElenco(b) || b.numero_bolla || null,
+        fornitore_id: fornitoreId,
+        data: (b.data ?? '').trim().slice(0, 10),
+      })),
+    )
+    return serializeFatturaDuplicateDeletionPayload(analysis)
+  }, [bolle, fornitoreId, numeroInElenco])
+
+  const onBollaDuplicateRemoved = useCallback(
+    (removedId: string) => {
+      setBolle((prev) => prev.filter((x) => x.id !== removedId))
+      onLedgerMutated?.()
+    },
+    [onLedgerMutated],
+  )
 
   if (loading) {
     return (
@@ -1563,9 +1598,9 @@ function BolleTab({
           }
         >
           {!readOnly ? (
-            <Link href={`/bolle/new?fornitore_id=${fornitoreId}`} className={APP_SECTION_EMPTY_LINK_CLASS_COMPACT}>
+            <ActionLink href={`/bolle/new?fornitore_id=${fornitoreId}`} intent="confirm" size="sm" className="mt-4">
               {t.bolle.creaLaPrimaBolla}
-            </Link>
+            </ActionLink>
           ) : null}
         </AppSectionEmptyState>
       </div>
@@ -1600,7 +1635,11 @@ function BolleTab({
                 ) : null}
               </div>
               {numeroInElenco(b) && <p className="mt-0.5 text-xs text-app-fg-muted">#{numeroInElenco(b)}</p>}
-              {b.importo != null && <p className="mt-0.5 text-xs font-semibold text-app-fg-muted">£{b.importo.toFixed(2)}</p>}
+              {b.importo != null && (
+                <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
+                  {formatCurrency(b.importo, currency, locale)}
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
                 {b.stato === 'completato' ? (
@@ -1631,13 +1670,17 @@ function BolleTab({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[500px] text-sm">
           <thead>
-            <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+            <tr className={appSectionTableHeadRowAccentClass('indigo')}>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.date}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colNumero}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colAttachmentKind}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.statements.colAmount}</th>
+              <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
+                {t.statements.colAmount}
+              </th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.status}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Actions</th>
+              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                {t.common.actions}
+              </th>
             </tr>
           </thead>
           <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -1650,7 +1693,22 @@ function BolleTab({
                 onClick={() => router.push(fornitoreBollaDeepLink(pathname, searchParams, b.id), { scroll: false })}
               >
                 <td className="px-5 py-3 font-medium text-app-fg-muted">{formatDate(b.data)}</td>
-                <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">{numeroInElenco(b) || '—'}</td>
+                <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">
+                  <span className="break-words">{numeroInElenco(b) || '—'}</span>
+                  {!readOnly ? (
+                    <DuplicateLedgerRowExtras
+                      rowId={b.id}
+                      payload={bollaDupPayload}
+                      kind="bolla"
+                      duplicateBadgeLabel={t.common.duplicateBadge}
+                      duplicateDeleteConfirm={t.bolle.duplicateCopyDeleteConfirm}
+                      removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                      deleteFailedPrefix={t.appStrings.deleteFailed}
+                      refreshRouter={false}
+                      onAfterDelete={() => onBollaDuplicateRemoved(b.id)}
+                    />
+                  ) : null}
+                </td>
                 <td className="px-5 py-3">
                   {!fileKind ? (
                     <span className="text-app-fg-muted">—</span>
@@ -1660,7 +1718,9 @@ function BolleTab({
                     </span>
                   )}
                 </td>
-                <td className="px-5 py-3 text-right font-bold tabular-nums text-app-fg-muted">{b.importo != null ? `£${b.importo.toFixed(2)}` : '—'}</td>
+                <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
+                  {b.importo != null ? formatCurrency(b.importo, currency, locale) : '—'}
+                </td>
                 <td className="px-5 py-3">
                   {b.stato === 'completato' ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
@@ -1716,6 +1776,8 @@ function FattureTab({
   pathname,
   searchParams,
   readOnly,
+  onLedgerMutated,
+  currency,
 }: {
   fornitoreId: string
   year: number
@@ -1723,20 +1785,36 @@ function FattureTab({
   pathname: string
   searchParams: ReadonlyURLSearchParams
   readOnly?: boolean
+  onLedgerMutated?: () => void
+  currency: string
 }) {
   const t = useT()
+  const { locale } = useLocale()
   const formatDate = useAppFormatDate()
   const [fatture, setFatture] = useState<Fattura[]>([])
   const [loading, setLoading] = useState(true)
 
+  const dupPayload = useMemo(() => {
+    const analysis = analyzeFatturaDuplicatesForDeletion(
+      fatture.map((f) => ({
+        id: f.id,
+        numero_fattura: f.numero_fattura,
+        fornitore_id: f.fornitore_id,
+        importo: f.importo,
+        data: f.data,
+      })),
+    )
+    return serializeFatturaDuplicateDeletionPayload(analysis)
+  }, [fatture])
+
   useEffect(() => {
     setLoading(true)
     const from = `${year}-${String(month).padStart(2, '0')}-01`
-    const to   = new Date(year, month, 1).toISOString().split('T')[0]
+    const to = new Date(year, month, 1).toISOString().split('T')[0]
     const supabase = createClient()
     supabase
       .from('fatture')
-      .select('id, data, file_url, bolla_id, numero_fattura, importo')
+      .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id')
       .eq('fornitore_id', fornitoreId)
       .gte('data', from)
       .lt('data', to)
@@ -1747,17 +1825,25 @@ function FattureTab({
       })
   }, [fornitoreId, year, month])
 
+  const onDuplicateRemoved = useCallback(
+    (removedId: string) => {
+      setFatture((prev) => prev.filter((x) => x.id !== removedId))
+      onLedgerMutated?.()
+    },
+    [onLedgerMutated],
+  )
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
         <div className={APP_SECTION_DIVIDE_ROWS}>
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="flex animate-pulse gap-4 px-5 py-3.5">
-            <div className="h-4 w-24 shrink-0 rounded app-workspace-inset-bg" />
-            <div className="h-4 w-16 shrink-0 rounded app-workspace-inset-bg" />
-          </div>
-        ))}
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex animate-pulse gap-4 px-5 py-3.5">
+              <div className="h-4 w-24 shrink-0 rounded app-workspace-inset-bg" />
+              <div className="h-4 w-16 shrink-0 rounded app-workspace-inset-bg" />
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -1767,113 +1853,178 @@ function FattureTab({
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
-        <div className="px-6 py-16 text-center">
-        <svg className="mx-auto mb-3 h-12 w-12 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <p className="text-sm font-medium text-app-fg-muted">{t.fatture.nessunaFatturaRegistrata}</p>
-        </div>
+        <AppSectionEmptyState message={t.fatture.nessunaFatturaRegistrata}>
+          {!readOnly ? (
+            <ActionLink
+              href={`/fatture/new?fornitore_id=${encodeURIComponent(fornitoreId)}`}
+              intent="confirm"
+              size="sm"
+              className="mt-4"
+            >
+              {t.fatture.addFirst}
+            </ActionLink>
+          ) : null}
+        </AppSectionEmptyState>
       </div>
     )
   }
 
   return (
-    <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
+    <div
+      className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}
+    >
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
-      <div className={APP_SECTION_MOBILE_LIST}>
-        {fatture.map((f) => {
-          const fileKind = attachmentKindFromFileUrl(f.file_url)
-          return (
-          <div key={f.id} className="min-h-[56px] px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation">
-            <Link href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)} scroll={false} className="block">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-app-fg">{formatDate(f.data)}</p>
-                    {fileKind ? (
-                      <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
-                        {attachmentKindText(fileKind, t)}
-                      </span>
-                    ) : null}
-                  </div>
-                  {f.numero_fattura && <p className="mt-0.5 text-xs text-app-fg-muted">#{f.numero_fattura}</p>}
-                  {f.importo != null && <p className="mt-0.5 text-xs font-semibold text-app-fg-muted">£{f.importo.toFixed(2)}</p>}
-                </div>
-                <div className="flex items-center gap-2">
-                  {f.bolla_id ? (
-                    <span className="rounded-full border border-app-line-30 bg-app-line-15 px-2 py-0.5 text-[11px] font-medium text-app-fg-muted">
-                      {t.fatture.statusAssociata}
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-app-line-28 app-workspace-inset-bg px-2 py-0.5 text-[11px] font-medium text-app-fg-muted">
-                      {t.fatture.statusSenzaBolla}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          </div>
-          )
-        })}
-      </div>
-
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[520px] text-sm">
-          <thead>
-            <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.date}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.fatture.colNumFattura}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colAttachmentKind}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.statements.colAmount}</th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.fatture.headerBolla}</th>
-              <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Actions</th>
-            </tr>
-          </thead>
-          <tbody className={APP_SECTION_TABLE_TBODY}>
-            {fatture.map((f) => {
-              const fileKind = attachmentKindFromFileUrl(f.file_url)
-              return (
-              <tr key={f.id} className={APP_SECTION_TABLE_TR}>
-                <td className="px-5 py-3 font-medium text-app-fg-muted">{formatDate(f.data)}</td>
-                <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">{f.numero_fattura ?? '—'}</td>
-                <td className="px-5 py-3">
-                  {!fileKind ? (
-                    <span className="text-app-fg-muted">—</span>
-                  ) : (
-                    <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
-                      {attachmentKindText(fileKind, t)}
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-right font-bold tabular-nums text-app-fg-muted">{f.importo != null ? `£${f.importo.toFixed(2)}` : '—'}</td>
-                <td className="px-5 py-3">
-                  {f.bolla_id ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-app-line-30 bg-app-line-15 px-2 py-0.5 text-[11px] font-semibold text-app-fg-muted">
-                      {t.fatture.statusAssociata}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-app-line-28 app-workspace-inset-bg px-2 py-0.5 text-[11px] font-semibold text-app-fg-muted">
-                      {t.fatture.statusSenzaBolla}
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-right">
-                  <Link
-                    href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)}
-                    scroll={false}
-                    className={FORNITORE_TABLE_CYAN_ACTION_PILL}
-                  >
-                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                    {t.fatture.dettaglio}
+        <div className={APP_SECTION_MOBILE_LIST}>
+          {fatture.map((f) => {
+            const fileKind = attachmentKindFromFileUrl(f.file_url)
+            return (
+              <div
+                key={f.id}
+                className="min-h-[56px] px-4 py-4 transition-colors hover:bg-black/12 active:brightness-95 touch-manipulation"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <Link href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)} scroll={false} className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-app-fg">{formatDate(f.data)}</p>
+                      {fileKind ? (
+                        <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
+                          {attachmentKindText(fileKind, t)}
+                        </span>
+                      ) : null}
+                    </div>
+                    {f.numero_fattura && <p className="mt-0.5 text-xs text-app-fg-muted">#{f.numero_fattura}</p>}
+                    {f.importo != null && (
+                      <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
+                        {formatCurrency(f.importo, currency, locale)}
+                      </p>
+                    )}
                   </Link>
-                </td>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    {f.bolla_id ? (
+                      <span className="rounded-full border border-app-line-30 bg-app-line-15 px-2 py-0.5 text-[11px] font-medium text-app-fg-muted">
+                        {t.fatture.statusAssociata}
+                      </span>
+                    ) : (
+                      <span className="rounded-full border border-app-line-28 app-workspace-inset-bg px-2 py-0.5 text-[11px] font-medium text-app-fg-muted">
+                        {t.fatture.statusSenzaBolla}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {!readOnly ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <DuplicateLedgerRowExtras
+                      rowId={f.id}
+                      payload={dupPayload}
+                      kind="fattura"
+                      duplicateBadgeLabel={t.common.duplicateBadge}
+                      duplicateDeleteConfirm={t.fatture.duplicateDeleteConfirm.replace(
+                        '{numero}',
+                        (f.numero_fattura ?? '').trim() || '—',
+                      )}
+                      removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                      deleteFailedPrefix={t.appStrings.deleteFailed}
+                      refreshRouter={false}
+                      onAfterDelete={() => onDuplicateRemoved(f.id)}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full min-w-[520px] text-sm">
+            <thead>
+              <tr className={appSectionTableHeadRowAccentClass('emerald')}>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.common.date}
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.fatture.colNumFattura}
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.bolle.colAttachmentKind}
+                </th>
+                <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
+                  {t.statements.colAmount}
+                </th>
+                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.fatture.headerBolla}
+                </th>
+                <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                  {t.common.actions}
+                </th>
               </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className={APP_SECTION_TABLE_TBODY}>
+              {fatture.map((f) => {
+                const fileKind = attachmentKindFromFileUrl(f.file_url)
+                return (
+                  <tr key={f.id} className={APP_SECTION_TABLE_TR}>
+                    <td className="px-5 py-3 font-medium text-app-fg-muted">{formatDate(f.data)}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">
+                      <span className="break-words">{f.numero_fattura ?? '—'}</span>
+                      {!readOnly ? (
+                        <DuplicateLedgerRowExtras
+                          rowId={f.id}
+                          payload={dupPayload}
+                          kind="fattura"
+                          duplicateBadgeLabel={t.common.duplicateBadge}
+                          duplicateDeleteConfirm={t.fatture.duplicateDeleteConfirm.replace(
+                            '{numero}',
+                            (f.numero_fattura ?? '').trim() || '—',
+                          )}
+                          removeCopyLabel={t.fatture.duplicateRemoveThisCopy}
+                          deleteFailedPrefix={t.appStrings.deleteFailed}
+                          refreshRouter={false}
+                          onAfterDelete={() => onDuplicateRemoved(f.id)}
+                        />
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-3">
+                      {!fileKind ? (
+                        <span className="text-app-fg-muted">—</span>
+                      ) : (
+                        <span className={attachmentKindPillClass(fileKind)} title={t.bolle.colAttachmentKind}>
+                          {attachmentKindText(fileKind, t)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
+                      {f.importo != null ? formatCurrency(f.importo, currency, locale) : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      {f.bolla_id ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-app-line-30 bg-app-line-15 px-2 py-0.5 text-[11px] font-semibold text-app-fg-muted">
+                          {t.fatture.statusAssociata}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-app-line-28 app-workspace-inset-bg px-2 py-0.5 text-[11px] font-semibold text-app-fg-muted">
+                          {t.fatture.statusSenzaBolla}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <Link
+                        href={fornitoreFatturaDeepLink(pathname, searchParams, f.id)}
+                        scroll={false}
+                        className={FORNITORE_TABLE_CYAN_ACTION_PILL}
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        {t.fatture.dettaglio}
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
@@ -3264,7 +3415,18 @@ function FornitoreDetailClient({
   )
   const isCurrentMonth = filterYear === now.getFullYear() && filterMonth === now.getMonth() + 1
 
-  const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(fornitore.id, filterYear, filterMonth)
+  const [periodLedgerEpoch, setPeriodLedgerEpoch] = useState(0)
+  const bumpPeriodLedger = useCallback(() => {
+    setPeriodLedgerEpoch((n) => n + 1)
+    reloadFornitore?.()
+  }, [reloadFornitore])
+
+  const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(
+    fornitore.id,
+    filterYear,
+    filterMonth,
+    periodLedgerEpoch,
+  )
 
   const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
@@ -3301,6 +3463,8 @@ function FornitoreDetailClient({
           pathname={pathname}
           searchParams={searchParams}
           readOnly={supplierReadOnlyMobile}
+          onLedgerMutated={bumpPeriodLedger}
+          currency={currency ?? 'GBP'}
         />
       )}
       {displayTab === 'fatture' && (
@@ -3311,6 +3475,8 @@ function FornitoreDetailClient({
           pathname={pathname}
           searchParams={searchParams}
           readOnly={supplierReadOnlyMobile}
+          onLedgerMutated={bumpPeriodLedger}
+          currency={currency ?? 'GBP'}
         />
       )}
       {displayTab === 'listino' && (

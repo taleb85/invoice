@@ -15,14 +15,15 @@ import {
   APP_SECTION_MOBILE_ROW,
   APP_SECTION_ROW_ACTION_CHIP,
   APP_SECTION_TABLE_CELL_LINK,
-  APP_SECTION_TABLE_HEAD_ROW,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TD_NUMERIC,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR,
+  appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
 import { standardBadgeClassName } from '@/components/ui/StandardBadge'
+import { ActionButton } from '@/components/ui/ActionButton'
 
 export type FattureDuplicateListRow = {
   id: string
@@ -37,16 +38,10 @@ export type FattureDuplicateListRow = {
 
 const dupBadgeInteractiveCls = standardBadgeClassName(
   'duplicate',
-  'ml-1.5 cursor-pointer align-middle transition-colors hover:border-orange-400/80 hover:bg-orange-900/55 focus:outline-none focus:ring-2 focus:ring-orange-400/60',
+  'ml-1.5 cursor-pointer align-middle transition-colors hover:border-red-400/80 hover:bg-red-900/55 focus:outline-none focus:ring-2 focus:ring-red-400/60',
 )
 
-const dupRemoveBtnCls =
-  'mt-1.5 inline-flex items-center gap-1 rounded-md border border-orange-500/45 bg-orange-950/40 px-2 py-1 text-[10px] font-semibold text-orange-100 transition-colors hover:bg-orange-800/35 disabled:cursor-not-allowed disabled:opacity-45'
-
-const dupRemoveBtnEmphCls =
-  'mt-1.5 inline-flex items-center gap-1 rounded-md border border-orange-400/70 bg-orange-600/25 px-2.5 py-1.5 text-[11px] font-bold text-orange-50 shadow-[0_0_14px_rgba(251,146,60,0.35)] transition-colors hover:bg-orange-500/30 disabled:cursor-not-allowed disabled:opacity-45'
-
-const highlightRowCls = 'ring-2 ring-orange-400/75 ring-offset-2 ring-offset-transparent'
+const highlightRowCls = 'ring-2 ring-red-400/75 ring-offset-2 ring-offset-transparent'
 
 function groupKeyForRowId(
   rowId: string,
@@ -152,18 +147,18 @@ export default function FattureListWithDuplicates({
                 ) : null}
               </p>
               {excessSet.has(f.id) ? (
-                <button
+                <ActionButton
                   type="button"
+                  intent="danger"
+                  size="sm"
+                  className="mt-1.5"
                   disabled={deletingId === f.id}
                   onClick={() => void removeCopy(f)}
-                  className={
-                    focusedGroupKey && highlightedIds.has(f.id) ? dupRemoveBtnEmphCls : dupRemoveBtnCls
-                  }
                 >
                   {focusedGroupKey && highlightedIds.has(f.id)
                     ? t.fatture.duplicateRemoveThisCopy
                     : t.fatture.duplicateRemoveCopy}
-                </button>
+                </ActionButton>
               ) : null}
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 {f.bolla_id && (
@@ -193,7 +188,7 @@ export default function FattureListWithDuplicates({
 
       <table className="hidden w-full text-sm md:table">
         <thead>
-          <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+          <tr className={appSectionTableHeadRowAccentClass('emerald')}>
             <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.colNumFattura}</th>
@@ -235,18 +230,17 @@ export default function FattureListWithDuplicates({
                 </span>
                 {excessSet.has(f.id) ? (
                   <div className="mt-1">
-                    <button
+                    <ActionButton
                       type="button"
+                      intent="danger"
+                      size="sm"
                       disabled={deletingId === f.id}
                       onClick={() => void removeCopy(f)}
-                      className={
-                        focusedGroupKey && highlightedIds.has(f.id) ? dupRemoveBtnEmphCls : dupRemoveBtnCls
-                      }
                     >
                       {focusedGroupKey && highlightedIds.has(f.id)
                         ? t.fatture.duplicateRemoveThisCopy
                         : t.fatture.duplicateRemoveCopy}
-                    </button>
+                    </ActionButton>
                   </div>
                 ) : null}
               </td>

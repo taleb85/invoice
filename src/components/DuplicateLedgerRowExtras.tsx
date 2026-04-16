@@ -4,13 +4,11 @@ import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import type { FatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
-import { deleteDuplicateBolla, deleteDuplicateOrdine } from '@/lib/duplicate-invoice-actions'
-import { StandardBadge } from '@/components/ui/StandardBadge'
+import { deleteDuplicateBolla, deleteDuplicateInvoice, deleteDuplicateOrdine } from '@/lib/duplicate-invoice-actions'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ActionButton } from '@/components/ui/ActionButton'
 
-const dupRemoveBtnCls =
-  'ml-1.5 inline-flex items-center gap-1 rounded-md border border-orange-500/45 bg-orange-950/40 px-2 py-0.5 text-[10px] font-semibold text-orange-100 transition-colors hover:bg-orange-800/35 disabled:cursor-not-allowed disabled:opacity-45'
-
-export type DuplicateLedgerKind = 'bolla' | 'ordine'
+export type DuplicateLedgerKind = 'bolla' | 'ordine' | 'fattura'
 
 export function DuplicateLedgerRowExtras({
   rowId,
@@ -20,6 +18,8 @@ export function DuplicateLedgerRowExtras({
   duplicateDeleteConfirm,
   removeCopyLabel,
   deleteFailedPrefix,
+  refreshRouter = true,
+  onAfterDelete,
 }: {
   rowId: string
   payload: FatturaDuplicateDeletionPayload
@@ -28,6 +28,9 @@ export function DuplicateLedgerRowExtras({
   duplicateDeleteConfirm: string
   removeCopyLabel: string
   deleteFailedPrefix: string
+  /** Se false, non chiamare `router.refresh()` (es. tab fornitore con stato locale). Default true. */
+  refreshRouter?: boolean
+  onAfterDelete?: () => void
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -43,26 +46,46 @@ export function DuplicateLedgerRowExtras({
     const { error } =
       kind === 'bolla'
         ? await deleteDuplicateBolla(supabase, rowId)
-        : await deleteDuplicateOrdine(supabase, rowId)
+        : kind === 'ordine'
+          ? await deleteDuplicateOrdine(supabase, rowId)
+          : await deleteDuplicateInvoice(supabase, rowId)
     setDeleting(false)
     if (error) {
       window.alert(`${deleteFailedPrefix} ${error}`)
       return
     }
-    router.refresh()
-  }, [duplicateDeleteConfirm, deleteFailedPrefix, excess, kind, rowId, router, supabase])
+    onAfterDelete?.()
+    if (refreshRouter) router.refresh()
+  }, [
+    duplicateDeleteConfirm,
+    deleteFailedPrefix,
+    excess,
+    kind,
+    onAfterDelete,
+    refreshRouter,
+    rowId,
+    router,
+    supabase,
+  ])
 
   if (!memberSet) return null
 
   return (
     <>
-      <StandardBadge variant="duplicate" className="ml-1.5 align-middle">
+      <StatusBadge tone="red" className="ml-1.5 align-middle">
         {duplicateBadgeLabel}
-      </StandardBadge>
+      </StatusBadge>
       {excess ? (
-        <button type="button" className={dupRemoveBtnCls} disabled={deleting} onClick={() => void removeCopy()}>
+        <ActionButton
+          type="button"
+          intent="danger"
+          size="sm"
+          className="ml-1.5 align-middle"
+          disabled={deleting}
+          onClick={() => void removeCopy()}
+        >
           {deleting ? '…' : removeCopyLabel}
-        </button>
+        </ActionButton>
       ) : null}
     </>
   )

@@ -16,18 +16,19 @@ import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import { StandardCard } from '@/components/ui/StandardCard'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import { ActionLink } from '@/components/ui/ActionButton'
 import {
   APP_SHELL_SECTION_PAGE_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
-  APP_SECTION_EMPTY_LINK_CLASS,
   APP_SECTION_TABLE_CELL_LINK,
-  APP_SECTION_TABLE_HEAD_ROW,
+  appSectionTableHeadRowAccentClass,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR_GROUP,
   APP_SECTION_TABLE_TD,
+  APP_SECTION_TABLE_TD_NUMERIC,
 } from '@/lib/app-shell-layout'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import { analyzeOrdineDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
@@ -126,9 +127,9 @@ export default async function OrdiniOverviewPage({
       ) : rows.length === 0 ? (
         <StandardCard accent="rose">
           <AppSectionEmptyState message={t.dashboard.ordiniOverviewEmpty}>
-            <Link href="/fornitori" className={`${APP_SECTION_EMPTY_LINK_CLASS} hover:underline`}>
+            <ActionLink href="/fornitori" intent="nav" size="sm" className="mt-4">
               {t.nav.fornitori} →
-            </Link>
+            </ActionLink>
           </AppSectionEmptyState>
         </StandardCard>
       ) : (
@@ -136,11 +137,11 @@ export default async function OrdiniOverviewPage({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                <tr className={appSectionTableHeadRowAccentClass('rose')}>
                   <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColSupplier}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColTitle}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColOrderDate}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColRegistered}</th>
+                  <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.dashboard.ordiniColOrderDate}</th>
+                  <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.dashboard.ordiniColRegistered}</th>
                   <th className={`w-36 ${APP_SECTION_TABLE_TH_RIGHT}`}>{' '}</th>
                 </tr>
               </thead>
@@ -166,10 +167,10 @@ export default async function OrdiniOverviewPage({
                         />
                       </div>
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD} whitespace-nowrap text-app-fg-muted`}>
+                    <td className={`${APP_SECTION_TABLE_TD_NUMERIC} whitespace-nowrap text-app-fg-muted`}>
                       {r.data_ordine ? formatDate(r.data_ordine) : '—'}
                     </td>
-                    <td className={`${APP_SECTION_TABLE_TD} whitespace-nowrap text-app-fg-muted`}>
+                    <td className={`${APP_SECTION_TABLE_TD_NUMERIC} whitespace-nowrap text-app-fg-muted`}>
                       {formatDate(r.created_at)}
                     </td>
                     <td className={`${APP_SECTION_TABLE_TD} text-right`}>

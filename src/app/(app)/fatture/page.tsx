@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
@@ -23,13 +22,13 @@ import {
   APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_SHELL_SECTION_PAGE_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
-  APP_SECTION_EMPTY_LINK_CLASS,
 } from '@/lib/app-shell-layout'
 import {
   analyzeFatturaDuplicatesForDeletion,
   serializeFatturaDuplicateDeletionPayload,
 } from '@/lib/check-duplicates'
 import FattureListWithDuplicates from '@/components/FattureListWithDuplicates'
+import { ActionLink } from '@/components/ui/ActionButton'
 
 type FatturaListRow = {
   id: string
@@ -154,9 +153,9 @@ export default async function FatturePage({
       <StandardCard accent="emerald">
         {fatture.length === 0 ? (
           <AppSectionEmptyState message={t.fatture.noInvoices}>
-            <Link href="/fatture/new" className={APP_SECTION_EMPTY_LINK_CLASS}>
+            <ActionLink href="/fatture/new" intent="confirm" size="sm" className="mt-4">
               {t.fatture.addFirst}
-            </Link>
+            </ActionLink>
           </AppSectionEmptyState>
         ) : (
           <FattureListWithDuplicates rows={fattureRowsClient} duplicatePayload={duplicatePayload} />

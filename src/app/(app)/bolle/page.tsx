@@ -17,14 +17,14 @@ import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import { ActionLink } from '@/components/ui/ActionButton'
 import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SHELL_SECTION_PAGE_H1_CLASS,
-  APP_SECTION_EMPTY_LINK_CLASS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
   APP_SECTION_TABLE_CELL_LINK,
-  APP_SECTION_TABLE_HEAD_ROW,
+  appSectionTableHeadRowAccentClass,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TBODY,
@@ -222,9 +222,14 @@ export default async function BollePage({
           {bolle.length === 0 ? (
             <AppSectionEmptyState message={emptyMessage}>
               {!showAll ? (
-                <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={APP_SECTION_EMPTY_LINK_CLASS}>
+                <ActionLink
+                  href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
+                  intent="nav"
+                  size="sm"
+                  className="mt-4"
+                >
                   {t.bolle.listShowAll} →
-                </Link>
+                </ActionLink>
               ) : null}
             </AppSectionEmptyState>
           ) : (
@@ -314,7 +319,7 @@ export default async function BollePage({
 
               <table className="hidden w-full text-sm md:table">
                 <thead>
-                  <tr className={APP_SECTION_TABLE_HEAD_ROW}>
+                  <tr className={appSectionTableHeadRowAccentClass('indigo')}>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>

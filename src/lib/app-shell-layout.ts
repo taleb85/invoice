@@ -60,6 +60,24 @@ export const APP_SECTION_PANEL_HEAD_BLOCK = 'border-b border-app-line-22 app-wor
 /** Intestazione tabella desktop (card dati sotto il riepilogo). */
 export const APP_SECTION_TABLE_HEAD_ROW = 'border-b border-app-line-22 app-workspace-inset-bg-soft'
 
+/** Accenti bordo inferiore thead (liste Ordini / Bolle / Fatture / Documenti). */
+export type AppSectionTableHeadAccent = 'indigo' | 'emerald' | 'rose' | 'amber' | 'fuchsia' | 'cyan' | 'sky'
+
+const APP_SECTION_TABLE_HEAD_ACCENT_BORDER: Record<AppSectionTableHeadAccent, string> = {
+  indigo: 'border-b-2 border-indigo-500/50',
+  emerald: 'border-b-2 border-emerald-500/50',
+  rose: 'border-b-2 border-rose-500/50',
+  amber: 'border-b-2 border-amber-500/50',
+  fuchsia: 'border-b-2 border-fuchsia-500/50',
+  cyan: 'border-b-2 border-cyan-400/45',
+  sky: 'border-b-2 border-sky-500/50',
+}
+
+/** Thead con bordo colorato + stesso sfondo delle altre tabelle sezione. */
+export function appSectionTableHeadRowAccentClass(accent: AppSectionTableHeadAccent): string {
+  return `app-workspace-inset-bg-soft ${APP_SECTION_TABLE_HEAD_ACCENT_BORDER[accent]}`
+}
+
 /** Header tabella su sfondo leggermente più marcato (es. modali / confronti densi). */
 export const APP_SECTION_TABLE_HEAD_ROW_STRONG = 'border-b border-app-line-22 app-workspace-inset-bg'
 
@@ -67,7 +85,7 @@ export const APP_SECTION_TABLE_TH =
   'px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-app-fg-muted'
 
 export const APP_SECTION_TABLE_TH_RIGHT =
-  'px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-app-fg-muted'
+  'px-6 py-3 text-right font-mono text-xs font-semibold uppercase tracking-wider tabular-nums text-app-fg-muted'
 
 /** Separazione righe in stack / liste (stesso token del tbody tabella). */
 export const APP_SECTION_DIVIDE_ROWS = 'divide-y divide-app-soft-border'

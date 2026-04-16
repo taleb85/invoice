@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import type { Translations } from '@/lib/translations'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import { operatorKpiVisual, supplierKpiPalette } from '@/lib/kpi-accent-palette'
+import { actionButtonClassName } from '@/components/ui/ActionButton'
 
 /** Allinea accenti `operatorKpiVisual` all’ordine tile (come `DashboardOperatorKpiGrid`). */
 const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 6, 1] as const
@@ -67,30 +68,49 @@ function TileGlyph({ index }: { index: number }) {
   return glyphs[index] ?? null
 }
 
+export type WorkspaceQuickNavCounts = {
+  ordini: number
+  bolle: number
+  fatture: number
+  statements: number
+  listino: number
+  documenti: number
+}
+
 /**
  * Link alle stesse rotte delle tile KPI dashboard (`DashboardOperatorKpiGrid`), per la strip desktop.
- * Icona + etichetta (troncata); `title` per il testo completo al passaggio del mouse.
+ * Stile allineato ai pulsanti `ActionButton` (intent `nav`); badge numerici opzionali = stessi conteggi KPI DB.
  */
 export default function DashboardWorkspaceQuickNav({
   t,
   fiscalYear,
+  counts,
 }: {
   t: Translations
   fiscalYear: number
+  /** Conteggi server (`fetchOperatorDashboardKpis`) — stessi numeri delle tile KPI. */
+  counts?: WorkspaceQuickNavCounts | null
 }) {
   const fy = fiscalYear > 0 ? fiscalYear : undefined
-  const items: { href: string; label: string; i: number }[] = [
-    { href: withFiscalYearQuery('/ordini', fy), label: t.fornitori.kpiOrdini, i: 0 },
-    { href: withFiscalYearQuery('/bolle', fy, { tutte: '1' }), label: t.fornitori.kpiBolleTotal, i: 1 },
-    { href: withFiscalYearQuery('/fatture', fy), label: t.fornitori.kpiFatturatoPeriodo, i: 2 },
-    { href: withFiscalYearQuery('/statements/verifica', fy), label: t.statements.tabVerifica, i: 3 },
-    { href: withFiscalYearQuery('/listino', fy), label: t.fornitori.tabListino, i: 4 },
-    { href: withFiscalYearQuery('/statements/da-processare', fy), label: t.statements.tabDocumenti, i: 5 },
+  const items: { href: string; label: string; i: number; badge?: number }[] = [
+    { href: withFiscalYearQuery('/ordini', fy), label: t.fornitori.kpiOrdini, i: 0, badge: counts?.ordini },
+    { href: withFiscalYearQuery('/bolle', fy, { tutte: '1' }), label: t.fornitori.kpiBolleTotal, i: 1, badge: counts?.bolle },
+    { href: withFiscalYearQuery('/fatture', fy), label: t.fornitori.kpiFatturatoPeriodo, i: 2, badge: counts?.fatture },
+    { href: withFiscalYearQuery('/statements/verifica', fy), label: t.statements.tabVerifica, i: 3, badge: counts?.statements },
+    { href: withFiscalYearQuery('/listino', fy), label: t.fornitori.tabListino, i: 4, badge: counts?.listino },
+    {
+      href: withFiscalYearQuery('/statements/da-processare', fy),
+      label: t.statements.tabDocumenti,
+      i: 5,
+      badge: counts?.documenti,
+    },
   ]
+
+  const linkShell = `${actionButtonClassName('nav', 'sm')} max-w-[7.5rem] no-underline sm:max-w-[9rem]`
 
   return (
     <nav
-      className="flex min-h-0 min-w-0 max-w-full flex-1 items-center gap-0.5 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-0.5 md:gap-1"
+      className="flex min-h-0 min-w-0 max-w-full flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-1.5"
       aria-label={t.dashboard.workspaceQuickNavAria}
     >
       {items.map((item) => (
@@ -98,14 +118,21 @@ export default function DashboardWorkspaceQuickNav({
           key={`${item.href}-${item.i}`}
           href={item.href}
           title={item.label}
-          className="flex shrink-0 items-center gap-0.5 rounded-md border border-transparent px-0.5 py-0 text-app-fg-muted transition-colors hover:border-app-line-35 hover:bg-app-line-10 hover:text-app-fg sm:gap-0.5 sm:rounded-lg sm:px-1 sm:py-px md:gap-1 md:px-1.5"
+          className={`${linkShell} flex min-w-0 shrink-0 flex-col items-stretch gap-0.5 sm:flex-row sm:items-center`}
         >
-          <span
-            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded sm:h-5 sm:w-5 md:h-6 md:w-6 ${operatorKpiVisualAt(item.i).iconWrapClass}`}
-          >
-            <TileGlyph index={item.i} />
+          <span className="flex items-center gap-1">
+            <span
+              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md sm:h-7 sm:w-7 ${operatorKpiVisualAt(item.i).iconWrapClass}`}
+            >
+              <TileGlyph index={item.i} />
+            </span>
+            {item.badge != null && item.badge > 0 ? (
+              <span className="inline-flex min-w-[1.125rem] justify-center rounded-full bg-cyan-400/25 px-1 text-[9px] font-bold tabular-nums text-cyan-100 ring-1 ring-cyan-300/35 sm:text-[10px]">
+                {item.badge > 999 ? '999+' : item.badge}
+              </span>
+            ) : null}
           </span>
-          <span className="min-w-0 max-w-[4.75rem] truncate text-left text-[8px] font-semibold uppercase leading-tight tracking-wide text-app-fg-muted sm:max-w-[5.5rem] sm:text-[9px] md:max-w-[6.25rem] md:text-[10px] lg:max-w-[8rem]">
+          <span className="min-w-0 truncate text-left text-[8px] font-bold uppercase leading-tight tracking-wide text-cyan-100/90 sm:text-[9px] md:text-[10px]">
             {item.label}
           </span>
         </Link>

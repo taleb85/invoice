@@ -290,7 +290,20 @@ export default async function DashboardPage({
             operatorScoped ? 'justify-between' : 'justify-end'
           }`}
         >
-          {operatorScoped ? <DashboardWorkspaceQuickNav t={t} fiscalYear={fiscalYear} /> : null}
+          {operatorScoped ? (
+            <DashboardWorkspaceQuickNav
+              t={t}
+              fiscalYear={fiscalYear}
+              counts={{
+                ordini: kpis.ordiniCount,
+                bolle: kpis.bolleTotal,
+                fatture: kpis.fattureCount,
+                statements: kpis.statementsTotal,
+                listino: kpis.listinoProdottiDistinti,
+                documenti: kpis.documentiPending,
+              }}
+            />
+          ) : null}
           <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2">
             <DashboardDuplicateFattureButton alwaysShowLabel toolbarStrip />
             <SollecitiButton fornitoriInScadenza={sollecitiFornitori} toolbarStrip />
