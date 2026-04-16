@@ -173,7 +173,7 @@ export default function NotificationBell({
 
   if (variant === 'fab') {
     return (
-      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-[101] flex justify-end px-3 md:hidden pb-[calc(10.5rem+env(safe-area-inset-bottom,0px))]">
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-[101] flex justify-end px-3 md:hidden pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]">
         <div className="pointer-events-auto">{inner}</div>
       </div>
     )

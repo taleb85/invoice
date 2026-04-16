@@ -201,13 +201,14 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     isFornitoreProfileRoute(normalized)
   const homeScannerDockCta =
     hub && (normalized === '/' || normalized === '') && homeScannerDockCtaVisible
+  /** Extra padding: dock mobile fluttuante + offset `bottom` ~1rem sopra safe area. */
   const hubBottomPad = homeScannerDockCta
     ? tallMobileDock
-      ? 'pb-[calc(22.5rem+env(safe-area-inset-bottom,0px))]'
-      : 'pb-[calc(19rem+env(safe-area-inset-bottom,0px))]'
+      ? 'pb-[calc(22.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(19rem+1.125rem+env(safe-area-inset-bottom,0px))]'
     : tallMobileDock
-      ? 'pb-[calc(10.5rem+env(safe-area-inset-bottom,0px))]'
-      : 'pb-[calc(7.25rem+env(safe-area-inset-bottom,0px))]'
+      ? 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(7.25rem+1.125rem+env(safe-area-inset-bottom,0px))]'
   return (
     <div className="flex h-full min-h-0 w-full flex-col bg-slate-950">
       <DesktopHeaderPageActionsProvider>
