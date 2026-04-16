@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            'Il valore sembra un URL Rekki ma non è stato possibile estrarre l’ID. Incolla il link nel campo Link oppure solo l’ID fornitore.',
+            'Il valore sembra un URL Rekki ma non è stato possibile estrarre l’ID. Incolla l’URL Rekki nel campo ID oppure solo lo slug fornitore.',
         },
         { status: 400 },
       )

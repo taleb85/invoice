@@ -21,9 +21,8 @@
  *    `items` | `results` e oggetti con `id` (o `supplier_id` / `uuid`) e nome. Status ≠ 2xx o JSON non
  *    conforme → nessun fornitore in lista.
  *
- * Senza API: usare il pulsante «Cerca su Rekki (P.IV.A)» (Google `site:rekki.com` + VAT) o «Cerca su Rekki»
- * (nome + `site:rekki.com`), poi incollare l’URL profilo nel
- * campo Link; `extractRekkiSupplierIdFromUrl` ricava l’ID.
+ * Senza API: usare «Cerca su Rekki» (Google `site:rekki.com` + nome) dalla scheda integrazione, poi incollare
+ * l’URL profilo nel campo ID; `extractRekkiSupplierIdFromUrl` ricava lo slug.
  */
 
 export type RekkiSupplierHit = { id: string; name: string }

@@ -2380,7 +2380,14 @@ function ListinoTab({
   }
 
   const handleImportSave = async () => {
-    const toSave = importItems.filter(i => i.selected && i.prodotto && i.prezzo > 0)
+    /** Non inviare righe con data documento anteriore al max `data_prezzo` (data ultimo listino) senza forzatura admin. */
+    const toSave = importItems.filter(
+      (i) =>
+        i.selected &&
+        i.prodotto &&
+        i.prezzo > 0 &&
+        !(importRowDateBlocked(i.prodotto) && !i.forceOutdated),
+    )
     if (!toSave.length) return
     setImportSaving(true)
     setImportError(null)
@@ -3616,6 +3623,25 @@ function FornitoreDetailClient({
   )
   const isCurrentMonth = filterYear === now.getFullYear() && filterMonth === now.getMonth() + 1
 
+  const [periodMonthPickerOpen, setPeriodMonthPickerOpen] = useState(false)
+  const periodMonthPickerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!periodMonthPickerOpen) return
+    const onPointerDown = (e: PointerEvent) => {
+      const el = periodMonthPickerRef.current
+      if (el && !el.contains(e.target as Node)) setPeriodMonthPickerOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPeriodMonthPickerOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [periodMonthPickerOpen])
+
   const [periodLedgerEpoch, setPeriodLedgerEpoch] = useState(0)
   const bumpPeriodLedger = useCallback(() => {
     setPeriodLedgerEpoch((n) => n + 1)
@@ -3894,7 +3920,10 @@ function FornitoreDetailClient({
               ))}
             </div>
 
-            <div className="-mb-px flex h-6 w-max shrink-0 items-center gap-px self-end rounded-md border border-app-soft-border bg-transparent px-0.5 xl:h-8 xl:px-1">
+            <div
+              ref={periodMonthPickerRef}
+              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-md border border-app-soft-border bg-transparent px-0.5 xl:h-8 xl:px-1"
+            >
               <button
                 type="button"
                 onClick={() => shiftYear(-1)}
@@ -3917,9 +3946,54 @@ function FornitoreDetailClient({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <span className="min-w-0 whitespace-nowrap px-0.5 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg xl:leading-8">
+              <button
+                type="button"
+                id="supplier-desktop-period-month-trigger"
+                aria-haspopup="dialog"
+                aria-expanded={periodMonthPickerOpen}
+                aria-controls={periodMonthPickerOpen ? 'supplier-desktop-period-month-dialog' : undefined}
+                title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
+                aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
+                onClick={() => setPeriodMonthPickerOpen((o) => !o)}
+                className="min-w-0 whitespace-nowrap rounded px-0.5 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg transition-colors hover:bg-app-line-10 hover:text-app-fg xl:leading-8"
+              >
                 {monthYearLabel}
-              </span>
+              </button>
+              {periodMonthPickerOpen ? (
+                <div
+                  id="supplier-desktop-period-month-dialog"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="supplier-desktop-period-picker-title"
+                  className="absolute right-0 top-[calc(100%+6px)] z-[60] w-[min(100vw-2rem,14rem)] rounded-lg border border-app-soft-border bg-[#0b1524] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/5"
+                >
+                  <p
+                    id="supplier-desktop-period-picker-title"
+                    className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted"
+                  >
+                    {t.appStrings.supplierDesktopPeriodPickerTitle}
+                  </p>
+                  <input
+                    type="month"
+                    aria-label={t.appStrings.supplierDesktopPeriodPickerTitle}
+                    value={`${filterYear}-${String(filterMonth).padStart(2, '0')}`}
+                    max={`${nowY}-${String(nowM).padStart(2, '0')}`}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (!v) return
+                      const parts = v.split('-').map(Number)
+                      const y = parts[0]
+                      const m = parts[1]
+                      if (y == null || m == null || Number.isNaN(y) || Number.isNaN(m)) return
+                      const c = clampSupplierPeriod(y, m)
+                      setFilterYear(c.y)
+                      setFilterMonth(c.m)
+                      setPeriodMonthPickerOpen(false)
+                    }}
+                    className="w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                  />
+                </div>
+              ) : null}
               <button
                 type="button"
                 onClick={() => shiftMonth(1)}
