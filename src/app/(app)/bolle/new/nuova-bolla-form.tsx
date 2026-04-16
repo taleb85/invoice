@@ -896,7 +896,7 @@ export default function NuovaBollaForm() {
 
       {cameraOpen ? (
         <div
-          className="app-workspace-overlay fixed inset-0 z-[100] flex flex-col p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
+          className="app-workspace-overlay fixed inset-0 z-[130] flex flex-col p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="nuova-bolla-camera-title"
