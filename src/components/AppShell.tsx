@@ -220,9 +220,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
       ? 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
       : 'pb-[calc(7.25rem+1.125rem+env(safe-area-inset-bottom,0px))]'
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-slate-950">
+    <div className="flex min-h-0 flex-1 flex-col bg-slate-950 max-md:min-h-dvh">
       <DesktopHeaderPageActionsProvider>
-      <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-col">
+      <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-1 flex-col max-md:min-h-dvh">
         {/*
           Desktop: griglia a una riga — (1) `aside` unico: brand + `Sidebar`;
           (2) colonna destra unica: `#app-desktop-header-nav-progress` + `main` nello stesso contenitore flex.
@@ -243,7 +243,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           </aside>
           <div
             data-app-desktop-canvas
-            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent md:col-start-2 md:row-start-1 md:h-full md:min-h-0 md:overflow-hidden"
+            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-2 md:row-start-1 md:h-full md:min-h-0 md:overflow-hidden"
           >
             <div
               ref={bindDesktopNavHost}
