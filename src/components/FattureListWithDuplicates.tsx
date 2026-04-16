@@ -10,15 +10,19 @@ import DeleteButton from '@/components/DeleteButton'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import type { FatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import {
+  APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
   APP_SECTION_ROW_ACTION_CHIP,
   APP_SECTION_TABLE_CELL_LINK,
   APP_SECTION_TABLE_HEAD_ROW,
   APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_TD_NUMERIC,
   APP_SECTION_TABLE_TH,
+  APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
+import { standardBadgeClassName } from '@/components/ui/StandardBadge'
 
 export type FattureDuplicateListRow = {
   id: string
@@ -28,10 +32,13 @@ export type FattureDuplicateListRow = {
   bolla_id: string | null
   fornitore_id: string | null
   fornitoreNome: string | null
+  importoLabel: string | null
 }
 
-const dupBadgeBaseCls =
-  'ml-1.5 inline-flex shrink-0 cursor-pointer align-middle rounded border border-orange-500/55 bg-orange-950/45 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.35)] transition-colors hover:border-orange-400/80 hover:bg-orange-900/55 focus:outline-none focus:ring-2 focus:ring-orange-400/60'
+const dupBadgeInteractiveCls = standardBadgeClassName(
+  'duplicate',
+  'ml-1.5 cursor-pointer align-middle transition-colors hover:border-orange-400/80 hover:bg-orange-900/55 focus:outline-none focus:ring-2 focus:ring-orange-400/60',
+)
 
 const dupRemoveBtnCls =
   'mt-1.5 inline-flex items-center gap-1 rounded-md border border-orange-500/45 bg-orange-950/40 px-2 py-1 text-[10px] font-semibold text-orange-100 transition-colors hover:bg-orange-800/35 disabled:cursor-not-allowed disabled:opacity-45'
@@ -115,12 +122,19 @@ export default function FattureListWithDuplicates({
                 ) : (
                   <p className="truncate font-semibold text-app-fg">{f.fornitoreNome ?? '—'}</p>
                 )}
-                <Link
-                  href={`/fatture/${f.id}`}
-                  className="shrink-0 text-xs text-app-fg-muted transition-colors hover:text-app-fg-muted"
-                >
-                  {f.dataLabel}
-                </Link>
+                <div className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+                  <Link
+                    href={`/fatture/${f.id}`}
+                    className="text-xs text-app-fg-muted transition-colors hover:text-app-fg"
+                  >
+                    {f.dataLabel}
+                  </Link>
+                  {f.importoLabel ? (
+                    <span className={`font-mono text-xs tabular-nums ${APP_SECTION_AMOUNT_POSITIVE_CLASS}`}>
+                      {f.importoLabel}
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <p className="mb-2 text-xs text-app-fg-muted">
                 <span className="font-medium text-app-fg-muted">{t.fatture.colNumFattura}</span>{' '}
@@ -128,7 +142,7 @@ export default function FattureListWithDuplicates({
                 {memberSet.has(f.id) ? (
                   <button
                     type="button"
-                    className={dupBadgeBaseCls}
+                    className={dupBadgeInteractiveCls}
                     aria-label={t.fatture.duplicatePairBadgeAria}
                     aria-pressed={focusedGroupKey != null && highlightedIds.has(f.id)}
                     onClick={() => toggleBadgeFocus(f.id)}
@@ -185,6 +199,7 @@ export default function FattureListWithDuplicates({
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.colNumFattura}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.headerBolla}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.headerAllegato}</th>
+            <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
             <th className={APP_SECTION_TABLE_TH} />
           </tr>
         </thead>
@@ -202,14 +217,14 @@ export default function FattureListWithDuplicates({
                   </Link>
                 )}
               </td>
-              <td className="px-6 py-4 text-app-fg-muted">{f.dataLabel}</td>
+              <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">{f.dataLabel}</td>
               <td className="max-w-[12rem] px-6 py-4 text-app-fg-muted">
                 <span className="line-clamp-2 break-words" title={f.numero_fattura?.trim() || undefined}>
                   {f.numero_fattura?.trim() || '—'}
                   {memberSet.has(f.id) ? (
                     <button
                       type="button"
-                      className={dupBadgeBaseCls}
+                      className={dupBadgeInteractiveCls}
                       aria-label={t.fatture.duplicatePairBadgeAria}
                       aria-pressed={focusedGroupKey != null && highlightedIds.has(f.id)}
                       onClick={() => toggleBadgeFocus(f.id)}
@@ -252,6 +267,15 @@ export default function FattureListWithDuplicates({
                 ) : (
                   <span className="text-xs text-app-fg-muted">—</span>
                 )}
+              </td>
+              <td
+                className={
+                  f.importoLabel
+                    ? `${APP_SECTION_TABLE_TD_NUMERIC} ${APP_SECTION_AMOUNT_POSITIVE_CLASS}`
+                    : `${APP_SECTION_TABLE_TD_NUMERIC} text-app-fg-muted`
+                }
+              >
+                {f.importoLabel ?? '—'}
               </td>
               <td className="px-6 py-4 text-right">
                 <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />

@@ -13,18 +13,16 @@ import { fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
 import { resolveFiscalFilterForSede, type FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
+import { StandardCard } from '@/components/ui/StandardCard'
 import {
-  SUMMARY_HIGHLIGHT_ACCENTS,
-  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
-  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
-} from '@/lib/summary-highlight-accent'
-import {
-  APP_SHELL_SECTION_PAGE_CLASS,
+  APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SECTION_EMPTY_LINK_CLASS,
 } from '@/lib/app-shell-layout'
 import {
@@ -121,16 +119,21 @@ export default async function FatturePage({
     bolla_id: f.bolla_id,
     fornitore_id: f.fornitore_id,
     fornitoreNome: f.fornitore?.nome ?? null,
+    importoLabel:
+      f.importo != null && Number.isFinite(Number(f.importo))
+        ? formatCurrency(Number(f.importo), currency, locale)
+        : null,
   }))
-  const fattureTheme = SUMMARY_HIGHLIGHT_ACCENTS.emerald
-
   return (
-    <div className={APP_SHELL_SECTION_PAGE_CLASS}>
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip accent="emerald">
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.fatture.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
+          <DashboardDuplicateFattureButton alwaysShowLabel />
+          <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
+        </div>
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (
@@ -142,13 +145,13 @@ export default async function FatturePage({
       <AppSummaryHighlightCard
         accent="emerald"
         label={t.common.total}
-        primary={formatCurrency(totaleImporto, currency, locale)}
+        primary={
+          <span className={APP_SECTION_AMOUNT_POSITIVE_CLASS}>{formatCurrency(totaleImporto, currency, locale)}</span>
+        }
         secondary={`${fatture.length} ${t.fatture.countLabel}`}
       />
 
-      <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${fattureTheme.border}`}>
-        <div className={`app-card-bar-accent ${fattureTheme.bar}`} aria-hidden />
-        <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
+      <StandardCard accent="emerald">
         {fatture.length === 0 ? (
           <AppSectionEmptyState message={t.fatture.noInvoices}>
             <Link href="/fatture/new" className={APP_SECTION_EMPTY_LINK_CLASS}>
@@ -158,8 +161,7 @@ export default async function FatturePage({
         ) : (
           <FattureListWithDuplicates rows={fattureRowsClient} duplicatePayload={duplicatePayload} />
         )}
-        </div>
-      </div>
+      </StandardCard>
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
-import { formatCurrency } from '@/lib/locale-shared'
+import { formatCurrency, formatDate as formatAppDisplayDate } from '@/lib/locale-shared'
 import { createClient } from '@/utils/supabase/client'
 import type {
   DuplicateFatturaReportGroup,
@@ -153,11 +153,9 @@ export default function DashboardDuplicateFattureButton({
 
   const formatDate = useCallback(
     (d: string) => {
+      const ymd = d.slice(0, 10)
       try {
-        return new Intl.DateTimeFormat(locale, {
-          timeZone: timezone,
-          dateStyle: 'medium',
-        }).format(new Date(d + 'T12:00:00'))
+        return formatAppDisplayDate(`${ymd}T12:00:00`, locale, timezone)
       } catch {
         return d
       }

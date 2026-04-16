@@ -78,7 +78,7 @@ export default async function ListinoOverviewPage({
     rows = await fetchListinoOverviewRows(supabase, fornitoreIds, fiscal?.bounds ?? null)
   }
 
-  const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
+  const formatDate = (d: string) => fmtDate(d, locale, tz)
   const listinoTheme = SUMMARY_HIGHLIGHT_ACCENTS.fuchsia
 
   return (

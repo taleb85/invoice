@@ -99,7 +99,7 @@ export default async function FattureRiepilogoPage({
     ])
   }
 
-  const formatDate = (d: string) => fmtDate(d, locale, tz, { day: '2-digit', month: 'short', year: 'numeric' })
+  const formatDate = (d: string) => fmtDate(d, locale, tz)
   const countLabel = t.dashboard.fattureRiepilogoCountLabel.replace(/\{n\}/g, String(summary.fattureCount))
   const riepilogoTheme = SUMMARY_HIGHLIGHT_ACCENTS.violet
 

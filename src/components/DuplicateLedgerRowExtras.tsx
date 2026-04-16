@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import type { FatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import { deleteDuplicateBolla, deleteDuplicateOrdine } from '@/lib/duplicate-invoice-actions'
-
-const dupBadgeCls =
-  'ml-1.5 inline-flex shrink-0 align-middle rounded border border-orange-500/55 bg-orange-950/45 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.35)]'
+import { StandardBadge } from '@/components/ui/StandardBadge'
 
 const dupRemoveBtnCls =
   'ml-1.5 inline-flex items-center gap-1 rounded-md border border-orange-500/45 bg-orange-950/40 px-2 py-0.5 text-[10px] font-semibold text-orange-100 transition-colors hover:bg-orange-800/35 disabled:cursor-not-allowed disabled:opacity-45'
@@ -58,7 +56,9 @@ export function DuplicateLedgerRowExtras({
 
   return (
     <>
-      <span className={dupBadgeCls}>{duplicateBadgeLabel}</span>
+      <StandardBadge variant="duplicate" className="ml-1.5 align-middle">
+        {duplicateBadgeLabel}
+      </StandardBadge>
       {excess ? (
         <button type="button" className={dupRemoveBtnCls} disabled={deleting} onClick={() => void removeCopy()}>
           {deleting ? '…' : removeCopyLabel}

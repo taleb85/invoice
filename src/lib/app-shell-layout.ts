@@ -22,11 +22,20 @@ export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
  * Stesso filo per griglia KPI e card Scanner sulla dashboard.
  */
 export const APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS =
-  'px-3 py-2 sm:px-3 sm:py-2.5 md:px-4 md:py-2.5 lg:px-5'
+  'px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-2.5 lg:px-8 xl:px-10'
 
 /** h1 standard nelle strip di quelle pagine (stessa scala su tutti i breakpoint). */
 export const APP_SHELL_SECTION_PAGE_H1_CLASS =
-  'app-page-title text-lg font-bold leading-snug sm:text-xl md:text-2xl'
+  'app-page-title app-page-title-glow text-lg font-bold leading-snug sm:text-xl md:text-2xl'
+
+/** Sottotitoli / metadati sotto il titolo o in card riepilogo. */
+export const APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS = 'text-sm leading-snug text-app-fg-muted'
+
+/**
+ * Barra filtri sotto header (allineata al padding interno tabelle `SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS`).
+ */
+export const APP_SECTION_FILTERS_STRIP_CLASS =
+  'flex w-full min-w-0 flex-wrap items-center gap-2 border-b border-app-line-22 app-workspace-inset-bg-soft px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:px-6 lg:px-8 xl:px-10'
 
 /** Link filtri / azioni nella card riepilogo (`AppSummaryHighlightCard` trailing). */
 export const APP_SECTION_TRAILING_LINK_CLASS =
@@ -65,9 +74,24 @@ export const APP_SECTION_DIVIDE_ROWS = 'divide-y divide-app-soft-border'
 
 export const APP_SECTION_TABLE_TBODY = 'divide-y divide-app-soft-border'
 
-export const APP_SECTION_TABLE_TR = 'transition-colors hover:bg-black/12'
+/** Hover riga unificato (desktop + coerente con lista mobile). */
+export const APP_SECTION_TABLE_ROW_HOVER = 'transition-colors hover:bg-cyan-500/[0.07]'
 
-export const APP_SECTION_TABLE_TR_GROUP = 'group transition-colors hover:bg-black/12'
+export const APP_SECTION_TABLE_TR = `group ${APP_SECTION_TABLE_ROW_HOVER}`
+
+export const APP_SECTION_TABLE_TR_GROUP = APP_SECTION_TABLE_TR
+
+/** Celle dati tabella sezione (font-size unificato). */
+export const APP_SECTION_TABLE_TD = 'px-6 py-4 text-sm align-middle'
+
+/** Importi / numeri confrontabili: monospace, allineati a destra. */
+export const APP_SECTION_TABLE_TD_NUMERIC = `${APP_SECTION_TABLE_TD} text-right font-mono tabular-nums`
+
+/** Importo positivo / totale (neon verde). */
+export const APP_SECTION_AMOUNT_POSITIVE_CLASS = 'app-amount-positive-neon'
+
+/** Anomalie, duplicati, saldi negativi (neon rosso). */
+export const APP_SECTION_AMOUNT_NEGATIVE_CLASS = 'app-amount-negative-neon'
 
 /** Link primario in cella (fornitore / dettaglio riga). */
 export const APP_SECTION_TABLE_CELL_LINK =
@@ -76,7 +100,7 @@ export const APP_SECTION_TABLE_CELL_LINK =
 /** Lista mobile sotto card dati. */
 export const APP_SECTION_MOBILE_LIST = 'divide-y divide-app-soft-border md:hidden'
 
-export const APP_SECTION_MOBILE_ROW = 'px-4 py-4 transition-colors hover:bg-black/12'
+export const APP_SECTION_MOBILE_ROW = `px-4 py-4 ${APP_SECTION_TABLE_ROW_HOVER}`
 
 /** Pill / azione secondaria in riga (es. “Apri fattura”). */
 export const APP_SECTION_ROW_ACTION_PILL =

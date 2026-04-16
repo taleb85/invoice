@@ -1,24 +1,24 @@
 import Link from 'next/link'
 import { cookies } from 'next/headers'
+import { AlertTriangle, Eye, Upload } from 'lucide-react'
 import { getRequestAuth } from '@/utils/supabase/server'
 import DeleteButton from '@/components/DeleteButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
-import {
-  SUMMARY_HIGHLIGHT_ACCENTS,
-  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
-  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
-} from '@/lib/summary-highlight-accent'
+import { StandardBadge } from '@/components/ui/StandardBadge'
+import { StandardCard } from '@/components/ui/StandardCard'
+import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
-  APP_SHELL_SECTION_PAGE_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SHELL_SECTION_PAGE_H1_CLASS,
   APP_SECTION_EMPTY_LINK_CLASS,
   APP_SECTION_MOBILE_LIST,
@@ -29,8 +29,7 @@ import {
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR_GROUP,
-  APP_SECTION_TRAILING_LINK_CLASS,
-  APP_SECTION_TRAILING_SEP_CLASS,
+  APP_SECTION_TABLE_TD,
 } from '@/lib/app-shell-layout'
 import { analyzeBolleDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
@@ -168,10 +167,8 @@ export default async function BollePage({
     return t.bolle.noBills
   })()
 
-  const bolleListTheme = SUMMARY_HIGHLIGHT_ACCENTS.indigo
-
   return (
-    <div className={APP_SHELL_SECTION_PAGE_CLASS}>
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip accent="indigo">
         <AppPageHeaderTitleWithDashboardShortcut dashboardLabel={t.nav.dashboard}>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.bolle.title}</h1>
@@ -179,61 +176,49 @@ export default async function BollePage({
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
 
-      <AppSummaryHighlightCard
-        accent="indigo"
-        label={t.common.total}
-        primary={bolle.length}
-        secondary={subtitle}
-        trailing={
-          !showAll ? (
-            <>
-              <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={APP_SECTION_TRAILING_LINK_CLASS}>
-                {t.bolle.listShowAll}
-              </Link>
-              <span className={APP_SECTION_TRAILING_SEP_CLASS} aria-hidden>
-                ·
-              </span>
-              <Link
-                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
-                className={APP_SECTION_TRAILING_LINK_CLASS}
-              >
-                {t.bolle.listAllPending}
-              </Link>
-            </>
-          ) : pendingOnly ? (
-            <>
-              <Link href="/bolle" className={APP_SECTION_TRAILING_LINK_CLASS}>
-                {t.bolle.listShowToday}
-              </Link>
-              <span className={APP_SECTION_TRAILING_SEP_CLASS} aria-hidden>
-                ·
-              </span>
-              <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={APP_SECTION_TRAILING_LINK_CLASS}>
-                {t.bolle.listShowAll}
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link href="/bolle" className={APP_SECTION_TRAILING_LINK_CLASS}>
-                {t.bolle.listShowToday}
-              </Link>
-              <span className={APP_SECTION_TRAILING_SEP_CLASS} aria-hidden>
-                ·
-              </span>
-              <Link
-                href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
-                className={APP_SECTION_TRAILING_LINK_CLASS}
-              >
-                {t.bolle.listAllPending}
-              </Link>
-            </>
-          )
-        }
-      />
+      <AppSummaryHighlightCard accent="indigo" label={t.common.total} primary={bolle.length} secondary={subtitle} />
 
-      <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${bolleListTheme.border}`}>
-        <div className={`app-card-bar-accent ${bolleListTheme.bar}`} aria-hidden />
-        <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
+      <AppSectionFiltersBar>
+        {!showAll ? (
+          <>
+            <Link
+              href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })}
+              className={standardLinkButtonClassName('secondary', 'sm')}
+            >
+              {t.bolle.listShowAll}
+            </Link>
+            <Link
+              href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
+              className={standardLinkButtonClassName('secondary', 'sm')}
+            >
+              {t.bolle.listAllPending}
+            </Link>
+          </>
+        ) : pendingOnly ? (
+          <>
+            <Link href="/bolle" className={standardLinkButtonClassName('secondary', 'sm')}>
+              {t.bolle.listShowToday}
+            </Link>
+            <Link href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1' })} className={standardLinkButtonClassName('secondary', 'sm')}>
+              {t.bolle.listShowAll}
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link href="/bolle" className={standardLinkButtonClassName('secondary', 'sm')}>
+              {t.bolle.listShowToday}
+            </Link>
+            <Link
+              href={withFiscalYearQuery('/bolle', fyForLinks, { tutte: '1', pending: '1' })}
+              className={standardLinkButtonClassName('secondary', 'sm')}
+            >
+              {t.bolle.listAllPending}
+            </Link>
+          </>
+        )}
+      </AppSectionFiltersBar>
+
+      <StandardCard accent="indigo">
           {bolle.length === 0 ? (
             <AppSectionEmptyState message={emptyMessage}>
               {!showAll ? (
@@ -287,26 +272,17 @@ export default async function BollePage({
                               title={t.bolle.pendingInvoiceOverdueHint}
                               aria-label={t.bolle.pendingInvoiceOverdueHint}
                             >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
-                                />
-                              </svg>
+                              <AlertTriangle className="h-4 w-4" aria-hidden strokeWidth={2} />
                             </span>
                           ) : null}
                           {b.stato === 'completato' ? (
-                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
-                              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                            <StandardBadge variant="success" dot="emerald" className="shrink-0 normal-case">
                               {t.status.completato}
-                            </span>
+                            </StandardBadge>
                           ) : (
-                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                            <StandardBadge variant="pending" dot="amber" className="shrink-0 normal-case">
                               {t.status.inAttesa}
-                            </span>
+                            </StandardBadge>
                           )}
                         </div>
                       </div>
@@ -314,21 +290,16 @@ export default async function BollePage({
                     <div className="flex flex-wrap items-center gap-2">
                       {b.file_url && (
                         <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
-                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
+                          <Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
                           {t.bolle.viewDocument}
                         </OpenDocumentInAppButton>
                       )}
                       {b.stato === 'in attesa' && (
                         <Link
                           href={`/fatture/new?bolla_id=${b.id}&fornitore_id=${b.fornitore_id}`}
-                          className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                          className={standardLinkButtonClassName('primary', 'sm')}
                         >
-                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                          </svg>
+                          <Upload className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
                           {t.bolle.uploadInvoice}
                         </Link>
                       )}
@@ -359,13 +330,13 @@ export default async function BollePage({
                     return (
                     <tr key={b.id} className={APP_SECTION_TABLE_TR_GROUP}>
                       <td
-                        className={`whitespace-nowrap px-6 py-4 font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
+                        className={`${APP_SECTION_TABLE_TD} whitespace-nowrap font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
                       >
                         <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
                           {formatDate(b.data)}
                         </Link>
                       </td>
-                      <td className="max-w-[10rem] px-6 py-4 font-mono text-sm text-app-fg-muted">
+                      <td className={`${APP_SECTION_TABLE_TD} max-w-[10rem] font-mono text-app-fg-muted`}>
                         <Link
                           href={`/bolle/${b.id}`}
                           className={`${APP_SECTION_TABLE_CELL_LINK} ${overdueInv ? 'text-amber-100' : ''}`}
@@ -382,12 +353,12 @@ export default async function BollePage({
                           deleteFailedPrefix={t.appStrings.deleteFailed}
                         />
                       </td>
-                      <td className={`px-6 py-4 font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
+                      <td className={`${APP_SECTION_TABLE_TD} font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
                         <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
                           {supplierLabel || <span className="text-app-fg-muted">—</span>}
                         </Link>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className={APP_SECTION_TABLE_TD}>
                         <div className="flex flex-wrap items-center gap-2">
                           {overdueInv ? (
                             <span
@@ -395,48 +366,34 @@ export default async function BollePage({
                               title={t.bolle.pendingInvoiceOverdueHint}
                               aria-label={t.bolle.pendingInvoiceOverdueHint}
                             >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"
-                                />
-                              </svg>
+                              <AlertTriangle className="h-4 w-4" aria-hidden strokeWidth={2} />
                             </span>
                           ) : null}
                           {b.stato === 'completato' ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/15 px-2.5 py-1 text-xs font-semibold text-green-300">
-                              <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                            <StandardBadge variant="success" dot="emerald" className="normal-case">
                               {t.status.completato}
-                            </span>
+                            </StandardBadge>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-200">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                            <StandardBadge variant="pending" dot="amber" className="normal-case">
                               {t.status.inAttesa}
-                            </span>
+                            </StandardBadge>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className={APP_SECTION_TABLE_TD}>
                         <div className="flex items-center justify-end gap-2">
                           {b.file_url && (
                             <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
-                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
+                              <Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
                               {t.bolle.viewDocument}
                             </OpenDocumentInAppButton>
                           )}
                           {b.stato === 'in attesa' && (
                             <Link
                               href={`/fatture/new?bolla_id=${b.id}&fornitore_id=${b.fornitore_id}`}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                              className={standardLinkButtonClassName('primary', 'sm')}
                             >
-                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                              </svg>
+                              <Upload className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
                               {t.bolle.uploadInvoice}
                             </Link>
                           )}
@@ -452,8 +409,7 @@ export default async function BollePage({
               </table>
             </>
           )}
-        </div>
-      </div>
+      </StandardCard>
     </div>
   )
 }

@@ -4,11 +4,17 @@ export const LOCALE_COOKIE = 'app-locale'
 export const CURRENCY_COOKIE = 'app-currency'
 export const TIMEZONE_COOKIE = 'app-timezone'
 
+const DEFAULT_DATE_DISPLAY_OPTS: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+}
+
 export function formatDate(
   d: string,
   locale: Locale = 'it',
   timezone = 'Europe/Rome',
-  opts: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' }
+  opts?: Intl.DateTimeFormatOptions
 ) {
   const parsed = new Date(d)
   if (!Number.isFinite(parsed.getTime())) return ''
@@ -18,8 +24,9 @@ export function formatDate(
     : locale === 'es' ? 'es-ES'
     : locale === 'fr' ? 'fr-FR'
     : 'de-DE'
-  let out = new Intl.DateTimeFormat(intlLocale, { ...opts, timeZone: timezone }).format(parsed)
-  if (locale === 'it') {
+  const merged: Intl.DateTimeFormatOptions = { ...DEFAULT_DATE_DISPLAY_OPTS, ...opts }
+  let out = new Intl.DateTimeFormat(intlLocale, { ...merged, timeZone: timezone }).format(parsed)
+  if (locale === 'it' && merged.month === 'short') {
     out = out.toLocaleLowerCase('it-IT')
   }
   return out
