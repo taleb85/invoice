@@ -122,13 +122,13 @@ function FornitoreProfileBottomNav({
     <nav className={navCls} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
       {masterAdminNoOperator ? <BottomNavOperatorRow /> : null}
       <div className={fornitoreIconsRow}>
-        <Link href="/fornitori" className={itemCls(false)} prefetch={false}>
-          <Users className="h-6 w-6 shrink-0" aria-hidden />
-          <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
-        </Link>
         <Link href="/" className={itemCls(dashboardActive)} prefetch={false}>
           <Home className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
+        </Link>
+        <Link href="/fornitori" className={itemCls(false)} prefetch={false}>
+          <Users className="h-6 w-6 shrink-0" aria-hidden />
+          <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
         {!supplierReadOnlyMobile ? (
         <Link href={nuovaBollaHref} className={itemCls(false)} prefetch={false}>

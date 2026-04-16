@@ -480,8 +480,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
       <LoginBrandedHero mode={mode} />
 
-      {/* Card — tema Deep Ocean; shell + barra = globals .app-card-login / .app-card-bar */}
-      <div className="app-card-login flex flex-col overflow-hidden">
+      {/* Card: bordo leggero su canvas gradient (`LoginBrandedShell`); vetro pieno disattivato */}
+      <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
         <div className="app-card-bar" aria-hidden />
 
         <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
