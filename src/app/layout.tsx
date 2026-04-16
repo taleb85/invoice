@@ -28,10 +28,13 @@ const geistSans = Geist({
 
 export const viewport: Viewport = {
   themeColor: "#020617",
+  colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  /** Riempie safe area (notch) senza modificare la palette dell’app. */
+  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
