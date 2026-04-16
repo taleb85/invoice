@@ -8,7 +8,7 @@ import type { Fattura } from '@/types'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 
 /** Senza embed `bolla`: l’embed su `bolle` può far fallire l’intera riga se la bolla collegata non passa RLS (l’elenco cliente usa solo colonne su `fatture`). */
-const FATTURA_CORE = '*, fornitore:fornitori(nome, email, piva)'
+const FATTURA_CORE = '*, fornitore:fornitori(nome, email, piva, rekki_supplier_id)'
 const BOLLA_EMBED_FIELDS = 'id, data, stato'
 const BOLLA_SELECT = '*, fornitore:fornitori(nome, email, piva, rekki_supplier_id)'
 

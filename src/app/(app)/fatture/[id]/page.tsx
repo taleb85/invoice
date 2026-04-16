@@ -6,12 +6,34 @@ import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/local
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import ReplaceFileButton from './ReplaceFileButton'
+import { getRequestAuth, getProfile } from '@/utils/supabase/server'
+import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
 
 export default async function FatturaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [fattura, t, locale, tz] = await Promise.all([getFatturaForViewer(id), getT(), getLocale(), getTimezone()])
+  const [fattura, t, locale, tz, profile] = await Promise.all([
+    getFatturaForViewer(id),
+    getT(),
+    getLocale(),
+    getTimezone(),
+    getProfile(),
+  ])
   if (!fattura) return <DocumentUnavailable kind="fattura" />
   const formatDate = (d: string) => fmtDate(d, locale, tz)
+  const allowListinoForce = Boolean(profile)
+
+  const fornitoreRekkiId = fattura.fornitore?.rekki_supplier_id?.trim()
+  let listinoRows: { prodotto: string; prezzo: number; data_prezzo: string }[] = []
+  if (fornitoreRekkiId) {
+    const { supabase } = await getRequestAuth()
+    const { data } = await supabase
+      .from('listino_prezzi')
+      .select('prodotto, prezzo, data_prezzo')
+      .eq('fornitore_id', fattura.fornitore_id)
+      .order('data_prezzo', { ascending: false })
+      .limit(24)
+    listinoRows = (data ?? []) as typeof listinoRows
+  }
 
   return (
     <div className="max-w-2xl app-shell-page-padding">

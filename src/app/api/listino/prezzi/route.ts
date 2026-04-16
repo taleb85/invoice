@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 import type { Profile } from '@/types'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
-import { executeListinoPrezziInsert } from '@/lib/listino-prezzi-insert'
+import { isMasterAdminRole } from '@/lib/roles'
+import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
 
 function canManageListino(
   profile: Profile,
@@ -40,13 +40,17 @@ type InsertRow = {
   prezzo: number
   data_prezzo: string
   note?: string | null
-  /** Solo admin: inserisci anche se `data_prezzo` è precedente all’ultimo aggiornamento listino per quel prodotto. */
+  /** Inserisci anche se `data_prezzo` è precedente all’ultimo aggiornamento listino (conferma esplicita in UI). */
   force_outdated?: boolean
 }
 
 /**
  * Inserimento listino con service role dopo verifica sede/ruolo.
  * Evita errori RLS se sul DB mancano ancora le policy su `listino_prezzi`.
+ *
+ * **Protezione date:** per ogni prodotto si considera la `data_ultimo_prezzo` (max `data_prezzo`
+ * già salvata per quel `prodotto` + `fornitore_id`). Se `data_prezzo` della riga in ingresso è
+ * **anteriore** a quell’ultima data, la riga viene **saltata** salvo `force_outdated` (operatore con accesso al listino).
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -110,18 +114,74 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nessuna riga valida (prodotto, prezzo, data)' }, { status: 400 })
   }
 
-  const canForceOutdated = isMasterAdminRole(profile.role) || isAdminSedeRole(profile.role)
+  const distinctProducts = [...new Set(parsed.map((p) => p.prodotto))]
+  const { data: existingRows, error: exErr } = await service
+    .from('listino_prezzi')
+    .select('prodotto, data_prezzo')
+    .eq('fornitore_id', fornitoreId)
+    .in('prodotto', distinctProducts)
 
-  const result = await executeListinoPrezziInsert(service, fornitoreId, parsed, canForceOutdated)
-  if (!result.ok) {
-    const status = result.error.includes('Override') ? 403 : 400
+  if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 })
+
+  const maxByProduct = new Map<string, string>()
+  for (const row of existingRows ?? []) {
+    const p = String(row.prodotto).trim()
+    const d = String(row.data_prezzo).slice(0, 10)
+    const cur = maxByProduct.get(p)
+    if (!cur || compareIsoDateStrings(d, cur) > 0) maxByProduct.set(p, d)
+  }
+
+  const skipped: { prodotto: string; reason: 'document_date_before_latest' }[] = []
+  const toInsert: Array<{ fornitore_id: string; prodotto: string; prezzo: number; data_prezzo: string; note: string | null }> = []
+  const workingMax = new Map(maxByProduct)
+
+  for (const r of parsed) {
+    const latest = workingMax.get(r.prodotto) ?? null
+    const allowed = isDocumentDateAtLeastLatestListino(r.data_prezzo, latest)
+    if (!allowed) {
+      if (r.force_outdated) {
+        toInsert.push({
+          fornitore_id: r.fornitore_id,
+          prodotto: r.prodotto,
+          prezzo: r.prezzo,
+          data_prezzo: r.data_prezzo,
+          note: r.note,
+        })
+        const d = r.data_prezzo.slice(0, 10)
+        const wm = workingMax.get(r.prodotto)
+        if (!wm || compareIsoDateStrings(d, wm) > 0) workingMax.set(r.prodotto, d)
+      } else {
+        skipped.push({ prodotto: r.prodotto, reason: 'document_date_before_latest' })
+      }
+      continue
+    }
+    toInsert.push({
+      fornitore_id: r.fornitore_id,
+      prodotto: r.prodotto,
+      prezzo: r.prezzo,
+      data_prezzo: r.data_prezzo,
+      note: r.note,
+    })
+    const d = r.data_prezzo.slice(0, 10)
+    const wm = workingMax.get(r.prodotto)
+    if (!wm || compareIsoDateStrings(d, wm) > 0) workingMax.set(r.prodotto, d)
+  }
+
+  if (toInsert.length === 0) {
     return NextResponse.json(
-      { error: result.error, skipped: result.skipped },
-      { status },
+      {
+        error:
+          'Nessuna riga inserita: la data documento è precedente all’ultimo aggiornamento listino per tutti i prodotti selezionati.',
+        skipped,
+      },
+      { status: 400 },
     )
   }
 
-  return NextResponse.json({ ok: true, inserted: result.inserted, skipped: result.skipped })
+  const { error } = await service.from('listino_prezzi').insert(toInsert)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, inserted: toInsert.length, skipped })
 }
 
 /**

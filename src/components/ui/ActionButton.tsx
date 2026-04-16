@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ComponentProps } from 'react'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ComponentProps } from 'react'
 import Link from 'next/link'
 
 /** Design system: neon verde conferme, viola integrazioni/ricerca, rosso elimina/anomalie. */
@@ -73,6 +73,14 @@ export type ActionLinkProps = Omit<ComponentProps<typeof Link>, 'className'> & {
   className?: string
 }
 
-export function ActionLink({ intent, size = 'md', className = '', ...rest }: ActionLinkProps) {
-  return <Link className={actionButtonClassName(intent, size, className)} {...rest} />
+export function ActionLink({ intent, size = 'md', className = '', href, ...rest }: ActionLinkProps) {
+  const cls = actionButtonClassName(intent, size, className)
+  if (typeof href === 'string' && /^(https?:|mailto:)/i.test(href)) {
+    const r = { ...(rest as Record<string, unknown>) }
+    delete r.prefetch
+    delete r.replace
+    delete r.scroll
+    return <a className={cls} href={href} {...(r as AnchorHTMLAttributes<HTMLAnchorElement>)} />
+  }
+  return <Link className={cls} href={href} {...rest} />
 }

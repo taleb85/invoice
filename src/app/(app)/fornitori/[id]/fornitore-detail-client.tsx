@@ -94,6 +94,68 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica'
 
+/** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
+type SupplierLedgerPeriod = { from: string; toIncl: string }
+
+function localYmd(d: Date): string {
+  const y = d.getFullYear()
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function parseYmdLocal(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map((x) => Number(x))
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1)
+}
+
+function addDaysYmd(ymd: string, days: number): string {
+  const d = parseYmdLocal(ymd)
+  d.setDate(d.getDate() + days)
+  return localYmd(d)
+}
+
+function supplierExclusiveEndAfterInclusive(ymdInclusive: string): string {
+  return addDaysYmd(ymdInclusive, 1)
+}
+
+function compareYmd(a: string, b: string): number {
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
+}
+
+function clampLedgerPeriodToToday(from: string, toIncl: string, todayYmd: string): SupplierLedgerPeriod {
+  let tf = from
+  let tt = toIncl
+  if (compareYmd(tt, todayYmd) > 0) tt = todayYmd
+  if (compareYmd(tf, tt) > 0) tf = tt
+  return { from: tf, toIncl: tt }
+}
+
+function supplierMonthCalendarBounds(year: number, month1: number): SupplierLedgerPeriod {
+  const from = `${year}-${String(month1).padStart(2, '0')}-01`
+  const last = new Date(year, month1, 0)
+  return { from, toIncl: localYmd(last) }
+}
+
+function ymdYearMonth(ymd: string): { y: number; m: number } {
+  const [ys, ms] = ymd.split('-')
+  return { y: Number(ys), m: Number(ms) }
+}
+
+function shiftLedgerPeriodByMonths(
+  p: SupplierLedgerPeriod,
+  deltaMonths: number,
+  todayYmd: string,
+): SupplierLedgerPeriod {
+  const df = parseYmdLocal(p.from)
+  df.setMonth(df.getMonth() + deltaMonths)
+  const dt = parseYmdLocal(p.toIncl)
+  dt.setMonth(dt.getMonth() + deltaMonths)
+  return clampLedgerPeriodToToday(localYmd(df), localYmd(dt), todayYmd)
+}
+
 /** Due `TabContent` (mobile/desktop); scrolla il pannello visibile dentro `<main data-app-main-scroll>`. */
 function scrollSupplierTabPanelIntoView() {
   if (typeof document === 'undefined') return
@@ -219,15 +281,20 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   rekkiPriceAnomalies: 0,
 }
 
-function useSupplierPeriodStats(fornitoreId: string, year: number, month: number, reloadEpoch = 0) {
+function useSupplierPeriodStats(
+  fornitoreId: string,
+  fromInclusive: string,
+  toExclusive: string,
+  reloadEpoch = 0,
+) {
   const [stats, setStats] = useState<SupplierPeriodStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    const from = `${year}-${String(month).padStart(2, '0')}-01`
-    const to = new Date(year, month, 1).toISOString().split('T')[0]
+    const from = fromInclusive
+    const to = toExclusive
     const supabase = createClient()
 
     const pendingCountPromise = fetch(
@@ -332,7 +399,7 @@ function useSupplierPeriodStats(fornitoreId: string, year: number, month: number
     return () => {
       cancelled = true
     }
-  }, [fornitoreId, year, month, reloadEpoch])
+  }, [fornitoreId, fromInclusive, toExclusive, reloadEpoch])
 
   return { stats, loading }
 }
@@ -1408,6 +1475,7 @@ function DashboardTab({
 
       <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
       <RekkiSupplierIntegration
+        key={fornitoreId}
         fornitoreId={fornitoreId}
         piva={fornitore.piva}
         supplierDisplayName={fornitore.nome}
@@ -1469,8 +1537,8 @@ function numeroRefFromDocMetadata(metadata: unknown): string | null {
 /* ─── Bolle tab ──────────────────────────────────────────────────── */
 function BolleTab({
   fornitoreId,
-  year,
-  month,
+  dateFrom,
+  dateToExclusive,
   pathname,
   searchParams,
   readOnly,
@@ -1478,8 +1546,8 @@ function BolleTab({
   currency,
 }: {
   fornitoreId: string
-  year: number
-  month: number
+  dateFrom: string
+  dateToExclusive: string
   pathname: string
   searchParams: ReadonlyURLSearchParams
   readOnly?: boolean
@@ -1497,8 +1565,8 @@ function BolleTab({
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    const from = `${year}-${String(month).padStart(2, '0')}-01`
-    const to = new Date(year, month, 1).toISOString().split('T')[0]
+    const from = dateFrom
+    const to = dateToExclusive
     const supabase = createClient()
     void (async () => {
       const { data } = await supabase
@@ -1544,7 +1612,7 @@ function BolleTab({
     return () => {
       cancelled = true
     }
-  }, [fornitoreId, year, month])
+  }, [fornitoreId, dateFrom, dateToExclusive])
 
   const numeroInElenco = useCallback(
     (b: Bolla) =>
@@ -1780,8 +1848,8 @@ function BolleTab({
 /* ─── Fatture tab ────────────────────────────────────────────────── */
 function FattureTab({
   fornitoreId,
-  year,
-  month,
+  dateFrom,
+  dateToExclusive,
   pathname,
   searchParams,
   readOnly,
@@ -1789,8 +1857,8 @@ function FattureTab({
   currency,
 }: {
   fornitoreId: string
-  year: number
-  month: number
+  dateFrom: string
+  dateToExclusive: string
   pathname: string
   searchParams: ReadonlyURLSearchParams
   readOnly?: boolean
@@ -1818,8 +1886,8 @@ function FattureTab({
 
   useEffect(() => {
     setLoading(true)
-    const from = `${year}-${String(month).padStart(2, '0')}-01`
-    const to = new Date(year, month, 1).toISOString().split('T')[0]
+    const from = dateFrom
+    const to = dateToExclusive
     const supabase = createClient()
     supabase
       .from('fatture')
@@ -1832,7 +1900,7 @@ function FattureTab({
         setFatture(data ?? [])
         setLoading(false)
       })
-  }, [fornitoreId, year, month])
+  }, [fornitoreId, dateFrom, dateToExclusive])
 
   const onDuplicateRemoved = useCallback(
     (removedId: string) => {
@@ -2079,7 +2147,6 @@ function ListinoTab({
   currency?: string
   readOnly?: boolean
 }) {
-  const { me } = useMe()
   const t = useT()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -2364,7 +2431,14 @@ function ListinoTab({
           ),
           listino
         )
-        setImportItems(enriched)
+        /** Import automatica: nessuna selezione se data documento precede l’ultimo data_prezzo listino per quel prodotto. */
+        const withAutoSkip = enriched.map((item) => {
+          const latest = maxListinoDateForExactProduct(listino, item.prodotto)
+          const blocked =
+            latest != null && !isDocumentDateAtLeastLatestListino(docDate, latest)
+          return { ...item, selected: blocked ? false : item.selected }
+        })
+        setImportItems(withAutoSkip)
       }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : String(err))
@@ -2373,7 +2447,6 @@ function ListinoTab({
     }
   }
 
-  const listinoImportAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
   const importRowDateBlocked = (prodotto: string) => {
     const latest = maxListinoDateForExactProduct(listino, prodotto)
     return latest != null && !isDocumentDateAtLeastLatestListino(importDate, latest)
@@ -2464,11 +2537,6 @@ function ListinoTab({
       latestManual != null && !isDocumentDateAtLeastLatestListino(formData, latestManual)
     if (manualBlocked && !formForceOutdated) {
       setSaveError(t.appStrings.listinoManualDateBlockedHint)
-      setSaving(false)
-      return
-    }
-    if (manualBlocked && formForceOutdated && !listinoImportAdmin) {
-      setSaveError(t.appStrings.listinoManualDateBlockedNoAdmin)
       setSaving(false)
       return
     }
@@ -2934,29 +3002,27 @@ function ListinoTab({
                                           <p className="text-[9px] leading-snug text-amber-200/85">
                                             {t.appStrings.listinoImportDateOlderThanListinoHint}
                                           </p>
-                                          {listinoImportAdmin ? (
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                setImportItems((prev) =>
-                                                  prev.map((it, i) =>
-                                                    i === idx
-                                                      ? { ...it, forceOutdated: !it.forceOutdated }
-                                                      : it
-                                                  )
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setImportItems((prev) =>
+                                                prev.map((it, i) =>
+                                                  i === idx
+                                                    ? { ...it, forceOutdated: !it.forceOutdated }
+                                                    : it
                                                 )
-                                              }
-                                              className={`w-fit rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition-colors ${
-                                                item.forceOutdated
-                                                  ? 'border-emerald-500/45 bg-emerald-950/40 text-emerald-100'
-                                                  : 'border-amber-500/40 bg-amber-950/35 text-amber-100 hover:border-amber-400/55'
-                                              }`}
-                                            >
-                                              {item.forceOutdated
-                                                ? t.appStrings.listinoImportApplyOutdatedAdminActive
-                                                : t.appStrings.listinoImportApplyOutdatedAdmin}
-                                            </button>
-                                          ) : null}
+                                              )
+                                            }
+                                            className={`w-fit rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition-colors ${
+                                              item.forceOutdated
+                                                ? 'border-emerald-500/45 bg-emerald-950/40 text-emerald-100'
+                                                : 'border-amber-500/40 bg-amber-950/35 text-amber-100 hover:border-amber-400/55'
+                                            }`}
+                                          >
+                                            {item.forceOutdated
+                                              ? t.appStrings.listinoImportApplyOutdatedAdminActive
+                                              : t.appStrings.listinoImportApplyOutdatedAdmin}
+                                          </button>
                                         </>
                                       ) : null}
                                     </div>
@@ -2992,9 +3058,7 @@ function ListinoTab({
                         (i) => i.selected && importRowDateBlocked(i.prodotto) && !i.forceOutdated
                       ) ? (
                         <p className="mt-2 text-[11px] text-app-fg-muted">
-                          {listinoImportAdmin
-                            ? t.appStrings.listinoImportSaveBlockedHintAdmin
-                            : t.appStrings.listinoImportSaveBlockedHintOperator}
+                          {t.appStrings.listinoImportSaveBlockedHintOperator}
                         </p>
                       ) : null}
                     </div>
@@ -3062,17 +3126,15 @@ function ListinoTab({
                 return (
                   <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-100/95">
                     <p>{t.appStrings.listinoManualDateBlockedHint}</p>
-                    {listinoImportAdmin ? (
-                      <label className="mt-2 flex cursor-pointer items-center gap-2 font-medium">
-                        <input
-                          type="checkbox"
-                          checked={formForceOutdated}
-                          onChange={(e) => setFormForceOutdated(e.target.checked)}
-                          className="h-3.5 w-3.5 accent-amber-400"
-                        />
-                        {t.appStrings.listinoImportApplyOutdatedAdmin}
-                      </label>
-                    ) : null}
+                    <label className="mt-2 flex cursor-pointer items-center gap-2 font-medium">
+                      <input
+                        type="checkbox"
+                        checked={formForceOutdated}
+                        onChange={(e) => setFormForceOutdated(e.target.checked)}
+                        className="h-3.5 w-3.5 accent-amber-400"
+                      />
+                      {t.appStrings.listinoImportApplyOutdatedAdmin}
+                    </label>
                   </div>
                 )
               })()}
@@ -3562,36 +3624,41 @@ function FornitoreDetailClient({
 
   /** Sede attiva utente se il fornitore non ha ancora `sede_id` — necessario per API statement/bolle in Verifica. */
   const effectiveSedeId = fornitore.sede_id?.trim() || me?.sede_id?.trim() || undefined
-  // ── Shared month/year filter ───────────────────────────────────────
+  // ── Periodo documenti / KPI (date inclusive Da / A, navigazione mese/anno) ──
   const now = new Date()
-  const [filterYear,  setFilterYear]  = useState(now.getFullYear())
-  const [filterMonth, setFilterMonth] = useState(now.getMonth() + 1)
+  const nowY = now.getFullYear()
+  const nowM = now.getMonth() + 1
+  const todayYmd = localYmd(now)
+
+  const [ledgerPeriod, setLedgerPeriod] = useState<SupplierLedgerPeriod>(() => {
+    const d = new Date()
+    const b = supplierMonthCalendarBounds(d.getFullYear(), d.getMonth() + 1)
+    return clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(d))
+  })
+
+  const ledgerDateToExclusive = useMemo(
+    () => supplierExclusiveEndAfterInclusive(ledgerPeriod.toIncl),
+    [ledgerPeriod.toIncl],
+  )
 
   /** Periodo solo per il riepilogo mensile in card: frecce anno qui non muovono il navigatore in header. */
   const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState(() => ({
-    y: now.getFullYear(),
-    m: now.getMonth() + 1,
+    y: nowY,
+    m: nowM,
   }))
 
-  const shiftMonth = (delta: number) => {
-    setFilterMonth(prev => {
-      const newMonth = prev + delta
-      if (newMonth < 1)  { setFilterYear(y => y - 1); return 12 }
-      if (newMonth > 12) { setFilterYear(y => y + 1); return 1  }
-      return newMonth
-    })
-  }
+  const filterYear = ymdYearMonth(ledgerPeriod.from).y
+  const filterMonth = ymdYearMonth(ledgerPeriod.from).m
 
-  const nowY = now.getFullYear()
-  const nowM = now.getMonth() + 1
   const clampSupplierPeriod = (y: number, m: number) => {
     if (y > nowY || (y === nowY && m > nowM)) return { y: nowY, m: nowM }
     return { y, m }
   }
 
   useEffect(() => {
-    setMonthlySummaryPeriod({ y: filterYear, m: filterMonth })
-  }, [filterYear, filterMonth])
+    const { y, m } = ymdYearMonth(ledgerPeriod.toIncl)
+    setMonthlySummaryPeriod({ y, m })
+  }, [ledgerPeriod.toIncl])
 
   const shiftMonthlySummaryYear = (delta: number) => {
     setMonthlySummaryPeriod((prev) => clampSupplierPeriod(prev.y + delta, prev.m))
@@ -3605,34 +3672,68 @@ function FornitoreDetailClient({
   const isMonthlySummaryAtCurrentMonth =
     monthlySummaryPeriod.y === nowY && monthlySummaryPeriod.m === nowM
 
-  const shiftYear = (delta: number) => {
-    const next = clampSupplierPeriod(filterYear + delta, filterMonth)
-    setFilterYear(next.y)
-    setFilterMonth(next.m)
+  const shiftLedgerMonth = (delta: number) => {
+    setLedgerPeriod((p) => shiftLedgerPeriodByMonths(p, delta, localYmd(new Date())))
   }
 
-  const nextYearPeriod = clampSupplierPeriod(filterYear + 1, filterMonth)
-  const canShiftYearForward =
-    nextYearPeriod.y !== filterYear || nextYearPeriod.m !== filterMonth
+  const shiftLedgerYear = (delta: number) => {
+    setLedgerPeriod((p) => shiftLedgerPeriodByMonths(p, delta * 12, localYmd(new Date())))
+  }
 
-  const monthYearLabel = formatDateLib(
-    `${filterYear}-${String(filterMonth).padStart(2, '0')}-15`,
-    locale,
-    timezone,
-    { month: 'short', year: 'numeric' }
-  )
-  const isCurrentMonth = filterYear === now.getFullYear() && filterMonth === now.getMonth() + 1
+  const ledgerShiftPreview = (deltaMonths: number) =>
+    shiftLedgerPeriodByMonths(ledgerPeriod, deltaMonths, localYmd(new Date()))
 
-  const [periodMonthPickerOpen, setPeriodMonthPickerOpen] = useState(false)
-  const periodMonthPickerRef = useRef<HTMLDivElement>(null)
+  const canShiftLedgerMonthForward =
+    ledgerShiftPreview(1).from !== ledgerPeriod.from || ledgerShiftPreview(1).toIncl !== ledgerPeriod.toIncl
+
+  const canShiftLedgerYearForward =
+    ledgerShiftPreview(12).from !== ledgerPeriod.from || ledgerShiftPreview(12).toIncl !== ledgerPeriod.toIncl
+
+  const currentMonthBounds = useMemo(() => {
+    const b = supplierMonthCalendarBounds(nowY, nowM)
+    return clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd)
+  }, [nowY, nowM, todayYmd])
+
+  const isLedgerAtCurrentMonthBounds =
+    ledgerPeriod.from === currentMonthBounds.from && ledgerPeriod.toIncl === currentMonthBounds.toIncl
+
+  const periodTriggerLabel = useMemo(() => {
+    if (ledgerPeriod.from === ledgerPeriod.toIncl) {
+      return formatDateLib(ledgerPeriod.from, locale, timezone, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    }
+    const fromPart = formatDateLib(ledgerPeriod.from, locale, timezone, {
+      day: '2-digit',
+      month: 'short',
+    })
+    const toPart = formatDateLib(ledgerPeriod.toIncl, locale, timezone, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+    return `${fromPart} – ${toPart}`
+  }, [ledgerPeriod.from, ledgerPeriod.toIncl, locale, timezone])
+
+  const [periodPickerOpen, setPeriodPickerOpen] = useState(false)
+  const [periodPickerDraft, setPeriodPickerDraft] = useState<SupplierLedgerPeriod>(ledgerPeriod)
+  const periodPickerRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
-    if (!periodMonthPickerOpen) return
+    if (!periodPickerOpen) return
+    setPeriodPickerDraft(ledgerPeriod)
+  }, [periodPickerOpen, ledgerPeriod])
+
+  useEffect(() => {
+    if (!periodPickerOpen) return
     const onPointerDown = (e: PointerEvent) => {
-      const el = periodMonthPickerRef.current
-      if (el && !el.contains(e.target as Node)) setPeriodMonthPickerOpen(false)
+      const el = periodPickerRef.current
+      if (el && !el.contains(e.target as Node)) setPeriodPickerOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPeriodMonthPickerOpen(false)
+      if (e.key === 'Escape') setPeriodPickerOpen(false)
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKey)
@@ -3640,7 +3741,7 @@ function FornitoreDetailClient({
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKey)
     }
-  }, [periodMonthPickerOpen])
+  }, [periodPickerOpen])
 
   const [periodLedgerEpoch, setPeriodLedgerEpoch] = useState(0)
   const bumpPeriodLedger = useCallback(() => {
@@ -3650,8 +3751,8 @@ function FornitoreDetailClient({
 
   const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(
     fornitore.id,
-    filterYear,
-    filterMonth,
+    ledgerPeriod.from,
+    ledgerDateToExclusive,
     periodLedgerEpoch,
   )
 
@@ -3685,8 +3786,8 @@ function FornitoreDetailClient({
       {displayTab === 'bolle' && (
         <BolleTab
           fornitoreId={fornitore.id}
-          year={filterYear}
-          month={filterMonth}
+          dateFrom={ledgerPeriod.from}
+          dateToExclusive={ledgerDateToExclusive}
           pathname={pathname}
           searchParams={searchParams}
           readOnly={supplierReadOnlyMobile}
@@ -3697,8 +3798,8 @@ function FornitoreDetailClient({
       {displayTab === 'fatture' && (
         <FattureTab
           fornitoreId={fornitore.id}
-          year={filterYear}
-          month={filterMonth}
+          dateFrom={ledgerPeriod.from}
+          dateToExclusive={ledgerDateToExclusive}
           pathname={pathname}
           searchParams={searchParams}
           readOnly={supplierReadOnlyMobile}
@@ -3733,6 +3834,8 @@ function FornitoreDetailClient({
           currency={currency}
           year={filterYear}
           month={filterMonth}
+          ledgerDateFrom={ledgerPeriod.from}
+          ledgerDateToExclusive={ledgerDateToExclusive}
           cardAccent="amber"
         />
       )}
@@ -3745,6 +3848,8 @@ function FornitoreDetailClient({
             currency={currency}
             year={filterYear}
             month={filterMonth}
+            ledgerDateFrom={ledgerPeriod.from}
+            ledgerDateToExclusive={ledgerDateToExclusive}
             cardAccent="cyan"
             supplierDesktopVerificaMode="statementsPanel"
           />
@@ -3756,6 +3861,8 @@ function FornitoreDetailClient({
             currency={currency}
             year={filterYear}
             month={filterMonth}
+            ledgerDateFrom={ledgerPeriod.from}
+            ledgerDateToExclusive={ledgerDateToExclusive}
             cardAccent="cyan"
           />
         ) : null)}
@@ -3921,12 +4028,12 @@ function FornitoreDetailClient({
             </div>
 
             <div
-              ref={periodMonthPickerRef}
+              ref={periodPickerRef}
               className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-md border border-app-soft-border bg-transparent px-0.5 xl:h-8 xl:px-1"
             >
               <button
                 type="button"
-                onClick={() => shiftYear(-1)}
+                onClick={() => shiftLedgerYear(-1)}
                 title={t.appStrings.monthNavPrevYearTitle}
                 aria-label={t.appStrings.monthNavPrevYearTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg xl:h-6 xl:w-6"
@@ -3937,7 +4044,7 @@ function FornitoreDetailClient({
               </button>
               <button
                 type="button"
-                onClick={() => shiftMonth(-1)}
+                onClick={() => shiftLedgerMonth(-1)}
                 title={t.appStrings.monthNavPrevMonthTitle}
                 aria-label={t.appStrings.monthNavPrevMonthTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg xl:h-6 xl:w-6"
@@ -3950,22 +4057,22 @@ function FornitoreDetailClient({
                 type="button"
                 id="supplier-desktop-period-month-trigger"
                 aria-haspopup="dialog"
-                aria-expanded={periodMonthPickerOpen}
-                aria-controls={periodMonthPickerOpen ? 'supplier-desktop-period-month-dialog' : undefined}
+                aria-expanded={periodPickerOpen}
+                aria-controls={periodPickerOpen ? 'supplier-desktop-period-month-dialog' : undefined}
                 title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
-                onClick={() => setPeriodMonthPickerOpen((o) => !o)}
-                className="min-w-0 whitespace-nowrap rounded px-0.5 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg transition-colors hover:bg-app-line-10 hover:text-app-fg xl:leading-8"
+                onClick={() => setPeriodPickerOpen((o) => !o)}
+                className="min-w-0 max-w-[11rem] truncate whitespace-nowrap rounded px-0.5 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg transition-colors hover:bg-app-line-10 hover:text-app-fg xl:max-w-[14rem] xl:leading-8"
               >
-                {monthYearLabel}
+                {periodTriggerLabel}
               </button>
-              {periodMonthPickerOpen ? (
+              {periodPickerOpen ? (
                 <div
                   id="supplier-desktop-period-month-dialog"
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="supplier-desktop-period-picker-title"
-                  className="absolute right-0 top-[calc(100%+6px)] z-[60] w-[min(100vw-2rem,14rem)] rounded-lg border border-app-soft-border bg-[#0b1524] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/5"
+                  className="absolute right-0 top-[calc(100%+6px)] z-[60] w-[min(100vw-2rem,20rem)] rounded-lg border border-app-soft-border bg-[#0b1524] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/5"
                 >
                   <p
                     id="supplier-desktop-period-picker-title"
@@ -3973,31 +4080,56 @@ function FornitoreDetailClient({
                   >
                     {t.appStrings.supplierDesktopPeriodPickerTitle}
                   </p>
-                  <input
-                    type="month"
-                    aria-label={t.appStrings.supplierDesktopPeriodPickerTitle}
-                    value={`${filterYear}-${String(filterMonth).padStart(2, '0')}`}
-                    max={`${nowY}-${String(nowM).padStart(2, '0')}`}
-                    onChange={(e) => {
-                      const v = e.target.value
-                      if (!v) return
-                      const parts = v.split('-').map(Number)
-                      const y = parts[0]
-                      const m = parts[1]
-                      if (y == null || m == null || Number.isNaN(y) || Number.isNaN(m)) return
-                      const c = clampSupplierPeriod(y, m)
-                      setFilterYear(c.y)
-                      setFilterMonth(c.m)
-                      setPeriodMonthPickerOpen(false)
+                  <div className="mb-2 flex flex-col gap-2">
+                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                      {t.appStrings.supplierDesktopPeriodFromLabel}
+                      <input
+                        type="date"
+                        value={periodPickerDraft.from}
+                        max={todayYmd}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          if (!v) return
+                          setPeriodPickerDraft((d) => ({ ...d, from: v }))
+                        }}
+                        className="mt-1 w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      />
+                    </label>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                      {t.appStrings.supplierDesktopPeriodToLabel}
+                      <input
+                        type="date"
+                        value={periodPickerDraft.toIncl}
+                        max={todayYmd}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          if (!v) return
+                          setPeriodPickerDraft((d) => ({ ...d, toIncl: v }))
+                        }}
+                        className="mt-1 w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const a = periodPickerDraft.from
+                      const b = periodPickerDraft.toIncl
+                      const ordered =
+                        compareYmd(a, b) > 0 ? { from: b, toIncl: a } : { from: a, toIncl: b }
+                      setLedgerPeriod(clampLedgerPeriodToToday(ordered.from, ordered.toIncl, localYmd(new Date())))
+                      setPeriodPickerOpen(false)
                     }}
-                    className="w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-                  />
+                    className="w-full rounded-md bg-app-cyan-500 px-2 py-2 text-center text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400"
+                  >
+                    {t.appStrings.supplierDesktopPeriodApply}
+                  </button>
                 </div>
               ) : null}
               <button
                 type="button"
-                onClick={() => shiftMonth(1)}
-                disabled={isCurrentMonth}
+                onClick={() => shiftLedgerMonth(1)}
+                disabled={!canShiftLedgerMonthForward}
                 title={t.appStrings.monthNavNextMonthTitle}
                 aria-label={t.appStrings.monthNavNextMonthTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
@@ -4008,8 +4140,8 @@ function FornitoreDetailClient({
               </button>
               <button
                 type="button"
-                onClick={() => shiftYear(1)}
-                disabled={!canShiftYearForward}
+                onClick={() => shiftLedgerYear(1)}
+                disabled={!canShiftLedgerYearForward}
                 title={t.appStrings.monthNavNextYearTitle}
                 aria-label={t.appStrings.monthNavNextYearTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
@@ -4018,13 +4150,10 @@ function FornitoreDetailClient({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
                 </svg>
               </button>
-              {!isCurrentMonth && (
+              {!isLedgerAtCurrentMonthBounds && (
                 <button
                   type="button"
-                  onClick={() => {
-                    setFilterYear(now.getFullYear())
-                    setFilterMonth(now.getMonth() + 1)
-                  }}
+                  onClick={() => setLedgerPeriod(currentMonthBounds)}
                   title={t.appStrings.monthNavResetTitle}
                   aria-label={t.appStrings.monthNavResetTitle}
                   className="flex h-5 w-5 items-center justify-center rounded-sm text-app-cyan-500 transition-colors hover:bg-app-line-15 hover:text-app-fg xl:h-6 xl:w-6"
@@ -4061,8 +4190,8 @@ function FornitoreDetailClient({
                 }}
                 onOpenMonthTab={(y, m, nextTab) => {
                   const c = clampSupplierPeriod(y, m)
-                  setFilterYear(c.y)
-                  setFilterMonth(c.m)
+                  const b = supplierMonthCalendarBounds(c.y, c.m)
+                  setLedgerPeriod(clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(new Date())))
                   setTab(nextTab)
                 }}
               />
@@ -4081,6 +4210,8 @@ function FornitoreDetailClient({
                     currency={currency}
                     year={filterYear}
                     month={filterMonth}
+                    ledgerDateFrom={ledgerPeriod.from}
+                    ledgerDateToExclusive={ledgerDateToExclusive}
                     cardAccent="cyan"
                     supplierDesktopVerificaMode="classicToolbar"
                   />

@@ -1,14 +1,12 @@
 import Link from 'next/link'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getRequestAuth, getProfile } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
-import BollaForceListinoFromRekkiButton from '@/components/BollaForceListinoFromRekkiButton'
 import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supabase-detail-for-viewer'
+import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
 import ToggleStato from './ToggleStato'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
 import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
@@ -21,21 +19,15 @@ async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
 
 export default async function BollaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [bolla, t, locale, tz, profile] = await Promise.all([
-    getBollaForViewer(id),
-    getT(),
-    getLocale(),
-    getTimezone(),
-    getProfile(),
-  ])
+  const [bolla, t, locale, tz] = await Promise.all([getBollaForViewer(id), getT(), getLocale(), getTimezone()])
   if (!bolla) return <DocumentUnavailable kind="bolla" />
-  const [fatture, rekkiPrezzoFlag] = await Promise.all([
+  const [fatture, rekkiPrezzoFlag, profile] = await Promise.all([
     getFattureRowsForBollaAuthorized(id),
     getRekkiPrezzoFlag(id),
+    getProfile(),
   ])
-  const allowForceListino =
-    Boolean(profile) && (isMasterAdminRole(profile!.role) || isAdminSedeRole(profile!.role))
   const formatDate = (d: string) => fmtDate(d, locale, tz)
+  const allowListinoForce = Boolean(profile)
 
   const fornitoreRekkiId = bolla.fornitore?.rekki_supplier_id?.trim()
   let listinoRows: { prodotto: string; prezzo: number; data_prezzo: string }[] = []
@@ -76,7 +68,6 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
                   {t.bolle.rekkiPrezzoIndicativoBadge}
                 </span>
               )}
-              <BollaForceListinoFromRekkiButton bollaId={bolla.id} visible={rekkiPrezzoFlag && allowForceListino} />
             </div>
             <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(bolla.data)}</p>
           </div>
@@ -172,28 +163,12 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
             {listinoRows.length === 0 ? (
               <p className="text-sm text-app-fg-muted">{t.bolle.listinoRekkiRefEmpty}</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-app-line-22 text-app-fg-muted">
-                      <th className="py-2 pr-3 font-medium">{t.fornitori.listinoProdotti}</th>
-                      <th className="py-2 pr-3 font-medium text-right">{t.fornitori.listinoColImporto}</th>
-                      <th className="py-2 font-medium">{t.fornitori.listinoColData}</th>
-                    </tr>
-                  </thead>
-                  <tbody className={APP_SECTION_TABLE_TBODY}>
-                    {listinoRows.map((row) => (
-                      <tr key={`${row.prodotto}-${row.data_prezzo}`}>
-                        <td className="max-w-[200px] truncate py-2 pr-3 text-app-fg-muted">{row.prodotto}</td>
-                        <td className="py-2 pr-3 text-right font-mono tabular-nums text-app-fg">
-                          {Number(row.prezzo).toFixed(2)}
-                        </td>
-                        <td className="whitespace-nowrap py-2 text-app-fg-muted">{formatDate(row.data_prezzo)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ListinoDocReferenceTable
+                documentDateIso={bolla.data}
+                fornitoreId={bolla.fornitore_id}
+                rows={listinoRows}
+                allowAdminForce={allowListinoForce}
+              />
             )}
             </div>
           </div>

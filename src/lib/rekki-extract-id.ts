@@ -66,6 +66,7 @@ export function extractRekkiSupplierIdFromUrl(raw: string): string | null {
   const hash = (url.hash ?? '').replace(/^#/, '')
 
   const pathPatterns = [
+    /\/gb\/food-wholesalers\/([^/?#]+)/i,
     /\/(?:[^/]+\/)*(?:supplier|suppliers|vendor|vendors|v|s)\/([^/?#]+)/i,
     /\/profiles?\/([^/?#]+)/i,
     /\/(?:org|organization|organisations)\/([^/?#]+)/i,
