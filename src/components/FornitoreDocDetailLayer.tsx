@@ -17,9 +17,8 @@ import ToggleStato from '@/app/(app)/bolle/[id]/ToggleStato'
 import ReplaceFileButton from '@/app/(app)/fatture/[id]/ReplaceFileButton'
 import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
-import { APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
 import { useMe } from '@/lib/me-context'
-import BollaForceListinoFromRekkiButton from '@/components/BollaForceListinoFromRekkiButton'
+import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
 
 type BollaPayload = {
   id: string
@@ -425,7 +424,7 @@ function BollaLayerBody({
 }) {
   const t = useT()
   const { me } = useMe()
-  const listinoImportAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
+  const allowListinoForce = Boolean(me)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [bolla, setBolla] = useState<BollaPayload | null>(null)
@@ -513,7 +512,6 @@ function BollaLayerBody({
               {t.bolle.rekkiPrezzoIndicativoBadge}
             </span>
           )}
-          <BollaForceListinoFromRekkiButton bollaId={bolla.id} visible={rekkiPrezzoFlag && listinoImportAdmin} />
         </div>
         <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(bolla.data)}</p>
       </div>
@@ -559,28 +557,12 @@ function BollaLayerBody({
             {listinoRows.length === 0 ? (
               <p className="text-sm text-app-fg-muted">{t.bolle.listinoRekkiRefEmpty}</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-app-line-22 text-app-fg-muted">
-                      <th className="py-2 pr-3 font-medium">{t.fornitori.listinoProdotti}</th>
-                      <th className="py-2 pr-3 text-right font-medium">{t.fornitori.listinoColImporto}</th>
-                      <th className="py-2 font-medium">{t.fornitori.listinoColData}</th>
-                    </tr>
-                  </thead>
-                  <tbody className={APP_SECTION_TABLE_TBODY}>
-                    {listinoRows.map((row) => (
-                      <tr key={`${row.prodotto}-${row.data_prezzo}`}>
-                        <td className="max-w-[200px] truncate py-2 pr-3 text-app-fg-muted">{row.prodotto}</td>
-                        <td className="py-2 pr-3 text-right font-mono tabular-nums text-app-fg">
-                          {Number(row.prezzo).toFixed(2)}
-                        </td>
-                        <td className="whitespace-nowrap py-2 text-app-fg-muted">{formatDate(row.data_prezzo)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ListinoDocReferenceTable
+                documentDateIso={bolla.data}
+                fornitoreId={bolla.fornitore_id}
+                rows={listinoRows}
+                allowAdminForce={allowListinoForce}
+              />
             )}
           </div>
         </div>
