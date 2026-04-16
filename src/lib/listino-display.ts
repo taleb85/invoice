@@ -72,8 +72,8 @@ export function latestListinoInMonth(
 export function calendarMonthBefore(isoDate: string): { y: number; m: number } {
   const d = isoDate.slice(0, 10)
   const [ys, ms] = d.split('-')
-  let y = Number(ys)
-  let mo = Number(ms)
+  const y = Number(ys)
+  const mo = Number(ms)
   if (!Number.isFinite(y) || !Number.isFinite(mo)) return { y: 1970, m: 1 }
   if (mo <= 1) return { y: y - 1, m: 12 }
   return { y, m: mo - 1 }

@@ -56,7 +56,7 @@ const SECTION_ICONS: Record<string, React.ReactNode> = {
 }
 
 export default function GuidaPage() {
-  const { locale, t } = useLocale()
+  const { locale } = useLocale()
   const content = getGuidaContent(locale)
   const [active, setActive] = useState<string>(content.sections[0].id)
 

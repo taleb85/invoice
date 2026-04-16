@@ -20,7 +20,6 @@ import {
   fornitoreSupplierClearDocParams,
 } from '@/lib/fornitore-supplier-url'
 import {
-  checkResultMatchesVerificaProdotto,
   extractListinoSrcFatturaId,
   LISTINO_SRC_FATTURA_MARK,
   parseListinoNoteParts,
@@ -2138,14 +2137,12 @@ function ListinoTab({
   fornitoreId,
   fornitoreNome,
   rekkiLinked,
-  countryCode,
   currency,
   readOnly,
 }: {
   fornitoreId: string
   fornitoreNome: string
   rekkiLinked: boolean
-  countryCode: string
   currency?: string
   readOnly?: boolean
 }) {
@@ -3817,7 +3814,6 @@ function FornitoreDetailClient({
           rekkiLinked={Boolean(
             String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
           )}
-          countryCode={countryCode}
           currency={currency}
           readOnly={supplierReadOnlyMobile}
         />

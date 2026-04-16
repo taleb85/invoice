@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
-import { useMemo, type CSSProperties, type ReactNode } from 'react'
+import { type CSSProperties, type ReactNode } from 'react'
 import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
 import {
   DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS,

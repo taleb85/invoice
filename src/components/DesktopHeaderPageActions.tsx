@@ -19,7 +19,7 @@ type HostContextValue = {
 
 const HostContext = createContext<HostContextValue | null>(null)
 
-const noopRegisterHost = (_el: HTMLDivElement | null) => {}
+const noopRegisterHost: (el: HTMLDivElement | null) => void = () => {}
 
 export function DesktopHeaderPageActionsProvider({ children }: { children: ReactNode }) {
   const hostRef = useRef<HTMLDivElement | null>(null)
