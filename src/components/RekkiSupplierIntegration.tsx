@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '@/lib/use-t'
 import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
 import {
+  buildGoogleSearchUrlForCompanyName,
   buildGoogleSiteRekkiSearchUrlForCompany,
   buildGoogleSiteRekkiSearchUrlForVat,
   type RekkiLookupFallbackHints,
@@ -46,6 +47,8 @@ export default function RekkiSupplierIntegration({
   const [loading, setLoading] = useState<'lookup' | 'save' | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const extractTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** Evita doppio POST lookup prima che `disabled` si aggiorni sul bottone API. */
+  const lookupInFlightRef = useRef(false)
 
   useEffect(() => {
     const nextLink = initialRekkiLink?.trim() ?? ''
@@ -114,15 +117,19 @@ export default function RekkiSupplierIntegration({
     }
   }, [rekkiLink, rekkiId, t.fornitori.rekkiIdExtractedFromLink])
 
-  const openGoogleRekkiByVat = () => {
-    const u = buildGoogleSiteRekkiSearchUrlForVat(piva ?? '')
-    if (u) window.open(u, '_blank', 'noopener,noreferrer')
-  }
-
-  const openGoogleRekkiByName = () => {
-    const u = buildGoogleSiteRekkiSearchUrlForCompany(supplierDisplayName ?? '')
-    if (u) window.open(u, '_blank', 'noopener,noreferrer')
-  }
+  /** Ricerche esterne: solo `href` + `target="_blank"` (niente `onClick` sugli `<a>`). */
+  const googleVatHref = useMemo(
+    () => buildGoogleSiteRekkiSearchUrlForVat(piva ?? ''),
+    [piva],
+  )
+  const googleRekkiByNameHref = useMemo(
+    () => buildGoogleSiteRekkiSearchUrlForCompany(supplierDisplayName ?? ''),
+    [supplierDisplayName],
+  )
+  const googlePlainNameHref = useMemo(
+    () => buildGoogleSearchUrlForCompanyName(supplierDisplayName ?? ''),
+    [supplierDisplayName],
+  )
 
   const lookup = async () => {
     if (!piva?.trim()) {
@@ -130,6 +137,8 @@ export default function RekkiSupplierIntegration({
       setFallbackHints(null)
       return
     }
+    if (lookupInFlightRef.current || loading !== null) return
+    lookupInFlightRef.current = true
     const hadNoRekkiId = !rekkiId.trim()
     setLoading('lookup')
     setLookupMsg(null)
@@ -177,6 +186,7 @@ export default function RekkiSupplierIntegration({
     } catch {
       setLookupMsg(t.ui.networkError)
     } finally {
+      lookupInFlightRef.current = false
       setLoading(null)
     }
   }
@@ -214,7 +224,6 @@ export default function RekkiSupplierIntegration({
   const rekkiShellCls =
     'relative overflow-hidden rounded-2xl bg-transparent text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.28),0_16px_40px_-14px_rgba(0,0,0,0.22)] ring-1 ring-inset ring-white/10'
 
-  const vatSearchAvailable = (piva ?? '').replace(/\D/g, '').length >= 7
   const nameSearchAvailable = (supplierDisplayName ?? '').trim().length >= 2
   const showGuidedPaste =
     fallbackHints != null ||
@@ -273,40 +282,83 @@ export default function RekkiSupplierIntegration({
         <p className="text-xs font-semibold uppercase tracking-wide text-app-fg">{t.fornitori.rekkiIntegrationTitle}</p>
       </div>
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-transparent px-5 py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void lookup()}
-            disabled={loading !== null}
-            className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-40"
-          >
-            {loading === 'lookup' ? t.common.loading : t.fornitori.rekkiLookupByVat}
-          </button>
-          {vatSearchAvailable ? (
-            <button
-              type="button"
-              onClick={() => openGoogleRekkiByVat()}
-              disabled={loading !== null}
-              className="rounded-lg border border-violet-500/45 bg-violet-500/10 px-3 py-2 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:opacity-40"
-            >
-              {t.fornitori.rekkiSearchOnRekkiGoogle}
-            </button>
-          ) : null}
-          {nameSearchAvailable ? (
-            <button
-              type="button"
-              onClick={() => openGoogleRekkiByName()}
-              disabled={loading !== null}
-              className="rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-white/[0.06] disabled:opacity-40"
-            >
-              {t.fornitori.rekkiSearchOnRekkiGoogleByName}
-            </button>
-          ) : null}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
+            {googleVatHref ? (
+              <a
+                href={googleVatHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-violet-500 ${
+                  loading !== null ? 'pointer-events-none opacity-40' : ''
+                }`}
+              >
+                {t.fornitori.rekkiLookupByVat}
+              </a>
+            ) : (
+              <span className="inline-flex cursor-not-allowed rounded-lg bg-violet-600/50 px-3 py-2 text-xs font-bold text-white/70 opacity-50">
+                {t.fornitori.rekkiLookupByVat}
+              </span>
+            )}
+            {nameSearchAvailable && googleRekkiByNameHref ? (
+              <a
+                href={googleRekkiByNameHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex rounded-lg border border-violet-500/45 bg-violet-500/10 px-3 py-2 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 ${
+                  loading !== null ? 'pointer-events-none opacity-40' : ''
+                }`}
+              >
+                {t.fornitori.rekkiSearchOnRekkiGoogle}
+              </a>
+            ) : null}
+            {nameSearchAvailable && googlePlainNameHref ? (
+              <a
+                href={googlePlainNameHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-white/[0.06] ${
+                  loading !== null ? 'pointer-events-none opacity-40' : ''
+                }`}
+              >
+                {t.fornitori.rekkiSearchOnRekkiGoogleByName}
+              </a>
+            ) : null}
+            {piva?.trim() ? (
+              <span className="font-mono text-[11px] text-app-fg-muted">VAT: {piva}</span>
+            ) : (
+              <span className="text-[11px] text-amber-400/90">{t.fornitori.rekkiLookupNeedVat}</span>
+            )}
+          </div>
           {piva?.trim() ? (
-            <span className="font-mono text-[11px] text-app-fg-muted">VAT: {piva}</span>
-          ) : (
-            <span className="text-[11px] text-amber-400/90">{t.fornitori.rekkiLookupNeedVat}</span>
-          )}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                void lookup()
+              }}
+              disabled={loading !== null}
+              aria-busy={loading === 'lookup'}
+              className="inline-flex items-center gap-1.5 self-start text-[11px] font-semibold text-violet-300/90 underline decoration-violet-500/40 underline-offset-2 hover:text-violet-200 disabled:pointer-events-none disabled:opacity-40"
+            >
+              {loading === 'lookup' ? (
+                <>
+                  <svg
+                    className="size-3 shrink-0 animate-spin text-violet-200"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  <span>{t.common.loading}</span>
+                </>
+              ) : (
+                t.fornitori.rekkiLookupApiLink
+              )}
+            </button>
+          ) : null}
         </div>
         {lookupMsg && <p className="text-xs text-app-fg-muted">{lookupMsg}</p>}
         {saveError && (
@@ -331,7 +383,10 @@ export default function RekkiSupplierIntegration({
               <li key={h.id}>
                 <button
                   type="button"
-                  onClick={() => setRekkiId(h.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRekkiId(h.id)
+                  }}
                   className="w-full rounded-md px-2 py-1.5 text-left text-xs text-app-fg-muted transition-colors hover:bg-black/18"
                 >
                   <span className="font-mono text-violet-300">{h.id}</span>

@@ -27,6 +27,7 @@ export async function POST(req: Request) {
   }
 
   if (body.action === 'lookup') {
+    /** Usa `process.env.REKKI_API_KEY` e `REKKI_SUPPLIERS_SEARCH_URL` in `lookupRekkiSuppliersByVat` (sostituzione `{vat}` / `{VAT}` → P.IV.A numerica). */
     const result = await lookupRekkiSuppliersByVat(body.piva ?? '', {
       supplierDisplayName: body.supplierName ?? null,
     })

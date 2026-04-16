@@ -27,6 +27,11 @@ import {
   referencePriceForListinoRow,
   stripListinoSrcMachineSuffix,
 } from '@/lib/listino-display'
+import {
+  calendarDaysBetweenIso,
+  isDocumentDateAtLeastLatestListino,
+  maxListinoDateForExactProduct,
+} from '@/lib/listino-document-date'
 import FornitoreDocDetailLayer from '@/components/FornitoreDocDetailLayer'
 import { createClient } from '@/utils/supabase/client'
 import {
@@ -74,14 +79,18 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { ActionLink } from '@/components/ui/ActionButton'
 import {
+  APP_SECTION_AMOUNT_NEGATIVE_CLASS,
   APP_SECTION_DIVIDE_ROWS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_TABLE_HEAD_ROW,
   APP_SECTION_TABLE_HEAD_ROW_STRONG,
+  APP_SECTION_TABLE_ROW_HOVER,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR,
+  APP_SECTION_TRAILING_LINK_CLASS,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica'
 
@@ -2070,6 +2079,7 @@ function ListinoTab({
   currency?: string
   readOnly?: boolean
 }) {
+  const { me } = useMe()
   const t = useT()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -2101,6 +2111,8 @@ function ListinoTab({
     unita: string | null
     note: string | null
     selected: boolean
+    /** Admin: consenti insert se la data documento è precedente all’ultimo `data_prezzo` per questo nome prodotto. */
+    forceOutdated?: boolean
     // Price comparison
     prezzoAttuale: number | null    // last known price from listino
     matchedProdotto: string | null  // name as stored in listino (may differ)
@@ -2119,6 +2131,7 @@ function ListinoTab({
   const [importItems, setImportItems]     = useState<ImportItem[]>([])
   const [importDate, setImportDate]       = useState(new Date().toISOString().split('T')[0])
   const [importSaving, setImportSaving]   = useState(false)
+  const [formForceOutdated, setFormForceOutdated] = useState(false)
 
   const loadListino = async () => {
     const supabase = createClient()
@@ -2234,6 +2247,7 @@ function ListinoTab({
         : null
       return {
         ...item,
+        forceOutdated: false,
         prezzoAttuale,
         matchedProdotto: match?.matchedProdotto ?? null,
         delta,
@@ -2329,6 +2343,8 @@ function ListinoTab({
       if (items.length === 0) {
         setImportError('Nessun prodotto trovato in questa fattura. Prova con un\'altra.')
       } else {
+        const docDate = String(json.data_fattura ?? '').slice(0, 10) || new Date().toISOString().split('T')[0]
+        setImportDate(docDate)
         const enriched = enrichWithComparison(
           items.map(
             (item: {
@@ -2349,13 +2365,18 @@ function ListinoTab({
           listino
         )
         setImportItems(enriched)
-        if (json.data_fattura) setImportDate(json.data_fattura)
       }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : String(err))
     } finally {
       setImportLoading(false)
     }
+  }
+
+  const listinoImportAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
+  const importRowDateBlocked = (prodotto: string) => {
+    const latest = maxListinoDateForExactProduct(listino, prodotto)
+    return latest != null && !isDocumentDateAtLeastLatestListino(importDate, latest)
   }
 
   const handleImportSave = async () => {
@@ -2379,10 +2400,11 @@ function ListinoTab({
           .join(' — ') || null
       const note = originMachine ? (base ? `${base}${originMachine}` : `Origine listino${originMachine}`) : base
       return {
-        prodotto: i.prodotto,
+        prodotto: i.prodotto.trim(),
         prezzo: i.prezzo,
-        data_prezzo: importDate,
+        data_prezzo: importDate.slice(0, 10),
         note,
+        ...(i.forceOutdated ? { force_outdated: true as const } : {}),
       }
     })
     try {
@@ -2392,10 +2414,26 @@ function ListinoTab({
         credentials: 'include',
         body: JSON.stringify({ fornitore_id: fornitoreId, rows }),
       })
-      const json = (await res.json().catch(() => ({}))) as { error?: string }
+      const json = (await res.json().catch(() => ({}))) as {
+        error?: string
+        inserted?: number
+        skipped?: { prodotto: string; reason: string }[]
+      }
       if (!res.ok) {
         setImportError(json.error ?? `Errore ${res.status}`)
         setImportSaving(false)
+        return
+      }
+      if (json.skipped && json.skipped.length > 0) {
+        const names = json.skipped.map((s) => s.prodotto).join(', ')
+        setImportError(
+          t.appStrings.listinoImportPartialSaved
+            .replace('{inserted}', String(json.inserted ?? 0))
+            .replace('{skipped}', String(json.skipped.length))
+            .replace('{products}', names)
+        )
+        setImportSaving(false)
+        await loadListino()
         return
       }
     } catch (e) {
@@ -2403,6 +2441,7 @@ function ListinoTab({
       setImportSaving(false)
       return
     }
+    setImportError(null)
     setShowImport(false)
     setImportItems([])
     setImportSaving(false)
@@ -2413,6 +2452,19 @@ function ListinoTab({
     if (!formProdotto.trim() || !formPrezzo || !formData) return
     setSaving(true)
     setSaveError(null)
+    const latestManual = maxListinoDateForExactProduct(listino, formProdotto.trim())
+    const manualBlocked =
+      latestManual != null && !isDocumentDateAtLeastLatestListino(formData, latestManual)
+    if (manualBlocked && !formForceOutdated) {
+      setSaveError(t.appStrings.listinoManualDateBlockedHint)
+      setSaving(false)
+      return
+    }
+    if (manualBlocked && formForceOutdated && !listinoImportAdmin) {
+      setSaveError(t.appStrings.listinoManualDateBlockedNoAdmin)
+      setSaving(false)
+      return
+    }
     try {
       const res = await fetch('/api/listino/prezzi', {
         method: 'POST',
@@ -2426,6 +2478,7 @@ function ListinoTab({
               prezzo: parseFloat(formPrezzo),
               data_prezzo: formData,
               note: formNote.trim() || null,
+              ...(formForceOutdated && manualBlocked ? { force_outdated: true as const } : {}),
             },
           ],
         }),
@@ -2446,6 +2499,7 @@ function ListinoTab({
     setFormPrezzo('')
     setFormData(new Date().toISOString().split('T')[0])
     setFormNote('')
+    setFormForceOutdated(false)
     setShowForm(false)
     setSaving(false)
     await loadListino()
@@ -2620,7 +2674,12 @@ function ListinoTab({
                 {t.appStrings.fromInvoiceBtn}
               </button>
               <button
-                onClick={() => { setShowForm(f => !f); setShowImport(false); setSaveError(null) }}
+                onClick={() => {
+                  setShowForm((f) => !f)
+                  setShowImport(false)
+                  setSaveError(null)
+                  setFormForceOutdated(false)
+                }}
                 className="flex items-center gap-1 px-2.5 py-1 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
@@ -2757,7 +2816,7 @@ function ListinoTab({
                       })()}
 
                       <div className="mb-3 overflow-x-auto rounded-lg border border-app-line-22 app-workspace-inset-bg-soft">
-                        <table className="w-full min-w-[780px] text-xs">
+                        <table className="w-full min-w-[920px] text-xs">
                           <thead>
                             <tr className={APP_SECTION_TABLE_HEAD_ROW_STRONG}>
                               <th className="w-8 px-3 py-2"></th>
@@ -2766,6 +2825,9 @@ function ListinoTab({
                               <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">Ult. prezzo</th>
                               <th className="w-24 px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">In fattura</th>
                               <th className="w-24 px-3 py-2 text-center text-[10px] font-semibold uppercase text-app-fg-muted">Δ variaz.</th>
+                              <th className="min-w-[9.5rem] px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
+                                {t.appStrings.listinoImportColListinoDate}
+                              </th>
                             </tr>
                           </thead>
                           <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -2773,6 +2835,8 @@ function ListinoTab({
                               const isRincaro = item.delta !== null && item.delta >  5
                               const isRibasso = item.delta !== null && item.delta < -5
                               const rowBg = isRincaro ? 'bg-red-500/10' : isRibasso ? 'bg-emerald-500/10' : item.isNew ? 'bg-app-line-10' : ''
+                              const dateBlocked = importRowDateBlocked(item.prodotto)
+                              const latestExact = maxListinoDateForExactProduct(listino, item.prodotto)
                               return (
                                 <tr key={idx} className={`${rowBg} ${item.selected ? '' : 'opacity-40'}`}>
                                   <td className="px-3 py-2.5">
@@ -2853,6 +2917,43 @@ function ListinoTab({
                                       <span className="text-[10px] text-app-fg-muted">—</span>
                                     )}
                                   </td>
+                                  <td className="min-w-0 px-3 py-2 align-top">
+                                    <div className="flex flex-col gap-1.5">
+                                      <span className="whitespace-nowrap text-[10px] tabular-nums text-app-fg-muted">
+                                        {latestExact ? formatDate(latestExact) : '—'}
+                                      </span>
+                                      {dateBlocked ? (
+                                        <>
+                                          <p className="text-[9px] leading-snug text-amber-200/85">
+                                            {t.appStrings.listinoImportDateOlderThanListinoHint}
+                                          </p>
+                                          {listinoImportAdmin ? (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setImportItems((prev) =>
+                                                  prev.map((it, i) =>
+                                                    i === idx
+                                                      ? { ...it, forceOutdated: !it.forceOutdated }
+                                                      : it
+                                                  )
+                                                )
+                                              }
+                                              className={`w-fit rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition-colors ${
+                                                item.forceOutdated
+                                                  ? 'border-emerald-500/45 bg-emerald-950/40 text-emerald-100'
+                                                  : 'border-amber-500/40 bg-amber-950/35 text-amber-100 hover:border-amber-400/55'
+                                              }`}
+                                            >
+                                              {item.forceOutdated
+                                                ? t.appStrings.listinoImportApplyOutdatedAdminActive
+                                                : t.appStrings.listinoImportApplyOutdatedAdmin}
+                                            </button>
+                                          ) : null}
+                                        </>
+                                      ) : null}
+                                    </div>
+                                  </td>
                                 </tr>
                               )
                             })}
@@ -2863,7 +2964,13 @@ function ListinoTab({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={handleImportSave}
-                          disabled={importSaving || importItems.filter(i => i.selected).length === 0}
+                          disabled={
+                            importSaving ||
+                            importItems.filter(i => i.selected).length === 0 ||
+                            importItems.some(
+                              (i) => i.selected && importRowDateBlocked(i.prodotto) && !i.forceOutdated
+                            )
+                          }
                           className="px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-lg transition-colors"
                         >
                           {importSaving
@@ -2874,6 +2981,15 @@ function ListinoTab({
                           Annulla
                         </button>
                       </div>
+                      {importItems.some(
+                        (i) => i.selected && importRowDateBlocked(i.prodotto) && !i.forceOutdated
+                      ) ? (
+                        <p className="mt-2 text-[11px] text-app-fg-muted">
+                          {listinoImportAdmin
+                            ? t.appStrings.listinoImportSaveBlockedHintAdmin
+                            : t.appStrings.listinoImportSaveBlockedHintOperator}
+                        </p>
+                      ) : null}
                     </div>
                   )}
                 </>
@@ -2928,6 +3044,31 @@ function ListinoTab({
                   />
                 </div>
               </div>
+              {(() => {
+                const latestF = maxListinoDateForExactProduct(listino, formProdotto.trim())
+                const manualDateBlocked =
+                  Boolean(formProdotto.trim()) &&
+                  Boolean(formData) &&
+                  latestF != null &&
+                  !isDocumentDateAtLeastLatestListino(formData, latestF)
+                if (!manualDateBlocked) return null
+                return (
+                  <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-100/95">
+                    <p>{t.appStrings.listinoManualDateBlockedHint}</p>
+                    {listinoImportAdmin ? (
+                      <label className="mt-2 flex cursor-pointer items-center gap-2 font-medium">
+                        <input
+                          type="checkbox"
+                          checked={formForceOutdated}
+                          onChange={(e) => setFormForceOutdated(e.target.checked)}
+                          className="h-3.5 w-3.5 accent-amber-400"
+                        />
+                        {t.appStrings.listinoImportApplyOutdatedAdmin}
+                      </label>
+                    ) : null}
+                  </div>
+                )
+              })()}
               {saveError && (
                 <p className="mt-2 text-xs text-red-300">{saveError}</p>
               )}
@@ -2942,7 +3083,10 @@ function ListinoTab({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false)
+                    setFormForceOutdated(false)
+                  }}
                   className="rounded-lg px-4 py-2 text-xs font-medium text-app-fg-muted transition-colors hover:text-app-fg"
                 >
                   {t.common.cancel}
@@ -3017,96 +3161,153 @@ function ListinoTab({
                 verificaQ.set('verifica_prodotto', prodotto)
                 const verificaHref = `${pathname}?${verificaQ.toString()}`
                 const noteDisplay = stripListinoSrcMachineSuffix(ultimo.note)
+                const hasAnomaly = Boolean(ref && up && pct > 0)
+                const rowAccentBorder = hasAnomaly
+                  ? 'border-l-[#FF3131]'
+                  : ref
+                    ? 'border-l-[#39FF14]'
+                    : 'border-l-app-line-28/80'
+                const todayIso = new Date().toISOString().slice(0, 10)
+                const listinoPriceStale =
+                  calendarDaysBetweenIso(ultimo.data_prezzo.slice(0, 10), todayIso) > 60
 
                 return (
-                  <div key={prodotto} className="px-5 py-3.5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1 space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-semibold text-app-fg">{prodotto}</p>
-                          {parsed.codice ? (
-                            <span className="rounded border border-app-line-28 bg-app-line-10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-app-fg-muted">
-                              {parsed.codice}
-                            </span>
-                          ) : null}
-                          {parsed.unita ? (
-                            <span className="rounded border border-cyan-500/25 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200">
-                              {parsed.unita}
-                            </span>
-                          ) : null}
-                        </div>
+                  <div
+                    key={prodotto}
+                    className={`group border-l-4 ${APP_SECTION_TABLE_ROW_HOVER} ${rowAccentBorder}`}
+                  >
+                    <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(11rem,auto)] md:items-start md:gap-5 md:py-4 md:pl-4 md:pr-5">
+                      <div className="min-w-0 md:pr-2">
+                        <h3 className="text-lg font-bold leading-tight tracking-tight text-app-fg sm:text-xl md:text-2xl">
+                          {prodotto}
+                        </h3>
+                        {parsed.codice || parsed.unita ? (
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            {parsed.codice ? (
+                              <StatusBadge
+                                tone="orange"
+                                className="!px-2 !py-0 !text-[9px] !font-semibold !normal-case !tracking-normal !shadow-none font-mono"
+                              >
+                                {parsed.codice}
+                              </StatusBadge>
+                            ) : null}
+                            {parsed.unita ? (
+                              <StatusBadge
+                                tone="orange"
+                                className="!px-2 !py-0 !text-[9px] !font-semibold !normal-case !tracking-normal !shadow-none"
+                              >
+                                {parsed.unita}
+                              </StatusBadge>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="min-w-0 flex flex-col gap-1.5 border-t border-app-line-22/90 pt-3 text-app-fg-muted md:border-t-0 md:pt-0">
                         {summaryLine ? (
-                          <p className="text-[11px] leading-snug text-app-fg-muted">
-                            <span className="font-medium text-app-fg">{summaryLine}</span>
-                            <span className="ml-1 text-[10px] opacity-80">{t.fornitori.listinoVsReferenceHint}</span>
+                          <p className="text-xs leading-relaxed">
+                            <span className="text-[11px] text-app-fg-muted">{summaryLine}</span>
+                            <span className="mt-0.5 block text-[10px] leading-snug text-app-fg-muted/80">
+                              {t.fornitori.listinoVsReferenceHint}
+                            </span>
                           </p>
                         ) : null}
                         {originLine ? (
-                          <p className="text-[10px] leading-snug text-violet-200/90">{originLine}</p>
+                          <p className="text-[11px] leading-snug text-violet-300/75">{originLine}</p>
                         ) : null}
-                        <div className="flex flex-wrap items-baseline gap-2">
-                          <span className="text-lg font-bold tabular-nums tracking-tight text-app-fg">
-                            {fmtMoney(ultimo.prezzo)}
-                          </span>
-                          {ref && up ? (
-                            <span className="inline-flex items-center gap-1 text-sm font-bold text-red-300 tabular-nums">
-                              <span aria-hidden>⚠️</span>
-                              {pctLabel}
-                            </span>
-                          ) : ref && down ? (
-                            <span className="text-sm font-bold text-emerald-300 tabular-nums">{pctLabel}</span>
-                          ) : null}
-                          {rekkiLinked ? (
-                            <span className="rounded border border-fuchsia-500/30 bg-fuchsia-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-fuchsia-200">
-                              {t.fornitori.listinoRekkiListBadge}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="text-[10px] text-app-fg-muted">
-                          {t.fornitori.listinoColData}:{' '}
-                          <span className="font-medium text-app-fg-muted">
-                            {formatDateLib(ultimo.data_prezzo, locale, timezone, { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
+                        <p className="text-[10px] leading-snug text-app-fg-muted/90">
+                          <span className="font-medium text-app-fg-muted/95">{t.fornitori.listinoColData}:</span>{' '}
+                          {formatDateLib(ultimo.data_prezzo, locale, timezone, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
                           {sorted.length > 1 ? (
-                            <span className="ml-1 opacity-70">
+                            <span className="ml-1 opacity-75">
                               · {t.fornitori.listinoHistoryDepth.replace('{n}', String(sorted.length - 1))}
                             </span>
                           ) : null}
                         </p>
                         {noteDisplay ? (
-                          <p className="text-[10px] leading-relaxed text-app-fg-muted/90">{noteDisplay}</p>
+                          <p className="text-[10px] leading-relaxed text-app-fg-muted/80">{noteDisplay}</p>
                         ) : null}
                       </div>
 
-                      {!readOnly ? (
-                        <div className="flex shrink-0 flex-col items-end gap-1.5">
-                          <Link
-                            href={verificaHref}
-                            className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/20"
-                            title={t.fornitori.listinoVerifyAnomaliesTitle}
-                          >
-                            {t.fornitori.listinoVerifyAnomalies}
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(ultimo.id)}
-                            disabled={deletingId === ultimo.id}
-                            title="Rimuovi ultimo prezzo"
-                            className="flex h-7 w-7 items-center justify-center rounded-lg text-app-fg-muted transition-colors hover:bg-red-500/15 hover:text-red-400 disabled:opacity-40"
-                          >
-                            {deletingId === ultimo.id ? (
-                              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                              </svg>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            )}
-                          </button>
+                      <div className="flex min-w-0 flex-col gap-3 border-t border-app-line-22/90 pt-3 md:items-end md:border-t-0 md:border-l md:border-app-line-22/70 md:pl-5 md:pt-0">
+                        <p
+                          className={`text-right text-2xl font-bold tabular-nums tracking-tight md:text-[1.65rem] font-mono ${
+                            hasAnomaly
+                              ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
+                              : listinoPriceStale
+                                ? 'text-app-fg-muted/75'
+                                : 'text-app-fg'
+                          }`}
+                        >
+                          {fmtMoney(ultimo.prezzo)}
+                        </p>
+                        {listinoPriceStale ? (
+                          <div className="text-right">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                              {t.fornitori.listinoPriceStaleBadge}
+                            </p>
+                            <p className="mt-0.5 text-[10px] leading-snug text-app-fg-muted/80">
+                              {t.fornitori.listinoPriceStaleHint}
+                            </p>
+                          </div>
+                        ) : null}
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {hasAnomaly ? (
+                            <StatusBadge
+                              tone="red"
+                              className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"
+                            >
+                              {t.fornitori.listinoRowBadgeAnomaly}
+                            </StatusBadge>
+                          ) : ref ? (
+                            <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
+                          ) : null}
+                          {rekkiLinked ? (
+                            <StatusBadge tone="violet" className="!normal-case !tracking-wide">
+                              {t.fornitori.listinoRekkiListBadge}
+                            </StatusBadge>
+                          ) : null}
                         </div>
-                      ) : null}
+                        {!readOnly ? (
+                          <div
+                            className="mt-1 flex w-full flex-col items-stretch gap-2 md:items-end"
+                            role="group"
+                            aria-label={t.fornitori.listinoRowActionsLabel}
+                          >
+                            <Link
+                              href={verificaHref}
+                              className={`text-right text-[11px] font-semibold ${APP_SECTION_TRAILING_LINK_CLASS}`}
+                              title={t.fornitori.listinoVerifyAnomaliesTitle}
+                            >
+                              {t.fornitori.listinoVerifyAnomalies}
+                            </Link>
+                            <div className="flex justify-end opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(ultimo.id)}
+                                disabled={deletingId === ultimo.id}
+                                title={t.common.delete}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-red-500/45 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
+                              >
+                                {deletingId === ultimo.id ? (
+                                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 )

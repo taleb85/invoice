@@ -18,6 +18,7 @@ import ReplaceFileButton from '@/app/(app)/fatture/[id]/ReplaceFileButton'
 import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { APP_SECTION_TABLE_HEAD_ROW, APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
+import { useMe } from '@/lib/me-context'
 
 type BollaPayload = {
   id: string
@@ -257,6 +258,7 @@ function FatturaLayerBody({
   timezone: string
 }) {
   const t = useT()
+  const { me } = useMe()
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [fattura, setFattura] = useState<FatturaPayload | null>(null)
@@ -316,13 +318,22 @@ function FatturaLayerBody({
   }
 
   if (fattura.file_url?.trim()) {
+    const listinoAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
     return (
-      <FornitoreInlineDocPreview
-        fill
-        fileUrl={fattura.file_url}
-        openKind="fattura"
-        docId={fattura.id}
-      />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <FornitoreInlineDocPreview
+          fill
+          fileUrl={fattura.file_url}
+          openKind="fattura"
+          docId={fattura.id}
+        />
+        <div className="shrink-0 border-t border-app-line-22/90 bg-black/20 px-4 py-2.5 md:px-5">
+          <p className="text-[11px] leading-relaxed text-app-fg-muted">{t.appStrings.listinoDocDetailImportHint}</p>
+          {listinoAdmin ? (
+            <p className="mt-1 text-[10px] leading-snug text-app-fg-muted/85">{t.appStrings.listinoDocDetailImportHintAdmin}</p>
+          ) : null}
+        </div>
+      </div>
     )
   }
 

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 import type { Profile } from '@/types'
-import { isMasterAdminRole } from '@/lib/roles'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
 
 function canManageListino(
   profile: Profile,
@@ -34,7 +35,14 @@ async function fornitoreSede(
   return { sede_id: data.sede_id as string | null }
 }
 
-type InsertRow = { prodotto: string; prezzo: number; data_prezzo: string; note?: string | null }
+type InsertRow = {
+  prodotto: string
+  prezzo: number
+  data_prezzo: string
+  note?: string | null
+  /** Solo admin: inserisci anche se `data_prezzo` è precedente all’ultimo aggiornamento listino per quel prodotto. */
+  force_outdated?: boolean
+}
 
 /**
  * Inserimento listino con service role dopo verifica sede/ruolo.
@@ -50,9 +58,9 @@ export async function POST(req: NextRequest) {
   const profile = await getProfile()
   if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  let body: { fornitore_id?: string; rows?: InsertRow[] }
+  let body: { fornitore_id?: string; rows?: InsertRow[]; force_outdated_all?: boolean }
   try {
-    body = (await req.json()) as { fornitore_id?: string; rows?: InsertRow[] }
+    body = (await req.json()) as { fornitore_id?: string; rows?: InsertRow[]; force_outdated_all?: boolean }
   } catch {
     return NextResponse.json({ error: 'Body non valido' }, { status: 400 })
   }
@@ -73,12 +81,13 @@ export async function POST(req: NextRequest) {
   const gate = canManageListino(profile, fRow.sede_id)
   if (!gate.ok) return NextResponse.json({ error: gate.error }, { status: gate.status })
 
-  const sanitized: Array<{
+  const parsed: Array<{
     fornitore_id: string
     prodotto: string
     prezzo: number
     data_prezzo: string
     note: string | null
+    force_outdated: boolean
   }> = []
 
   for (const r of rows) {
@@ -87,17 +96,96 @@ export async function POST(req: NextRequest) {
     const data_prezzo = String(r.data_prezzo ?? '').trim()
     const note = r.note != null && String(r.note).trim() !== '' ? String(r.note).trim() : null
     if (!prodotto || Number.isNaN(prezzo) || !data_prezzo) continue
-    sanitized.push({ fornitore_id: fornitoreId, prodotto, prezzo, data_prezzo, note })
+    parsed.push({
+      fornitore_id: fornitoreId,
+      prodotto,
+      prezzo,
+      data_prezzo,
+      note,
+      force_outdated: Boolean(r.force_outdated) || Boolean(body.force_outdated_all),
+    })
   }
 
-  if (sanitized.length === 0) {
+  if (parsed.length === 0) {
     return NextResponse.json({ error: 'Nessuna riga valida (prodotto, prezzo, data)' }, { status: 400 })
   }
 
-  const { error } = await service.from('listino_prezzi').insert(sanitized)
+  const canForceOutdated = isMasterAdminRole(profile.role) || isAdminSedeRole(profile.role)
+
+  const distinctProducts = [...new Set(parsed.map((p) => p.prodotto))]
+  const { data: existingRows, error: exErr } = await service
+    .from('listino_prezzi')
+    .select('prodotto, data_prezzo')
+    .eq('fornitore_id', fornitoreId)
+    .in('prodotto', distinctProducts)
+
+  if (exErr) return NextResponse.json({ error: exErr.message }, { status: 500 })
+
+  const maxByProduct = new Map<string, string>()
+  for (const row of existingRows ?? []) {
+    const p = String(row.prodotto).trim()
+    const d = String(row.data_prezzo).slice(0, 10)
+    const cur = maxByProduct.get(p)
+    if (!cur || compareIsoDateStrings(d, cur) > 0) maxByProduct.set(p, d)
+  }
+
+  const skipped: { prodotto: string; reason: 'document_date_before_latest' }[] = []
+  const toInsert: Array<{ fornitore_id: string; prodotto: string; prezzo: number; data_prezzo: string; note: string | null }> = []
+  const workingMax = new Map(maxByProduct)
+
+  for (const r of parsed) {
+    const latest = workingMax.get(r.prodotto) ?? null
+    const allowed = isDocumentDateAtLeastLatestListino(r.data_prezzo, latest)
+    if (!allowed) {
+      if (r.force_outdated) {
+        if (!canForceOutdated) {
+          return NextResponse.json(
+            { error: 'Override data antecedente non consentito per questo profilo.' },
+            { status: 403 },
+          )
+        }
+        toInsert.push({
+          fornitore_id: r.fornitore_id,
+          prodotto: r.prodotto,
+          prezzo: r.prezzo,
+          data_prezzo: r.data_prezzo,
+          note: r.note,
+        })
+        const d = r.data_prezzo.slice(0, 10)
+        const wm = workingMax.get(r.prodotto)
+        if (!wm || compareIsoDateStrings(d, wm) > 0) workingMax.set(r.prodotto, d)
+      } else {
+        skipped.push({ prodotto: r.prodotto, reason: 'document_date_before_latest' })
+      }
+      continue
+    }
+    toInsert.push({
+      fornitore_id: r.fornitore_id,
+      prodotto: r.prodotto,
+      prezzo: r.prezzo,
+      data_prezzo: r.data_prezzo,
+      note: r.note,
+    })
+    const d = r.data_prezzo.slice(0, 10)
+    const wm = workingMax.get(r.prodotto)
+    if (!wm || compareIsoDateStrings(d, wm) > 0) workingMax.set(r.prodotto, d)
+  }
+
+  if (toInsert.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          'Nessuna riga inserita: la data documento è precedente all’ultimo aggiornamento listino per tutti i prodotti selezionati.',
+        skipped,
+      },
+      { status: 400 },
+    )
+  }
+
+  const { error } = await service.from('listino_prezzi').insert(toInsert)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true, inserted: sanitized.length })
+  return NextResponse.json({ ok: true, inserted: toInsert.length, skipped })
 }
 
 /**

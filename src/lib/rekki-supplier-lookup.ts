@@ -21,7 +21,8 @@
  *    `items` | `results` e oggetti con `id` (o `supplier_id` / `uuid`) e nome. Status ≠ 2xx o JSON non
  *    conforme → nessun fornitore in lista.
  *
- * Senza API: usare il pulsante «Cerca su Rekki» (Google `site:rekki.com`) e incollare l’URL profilo nel
+ * Senza API: usare il pulsante «Cerca su Rekki (P.IV.A)» (Google `site:rekki.com` + VAT) o «Cerca su Rekki»
+ * (nome + `site:rekki.com`), poi incollare l’URL profilo nel
  * campo Link; `extractRekkiSupplierIdFromUrl` ricava l’ID.
  */
 
@@ -87,13 +88,22 @@ export function buildGoogleSiteRekkiSearchUrlForVat(vatDigits: string): string |
 }
 
 /**
- * Google con `site:rekki.com` + ragione sociale (per fallback senza API o esito vuoto).
+ * Google con `site:rekki.com` + ragione sociale (ricerca manuale sul dominio Rekki).
  */
 export function buildGoogleSiteRekkiSearchUrlForCompany(companyName: string): string | null {
   const t = companyName.replace(/\s+/g, ' ').trim()
   if (t.length < 2) return null
   const q = `site:rekki.com ${t}`
   return `https://www.google.com/search?q=${encodeURIComponent(q)}`
+}
+
+/**
+ * Google generico sul nome fornitore (senza vincolo `site:`).
+ */
+export function buildGoogleSearchUrlForCompanyName(companyName: string): string | null {
+  const t = companyName.replace(/\s+/g, ' ').trim()
+  if (t.length < 2) return null
+  return `https://www.google.com/search?q=${encodeURIComponent(t)}`
 }
 
 /**
@@ -138,6 +148,7 @@ export async function lookupRekkiSuppliersByVat(
     )
   }
 
+  /** Solo runtime server Next.js (route `POST /api/fornitore-rekki` → questa funzione). */
   const key = process.env.REKKI_API_KEY?.trim()
   const template = process.env.REKKI_SUPPLIERS_SEARCH_URL?.trim()
 
@@ -154,9 +165,11 @@ export async function lookupRekkiSuppliersByVat(
     )
   }
 
-  const url = template.includes('{vat}')
-    ? template.replace(/\{vat\}/g, encodeURIComponent(digits))
-    : `${template}${template.includes('?') ? '&' : '?'}vat=${encodeURIComponent(digits)}`
+  const vatEncoded = encodeURIComponent(digits)
+  const hasVatPlaceholder = /\{vat\}/i.test(template)
+  const url = hasVatPlaceholder
+    ? template.replace(/\{vat\}/gi, vatEncoded)
+    : `${template}${template.includes('?') ? '&' : '?'}vat=${vatEncoded}`
 
   try {
     const ac = new AbortController()
