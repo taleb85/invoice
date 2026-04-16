@@ -3,15 +3,48 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '@/lib/use-t'
 import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
-import {
-  buildGoogleSearchUrlForCompanyName,
-  buildGoogleSiteRekkiSearchUrlForCompany,
-  buildGoogleSiteRekkiSearchUrlForVat,
-  type RekkiLookupFallbackHints,
-} from '@/lib/rekki-supplier-lookup'
+import { ActionButton } from '@/components/ui/ActionButton'
+import { buildGoogleSiteRekkiSearchUrlForCompany, type RekkiLookupFallbackHints } from '@/lib/rekki-supplier-lookup'
 import { SUMMARY_HIGHLIGHT_ACCENTS } from '@/lib/summary-highlight-accent'
 
 type RekkiHit = { id: string; name: string }
+
+function RekkiOpenGlyph({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+      />
+    </svg>
+  )
+}
+
+function resolveRekkiSlugFromIdField(raw: string): string {
+  const t = raw.trim()
+  const extracted = extractRekkiSupplierIdFromUrl(t)
+  if (extracted) return extracted
+  if (!t || /^https?:\/\//i.test(t)) return ''
+  return t
+}
+
+/** Popup centrato: evita iframe / X-Frame-Options su Rekki e Google. */
+function openCenteredExternalWindow(url: string) {
+  const w = 1000
+  const h = 900
+  const sx = window.screenLeft ?? window.screenX ?? 0
+  const sy = window.screenTop ?? window.screenY ?? 0
+  const vw = window.innerWidth ?? document.documentElement.clientWidth ?? window.screen.width
+  const vh = window.innerHeight ?? document.documentElement.clientHeight ?? window.screen.height
+  const left = Math.max(0, Math.round(vw / 2 - w / 2 + sx))
+  const top = Math.max(0, Math.round(vh / 2 - h / 2 + sy))
+  const features = [`width=${w}`, `height=${h}`, `left=${left}`, `top=${top}`, 'location=yes', 'resizable=yes'].join(
+    ',',
+  )
+  window.open(url, 'rekkiSupplierExternal', features)
+}
 
 export default function RekkiSupplierIntegration({
   fornitoreId,
@@ -40,32 +73,25 @@ export default function RekkiSupplierIntegration({
 }) {
   const t = useT()
   const [rekkiId, setRekkiId] = useState(initialRekkiId?.trim() ?? '')
-  const [rekkiLink, setRekkiLink] = useState(initialRekkiLink?.trim() ?? '')
   const [lookupMsg, setLookupMsg] = useState<string | null>(null)
   const [hits, setHits] = useState<RekkiHit[]>([])
   const [fallbackHints, setFallbackHints] = useState<RekkiLookupFallbackHints | null>(null)
   const [loading, setLoading] = useState<'lookup' | 'save' | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const extractTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   /** Evita doppio POST lookup prima che `disabled` si aggiorni sul bottone API. */
   const lookupInFlightRef = useRef(false)
 
   useEffect(() => {
-    const nextLink = initialRekkiLink?.trim() ?? ''
     const nextId = initialRekkiId?.trim() ?? ''
-    setRekkiLink(nextLink)
     if (nextId) {
       setRekkiId(nextId)
     } else {
-      const extracted = extractRekkiSupplierIdFromUrl(nextLink)
-      setRekkiId(extracted ?? '')
+      const fromLink = extractRekkiSupplierIdFromUrl(initialRekkiLink?.trim() ?? '')
+      setRekkiId(fromLink ?? '')
     }
   }, [fornitoreId, initialRekkiId, initialRekkiLink])
 
-  const persistMapping = async (
-    rid: string,
-    linkTrim: string | null,
-  ): Promise<string | null> => {
+  const persistMapping = async (rid: string): Promise<string | null> => {
     try {
       const res = await fetch('/api/fornitore-rekki', {
         method: 'POST',
@@ -74,7 +100,6 @@ export default function RekkiSupplierIntegration({
           action: 'save',
           fornitore_id: fornitoreId,
           rekki_supplier_id: rid,
-          rekki_link: linkTrim,
         }),
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
@@ -93,43 +118,6 @@ export default function RekkiSupplierIntegration({
       return t.ui.networkError
     }
   }
-
-  const applyIdFromLink = useCallback(() => {
-    const extracted = extractRekkiSupplierIdFromUrl(rekkiLink)
-    if (!extracted) return
-    if (extracted === rekkiId.trim()) return
-    setRekkiId(extracted)
-    setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
-  }, [rekkiLink, rekkiId, t.fornitori.rekkiIdExtractedFromLink])
-
-  /** Estrazione immediata mentre si incolla / si modifica il link (debounce leggero). */
-  useEffect(() => {
-    if (extractTimer.current) clearTimeout(extractTimer.current)
-    extractTimer.current = setTimeout(() => {
-      const extracted = extractRekkiSupplierIdFromUrl(rekkiLink)
-      if (extracted && extracted !== rekkiId.trim()) {
-        setRekkiId(extracted)
-        setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
-      }
-    }, 120)
-    return () => {
-      if (extractTimer.current) clearTimeout(extractTimer.current)
-    }
-  }, [rekkiLink, rekkiId, t.fornitori.rekkiIdExtractedFromLink])
-
-  /** Ricerche esterne: solo `href` + `target="_blank"` (niente `onClick` sugli `<a>`). */
-  const googleVatHref = useMemo(
-    () => buildGoogleSiteRekkiSearchUrlForVat(piva ?? ''),
-    [piva],
-  )
-  const googleRekkiByNameHref = useMemo(
-    () => buildGoogleSiteRekkiSearchUrlForCompany(supplierDisplayName ?? ''),
-    [supplierDisplayName],
-  )
-  const googlePlainNameHref = useMemo(
-    () => buildGoogleSearchUrlForCompanyName(supplierDisplayName ?? ''),
-    [supplierDisplayName],
-  )
 
   const lookup = async () => {
     if (!piva?.trim()) {
@@ -168,7 +156,7 @@ export default function RekkiSupplierIntegration({
         setRekkiId(only.id)
         setHits([])
         setLoading('save')
-        const err = await persistMapping(only.id, rekkiLink.trim() || null)
+        const err = await persistMapping(only.id)
         if (err) {
           setLookupMsg(err)
           setSaveError(err)
@@ -207,7 +195,7 @@ export default function RekkiSupplierIntegration({
     if (extracted) setRekkiId(extracted)
     setLoading('save')
     try {
-      const err = await persistMapping(rid, rekkiLink.trim() || null)
+      const err = await persistMapping(rid)
       if (err) {
         setSaveError(err)
         return
@@ -224,7 +212,19 @@ export default function RekkiSupplierIntegration({
   const rekkiShellCls =
     'relative overflow-hidden rounded-2xl bg-transparent text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.28),0_16px_40px_-14px_rgba(0,0,0,0.22)] ring-1 ring-inset ring-white/10'
 
-  const nameSearchAvailable = (supplierDisplayName ?? '').trim().length >= 2
+  const resolvedSlug = useMemo(() => resolveRekkiSlugFromIdField(rekkiId), [rekkiId])
+  const rekkiProfileUrl = useMemo(() => {
+    if (!resolvedSlug) return null
+    return `https://rekki.com/gb/food-wholesalers/${encodeURIComponent(resolvedSlug)}`
+  }, [resolvedSlug])
+  const googleSiteRekkiByNameUrl = useMemo(
+    () => buildGoogleSiteRekkiSearchUrlForCompany(supplierDisplayName ?? ''),
+    [supplierDisplayName],
+  )
+
+  const unifiedPrimaryEnabled = rekkiProfileUrl != null
+  const unifiedFallbackEnabled = googleSiteRekkiByNameUrl != null
+
   const showGuidedPaste =
     fallbackHints != null ||
     (Boolean(lookupMsg) &&
@@ -232,9 +232,19 @@ export default function RekkiSupplierIntegration({
       lookupMsg !== t.fornitori.rekkiAutoLinkedSingle &&
       lookupMsg !== t.fornitori.rekkiLookupNeedVat)
 
+  const openUnified = useCallback(() => {
+    if (rekkiProfileUrl) {
+      openCenteredExternalWindow(rekkiProfileUrl)
+      return
+    }
+    if (googleSiteRekkiByNameUrl) {
+      openCenteredExternalWindow(googleSiteRekkiByNameUrl)
+    }
+  }, [rekkiProfileUrl, googleSiteRekkiByNameUrl])
+
   if (readOnly) {
     const id = initialRekkiId?.trim() ?? rekkiId.trim()
-    const link = initialRekkiLink?.trim() ?? rekkiLink.trim()
+    const link = initialRekkiLink?.trim() ?? ''
     return (
       <div
         className={`${rekkiShellCls} flex min-h-0 flex-1 flex-col overflow-hidden ${shell.border} ${className ?? ''}`}
@@ -284,46 +294,19 @@ export default function RekkiSupplierIntegration({
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-transparent px-5 py-4">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            {googleVatHref ? (
-              <a
-                href={googleVatHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-violet-500 ${
-                  loading !== null ? 'pointer-events-none opacity-40' : ''
-                }`}
-              >
-                {t.fornitori.rekkiLookupByVat}
-              </a>
-            ) : (
-              <span className="inline-flex cursor-not-allowed rounded-lg bg-violet-600/50 px-3 py-2 text-xs font-bold text-white/70 opacity-50">
-                {t.fornitori.rekkiLookupByVat}
-              </span>
-            )}
-            {nameSearchAvailable && googleRekkiByNameHref ? (
-              <a
-                href={googleRekkiByNameHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex rounded-lg border border-violet-500/45 bg-violet-500/10 px-3 py-2 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 ${
-                  loading !== null ? 'pointer-events-none opacity-40' : ''
-                }`}
-              >
-                {t.fornitori.rekkiSearchOnRekkiGoogle}
-              </a>
-            ) : null}
-            {nameSearchAvailable && googlePlainNameHref ? (
-              <a
-                href={googlePlainNameHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`inline-flex rounded-lg border border-app-line-28 bg-transparent px-3 py-2 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-white/[0.06] ${
-                  loading !== null ? 'pointer-events-none opacity-40' : ''
-                }`}
-              >
-                {t.fornitori.rekkiSearchOnRekkiGoogleByName}
-              </a>
-            ) : null}
+            <ActionButton
+              intent={unifiedPrimaryEnabled ? 'integration' : 'outline'}
+              size="sm"
+              type="button"
+              disabled={loading !== null || (!unifiedPrimaryEnabled && !unifiedFallbackEnabled)}
+              onClick={(e) => {
+                e.stopPropagation()
+                openUnified()
+              }}
+            >
+              <RekkiOpenGlyph className="size-3.5 shrink-0 opacity-90" />
+              {unifiedPrimaryEnabled ? t.fornitori.rekkiOpenInApp : t.fornitori.rekkiSearchOnRekkiGoogle}
+            </ActionButton>
             {piva?.trim() ? (
               <span className="font-mono text-[11px] text-app-fg-muted">VAT: {piva}</span>
             ) : (
@@ -396,48 +379,25 @@ export default function RekkiSupplierIntegration({
             ))}
           </ul>
         )}
-        <div className={`grid gap-3 ${compactFields ? 'grid-cols-1' : 'sm:grid-cols-2'}`}>
-          <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">{t.fornitori.rekkiIdLabel}</label>
-            <input
-              type="text"
-              value={rekkiId}
-              onChange={(e) => setRekkiId(e.target.value)}
-              onPaste={(e) => {
-                const pasted = e.clipboardData?.getData('text/plain')?.trim() ?? ''
-                if (!pasted) return
-                const fromPaste = extractRekkiSupplierIdFromUrl(pasted)
-                if (!fromPaste) return
-                window.setTimeout(() => {
-                  setRekkiId(fromPaste)
-                  setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
-                }, 0)
-              }}
-              placeholder={t.fornitori.rekkiIdPlaceholder}
-              className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 font-mono text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">{t.fornitori.rekkiLinkLabel}</label>
-            <input
-              type="url"
-              value={rekkiLink}
-              onChange={(e) => setRekkiLink(e.target.value)}
-              onBlur={() => applyIdFromLink()}
-              onPaste={(e) => {
-                const pasted = e.clipboardData?.getData('text/plain')?.trim() ?? ''
-                if (!pasted) return
-                const extracted = extractRekkiSupplierIdFromUrl(pasted)
-                if (!extracted) return
-                window.setTimeout(() => {
-                  setRekkiId(extracted)
-                  setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
-                }, 0)
-              }}
-              placeholder={t.fornitori.rekkiLinkPlaceholder}
-              className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40"
-            />
-          </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">{t.fornitori.rekkiIdLabel}</label>
+          <input
+            type="text"
+            value={rekkiId}
+            onChange={(e) => setRekkiId(e.target.value)}
+            onPaste={(e) => {
+              const pasted = e.clipboardData?.getData('text/plain')?.trim() ?? ''
+              if (!pasted) return
+              const fromPaste = extractRekkiSupplierIdFromUrl(pasted)
+              if (!fromPaste) return
+              window.setTimeout(() => {
+                setRekkiId(fromPaste)
+                setLookupMsg(t.fornitori.rekkiIdExtractedFromLink)
+              }, 0)
+            }}
+            placeholder={t.fornitori.rekkiIdPlaceholder}
+            className={`w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 font-mono text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-violet-500/40${compactFields ? ' min-w-0' : ''}`}
+          />
         </div>
         <button
           type="button"
