@@ -1,4 +1,7 @@
-/** Confronto date ISO YYYY-MM-DD (string-safe). */
+/**
+ * Confronto date ISO YYYY-MM-DD (string-safe).
+ * «Data ultimo listino» per un prodotto = massimo `data_prezzo` sulle righe `listino_prezzi` con quel nome.
+ */
 export function compareIsoDateStrings(a: string, b: string): number {
   const x = a.slice(0, 10)
   const y = b.slice(0, 10)

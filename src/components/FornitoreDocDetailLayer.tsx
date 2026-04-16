@@ -17,8 +17,9 @@ import ToggleStato from '@/app/(app)/bolle/[id]/ToggleStato'
 import ReplaceFileButton from '@/app/(app)/fatture/[id]/ReplaceFileButton'
 import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
-import { APP_SECTION_TABLE_HEAD_ROW, APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
+import { APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
 import { useMe } from '@/lib/me-context'
+import BollaForceListinoFromRekkiButton from '@/components/BollaForceListinoFromRekkiButton'
 
 type BollaPayload = {
   id: string
@@ -423,6 +424,8 @@ function BollaLayerBody({
   timezone: string
 }) {
   const t = useT()
+  const { me } = useMe()
+  const listinoImportAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [bolla, setBolla] = useState<BollaPayload | null>(null)
@@ -510,6 +513,7 @@ function BollaLayerBody({
               {t.bolle.rekkiPrezzoIndicativoBadge}
             </span>
           )}
+          <BollaForceListinoFromRekkiButton bollaId={bolla.id} visible={rekkiPrezzoFlag && listinoImportAdmin} />
         </div>
         <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(bolla.data)}</p>
       </div>

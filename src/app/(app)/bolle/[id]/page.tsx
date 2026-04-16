@@ -1,12 +1,14 @@
 import Link from 'next/link'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
-import { getRequestAuth } from '@/utils/supabase/server'
+import { getRequestAuth, getProfile } from '@/utils/supabase/server'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import BollaForceListinoFromRekkiButton from '@/components/BollaForceListinoFromRekkiButton'
 import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supabase-detail-for-viewer'
 import ToggleStato from './ToggleStato'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_SECTION_TABLE_HEAD_ROW, APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
+import { APP_SECTION_TABLE_TBODY } from '@/lib/app-shell-layout'
 import { AppPageHeaderDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
@@ -19,12 +21,20 @@ async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
 
 export default async function BollaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [bolla, t, locale, tz] = await Promise.all([getBollaForViewer(id), getT(), getLocale(), getTimezone()])
+  const [bolla, t, locale, tz, profile] = await Promise.all([
+    getBollaForViewer(id),
+    getT(),
+    getLocale(),
+    getTimezone(),
+    getProfile(),
+  ])
   if (!bolla) return <DocumentUnavailable kind="bolla" />
   const [fatture, rekkiPrezzoFlag] = await Promise.all([
     getFattureRowsForBollaAuthorized(id),
     getRekkiPrezzoFlag(id),
   ])
+  const allowForceListino =
+    Boolean(profile) && (isMasterAdminRole(profile!.role) || isAdminSedeRole(profile!.role))
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   const fornitoreRekkiId = bolla.fornitore?.rekki_supplier_id?.trim()
@@ -66,6 +76,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
                   {t.bolle.rekkiPrezzoIndicativoBadge}
                 </span>
               )}
+              <BollaForceListinoFromRekkiButton bollaId={bolla.id} visible={rekkiPrezzoFlag && allowForceListino} />
             </div>
             <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(bolla.data)}</p>
           </div>
