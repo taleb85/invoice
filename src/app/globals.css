@@ -405,8 +405,7 @@
   }
 
   /**
-   * Dock mobile: default trasparente. Con `app-glass-dock-opaque` (scroll: contenuto sotto al dock)
-   * si applica riempimento + blur da `DashboardMobileBottomNav`.
+   * Dock mobile: `app-glass-dock-opaque` + blur applicati sempre da `DashboardMobileBottomNav` (vetro satinato).
    */
   .app-glass-dock {
     background: transparent;

@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { useLayoutEffect, useState } from 'react'
 import { FileText, Home, Plus, Settings, Users } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useT } from '@/lib/use-t'
@@ -16,52 +15,18 @@ import {
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 import DashboardHomeScannerDockCta from '@/components/DashboardHomeScannerDockCta'
 
-/** Sotto al dock c’è ancora contenuto scrollabile (non sei a fondo pagina). */
-const DOCK_OVER_CONTENT_EPS_PX = 28
-
 /**
  * Dock mobile “pill”: margini da bordo schermo, angoli pieni, ombra esterna.
- * Trasparente di default; con contenuto sotto si applica `app-glass-dock-opaque` + blur (`globals.css`).
+ * Effetto satinato fisso: `app-glass-dock-opaque` + blur (`globals.css`).
  */
 const NAV_SHELL_BASE =
   'app-glass-dock fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[100] flex w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch overflow-hidden rounded-3xl border border-app-line-35 text-app-fg shadow-[0_14px_44px_-12px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pb-4 pt-3 ps-[max(0.375rem,env(safe-area-inset-left,0px))] pe-[max(0.375rem,env(safe-area-inset-right,0px))] md:hidden'
 
-const NAV_SHELL_OPAQUE_GLASS =
+const NAV_SHELL_SATIN_GLASS =
   'app-glass-dock-opaque backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150'
 
-const NAV_SHELL_CLEAR_GLASS =
-  'backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none] backdrop-saturate-100'
-
-function glassDockNavShellClass(opaque: boolean, layout: string) {
-  return `${NAV_SHELL_BASE} ${opaque ? NAV_SHELL_OPAQUE_GLASS : NAV_SHELL_CLEAR_GLASS} ${layout}`
-}
-
-function useGlassDockOverContent(): boolean {
-  const [over, setOver] = useState(false)
-
-  useLayoutEffect(() => {
-    const main = document.getElementById('app-main')
-    if (!main) {
-      setOver(false)
-      return
-    }
-    const tick = () => {
-      const gap = main.scrollHeight - main.scrollTop - main.clientHeight
-      setOver(gap > DOCK_OVER_CONTENT_EPS_PX)
-    }
-    tick()
-    main.addEventListener('scroll', tick, { passive: true })
-    window.addEventListener('resize', tick)
-    const ro = new ResizeObserver(tick)
-    ro.observe(main)
-    return () => {
-      main.removeEventListener('scroll', tick)
-      window.removeEventListener('resize', tick)
-      ro.disconnect()
-    }
-  }, [])
-
-  return over
+function glassDockNavShellClass(layout: string) {
+  return `${NAV_SHELL_BASE} ${NAV_SHELL_SATIN_GLASS} ${layout}`
 }
 
 const hubIconsRow =
@@ -137,11 +102,9 @@ function OperatorHubNavItem({ itemCls }: { itemCls: (active: boolean) => string 
 function FornitoreProfileBottomNav({
   normalized,
   itemCls,
-  dockOpaque,
 }: {
   normalized: string
   itemCls: (active: boolean) => string
-  dockOpaque: boolean
 }) {
   const pathname = usePathname() ?? ''
   const t = useT()
@@ -153,7 +116,7 @@ function FornitoreProfileBottomNav({
   const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const dashboardActive = pathname === '/' || pathname === ''
 
-  const navCls = glassDockNavShellClass(dockOpaque, 'flex-col gap-2 px-2 sm:gap-3 sm:px-4')
+  const navCls = glassDockNavShellClass('flex-col gap-2 px-2 sm:gap-3 sm:px-4')
 
   return (
     <nav className={navCls} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
@@ -184,7 +147,6 @@ export default function DashboardMobileBottomNav() {
   const t = useT()
   const { me, loading } = useMe()
   const { activeOperator } = useActiveOperator()
-  const dockOver = useGlassDockOverContent()
 
   const role: 'admin' | 'admin_sede' | 'operatore' | null = me?.role ?? null
 
@@ -194,7 +156,7 @@ export default function DashboardMobileBottomNav() {
     return null
   }
 
-  const navClsHub = glassDockNavShellClass(dockOver, 'flex-col gap-2 px-2 sm:px-2')
+  const navClsHub = glassDockNavShellClass('flex-col gap-2 px-2 sm:px-2')
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === ''
@@ -228,11 +190,7 @@ export default function DashboardMobileBottomNav() {
 
   if (isFornitoreProfileRoute(normalized)) {
     return (
-      <FornitoreProfileBottomNav
-        normalized={normalized}
-        itemCls={fornitoreItemCls}
-        dockOpaque={dockOver}
-      />
+      <FornitoreProfileBottomNav normalized={normalized} itemCls={fornitoreItemCls} />
     )
   }
 

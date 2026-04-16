@@ -207,11 +207,15 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     isFornitoreProfileRoute(normalized)
   const homeScannerDockCta =
     hub && (normalized === '/' || normalized === '') && homeScannerDockCtaVisible
-  /** Extra padding: dock mobile fluttuante + offset `bottom` ~1rem sopra safe area. */
+  /**
+   * Padding sotto `#app-main`: deve coprire solo altezza dock + offset `bottom` (~1rem sopra safe area).
+   * Valori ~19–22rem erano troppo alti: fascia vuota scura enorme e `useGlassDockOverContent` vedeva sempre
+   * “scroll residuo”, attivando il riempimento nero del dock anche in cima alla dashboard.
+   */
   const hubBottomPad = homeScannerDockCta
     ? tallMobileDock
-      ? 'pb-[calc(22.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
-      : 'pb-[calc(19rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      ? 'pb-[calc(16.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(12.75rem+1.125rem+env(safe-area-inset-bottom,0px))]'
     : tallMobileDock
       ? 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
       : 'pb-[calc(7.25rem+1.125rem+env(safe-area-inset-bottom,0px))]'
