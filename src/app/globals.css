@@ -290,7 +290,8 @@
 
   /**
    * Desktop AppShell: gradiente unico sotto rail + canvas (header trasparente + main md:transparent).
-   * Mobile: solo colore testo; il gradiente è su `.app-main-workspace-scroll`.
+   * Mobile: colore testo qui; il gradiente su colonna `[data-app-desktop-canvas]` così riempie tutta
+   * l’altezza flex anche se `#app-main` resta solo alto quanto il contenuto (evita fascia `slate-950`).
    */
   .app-shell-workspace-canvas {
     color: var(--app-fg-body);
@@ -308,16 +309,23 @@
   }
 
   /**
-   * `<main id="app-main" data-app-main-scroll>`: gradiente canvas su mobile/tablet; da md trasparente (vedi gradiente su `.app-shell-workspace-canvas`).
+   * `<main id="app-main" data-app-main-scroll>`: testo canvas; sfondo da genitore.
+   * Sotto md: gradiente su `[data-app-desktop-canvas]` (colonna intera, anche sotto contenuti corti).
+   * Da md: trasparente — gradiente su `.app-shell-workspace-canvas`.
    */
   .app-main-workspace-scroll {
     color: var(--app-fg-body);
-    background-image: linear-gradient(
-      to bottom right,
-      var(--app-canvas-from),
-      var(--app-canvas-via),
-      var(--app-canvas-to)
-    );
+  }
+
+  @media (max-width: 767px) {
+    [data-app-desktop-canvas] {
+      background-image: linear-gradient(
+        to bottom right,
+        var(--app-canvas-from),
+        var(--app-canvas-via),
+        var(--app-canvas-to)
+      );
+    }
   }
 
   @media (min-width: 768px) {
