@@ -617,53 +617,53 @@ function SupplierDesktopKpiGrid({
           key={k.label}
           type="button"
           onClick={() => onTabChange(k.tab)}
-          className="supplier-desktop-kpi-card group relative flex h-full min-h-[104px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98] md:min-h-[148px]"
+          className="supplier-desktop-kpi-card group relative flex h-full min-h-[68px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98] md:min-h-[148px]"
           style={{
             boxShadow: supplierDesktopKpiOuterShadow(k.accentHex),
             ['--supplier-kpi-rgb' as string]: hexToRgbTuple(k.accentHex),
           }}
         >
           <KpiLAccentOverlay accentHex={k.accentHex} edgePx={4} />
-          <div className="relative z-[1] flex min-h-0 flex-1 flex-col p-2 md:p-3">
-            <div
-              className={`flex min-h-0 shrink-0 items-center justify-between gap-1.5 pb-1.5 md:min-h-[2.5rem] md:gap-2 md:pb-2 ${k.headerRule}`}
-            >
-              <p className="min-w-0 flex-1 pr-0.5 text-left text-[9px] font-semibold uppercase leading-tight tracking-wide text-app-fg-muted line-clamp-2 md:pr-1 md:text-[11px] md:leading-snug md:tracking-wider">
-                {k.label}
-              </p>
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center md:h-8 md:w-8 [&>svg]:h-[1.05rem] [&>svg]:w-[1.05rem] [&>svg]:shrink-0 md:[&>svg]:h-[1.2rem] md:[&>svg]:w-[1.2rem]">
-                {k.icon}
-              </span>
-            </div>
-            {/* Stessa struttura su tutte le tile: sottotitolo in slot ad altezza fissa → i valori numerici/cifre si allineano in riga */}
-            <div className="flex min-h-0 flex-1 flex-col justify-end gap-1 pt-0.5 md:gap-1 md:pt-1.5">
-              <div className="flex min-h-[2.35rem] shrink-0 flex-col justify-end md:min-h-[2.85rem]">
-                <p
-                  className={`line-clamp-2 text-left text-[9px] font-medium leading-tight md:text-[11px] md:leading-snug ${k.subColor}`}
-                >
-                  {k.sub}
+          <div className="relative z-[1] flex min-h-0 flex-1 flex-col p-1.5 md:p-3">
+            {/* Mobile: layout orizzontale compatto icona+label a sinistra, valore a destra */}
+            <div className="flex h-full items-center justify-between gap-1 md:hidden">
+              <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center opacity-70 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                  {k.icon}
+                </span>
+                <p className="min-w-0 truncate text-[9px] font-semibold uppercase tracking-wide text-white/70">
+                  {k.label}
                 </p>
               </div>
-              <div className="flex shrink-0 items-end justify-between gap-1">
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="truncate text-base font-bold tabular-nums leading-none tracking-tight text-app-fg md:text-xl">
-                    {k.value}
-                  </p>
-                  {k.valueSupplement ? (
-                    <p className="mt-0.5 truncate text-[9px] font-medium leading-tight text-app-fg-muted md:text-[10px]">
-                      {k.valueSupplement}
-                    </p>
-                  ) : null}
+              <p className="shrink-0 text-sm font-bold tabular-nums leading-none tracking-tight text-white">
+                {k.value}
+              </p>
+            </div>
+            {/* Desktop: layout originale verticale */}
+            <div className="hidden md:flex min-h-0 flex-1 flex-col">
+              <div className={`flex min-h-0 shrink-0 items-center justify-between gap-2 pb-2 md:min-h-[2.5rem] ${k.headerRule}`}>
+                <p className="min-w-0 flex-1 pr-1 text-left text-[11px] font-semibold uppercase leading-snug tracking-wider text-app-fg-muted line-clamp-2">
+                  {k.label}
+                </p>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center [&>svg]:h-[1.2rem] [&>svg]:w-[1.2rem] [&>svg]:shrink-0">
+                  {k.icon}
+                </span>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col justify-end gap-1 pt-1.5">
+                <div className="flex min-h-[2.85rem] shrink-0 flex-col justify-end">
+                  <p className={`line-clamp-2 text-left text-[11px] font-medium leading-snug ${k.subColor}`}>{k.sub}</p>
                 </div>
-                <svg
-                  className={`mb-0.5 h-3 w-3 shrink-0 self-end transition-colors md:mb-0.5 md:h-3.5 md:w-3.5 ${k.chevronClass} ${k.chevronHoverClass}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M9 5l7 7-7 7" />
-                </svg>
+                <div className="flex shrink-0 items-end justify-between gap-1">
+                  <div className="min-w-0 flex-1 text-left">
+                    <p className="truncate text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg">{k.value}</p>
+                    {k.valueSupplement ? (
+                      <p className="mt-0.5 truncate text-[10px] font-medium leading-tight text-app-fg-muted">{k.valueSupplement}</p>
+                    ) : null}
+                  </div>
+                  <svg className={`mb-0.5 h-3.5 w-3.5 shrink-0 self-end transition-colors ${k.chevronClass} ${k.chevronHoverClass}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -1237,6 +1237,10 @@ function DashboardTab({
   const nuovaBollaActive =
     pathname === '/bolle/new' && searchParams.get('fornitore_id') === fornitoreId
 
+  /** Accordion mobile: chiusi di default per dare priorità alla lista prodotti */
+  const [mobileContattiOpen, setMobileContattiOpen] = useState(false)
+  const [mobileSchedaOpen, setMobileSchedaOpen] = useState(false)
+
   return (
     <div className="space-y-6">
       {/* Mobile: stesse azioni che prima erano nella bottom bar fissa, sotto i KPI */}
@@ -1268,26 +1272,42 @@ function DashboardTab({
         <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
         <div className={`supplier-detail-tab-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
-          <div className="flex shrink-0 items-center justify-between border-b border-app-line-22 px-4 py-2.5 md:px-5 md:py-3">
+          {/* Accordion header: su mobile mostra toggle; su desktop è sempre aperto */}
+          <div
+            className="flex shrink-0 items-center justify-between border-b border-app-line-22 px-4 py-2.5 md:px-5 md:py-3 md:cursor-default cursor-pointer"
+            onClick={() => setMobileContattiOpen((v) => !v)}
+            role="button"
+            aria-expanded={mobileContattiOpen}
+          >
             <div className="flex items-center gap-2">
               <svg className="h-3.5 w-3.5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.contactsHeading}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-white/80">{t.appStrings.contactsHeading}</p>
               {contatti.length > 0 && (
                 <span className="rounded-full border border-app-soft-border app-workspace-inset-bg px-2 py-0.5 text-[10px] font-medium text-app-fg-muted">
                   {contatti.length}
                 </span>
               )}
             </div>
-            {!readOnly ? (
-            <button onClick={openAdd}
-              className="flex items-center gap-1 px-2.5 py-1 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
-              {t.common.add}
-            </button>
-            ) : null}
+            <div className="flex items-center gap-2">
+              {/* Chevron accordion su mobile */}
+              <svg
+                className={`h-4 w-4 text-white/50 transition-transform duration-200 md:hidden ${mobileContattiOpen ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              {!readOnly ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); openAdd() }}
+                className="flex items-center gap-1 px-2.5 py-1 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                {t.common.add}
+              </button>
+              ) : null}
+            </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className={`min-h-0 flex-1 overflow-y-auto ${mobileContattiOpen ? '' : 'hidden md:block'}`}>
           {/* Add / edit form */}
           {!readOnly && showAddForm && (
             <div className="border-b border-app-line-25 bg-app-line-10 px-4 py-4 md:px-5">
@@ -1401,11 +1421,24 @@ function DashboardTab({
       <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
       <div className={`supplier-detail-tab-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
-        <div className="flex shrink-0 items-center gap-2 border-b border-app-line-22 px-5 py-3">
-          <svg className="h-3.5 w-3.5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-          <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.infoSupplierCard}</p>
+        <div
+          className="flex shrink-0 items-center justify-between border-b border-app-line-22 px-5 py-3 cursor-pointer md:cursor-default"
+          onClick={() => setMobileSchedaOpen((v) => !v)}
+          role="button"
+          aria-expanded={mobileSchedaOpen}
+        >
+          <div className="flex items-center gap-2">
+            <svg className="h-3.5 w-3.5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/80">{t.appStrings.infoSupplierCard}</p>
+          </div>
+          <svg
+            className={`h-4 w-4 text-white/50 transition-transform duration-200 md:hidden ${mobileSchedaOpen ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-        <div className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${APP_SECTION_DIVIDE_ROWS}`}>
+        <div className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${APP_SECTION_DIVIDE_ROWS} ${mobileSchedaOpen ? '' : 'hidden md:flex'}`}>
 
           {/* Contact */}
           <div className="space-y-3 px-5 py-4">
@@ -3050,12 +3083,12 @@ function ListinoTab({
               )}
               {!readOnly ? (
               <>
-              {/* Auto-import: analizza + salva tutte le fatture non ancora elaborate */}
+              {/* Auto-import + Importa da fattura: nascosti su mobile (non utili in magazzino) */}
               <button
                 onClick={handleAutoImport}
                 disabled={autoImporting}
                 title="Importa automaticamente i prezzi da tutte le fatture non ancora analizzate"
-                className="flex items-center gap-1 rounded-lg border border-violet-500/40 bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
+                className="hidden md:flex items-center gap-1 rounded-lg border border-violet-500/40 bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
               >
                 {autoImporting ? (
                   <div className="h-3 w-3 animate-spin rounded-full border border-violet-300 border-t-transparent" />
@@ -3068,7 +3101,7 @@ function ListinoTab({
               </button>
               <button
                 onClick={openImport}
-                className="flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-violet-500"
+                className="hidden md:flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-violet-500"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                 {t.appStrings.fromInvoiceBtn}
@@ -3117,9 +3150,9 @@ function ListinoTab({
             </div>
           )}
 
-          {/* Import from invoice panel */}
+          {/* Import from invoice panel — nascosto su mobile */}
           {showImport && !readOnly && (
-            <div className="border-b border-violet-500/25 bg-violet-500/10 px-5 py-4">
+            <div className="hidden md:block border-b border-violet-500/25 bg-violet-500/10 px-5 py-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-violet-200">{t.appStrings.listinoImportPanelTitle}</p>
                 <button type="button" onClick={() => setShowImport(false)} className="text-violet-400/80 transition-colors hover:text-violet-200">
@@ -3667,7 +3700,7 @@ function ListinoTab({
 
           {/* Product rows */}
           {nListinoProducts > 0 && nFilteredProducts > 0 && (
-            <div className={`${APP_SECTION_DIVIDE_ROWS} border-4 border-red-500 md:border-none`}>
+            <div className={APP_SECTION_DIVIDE_ROWS}>
               {Object.entries(filteredListinoByProduct).map(([prodotto, prezzi]) => {
                 const sorted = [...prezzi].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
                 const ultimo = sorted[sorted.length - 1]!
@@ -4517,7 +4550,7 @@ function FornitoreDetailClient({
         fatturaId={searchParams.get('fattura')}
       />
       {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
-      <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden border-2 border-red-500 md:border-none">
+      <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden">
         <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
           <div className="flex items-start gap-3 border-t border-app-line-10 bg-transparent px-3 py-2.5 text-app-fg">
@@ -4591,7 +4624,7 @@ function FornitoreDetailClient({
           </div>
         </header>
 
-        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-xl border-2 border-red-500 md:border md:border-app-line-15 bg-transparent p-3 outline-none sm:p-4">
+        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-xl border border-app-line-15 bg-transparent p-3 outline-none sm:p-4">
           <TabContent variant="mobile" />
         </div>
       </div>

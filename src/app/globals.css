@@ -840,7 +840,7 @@ body {
 
 /*
  * SFONDO GLOBALE — background-geo.png (IMG_1864 copiato in public/).
- * Se il file non è presente, il body resta con background-color di fallback.
+ * Fallback blu profondo magazzino se l'immagine non si carica.
  */
 body {
   background-image: url('/background-geo.png') !important;
@@ -848,5 +848,16 @@ body {
   background-position: center !important;
   background-attachment: fixed !important;
   background-repeat: no-repeat !important;
-  background-color: #020617;
+  background-color: #0a192f;
+}
+
+/* Testo bianco puro per massimo contrasto sullo sfondo scuro */
+body,
+.text-app-fg,
+.app-page-title {
+  --tw-text-opacity: 1;
+  color: #ffffff;
+}
+.text-app-fg-muted {
+  color: rgba(255, 255, 255, 0.72);
 }
