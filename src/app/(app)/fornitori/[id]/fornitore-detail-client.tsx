@@ -4517,7 +4517,7 @@ function FornitoreDetailClient({
         fatturaId={searchParams.get('fattura')}
       />
       {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
-      <div className="flex min-w-0 flex-col gap-4 px-4 pb-6 text-app-fg md:hidden">
+      <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden border-2 border-red-500 md:border-none">
         <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
           <div className="flex items-start gap-3 border-t border-app-line-10 bg-transparent px-3 py-2.5 text-app-fg">
@@ -4591,7 +4591,7 @@ function FornitoreDetailClient({
           </div>
         </header>
 
-        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-xl border border-app-line-15 bg-transparent p-3 outline-none sm:p-4">
+        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-xl border-2 border-red-500 md:border md:border-app-line-15 bg-transparent p-3 outline-none sm:p-4">
           <TabContent variant="mobile" />
         </div>
       </div>

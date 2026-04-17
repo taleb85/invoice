@@ -839,12 +839,14 @@ body {
 }
 
 /*
- * Mobile: sostituisce lo sfondo geometrico con un colore solido (slate-950)
- * per ridurre l'affaticamento visivo sotto le luci del magazzino.
+ * FORCE UI REFRESH TEST — sfondo forzato su tutti i breakpoint.
+ * IMG_1864.jpeg non esiste in public/; usa il file reale background-geometric-blue.png.
+ * Rimuovi questo blocco quando il test visivo è completato.
  */
-@media (max-width: 767px) {
-  body {
-    background-image: none;
-    background-color: #020617;
-  }
+body {
+  background-image: url('/background-geometric-blue.png') !important;
+  background-attachment: fixed !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
