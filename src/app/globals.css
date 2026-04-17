@@ -837,3 +837,14 @@ body {
     background-image: none !important;
   }
 }
+
+/*
+ * Mobile: sostituisce lo sfondo geometrico con un colore solido (slate-950)
+ * per ridurre l'affaticamento visivo sotto le luci del magazzino.
+ */
+@media (max-width: 767px) {
+  body {
+    background-image: none;
+    background-color: #020617;
+  }
+}
