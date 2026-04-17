@@ -604,7 +604,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 <span className="font-normal normal-case text-app-fg-muted"> {t.login.pinDigits}</span>
               </label>
               <div
-                className="flex justify-center gap-2 rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-2 py-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:gap-3 sm:px-3 sm:py-3"
+                className="flex justify-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-2 py-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:gap-3 sm:px-3 sm:py-3"
                 onPaste={handlePinPaste}
               >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -622,14 +622,14 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     disabled={loading || (!nameReady && idx === 0 ? false : !nameReady)}
                     className={[
                       'h-12 w-12 rounded-xl border-2 text-center text-lg font-bold transition-all sm:h-14 sm:w-14 sm:text-xl',
-                      'focus:outline-none focus:ring-0',
+                      'focus:outline-none focus:ring-2 focus:ring-cyan-500/30',
                       loading
-                        ? 'border-app-line-30 app-workspace-inset-bg-soft text-app-fg-muted'
+                        ? 'border-slate-700 bg-slate-800/50 text-app-fg-muted'
                         : pin[idx]
-                          ? 'border-app-a-70 bg-app-line-15 text-app-fg-muted shadow-sm shadow-app-line-20'
+                          ? 'border-cyan-500/70 bg-slate-800/60 text-app-fg shadow-sm shadow-cyan-500/10'
                           : nameReady
-                            ? 'border-app-line-28 app-workspace-inset-bg-soft text-app-fg hover:border-app-line-50 focus:border-app-a-55 focus:bg-app-line-10'
-                            : 'border-app-line-22 app-workspace-inset-bg-soft text-app-fg-muted cursor-not-allowed',
+                            ? 'border-slate-600 bg-slate-800/50 text-app-fg hover:border-slate-500 focus:border-cyan-500'
+                            : 'border-slate-700/60 bg-slate-800/40 text-app-fg-muted cursor-not-allowed',
                     ].join(' ')}
                   />
                 ))}
@@ -684,7 +684,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 </label>
                 <p className="px-0.5 text-[11px] leading-relaxed text-app-fg-muted">{t.login.adminGateHint}</p>
                 <div
-                  className="flex flex-wrap justify-center gap-2 rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+                  className="flex flex-wrap justify-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
                   onPaste={handleAdminGatePinPaste}
                 >
                   {Array.from({ length: adminGatePinLen }).map((_, idx) => {
@@ -705,12 +705,12 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                         className={[
                           narrow ? 'h-10 w-9 text-base' : 'h-14 w-14 text-xl',
                           'border-2 text-center font-bold transition-all',
-                          'rounded-xl focus:outline-none focus:ring-0',
+                          'rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/30',
                           adminGateVerifying
-                            ? 'border-app-line-30 app-workspace-inset-bg-soft text-app-fg-muted'
+                            ? 'border-slate-700 bg-slate-800/50 text-app-fg-muted'
                             : adminGatePin[idx]
-                              ? 'border-app-a-70 bg-app-line-15 text-app-fg-muted shadow-sm shadow-app-line-20'
-                              : 'border-app-line-28 app-workspace-inset-bg-soft text-app-fg hover:border-app-line-50 focus:border-app-a-55 focus:bg-app-line-10',
+                              ? 'border-cyan-500/70 bg-slate-800/60 text-app-fg shadow-sm shadow-cyan-500/10'
+                              : 'border-slate-600 bg-slate-800/50 text-app-fg hover:border-slate-500 focus:border-cyan-500',
                         ].join(' ')}
                       />
                     )

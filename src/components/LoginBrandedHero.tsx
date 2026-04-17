@@ -76,13 +76,13 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
               </h1>
               {remembered && (
                 <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">
-                  ultima sede
+                  last branch
                 </p>
               )}
             </>
           ) : (
             <h1 className="text-base font-semibold tracking-wide text-white/60">
-              Accedi al tuo Gestionale
+              Fluxo Management
             </h1>
           )}
         </div>
