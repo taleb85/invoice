@@ -839,11 +839,11 @@ body {
 }
 
 /*
- * SFONDO GLOBALE — background-geo.jpg (copia di IMG_1864.jpeg in public/).
+ * SFONDO GLOBALE — background-geo.png (IMG_1864 copiato in public/).
  * Se il file non è presente, il body resta con background-color di fallback.
  */
 body {
-  background-image: url('/background-geo.jpg') !important;
+  background-image: url('/background-geo.png') !important;
   background-size: cover !important;
   background-position: center !important;
   background-attachment: fixed !important;
