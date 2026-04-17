@@ -3765,7 +3765,7 @@ function ListinoTab({
                     <div className="grid grid-cols-1 gap-4 px-4 py-2.5 sm:px-5 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(8rem,auto)] md:items-start md:gap-5 md:py-2.5 md:pl-4 md:pr-5">
                       {/* ── COLONNA 1: Nome Prodotto + Codice/Unità ── */}
                       <div className="min-w-0 md:pr-2">
-                        <h3 className="text-base font-bold leading-tight tracking-tight text-app-fg sm:text-lg md:text-xl">
+                        <h3 className="font-bold leading-tight tracking-tight text-white md:text-xl" style={{ fontSize: 'clamp(0.875rem, 2.5vw, 1.125rem)' }}>
                           {prodotto}
                         </h3>
                         {parsed.codice || parsed.unita ? (

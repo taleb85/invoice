@@ -228,10 +228,15 @@ export default function StatoSincronizzazioneIntelligente({
     <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
       <div className="app-card-bar-accent bg-gradient-to-r from-cyan-500/80 to-blue-500/60" aria-hidden />
 
-      {/* ── Action Bar mobile: sopra il bottom nav (90px) + 1rem di offset + gap ─── */}
+      {/* ── Action Bar mobile: sopra il bottom nav (90px) + safe area bottom + gap landscape ─── */}
       {imapReady && (
-        <div className="fixed left-1/2 z-[90] -translate-x-1/2 w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] md:hidden"
-          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 90px + 0.625rem)' }}
+        <div
+          className="fixed left-1/2 z-[90] -translate-x-1/2 w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] md:hidden"
+          style={{
+            bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 90px + 0.625rem)',
+            paddingLeft: 'env(safe-area-inset-left, 0px)',
+            paddingRight: 'env(safe-area-inset-right, 0px)',
+          }}
         >
           {syncing ? (
             <div className="flex items-center gap-3 rounded-2xl bg-red-600 px-5 py-3 shadow-[0_8px_32px_rgba(239,68,68,0.55)] ring-1 ring-red-400/40">

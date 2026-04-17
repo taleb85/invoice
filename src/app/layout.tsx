@@ -27,7 +27,7 @@ const geistSans = Geist({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
+  themeColor: "#0a192f",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
@@ -73,14 +73,10 @@ export default function RootLayout({
   return (
     <html lang="it" className={`${geistSans.variable} h-full antialiased`}>
       <body
-        className="h-full min-h-dvh text-app-fg-muted antialiased"
+        className="h-dvh min-h-dvh text-app-fg-muted antialiased"
         style={{
-          backgroundImage: "url('/background-geometric-blue.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          backgroundAttachment: "fixed",
-          color: "#ecfeff"
+          backgroundColor: "#0a192f",
+          color: "#ffffff"
         }}
       >
         <Script
