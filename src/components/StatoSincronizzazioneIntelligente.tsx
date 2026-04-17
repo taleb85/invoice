@@ -217,14 +217,52 @@ export default function StatoSincronizzazioneIntelligente({
     ? new Date(status.last_sync_at).getTime() > Date.now() - 3_600_000
     : false
 
+  const stopSync = () => {
+    abortRef.current?.abort()
+    setSyncing(false)
+    setSyncLog([])
+    setSyncPercent(0)
+  }
+
   return (
     <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
       <div className="app-card-bar-accent bg-gradient-to-r from-cyan-500/80 to-blue-500/60" aria-hidden />
 
+      {/* ── FAB mobile: pulsante sticky in basso a destra ─────── */}
+      {imapReady && (
+        <div className="fixed bottom-24 right-4 z-50 md:hidden">
+          {syncing ? (
+            <button
+              type="button"
+              onClick={stopSync}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 shadow-lg shadow-red-500/40 transition-transform active:scale-95"
+              aria-label="Interrompi scansione"
+              title="Interrompi scansione"
+            >
+              <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="1" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSync}
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/40 transition-transform active:scale-95"
+              aria-label="Avvia scansione email Rekki"
+              title="Avvia scansione"
+            >
+              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="px-5 py-4">
 
-        {/* ── Header ─────────────────────────────────────────────── */}
-        <div className="mb-4 flex items-center justify-between gap-3">
+        {/* ── Header desktop ──────────────────────────────────────── */}
+        <div className="mb-4 hidden md:flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h3 className="text-sm font-bold text-app-fg">Sincronizzazione Email Rekki</h3>
             <p className="mt-0.5 text-xs text-app-fg-muted">
@@ -252,15 +290,13 @@ export default function StatoSincronizzazioneIntelligente({
 
               {syncing ? (
                 <>
-                  {/* Stato in corso */}
                   <div className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-300">
                     <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
                     Scansione...
                   </div>
-                  {/* Stop */}
                   <button
                     type="button"
-                    onClick={() => { abortRef.current?.abort(); setSyncing(false); setSyncLog([]); setSyncPercent(0) }}
+                    onClick={stopSync}
                     className="flex items-center gap-1 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20"
                     title="Interrompi scansione"
                   >
@@ -284,6 +320,21 @@ export default function StatoSincronizzazioneIntelligente({
               )}
             </div>
           )}
+        </div>
+
+        {/* ── Header mobile: titolo + timer ───────────────────────── */}
+        <div className="mb-3 flex items-center justify-between gap-2 md:hidden">
+          <div className="min-w-0">
+            <h3 className="text-xs font-bold text-app-fg">Sync Email Rekki</h3>
+            {status?.last_sync_at ? (
+              <p className="mt-0.5 text-[11px] text-app-fg-muted">
+                {formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: it })}
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[11px] text-app-fg-muted">Mai eseguita</p>
+            )}
+          </div>
+          <div className={`h-2 w-2 shrink-0 rounded-full ${synced ? 'bg-emerald-400' : 'bg-amber-400'} ${syncing ? 'animate-ping' : 'animate-pulse'}`} />
         </div>
 
         {/* ── IMAP non configurato ──────────────────────────────── */}
@@ -363,8 +414,8 @@ export default function StatoSincronizzazioneIntelligente({
         {status && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[auto_1fr]">
 
-            {/* Colonna sinistra: ultimo sync + KPI */}
-            <div className="flex flex-col gap-3 lg:w-56">
+            {/* Colonna sinistra: ultimo sync + KPI — nascosta su mobile */}
+            <div className="hidden md:flex flex-col gap-3 lg:w-56">
               {/* Ultimo sync */}
               <div className="rounded-lg border border-app-line-22 bg-app-line-10/50 p-3">
                 <div className="flex items-center justify-between gap-2">
@@ -401,8 +452,8 @@ export default function StatoSincronizzazioneIntelligente({
               </div>
             </div>
 
-            {/* Colonna destra: email elaborate */}
-            <div className="min-w-0">
+            {/* Colonna destra: email elaborate — nascosta su mobile */}
+            <div className="hidden md:block min-w-0">
               {status.recent_updates.length > 0 ? (
                 <div className="rounded-lg border border-app-line-22 bg-app-line-10/30 p-3">
                   <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">

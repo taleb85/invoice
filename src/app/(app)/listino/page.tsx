@@ -74,6 +74,15 @@ export default async function ListinoOverviewPage({
   }
 
   const formatDate = (d: string) => fmtDate(d, locale, tz)
+
+  /** Freshness badge basata sulla data del prezzo (solo visualizzazione). */
+  function priceFreshnessBadge(dataPrezzo: string): { label: string; cls: string } {
+    const diffDays = Math.floor((Date.now() - new Date(dataPrezzo).getTime()) / 86_400_000)
+    if (diffDays <= 30) return { label: 'Recente', cls: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30' }
+    if (diffDays <= 90) return { label: 'Aggiornato', cls: 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/30' }
+    return { label: 'Da verificare', cls: 'bg-red-500/20 text-red-300 ring-1 ring-red-500/30' }
+  }
+
   const listinoMergedSummary = {
     label: t.common.total,
     primary: rows.length,
@@ -120,47 +129,85 @@ export default async function ListinoOverviewPage({
           </AppSectionEmptyState>
         </StandardCard>
       ) : (
-        <StandardCard accent="fuchsia">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead>
-                <tr className={appSectionTableHeadRowAccentClass('fuchsia')}>
-                  <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.fornitori.listinoProdotti}</th>
-                  <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.fornitori.listinoColImporto}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.fornitori.listinoColData}</th>
-                  <th className={APP_SECTION_TABLE_TH}>{t.common.notes}</th>
-                  <th className={`w-28 ${APP_SECTION_TABLE_TH_RIGHT}`}>{' '}</th>
-                </tr>
-              </thead>
-              <tbody className={APP_SECTION_TABLE_TBODY}>
-                {rows.map((r) => (
-                  <tr key={r.id} className={APP_SECTION_TABLE_TR}>
-                    <td className="max-w-[200px] px-6 py-4">
-                      <Link href={`/fornitori/${r.fornitore_id}?tab=listino`} className={APP_SECTION_TABLE_CELL_LINK}>
+        <>
+          {/* ── Vista card mobile ─────────────────────────────────── */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {rows.map((r) => {
+              const badge = priceFreshnessBadge(r.data_prezzo)
+              return (
+                <Link
+                  key={r.id}
+                  href={`/fornitori/${r.fornitore_id}?tab=listino`}
+                  className="block rounded-xl border border-fuchsia-500/25 bg-app-line-10/40 px-4 py-3 transition-colors active:bg-fuchsia-500/10"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-fuchsia-300/70">
                         {r.fornitore_nome}
-                      </Link>
-                    </td>
-                    <td className="max-w-xs px-6 py-4 text-app-fg-muted">{r.prodotto}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right font-semibold tabular-nums text-app-fg">
-                      {formatCurrency(r.prezzo, currency, locale)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">{formatDate(r.data_prezzo)}</td>
-                    <td className="max-w-[220px] px-6 py-4 text-xs text-app-fg-muted">{r.note ?? '—'}</td>
-                    <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/fornitori/${r.fornitore_id}?tab=listino`}
-                        className="text-xs font-semibold text-app-fg-muted transition-colors hover:text-app-fg"
-                      >
-                        {t.dashboard.listinoOverviewOpenSupplier}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </p>
+                      <p className="mt-0.5 font-bold text-app-fg leading-snug">{r.prodotto}</p>
+                      {r.note ? (
+                        <p className="mt-1 truncate text-[11px] text-app-fg-muted">{r.note}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className="text-base font-bold tabular-nums text-app-fg">
+                        {formatCurrency(r.prezzo, currency, locale)}
+                      </span>
+                      <span className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[10px] text-app-fg-muted">{formatDate(r.data_prezzo)}</p>
+                </Link>
+              )
+            })}
           </div>
-        </StandardCard>
+
+          {/* ── Vista tabella desktop ─────────────────────────────── */}
+          <StandardCard accent="fuchsia" className="hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className={appSectionTableHeadRowAccentClass('fuchsia')}>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.fornitori.listinoProdotti}</th>
+                    <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.fornitori.listinoColImporto}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.fornitori.listinoColData}</th>
+                    <th className={APP_SECTION_TABLE_TH}>{t.common.notes}</th>
+                    <th className={`w-28 ${APP_SECTION_TABLE_TH_RIGHT}`}>{' '}</th>
+                  </tr>
+                </thead>
+                <tbody className={APP_SECTION_TABLE_TBODY}>
+                  {rows.map((r) => (
+                    <tr key={r.id} className={APP_SECTION_TABLE_TR}>
+                      <td className="max-w-[200px] px-6 py-4">
+                        <Link href={`/fornitori/${r.fornitore_id}?tab=listino`} className={APP_SECTION_TABLE_CELL_LINK}>
+                          {r.fornitore_nome}
+                        </Link>
+                      </td>
+                      <td className="max-w-xs px-6 py-4 text-app-fg-muted">{r.prodotto}</td>
+                      <td className="whitespace-nowrap px-6 py-4 text-right font-semibold tabular-nums text-app-fg">
+                        {formatCurrency(r.prezzo, currency, locale)}
+                      </td>
+                      <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">{formatDate(r.data_prezzo)}</td>
+                      <td className="max-w-[220px] px-6 py-4 text-xs text-app-fg-muted">{r.note ?? '—'}</td>
+                      <td className="px-6 py-4 text-right">
+                        <Link
+                          href={`/fornitori/${r.fornitore_id}?tab=listino`}
+                          className="text-xs font-semibold text-app-fg-muted transition-colors hover:text-app-fg"
+                        >
+                          {t.dashboard.listinoOverviewOpenSupplier}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </StandardCard>
+        </>
       )}
     </div>
   )

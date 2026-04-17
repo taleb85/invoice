@@ -97,6 +97,9 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica' | 'audit'
 
+/** Tab nascosti su mobile per utenti senza permessi di modifica (magazziniere/operatore). */
+const MOBILE_READONLY_HIDDEN_TABS: Tab[] = ['bolle', 'fatture', 'conferme', 'verifica', 'audit']
+
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
 
@@ -4195,7 +4198,7 @@ function FornitoreDetailClient({
   const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const mdUp = useMinMdViewport()
   const displayTab = useMemo((): Tab => {
-    if (supplierReadOnlyMobile && (tab === 'documenti' || tab === 'verifica' || tab === 'audit')) return 'dashboard'
+    if (supplierReadOnlyMobile && MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return 'dashboard'
     return tab
   }, [supplierReadOnlyMobile, tab])
 
@@ -4219,7 +4222,7 @@ function FornitoreDetailClient({
 
   useEffect(() => {
     if (!supplierReadOnlyMobile) return
-    if (tab !== 'documenti' && tab !== 'verifica' && tab !== 'audit') return
+    if (!MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return
     const q = new URLSearchParams(searchParams.toString())
     fornitoreSupplierClearDocParams(q)
     q.delete('tab')
@@ -4388,7 +4391,7 @@ function FornitoreDetailClient({
       { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
     ]
     if (supplierReadOnlyMobile) {
-      return all.filter((tb) => tb.id !== 'documenti' && tb.id !== 'verifica' && tb.id !== 'audit')
+      return all.filter((tb) => tb.id === 'dashboard' || tb.id === 'listino' || tb.id === 'documenti')
     }
     return all
   }, [t, ordiniCount, bolleCount, fattureCount, pendingCount, supplierReadOnlyMobile])
