@@ -704,7 +704,7 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-3 gap-px bg-slate-900/50">
+      <div className="grid grid-cols-3 gap-px bg-slate-900/50 sm:grid-cols-3">
         {[
           { label: 'Bolle', value: bolle.length, color: 'text-slate-100' },
           { label: 'Fatture', value: matched.length, color: 'text-emerald-400' },
@@ -1288,6 +1288,36 @@ export function PendingMatchesTab({
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, bolleAperte, docs])
+
+  // Auto-finalizza ordini Rekki: se pending_kind=ordine e fornitore già collegato, registra senza input manuale
+  const autoFinalizeOrdineTriedRef = useRef(new Set<string>())
+  useEffect(() => {
+    if (loading || !docs.length) return
+    void (async () => {
+      let anyDone = false
+      for (const doc of docs) {
+        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        if (doc.metadata?.pending_kind !== 'ordine') continue
+        if (!doc.fornitore_id) continue
+        if (autoFinalizeOrdineTriedRef.current.has(doc.id)) continue
+        autoFinalizeOrdineTriedRef.current.add(doc.id)
+
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: doc.id, azione: 'associa', finalizza_da_tipo: true, bolla_ids: [] }),
+        })
+        if (res.ok) {
+          setActions((p) => ({ ...p, [doc.id]: 'done' }))
+          anyDone = true
+        }
+      }
+      if (anyDone) {
+        setTimeout(() => void fetchDocs(), 600)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, docs])
 
   // Auto-suggest when both docs and bolle are loaded
   useEffect(() => {
@@ -3568,7 +3598,7 @@ export function VerificationStatusTab({
         >
       {/* Global KPIs */}
       {!loading && tutteBolle.length > 0 && (
-        <div className={`grid grid-cols-3 ${vsCompactS2 ? 'gap-2' : 'gap-3'} ${vsEmbeddedSupplier ? '' : 'mb-5'}`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-3 ${vsCompactS2 ? 'gap-2' : 'gap-3'} ${vsEmbeddedSupplier ? '' : 'mb-5'}`}>
           {[
             { label: t.bolle.title, value: tutteBolle.length, cls: 'text-app-fg' },
             { label: t.statements.classicComplete, value: completi, cls: 'text-emerald-400' },

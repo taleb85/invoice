@@ -73,8 +73,15 @@ export default function RootLayout({
   return (
     <html lang="it" className={`${geistSans.variable} h-full antialiased`}>
       <body
-        className="h-full min-h-dvh bg-slate-950 text-app-fg-muted antialiased"
-        style={{ backgroundColor: "#020617", color: "#ecfeff" }}
+        className="h-full min-h-dvh text-app-fg-muted antialiased"
+        style={{
+          backgroundImage: "url('/background-geometric-blue.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundAttachment: "fixed",
+          color: "#ecfeff"
+        }}
       >
         <Script
           id="fluxo-app-locale-bootstrap"

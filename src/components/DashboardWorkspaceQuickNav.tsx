@@ -33,9 +33,9 @@ const QUICK_NAV_FRAME_CLASS = [
   'border border-amber-400/35 bg-amber-950/40 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.14)] hover:border-amber-300/50 hover:bg-amber-950/55',
 ] as const
 
-/** Stessa altezza riga dei pulsanti toolbar (`h-7` in duplicati / solleciti / sync email). */
+/** Chip compatti: altezza ridotta e padding stretto per stare tutti su una riga senza troncamento. */
 const QUICK_NAV_LINK_BASE =
-  'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center gap-1 rounded-md border px-2 py-0 font-semibold leading-none no-underline transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 active:scale-[0.99] sm:px-2.5'
+  'inline-flex h-6 min-h-6 max-h-6 shrink-0 items-center gap-0.5 rounded-md border px-1.5 py-0 font-semibold leading-none no-underline transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 active:scale-[0.99]'
 
 export type WorkspaceQuickNavCounts = {
   ordini: number
@@ -76,7 +76,7 @@ export default function DashboardWorkspaceQuickNav({
 
   return (
     <nav
-      className="flex min-h-0 min-w-0 max-w-full flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-1.5"
+      className="flex min-h-0 min-w-0 max-w-full flex-1 items-center gap-1 overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       aria-label={t.dashboard.workspaceQuickNavAria}
     >
       {items.map((item, index) => (
@@ -84,17 +84,17 @@ export default function DashboardWorkspaceQuickNav({
           key={item.href}
           href={item.href}
           title={item.label}
-          className={`${QUICK_NAV_LINK_BASE} ${QUICK_NAV_FRAME_CLASS[index]!} max-w-[9rem] min-w-0 sm:max-w-[11rem] md:max-w-[12rem]`}
+          className={`${QUICK_NAV_LINK_BASE} ${QUICK_NAV_FRAME_CLASS[index]!} min-w-0 shrink`}
         >
           {item.badge != null && item.badge > 0 ? (
             <span
-              className={`inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm px-1 text-[9px] font-bold tabular-nums ring-1 ring-inset sm:min-w-[1.125rem] sm:text-[10px] ${QUICK_NAV_BADGE_CLASS[index]!}`}
+              className={`inline-flex h-3.5 min-w-3.5 shrink-0 items-center justify-center rounded-sm px-0.5 text-[8px] font-bold tabular-nums ring-1 ring-inset ${QUICK_NAV_BADGE_CLASS[index]!}`}
             >
               {item.badge > 999 ? '999+' : item.badge}
             </span>
           ) : null}
           <span
-            className={`min-w-0 flex-1 truncate text-left text-[10px] font-bold uppercase tracking-wide sm:text-[11px] ${QUICK_NAV_LABEL_CLASS[index]!}`}
+            className={`min-w-0 whitespace-nowrap text-left text-[9px] font-bold uppercase tracking-wide ${QUICK_NAV_LABEL_CLASS[index]!}`}
           >
             {item.label}
           </span>

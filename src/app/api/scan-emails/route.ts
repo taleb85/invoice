@@ -1453,6 +1453,16 @@ async function processEmails(
         }
       }
 
+      // ── REKKI: parse anticipato per includere le righe prodotto in metadata ──
+      let earlyRekkiLines: import('@/lib/rekki-parser').RekkiLine[] = []
+      if (
+        !rekkiPersistedUids.has(email.uid) &&
+        email.bodyText &&
+        isLikelyRekkiEmail(email.subject, email.from, email.bodyText)
+      ) {
+        earlyRekkiLines = parseRekkiFromEmailParts({ subject: email.subject, text: email.bodyText })
+      }
+
       const metadata = {
         ...buildMetadata(ocr, matchedBy),
         ...(isSyntheticBodyDoc ? { origine_testo_email: true } : {}),
@@ -1465,6 +1475,8 @@ async function processEmails(
         ...(fornitore.rekki_supplier_id?.trim()
           ? { rekki_supplier_id: fornitore.rekki_supplier_id.trim() }
           : {}),
+        // Righe prodotto Rekki — usate da finalizePendingByTipo per popolare conferme_ordine.righe
+        ...(earlyRekkiLines.length ? { rekki_lines: earlyRekkiLines } : {}),
       }
 
       // Estratto classico (oggetto): marca associato + parsing; altri “statement-like” restano in coda con tipo Estratto.
@@ -1534,26 +1546,16 @@ async function processEmails(
 
       ricevuti++
 
-      const rekkiMappingActive = !!(
-        fornitore.rekki_link?.trim() || fornitore.rekki_supplier_id?.trim()
-      )
-      if (
-        rekkiMappingActive &&
-        !rekkiPersistedUids.has(email.uid) &&
-        email.bodyText &&
-        isLikelyRekkiEmail(email.subject, email.from, email.bodyText)
-      ) {
-        const rkLines = parseRekkiFromEmailParts({ subject: email.subject, text: email.bodyText })
-        if (rkLines.length) {
-          rekkiPersistedUids.add(email.uid)
-          persistRekkiOrderStatement(supabase, {
-            fornitoreId: fornitore.id,
-            sedeId: documentSedeId,
-            rekkiLines: rkLines,
-            emailSubject: email.subject ?? `Rekki — ${fornitore.nome}`,
-            fileUrl: file_url,
-          }).catch((err) => console.error('[REKKI] persist fallito:', err))
-        }
+      // Processa email Rekki: usa le righe già parsate anticipatamente
+      if (earlyRekkiLines.length && !rekkiPersistedUids.has(email.uid)) {
+        rekkiPersistedUids.add(email.uid)
+        persistRekkiOrderStatement(supabase, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          rekkiLines: earlyRekkiLines,
+          emailSubject: email.subject ?? `Rekki — ${fornitore.nome}`,
+          fileUrl: file_url,
+        }).catch((err) => console.error('[REKKI] persist fallito:', err))
       }
       bumpAttach(email.uid)
     }

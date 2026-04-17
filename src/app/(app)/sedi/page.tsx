@@ -582,8 +582,8 @@ export default function SediPage() {
                     <p className="text-sm font-semibold text-app-fg-muted mb-1">Configurazione email</p>
                     <p className="text-xs text-app-fg-muted mb-4">Per ricevere fatture via email. Puoi configurarla anche dopo.</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="sm:col-span-2">
                       <label className="block text-xs font-medium text-app-fg-muted mb-1">Server IMAP</label>
                       <input type="text" list="wizard-imap-providers" placeholder="imap.gmail.com"
                         value={wizardImap.imap_host}
@@ -626,7 +626,7 @@ export default function SediPage() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <label className="block text-xs font-medium text-app-fg-muted mb-1">Email account</label>
                       <input type="email" placeholder="email@esempio.it" value={wizardImap.imap_user}
@@ -720,7 +720,7 @@ export default function SediPage() {
 
                   {/* Form nuovo operatore */}
                   <div className="app-workspace-inset-bg-soft border border-app-line-25 rounded-xl p-3 space-y-2.5">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <div>
                         <label className="block text-xs font-medium text-app-fg-muted mb-1">Nome operatore</label>
                         <input
@@ -1010,7 +1010,7 @@ export default function SediPage() {
                   </button>
                   {createUserOpen === sede.id && (
                     <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
                           <label className="block text-xs font-medium text-app-fg-muted mb-1">Nome operatore</label>
                           <input
@@ -1133,7 +1133,7 @@ export default function SediPage() {
                   </button>
                   {locOpen === sede.id && (
                     <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
                           <label className="block text-xs font-medium text-app-fg-muted mb-1">Valuta (ISO 4217)</label>
                           <select value={locCurrency} onChange={(e) => setLocCurrency(e.target.value)} className={inputCls}>
@@ -1179,8 +1179,8 @@ export default function SediPage() {
                   </button>
                   {imapOpen === sede.id && (
                     <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                      <div className="grid grid-cols-3 gap-3">
-                        <div className="col-span-2">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div className="sm:col-span-2">
                           <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.imapHost}</label>
                           <input type="text" list="imap-providers" placeholder={t.sedi.imapHostPlaceholder}
                             value={imapForm.imap_host}
@@ -1227,7 +1227,7 @@ export default function SediPage() {
                             className={inputCls} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
                           <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.imapUser}</label>
                           <input type="email" placeholder="email@esempio.it" value={imapForm.imap_user}

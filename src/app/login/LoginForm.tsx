@@ -86,7 +86,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       return
     }
     if (!branchSessionGateRequiredRole(me.role)) {
-      router.replace('/')
+      markSessionOperatorGateOk()
+      router.replace(sessionGateNext)
       return
     }
     if (isSessionOperatorGateOk()) {
@@ -149,18 +150,21 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       if (seq !== nameLookupSeqRef.current) return
       if (res.ok) {
         if (sessionGateNext) {
-          const emailNorm = String(data.email ?? '')
-            .trim()
-            .toLowerCase()
-          const sessionEmail = String(me?.user?.email ?? '')
-            .trim()
-            .toLowerCase()
-          if (emailNorm && sessionEmail && emailNorm !== sessionEmail) {
-            setSedeNome(null)
-            setNameReady(false)
-            resolvedEmail.current = null
-            setMessage({ type: 'error', text: t.login.sessionGateWrongUser })
-            return
+          const isAdmin = String(me?.role ?? '').toLowerCase() === 'admin'
+          if (!isAdmin) {
+            const emailNorm = String(data.email ?? '')
+              .trim()
+              .toLowerCase()
+            const sessionEmail = String(me?.user?.email ?? '')
+              .trim()
+              .toLowerCase()
+            if (emailNorm && sessionEmail && emailNorm !== sessionEmail) {
+              setSedeNome(null)
+              setNameReady(false)
+              resolvedEmail.current = null
+              setMessage({ type: 'error', text: t.login.sessionGateWrongUser })
+              return
+            }
           }
         }
         setSedeNome(data.sede_nome ?? null)

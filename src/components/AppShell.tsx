@@ -155,7 +155,7 @@ export default function AppShell({
               Un solo contenitore `min-h-dvh` + colonna flex: evita fascia in basso (body #020617)
               sotto il dock fisso e touch che non arrivano a `#app-main` su iOS.
             */}
-            <div className="relative flex w-full min-h-dvh flex-col bg-slate-950 md:h-full md:min-h-0">
+            <div className="relative flex w-full min-h-dvh flex-col bg-transparent md:h-full md:min-h-0">
               <EmailSyncProgressProvider>
                 <AppActivitiesProvider>
                   <AppShellMain>{children}</AppShellMain>
@@ -220,7 +220,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
       ? 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
       : 'pb-[calc(7.25rem+1.125rem+env(safe-area-inset-bottom,0px))]'
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-slate-950 max-md:min-h-dvh">
+    <div className="flex min-h-0 flex-1 flex-col bg-transparent max-md:min-h-dvh">
       <DesktopHeaderPageActionsProvider>
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-1 flex-col max-md:min-h-dvh">
         {/*

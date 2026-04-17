@@ -52,10 +52,7 @@ import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
-import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
-import RekkiListinoImportSection from '@/components/RekkiListinoImportSection'
-import RekkiOrdersAutoList from '@/components/RekkiOrdersAutoList'
-import RekkiPriceHistoryScanner from '@/components/RekkiPriceHistoryScanner'
+import StatoSincronizzazioneIntelligente from '@/components/StatoSincronizzazioneIntelligente'
 import FattureInAttesaAutoSync from '@/components/FattureInAttesaAutoSync'
 import RecuperoCreditiAudit from '@/components/RecuperoCreditiAudit'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
@@ -1261,9 +1258,9 @@ function DashboardTab({
       </div>
       ) : null}
 
-      {/* Desktop md+: tre colonne stessa altezza (stretch + scroll interno); senza contatti → 2 colonne. */}
+      {/* Desktop md+: due colonne (contatti + info); senza contatti → colonna singola. */}
       <div
-        className={`grid grid-cols-1 gap-6 md:grid md:items-stretch md:gap-4 ${contattiError ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}
+        className={`grid grid-cols-1 gap-6 md:grid md:items-stretch md:gap-4 ${contattiError ? 'md:grid-cols-1' : 'md:grid-cols-2'}`}
       >
       {/* ── Contacts section ── */}
       {!contattiError && (
@@ -1480,44 +1477,12 @@ function DashboardTab({
       </div>
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
-      <RekkiSupplierIntegration
-        key={fornitoreId}
-        fornitoreId={fornitoreId}
-        piva={fornitore.piva}
-        supplierDisplayName={fornitoreDisplayLabel(fornitore)}
-        initialRekkiId={fornitore.rekki_supplier_id}
-        initialRekkiLink={fornitore.rekki_link}
-        onSaved={onFornitoreReload}
-        className="h-full min-h-0 w-full"
-        compactFields
-        readOnly={readOnly}
-      />
-      </div>
-      
-      {/* Rekki Listino Import */}
-      <RekkiListinoImportSection
+      {/* Pannello unico sincronizzazione Rekki — full-width */}
+      <StatoSincronizzazioneIntelligente
         fornitoreId={fornitoreId}
         fornitoreNome={fornitore.nome}
-        rekkiLinked={Boolean(
-          String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
-        )}
+        sedeId={fornitore.sede_id ?? null}
       />
-      
-      {/* Rekki Automatic Orders List */}
-      {(String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()) && (
-        <RekkiOrdersAutoList
-          fornitoreId={fornitoreId}
-        />
-      )}
-      
-      {/* Rekki Price History Scanner */}
-      {(String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()) && (
-        <RekkiPriceHistoryScanner
-          fornitoreId={fornitoreId}
-          fornitoreNome={fornitore.nome}
-        />
-      )}
       
       </div>
 
@@ -2260,6 +2225,8 @@ function ListinoTab({
   const [selectedFatturaId, setSelectedFatturaId] = useState('')
   /** Filtro KPI: restringe l’elenco prodotti (origine fattura / data allineata a bolla). */
   const [listinoSpendFilter, setListinoSpendFilter] = useState<'all' | 'fatture' | 'bolle'>('all')
+  /** Filtro periodo storico / KPI totali */
+  const [listinoPeriod, setListinoPeriod] = useState<'all' | 'cm' | 'pm' | '3m' | 'fy'>('all')
   const [importLoading, setImportLoading] = useState(false)
   const [importError, setImportError]     = useState<string | null>(null)
   const [importItems, setImportItems]     = useState<ImportItem[]>([])
@@ -2269,6 +2236,11 @@ function ListinoTab({
   const [importEditingRekkiIdx, setImportEditingRekkiIdx] = useState<number | null>(null)
   const [importRekkiDraft, setImportRekkiDraft] = useState('')
   const [importSavingRekkiIdx, setImportSavingRekkiIdx] = useState<number | null>(null)
+
+  // Auto-import state
+  const [autoImporting, setAutoImporting]         = useState(false)
+  const [autoImportResult, setAutoImportResult]   = useState<{ inserted: number; fatture: number } | null>(null)
+  const [autoImportError, setAutoImportError]     = useState<string | null>(null)
 
   const loadListino = async () => {
     const supabase = createClient()
@@ -2322,6 +2294,7 @@ function ListinoTab({
 
   useEffect(() => {
     setListinoSpendFilter('all')
+    setListinoPeriod('all')
   }, [fornitoreId])
 
   // ── Price comparison helpers ────────────────────────────────────────
@@ -2365,13 +2338,10 @@ function ListinoTab({
     }
     
     // Fallback to product name fuzzy matching
-    // Group by product name and get the latest price for each
+    // listinoData is ordered by data_prezzo ASC — last write per product = most recent price
     const latestByProduct: Record<string, { prezzo: number; prodotto: string }> = {}
     for (const row of listinoData) {
-      const existing = latestByProduct[row.prodotto]
-      if (!existing || row.data_prezzo > (listinoData.find(r => r.prodotto === row.prodotto && r.id === existing.prodotto)?.data_prezzo ?? '')) {
-        latestByProduct[row.prodotto] = { prezzo: row.prezzo, prodotto: row.prodotto }
-      }
+      latestByProduct[row.prodotto] = { prezzo: row.prezzo, prodotto: row.prodotto }
     }
     // Collect latest price for each product (last entry since ordered by data_prezzo)
     const products = Object.values(latestByProduct)
@@ -2624,6 +2594,131 @@ function ListinoTab({
     await loadListino()
   }
 
+  /**
+   * Auto-importa: scansiona tutte le fatture non ancora analizzate di questo fornitore,
+   * estrae i prodotti tramite OCR/Vision e li salva nel listino senza interazione manuale.
+   * Salta righe con data anteriore all'ultimo prezzo in listino.
+   */
+  const handleAutoImport = async () => {
+    setAutoImporting(true)
+    setAutoImportResult(null)
+    setAutoImportError(null)
+    setShowImport(false)
+    setShowForm(false)
+    try {
+      const supabase = createClient()
+      // Recupera tutte le fatture con file ma NON ancora analizzate
+      const { data: fattureData } = await supabase
+        .from('fatture')
+        .select('id, data, numero_fattura, file_url, analizzata')
+        .eq('fornitore_id', fornitoreId)
+        .not('file_url', 'is', null)
+        .order('data', { ascending: false })
+
+      const fattureToProcess = (fattureData ?? []).filter(
+        (f: { analizzata?: boolean | null }) => !f.analizzata
+      ) as { id: string; data: string; numero_fattura: string | null; file_url: string | null }[]
+
+      if (fattureToProcess.length === 0) {
+        setAutoImportError('Nessuna fattura nuova da analizzare.')
+        setAutoImporting(false)
+        return
+      }
+
+      // Ricarica il listino corrente per la comparazione
+      const { data: listinoFresh } = await supabase
+        .from('listino_prezzi')
+        .select('id, prodotto, prezzo, data_prezzo, note, rekki_product_id')
+        .eq('fornitore_id', fornitoreId)
+        .order('prodotto').order('data_prezzo')
+      const listinoData = (listinoFresh ?? []) as ListinoProdotto[]
+
+      let totalInserted = 0
+      let fattureProcessed = 0
+
+      for (const fattura of fattureToProcess) {
+        try {
+          const res = await fetch('/api/listino/importa-da-fattura', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fattura_id: fattura.id }),
+          })
+          const json = await res.json()
+          if (!res.ok || !Array.isArray(json.items) || json.items.length === 0) continue
+
+          const docDate = String(json.data_fattura ?? fattura.data ?? '').slice(0, 10) ||
+            new Date().toISOString().split('T')[0]
+
+          const enriched = enrichWithComparison(
+            json.items.map((item: {
+              prodotto: string; prezzo: number
+              codice_prodotto?: string | null; unita: string | null; note: string | null
+            }) => ({
+              ...item,
+              codice_prodotto: item.codice_prodotto?.trim() || null,
+              selected: true,
+            })),
+            listinoData,
+          )
+
+          const toSave = enriched.filter((item) => {
+            if (!item.selected || !item.prodotto || item.prezzo <= 0) return false
+            const latest = maxListinoDateForExactProduct(listinoData, item.prodotto)
+            return latest == null || isDocumentDateAtLeastLatestListino(docDate, latest)
+          })
+
+          if (toSave.length === 0) {
+            // Segna comunque come analizzata
+            await supabase.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
+            fattureProcessed++
+            continue
+          }
+
+          const fatturaLabel = fattura.numero_fattura
+            ? `Fattura ${fattura.numero_fattura} — ${fattura.data}`
+            : `Fattura · ${fattura.data}`
+
+          const rows = toSave.map(i => {
+            const base = [
+              i.codice_prodotto ? `Codice: ${i.codice_prodotto}` : null,
+              i.unita ? `Unità: ${i.unita}` : null,
+              i.note,
+            ].filter(Boolean).join(' — ') || null
+            const note = base
+              ? `${base} — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
+              : `Origine listino — Origine: ${fatturaLabel}${LISTINO_SRC_FATTURA_MARK}${fattura.id}|`
+            return {
+              prodotto: i.prodotto.trim(),
+              prezzo: i.prezzo,
+              data_prezzo: docDate,
+              note,
+            }
+          })
+
+          const saveRes = await fetch('/api/listino/prezzi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ fornitore_id: fornitoreId, rows }),
+          })
+          const saveJson = (await saveRes.json().catch(() => ({}))) as { inserted?: number }
+          if (saveRes.ok) {
+            totalInserted += saveJson.inserted ?? rows.length
+            await supabase.from('fatture').update({ analizzata: true }).eq('id', fattura.id)
+            fattureProcessed++
+          }
+        } catch { /* continua con la prossima */ }
+      }
+
+      setAutoImportResult({ inserted: totalInserted, fatture: fattureProcessed })
+      await loadListino()
+    } catch (err) {
+      setAutoImportError(err instanceof Error ? err.message : 'Errore sconosciuto')
+    } finally {
+      setAutoImporting(false)
+    }
+  }
+
   const handleSave = async () => {
     if (!formProdotto.trim() || !formPrezzo || !formData) return
     setSaving(true)
@@ -2839,9 +2934,49 @@ function ListinoTab({
     )
   }
 
-  const totale    = rows.reduce((s, r) => s + (r.importo ?? 0), 0)
-  const totBolle  = rows.filter(r => r.tipo === 'bolla').reduce((s, r) => s + (r.importo ?? 0), 0)
-  const totFatture = rows.filter(r => r.tipo === 'fattura').reduce((s, r) => s + (r.importo ?? 0), 0)
+  // Calcola intervallo date per il filtro periodo
+  const { periodFrom, periodTo } = (() => {
+    if (listinoPeriod === 'all') return { periodFrom: null, periodTo: null }
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = now.getMonth()      // 0-based
+    const day = now.getDate()
+    if (listinoPeriod === 'cm') {
+      // Mese corrente: dal 1° del mese ad oggi
+      const from = `${y}-${String(m + 1).padStart(2, '0')}-01`
+      return { periodFrom: from, periodTo: null }
+    }
+    if (listinoPeriod === 'pm') {
+      // Mese precedente: 1° → ultimo giorno del mese scorso
+      const prevY = m === 0 ? y - 1 : y
+      const prevM = m === 0 ? 12 : m
+      const from = `${prevY}-${String(prevM).padStart(2, '0')}-01`
+      const to = localYmd(new Date(y, m, 0))
+      return { periodFrom: from, periodTo: to }
+    }
+    if (listinoPeriod === '3m') {
+      // Ultimi 3 mesi da oggi
+      return { periodFrom: localYmd(new Date(y, m - 3, day)), periodTo: null }
+    }
+    if (listinoPeriod === 'fy') {
+      // Anno fiscale corrente (inizia il 6 aprile, stile UK)
+      const fyStart = (m > 3 || (m === 3 && day >= 6))
+        ? `${y}-04-06`
+        : `${y - 1}-04-06`
+      return { periodFrom: fyStart, periodTo: null }
+    }
+    return { periodFrom: null, periodTo: null }
+  })()
+
+  const filteredRows = rows.filter(r => {
+    if (periodFrom && r.data < periodFrom) return false
+    if (periodTo   && r.data > periodTo)   return false
+    return true
+  })
+
+  const totale    = filteredRows.reduce((s, r) => s + (r.importo ?? 0), 0)
+  const totBolle  = filteredRows.filter(r => r.tipo === 'bolla').reduce((s, r) => s + (r.importo ?? 0), 0)
+  const totFatture = filteredRows.filter(r => r.tipo === 'fattura').reduce((s, r) => s + (r.importo ?? 0), 0)
 
   return (
     <div className="space-y-5">
@@ -2850,7 +2985,7 @@ function ListinoTab({
       {listTabloExists === false ? (
         /* Setup card — compact 2-step flow */
         <div className="supplier-detail-tab-shell overflow-hidden border-amber-500/25">
-          <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti.bar}`} aria-hidden />
+          <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="px-5 py-4 flex items-start gap-3 bg-amber-500/10">
             <svg className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -2914,6 +3049,22 @@ function ListinoTab({
               )}
               {!readOnly ? (
               <>
+              {/* Auto-import: analizza + salva tutte le fatture non ancora elaborate */}
+              <button
+                onClick={handleAutoImport}
+                disabled={autoImporting}
+                title="Importa automaticamente i prezzi da tutte le fatture non ancora analizzate"
+                className="flex items-center gap-1 rounded-lg border border-violet-500/40 bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
+              >
+                {autoImporting ? (
+                  <div className="h-3 w-3 animate-spin rounded-full border border-violet-300 border-t-transparent" />
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                )}
+                {autoImporting ? 'Analisi...' : 'Auto'}
+              </button>
               <button
                 onClick={openImport}
                 className="flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-violet-500"
@@ -2940,6 +3091,29 @@ function ListinoTab({
 
           {deleteError && (
             <div className="border-b border-red-500/25 bg-red-500/10 px-5 py-2 text-xs text-red-200">{deleteError}</div>
+          )}
+
+          {/* Risultato auto-import */}
+          {(autoImportResult || autoImportError) && !autoImporting && (
+            <div className={`border-b px-5 py-2.5 text-xs ${autoImportError ? 'border-red-500/25 bg-red-500/10 text-red-200' : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span>
+                  {autoImportError
+                    ? autoImportError
+                    : `✓ ${autoImportResult!.inserted} prezzi importati da ${autoImportResult!.fatture} fattur${autoImportResult!.fatture === 1 ? 'a' : 'e'}`
+                  }
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setAutoImportResult(null); setAutoImportError(null) }}
+                  className="shrink-0 opacity-60 hover:opacity-100"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Import from invoice panel */}
@@ -3249,7 +3423,7 @@ function ListinoTab({
                                     </div>
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums text-app-fg-muted">
-                                    {item.prezzoAttuale != null ? `£${item.prezzoAttuale.toFixed(2)}` : <span className="text-app-fg-muted">—</span>}
+                                    {item.prezzoAttuale != null ? fmtMoney(item.prezzoAttuale) : <span className="text-app-fg-muted">—</span>}
                                   </td>
                                   <td className="px-3 py-2.5 text-right tabular-nums">
                                     <input
@@ -3799,6 +3973,33 @@ function ListinoTab({
 
       {/* ── Totali (KPI cliccabili → filtro elenco prodotti) ── */}
       {rows.length > 0 && (
+        <>
+        {/* Selettore periodo */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted mr-1">Periodo</span>
+          {(
+            [
+              { key: 'all', label: 'Tutto' },
+              { key: 'cm',  label: 'Mese corrente' },
+              { key: 'pm',  label: 'Mese precedente' },
+              { key: '3m',  label: 'Ultimi 3 mesi' },
+              { key: 'fy',  label: 'Anno fiscale' },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setListinoPeriod(key)}
+              className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                listinoPeriod === key
+                  ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-200'
+                  : 'border-app-line-25 bg-app-line-10/50 text-app-fg-muted hover:border-app-line-40 hover:text-app-fg'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {(
             [
@@ -3846,6 +4047,7 @@ function ListinoTab({
             </button>
           ))}
         </div>
+        </>
       )}
 
       {/* ── Storico cronologico documenti ── */}
@@ -3864,12 +4066,17 @@ function ListinoTab({
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="flex items-center justify-between border-b border-app-line-22 px-5 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoStorico}</p>
-            <p className="text-xs text-app-fg-muted">{rows.length} {t.fornitori.listinoDocs}</p>
+            <p className="text-xs text-app-fg-muted">
+              {filteredRows.length !== rows.length
+                ? `${filteredRows.length} / ${rows.length}`
+                : rows.length
+              } {t.fornitori.listinoDocs}
+            </p>
           </div>
 
           {/* Mobile */}
           <div className={APP_SECTION_MOBILE_LIST}>
-            {rows.map((r) => (
+            {filteredRows.map((r) => (
               <div key={`${r.tipo}-${r.id}`} className="flex min-h-[52px] items-center justify-between gap-3 px-4 py-3.5">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${r.tipo === 'fattura' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
@@ -3884,7 +4091,7 @@ function ListinoTab({
                   }`}>
                     {r.tipo === 'fattura' ? t.fatture.title : t.bolle.title}
                   </span>
-                  <span className="text-sm font-bold tabular-nums text-app-fg">£{(r.importo ?? 0).toFixed(2)}</span>
+                  <span className="text-sm font-bold tabular-nums text-app-fg">{fmtMoney(r.importo ?? 0)}</span>
                 </div>
               </div>
             ))}
@@ -3902,7 +4109,7 @@ function ListinoTab({
               </tr>
             </thead>
             <tbody className={APP_SECTION_TABLE_TBODY}>
-              {rows.map((r) => (
+              {filteredRows.map((r) => (
                 <tr key={`${r.tipo}-${r.id}`} className={APP_SECTION_TABLE_TR}>
                   <td className="px-5 py-3.5 font-medium text-app-fg-muted">{formatDate(r.data)}</td>
                   <td className="px-5 py-3.5">
@@ -3916,12 +4123,12 @@ function ListinoTab({
                     </span>
                   </td>
                   <td className="px-5 py-3.5 text-app-fg-muted">{r.numero ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-right text-base font-bold tabular-nums text-app-fg">£{(r.importo ?? 0).toFixed(2)}</td>
+                  <td className="px-5 py-3.5 text-right text-base font-bold tabular-nums text-app-fg">{fmtMoney(r.importo ?? 0)}</td>
                 </tr>
               ))}
               <tr className="border-t-2 border-app-line-22 app-workspace-inset-bg-soft">
                 <td colSpan={3} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColTotale}</td>
-                <td className="px-5 py-3 text-right text-base font-bold tabular-nums text-app-fg">£{totale.toFixed(2)}</td>
+                <td className="px-5 py-3 text-right text-base font-bold tabular-nums text-app-fg">{fmtMoney(totale)}</td>
               </tr>
             </tbody>
           </table>
@@ -3977,7 +4184,8 @@ function FornitoreDetailClient({
       p === 'listino' ||
       p === 'conferme' ||
       p === 'documenti' ||
-      p === 'verifica'
+      p === 'verifica' ||
+      p === 'audit'
     ) {
       return p
     }
@@ -3987,7 +4195,7 @@ function FornitoreDetailClient({
   const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const mdUp = useMinMdViewport()
   const displayTab = useMemo((): Tab => {
-    if (supplierReadOnlyMobile && (tab === 'documenti' || tab === 'verifica')) return 'dashboard'
+    if (supplierReadOnlyMobile && (tab === 'documenti' || tab === 'verifica' || tab === 'audit')) return 'dashboard'
     return tab
   }, [supplierReadOnlyMobile, tab])
 
@@ -4011,7 +4219,7 @@ function FornitoreDetailClient({
 
   useEffect(() => {
     if (!supplierReadOnlyMobile) return
-    if (tab !== 'documenti' && tab !== 'verifica') return
+    if (tab !== 'documenti' && tab !== 'verifica' && tab !== 'audit') return
     const q = new URLSearchParams(searchParams.toString())
     fornitoreSupplierClearDocParams(q)
     q.delete('tab')
@@ -4176,7 +4384,7 @@ function FornitoreDetailClient({
       { id: 'fatture', label: t.nav.fatture, badge: fattureCount },
       { id: 'verifica', label: t.statements.tabVerifica },
       { id: 'listino', label: t.fornitori.tabListino },
-      { id: 'audit', label: 'Audit Prezzi' },
+      { id: 'audit', label: t.fornitori.tabAuditPrezzi },
       { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
     ]
     if (supplierReadOnlyMobile) {
@@ -4196,61 +4404,66 @@ function FornitoreDetailClient({
             readOnly={supplierReadOnlyMobile}
           />
         ) : null)}
-      {displayTab === 'bolle' && (
-        <BolleTab
-          fornitoreId={fornitore.id}
-          dateFrom={ledgerPeriod.from}
-          dateToExclusive={ledgerDateToExclusive}
-          pathname={pathname}
-          searchParams={searchParams}
-          readOnly={supplierReadOnlyMobile}
-          onLedgerMutated={bumpPeriodLedger}
-          currency={currency ?? 'GBP'}
-        />
-      )}
-      {displayTab === 'fatture' && (
-        <FattureTab
-          fornitoreId={fornitore.id}
-          dateFrom={ledgerPeriod.from}
-          dateToExclusive={ledgerDateToExclusive}
-          pathname={pathname}
-          searchParams={searchParams}
-          readOnly={supplierReadOnlyMobile}
-          onLedgerMutated={bumpPeriodLedger}
-          currency={currency ?? 'GBP'}
-        />
-      )}
-      {displayTab === 'listino' && (
-        <ListinoTab
-          fornitoreId={fornitore.id}
-          fornitoreNome={fornitore.nome}
-          rekkiLinked={Boolean(
-            String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
-          )}
-          currency={currency}
-          readOnly={supplierReadOnlyMobile}
-        />
-      )}
-      {displayTab === 'conferme' && (
-        <FornitoreConfermeOrdineTab
-          fornitoreId={fornitore.id}
-          sedeId={fornitore.sede_id ?? null}
-          readOnly={supplierReadOnlyMobile}
-        />
-      )}
-      {displayTab === 'documenti' && (
-        <PendingMatchesTab
-          sedeId={effectiveSedeId}
-          fornitoreId={fornitore.id}
-          countryCode={countryCode}
-          currency={currency}
-          year={filterYear}
-          month={filterMonth}
-          ledgerDateFrom={ledgerPeriod.from}
-          ledgerDateToExclusive={ledgerDateToExclusive}
-          cardAccent="amber"
-        />
-      )}
+      {displayTab === 'bolle' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <BolleTab
+            fornitoreId={fornitore.id}
+            dateFrom={ledgerPeriod.from}
+            dateToExclusive={ledgerDateToExclusive}
+            pathname={pathname}
+            searchParams={searchParams}
+            readOnly={supplierReadOnlyMobile}
+            onLedgerMutated={bumpPeriodLedger}
+            currency={currency ?? 'GBP'}
+          />
+        ) : null)}
+      {displayTab === 'fatture' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <FattureTab
+            fornitoreId={fornitore.id}
+            dateFrom={ledgerPeriod.from}
+            dateToExclusive={ledgerDateToExclusive}
+            pathname={pathname}
+            searchParams={searchParams}
+            readOnly={supplierReadOnlyMobile}
+            onLedgerMutated={bumpPeriodLedger}
+            currency={currency ?? 'GBP'}
+          />
+        ) : null)}
+      {displayTab === 'listino' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <ListinoTab
+            fornitoreId={fornitore.id}
+            fornitoreNome={fornitore.nome}
+            rekkiLinked={Boolean(
+              String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
+            )}
+            currency={currency}
+            readOnly={supplierReadOnlyMobile}
+          />
+        ) : null)}
+      {displayTab === 'conferme' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <FornitoreConfermeOrdineTab
+            fornitoreId={fornitore.id}
+            sedeId={fornitore.sede_id ?? null}
+            readOnly={supplierReadOnlyMobile}
+          />
+        ) : null)}
+      {displayTab === 'documenti' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <PendingMatchesTab
+            sedeId={effectiveSedeId}
+            fornitoreId={fornitore.id}
+            countryCode={countryCode}
+            currency={currency}
+            year={filterYear}
+            month={filterMonth}
+            ledgerDateFrom={ledgerPeriod.from}
+            ledgerDateToExclusive={ledgerDateToExclusive}
+            cardAccent="amber"
+          />
+        ) : null)}
       {displayTab === 'verifica' &&
         (variant === 'desktop' && mdUp ? (
           <VerificationStatusTab
@@ -4278,16 +4491,17 @@ function FornitoreDetailClient({
             cardAccent="cyan"
           />
         ) : null)}
-      {displayTab === 'audit' && (
-        <>
-          <GmailAuditReadyBadge fornitoreNome={fornitore.nome} />
-          <RecuperoCreditiAudit
-            fornitoreId={fornitore.id}
-            fornitoreNome={fornitore.nome}
-            currency={currency ?? 'GBP'}
-          />
-        </>
-      )}
+      {displayTab === 'audit' &&
+        ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
+          <>
+            <GmailAuditReadyBadge fornitoreNome={fornitore.nome} />
+            <RecuperoCreditiAudit
+              fornitoreId={fornitore.id}
+              fornitoreNome={fornitore.nome}
+              currency={currency ?? 'GBP'}
+            />
+          </>
+        ) : null)}
     </>
   )
 
@@ -4396,46 +4610,44 @@ function FornitoreDetailClient({
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
-          <div className="flex flex-col gap-1.5 px-2 py-1 sm:py-1.5 xl:flex-row xl:items-center xl:gap-2.5 xl:min-h-8 xl:px-2.5">
-            <div className="flex min-w-0 items-start gap-2 xl:min-w-0 xl:max-w-[min(100%,40rem)] xl:shrink-0 xl:items-center">
+          <div className="flex min-w-0 items-center gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
+            {/* Identità fornitore */}
+            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
               <FornitoreAvatar
                 nome={fornitore.nome}
                 logoUrl={fornitore.logo_url}
-                sizeClass="h-8 w-8 xl:h-9 xl:w-9"
-                className="mt-0.5 shrink-0 xl:mt-0"
+                sizeClass="h-8 w-8 shrink-0"
               />
-
-              <div className="min-w-0 flex-1 pr-1">
-                <h1 className="app-page-title text-[12px] font-bold leading-tight text-app-fg break-words [overflow-wrap:anywhere] sm:text-[13px] xl:text-sm xl:leading-snug">
+              <div className="min-w-0 flex-1">
+                <h1 className="app-page-title truncate text-[13px] font-bold leading-tight text-app-fg">
                   {fornitore.nome}
                 </h1>
                 {fornitore.email && (
-                  <p className="mt-0.5 break-words text-[11px] leading-snug text-app-fg-muted [overflow-wrap:anywhere]">
+                  <p className="truncate text-[11px] leading-snug text-app-fg-muted">
                     {fornitore.email}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex min-w-0 w-full flex-wrap items-center gap-x-2 gap-y-1.5 xl:h-8 xl:min-w-0 xl:flex-1 xl:flex-nowrap xl:items-center xl:justify-end xl:gap-x-2.5">
-            <div className="min-w-0 w-full xl:min-w-[12rem] xl:flex-1 xl:max-w-none">
+            {/* Sincronizza email — compatto nella sticky header */}
+            <div className="shrink-0">
               <ScanEmailButton
-                variant="supplier"
-                alwaysShowLabel
+                placement="desktopHeader"
                 fornitoreId={fornitore.id}
                 sedeId={fornitore.sede_id ?? undefined}
                 disabled={!fornitore.sede_id}
                 disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
               />
             </div>
-            </div>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-1 max-xl:w-full max-xl:justify-end xl:ml-auto xl:h-8 xl:items-center">
+            {/* CTA */}
+            <div className="flex shrink-0 items-center gap-1">
               <Link
                 href={`/bolle/new?fornitore_id=${fornitore.id}`}
-                className="app-glow-cyan inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-app-cyan-500 px-2 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 xl:h-8 xl:gap-1.5 xl:px-2.5"
+                className="app-glow-cyan inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-app-cyan-500 px-2.5 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 sm:h-8 sm:gap-1.5 sm:px-3"
               >
-                <svg className="h-3.5 w-3.5 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 {t.nav.nuovaBolla}
@@ -4443,13 +4655,13 @@ function FornitoreDetailClient({
               <Link
                 href={`/fornitori/${fornitore.id}/edit`}
                 title={t.fornitori.editTitle}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg xl:h-8 xl:w-8"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg sm:h-8 sm:w-8"
               >
-                <svg className="h-3.5 w-3.5 xl:h-3.5 xl:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </Link>
-              <AppPageHeaderDesktopTray className="ms-1 xl:ms-2" />
+              <AppPageHeaderDesktopTray className="ms-0.5" />
             </div>
           </div>
 
@@ -4487,14 +4699,14 @@ function FornitoreDetailClient({
 
             <div
               ref={periodPickerRef}
-              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-md border border-app-soft-border bg-transparent px-0.5 xl:h-8 xl:px-1"
+              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-cyan-500/20 bg-app-line-12 px-0.5 shadow-[inset_0_1px_0_rgba(34,211,238,0.07),0_1px_4px_rgba(0,0,0,0.18)] xl:h-8 xl:px-1"
             >
               <button
                 type="button"
                 onClick={() => shiftLedgerYear(-1)}
                 title={t.appStrings.monthNavPrevYearTitle}
                 aria-label={t.appStrings.monthNavPrevYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
@@ -4505,7 +4717,7 @@ function FornitoreDetailClient({
                 onClick={() => shiftLedgerMonth(-1)}
                 title={t.appStrings.monthNavPrevMonthTitle}
                 aria-label={t.appStrings.monthNavPrevMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -4520,7 +4732,7 @@ function FornitoreDetailClient({
                 title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 onClick={() => setPeriodPickerOpen((o) => !o)}
-                className="min-w-0 max-w-[11rem] truncate whitespace-nowrap rounded px-0.5 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg transition-colors hover:bg-app-line-10 hover:text-app-fg xl:max-w-[14rem] xl:leading-8"
+                className="min-w-0 max-w-[11rem] truncate whitespace-nowrap rounded px-1 text-center text-[11px] font-semibold tabular-nums leading-none text-cyan-200 transition-colors hover:bg-cyan-500/10 hover:text-white xl:max-w-[14rem] xl:leading-8"
               >
                 {periodTriggerLabel}
               </button>
@@ -4590,7 +4802,7 @@ function FornitoreDetailClient({
                 disabled={!canShiftLedgerMonthForward}
                 title={t.appStrings.monthNavNextMonthTitle}
                 aria-label={t.appStrings.monthNavNextMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -4602,7 +4814,7 @@ function FornitoreDetailClient({
                 disabled={!canShiftLedgerYearForward}
                 title={t.appStrings.monthNavNextYearTitle}
                 aria-label={t.appStrings.monthNavNextYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />

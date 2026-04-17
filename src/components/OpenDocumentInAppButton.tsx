@@ -155,7 +155,11 @@ export function OpenDocumentInAppButton({
           role="presentation"
         >
           <div
-            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-app-line-25 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
+            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-app-line-25 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
+            style={{
+              background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 0.98), rgba(30, 27, 75, 0.95))',
+              boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)'
+            }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -168,7 +172,7 @@ export function OpenDocumentInAppButton({
             >
               {t.statements.btnClose}
             </button>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-950 pt-12">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-12" style={{ background: 'rgba(15, 23, 42, 0.95)' }}>
               {loading ? (
                 <div className="flex min-h-0 flex-1 items-center justify-center">
                   <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
@@ -190,14 +194,16 @@ export function OpenDocumentInAppButton({
                 <iframe
                   title={t.common.attachment}
                   src={embedSrcForInlineViewer(signedUrl, kind)}
-                  className="min-h-0 w-full flex-1 border-0 bg-slate-950"
+                  className="min-h-0 w-full flex-1 border-0"
+                  style={{ background: 'rgba(15, 23, 42, 0.95)' }}
                 />
               ) : null}
               {!loading && !signedUrl ? (
                 <iframe
                   title={t.common.attachment}
                   src={embedSrcForInlineViewer(tabHref, kind)}
-                  className="min-h-0 w-full min-h-[50vh] flex-1 border-0 bg-slate-950"
+                  className="min-h-0 w-full min-h-[50vh] flex-1 border-0"
+                  style={{ background: 'rgba(15, 23, 42, 0.95)' }}
                 />
               ) : null}
             </div>

@@ -14,7 +14,6 @@ import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import GmailConnectionWidget from '@/components/GmailConnectionWidget'
 
 function ProfileMobileHub() {
   const { me } = useMe()
@@ -206,7 +205,7 @@ export default function ImpostazioniPage() {
       {/* Live preview */}
       <div className="rounded-xl border border-app-line-25 app-workspace-inset-bg-soft p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>{t.impostazioni.preview}</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Date</p>
             <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
@@ -273,9 +272,6 @@ export default function ImpostazioniPage() {
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <div className="space-y-5 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
-          {/* Gmail Connection Widget */}
-          <GmailConnectionWidget />
-          
           <FormBody />
           {saved && (
             <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
@@ -319,9 +315,6 @@ export default function ImpostazioniPage() {
               </div>
             </div>
             <div className="space-y-6 px-6 py-6 sm:px-8">
-              {/* Gmail Connection Widget */}
-              <GmailConnectionWidget />
-              
               <FormBody />
               {saved && (
                 <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">

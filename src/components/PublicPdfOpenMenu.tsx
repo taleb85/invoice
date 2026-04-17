@@ -131,7 +131,11 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
           role="presentation"
         >
           <div
-            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-app-line-25 bg-slate-950 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)]"
+            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-2xl border border-app-line-25 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
+            style={{
+              background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 0.98), rgba(30, 27, 75, 0.95))',
+              boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)'
+            }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -148,7 +152,8 @@ export function PublicPdfOpenMenu({ fileUrl, triggerLabel, triggerClassName, lab
               <iframe
                 title={t.common.document}
                 src={previewSrc}
-                className="min-h-0 w-full flex-1 border-0 bg-slate-950"
+                className="min-h-0 w-full flex-1 border-0"
+                style={{ background: 'rgba(15, 23, 42, 0.95)' }}
               />
             </div>
           </div>

@@ -149,6 +149,12 @@ async function finalizePendingByTipo(
     const titoloOrdine =
       (typeof m.numero_fattura === 'string' && m.numero_fattura.trim() ? m.numero_fattura.trim() : null) ||
       (typeof doc.oggetto_mail === 'string' && doc.oggetto_mail.trim() ? doc.oggetto_mail.trim() : null)
+
+    // Righe prodotto salvate durante la scansione IMAP in metadata.rekki_lines
+    const righe = Array.isArray((meta as { rekki_lines?: unknown }).rekki_lines)
+      ? (meta as { rekki_lines: unknown[] }).rekki_lines
+      : null
+
     const { error: coErr } = await supabase.from('conferme_ordine').insert([
       {
         fornitore_id: doc.fornitore_id,
@@ -158,6 +164,7 @@ async function finalizePendingByTipo(
         titolo: titoloOrdine,
         data_ordine: dataDoc,
         note: null,
+        ...(righe ? { righe } : {}),
       },
     ])
     if (coErr && !confermeOrdineTableUnavailable(coErr)) {

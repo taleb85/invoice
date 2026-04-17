@@ -17,9 +17,9 @@
    * Palette canvas FLUXO (allineata a `main`: to-br slate-800 → blue-900/75 → indigo-950).
    * Modifica qui per propagare sfondo + testo in shell / sidebar / pagine che usano le classi sotto.
    */
-  --app-canvas-from: #1e293b; /* slate-800 */
-  --app-canvas-via: rgb(30 58 138 / 0.75); /* blue-900 @ 75% */
-  --app-canvas-to: #1e1b4b; /* indigo-950 */
+  --app-canvas-from: rgb(30 41 59 / 0.55); /* slate-800 @ 55% */
+  --app-canvas-via: rgb(30 58 138 / 0.38); /* blue-900 @ 38% */
+  --app-canvas-to: rgb(30 27 75 / 0.55);  /* indigo-950 @ 55% */
   --app-fg-body: rgb(236 254 255 / 0.95); /* cyan-50/95 */
   --app-fg-muted: rgb(207 250 254); /* cyan-100 */
   --app-border-cyan-soft: rgb(6 182 212 / 0.2); /* cyan-500/20 */
@@ -257,15 +257,16 @@
   .app-sidebar-aside {
     @apply border-r border-app-line-25 ring-1 ring-inset ring-app-line-15;
     color: var(--app-fg-body);
-    background-image: linear-gradient(
+    background: linear-gradient(
       to bottom right,
-      var(--app-canvas-from),
-      var(--app-canvas-via),
-      var(--app-canvas-to)
+      rgba(30, 41, 59, 0.85),
+      rgba(30, 58, 138, 0.65),
+      rgba(30, 27, 75, 0.85)
     );
     box-shadow:
       4px 0 28px rgba(0, 0, 0, 0.32),
-      inset -1px 0 0 var(--app-line-22);
+      inset -1px 0 0 var(--app-line-22),
+      0 0 40px -10px rgba(6, 182, 212, 0.15);
     -webkit-backdrop-filter: blur(18px) saturate(1.05);
     backdrop-filter: blur(18px) saturate(1.05);
   }
@@ -301,9 +302,9 @@
     .app-shell-workspace-canvas {
       background-image: linear-gradient(
         to bottom right,
-        var(--app-canvas-from),
-        var(--app-canvas-via),
-        var(--app-canvas-to)
+        rgba(30, 41, 59, 0.55),
+        rgba(30, 58, 138, 0.38),
+        rgba(30, 27, 75, 0.55)
       );
     }
   }
@@ -321,9 +322,9 @@
     [data-app-desktop-canvas] {
       background-image: linear-gradient(
         to bottom right,
-        var(--app-canvas-from),
-        var(--app-canvas-via),
-        var(--app-canvas-to)
+        rgba(30, 41, 59, 0.60),
+        rgba(30, 58, 138, 0.42),
+        rgba(30, 27, 75, 0.60)
       );
     }
   }
@@ -347,13 +348,14 @@
   .app-desktop-header-glass {
     background: linear-gradient(
       to bottom,
-      rgba(15, 23, 42, 0.12) 0%,
-      rgba(49, 46, 129, 0.06) 50%,
-      rgba(30, 27, 75, 0.1) 100%
+      rgba(15, 23, 42, 0.25) 0%,
+      rgba(49, 46, 129, 0.15) 50%,
+      rgba(30, 27, 75, 0.2) 100%
     );
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      0 6px 24px -12px rgba(0, 0, 0, 0.4);
+      0 6px 24px -12px rgba(0, 0, 0, 0.4),
+      0 0 30px -10px rgba(6, 182, 212, 0.12);
     backdrop-filter: blur(26px) saturate(1.12);
     -webkit-backdrop-filter: blur(26px) saturate(1.12);
   }
@@ -383,13 +385,15 @@
   }
 
   .app-card {
-    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35),0_0_60px_-15px_rgba(6,182,212,0.25)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
+    background-color: rgba(15, 23, 42, 0.75);
   }
   /** Shell card login: vetro come `.app-card`, testo come token `text-app-fg`. */
   .app-card-login {
-    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35),0_0_60px_-15px_rgba(6,182,212,0.25)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
+    background-color: rgba(15, 23, 42, 0.75);
   }
 
   /** Error boundary su `LoginBrandedShell`: niente vetro pieno, canvas visibile sotto. */
@@ -426,9 +430,10 @@
       to top,
       rgb(15 23 42 / 0.97),
       rgb(30 41 59 / 0.94),
-      rgb(30 27 75 / 0.9)
+      rgb(30 27 75 / 0.92)
     );
     background-color: rgb(15 23 42 / 0.96);
+    box-shadow: 0 -8px 24px -8px rgba(0, 0, 0, 0.45), 0 0 30px -10px rgba(6, 182, 212, 0.15);
   }
 
   /**
@@ -447,7 +452,12 @@
         rgb(15 23 42 / 0.92);
     }
     .app-sidebar-aside {
-      background: linear-gradient(to bottom, rgb(30 41 59), rgb(30 58 138 / 0.78), rgb(30 27 75));
+      background: linear-gradient(
+        to bottom,
+        rgba(30, 41, 59, 0.88),
+        rgba(30, 58, 138, 0.75),
+        rgba(30, 27, 75, 0.88)
+      );
     }
     .app-sidebar-aside.app-shell-rail-clear {
       background: transparent;
@@ -485,16 +495,18 @@
   .app-workspace-inset-bg {
     background-image: linear-gradient(
       to bottom right,
-      rgb(30 41 59 / 0.55),
-      rgb(30 27 75 / 0.38)
+      rgb(30 41 59 / 0.60),
+      rgb(30 27 75 / 0.45)
     );
+    box-shadow: inset 0 1px 0 rgba(6, 182, 212, 0.08);
   }
   .app-workspace-inset-bg-soft {
     background-image: linear-gradient(
       to bottom right,
-      rgb(30 41 59 / 0.4),
-      rgb(30 27 75 / 0.26)
+      rgb(30 41 59 / 0.50),
+      rgb(30 27 75 / 0.35)
     );
+    box-shadow: inset 0 1px 0 rgba(6, 182, 212, 0.05);
   }
   /** Riga meta / footer dentro card (data caricamento, totali). */
   .app-workspace-inset-footer-row {
@@ -520,9 +532,10 @@
   .app-workspace-surface-elevated {
     background: linear-gradient(
       to bottom right,
-      rgb(15 23 42 / 0.88),
-      rgb(30 27 75 / 0.72)
+      rgb(15 23 42 / 0.92),
+      rgb(30 27 75 / 0.80)
     );
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(6, 182, 212, 0.08);
   }
 
   /** Backdrop modali centrati (click fuori, loading). */
@@ -537,8 +550,9 @@
 
   /** KPI dashboard operatore: stesso guscio .app-card; accento a L via `KpiLAccentOverlay`. */
   .operator-kpi-card {
-    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
+    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg-muted shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35),0_0_60px_-15px_rgba(6,182,212,0.25)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
     -webkit-backdrop-filter: blur(24px);
+    background-color: rgba(15, 23, 42, 0.75);
   }
 
   /**

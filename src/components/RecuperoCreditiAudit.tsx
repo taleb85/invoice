@@ -129,7 +129,7 @@ export default function RecuperoCreditiAudit({
   }
 
   return (
-    <div className="supplier-detail-tab-shell overflow-hidden border-red-500/25">
+    <div className="app-card overflow-hidden border-red-500/25">
       <div className="app-card-bar-accent bg-gradient-to-r from-red-500/80 to-orange-500/60" aria-hidden />
       
       <div className="px-5 py-4">
@@ -155,7 +155,7 @@ export default function RecuperoCreditiAudit({
               type="date"
               value={dateRange.from}
               onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-              className="w-full rounded-lg border border-app-line-28 bg-app-line-10 px-3 py-2 text-sm text-app-fg focus:border-red-500/40 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              className="w-full rounded-lg border border-app-line-28 bg-app-line-15 px-3 py-2 text-sm text-app-fg [color-scheme:dark] focus:border-red-500/40 focus:outline-none focus:ring-2 focus:ring-red-500/20"
             />
           </div>
           <div className="flex-1 min-w-[120px]">
@@ -166,7 +166,7 @@ export default function RecuperoCreditiAudit({
               type="date"
               value={dateRange.to}
               onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-              className="w-full rounded-lg border border-app-line-28 bg-app-line-10 px-3 py-2 text-sm text-app-fg focus:border-red-500/40 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              className="w-full rounded-lg border border-app-line-28 bg-app-line-15 px-3 py-2 text-sm text-app-fg [color-scheme:dark] focus:border-red-500/40 focus:outline-none focus:ring-2 focus:ring-red-500/20"
             />
           </div>
           <button
@@ -269,7 +269,7 @@ export default function RecuperoCreditiAudit({
                 {/* Overcharges table */}
                 <div className="mb-4 max-h-[600px] overflow-y-auto rounded-lg border border-app-line-22">
                   <table className="w-full text-xs">
-                    <thead className="sticky top-0 bg-app-line-15">
+                    <thead className="sticky top-0 app-workspace-inset-bg">
                       <tr>
                         <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
                           Fattura
@@ -387,7 +387,7 @@ export default function RecuperoCreditiAudit({
 
         {/* Help text */}
         {!audit && (
-          <details className="mt-4 rounded-lg border border-app-line-22 bg-app-line-10/50 px-3 py-2">
+          <details className="mt-4 rounded-lg border border-app-line-22 bg-app-line-15 px-3 py-2">
             <summary className="cursor-pointer text-xs font-semibold text-red-300 hover:text-red-200">
               Come funziona l'audit?
             </summary>

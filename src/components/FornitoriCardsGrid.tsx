@@ -245,19 +245,12 @@ export default function FornitoriCardsGrid({
             'flex min-h-0 w-full flex-1 flex-col gap-2 p-2.5 pb-2 items-stretch sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-5 sm:pb-4 lg:gap-6 lg:p-6'
           const avatarShell =
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 via-sky-500 to-cyan-600 text-xs font-bold text-white shadow-md shadow-sky-950/45 ring-2 ring-sky-500/35 ring-offset-1 ring-offset-[rgb(2_6_23/0.9)] sm:h-14 sm:w-14 sm:rounded-2xl sm:text-base sm:ring-offset-2 lg:h-16 lg:w-16 lg:text-lg'
-          const pivaEl = f.piva ? (
-            <div className="hidden min-w-0 shrink-0 flex-col items-stretch self-start md:mt-0 md:flex md:max-w-[min(100%,13rem)] md:items-end md:justify-start md:pl-3 lg:max-w-[15rem] lg:pl-5">
-              <p className="truncate rounded-md border border-sky-500/25 app-workspace-inset-bg-soft px-2 py-1 text-left font-mono text-[10px] leading-tight text-app-fg-muted sm:rounded-full sm:border-sky-500/30 sm:app-workspace-inset-bg sm:px-3 sm:py-1 sm:text-right sm:text-[11px] lg:text-xs">
-                {t.fornitori.pivaLabel} {f.piva}
-              </p>
-            </div>
-          ) : null
           const headBlock = (
             <>
               <div className={`${avatarShell} self-start`}>{initials}</div>
               <div className="min-w-0 flex-1 text-left">
                 <div className="flex min-w-0 flex-row flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  <p className="min-w-0 max-w-full truncate text-sm font-bold leading-tight text-app-fg transition-colors group-hover:text-sky-200 sm:flex-1 sm:text-base lg:text-lg">
+                  <p className="min-w-0 break-words text-sm font-bold leading-tight text-app-fg transition-colors group-hover:text-sky-200 sm:text-base lg:text-lg">
                     {display}
                   </p>
                   {rekkiMapped ? (
@@ -271,6 +264,11 @@ export default function FornitoriCardsGrid({
                 ) : null}
                 {f.email ? (
                   <p className="mt-0.5 truncate text-[11px] text-app-fg-muted sm:mt-1 sm:text-xs">{f.email}</p>
+                ) : null}
+                {f.piva ? (
+                  <p className="mt-1 truncate font-mono text-[10px] text-app-fg-muted/60 sm:text-[11px]">
+                    {t.fornitori.pivaLabel} {f.piva}
+                  </p>
                 ) : null}
               </div>
             </>
@@ -289,14 +287,12 @@ export default function FornitoriCardsGrid({
                   <div className="flex min-w-0 flex-1 flex-row items-start gap-2 sm:min-w-0 sm:gap-4">
                     {headBlock}
                   </div>
-                  {pivaEl}
                 </button>
               ) : (
                 <Link href={`/fornitori/${f.id}`} className={bodyClasses}>
                   <div className="flex min-w-0 flex-1 flex-row items-start gap-2 sm:min-w-0 sm:gap-4">
                     {headBlock}
                   </div>
-                  {pivaEl}
                 </Link>
               )}
 

@@ -145,7 +145,7 @@ export default async function LogPage() {
         }
       />
 
-      <div className="mb-6 grid grid-cols-3 gap-3 md:mb-8 md:gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 md:mb-8 md:gap-4">
         {statCard(
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <p className="text-2xl font-bold tabular-nums text-app-fg md:text-3xl">{entries.length}</p>

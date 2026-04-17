@@ -65,15 +65,19 @@ export function AppSheet({
 
   const sidePanelClass =
     size === 'wide'
-      ? 'pointer-events-auto absolute inset-y-0 right-0 z-[212] flex h-[100dvh] w-full max-w-[min(100vw,56rem)] flex-col border-l border-app-line-25 bg-slate-950 shadow-2xl sm:max-w-[min(100vw,56rem)]'
-      : 'pointer-events-auto absolute inset-y-0 right-0 z-[212] flex h-[100dvh] w-full max-w-[min(100vw,28rem)] flex-col border-l border-app-line-25 bg-slate-950 shadow-2xl sm:max-w-md'
+      ? 'pointer-events-auto absolute inset-y-0 right-0 z-[212] flex h-[100dvh] w-full max-w-[min(100vw,56rem)] flex-col border-l border-app-line-25 shadow-2xl sm:max-w-[min(100vw,56rem)] backdrop-blur-xl'
+      : 'pointer-events-auto absolute inset-y-0 right-0 z-[212] flex h-[100dvh] w-full max-w-[min(100vw,28rem)] flex-col border-l border-app-line-25 shadow-2xl sm:max-w-md backdrop-blur-xl'
 
   const centerPanelClass =
     size === 'wide'
-      ? 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex h-[min(96dvh,64rem)] w-[min(calc(100vw-1rem),90rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-app-line-25 bg-slate-950 shadow-2xl'
-      : 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex max-h-[min(92dvh,40rem)] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-app-line-25 bg-slate-950 shadow-2xl'
+      ? 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex h-[min(96dvh,64rem)] w-[min(calc(100vw-1rem),90rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-app-line-25 shadow-2xl backdrop-blur-xl'
+      : 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex max-h-[min(92dvh,40rem)] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-app-line-25 shadow-2xl backdrop-blur-xl'
 
   const panelClassName = variant === 'center' ? centerPanelClass : sidePanelClass
+  const panelStyle = {
+    background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.92))',
+    boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)'
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-[210]">
@@ -89,6 +93,7 @@ export function AppSheet({
         aria-modal="true"
         aria-labelledby={titleId}
         className={panelClassName}
+        style={panelStyle}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-app-line-22 px-4 py-3 sm:px-5">
           <h2 id={titleId} className="min-w-0 truncate text-sm font-semibold text-app-fg">

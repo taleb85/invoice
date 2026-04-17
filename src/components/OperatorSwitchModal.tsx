@@ -236,6 +236,10 @@ export default function OperatorSwitchModal() {
     >
       <div
         className="app-card pointer-events-auto flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden p-0 text-app-fg"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(6, 182, 212, 0.22), rgba(91, 33, 182, 0.16)), rgb(10 18 38 / 0.82)',
+          boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.35), 0 0 60px -15px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="app-card-bar shrink-0" aria-hidden />
@@ -245,7 +249,7 @@ export default function OperatorSwitchModal() {
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-line-35 bg-app-line-15 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               <svg className="h-5 w-5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
               </svg>
             </div>
             <div className="min-w-0">
@@ -309,9 +313,14 @@ export default function OperatorSwitchModal() {
                         className={[
                           'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all touch-manipulation active:scale-[0.99]',
                           selected?.id === op.id
-                            ? 'border-app-a-50 bg-app-line-18 text-app-fg shadow-[0_0_24px_-8px_rgba(34,211,238,0.4)] ring-1 ring-app-a-25'
-                            : 'border-app-line-25 app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-40 hover:bg-black/18',
+                            ? 'border-app-a-50 text-app-fg shadow-[0_0_24px_-8px_rgba(34,211,238,0.4)] ring-1 ring-app-a-25'
+                            : 'border-app-line-25 text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-40',
                         ].join(' ')}
+                        style={
+                          selected?.id === op.id
+                            ? { background: 'linear-gradient(135deg, rgba(6,182,212,0.18), rgba(91,33,182,0.14)), rgb(10 18 38 / 0.95)' }
+                            : { background: 'rgb(8 14 30 / 0.92)' }
+                        }
                       >
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-line-35 bg-app-line-15 text-sm font-bold text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                           {(op.full_name.trim().toUpperCase() || '?').charAt(0)}
