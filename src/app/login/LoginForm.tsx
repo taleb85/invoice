@@ -45,6 +45,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   /* ── operatore ─────────────────────────────────────── */
   const [name, setName]         = useState('')
   const [sedeNome, setSedeNome] = useState<string | null>(null)
+  /** Ultima sede ricordata da localStorage (mostrata al ritorno dell'utente) */
+  const [rememberedSede, setRememberedSede] = useState<string | null>(null)
   const [lookingUp, setLookingUp] = useState(false)
   const [nameReady, setNameReady] = useState(false) // nome trovato nel DB
   const resolvedEmail = useRef<string | null>(null)  // email interna → usata per signIn
@@ -97,6 +99,16 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     setGateUiReady(true)
   }, [sessionGateNext, meLoading, me?.user, me?.role, router])
 
+  /* ─── ripristina ultima sede da localStorage ─────── */
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('fluxo-last-sede-nome')
+      if (stored) setRememberedSede(stored)
+    } catch {
+      /* storage non disponibile (es. navigazione privata) */
+    }
+  }, [])
+
   /* ─── login operatore ─────────────────────────────── */
   const doLoginByName = useCallback(async (internalEmail: string, pinStr: string) => {
     if (loading) return
@@ -113,6 +125,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     try {
       localStorage.removeItem('fluxo-active-operator')
       localStorage.removeItem('fluxo-active-operator-user')
+      /* salva ultima sede per pre-popolare il logo al prossimo accesso */
+      if (sedeNome) localStorage.setItem('fluxo-last-sede-nome', sedeNome)
     } catch {
       /* ignore */
     }
@@ -123,7 +137,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       router.push('/')
     }
     router.refresh()
-  }, [loading, sessionGateNext, supabase, router, t.login.pinIncorrect])
+  }, [loading, sedeNome, sessionGateNext, supabase, router, t.login.pinIncorrect])
 
   /* ─── lookup nome → email interna ─────────────────── */
   const lookupSede = useCallback(async (n: string, opts?: { silentNotFound?: boolean }) => {
@@ -483,7 +497,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   return (
     <div className="w-full">
 
-      <LoginBrandedHero mode={mode} />
+      <LoginBrandedHero
+        mode={mode}
+        sedeNome={sedeNome ?? rememberedSede}
+        remembered={!sedeNome && !!rememberedSede}
+      />
 
       {/* Card: bordo leggero su canvas gradient (`LoginBrandedShell`); vetro pieno disattivato */}
       <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
