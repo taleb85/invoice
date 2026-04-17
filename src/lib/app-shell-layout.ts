@@ -90,26 +90,34 @@ export function appSectionTableHeadRowAccentClass(accent: AppSectionTableHeadAcc
 /** Header tabella su sfondo leggermente più marcato (es. modali / confronti densi). */
 export const APP_SECTION_TABLE_HEAD_ROW_STRONG = 'border-b border-app-line-22 app-workspace-inset-bg'
 
+/**
+ * `<thead>` con sticky scroll — si fissa al top del contenitore `overflow-y-auto` più vicino
+ * (solitamente `#app-main`). Backdrop-blur opaco per coprire le righe scorrenti.
+ */
+export const APP_SECTION_TABLE_THEAD_STICKY =
+  'sticky top-0 z-10 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)] bg-slate-900/85'
+
 export const APP_SECTION_TABLE_TH =
-  'px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-app-fg-muted'
+  'px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-app-fg-muted md:px-5 md:py-3'
 
 export const APP_SECTION_TABLE_TH_RIGHT =
-  'px-6 py-3 text-right font-mono text-xs font-semibold uppercase tracking-wider tabular-nums text-app-fg-muted'
+  'px-4 py-2.5 text-right font-mono text-xs font-semibold uppercase tracking-wider tabular-nums text-app-fg-muted md:px-5 md:py-3'
 
 /** Separazione righe in stack / liste (stesso token del tbody tabella). */
 export const APP_SECTION_DIVIDE_ROWS = 'divide-y divide-app-soft-border'
 
 export const APP_SECTION_TABLE_TBODY = 'divide-y divide-app-soft-border'
 
-/** Hover riga unificato (desktop + coerente con lista mobile). */
-export const APP_SECTION_TABLE_ROW_HOVER = 'transition-colors hover:bg-cyan-500/[0.07]'
+/** Hover riga unificato — più visibile su desktop con mouse. */
+export const APP_SECTION_TABLE_ROW_HOVER =
+  'transition-colors hover:bg-cyan-500/[0.08] hover:shadow-[inset_3px_0_0_rgba(6,182,212,0.35)]'
 
 export const APP_SECTION_TABLE_TR = `group ${APP_SECTION_TABLE_ROW_HOVER}`
 
 export const APP_SECTION_TABLE_TR_GROUP = APP_SECTION_TABLE_TR
 
-/** Celle dati tabella sezione (font-size unificato). */
-export const APP_SECTION_TABLE_TD = 'px-6 py-4 text-sm align-middle'
+/** Celle dati tabella — padding compatto su mobile, normale su desktop. */
+export const APP_SECTION_TABLE_TD = 'px-4 py-2.5 text-sm align-middle md:px-5 md:py-3.5'
 
 /** Importi / numeri confrontabili: monospace, allineati a destra. */
 export const APP_SECTION_TABLE_TD_NUMERIC = `${APP_SECTION_TABLE_TD} text-right font-mono tabular-nums`

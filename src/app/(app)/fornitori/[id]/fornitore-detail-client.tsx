@@ -88,6 +88,7 @@ import {
   APP_SECTION_TABLE_HEAD_ROW_STRONG,
   APP_SECTION_TABLE_ROW_HOVER,
   APP_SECTION_TABLE_TBODY,
+  APP_SECTION_TABLE_THEAD_STICKY,
   APP_SECTION_TABLE_TR,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
@@ -1027,7 +1028,7 @@ function SupplierDesktopMonthlyDocSummary({
       </div>
       <div className="min-w-0 flex-1 overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-          <thead>
+          <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
             <tr className={SUPPLIER_MONTHLY_TABLE_HEAD_ROW}>
               <th className="sticky left-0 z-[1] bg-transparent px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
                 {t.fornitori.supplierMonthlyDocColMonth}
@@ -1784,7 +1785,7 @@ function BolleTab({
 
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[500px] text-sm">
-          <thead>
+          <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
             <tr className={appSectionTableHeadRowAccentClass('indigo')}>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.date}</th>
               <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.bolle.colNumero}</th>
@@ -2079,7 +2080,7 @@ function FattureTab({
 
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full min-w-[520px] text-sm">
-            <thead>
+            <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
               <tr className={appSectionTableHeadRowAccentClass('emerald')}>
                 <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
                   {t.common.date}
@@ -4157,7 +4158,7 @@ function ListinoTab({
           {/* Desktop */}
           <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
-            <thead>
+            <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
               <tr className={APP_SECTION_TABLE_HEAD_ROW}>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColData}</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoColTipo}</th>

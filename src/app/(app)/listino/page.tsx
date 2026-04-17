@@ -29,6 +29,7 @@ import {
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
+  APP_SECTION_TABLE_THEAD_STICKY,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
 
@@ -173,7 +174,7 @@ export default async function ListinoOverviewPage({
           <StandardCard accent="fuchsia" className="hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
-                <thead>
+                <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
                   <tr className={appSectionTableHeadRowAccentClass('fuchsia')}>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.fornitori.listinoProdotti}</th>
