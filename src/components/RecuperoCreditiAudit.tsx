@@ -208,7 +208,7 @@ export default function RecuperoCreditiAudit({
               <p className="text-xs font-bold text-violet-200">Sincronizza Storico con Rekki</p>
               <p className="mt-1 text-xs leading-relaxed text-violet-300/80">
                 Analizza tutte le fatture passate e aggiorna automaticamente le date di riferimento
-                per eliminare i blocchi "Data documento anteriore"
+                per eliminare i blocchi &quot;Data documento anteriore&quot;
               </p>
             </div>
             <button
@@ -389,10 +389,10 @@ export default function RecuperoCreditiAudit({
         {!audit && (
           <details className="mt-4 rounded-lg border border-app-line-22 bg-app-line-15 px-3 py-2">
             <summary className="cursor-pointer text-xs font-semibold text-red-300 hover:text-red-200">
-              Come funziona l'audit?
+              Come funziona l&apos;audit?
             </summary>
             <div className="mt-2 space-y-2 text-xs leading-relaxed text-app-fg-muted">
-              <p>L'audit analizza tutte le fatture nel periodo selezionato e:</p>
+              <p>L&apos;audit analizza tutte le fatture nel periodo selezionato e:</p>
               <ul className="ml-4 list-disc space-y-1">
                 <li>Estrae i line items da ogni fattura usando AI</li>
                 <li>Confronta i prezzi pagati con i prezzi Rekki pattuiti (listino)</li>

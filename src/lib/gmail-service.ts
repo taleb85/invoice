@@ -13,6 +13,8 @@ import { google } from 'googleapis'
 import { createServiceClient } from '@/utils/supabase/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+type GoogleOAuth2Client = InstanceType<typeof google.auth.OAuth2>
+
 export interface GmailMessage {
   id: string
   threadId: string
@@ -34,8 +36,14 @@ export interface GmailTokens {
   token_type?: string
 }
 
+type GmailPayloadPart = {
+  mimeType?: string | null
+  body?: { data?: string }
+  parts?: GmailPayloadPart[]
+}
+
 class GmailService {
-  private oauth2Client: any
+  private oauth2Client: GoogleOAuth2Client
   private supabase: SupabaseClient | null = null
   
   constructor() {
@@ -118,7 +126,7 @@ class GmailService {
    */
   async getTokensFromCode(code: string): Promise<GmailTokens> {
     const { tokens } = await this.oauth2Client.getToken(code)
-    return tokens
+    return tokens as GmailTokens
   }
   
   /**
@@ -303,7 +311,7 @@ class GmailService {
     let bodyText: string | null = null
     let bodyHtml: string | null = null
     
-    const extractBody = (part: any): void => {
+    const extractBody = (part: GmailPayloadPart): void => {
       if (part.mimeType === 'text/plain' && part.body?.data) {
         bodyText = Buffer.from(part.body.data, 'base64').toString('utf-8')
       }
@@ -316,7 +324,7 @@ class GmailService {
     }
     
     if (message.payload) {
-      extractBody(message.payload)
+      extractBody(message.payload as GmailPayloadPart)
     }
     
     return {

@@ -85,7 +85,7 @@ export default function GmailAuditReadyBadge({ fornitoreNome }: GmailAuditReadyB
         {/* Content */}
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-bold text-cyan-200">
-            💡 Pronto per l'audit dei prezzi?
+            💡 Pronto per l&apos;audit dei prezzi?
           </h4>
           <p className="mt-1 text-xs leading-relaxed text-cyan-200/80">
             {gmailStatus.configured ? (

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { gmailService } from '@/lib/gmail-service'
 
@@ -8,7 +8,7 @@ import { gmailService } from '@/lib/gmail-service'
  * Returns Google OAuth2 authorization URL for Gmail access.
  * User will be redirected to Google to grant permissions.
  */
-export async function GET(req: NextRequest) {
+export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   

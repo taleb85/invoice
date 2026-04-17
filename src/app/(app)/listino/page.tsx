@@ -73,11 +73,15 @@ export default async function ListinoOverviewPage({
     rows = await fetchListinoOverviewRows(supabase, fornitoreIds, fiscal?.bounds ?? null)
   }
 
+  /** Istante server per confronto “giorni da ultimo prezzo” (una volta per richiesta RSC). */
+  // eslint-disable-next-line react-hooks/purity -- Date.now valutato nel boundary richiesta server, non in re-render client
+  const listinoNowMs = Date.now()
+
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
   /** Freshness badge basata sulla data del prezzo (solo visualizzazione). */
   function priceFreshnessBadge(dataPrezzo: string): { label: string; cls: string } {
-    const diffDays = Math.floor((Date.now() - new Date(dataPrezzo).getTime()) / 86_400_000)
+    const diffDays = Math.floor((listinoNowMs - new Date(dataPrezzo).getTime()) / 86_400_000)
     if (diffDays <= 30) return { label: 'Recente', cls: 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30' }
     if (diffDays <= 90) return { label: 'Aggiornato', cls: 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/30' }
     return { label: 'Da verificare', cls: 'bg-red-500/20 text-red-300 ring-1 ring-red-500/30' }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient } from '@/utils/supabase/server'
 import { gmailService, type GmailMessage } from '@/lib/gmail-service'
 import { parseRekkiFromEmailParts, isLikelyRekkiEmail } from '@/lib/rekki-parser'
@@ -248,7 +249,7 @@ export async function GET(req: NextRequest) {
  * Process a Rekki order: update listino prices and create statement
  */
 async function processRekkiOrder(
-  supabase: any,
+  supabase: SupabaseClient,
   opts: {
     fornitore: {
       id: string
@@ -280,7 +281,7 @@ async function processRekkiOrder(
     .eq('fornitore_id', fornitore.id)
   
   const listinoMap = new Map<string, { id: string; prezzo: number }>()
-  existingListino?.forEach((entry: any) => {
+  existingListino?.forEach((entry: { id: string; prodotto: string; prezzo: number }) => {
     const normalized = entry.prodotto.toLowerCase().trim()
     listinoMap.set(normalized, { id: entry.id, prezzo: entry.prezzo })
   })

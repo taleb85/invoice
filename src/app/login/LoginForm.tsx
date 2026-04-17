@@ -199,6 +199,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   }, [
     doLoginByName,
     me?.user?.email,
+    me?.role,
     pin,
     sessionGateNext,
     t.login.notFound,

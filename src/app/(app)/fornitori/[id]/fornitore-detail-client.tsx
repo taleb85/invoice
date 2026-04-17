@@ -56,7 +56,6 @@ import StatoSincronizzazioneIntelligente from '@/components/StatoSincronizzazion
 import FattureInAttesaAutoSync from '@/components/FattureInAttesaAutoSync'
 import RecuperoCreditiAudit from '@/components/RecuperoCreditiAudit'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
-import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
 import FornitoreConfermeOrdineTab from '@/components/FornitoreConfermeOrdineTab'
@@ -90,7 +89,6 @@ import {
   APP_SECTION_TABLE_ROW_HOVER,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR,
-  APP_SECTION_TRAILING_LINK_CLASS,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -1169,11 +1167,11 @@ function SupplierDesktopMonthlyDocSummary({
 function DashboardTab({
   fornitoreId,
   fornitore,
-  onFornitoreReload,
   readOnly,
 }: {
   fornitoreId: string
   fornitore: Fornitore
+  /** Passato dal parent per coerenza API; refresh profilo gestito altrove se necessario */
   onFornitoreReload?: () => void
   readOnly?: boolean
 }) {
@@ -3247,7 +3245,8 @@ function ListinoTab({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
                           <p className="flex-1 text-xs text-cyan-200">
-                            <span className="font-semibold">Azione rapida:</span> Stai importando prezzi diversi dall'ultimo listino
+                            <span className="font-semibold">Azione rapida:</span>{' '}
+                            Stai importando prezzi diversi dall&apos;ultimo listino
                           </p>
                           <button
                             type="button"

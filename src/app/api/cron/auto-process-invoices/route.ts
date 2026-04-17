@@ -99,7 +99,14 @@ export async function GET(req: NextRequest) {
     // 2. Process each invoice
     for (const fattura of fatture) {
       try {
-        const fornitore = (fattura as any).fornitori
+        const rel = (fattura as unknown as {
+          fornitori: { id: string; nome: string } | { id: string; nome: string }[]
+        }).fornitori
+        const fornitore = Array.isArray(rel) ? rel[0] : rel
+        if (!fornitore?.id) {
+          result.errors.push(`Fattura ${fattura.id}: fornitore mancante`)
+          continue
+        }
         
         // Get latest Rekki order for this supplier
         const { data: latestOrder } = await supabase
@@ -147,7 +154,7 @@ export async function GET(req: NextRequest) {
         const rekkiPrices = new Map<string, number>()
         const rekkiLines = latestOrder.metadata?.price_changes || []
         
-        rekkiLines.forEach((change: any) => {
+        rekkiLines.forEach((change: { prodotto: string; newPrice: number }) => {
           const normalized = change.prodotto.toLowerCase().trim()
           rekkiPrices.set(normalized, change.newPrice)
         })

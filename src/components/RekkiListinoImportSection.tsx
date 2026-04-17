@@ -4,8 +4,6 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
-import { useT } from '@/lib/use-t'
-
 interface ImportedRow {
   'Product ID'?: string
   'Product Name'?: string
@@ -35,7 +33,6 @@ export default function RekkiListinoImportSection({
   fornitoreNome: string
   rekkiLinked: boolean
 }) {
-  const t = useT()
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 

@@ -90,22 +90,7 @@ export default function FattureInAttesaAutoSync({
     setError(null)
     
     try {
-      // Import matched items into listino
-      const itemsToImport = result.matches
-        .filter(m => m.match !== null)
-        .map(m => ({
-          prodotto: m.lineItem.prodotto,
-          codice_prodotto: m.lineItem.codice_prodotto,
-          prezzo: m.lineItem.prezzo,
-          unita: m.lineItem.unita,
-          note: m.lineItem.note,
-          rekki_product_id: m.match?.rekkiProductId,
-        }))
-      
-      // Use existing import endpoint
-      // This would need to be implemented or adapted
-      // For now, just show success
-      
+      // Future: inviare `result.matches` (con match) a un endpoint di import listino
       if (onComplete) onComplete()
       router.refresh()
     } catch (err) {

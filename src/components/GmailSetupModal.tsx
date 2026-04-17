@@ -18,8 +18,8 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
   const [clientSecret, setClientSecret] = useState('')
   
   // Status state
-  const [configured, setConfigured] = useState(false)
-  const [connected, setConnected] = useState(false)
+  const [, setConfigured] = useState(false)
+  const [, setConnected] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -191,9 +191,9 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                       Google Cloud Console
                     </a>
                   </li>
-                  <li>Crea un nuovo progetto (es. "Invoice Rekki App")</li>
+                  <li>{'Crea un nuovo progetto (es. "Invoice Rekki App")'}</li>
                   <li>Abilita <span className="font-semibold text-blue-100">Gmail API</span></li>
-                  <li>Configura OAuth consent screen (tipo "Esterno")</li>
+                  <li>{'Configura OAuth consent screen (tipo "Esterno")'}</li>
                   <li>
                     Aggiungi 3 scopes:
                     <ul className="mt-1 ml-4 list-disc space-y-0.5 text-blue-200/70">
@@ -202,8 +202,11 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                       <li><code className="rounded bg-blue-500/20 px-1 py-0.5 font-mono text-[10px]">gmail.labels</code></li>
                     </ul>
                   </li>
-                  <li>Aggiungi la tua email come "test user"</li>
-                  <li>Crea <span className="font-semibold text-blue-100">OAuth 2.0 Client ID</span> (tipo "Applicazione web")</li>
+                  <li>{'Aggiungi la tua email come "test user"'}</li>
+                  <li>
+                    Crea <span className="font-semibold text-blue-100">OAuth 2.0 Client ID</span>{' '}
+                    {`(tipo "Applicazione web")`}
+                  </li>
                   <li>
                     Aggiungi URI di reindirizzamento:
                     <ul className="mt-1 ml-4 list-disc space-y-0.5 text-blue-200/70">
@@ -308,11 +311,15 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 <h4 className="text-sm font-bold text-blue-200">📧 Prossimi Passaggi</h4>
                 <ol className="mt-3 ml-4 list-decimal space-y-2 text-xs leading-relaxed text-blue-200/80">
                   <li>Verrai reindirizzato alla pagina di autorizzazione Google</li>
-                  <li>Seleziona l'account Gmail dell'Osteria Basilico</li>
                   <li>
-                    Se appare "App non verificata", clicca{' '}
-                    <span className="font-semibold text-blue-100">"Avanzate"</span> →{' '}
-                    <span className="font-semibold text-blue-100">"Vai a Invoice Rekki Scanner (non sicuro)"</span>
+                    Seleziona l&apos;account Gmail dell&apos;Osteria Basilico
+                  </li>
+                  <li>
+                    Se appare &quot;App non verificata&quot;, clicca{' '}
+                    <span className="font-semibold text-blue-100">&quot;Avanzate&quot;</span> →{' '}
+                    <span className="font-semibold text-blue-100">
+                      &quot;Vai a Invoice Rekki Scanner (non sicuro)&quot;
+                    </span>
                   </li>
                   <li>Autorizza tutte le 3 permissioni richieste</li>
                   <li>Verrai riportato qui e la scansione inizierà automaticamente</li>
