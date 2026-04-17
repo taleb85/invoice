@@ -3788,19 +3788,34 @@ function ListinoTab({
 
                       {/* ── COLONNA 2: Prezzo + Status + Metadati + Rekki ── */}
                       <div className="min-w-0 flex flex-col gap-2.5 border-t border-app-line-22/90 pt-3 md:border-t-0 md:pt-0">
-                        {/* Prezzo + Badges (riga compatta) */}
+                        {/* Prezzo + Delta badge + Badges (riga compatta) */}
                         <div className="flex flex-wrap items-baseline gap-2">
                           <p
-                            className={`text-2xl font-bold tabular-nums tracking-tight md:text-[1.65rem] font-mono ${
+                            className={`text-3xl font-bold tabular-nums tracking-tight md:text-[1.65rem] font-mono ${
                               hasAnomaly
                                 ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
                                 : listinoPriceStale
                                   ? 'text-app-fg-muted/75'
-                                  : 'text-app-fg'
+                                  : 'text-white'
                             }`}
                           >
                             {fmtMoney(ultimo.prezzo)}
                           </p>
+
+                          {/* Badge delta prezzo vivido (solo se esiste riferimento) */}
+                          {ref && Math.abs(priceDelta) > 0.001 && (
+                            <span
+                              className={`inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-xs font-bold tabular-nums ${
+                                up
+                                  ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/40'
+                                  : 'bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/40'
+                              }`}
+                            >
+                              {up ? '▲' : '▼'}
+                              {fmtMoney(Math.abs(priceDelta))}
+                              <span className="opacity-70">({pctLabel})</span>
+                            </span>
+                          )}
                           
                           {/* Badges inline */}
                           <div className="flex flex-wrap items-center gap-1.5">

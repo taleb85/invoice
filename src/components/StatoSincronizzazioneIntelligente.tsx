@@ -228,31 +228,47 @@ export default function StatoSincronizzazioneIntelligente({
     <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
       <div className="app-card-bar-accent bg-gradient-to-r from-cyan-500/80 to-blue-500/60" aria-hidden />
 
-      {/* ── FAB mobile: pulsante sticky in basso a destra ─────── */}
+      {/* ── Action Bar mobile: barra fissa in basso, ben visibile ─── */}
       {imapReady && (
-        <div className="fixed bottom-24 right-4 z-50 md:hidden">
+        <div className="fixed bottom-0 inset-x-0 z-50 md:hidden pb-safe">
           {syncing ? (
-            <button
-              type="button"
-              onClick={stopSync}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500 shadow-lg shadow-red-500/40 transition-transform active:scale-95"
-              aria-label="Interrompi scansione"
-              title="Interrompi scansione"
-            >
-              <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="1" />
-              </svg>
-            </button>
+            <div className="mx-3 mb-4 flex items-center gap-3 rounded-2xl bg-red-600 px-5 py-3.5 shadow-[0_8px_32px_rgba(239,68,68,0.55)] ring-1 ring-red-400/40">
+              <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-red-100/80">Scansione in corso</p>
+                <p className="text-sm font-bold text-white">Elaborazione email Rekki…</p>
+              </div>
+              <button
+                type="button"
+                onClick={stopSync}
+                aria-label="Interrompi scansione"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 transition-colors active:bg-white/25"
+              >
+                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+              </button>
+            </div>
           ) : (
             <button
               type="button"
               onClick={handleSync}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500 shadow-lg shadow-cyan-500/40 transition-transform active:scale-95"
-              aria-label="Avvia scansione email Rekki"
-              title="Avvia scansione"
+              aria-label="Scansiona bolla o fattura"
+              className="mx-3 mb-4 flex w-[calc(100%-1.5rem)] items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-3.5 shadow-[0_8px_32px_rgba(6,182,212,0.45)] ring-1 ring-cyan-300/30 transition-transform active:scale-[0.97]"
             >
-              <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              {/* Icona fotocamera */}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
+                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-cyan-100/70">Rekki · Email</p>
+                <p className="text-base font-bold leading-tight text-white">SCANSIONA BOLLA / FATTURA</p>
+              </div>
+              <svg className="h-5 w-5 shrink-0 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </button>
           )}
@@ -322,20 +338,31 @@ export default function StatoSincronizzazioneIntelligente({
           )}
         </div>
 
-        {/* ── Header mobile: titolo + timer ───────────────────────── */}
-        <div className="mb-3 flex items-center justify-between gap-2 md:hidden">
+        {/* ── Header mobile: titolo + timer + tap-to-sync ─────────── */}
+        <button
+          type="button"
+          className="mb-3 flex w-full items-center justify-between gap-2 rounded-lg px-0 py-0 text-left md:hidden active:opacity-70"
+          onClick={() => { if (!syncing && imapReady) handleSync() }}
+          title={syncing ? 'Scansione in corso…' : 'Tocca per avviare la sync'}
+          aria-label={syncing ? 'Scansione in corso' : 'Avvia sync email Rekki'}
+        >
           <div className="min-w-0">
-            <h3 className="text-xs font-bold text-app-fg">Sync Email Rekki</h3>
+            <h3 className="text-xs font-bold text-white">Sync Email Rekki</h3>
             {status?.last_sync_at ? (
-              <p className="mt-0.5 text-[11px] text-app-fg-muted">
+              <p className="mt-0.5 text-[11px] text-white/60">
                 {formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: it })}
+                {!syncing && imapReady && (
+                  <span className="ml-1.5 text-cyan-400">· tocca per aggiornare</span>
+                )}
               </p>
             ) : (
-              <p className="mt-0.5 text-[11px] text-app-fg-muted">Mai eseguita</p>
+              <p className="mt-0.5 text-[11px] text-white/60">
+                Mai eseguita{!syncing && imapReady && <span className="ml-1.5 text-cyan-400">· tocca per avviare</span>}
+              </p>
             )}
           </div>
-          <div className={`h-2 w-2 shrink-0 rounded-full ${synced ? 'bg-emerald-400' : 'bg-amber-400'} ${syncing ? 'animate-ping' : 'animate-pulse'}`} />
-        </div>
+          <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${synced ? 'bg-emerald-400' : 'bg-amber-400'} ${syncing ? 'animate-ping' : 'animate-pulse'}`} />
+        </button>
 
         {/* ── IMAP non configurato ──────────────────────────────── */}
         {!imapReady && (
