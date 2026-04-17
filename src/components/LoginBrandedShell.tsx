@@ -1,14 +1,24 @@
 import type { ReactNode } from 'react'
 
-/** Sfondo full-screen con glow: stesso layout di `/login` e `/accesso`. */
+/** Sfondo full-screen con foto geometrica: stesso layout di `/login` e `/accesso`. */
 export default function LoginBrandedShell({ children }: { children: ReactNode }) {
   return (
     <div
-      className="fixed inset-0 z-0 flex flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain bg-gradient-to-br from-[var(--app-canvas-from)] via-[var(--app-canvas-via)] to-[var(--app-canvas-to)]"
+      className="fixed inset-0 z-0 flex flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain"
+      style={{
+        backgroundImage: "url('/background-geo.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#0a192f',
+      }}
     >
-      <div className="pointer-events-none absolute -left-40 -top-40 h-[500px] w-[500px] rounded-full bg-app-line-10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-app-a-20 blur-3xl" />
-      <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-sm flex-1 flex-col items-center justify-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-6 sm:pb-6">
+      {/* Overlay scuro per leggibilità testi */}
+      <div className="pointer-events-none absolute inset-0 bg-[#0a192f]/55" />
+      {/* Glow ciano in basso a destra */}
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-cyan-500/8 blur-3xl" />
+      <div className="relative z-10 mx-auto flex min-h-dvh w-[92%] max-w-md flex-1 flex-col items-center justify-center pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {children}
       </div>
     </div>

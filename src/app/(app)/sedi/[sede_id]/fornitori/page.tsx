@@ -101,7 +101,7 @@ function AddFornitoreModal({
       <div className="relative w-full max-w-md app-workspace-surface-elevated rounded-2xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-app-line-22 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">Nuovo Fornitore</h2>
+          <h2 className="text-base font-semibold text-white">Nuovo Fornitore</h2>
           <button
             onClick={onClose}
             className="p-1.5 text-app-fg-muted hover:text-app-fg hover:bg-black/18 rounded-lg transition-colors"
@@ -116,7 +116,7 @@ function AddFornitoreModal({
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {error && (
-            <div className="flex items-start gap-2 px-3.5 py-3 bg-red-50 border border-red-100 rounded-lg text-sm text-red-700">
+            <div className="flex items-start gap-2 px-3.5 py-3 bg-red-500/10 border border-red-500/30 rounded-lg text-sm text-red-300">
               <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -125,7 +125,7 @@ function AddFornitoreModal({
           )}
 
           <div>
-            <label htmlFor="nome" className="block text-xs font-medium text-gray-700 mb-1.5">
+            <label htmlFor="nome" className="block text-xs font-medium text-slate-300 mb-1.5">
               Ragione Sociale <span className="text-red-500">*</span>
             </label>
             <input
@@ -141,9 +141,9 @@ function AddFornitoreModal({
           </div>
 
           <div>
-            <label htmlFor="piva" className="block text-xs font-medium text-gray-700 mb-1.5">
+            <label htmlFor="piva" className="block text-xs font-medium text-slate-300 mb-1.5">
               {loc.vatLabel}
-              <span className="text-gray-400 font-normal ml-1">(utile per l&apos;analisi AI)</span>
+              <span className="text-slate-400 font-normal ml-1">(utile per l&apos;analisi AI)</span>
             </label>
             <input
               id="piva"
@@ -158,9 +158,9 @@ function AddFornitoreModal({
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-xs font-medium text-gray-700 mb-1.5">
+            <label htmlFor="email" className="block text-xs font-medium text-slate-300 mb-1.5">
               Email per i documenti
-              <span className="text-gray-400 font-normal ml-1">(fondamentale per il matching IMAP)</span>
+              <span className="text-slate-400 font-normal ml-1">(fondamentale per il matching IMAP)</span>
             </label>
             <input
               id="email"
@@ -170,7 +170,7 @@ function AddFornitoreModal({
               placeholder="es. fatture@fornitore.it"
               className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-muted"
             />
-            <p className="mt-1.5 text-xs text-gray-400">
+            <p className="mt-1.5 text-xs text-slate-400">
               Questa email verrà usata per abbinare automaticamente le fatture ricevute.
             </p>
           </div>
@@ -281,16 +281,16 @@ export default function SedeFornitoriPage() {
 
       <div className="app-shell-page-padding max-w-5xl">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-xs text-gray-400 mb-6">
-          <Link href="/sedi" className="hover:text-gray-600 transition-colors">Sedi</Link>
+        <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-6">
+          <Link href="/sedi" className="hover:text-slate-200 transition-colors">Sedi</Link>
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <Link href={`/sedi/${sede_id}`} className="hover:text-gray-600 transition-colors">{sedeName}</Link>
+          <Link href={`/sedi/${sede_id}`} className="hover:text-slate-200 transition-colors">{sedeName}</Link>
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
-          <span className="text-gray-600 font-medium">Fornitori</span>
+          <span className="text-slate-300 font-medium">Fornitori</span>
         </nav>
 
         <AppPageHeaderStrip accent="sky">

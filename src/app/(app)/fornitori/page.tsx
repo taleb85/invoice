@@ -29,7 +29,12 @@ async function getFornitori(): Promise<{
   let sedeNome: string | null = null
 
   if (profile?.role === 'admin') {
-    sedeId = cookieStore.get('admin-sede-id')?.value ?? null
+    sedeId = cookieStore.get('admin-sede-id')?.value?.trim() || null
+    if (!sedeId) {
+      // Fallback: usa la prima sede disponibile invece di mostrare tutti i dati
+      const { data: firstSede } = await supabase.from('sedi').select('id').order('nome').limit(1).maybeSingle()
+      sedeId = firstSede?.id ?? null
+    }
   } else if (profile?.sede_id) {
     sedeId = profile.sede_id
   }

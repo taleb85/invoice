@@ -41,14 +41,12 @@ export async function GET() {
   const sedi =
     scopedSedeId ? (sediRaw ?? []).filter((s) => s.id === scopedSedeId) : (sediRaw ?? [])
 
-  // Conta per ogni sede
+  // Conta per ogni sede — solo dati configurativi (no operativi come bolle/fatture)
   const sediWithCounts = await Promise.all(
     sedi.map(async (sede) => {
-      const [{ count: fornitori_count }, { count: bolle_count }, { count: fatture_count }, { count: users_count }] =
+      const [{ count: fornitori_count }, { count: users_count }] =
         await Promise.all([
           svc.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
-          svc.from('bolle').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
-          svc.from('fatture').select('*', { count: 'exact', head: true }).eq('sede_id', sede.id),
           svc
             .from('profiles')
             .select('*', { count: 'exact', head: true })
@@ -58,8 +56,6 @@ export async function GET() {
       return {
         ...sede,
         fornitori_count: fornitori_count ?? 0,
-        bolle_count: bolle_count ?? 0,
-        fatture_count: fatture_count ?? 0,
         users_count: users_count ?? 0,
       }
     })

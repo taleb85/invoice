@@ -68,7 +68,11 @@ async function getListSedeId(): Promise<string | null> {
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const cookieStore = await cookies()
   if (profile?.role === 'admin') {
-    return cookieStore.get('admin-sede-id')?.value?.trim() || null
+    const fromCookie = cookieStore.get('admin-sede-id')?.value?.trim() || null
+    if (fromCookie) return fromCookie
+    // Fallback: usa la prima sede disponibile per evitare di mostrare tutti i dati
+    const { data: firstSede } = await supabase.from('sedi').select('id').order('nome').limit(1).maybeSingle()
+    return firstSede?.id ?? null
   }
   return profile?.sede_id ?? null
 }

@@ -354,7 +354,7 @@ export default function StatoSincronizzazioneIntelligente({
           aria-label={syncing ? 'Scansione in corso' : 'Avvia sync email Rekki'}
         >
           <div className="min-w-0">
-            <h3 className="text-xs font-bold text-white">Sync Email Rekki</h3>
+            <h3 className="text-xs font-bold text-white">Sincronizza Email Rekki</h3>
             {status?.last_sync_at ? (
               <p className="mt-0.5 text-[11px] text-white/60">
                 {formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: it })}

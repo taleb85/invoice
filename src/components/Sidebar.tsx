@@ -34,6 +34,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [sedeNome, setSedeNome] = useState<string | null>(null)
   const [allSedi, setAllSedi] = useState<{ id: string; nome: string }[]>([])
   const [branchesOpen, setBranchesOpen] = useState(true)
+  const [activeSede, setActiveSede] = useState<string | null>(null)
   const [fornitori, setFornitori] = useState<{ id: string; nome: string; display_name: string | null }[]>([])
   const [fornitoriOpen, setFornitoriOpen] = useState(true)
   const [fornitoriSearch, setFornitoriSearch] = useState('')
@@ -63,9 +64,20 @@ export default function Sidebar({ onClose }: SidebarProps) {
       const savedSede = getCookie('admin-sede-id')
       if (savedSede && !me.all_sedi.some((s) => s.id === savedSede)) {
         document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
+        setActiveSede(null)
+      } else {
+        setActiveSede(savedSede || null)
       }
     }
   }, [me, activeOperator])
+
+  const switchSede = (sedeId: string) => {
+    document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
+    document.cookie = `admin-sede-id=${encodeURIComponent(sedeId)}; path=/; SameSite=Strict`
+    setActiveSede(sedeId)
+    router.push('/')
+    router.refresh()
+  }
 
   useEffect(() => {
     if (!me) {
@@ -237,18 +249,25 @@ export default function Sidebar({ onClose }: SidebarProps) {
             )
           })}
 
-          {/* ── Admin: Branches ── */}
+          {/* ── Admin: Sede Switcher ── */}
           {isMasterAdmin && (
             <div className="bg-transparent">
               <button
                 onClick={() => setBranchesOpen(o => !o)}
                 className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
               >
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  <span className="truncate">{t.nav.sediNavGroupMaster}</span>
+                  <span className="min-w-0 truncate">
+                    {activeSede
+                      ? (allSedi.find(s => s.id === activeSede)?.nome ?? t.nav.sediNavGroupMaster)
+                      : t.nav.sediNavGroupMaster}
+                  </span>
+                  {activeSede && (
+                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
+                  )}
                 </span>
                 <svg className={`w-3 h-3 shrink-0 transition-transform ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -257,14 +276,41 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               {branchesOpen && (
                 <div className="app-shell-rail-panel ml-3 mt-0.5 space-y-0.5 border-l border-app-line-22 pl-2">
+                  {/* Sede items: click = attiva sede, gear = gestisci */}
                   {allSedi.map((s) => {
-                    const isActive = pathname.startsWith(`/sedi/${s.id}`)
+                    const isCurrent = s.id === activeSede
                     return (
-                      <Link key={s.id} href={`/sedi/${s.id}`} onClick={onClose}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${isActive ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'}`}>
-                        <span className={`h-1 w-1 shrink-0 rounded-full ${isActive ? 'bg-app-cyan-400' : 'bg-current opacity-60'}`} />
-                        <span className="truncate">{s.nome}</span>
-                      </Link>
+                      <div key={s.id} className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => { switchSede(s.id); onClose?.() }}
+                          title={isCurrent ? `Sede attiva: ${s.nome}` : `Passa a: ${s.nome}`}
+                          className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11px] font-semibold transition-colors touch-manipulation ${
+                            isCurrent
+                              ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
+                              : 'bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+                          }`}
+                        >
+                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isCurrent ? 'bg-cyan-400' : 'bg-current opacity-40'}`} aria-hidden />
+                          <span className="min-w-0 truncate">{s.nome}</span>
+                          {isCurrent && (
+                            <svg className="ml-auto h-3 w-3 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                        <Link
+                          href={`/sedi/${s.id}`}
+                          onClick={onClose}
+                          title={`Impostazioni ${s.nome}`}
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
+                        >
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </Link>
+                      </div>
                     )
                   })}
                   <Link href="/sedi" onClick={onClose}

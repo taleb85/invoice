@@ -81,6 +81,11 @@ export default async function FatturePage({
     const { data } = await supabase.from('sedi').select('id').eq('id', adminPick).maybeSingle()
     if (data?.id) adminViewSedeId = data.id
   }
+  // Fallback: se admin senza cookie, usa la prima sede disponibile
+  if (isMasterAdmin && !adminViewSedeId) {
+    const { data: firstSede } = await supabase.from('sedi').select('id').order('nome').limit(1).maybeSingle()
+    adminViewSedeId = firstSede?.id ?? null
+  }
 
   const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
   const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []

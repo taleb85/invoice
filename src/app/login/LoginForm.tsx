@@ -481,7 +481,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full">
 
       <LoginBrandedHero mode={mode} />
 
@@ -787,7 +787,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
         {/* Barra inferiore: stessa larghezza della card (link admin + lingua) */}
         <div
-          className={`flex min-h-[3rem] items-center gap-3 border-t border-white/10 bg-black/[0.12] px-4 py-2.5 ${
+          className={`flex min-h-[3rem] items-center gap-3 border-t border-white/[0.08] bg-white/[0.03] px-4 py-2.5 ${
             sessionGateNext ? 'justify-center' : 'justify-between'
           }`}
         >

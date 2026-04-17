@@ -36,8 +36,6 @@ async function detectCountryByIp(): Promise<{ code: string; detected: boolean }>
 
 interface SedeWithCounts extends Sede {
   fornitori_count: number
-  bolle_count: number
-  fatture_count: number
   users_count: number
   imap_host: string | null
   imap_port: number | null
@@ -825,19 +823,47 @@ export default function SediPage() {
                         <div className="min-w-0">
                           <h3 className="font-semibold text-app-fg leading-tight">{sede.nome}</h3>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-xs text-app-fg-muted">{sede.users_count} operatori · {sede.fornitori_count} fornitori · {sede.bolle_count} bolle · {sede.fatture_count} fatture</span>
+                            <span className="text-xs text-app-fg-muted">
+                              {sede.users_count} operatori · {sede.fornitori_count} fornitori
+                            </span>
                             {sede.access_password && (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/35">PIN</span>
                             )}
                             {sede.imap_user ? (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/35">EMAIL ✓</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/35">
+                                <svg className="inline-block h-2.5 w-2.5 -mt-0.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                                </svg>
+                                Email
+                              </span>
                             ) : (
-                              <span className="px-1.5 py-0.5 app-workspace-inset-bg text-app-fg-muted text-[10px] font-medium rounded">Email non config.</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-300/80 ring-1 ring-amber-500/25">
+                                Email non config.
+                              </span>
                             )}
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
+                        {/* Accedi alla Sede — switcha il cookie e torna alla dashboard */}
+                        {!isSedeScopedAdmin && (
+                          <button
+                            type="button"
+                            title="Accedi alla sede"
+                            onClick={() => {
+                              document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
+                              document.cookie = `admin-sede-id=${encodeURIComponent(sede.id)}; path=/; SameSite=Strict`
+                              router.push('/')
+                              router.refresh()
+                            }}
+                            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-100 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/18 touch-manipulation"
+                          >
+                            <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                            </svg>
+                            Accedi
+                          </button>
+                        )}
                         <button onClick={() => setEditingSede({ id: sede.id, nome: sede.nome })}
                           className="p-1.5 text-app-fg-muted hover:text-app-fg hover:bg-black/18 rounded-lg transition-colors" title={t.sedi.renameTitle}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -391,19 +391,16 @@
   }
   /** Shell card login: vetro come `.app-card`, testo come token `text-app-fg`. */
   .app-card-login {
-    @apply relative overflow-hidden rounded-2xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.42),0_16px_40px_-14px_rgba(0,0,0,0.35),0_0_60px_-15px_rgba(6,182,212,0.25)] backdrop-blur-xl ring-1 ring-inset ring-white/10;
-    -webkit-backdrop-filter: blur(24px);
-    background-color: rgba(15, 23, 42, 0.75);
+    @apply relative overflow-hidden rounded-3xl border border-white/[0.12] bg-slate-900/80 text-app-fg shadow-[0_8px_48px_-12px_rgba(0,0,0,0.65),0_0_40px_-14px_rgba(6,182,212,0.2),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-2xl;
+    -webkit-backdrop-filter: blur(28px);
   }
 
-  /** Error boundary su `LoginBrandedShell`: niente vetro pieno, canvas visibile sotto. */
+  /** Vetro scuro semi-opaco su `LoginBrandedShell` (sovrascrive la base). */
   .app-card-login-transparent {
-    background: transparent !important;
+    background: rgba(15, 23, 42, 0.72) !important;
     background-image: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    @apply border-app-line-30/50 ring-1 ring-inset ring-white/[0.06];
+    box-shadow: 0 8px 48px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.07) !important;
+    @apply backdrop-blur-2xl border-white/[0.10] ring-0;
   }
 
   /** Segment error (`(app)/error.tsx`): stesso trattamento su canvas app. */

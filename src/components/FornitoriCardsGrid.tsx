@@ -228,7 +228,7 @@ export default function FornitoriCardsGrid({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5 lg:grid-cols-4 lg:gap-6">
         {rows.map((f) => {
           const display = fornitoreDisplayLabel(f)
           const hasDisplayAlias = !!(f.display_name?.trim())
