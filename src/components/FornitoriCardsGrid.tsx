@@ -228,7 +228,7 @@ export default function FornitoriCardsGrid({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:gap-6">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4 xl:grid-cols-4">
         {rows.map((f) => {
           const display = fornitoreDisplayLabel(f)
           const hasDisplayAlias = !!(f.display_name?.trim())
@@ -242,15 +242,15 @@ export default function FornitoriCardsGrid({
             .toUpperCase() || '?'
 
           const bodyClasses =
-            'flex min-h-0 w-full flex-1 flex-col gap-2 p-2.5 pb-2 items-stretch sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-5 sm:pb-4 lg:gap-6 lg:p-6'
+            'flex min-h-0 w-full flex-1 flex-col gap-2 p-2.5 pb-2 items-stretch sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:p-4 sm:pb-3 lg:gap-3 lg:p-3.5 lg:pb-2.5'
           const avatarShell =
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 via-sky-500 to-cyan-600 text-xs font-bold text-white shadow-md shadow-sky-950/45 ring-2 ring-sky-500/35 ring-offset-1 ring-offset-[rgb(2_6_23/0.9)] sm:h-14 sm:w-14 sm:rounded-2xl sm:text-base sm:ring-offset-2 lg:h-16 lg:w-16 lg:text-lg'
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 via-sky-500 to-cyan-600 text-xs font-bold text-white shadow-md shadow-sky-950/45 ring-2 ring-sky-500/35 ring-offset-1 ring-offset-[rgb(2_6_23/0.9)] sm:h-12 sm:w-12 sm:rounded-2xl sm:text-sm sm:ring-offset-2 lg:h-11 lg:w-11 lg:text-xs'
           const headBlock = (
             <>
               <div className={`${avatarShell} self-start`}>{initials}</div>
               <div className="min-w-0 flex-1 text-left">
                 <div className="flex min-w-0 flex-row flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  <p className="min-w-0 break-words text-sm font-bold leading-tight text-app-fg transition-colors group-hover:text-sky-200 sm:text-base lg:text-lg">
+                  <p className="min-w-0 break-words text-sm font-bold leading-tight text-app-fg transition-colors group-hover:text-sky-200 sm:text-base lg:text-sm xl:text-base">
                     {display}
                   </p>
                   {rekkiMapped ? (
@@ -276,7 +276,7 @@ export default function FornitoriCardsGrid({
           return (
             <div
               key={f.id}
-              className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} group relative flex h-full flex-col sm:rounded-3xl transition-all ${fornitoriCardTheme.border} hover:border-sky-400/45 hover:shadow-lg hover:shadow-sky-500/12`}
+              className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} group relative flex h-full flex-col rounded-2xl sm:rounded-3xl transition-all duration-200 will-change-transform ${fornitoriCardTheme.border} hover:border-sky-400/45 hover:shadow-xl hover:shadow-sky-500/15 hover:-translate-y-0.5 hover:scale-[1.015]`}
             >
               <div
                 className={`h-0.5 w-full shrink-0 rounded-t-2xl sm:h-1 sm:rounded-t-3xl ${fornitoriCardTheme.bar}`}
@@ -296,7 +296,7 @@ export default function FornitoriCardsGrid({
                 </Link>
               )}
 
-              <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-2xl border-t border-sky-500/20 app-workspace-inset-bg-soft px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm sm:rounded-b-3xl sm:px-4 sm:py-2.5">
+              <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-2xl border-t border-sky-500/20 app-workspace-inset-bg-soft px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm sm:rounded-b-3xl sm:px-3 sm:py-2 lg:px-2.5 lg:py-1.5">
                 {unlockedIds.has(f.id) ? (
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import type { Fornitore } from '@/types'
 import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
@@ -53,7 +54,7 @@ export default function FornitoriListSection({
       />
 
       <AppSectionFiltersBar aria-label={t.nav.cerca}>
-        <label className="block min-w-0 w-full sm:max-w-md sm:flex-1">
+        <label className="block min-w-0 flex-1 sm:max-w-md">
           <span className="sr-only">{t.nav.cerca}</span>
           <div className="relative">
             <svg
@@ -80,6 +81,18 @@ export default function FornitoriListSection({
             />
           </div>
         </label>
+
+        {/* Nuovo Fornitore: visible on mobile (header CTAs are md:hidden on sm and below) */}
+        <Link
+          href="/fornitori/new"
+          className="app-glow-cyan md:hidden inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-app-cyan-500 px-3 text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 touch-manipulation"
+          aria-label={t.fornitori.new}
+        >
+          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          {t.fornitori.new}
+        </Link>
       </AppSectionFiltersBar>
 
       <StandardCard accent="sky" className="!mb-0">
