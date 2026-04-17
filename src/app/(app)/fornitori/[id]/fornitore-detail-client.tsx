@@ -3667,7 +3667,7 @@ function ListinoTab({
 
           {/* Product rows */}
           {nListinoProducts > 0 && nFilteredProducts > 0 && (
-            <div className={APP_SECTION_DIVIDE_ROWS}>
+            <div className={`${APP_SECTION_DIVIDE_ROWS} border-4 border-red-500 md:border-none`}>
               {Object.entries(filteredListinoByProduct).map(([prodotto, prezzi]) => {
                 const sorted = [...prezzi].sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
                 const ultimo = sorted[sorted.length - 1]!

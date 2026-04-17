@@ -839,14 +839,14 @@ body {
 }
 
 /*
- * FORCE UI REFRESH TEST — sfondo forzato su tutti i breakpoint.
- * IMG_1864.jpeg non esiste in public/; usa il file reale background-geometric-blue.png.
- * Rimuovi questo blocco quando il test visivo è completato.
+ * SFONDO GLOBALE — background-geo.jpg (copia di IMG_1864.jpeg in public/).
+ * Se il file non è presente, il body resta con background-color di fallback.
  */
 body {
-  background-image: url('/background-geometric-blue.png') !important;
-  background-attachment: fixed !important;
+  background-image: url('/background-geo.jpg') !important;
   background-size: cover !important;
   background-position: center !important;
+  background-attachment: fixed !important;
   background-repeat: no-repeat !important;
+  background-color: #020617;
 }
