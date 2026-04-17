@@ -593,10 +593,13 @@ function SupplierDesktopKpiGrid({
   loading,
   stats,
   onTabChange,
+  hiddenTabs,
 }: {
   loading: boolean
   stats: SupplierPeriodStats | null
   onTabChange: (tab: Tab) => void
+  /** Tab nascosti su mobile: i KPI che puntano a questi tab vengono esclusi */
+  hiddenTabs?: Tab[]
 }) {
   const t = useT()
   const { locale, currency } = useLocale()
@@ -605,7 +608,11 @@ function SupplierDesktopKpiGrid({
     [currency, locale],
   )
   const displayStats = stats ?? EMPTY_SUPPLIER_PERIOD_STATS
-  const kpis = useMemo(() => buildSupplierKpiItems(displayStats, t, formatMoney), [displayStats, t, formatMoney])
+  const allKpis = useMemo(() => buildSupplierKpiItems(displayStats, t, formatMoney), [displayStats, t, formatMoney])
+  const kpis = useMemo(
+    () => hiddenTabs?.length ? allKpis.filter((k) => !hiddenTabs.includes(k.tab)) : allKpis,
+    [allKpis, hiddenTabs],
+  )
   return (
     <div
       className={SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS}
@@ -4588,7 +4595,7 @@ function FornitoreDetailClient({
 
         <div className="min-w-0">
           {supplierReadOnlyMobile ? (
-            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
+            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} hiddenTabs={MOBILE_READONLY_HIDDEN_TABS} />
           ) : (
             <div
               className="-mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
