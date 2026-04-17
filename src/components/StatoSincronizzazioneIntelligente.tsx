@@ -228,14 +228,16 @@ export default function StatoSincronizzazioneIntelligente({
     <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
       <div className="app-card-bar-accent bg-gradient-to-r from-cyan-500/80 to-blue-500/60" aria-hidden />
 
-      {/* ── Action Bar mobile: barra fissa in basso, ben visibile ─── */}
+      {/* ── Action Bar mobile: sopra il bottom nav (90px) + 1rem di offset + gap ─── */}
       {imapReady && (
-        <div className="fixed bottom-0 inset-x-0 z-50 md:hidden pb-safe">
+        <div className="fixed left-1/2 z-[90] -translate-x-1/2 w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] md:hidden"
+          style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 90px + 0.625rem)' }}
+        >
           {syncing ? (
-            <div className="mx-3 mb-4 flex items-center gap-3 rounded-2xl bg-red-600 px-5 py-3.5 shadow-[0_8px_32px_rgba(239,68,68,0.55)] ring-1 ring-red-400/40">
+            <div className="flex items-center gap-3 rounded-2xl bg-red-600 px-5 py-3 shadow-[0_8px_32px_rgba(239,68,68,0.55)] ring-1 ring-red-400/40">
               <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-red-100/80">Scansione in corso</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-red-100/80">Scansione in corso</p>
                 <p className="text-sm font-bold text-white">Elaborazione email Rekki…</p>
               </div>
               <button
@@ -254,7 +256,7 @@ export default function StatoSincronizzazioneIntelligente({
               type="button"
               onClick={handleSync}
               aria-label="Scansiona bolla o fattura"
-              className="mx-3 mb-4 flex w-[calc(100%-1.5rem)] items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-3.5 shadow-[0_8px_32px_rgba(6,182,212,0.45)] ring-1 ring-cyan-300/30 transition-transform active:scale-[0.97]"
+              className="flex w-full items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-3 shadow-[0_8px_32px_rgba(6,182,212,0.45)] ring-1 ring-cyan-300/30 transition-transform active:scale-[0.97]"
             >
               {/* Icona fotocamera */}
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
