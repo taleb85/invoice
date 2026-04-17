@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
+import { useMe } from '@/lib/me-context'
+import { useActiveOperator } from '@/lib/active-operator-context'
 import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import SollecitiButton from '@/components/SollecitiButton'
 import ScanEmailButton from '@/components/ScanEmailButton'
@@ -14,6 +17,72 @@ const DUPLICATE_IN_PANEL_CLS =
   'flex h-9 w-full min-w-0 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
 
 type PanelRect = { top: number; left: number; width: number }
+
+/**
+ * Sezione sede-switcher nel pannello strumenti — visibile solo per master admin con più sedi.
+ * Legge `all_sedi` da `useMe()` (già in contesto, zero fetch extra).
+ */
+function AdminSedeSwitcherPanel() {
+  const { me } = useMe()
+  const { clearActiveOperator } = useActiveOperator()
+  const router = useRouter()
+  const [activeSede, setActiveSede] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const match = document.cookie.match(/(?:^|; )admin-sede-id=([^;]*)/)
+    setActiveSede(match ? decodeURIComponent(match[1]) : null)
+  }, [])
+
+  const isMasterAdmin = me?.role === 'admin'
+  const sedi = me?.all_sedi ?? []
+  if (!isMasterAdmin || sedi.length < 2) return null
+
+  const switchSede = (sedeId: string) => {
+    clearActiveOperator()
+    document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
+    document.cookie = `admin-sede-id=${sedeId}; path=/; SameSite=Strict`
+    setActiveSede(sedeId)
+    router.push('/')
+    router.refresh()
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-1.5">
+      <p className="px-0.5 text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
+        Sede attiva
+      </p>
+      <div className="flex flex-col gap-1">
+        {sedi.map((s) => {
+          const isActive = s.id === activeSede
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => switchSede(s.id)}
+              className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-colors touch-manipulation ${
+                isActive
+                  ? 'border border-cyan-500/40 bg-cyan-500/12 text-cyan-100'
+                  : 'border border-transparent text-app-fg-muted hover:border-app-line-22 hover:bg-app-line-10 hover:text-app-fg'
+              }`}
+            >
+              <span
+                className={`inline-block h-2 w-2 shrink-0 rounded-full ${isActive ? 'bg-cyan-400' : 'bg-app-fg-muted/40'}`}
+                aria-hidden
+              />
+              <span className="min-w-0 truncate">{s.nome}</span>
+              {isActive && (
+                <svg className="ml-auto h-3.5 w-3.5 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 /**
  * Dashboard desktop: un solo pulsante apre un pannello con duplicati, solleciti e sync email.
@@ -93,6 +162,7 @@ export default function DashboardHeaderSedeToolsMenu({ fornitoriInScadenza = 0 }
         className="rounded-xl border border-app-line-25 app-workspace-surface-elevated shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
       >
         <div className="flex max-h-[min(70vh,26rem)] w-full flex-col items-stretch gap-4 overflow-y-auto overflow-x-visible p-3">
+          <AdminSedeSwitcherPanel />
           <DashboardDuplicateFattureButton alwaysShowLabel className={DUPLICATE_IN_PANEL_CLS} />
           {fornitoriInScadenza > 0 ? (
             <SollecitiButton fornitoriInScadenza={fornitoriInScadenza} stackedInPanel />

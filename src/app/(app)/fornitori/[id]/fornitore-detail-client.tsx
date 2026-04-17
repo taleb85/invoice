@@ -55,6 +55,7 @@ import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import StatoSincronizzazioneIntelligente from '@/components/StatoSincronizzazioneIntelligente'
 import FattureInAttesaAutoSync from '@/components/FattureInAttesaAutoSync'
 import RecuperoCreditiAudit from '@/components/RecuperoCreditiAudit'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
@@ -1520,11 +1521,13 @@ function DashboardTab({
       </div>
 
       {/* Pannello unico sincronizzazione Rekki — full-width */}
-      <StatoSincronizzazioneIntelligente
-        fornitoreId={fornitoreId}
-        fornitoreNome={fornitore.nome}
-        sedeId={fornitore.sede_id ?? null}
-      />
+      <ErrorBoundary fallbackTitle="Sincronizzazione email non disponibile">
+        <StatoSincronizzazioneIntelligente
+          fornitoreId={fornitoreId}
+          fornitoreNome={fornitore.nome}
+          sedeId={fornitore.sede_id ?? null}
+        />
+      </ErrorBoundary>
       
       </div>
 
