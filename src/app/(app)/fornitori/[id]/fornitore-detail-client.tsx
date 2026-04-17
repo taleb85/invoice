@@ -1553,9 +1553,9 @@ function attachmentOpenFileLinkLabel(
 const FORNITORE_TABLE_CYAN_ACTION_PILL =
   'inline-flex items-center gap-1 rounded-lg border border-app-line-30 bg-app-line-10 px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-20'
 
-/** Pill elimina compatto, allineato al cyan in tabella bolle fornitore. */
+/** Pill elimina icon-only compatto (solo icona, nessun testo). */
 const FORNITORE_TABLE_DELETE_PILL =
-  'inline-flex items-center gap-1 rounded-lg border border-red-500/50 bg-red-950/40 px-2 py-1 text-[10px] font-semibold text-red-200 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-red-400/65 hover:bg-red-600/20 hover:text-red-50'
+  'inline-flex h-6 w-6 items-center justify-center rounded-md border border-red-500/40 bg-red-950/30 text-red-300 opacity-0 transition-all group-hover:opacity-100 hover:border-red-400/65 hover:bg-red-600/20 hover:text-red-100 focus-visible:opacity-100'
 
 function attachmentKindText(
   kind: AttachmentKind,
@@ -1868,7 +1868,8 @@ function BolleTab({
                       table="bolle"
                       confirmMessage={t.bolle.deleteConfirm}
                       className={FORNITORE_TABLE_DELETE_PILL}
-                      iconClassName="h-3 w-3"
+                      iconClassName="h-3.5 w-3.5"
+                      iconOnly
                     />
                     ) : null}
                   </div>
@@ -4658,23 +4659,23 @@ function FornitoreDetailClient({
           Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
         */}
         <div
-          className="fornitore-desktop-main-x mx-auto w-full max-w-[83rem]"
+          className="fornitore-desktop-main-x mx-auto w-full max-w-7xl"
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
         {/* Intestazione + tab: sticky in `#app-main` così nome/sync/CTA e tab+mese restano visibili allo scroll. */}
-        <div className="sticky top-0 z-20 w-full border-b border-app-soft-border app-workspace-inset-bg-soft pb-0.5 pt-1.5 shadow-[0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
+        <div className="sticky top-0 z-20 w-full border-b border-app-soft-border app-workspace-inset-bg-soft pb-0.5 pt-1 shadow-[0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
-          <div className="flex min-w-0 items-center gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
+          <div className="flex min-w-0 items-center gap-2 px-2 py-1 sm:gap-2.5 sm:px-2.5 lg:py-0.5">
             {/* Identità fornitore */}
             <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
               <FornitoreAvatar
                 nome={fornitore.nome}
                 logoUrl={fornitore.logo_url}
-                sizeClass="h-8 w-8 shrink-0"
+                sizeClass="h-8 w-8 shrink-0 lg:h-7 lg:w-7"
               />
               <div className="min-w-0 flex-1">
                 <h1 className="app-page-title truncate text-[13px] font-bold leading-tight text-app-fg">
@@ -4731,7 +4732,7 @@ function FornitoreDetailClient({
                   key={tb.id}
                   type="button"
                   onClick={() => setTab(tb.id)}
-                  className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[11px] font-semibold leading-none transition-colors border-b-2 -mb-px xl:min-h-8 xl:px-2.5 ${
+                  className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[10px] font-semibold leading-none transition-colors border-b-2 -mb-px lg:min-h-7 lg:text-[11px] xl:min-h-8 xl:px-2.5 ${
                     tab === tb.id
                       ? `${SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE[tb.id]} bg-transparent text-app-fg`
                       : 'border-b-transparent bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
@@ -4740,7 +4741,7 @@ function FornitoreDetailClient({
                   {tb.label}
                   {tb.badge !== undefined && tb.badge > 0 && (
                     <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                      className={`rounded-full px-1 py-0.5 text-[9px] font-bold lg:px-1.5 lg:text-[10px] ${
                         tab === tb.id
                           ? tb.id === 'documenti'
                             ? 'bg-amber-400/20 text-amber-300'

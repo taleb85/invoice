@@ -15,6 +15,8 @@ interface Props {
   className?: string
   /** Classi SVG cestino / spinner (default `w-3.5 h-3.5`). */
   iconClassName?: string
+  /** Nasconde l'etichetta testuale — solo icona (per righe tabella compatte). */
+  iconOnly?: boolean
 }
 
 const defaultButtonClass =
@@ -27,6 +29,7 @@ export default function DeleteButton({
   redirectTo,
   className,
   iconClassName = 'w-3.5 h-3.5',
+  iconOnly = false,
 }: Props) {
   const t = useT()
   const [loading, setLoading] = useState(false)
@@ -63,7 +66,7 @@ export default function DeleteButton({
       ) : (
         <Trash2 className={iconClassName} aria-hidden strokeWidth={2} />
       )}
-      {t.common.delete}
+      {!iconOnly && t.common.delete}
     </button>
   )
 }

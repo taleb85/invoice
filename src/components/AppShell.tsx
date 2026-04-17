@@ -200,6 +200,8 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const bindDesktopNavHost = useCallback((el: HTMLDivElement | null) => {
     setDesktopNavHost(el)
   }, [])
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false)
+  useEffect(() => { setTabletSidebarOpen(false) }, [pathname])
   /** Dock compatto (solo icone) per operatore hub; dock più alto con riga operatore per admin e scheda fornitore. */
   const tallMobileDock =
     (loading && !me) ||
@@ -227,23 +229,44 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           Desktop: griglia a una riga — (1) `aside` unico: brand + `Sidebar`;
           (2) colonna destra unica: `#app-desktop-header-nav-progress` + `main` nello stesso contenitore flex.
         */}
-        <div className="app-shell-workspace-canvas flex min-h-0 min-w-0 flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[13rem_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <div className="app-shell-workspace-canvas flex min-h-0 min-w-0 flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1fr)]">
           <SidebarController />
+
+          {/* ── Tablet sidebar overlay (md only, auto-close on navigate) ── */}
+          {tabletSidebarOpen && (
+            <div
+              className="fixed inset-0 z-[200] lg:hidden"
+              onClick={() => setTabletSidebarOpen(false)}
+            >
+              <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" aria-hidden />
+              <aside
+                className="app-sidebar-aside app-shell-rail-clear relative z-10 flex h-full w-56 shrink-0 flex-col overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Navigazione principale"
+              >
+                <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 min-h-[40px]">
+                  <SidebarRailBrand />
+                </div>
+                <Sidebar onClose={() => setTabletSidebarOpen(false)} />
+              </aside>
+            </div>
+          )}
+
           <aside
             suppressHydrationWarning
             aria-label="Navigazione principale"
             className={[
-              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 md:col-start-1 md:row-start-1 md:flex md:h-full md:min-h-0 md:flex-col md:self-stretch md:overflow-visible md:relative md:z-auto',
+              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-visible lg:relative lg:z-auto',
             ].join(' ')}
           >
-            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 md:min-h-[40px]">
+            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 lg:min-h-[40px]">
               <SidebarRailBrand />
             </div>
             <Sidebar />
           </aside>
           <div
             data-app-desktop-canvas
-            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-2 md:row-start-1 md:h-full md:min-h-0 md:overflow-hidden"
+            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-2 md:h-full md:min-h-0 md:overflow-hidden"
           >
             <div
               ref={bindDesktopNavHost}
@@ -251,6 +274,17 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[40px] md:w-full ${desktopHeaderCanvas}`}
             >
               <div className="relative z-20 flex min-h-[40px] min-w-0 flex-1 items-stretch overflow-visible">
+                {/* Hamburger: visible on md (tablet), hidden on lg (desktop with sidebar) */}
+                <button
+                  type="button"
+                  onClick={() => setTabletSidebarOpen((o) => !o)}
+                  className="flex lg:hidden h-full min-h-[40px] w-10 shrink-0 items-center justify-center border-r border-app-line-25 text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                  aria-label="Menu navigazione"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                  </svg>
+                </button>
                 <DesktopHeaderActionsStrip />
               </div>
               {headerToastBanner ? (

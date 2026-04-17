@@ -112,7 +112,7 @@ export const APP_SECTION_TABLE_TBODY = 'divide-y divide-app-soft-border'
 export const APP_SECTION_TABLE_ROW_HOVER =
   'transition-colors hover:bg-cyan-500/[0.08] hover:shadow-[inset_3px_0_0_rgba(6,182,212,0.35)]'
 
-export const APP_SECTION_TABLE_TR = `group ${APP_SECTION_TABLE_ROW_HOVER}`
+export const APP_SECTION_TABLE_TR = `group even:bg-white/[0.025] ${APP_SECTION_TABLE_ROW_HOVER}`
 
 export const APP_SECTION_TABLE_TR_GROUP = APP_SECTION_TABLE_TR
 

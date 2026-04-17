@@ -1550,7 +1550,7 @@ export function PendingMatchesTab({
             {t.statements.tabAll}
           </button>
         </div>
-        <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-x-2 gap-y-1">
+        <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-x-2 gap-y-1 md:min-h-0 md:py-1">
           <p className={`text-xs font-medium ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>
             {bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}
           </p>
@@ -1559,7 +1559,7 @@ export function PendingMatchesTab({
             onClick={() => void runRefreshAndBulkAutoMatch()}
             disabled={bulkAnalyzing}
             title={t.statements.bulkAutoMatchButtonTitle}
-            className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-gradient-to-r from-cyan-500/15 to-teal-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-50 shadow-[0_0_24px_-12px_rgba(34,211,238,0.55)] ring-1 ring-cyan-500/20 transition-colors hover:border-cyan-400/55 hover:from-cyan-500/22 hover:to-teal-500/14 hover:ring-cyan-400/30 disabled:pointer-events-none disabled:opacity-45"
+            className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-gradient-to-r from-cyan-500/15 to-teal-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-50 shadow-[0_0_24px_-12px_rgba(34,211,238,0.55)] ring-1 ring-cyan-500/20 transition-colors hover:border-cyan-400/55 hover:from-cyan-500/22 hover:to-teal-500/14 hover:ring-cyan-400/30 disabled:pointer-events-none disabled:opacity-45 md:min-h-0 md:py-1.5 md:px-3"
             aria-label={t.statements.bulkAutoMatchButtonLabel}
             aria-busy={bulkAnalyzing}
           >
@@ -1663,7 +1663,7 @@ export function PendingMatchesTab({
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {docs.map(doc => {
             const stato          = actions[doc.id] ?? 'idle'
             const isImage        = doc.content_type?.startsWith('image/')
@@ -1686,7 +1686,7 @@ export function PendingMatchesTab({
                 }`}
               >
                 <div className={`app-card-bar-accent ${rowTheme.bar}`} aria-hidden />
-                <div className="flex gap-3 p-3 md:gap-3 md:p-4">
+                <div className="flex gap-2.5 p-2.5 md:gap-3 md:p-3">
                   {/* Thumbnail */}
                   <button
                     onClick={async () => {
@@ -1698,7 +1698,7 @@ export function PendingMatchesTab({
                         /* ignore */
                       }
                     }}
-                    className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-app-line-28 bg-transparent transition-opacity hover:opacity-80 md:h-10 md:w-10`}
+                    className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-app-line-28 bg-transparent transition-opacity hover:opacity-80 md:h-8 md:w-8`}
                   >
                     {thumb
                       ? (
@@ -1713,7 +1713,7 @@ export function PendingMatchesTab({
                       )
                       : (
                         <svg
-                          className={`h-7 w-7 md:h-5 md:w-5 ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
+                          className={`h-6 w-6 md:h-4 md:w-4 ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
