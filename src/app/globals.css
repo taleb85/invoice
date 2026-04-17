@@ -885,8 +885,29 @@ body,
   }
 }
 
-/* ── Tablet: touch area minima 44px su select e input ── */
-@media (pointer: coarse) and (min-width: 768px) {
+/* ── Touch: area minima 44px (WCAG) su tutti i dispositivi touch ── */
+@media (pointer: coarse) {
+  select,
+  input[type="text"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="search"],
+  input[type="date"],
+  button,
+  [role="button"],
+  a[href] {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Ripristina: link inline nel testo non devono diventare enormi */
+  p a[href],
+  li a[href],
+  span a[href] {
+    min-height: unset;
+  }
+
   select,
   input[type="text"],
   input[type="email"],
@@ -894,7 +915,6 @@ body,
   input[type="number"],
   input[type="search"],
   input[type="date"] {
-    min-height: 44px;
     padding-top: 0.625rem;
     padding-bottom: 0.625rem;
   }

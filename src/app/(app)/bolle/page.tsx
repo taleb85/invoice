@@ -29,6 +29,7 @@ import {
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR_GROUP,
   APP_SECTION_TABLE_TD,
+  APP_SECTION_TABLE_THEAD_STICKY,
 } from '@/lib/app-shell-layout'
 import { analyzeBolleDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
@@ -321,7 +322,7 @@ export default async function BollePage({
               </div>
 
               <table className="hidden w-full text-sm md:table">
-                <thead>
+                <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
                   <tr className={appSectionTableHeadRowAccentClass('indigo')}>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.bolle.colNumero}</th>

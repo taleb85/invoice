@@ -20,6 +20,7 @@ import {
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR,
+  APP_SECTION_TABLE_THEAD_STICKY,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
 import { standardBadgeClassName } from '@/components/ui/StandardBadge'
@@ -187,7 +188,7 @@ export default function FattureListWithDuplicates({
       </div>
 
       <table className="hidden w-full text-sm md:table">
-        <thead>
+        <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
             <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>

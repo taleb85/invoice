@@ -5,7 +5,7 @@ import Link from 'next/link'
 export type ActionButtonIntent = 'integration' | 'outline' | 'confirm' | 'danger' | 'nav'
 
 const ACTION_BUTTON_BASE =
-  'inline-flex shrink-0 items-center justify-center gap-1.5 font-semibold transition-[box-shadow,background-color,border-color,color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-45'
+  'inline-flex shrink-0 items-center justify-center gap-1.5 font-semibold touch-manipulation transition-[box-shadow,background-color,border-color,color,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:pointer-events-none disabled:opacity-45'
 
 const INTENT_CLASS: Record<ActionButtonIntent, string> = {
   /** Viola neon — Rekki, Google, ricerche, collegamenti integrazione */
