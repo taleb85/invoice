@@ -36,7 +36,7 @@ interface AddFormState {
 
 function formatDate(iso: string) {
   try {
-    return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    return new Date(iso).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
   } catch {
     return iso
   }
@@ -75,7 +75,7 @@ function ScannerRow({
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async () => {
-    if (!form.nome.trim()) { setError('Company name is required'); return }
+    if (!form.nome.trim()) { setError('Il nome dell\'azienda è obbligatorio'); return }
     setSaving(true)
     setError(null)
     try {
@@ -90,10 +90,10 @@ function ScannerRow({
         }),
       })
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Error creating supplier')
+      if (!res.ok) throw new Error(json.error ?? 'Errore durante la creazione del fornitore')
       onAdded(sender.email)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      setError(err instanceof Error ? err.message : 'Errore sconosciuto')
     } finally {
       setSaving(false)
     }
@@ -101,7 +101,7 @@ function ScannerRow({
 
   return (
     <div className="app-workspace-surface-elevated rounded-xl border border-app-line-25 overflow-hidden">
-      {/* Main row */}
+      {/* Riga principale */}
       <div className="flex items-center gap-3 p-4">
         <EmailAvatar email={sender.email} />
 
@@ -113,7 +113,7 @@ function ScannerRow({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Attachment count badge */}
+          {/* Badge allegati */}
           <span className="flex items-center gap-1 px-2 py-0.5 border border-app-line-35 bg-app-line-15 text-app-fg-muted text-xs font-medium rounded-full">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -121,79 +121,79 @@ function ScannerRow({
             {sender.attachment_count}
           </span>
 
-          {/* Sede badge */}
+          {/* Badge sede */}
           {sender.sede_nome && (
             <span className="px-2 py-0.5 border border-violet-500/35 bg-violet-500/15 text-violet-200 text-xs font-medium rounded-full">
               {sender.sede_nome}
             </span>
           )}
 
-          {/* Last seen */}
+          {/* Ultima data */}
           <span className="text-xs text-app-fg-muted hidden sm:block">{formatDate(sender.last_seen)}</span>
 
-          {/* Add button */}
+          {/* Pulsante aggiungi */}
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors touch-manipulation"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={expanded ? 'M5 15l7-7 7 7' : 'M12 4v16m8-8H4'} />
             </svg>
-            {expanded ? 'Cancel' : 'Add Supplier'}
+            {expanded ? 'Annulla' : 'Aggiungi Fornitore'}
           </button>
         </div>
       </div>
 
-      {/* Inline form */}
+      {/* Form inline */}
       {expanded && (
         <div className="border-t border-app-line-22 app-workspace-inset-bg-soft p-4">
-          <p className="text-xs font-semibold text-app-fg-muted uppercase tracking-wide mb-3">Create New Supplier</p>
+          <p className="text-xs font-semibold text-app-fg-muted uppercase tracking-wide mb-3">Crea Nuovo Fornitore</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Company name */}
+            {/* Ragione sociale */}
             <div>
-              <label className="block text-xs font-medium text-app-fg-muted mb-1">Company Name *</label>
+              <label className="block text-xs font-medium text-app-fg-muted mb-1">Ragione Sociale *</label>
               <input
                 type="text"
                 value={form.nome}
                 onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-                placeholder="e.g. Acme S.r.l."
-                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="es. Rossi S.r.l."
+                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
               />
             </div>
 
-            {/* Email (readonly) */}
+            {/* Email (sola lettura) */}
             <div>
-              <label className="block text-xs font-medium text-app-fg-muted mb-1">Email (discovered)</label>
+              <label className="block text-xs font-medium text-app-fg-muted mb-1">Email (rilevata)</label>
               <input
                 type="text"
                 value={form.email}
                 readOnly
-                className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-inset-bg-soft text-app-fg-muted cursor-not-allowed"
+                className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-inset-bg-soft text-app-fg-muted cursor-not-allowed [color-scheme:dark]"
               />
             </div>
 
-            {/* VAT */}
+            {/* P.IVA */}
             <div>
-              <label className="block text-xs font-medium text-app-fg-muted mb-1">VAT</label>
+              <label className="block text-xs font-medium text-app-fg-muted mb-1">P.IVA</label>
               <input
                 type="text"
                 value={form.piva}
                 onChange={e => setForm(f => ({ ...f, piva: e.target.value }))}
                 placeholder="12345678901"
-                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
               />
             </div>
 
             {/* Sede */}
             {sedi.length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-app-fg-muted mb-1">Branch (Sede)</label>
+                <label className="block text-xs font-medium text-app-fg-muted mb-1">Sede</label>
                 <select
                   value={form.sede_id}
                   onChange={e => setForm(f => ({ ...f, sede_id: e.target.value }))}
                   className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
                 >
-                  <option value="">— No specific branch —</option>
+                  <option value="">— Nessuna sede specifica —</option>
                   {sedi.map(s => (
                     <option key={s.id} value={s.id}>{s.nome}</option>
                   ))}
@@ -203,14 +203,14 @@ function ScannerRow({
           </div>
 
           {error && (
-            <p className="mt-2 text-xs text-red-300 bg-red-500/10 px-3 py-1.5 rounded-lg">{error}</p>
+            <p className="mt-2 text-xs text-red-300 bg-red-500/10 border border-red-500/25 px-3 py-1.5 rounded-lg">{error}</p>
           )}
 
           <div className="mt-3 flex justify-end">
             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors touch-manipulation"
             >
               {saving ? (
                 <>
@@ -218,14 +218,14 @@ function ScannerRow({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
-                  Creating…
+                  Salvataggio…
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Create Supplier
+                  Crea Fornitore
                 </>
               )}
             </button>
@@ -251,7 +251,6 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
     setScanning(true)
     setScanError(null)
     try {
-      // Fetch sedi for the "Add Supplier" form
       const meRes = await fetch('/api/me')
       if (meRes.ok) {
         const me = await meRes.json()
@@ -261,10 +260,10 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
       const url = '/api/discovery-fornitori' + (sedeId ? `?sede_id=${sedeId}` : '')
       const res = await fetch(url)
       const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Scan failed')
+      if (!res.ok) throw new Error(json.error ?? 'Scansione fallita')
       setResult(json as ScanResult)
     } catch (err) {
-      setScanError(err instanceof Error ? err.message : 'Unknown error')
+      setScanError(err instanceof Error ? err.message : 'Errore sconosciuto')
     } finally {
       setScanning(false)
     }
@@ -283,12 +282,12 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2 text-sm text-app-fg-muted">
               <Link href="/impostazioni" className="shrink-0 transition-colors hover:text-app-fg">
-                Settings
+                Impostazioni
               </Link>
               <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <span className="truncate">Supplier Discovery</span>
+              <span className="truncate">Scoperta Fornitori</span>
             </div>
             <Link
               href="/guida"
@@ -313,10 +312,10 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
               </svg>
             </Link>
           </div>
-          <h1 className="app-page-title text-2xl font-bold">Inbox Explorer</h1>
+          <h1 className="app-page-title text-2xl font-bold">Esplora Email</h1>
           <p className="mt-1 text-sm text-app-fg-muted">
-            Scans your connected mailboxes (last 30 days) and surfaces senders with attachments who are not yet
-            registered as suppliers.
+            Analizza le caselle email collegate (ultimi 30 giorni) e mostra i mittenti con allegati
+            non ancora registrati come fornitori.
           </p>
         </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
@@ -324,7 +323,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
             type="button"
             onClick={handleScan}
             disabled={scanning}
-            className="flex shrink-0 items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="flex shrink-0 items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-accent-hover disabled:opacity-50 touch-manipulation"
           >
             {scanning ? (
               <>
@@ -332,65 +331,65 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                 </svg>
-                Scanning inbox…
+                Scansione in corso…
               </>
             ) : (
               <>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                {result ? 'Re-scan Inbox' : 'Scan Inbox'}
+                {result ? 'Ripeti Scansione' : 'Scansiona Casella'}
               </>
             )}
           </button>
         </div>
       </AppPageHeaderStrip>
 
-      {/* Scan error */}
+      {/* Errore scansione */}
       {scanError && (
-        <div className="mb-6 flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4">
-          <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-6 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <svg className="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-sm text-red-700">{scanError}</p>
+          <p className="text-sm text-red-300">{scanError}</p>
         </div>
       )}
 
-      {/* No IMAP configured */}
+      {/* Nessun account IMAP configurato */}
       {!scanning && result && result.scanned_sedi === 0 && !result.has_global_imap && (
-        <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mb-6 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+          <svg className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <p className="text-sm font-semibold text-amber-800">No IMAP accounts configured</p>
-            <p className="text-xs text-amber-700 mt-1">
-              Configure IMAP credentials in your branch settings (<Link href="/sedi" className="underline">Branches</Link>) to enable inbox scanning.
+            <p className="text-sm font-semibold text-amber-200">Nessun account IMAP configurato</p>
+            <p className="text-xs text-amber-300 mt-1">
+              Configura le credenziali IMAP nelle impostazioni della sede (<Link href="/sedi" className="underline hover:text-amber-100">Sedi</Link>) per abilitare la scansione della posta.
             </p>
           </div>
         </div>
       )}
 
-      {/* IMAP errors */}
+      {/* Errori parziali IMAP */}
       {result && result.errors.length > 0 && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-sm font-semibold text-amber-800 mb-2">Partial scan — some mailboxes had errors:</p>
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+          <p className="text-sm font-semibold text-amber-200 mb-2">Scansione parziale — alcune caselle hanno avuto errori:</p>
           <ul className="space-y-1">
             {result.errors.map((e, i) => (
-              <li key={i} className="text-xs text-amber-700">• {e}</li>
+              <li key={i} className="text-xs text-amber-300">• {e}</li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Results */}
+      {/* Risultati */}
       {result && (
         <>
-          {/* Stats bar */}
+          {/* Barra statistiche */}
           <div className="flex items-center gap-4 mb-5">
             <div className="flex items-center gap-2 rounded-lg border border-app-line-22 app-workspace-inset-bg-soft px-3 py-1.5">
               <span className="text-xs font-medium text-app-fg-muted">
-                {visibleSenders.length} unknown sender{visibleSenders.length !== 1 ? 's' : ''} found
+                {visibleSenders.length} {visibleSenders.length === 1 ? 'mittente sconosciuto trovato' : 'mittenti sconosciuti trovati'}
               </span>
             </div>
             {added.size > 0 && (
@@ -398,19 +397,21 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
                 <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
-                <span className="text-xs font-medium text-emerald-200">{added.size} added as supplier{added.size !== 1 ? 's' : ''}</span>
+                <span className="text-xs font-medium text-emerald-200">
+                  {added.size} {added.size === 1 ? 'fornitore aggiunto' : 'fornitori aggiunti'}
+                </span>
               </div>
             )}
           </div>
 
-          {/* Empty state */}
+          {/* Stato vuoto */}
           {visibleSenders.length === 0 ? (
             <div className="text-center py-16 app-workspace-surface-elevated rounded-xl border border-app-line-25">
-              <svg className="w-12 h-12 text-app-fg-muted mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-12 h-12 text-emerald-400/60 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="font-medium text-app-fg-muted">All senders are already registered</p>
-              <p className="text-sm text-app-fg-muted mt-1">No unknown senders with attachments found in the last 30 days.</p>
+              <p className="font-medium text-app-fg">Tutti i mittenti sono già registrati</p>
+              <p className="text-sm text-app-fg-muted mt-1">Nessun mittente sconosciuto con allegati negli ultimi 30 giorni.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -427,15 +428,15 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
         </>
       )}
 
-      {/* Pre-scan state */}
+      {/* Stato pre-scansione */}
       {!scanning && !result && !scanError && (
         <div className="rounded-xl border border-dashed border-app-line-25 app-workspace-surface-elevated py-20 text-center">
           <svg className="w-14 h-14 text-app-fg-muted mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
-          <p className="font-semibold text-app-fg-muted text-lg">Ready to scan</p>
+          <p className="font-semibold text-app-fg text-lg">Pronto per la scansione</p>
           <p className="text-sm text-app-fg-muted mt-1 max-w-sm mx-auto">
-            Click <strong className="text-app-fg-muted">Scan Inbox</strong> to analyse the last 30 days of emails and discover potential new suppliers.
+            Premi <strong className="text-app-fg">Scansiona Casella</strong> per analizzare gli ultimi 30 giorni di email e scoprire potenziali nuovi fornitori.
           </p>
         </div>
       )}

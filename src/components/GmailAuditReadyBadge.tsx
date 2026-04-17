@@ -181,7 +181,7 @@ export default function GmailAuditReadyBadge({ fornitoreNome }: GmailAuditReadyB
             <p className="text-[9px] text-cyan-300/60">Email/15min</p>
           </div>
           <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 px-2 py-1.5 text-center">
-            <p className="text-[10px] font-bold text-blue-200">Price Check</p>
+            <p className="text-[10px] font-bold text-blue-200">Controllo Prezzi</p>
             <p className="text-[9px] text-blue-300/60">Auto anomalie</p>
           </div>
           <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 px-2 py-1.5 text-center">
