@@ -40,6 +40,7 @@ type InsertRow = {
   prezzo: number
   data_prezzo: string
   note?: string | null
+  rekki_product_id?: string | null
   /** Inserisci anche se `data_prezzo` è precedente all’ultimo aggiornamento listino (conferma esplicita in UI). */
   force_outdated?: boolean
 }
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
     prezzo: number
     data_prezzo: string
     note: string | null
+    rekki_product_id: string | null
     force_outdated: boolean
   }> = []
 
@@ -99,6 +101,7 @@ export async function POST(req: NextRequest) {
     const prezzo = typeof r.prezzo === 'number' ? r.prezzo : parseFloat(String(r.prezzo))
     const data_prezzo = String(r.data_prezzo ?? '').trim()
     const note = r.note != null && String(r.note).trim() !== '' ? String(r.note).trim() : null
+    const rekki_product_id = r.rekki_product_id != null && String(r.rekki_product_id).trim() !== '' ? String(r.rekki_product_id).trim() : null
     if (!prodotto || Number.isNaN(prezzo) || !data_prezzo) continue
     parsed.push({
       fornitore_id: fornitoreId,
@@ -106,6 +109,7 @@ export async function POST(req: NextRequest) {
       prezzo,
       data_prezzo,
       note,
+      rekki_product_id,
       force_outdated: Boolean(r.force_outdated) || Boolean(body.force_outdated_all),
     })
   }
@@ -132,7 +136,7 @@ export async function POST(req: NextRequest) {
   }
 
   const skipped: { prodotto: string; reason: 'document_date_before_latest' }[] = []
-  const toInsert: Array<{ fornitore_id: string; prodotto: string; prezzo: number; data_prezzo: string; note: string | null }> = []
+  const toInsert: Array<{ fornitore_id: string; prodotto: string; prezzo: number; data_prezzo: string; note: string | null; rekki_product_id: string | null }> = []
   const workingMax = new Map(maxByProduct)
 
   for (const r of parsed) {
@@ -146,6 +150,7 @@ export async function POST(req: NextRequest) {
           prezzo: r.prezzo,
           data_prezzo: r.data_prezzo,
           note: r.note,
+          rekki_product_id: r.rekki_product_id,
         })
         const d = r.data_prezzo.slice(0, 10)
         const wm = workingMax.get(r.prodotto)
@@ -161,6 +166,7 @@ export async function POST(req: NextRequest) {
       prezzo: r.prezzo,
       data_prezzo: r.data_prezzo,
       note: r.note,
+      rekki_product_id: r.rekki_product_id,
     })
     const d = r.data_prezzo.slice(0, 10)
     const wm = workingMax.get(r.prodotto)

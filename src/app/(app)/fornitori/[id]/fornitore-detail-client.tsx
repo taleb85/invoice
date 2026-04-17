@@ -53,6 +53,12 @@ import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import RekkiSupplierIntegration from '@/components/RekkiSupplierIntegration'
+import RekkiListinoImportSection from '@/components/RekkiListinoImportSection'
+import RekkiOrdersAutoList from '@/components/RekkiOrdersAutoList'
+import RekkiPriceHistoryScanner from '@/components/RekkiPriceHistoryScanner'
+import FattureInAttesaAutoSync from '@/components/FattureInAttesaAutoSync'
+import RecuperoCreditiAudit from '@/components/RecuperoCreditiAudit'
+import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
@@ -92,7 +98,7 @@ import {
 } from '@/lib/app-shell-layout'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 
-type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica'
+type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica' | 'audit'
 
 /** Periodo documenti / KPI: estremi inclusivi `YYYY-MM-DD` (timezone locale). */
 type SupplierLedgerPeriod = { from: string; toIncl: string }
@@ -1488,6 +1494,31 @@ function DashboardTab({
         readOnly={readOnly}
       />
       </div>
+      
+      {/* Rekki Listino Import */}
+      <RekkiListinoImportSection
+        fornitoreId={fornitoreId}
+        fornitoreNome={fornitore.nome}
+        rekkiLinked={Boolean(
+          String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
+        )}
+      />
+      
+      {/* Rekki Automatic Orders List */}
+      {(String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()) && (
+        <RekkiOrdersAutoList
+          fornitoreId={fornitoreId}
+        />
+      )}
+      
+      {/* Rekki Price History Scanner */}
+      {(String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()) && (
+        <RekkiPriceHistoryScanner
+          fornitoreId={fornitoreId}
+          fornitoreNome={fornitore.nome}
+        />
+      )}
+      
       </div>
 
     </div>
@@ -1948,9 +1979,36 @@ function FattureTab({
   }
 
   return (
-    <div
-      className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}
-    >
+    <>
+      {/* Auto-sync fatture in attesa - mostrato solo se ci sono fatture da processare */}
+      {!readOnly && fatture.some(f => !f.bolla_id) && (
+        <div className="mb-4 px-4">
+          <FattureInAttesaAutoSync
+            fatturaId={fatture.find(f => !f.bolla_id)?.id ?? ''}
+            onComplete={() => {
+              onLedgerMutated?.()
+              // Reload fatture
+              setLoading(true)
+              const supabase = createClient()
+              supabase
+                .from('fatture')
+                .select('id, data, file_url, bolla_id, numero_fattura, importo, fornitore_id')
+                .eq('fornitore_id', fornitoreId)
+                .gte('data', dateFrom)
+                .lt('data', dateToExclusive)
+                .order('data', { ascending: false })
+                .then(({ data }: { data: Fattura[] | null }) => {
+                  setFatture(data ?? [])
+                  setLoading(false)
+                })
+            }}
+          />
+        </div>
+      )}
+      
+      <div
+        className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}
+      >
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
         <div className={APP_SECTION_MOBILE_LIST}>
@@ -2105,6 +2163,7 @@ function FattureTab({
         </div>
       </div>
     </div>
+    </>
   )
 }
 
@@ -2116,6 +2175,7 @@ interface ListinoProdotto {
   prezzo: number
   data_prezzo: string
   note: string | null
+  rekki_product_id: string | null
 }
 
 const MIGRATION_SQL = `-- Esegui nel Supabase Dashboard → SQL Editor
@@ -2164,10 +2224,16 @@ function ListinoTab({
   const [formPrezzo, setFormPrezzo]   = useState('')
   const [formData, setFormData]       = useState(new Date().toISOString().split('T')[0])
   const [formNote, setFormNote]       = useState('')
+  const [formRekkiProductId, setFormRekkiProductId] = useState('')
   const [saving, setSaving]           = useState(false)
   const [saveError, setSaveError]     = useState<string | null>(null)
   const [deletingId, setDeletingId]   = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  // Rekki product ID editing state
+  const [editingRekkiId, setEditingRekkiId] = useState<string | null>(null)
+  const [rekkiProductIdDraft, setRekkiProductIdDraft] = useState('')
+  const [savingRekkiId, setSavingRekkiId] = useState(false)
 
   // Import from fattura state
   type ImportItem = {
@@ -2177,11 +2243,13 @@ function ListinoTab({
     unita: string | null
     note: string | null
     selected: boolean
+    rekki_product_id?: string | null
     /** Admin: consenti insert se la data documento è precedente all’ultimo `data_prezzo` per questo nome prodotto. */
     forceOutdated?: boolean
     // Price comparison
     prezzoAttuale: number | null    // last known price from listino
     matchedProdotto: string | null  // name as stored in listino (may differ)
+    matchedByRekkiId?: boolean      // true if matched by rekki_product_id
     delta: number | null            // percentage change vs prezzoAttuale
     isNew: boolean                  // product not found in listino
   }
@@ -2198,12 +2266,15 @@ function ListinoTab({
   const [importDate, setImportDate]       = useState(new Date().toISOString().split('T')[0])
   const [importSaving, setImportSaving]   = useState(false)
   const [formForceOutdated, setFormForceOutdated] = useState(false)
+  const [importEditingRekkiIdx, setImportEditingRekkiIdx] = useState<number | null>(null)
+  const [importRekkiDraft, setImportRekkiDraft] = useState('')
+  const [importSavingRekkiIdx, setImportSavingRekkiIdx] = useState<number | null>(null)
 
   const loadListino = async () => {
     const supabase = createClient()
     const { data, error } = await supabase
       .from('listino_prezzi')
-      .select('id, prodotto, prezzo, data_prezzo, note')
+      .select('id, prodotto, prezzo, data_prezzo, note, rekki_product_id')
       .eq('fornitore_id', fornitoreId)
       .order('prodotto')
       .order('data_prezzo')
@@ -2222,7 +2293,7 @@ function ListinoTab({
         .eq('fornitore_id', fornitoreId).not('importo', 'is', null).order('data'),
       supabase.from('fatture').select('id, data, numero_fattura, importo')
         .eq('fornitore_id', fornitoreId).not('importo', 'is', null).order('data'),
-      supabase.from('listino_prezzi').select('id, prodotto, prezzo, data_prezzo, note')
+      supabase.from('listino_prezzi').select('id, prodotto, prezzo, data_prezzo, note, rekki_product_id')
         .eq('fornitore_id', fornitoreId).order('prodotto').order('data_prezzo'),
     ]).then(([bolleRes, fattureRes, listinoRes]) => {
       type BollaRaw   = { id: string; data: string; numero_bolla: string | null; importo: number | null }
@@ -2266,9 +2337,34 @@ function ListinoTab({
 
   const findBestListinoMatch = (
     prodotto: string,
-    listinoData: ListinoProdotto[]
-  ): { prezzoAttuale: number; matchedProdotto: string } | null => {
+    listinoData: ListinoProdotto[],
+    rekkiProductId?: string | null
+  ): { prezzoAttuale: number; matchedProdotto: string; matchedByRekkiId?: boolean } | null => {
     if (listinoData.length === 0) return null
+    
+    // First try exact Rekki product ID match (highest priority)
+    if (rekkiProductId) {
+      const exactRekkiMatch = listinoData.find(row => 
+        row.rekki_product_id && row.rekki_product_id.trim() === rekkiProductId.trim()
+      )
+      if (exactRekkiMatch) {
+        // Get the latest price for this rekki_product_id
+        const allMatchesForRekkiId = listinoData.filter(row => 
+          row.rekki_product_id && row.rekki_product_id.trim() === rekkiProductId.trim()
+        ).sort((a, b) => b.data_prezzo.localeCompare(a.data_prezzo))
+        
+        const latest = allMatchesForRekkiId[0]
+        if (latest) {
+          return { 
+            prezzoAttuale: latest.prezzo, 
+            matchedProdotto: latest.prodotto,
+            matchedByRekkiId: true
+          }
+        }
+      }
+    }
+    
+    // Fallback to product name fuzzy matching
     // Group by product name and get the latest price for each
     const latestByProduct: Record<string, { prezzo: number; prodotto: string }> = {}
     for (const row of listinoData) {
@@ -2280,21 +2376,21 @@ function ListinoTab({
     // Collect latest price for each product (last entry since ordered by data_prezzo)
     const products = Object.values(latestByProduct)
 
-    let bestMatch: { prezzoAttuale: number; matchedProdotto: string } | null = null
+    let bestMatch: { prezzoAttuale: number; matchedProdotto: string; matchedByRekkiId?: boolean } | null = null
     let bestScore = 0.3 // minimum threshold
 
     for (const p of products) {
       const score = wordSimilarity(prodotto, p.prodotto)
       if (score > bestScore) {
         bestScore = score
-        bestMatch = { prezzoAttuale: p.prezzo, matchedProdotto: p.prodotto }
+        bestMatch = { prezzoAttuale: p.prezzo, matchedProdotto: p.prodotto, matchedByRekkiId: false }
       }
     }
     return bestMatch
   }
 
   const enrichWithComparison = (
-    items: Omit<ImportItem, 'prezzoAttuale' | 'matchedProdotto' | 'delta' | 'isNew'>[],
+    items: Omit<ImportItem, 'prezzoAttuale' | 'matchedProdotto' | 'matchedByRekkiId' | 'delta' | 'isNew' | 'forceOutdated'>[],
     listinoData: ListinoProdotto[]
   ): ImportItem[] => {
     const latestByProduct: Record<string, { prezzo: number; data: string }> = {}
@@ -2306,7 +2402,7 @@ function ListinoTab({
     }
 
     return items.map(item => {
-      const match = findBestListinoMatch(item.prodotto, listinoData)
+      const match = findBestListinoMatch(item.prodotto, listinoData, item.rekki_product_id)
       const prezzoAttuale = match ? latestByProduct[match.matchedProdotto]?.prezzo ?? null : null
       const delta = prezzoAttuale != null && prezzoAttuale > 0
         ? ((item.prezzo - prezzoAttuale) / prezzoAttuale) * 100
@@ -2316,6 +2412,7 @@ function ListinoTab({
         forceOutdated: false,
         prezzoAttuale,
         matchedProdotto: match?.matchedProdotto ?? null,
+        matchedByRekkiId: match?.matchedByRekkiId ?? false,
         delta,
         isNew: match === null,
       }
@@ -2552,6 +2649,7 @@ function ListinoTab({
               prezzo: parseFloat(formPrezzo),
               data_prezzo: formData,
               note: formNote.trim() || null,
+              rekki_product_id: formRekkiProductId.trim() || null,
               ...(formForceOutdated && manualBlocked ? { force_outdated: true as const } : {}),
             },
           ],
@@ -2573,6 +2671,7 @@ function ListinoTab({
     setFormPrezzo('')
     setFormData(new Date().toISOString().split('T')[0])
     setFormNote('')
+    setFormRekkiProductId('')
     setFormForceOutdated(false)
     setShowForm(false)
     setSaving(false)
@@ -2600,6 +2699,81 @@ function ListinoTab({
     }
     setDeletingId(null)
     await loadListino()
+  }
+
+  const handleUpdateRekkiProductId = async (listinoRowId: string, rekkiProductId: string | null) => {
+    setSavingRekkiId(true)
+    setDeleteError(null)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('listino_prezzi')
+        .update({ rekki_product_id: rekkiProductId?.trim() || null })
+        .eq('id', listinoRowId)
+      
+      if (error) {
+        setDeleteError(`Errore aggiornamento Codice Rekki: ${error.message}`)
+        setSavingRekkiId(false)
+        return
+      }
+      
+      await loadListino()
+      setEditingRekkiId(null)
+      setRekkiProductIdDraft('')
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSavingRekkiId(false)
+    }
+  }
+
+  const handleImportQuickAddRekkiId = async (idx: number, rekkiId: string) => {
+    const item = importItems[idx]
+    if (!item || !item.matchedProdotto) return
+    
+    setImportSavingRekkiIdx(idx)
+    try {
+      const supabase = createClient()
+      // Find listino row for this product
+      const matchedRow = listino.find(l => l.prodotto === item.matchedProdotto)
+      if (!matchedRow) {
+        setImportError('Prodotto non trovato nel listino')
+        setImportSavingRekkiIdx(null)
+        return
+      }
+      
+      const { error } = await supabase
+        .from('listino_prezzi')
+        .update({ rekki_product_id: rekkiId.trim() || null })
+        .eq('id', matchedRow.id)
+      
+      if (error) {
+        setImportError(`Errore aggiornamento Codice Rekki: ${error.message}`)
+        setImportSavingRekkiIdx(null)
+        return
+      }
+      
+      await loadListino()
+      setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, rekki_product_id: rekkiId.trim() } : it))
+      setImportEditingRekkiIdx(null)
+      setImportRekkiDraft('')
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setImportSavingRekkiIdx(null)
+    }
+  }
+
+  const handleApplyAllAsCurrentPrice = () => {
+    const selectedItems = importItems.filter(i => i.selected && i.prezzoAttuale != null)
+    if (selectedItems.length === 0) return
+    
+    setImportItems(prev => prev.map(item => {
+      if (item.selected && item.prezzoAttuale != null) {
+        return { ...item, prezzo: item.prezzoAttuale, delta: 0 }
+      }
+      return item
+    }))
   }
 
   /* Group listino by product and detect price changes */
@@ -2889,6 +3063,25 @@ function ListinoTab({
                         )
                       })()}
 
+                      {/* Azione massiva: Applica tutto come prezzo attuale */}
+                      {importItems.some(i => i.selected && i.prezzoAttuale != null && i.delta !== 0) && (
+                        <div className="mb-3 flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2">
+                          <svg className="h-4 w-4 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <p className="flex-1 text-xs text-cyan-200">
+                            <span className="font-semibold">Azione rapida:</span> Stai importando prezzi diversi dall'ultimo listino
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleApplyAllAsCurrentPrice}
+                            className="shrink-0 rounded-md bg-cyan-600 px-3 py-1 text-xs font-bold text-white transition-colors hover:bg-cyan-500"
+                          >
+                            Applica tutti come prezzo attuale
+                          </button>
+                        </div>
+                      )}
+
                       <div className="mb-3 overflow-x-auto rounded-lg border border-app-line-22 app-workspace-inset-bg-soft">
                         <table className="w-full min-w-[920px] text-xs">
                           <thead>
@@ -2908,7 +3101,16 @@ function ListinoTab({
                             {importItems.map((item, idx) => {
                               const isRincaro = item.delta !== null && item.delta >  5
                               const isRibasso = item.delta !== null && item.delta < -5
-                              const rowBg = isRincaro ? 'bg-red-500/10' : isRibasso ? 'bg-emerald-500/10' : item.isNew ? 'bg-app-line-10' : ''
+                              const isRekkiMismatch = item.matchedByRekkiId && isRincaro
+                              const rowBg = isRekkiMismatch 
+                                ? 'bg-red-500/20 ring-1 ring-red-500/30' 
+                                : isRincaro 
+                                  ? 'bg-red-500/10' 
+                                  : isRibasso 
+                                    ? 'bg-emerald-500/10' 
+                                    : item.isNew 
+                                      ? 'bg-app-line-10' 
+                                      : ''
                               const dateBlocked = importRowDateBlocked(item.prodotto)
                               const latestExact = maxListinoDateForExactProduct(listino, item.prodotto)
                               return (
@@ -2950,6 +3152,11 @@ function ListinoTab({
                                           onChange={e => setImportItems(prev => prev.map((it, i) => i === idx ? { ...it, prodotto: e.target.value } : it))}
                                           className="-mx-1 min-h-[1.25rem] min-w-0 flex-1 rounded bg-transparent px-1 font-medium leading-snug text-app-fg focus:bg-black/15 focus:outline-none"
                                         />
+                                        {item.matchedByRekkiId && (
+                                          <span className="shrink-0 rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-300">
+                                            ✓ Rekki
+                                          </span>
+                                        )}
                                         {item.isNew && (
                                           <span className="shrink-0 rounded-full bg-app-line-20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-app-fg-muted">
                                             Nuovo
@@ -2961,6 +3168,83 @@ function ListinoTab({
                                       )}
                                       {item.note && (
                                         <p className="break-words text-[10px] italic leading-snug text-app-fg-muted">{item.note}</p>
+                                      )}
+                                      
+                                      {/* Rekki ID mapping - inline */}
+                                      {rekkiLinked && !item.isNew && (
+                                        <div className="mt-1 flex items-center gap-1.5">
+                                          {importEditingRekkiIdx === idx ? (
+                                            <>
+                                              <input
+                                                type="text"
+                                                value={importRekkiDraft}
+                                                onChange={(e) => setImportRekkiDraft(e.target.value)}
+                                                placeholder="Rekki ID"
+                                                disabled={importSavingRekkiIdx === idx}
+                                                autoFocus
+                                                className="flex-1 rounded border border-violet-500/40 bg-violet-950/30 px-1.5 py-0.5 text-[10px] text-app-fg placeholder:text-app-fg-muted/60 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
+                                              />
+                                              <button
+                                                type="button"
+                                                onClick={() => void handleImportQuickAddRekkiId(idx, importRekkiDraft)}
+                                                disabled={importSavingRekkiIdx === idx}
+                                                title="Salva"
+                                                className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-violet-600 text-[10px] font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                                              >
+                                                {importSavingRekkiIdx === idx ? '...' : '✓'}
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setImportEditingRekkiIdx(null)
+                                                  setImportRekkiDraft('')
+                                                }}
+                                                disabled={importSavingRekkiIdx === idx}
+                                                title="Annulla"
+                                                className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-app-line-15 text-[10px] text-app-fg-muted transition-colors hover:bg-app-line-20 disabled:opacity-50"
+                                              >
+                                                ✕
+                                              </button>
+                                            </>
+                                          ) : item.rekki_product_id ? (
+                                            <div className="flex items-center gap-1 rounded-md border border-violet-500/25 bg-violet-500/10 px-1.5 py-0.5">
+                                              <span className="text-[9px] font-bold uppercase tracking-wide text-violet-300/70">
+                                                Rekki:
+                                              </span>
+                                              <span className="font-mono text-[10px] font-medium text-violet-200">
+                                                {item.rekki_product_id}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setImportEditingRekkiIdx(idx)
+                                                  setImportRekkiDraft(item.rekki_product_id ?? '')
+                                                }}
+                                                className="ml-0.5 text-violet-400 transition-colors hover:text-violet-300"
+                                                title="Modifica"
+                                              >
+                                                <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setImportEditingRekkiIdx(idx)
+                                                setImportRekkiDraft('')
+                                              }}
+                                              className="flex items-center gap-0.5 text-[9px] font-semibold text-violet-400 transition-colors hover:text-violet-300"
+                                              title="Aggiungi Rekki ID"
+                                            >
+                                              <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                              </svg>
+                                              <span>Rekki ID</span>
+                                            </button>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
                                   </td>
@@ -2997,10 +3281,18 @@ function ListinoTab({
                                         {latestExact ? formatDate(latestExact) : '—'}
                                       </span>
                                       {dateBlocked ? (
-                                        <>
-                                          <p className="text-[9px] leading-snug text-amber-200/85">
-                                            {t.appStrings.listinoImportDateOlderThanListinoHint}
-                                          </p>
+                                        <div className="flex items-start gap-1.5">
+                                          <div
+                                            className="group/tooltip relative"
+                                            title={t.appStrings.listinoImportDateOlderThanListinoHint}
+                                          >
+                                            <svg className="h-3.5 w-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-1 hidden w-48 rounded-md border border-amber-500/30 bg-amber-950/95 px-2 py-1.5 text-[9px] leading-snug text-amber-100 shadow-lg group-hover/tooltip:block">
+                                              {t.appStrings.listinoImportDateOlderThanListinoHint}
+                                            </div>
+                                          </div>
                                           <button
                                             type="button"
                                             onClick={() =>
@@ -3012,7 +3304,7 @@ function ListinoTab({
                                                 )
                                               )
                                             }
-                                            className={`w-fit rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition-colors ${
+                                            className={`flex-1 rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition-colors ${
                                               item.forceOutdated
                                                 ? 'border-emerald-500/45 bg-emerald-950/40 text-emerald-100'
                                                 : 'border-amber-500/40 bg-amber-950/35 text-amber-100 hover:border-amber-400/55'
@@ -3022,7 +3314,7 @@ function ListinoTab({
                                               ? t.appStrings.listinoImportApplyOutdatedAdminActive
                                               : t.appStrings.listinoImportApplyOutdatedAdmin}
                                           </button>
-                                        </>
+                                        </div>
                                       ) : null}
                                     </div>
                                   </td>
@@ -3110,6 +3402,16 @@ function ListinoTab({
                     value={formNote}
                     onChange={e => setFormNote(e.target.value)}
                     placeholder="es. prezzo stagionale, promo, ecc."
+                    className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-line-40"
+                  />
+                </div>
+                <div className="md:col-span-4">
+                  <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">Codice Rekki (opzionale)</label>
+                  <input
+                    type="text"
+                    value={formRekkiProductId}
+                    onChange={e => setFormRekkiProductId(e.target.value)}
+                    placeholder="es. WINE-12345"
                     className="w-full rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg focus:outline-none focus:ring-2 focus:ring-app-line-40"
                   />
                 </div>
@@ -3244,9 +3546,10 @@ function ListinoTab({
                     key={prodotto}
                     className={`group border-l-4 ${APP_SECTION_TABLE_ROW_HOVER} ${rowAccentBorder}`}
                   >
-                    <div className="grid grid-cols-1 gap-4 px-4 py-4 sm:px-5 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(11rem,auto)] md:items-start md:gap-5 md:py-4 md:pl-4 md:pr-5">
+                    <div className="grid grid-cols-1 gap-4 px-4 py-2.5 sm:px-5 md:grid-cols-[minmax(0,1.5fr)_minmax(0,2fr)_minmax(8rem,auto)] md:items-start md:gap-5 md:py-2.5 md:pl-4 md:pr-5">
+                      {/* ── COLONNA 1: Nome Prodotto + Codice/Unità ── */}
                       <div className="min-w-0 md:pr-2">
-                        <h3 className="text-lg font-bold leading-tight tracking-tight text-app-fg sm:text-xl md:text-2xl">
+                        <h3 className="text-base font-bold leading-tight tracking-tight text-app-fg sm:text-lg md:text-xl">
                           {prodotto}
                         </h3>
                         {parsed.codice || parsed.unita ? (
@@ -3254,7 +3557,7 @@ function ListinoTab({
                             {parsed.codice ? (
                               <StatusBadge
                                 tone="orange"
-                                className="!px-2 !py-0 !text-[9px] !font-semibold !normal-case !tracking-normal !shadow-none font-mono"
+                                className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none font-mono"
                               >
                                 {parsed.codice}
                               </StatusBadge>
@@ -3262,95 +3565,204 @@ function ListinoTab({
                             {parsed.unita ? (
                               <StatusBadge
                                 tone="orange"
-                                className="!px-2 !py-0 !text-[9px] !font-semibold !normal-case !tracking-normal !shadow-none"
+                                className="!px-2 !py-0.5 !text-[10px] !font-semibold !normal-case !tracking-normal !shadow-none"
                               >
                                 {parsed.unita}
                               </StatusBadge>
                             ) : null}
                           </div>
                         ) : null}
-                      </div>
-
-                      <div className="min-w-0 flex flex-col gap-1.5 border-t border-app-line-22/90 pt-3 text-app-fg-muted md:border-t-0 md:pt-0">
-                        {summaryLine ? (
-                          <p className="text-xs leading-relaxed">
-                            <span className="text-[11px] text-app-fg-muted">{summaryLine}</span>
-                            <span className="mt-0.5 block text-[10px] leading-snug text-app-fg-muted/80">
-                              {t.fornitori.listinoVsReferenceHint}
-                            </span>
-                          </p>
-                        ) : null}
-                        {originLine ? (
-                          <p className="text-[11px] leading-snug text-violet-300/75">{originLine}</p>
-                        ) : null}
-                        <p className="text-[10px] leading-snug text-app-fg-muted/90">
-                          <span className="font-medium text-app-fg-muted/95">{t.fornitori.listinoColData}:</span>{' '}
-                          {formatDateLib(ultimo.data_prezzo, locale, timezone, {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                          {sorted.length > 1 ? (
-                            <span className="ml-1 opacity-75">
-                              · {t.fornitori.listinoHistoryDepth.replace('{n}', String(sorted.length - 1))}
-                            </span>
-                          ) : null}
-                        </p>
                         {noteDisplay ? (
-                          <p className="text-[10px] leading-relaxed text-app-fg-muted/80">{noteDisplay}</p>
+                          <p className="mt-2 text-xs leading-relaxed font-medium text-app-fg-muted">{noteDisplay}</p>
                         ) : null}
                       </div>
 
-                      <div className="flex min-w-0 flex-col gap-3 border-t border-app-line-22/90 pt-3 md:items-end md:border-t-0 md:border-l md:border-app-line-22/70 md:pl-5 md:pt-0">
-                        <p
-                          className={`text-right text-2xl font-bold tabular-nums tracking-tight md:text-[1.65rem] font-mono ${
-                            hasAnomaly
-                              ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
-                              : listinoPriceStale
-                                ? 'text-app-fg-muted/75'
-                                : 'text-app-fg'
-                          }`}
-                        >
-                          {fmtMoney(ultimo.prezzo)}
-                        </p>
+                      {/* ── COLONNA 2: Prezzo + Status + Metadati + Rekki ── */}
+                      <div className="min-w-0 flex flex-col gap-2.5 border-t border-app-line-22/90 pt-3 md:border-t-0 md:pt-0">
+                        {/* Prezzo + Badges (riga compatta) */}
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <p
+                            className={`text-2xl font-bold tabular-nums tracking-tight md:text-[1.65rem] font-mono ${
+                              hasAnomaly
+                                ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
+                                : listinoPriceStale
+                                  ? 'text-app-fg-muted/75'
+                                  : 'text-app-fg'
+                            }`}
+                          >
+                            {fmtMoney(ultimo.prezzo)}
+                          </p>
+                          
+                          {/* Badges inline */}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {hasAnomaly ? (
+                              <StatusBadge
+                                tone="red"
+                                className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"
+                              >
+                                {t.fornitori.listinoRowBadgeAnomaly}
+                              </StatusBadge>
+                            ) : ref ? (
+                              <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
+                            ) : null}
+                            {rekkiLinked && ultimo.rekki_product_id ? (
+                              <StatusBadge tone="violet" className="!normal-case !tracking-wide">
+                                ✓ Rekki
+                              </StatusBadge>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {/* Riga Stato Anomalie */}
+                        {summaryLine ? (
+                          <div className={`rounded-md px-2.5 py-1.5 ${hasAnomaly ? 'bg-red-500/10 border border-red-500/25' : 'bg-emerald-500/10 border border-emerald-500/25'}`}>
+                            <p className={`text-xs font-semibold leading-tight ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
+                              {hasAnomaly ? '⚠️ Attenzione: ' : '✓ '}{summaryLine}
+                            </p>
+                          </div>
+                        ) : null}
+
                         {listinoPriceStale ? (
-                          <div className="text-right">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                          <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5">
+                            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
                               {t.fornitori.listinoPriceStaleBadge}
                             </p>
-                            <p className="mt-0.5 text-[10px] leading-snug text-app-fg-muted/80">
+                            <p className="mt-0.5 text-[9px] leading-snug text-amber-300/80">
                               {t.fornitori.listinoPriceStaleHint}
                             </p>
                           </div>
                         ) : null}
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {hasAnomaly ? (
-                            <StatusBadge
-                              tone="red"
-                              className="!shadow-[0_0_22px_rgba(255,49,49,0.55)] !ring-1 !ring-[#FF3131]/45"
-                            >
-                              {t.fornitori.listinoRowBadgeAnomaly}
-                            </StatusBadge>
-                          ) : ref ? (
-                            <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
+
+                        {/* Metadati (piccoli e muted) */}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-app-fg-muted">
+                          <span className="font-medium">
+                            {formatDateLib(ultimo.data_prezzo, locale, timezone, {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                          {sorted.length > 1 ? (
+                            <span>
+                              · {t.fornitori.listinoHistoryDepth.replace('{n}', String(sorted.length - 1))}
+                            </span>
                           ) : null}
-                          {rekkiLinked ? (
-                            <StatusBadge tone="violet" className="!normal-case !tracking-wide">
-                              {t.fornitori.listinoRekkiListBadge}
-                            </StatusBadge>
+                          {parsed.codice ? (
+                            <span>
+                              · Cod: <span className="font-mono">{parsed.codice}</span>
+                            </span>
+                          ) : null}
+                          {parsed.unita ? (
+                            <span>
+                              · {parsed.unita}
+                            </span>
                           ) : null}
                         </div>
+
+                        {originLine ? (
+                          <p className="text-xs leading-snug font-medium text-violet-300">{originLine}</p>
+                        ) : null}
+
+                        {/* Codice Rekki inline */}
+                        {rekkiLinked && !readOnly ? (
+                          <div className="flex items-center gap-2 rounded-md bg-violet-950/20 px-2.5 py-1.5 border border-violet-500/20">
+                            <span className="text-[10px] font-bold uppercase tracking-wide text-violet-300/80">
+                              Rekki ID:
+                            </span>
+                            {editingRekkiId === ultimo.id ? (
+                              <>
+                                <input
+                                  type="text"
+                                  value={rekkiProductIdDraft}
+                                  onChange={(e) => setRekkiProductIdDraft(e.target.value)}
+                                  placeholder="es. WINE-123"
+                                  disabled={savingRekkiId}
+                                  autoFocus
+                                  className="flex-1 rounded border border-violet-500/40 bg-violet-950/30 px-2 py-0.5 text-xs text-app-fg placeholder:text-app-fg-muted/60 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => void handleUpdateRekkiProductId(ultimo.id, rekkiProductIdDraft)}
+                                  disabled={savingRekkiId}
+                                  title="Salva"
+                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-violet-600 text-xs font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+                                >
+                                  {savingRekkiId ? '...' : '✓'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingRekkiId(null)
+                                    setRekkiProductIdDraft('')
+                                  }}
+                                  disabled={savingRekkiId}
+                                  title="Annulla"
+                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-app-line-15 text-xs text-app-fg-muted transition-colors hover:bg-app-line-20 disabled:opacity-50"
+                                >
+                                  ✕
+                                </button>
+                              </>
+                            ) : ultimo.rekki_product_id ? (
+                              <>
+                                <span className="flex-1 font-mono text-xs font-medium text-violet-200">
+                                  {ultimo.rekki_product_id}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingRekkiId(ultimo.id)
+                                    setRekkiProductIdDraft(ultimo.rekki_product_id ?? '')
+                                  }}
+                                  className="shrink-0 text-violet-400 transition-colors hover:text-violet-300"
+                                  title="Modifica"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <a
+                                  href={`https://rekki.com/products/${encodeURIComponent(ultimo.rekki_product_id)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="shrink-0 text-violet-400 transition-colors hover:text-violet-300"
+                                  title="Aggiorna da Rekki"
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              </>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingRekkiId(ultimo.id)
+                                  setRekkiProductIdDraft('')
+                                }}
+                                className="flex flex-1 items-center justify-center gap-1 text-xs text-app-fg-muted transition-colors hover:text-violet-300"
+                              >
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span>Aggiungi</span>
+                              </button>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* ── COLONNA 3: Azioni ── */}
+                      <div className="flex min-w-0 flex-col gap-2 border-t border-app-line-22/90 pt-3 md:items-end md:border-t-0 md:border-l md:border-app-line-22/70 md:pl-4 md:pt-0">
                         {!readOnly ? (
-                          <div
-                            className="mt-1 flex w-full flex-col items-stretch gap-2 md:items-end"
-                            role="group"
-                            aria-label={t.fornitori.listinoRowActionsLabel}
-                          >
+                          <>
                             <Link
                               href={verificaHref}
-                              className={`text-right text-[11px] font-semibold ${APP_SECTION_TRAILING_LINK_CLASS}`}
+                              className="flex items-center justify-center gap-1.5 rounded-md bg-cyan-600/20 px-3 py-1.5 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30"
                               title={t.fornitori.listinoVerifyAnomaliesTitle}
                             >
+                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
                               {t.fornitori.listinoVerifyAnomalies}
                             </Link>
                             <div className="flex justify-end opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
@@ -3359,21 +3771,21 @@ function ListinoTab({
                                 onClick={() => handleDelete(ultimo.id)}
                                 disabled={deletingId === ultimo.id}
                                 title={t.common.delete}
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-red-500/45 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-red-500/45 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
                               >
                                 {deletingId === ultimo.id ? (
-                                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                   </svg>
                                 ) : (
-                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
                                 )}
                               </button>
                             </div>
-                          </div>
+                          </>
                         ) : null}
                       </div>
                     </div>
@@ -3764,10 +4176,11 @@ function FornitoreDetailClient({
       { id: 'fatture', label: t.nav.fatture, badge: fattureCount },
       { id: 'verifica', label: t.statements.tabVerifica },
       { id: 'listino', label: t.fornitori.tabListino },
+      { id: 'audit', label: 'Audit Prezzi' },
       { id: 'documenti', label: t.statements.tabDocumenti, badge: pendingCount > 0 ? pendingCount : undefined },
     ]
     if (supplierReadOnlyMobile) {
-      return all.filter((tb) => tb.id !== 'documenti' && tb.id !== 'verifica')
+      return all.filter((tb) => tb.id !== 'documenti' && tb.id !== 'verifica' && tb.id !== 'audit')
     }
     return all
   }, [t, ordiniCount, bolleCount, fattureCount, pendingCount, supplierReadOnlyMobile])
@@ -3865,6 +4278,16 @@ function FornitoreDetailClient({
             cardAccent="cyan"
           />
         ) : null)}
+      {displayTab === 'audit' && (
+        <>
+          <GmailAuditReadyBadge fornitoreNome={fornitore.nome} />
+          <RecuperoCreditiAudit
+            fornitoreId={fornitore.id}
+            fornitoreNome={fornitore.nome}
+            currency={currency ?? 'GBP'}
+          />
+        </>
+      )}
     </>
   )
 

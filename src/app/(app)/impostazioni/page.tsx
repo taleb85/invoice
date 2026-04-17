@@ -14,6 +14,7 @@ import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import GmailConnectionWidget from '@/components/GmailConnectionWidget'
 
 function ProfileMobileHub() {
   const { me } = useMe()
@@ -272,6 +273,9 @@ export default function ImpostazioniPage() {
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <div className="space-y-5 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
+          {/* Gmail Connection Widget */}
+          <GmailConnectionWidget />
+          
           <FormBody />
           {saved && (
             <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
@@ -315,6 +319,9 @@ export default function ImpostazioniPage() {
               </div>
             </div>
             <div className="space-y-6 px-6 py-6 sm:px-8">
+              {/* Gmail Connection Widget */}
+              <GmailConnectionWidget />
+              
               <FormBody />
               {saved && (
                 <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
