@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/rekki-auto-poll",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/cron/auto-process-invoices",
-      "schedule": "0 * * * *"
+      "schedule": "0 10 * * *"
     }
   ]
 }
