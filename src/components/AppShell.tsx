@@ -31,6 +31,7 @@ import NavigationTopProgress, {
 import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/SidebarBrandHeader'
 import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
 import BranchSessionGate from '@/components/BranchSessionGate'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
@@ -154,16 +155,21 @@ export default function AppShell({
             {/*
               Un solo contenitore `min-h-dvh` + colonna flex: evita fascia in basso (body #020617)
               sotto il dock fisso e touch che non arrivano a `#app-main` su iOS.
+              ErrorBoundary fullPage: ultimo livello di sicurezza se AppShellMain,
+              DashboardMobileBottomNav o OperatorSwitchModal crashano — evita schermata
+              bianca; ha accesso ai token CSS del tema perché è dentro i provider.
             */}
-            <div className="relative flex w-full min-h-dvh flex-col bg-transparent md:h-full md:min-h-0">
-              <EmailSyncProgressProvider>
-                <AppActivitiesProvider>
-                  <AppShellMain>{children}</AppShellMain>
-                </AppActivitiesProvider>
-              </EmailSyncProgressProvider>
-              <DashboardMobileBottomNav />
-              <OperatorSwitchModal />
-            </div>
+            <ErrorBoundary fullPage sectionName="applicazione">
+              <div className="relative flex w-full min-h-dvh flex-col bg-transparent md:h-full md:min-h-0">
+                <EmailSyncProgressProvider>
+                  <AppActivitiesProvider>
+                    <AppShellMain>{children}</AppShellMain>
+                  </AppActivitiesProvider>
+                </EmailSyncProgressProvider>
+                <DashboardMobileBottomNav />
+                <OperatorSwitchModal />
+              </div>
+            </ErrorBoundary>
           </ToastProvider>
         </ActiveOperatorProvider>
         </NetworkProvider>
@@ -247,7 +253,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 min-h-[40px]">
                   <SidebarRailBrand />
                 </div>
-                <Sidebar onClose={() => setTabletSidebarOpen(false)} />
+                <ErrorBoundary sectionName="navigazione">
+                  <Sidebar onClose={() => setTabletSidebarOpen(false)} />
+                </ErrorBoundary>
               </aside>
             </div>
           )}
@@ -262,7 +270,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 lg:min-h-[40px]">
               <SidebarRailBrand />
             </div>
-            <Sidebar />
+            <ErrorBoundary sectionName="navigazione">
+              <Sidebar />
+            </ErrorBoundary>
           </aside>
           <div
             data-app-desktop-canvas
@@ -313,8 +323,12 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               <Suspense fallback={null}>
                 <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
               </Suspense>
-              <EmailSyncProgressBar />
-              <BranchSessionGate>{children}</BranchSessionGate>
+              <ErrorBoundary sectionName="barra di sincronizzazione" fallback={null}>
+                <EmailSyncProgressBar />
+              </ErrorBoundary>
+              <ErrorBoundary sectionName="questa pagina">
+                <BranchSessionGate>{children}</BranchSessionGate>
+              </ErrorBoundary>
             </main>
           </div>
         </div>

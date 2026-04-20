@@ -8,6 +8,8 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SECTION_TABLE_HEAD_ROW } from '@/lib/app-shell-layout'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import DocumentiQueue, { type DocumentoInCoda as DocumentoInCodaProps } from '@/components/DocumentiQueue'
 
 interface Bolla {
   id: string
@@ -74,6 +76,31 @@ export default async function ArchivioPage() {
   const totBolle    = bolle?.length ?? 0
   const totFatture  = (fatture?.length ?? 0) + (documentiInCoda?.length ?? 0)
 
+  /* Pre-format every date that DocumentiQueue will render — server locale/tz applied once. */
+  const allDates = new Set<string>()
+  for (const doc of documentiInCoda ?? []) {
+    if (doc.created_at)     allDates.add(doc.created_at)
+    if (doc.data_documento) allDates.add(doc.data_documento)
+  }
+  const formattedDates: Record<string, string> = {}
+  for (const d of allDates) {
+    formattedDates[d] = formatDate(d)
+  }
+
+  const queueLabels = {
+    sectionTitle:     t.archivio.queueTitle     ?? 'Documenti in coda',
+    sectionSubtitle:  t.archivio.queueSubtitle  ?? 'da elaborare o da associare a una bolla',
+    unknownSender:    t.archivio.unknownSender   ?? 'Mittente sconosciuto',
+    statusInAttesa:   t.status.inAttesa,
+    statusDaAssociare: t.archivio.statusDaAssociare ?? 'Da associare',
+    openDoc:          t.archivio.documento,
+    linkStatements:   t.archivio.linkAssociateStatements,
+    noQueue:          t.archivio.noQueue         ?? 'Nessun documento in coda',
+    noQueueHint:      t.archivio.noQueueHint     ?? 'I documenti ricevuti via email appariranno qui.',
+    receivedOn:       t.archivio.receivedOn      ?? 'Ricevuto:',
+    docDate:          t.archivio.docDate         ?? 'Data doc:',
+  }
+
   return (
     <div className="app-shell-page-padding">
       <Link
@@ -109,6 +136,18 @@ export default async function ArchivioPage() {
           </>
         }
       />
+
+      {/* Documenti in coda — all pending docs including unmatched (fornitore_id = null) */}
+      {(documentiInCoda?.length ?? 0) > 0 && (
+        <ErrorBoundary sectionName="documenti da elaborare">
+          <DocumentiQueue
+            documenti={(documentiInCoda ?? []) as DocumentoInCodaProps[]}
+            fornitori={(fornitori ?? []).map((f) => ({ id: f.id, nome: f.nome }))}
+            formattedDates={formattedDates}
+            labels={queueLabels}
+          />
+        </ErrorBoundary>
+      )}
 
       {archivio.length === 0 ? (
         <div className="app-card overflow-hidden">

@@ -1521,7 +1521,7 @@ function DashboardTab({
       </div>
 
       {/* Pannello unico sincronizzazione Rekki — full-width */}
-      <ErrorBoundary fallbackTitle="Sincronizzazione email non disponibile">
+      <ErrorBoundary sectionName="risultati sincronizzazione email">
         <StatoSincronizzazioneIntelligente
           fornitoreId={fornitoreId}
           fornitoreNome={fornitore.nome}
@@ -2017,6 +2017,7 @@ function FattureTab({
         </div>
       )}
       
+      <ErrorBoundary sectionName="lista fatture">
       <div
         className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}
       >
@@ -2174,6 +2175,7 @@ function FattureTab({
         </div>
       </div>
     </div>
+    </ErrorBoundary>
     </>
   )
 }
@@ -4652,7 +4654,9 @@ function FornitoreDetailClient({
         </header>
 
         <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-xl border border-app-line-15 bg-transparent p-3 outline-none sm:p-4">
-          <TabContent variant="mobile" />
+          <ErrorBoundary sectionName="dettaglio fornitore">
+            <TabContent variant="mobile" />
+          </ErrorBoundary>
         </div>
       </div>
 
@@ -4932,23 +4936,25 @@ function FornitoreDetailClient({
               className="fornitore-tab-panel min-w-0 scroll-mt-6 rounded-xl border border-app-line-15 bg-transparent p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8"
               tabIndex={-1}
             >
-              <TabContent variant="desktop" />
-              {displayTab === 'verifica' && mdUp ? (
-                <div className="min-w-0 mt-3 md:mt-4">
-                  <VerificationStatusTab
-                    sedeId={effectiveSedeId}
-                    fornitoreId={fornitore.id}
-                    countryCode={countryCode}
-                    currency={currency}
-                    year={filterYear}
-                    month={filterMonth}
-                    ledgerDateFrom={ledgerPeriod.from}
-                    ledgerDateToExclusive={ledgerDateToExclusive}
-                    cardAccent="cyan"
-                    supplierDesktopVerificaMode="classicToolbar"
-                  />
-                </div>
-              ) : null}
+              <ErrorBoundary sectionName="dettaglio fornitore">
+                <TabContent variant="desktop" />
+                {displayTab === 'verifica' && mdUp ? (
+                  <div className="min-w-0 mt-3 md:mt-4">
+                    <VerificationStatusTab
+                      sedeId={effectiveSedeId}
+                      fornitoreId={fornitore.id}
+                      countryCode={countryCode}
+                      currency={currency}
+                      year={filterYear}
+                      month={filterMonth}
+                      ledgerDateFrom={ledgerPeriod.from}
+                      ledgerDateToExclusive={ledgerDateToExclusive}
+                      cardAccent="cyan"
+                      supplierDesktopVerificaMode="classicToolbar"
+                    />
+                  </div>
+                ) : null}
+              </ErrorBoundary>
             </div>
           </div>
         </div>

@@ -28,6 +28,7 @@ import {
 } from '@/lib/check-duplicates'
 import FattureListWithDuplicates from '@/components/FattureListWithDuplicates'
 import { ActionLink } from '@/components/ui/ActionButton'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 type FatturaListRow = {
   id: string
@@ -161,7 +162,9 @@ export default async function FatturePage({
             </ActionLink>
           </AppSectionEmptyState>
         ) : (
-          <FattureListWithDuplicates rows={fattureRowsClient} duplicatePayload={duplicatePayload} />
+          <ErrorBoundary sectionName="lista fatture">
+            <FattureListWithDuplicates rows={fattureRowsClient} duplicatePayload={duplicatePayload} />
+          </ErrorBoundary>
         )}
       </StandardCard>
     </div>
