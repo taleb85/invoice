@@ -71,6 +71,41 @@ export class OcrInvoiceConfigurationError extends Error {
   }
 }
 
+/**
+ * Lanciata quando la chiamata OpenAI fallisce per un motivo transitorio
+ * (timeout, rate-limit, errore 5xx). Consente al caller di distinguere
+ * "nessun dato estratto" da "estrazione impossibile: riprova al prossimo ciclo".
+ */
+export class OcrTransientError extends Error {
+  override name = 'OcrTransientError'
+  constructor(message: string, public readonly cause: unknown) {
+    super(message)
+  }
+}
+
+/** Max milliseconds for a single OpenAI chat completion call.
+ *  Prevents one blocked request from consuming the full Vercel function budget. */
+const OCR_TIMEOUT_MS = 45_000
+
+/** True for transient API failures that should be retried on the next scan cycle. */
+function isTransientOpenAiError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const name = err.name ?? ''
+  // OpenAI SDK typed errors
+  if (name === 'APIConnectionTimeoutError' || name === 'APIConnectionError') return true
+  // HTTP status-based: 429 rate-limit, 5xx server errors
+  const status = (err as { status?: number }).status
+  if (status === 429 || (typeof status === 'number' && status >= 500)) return true
+  // Message-based fallback for network-level errors
+  const msg = err.message.toLowerCase()
+  return (
+    msg.includes('timeout') || msg.includes('timed out') ||
+    msg.includes('rate limit') || msg.includes('rate_limit') ||
+    msg.includes('econnreset') || msg.includes('socket hang up') ||
+    msg.includes('etimedout')
+  )
+}
+
 export type OcrInvoiceLogContext = {
   supabase: SupabaseClient
   mittente: string
@@ -389,11 +424,16 @@ async function ocrInvoicePdfAsFile(
               { type: 'text', text: textPrompt },
             ],
           }],
-        })
+        }, { timeout: OCR_TIMEOUT_MS })
         const raw = response.choices[0]?.message?.content ?? ''
         const outcome = parseOcrJson(raw)
         return finalizeParseOutcome(outcome, logContext)
       } catch (err) {
+        if (isTransientOpenAiError(err)) {
+          throw new OcrTransientError(
+            `Vision PDF rasterizzato: ${err instanceof Error ? err.message : String(err)}`, err
+          )
+        }
         console.error('[OCR] Vision su PDF rasterizzato fallita, fallback Files API:', err)
       }
     }
@@ -411,12 +451,17 @@ async function ocrInvoicePdfAsFile(
         temperature: 0,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         messages: [{ role: 'user', content: content as any }],
-      })
+      }, { timeout: OCR_TIMEOUT_MS })
       const raw = response.choices[0]?.message?.content ?? ''
       const outcome = parseOcrJson(raw)
       openai.files.delete(uploaded.id).catch(() => {})
       return finalizeParseOutcome(outcome, logContext)
     } catch (err) {
+      if (isTransientOpenAiError(err)) {
+        throw new OcrTransientError(
+          `Files API PDF: ${err instanceof Error ? err.message : String(err)}`, err
+        )
+      }
       console.error('[OCR] Errore Files API / vision su PDF:', err)
       return EMPTY_OCR
     }
@@ -462,10 +507,15 @@ export async function ocrInvoice(
             { role: 'system', content: SYSTEM_PROMPT },
             { role: 'user',   content: userMsg },
           ],
-        })
+        }, { timeout: OCR_TIMEOUT_MS })
         const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
         return finalizeParseOutcome(outcome, logContext)
       } catch (err) {
+        if (isTransientOpenAiError(err)) {
+          throw new OcrTransientError(
+            `PDF testo: ${err instanceof Error ? err.message : String(err)}`, err
+          )
+        }
         console.error('[OCR] GPT error on PDF testo:', err)
         return EMPTY_OCR
       }
@@ -503,10 +553,15 @@ export async function ocrInvoice(
             { type: 'text', text: visionText },
           ],
         }],
-      })
+      }, { timeout: OCR_TIMEOUT_MS })
       const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
       return finalizeParseOutcome(outcome, logContext)
     } catch (err) {
+      if (isTransientOpenAiError(err)) {
+        throw new OcrTransientError(
+          `Vision immagine: ${err instanceof Error ? err.message : String(err)}`, err
+        )
+      }
       console.error('[OCR] GPT error on image:', err)
       return EMPTY_OCR
     }
@@ -544,10 +599,15 @@ export async function ocrInvoiceFromEmailBody(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: `Email message to parse:\n\n${truncateEmailBody(trimmed)}` },
       ],
-    })
+    }, { timeout: OCR_TIMEOUT_MS })
     const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
     return finalizeParseOutcome(outcome, logContext)
   } catch (err) {
+    if (isTransientOpenAiError(err)) {
+      throw new OcrTransientError(
+        `Email body: ${err instanceof Error ? err.message : String(err)}`, err
+      )
+    }
     console.error('[OCR] GPT error on email-body-only parse:', err)
     return EMPTY_OCR
   }

@@ -14,6 +14,7 @@ import {
   OcrResult,
   EMPTY_OCR,
   OcrInvoiceConfigurationError,
+  OcrTransientError,
 } from '@/lib/ocr-invoice'
 import { MIN_EMAIL_BODY_CHARS_FOR_SCAN, emailHasScannableBody } from '@/lib/mail-scanner'
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
@@ -587,6 +588,11 @@ async function resolveFornitoreByPIVA(
   return null
 }
 
+/**
+ * Returns null when OCR fails due to a transient API error (timeout / rate-limit / 5xx).
+ * The caller must NOT record a scan fingerprint in this case — the next scan cycle will
+ * pick up the same attachment and retry OCR cleanly.
+ */
 async function runOcrEmailBodyOnly(
   supabase: SupabaseClient,
   email: ScannedEmail,
@@ -594,7 +600,7 @@ async function runOcrEmailBodyOnly(
   fornitoreId: string | null,
   logSedeId: string | null,
   scanFingerprint?: string | null,
-): Promise<OcrResult> {
+): Promise<OcrResult | null> {
   const body = email.bodyText?.trim()
   if (!body) return { ...EMPTY_OCR, estrazione_utile: false }
   const logContext = {
@@ -615,10 +621,19 @@ async function runOcrEmailBodyOnly(
       console.error('[PROCESS]', e.message)
       return EMPTY_OCR
     }
+    if (e instanceof OcrTransientError) {
+      console.warn(`[OCR] Transient failure (body "${email.from}"): ${(e as Error).message} — will retry next scan`)
+      return null
+    }
     throw e
   }
 }
 
+/**
+ * Returns null when OCR fails due to a transient API error (timeout / rate-limit / 5xx).
+ * The caller must NOT record a scan fingerprint in this case — the next scan cycle will
+ * pick up the same attachment and retry OCR cleanly.
+ */
 async function runOcrForEmail(
   supabase: SupabaseClient,
   buf: Buffer,
@@ -629,7 +644,7 @@ async function runOcrForEmail(
   fornitoreId: string | null,
   logSedeId: string | null,
   scanFingerprint?: string | null,
-): Promise<OcrResult> {
+): Promise<OcrResult | null> {
   const logContext = {
     supabase,
     mittente:     email.from || 'sconosciuto',
@@ -650,6 +665,10 @@ async function runOcrForEmail(
     if (e instanceof OcrInvoiceConfigurationError) {
       console.error('[PROCESS]', e.message)
       return EMPTY_OCR
+    }
+    if (e instanceof OcrTransientError) {
+      console.warn(`[OCR] Transient failure ("${attachment.filename ?? contentType}"): ${(e as Error).message} — will retry next scan`)
+      return null
     }
     throw e
   }
@@ -820,7 +839,7 @@ async function processEmails(
       mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso per tentare matching P.IVA`)
 
       // 1. OCR allegato + corpo mail (runOcrForEmail passa già emailBodyText all'AI)
-      let ocr = await runOcrForEmail(
+      const ocrOrNull = await runOcrForEmail(
         supabase,
         attachment.content,
         attachment.contentType,
@@ -831,11 +850,22 @@ async function processEmails(
         effectiveSede,
         fp,
       )
+      // Transient OCR failure (timeout/rate-limit) — skip this unit entirely.
+      // No fingerprint recorded → next scan cycle retries OCR on the same attachment.
+      if (ocrOrNull === null) {
+        mailDebugLog(`[PROCESS] OCR transient: skip "${attachment.filename ?? 'allegato'}" da "${email.from}" — nessun fingerprint, ritentato al prossimo ciclo`)
+        ignorate++
+        bumpAttach(email.uid)
+        continue
+      }
+      let ocr: OcrResult = ocrOrNull
       let docFromBodyFallback = false
       if (ocrExtractedNothingUseful(ocr) && emailHasScannableBody(email)) {
-        const bodyOcr = await runOcrEmailBodyOnly(supabase, email, undefined, null, effectiveSede, fp)
-        if (ocrBodyOnlyWorthInserting(bodyOcr)) {
-          ocr = bodyOcr
+        const bodyOcrOrNull = await runOcrEmailBodyOnly(supabase, email, undefined, null, effectiveSede, fp)
+        // Treat a transient body-OCR failure as "nothing extracted" — the attachment was
+        // already uploaded; we'll retry the full chain on the next scan.
+        if (bodyOcrOrNull !== null && ocrBodyOnlyWorthInserting(bodyOcrOrNull)) {
+          ocr = bodyOcrOrNull
           docFromBodyFallback = true
           mailDebugLog(`[PROCESS] Allegato poco leggibile — uso dati estratti dal corpo email [DA TESTO EMAIL]`)
         }
@@ -1051,7 +1081,15 @@ async function processEmails(
 
     mailDebugLog(`[PROCESS] Solo testo, mittente sconosciuto "${email.from}" — estrazione AI sul corpo`)
 
-    const ocr = await runOcrEmailBodyOnly(supabase, email, undefined, null, effectiveSede, fp)
+    const ocrBodyOrNull = await runOcrEmailBodyOnly(supabase, email, undefined, null, effectiveSede, fp)
+    // Transient failure — skip without fingerprint so next scan retries OCR on the body.
+    if (ocrBodyOrNull === null) {
+      mailDebugLog(`[PROCESS] OCR transient (body-only "${email.from}") — nessun fingerprint, ritentato al prossimo ciclo`)
+      ignorate++
+      bumpAttach(email.uid)
+      continue
+    }
+    const ocr: OcrResult = ocrBodyOrNull
     mailDebugLog(
       `[PROCESS] Estrazione testo: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'} utile=${ocr.estrazione_utile}`
     )
@@ -1215,7 +1253,8 @@ async function processEmails(
       }
     }
 
-    const ocrResults: OcrResult[] = await Promise.all(
+    // null = transient OCR failure for that item — do NOT fingerprint; retry next scan.
+    const ocrResults: (OcrResult | null)[] = await Promise.all(
       items.map(({ attachment, ocr, email }, i) => {
         if (skipped[i]) return Promise.resolve(EMPTY_OCR)
         const fp = fpList[i]
@@ -1243,13 +1282,21 @@ async function processEmails(
               )
       }),
     )
-    mailDebugLog(`[PROCESS] OCR completato per "${fornitore.nome}" (matched_by=${matchedBy}): numeri fattura=[${ocrResults.map(r => r.numero_fattura ?? 'null').join(', ')}] totali=[${ocrResults.map(r => r.totale_iva_inclusa ?? 'null').join(', ')}]`)
+    mailDebugLog(`[PROCESS] OCR completato per "${fornitore.nome}" (matched_by=${matchedBy}): numeri fattura=[${ocrResults.map(r => r?.numero_fattura ?? 'null').join(', ')}] totali=[${ocrResults.map(r => r?.totale_iva_inclusa ?? 'null').join(', ')}]`)
 
     for (let i = 0; i < items.length; i++) {
       if (skipped[i]) continue
       const { email, attachment } = items[i]
-      const ocr = ocrResults[i]
       const fp = fpList[i]
+
+      // Transient OCR failure — do NOT fingerprint so the next scan cycle retries cleanly.
+      if (ocrResults[i] === null) {
+        mailDebugLog(`[PROCESS] OCR transient: skip "${attachment?.filename ?? 'body'}" per "${fornitore.nome}" — ritentato al prossimo ciclo`)
+        ignorate++
+        bumpAttach(email.uid)
+        continue
+      }
+      const ocr = ocrResults[i] as OcrResult
       const documentSedeId = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
 
       let file_url: string
