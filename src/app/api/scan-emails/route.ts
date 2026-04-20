@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { classifyImapError, type ClassifiedImapError } from '@/lib/imap-error-classifier'
 import { fetchUnseenEmails, ScannedEmail, type FetchUnseenImapHooks } from '@/lib/mail-scanner'
 import { createServiceClient } from '@/utils/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -1674,11 +1675,7 @@ export async function GET(req: Request) {
   if (!secret) return NextResponse.json({ error: 'CRON_SECRET non configurato' }, { status: 500 })
 
   const authHeader = (req as Request & { headers: Headers }).headers.get('authorization')
-  const bearerValid = authHeader === `Bearer ${secret}`
-  const { searchParams } = new URL(req.url)
-  const queryValid = searchParams.get('secret') === secret
-
-  if (!bearerValid && !queryValid) {
+  if (authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
@@ -1717,21 +1714,14 @@ export async function GET(req: Request) {
   }
 }
 
-function imapErrorMessage(err: unknown, nome: string): string {
-  const msg = err instanceof Error ? err.message : String(err)
-  if (msg.includes('ENOTFOUND') || msg.includes('getaddrinfo')) {
-    return `Sede "${nome}": host IMAP non raggiungibile. Verifica le impostazioni IMAP in Sedi.`
-  }
-  if (msg.includes('ECONNREFUSED')) {
-    return `Sede "${nome}": connessione IMAP rifiutata. Controlla host e porta.`
-  }
-  if (msg.includes('auth') || msg.includes('LOGIN') || msg.includes('AUTHENTICATE')) {
-    return `Sede "${nome}": credenziali IMAP errate.`
-  }
-  if (/unexpected close|connection closed|socket hang|ECONNRESET|ETIMEDOUT/i.test(msg)) {
-    return `Sede "${nome}": connessione interrotta (timeout o rete). Verifica rete/firewall o riprova. Dettaglio: ${msg.slice(0, 120)}`
-  }
-  return `Sede "${nome}": ${msg}`
+/** Classify an IMAP error and format it for the avvisi[] array and DB storage. */
+function classifyImapErrorForSede(
+  err: unknown,
+  nome: string,
+): { avviso: string; classified: ClassifiedImapError } {
+  const classified = classifyImapError(err)
+  const avviso = `Sede "${nome}": ${classified.message}. ${classified.actionHint}`
+  return { avviso, classified }
 }
 
 type RunEmailScanParams = {
