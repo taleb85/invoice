@@ -79,8 +79,25 @@ function parseMeResponse(data: Record<string, unknown>): MeData {
   }
 }
 
-const meFetcher = (url: string): Promise<MeData | null> =>
-  fetch(url).then((r) => (r.ok ? r.json().then(parseMeResponse) : null))
+const meFetcher = async (url: string): Promise<MeData | null> => {
+  const res = await fetch(url)
+
+  if (res.status === 401) {
+    const body = await res.json().catch(() => ({})) as { error?: string; reason?: string }
+    if (body.error === 'session_expired') {
+      const reason =
+        body.reason === 'inactivity'
+          ? 'Sessione scaduta per inattività'
+          : 'Sessione scaduta'
+      // Hard redirect so the browser clears in-memory state completely.
+      window.location.href = `/login?expired=1&reason=${encodeURIComponent(reason)}`
+      return null
+    }
+    return null
+  }
+
+  return res.ok ? res.json().then(parseMeResponse) : null
+}
 
 const MeContext = createContext<MeContextValue>({
   me:      null,

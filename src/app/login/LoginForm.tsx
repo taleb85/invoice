@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
@@ -31,12 +31,16 @@ export default function LoginForm({ sessionGateNext }: LoginFormProps) {
 }
 
 function LoginFormInner({ sessionGateNext }: LoginFormProps) {
-  const router   = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const { locale, t, setLocale } = useLocale()
   const { me, loading: meLoading } = useMe()
   const [langOpen, setLangOpen] = useState(false)
   const [gateUiReady, setGateUiReady] = useState(() => !sessionGateNext)
+
+  // Populated when the user is redirected here after a server-side session expiry.
+  const expiredReason = searchParams?.get('reason') ?? null
 
   const [mode, setMode]     = useState<'name' | 'admin'>('name')
   const [loading, setLoading] = useState(false)
@@ -496,6 +500,15 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   return (
     <div className="w-full">
+
+      {expiredReason && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
+          <svg className="h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span>{decodeURIComponent(expiredReason)}</span>
+        </div>
+      )}
 
       <LoginBrandedHero
         mode={mode}

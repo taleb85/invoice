@@ -163,6 +163,36 @@ export default function SediPage() {
 
   // Elimina utente
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+
+  // Cambia PIN operatore
+  const [changingPinFor, setChangingPinFor]   = useState<string | null>(null)
+  const [newPin, setNewPin]                   = useState('')
+  const [savingPin, setSavingPin]             = useState(false)
+  const [pinMsg, setPinMsg]                   = useState<{ ok: boolean; text: string } | null>(null)
+
+  const handleChangePin = async (operatorId: string) => {
+    if (newPin.length < 4) return
+    setSavingPin(true)
+    setPinMsg(null)
+    const res = await fetch('/api/operator/change-pin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operatorId, newPin }),
+    })
+    const data = await res.json() as { ok?: boolean; message?: string; error?: string }
+    setSavingPin(false)
+    if (res.ok) {
+      setPinMsg({ ok: true, text: data.message ?? 'PIN aggiornato.' })
+      setNewPin('')
+      setTimeout(() => {
+        setChangingPinFor(null)
+        setPinMsg(null)
+      }, 2500)
+    } else {
+      setPinMsg({ ok: false, text: data.error ?? 'Errore durante l\'aggiornamento del PIN.' })
+    }
+  }
+
   const handleDeleteUser = async (userId: string, email: string) => {
     if (!confirm(`Eliminare l'utente ${email}? Questa azione è irreversibile.`)) return
     setDeletingUserId(userId)
@@ -978,6 +1008,22 @@ export default function SediPage() {
                                   }`}>
                                     {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
                                   </span>
+                                  {p.role === 'operatore' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setChangingPinFor(changingPinFor === p.id ? null : p.id)
+                                        setNewPin('')
+                                        setPinMsg(null)
+                                      }}
+                                      className="p-1 text-app-fg-muted hover:text-amber-400 hover:bg-amber-500/15 rounded transition-colors"
+                                      title="Cambia PIN"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                      </svg>
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -1007,6 +1053,49 @@ export default function SediPage() {
                                     }
                                   </button>
                                 </div>
+                              </div>
+                            )}
+                            {/* Inline PIN-change form — only visible when this operator is selected */}
+                            {changingPinFor === p.id && (
+                              <div className="mt-1.5 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 space-y-2">
+                                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                                  Nuovo PIN per {p.full_name ?? '—'}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="password"
+                                    inputMode="numeric"
+                                    placeholder="Min 4 cifre"
+                                    maxLength={12}
+                                    value={newPin}
+                                    onChange={(e) => {
+                                      setNewPin(e.target.value.replace(/\D/g, ''))
+                                      setPinMsg(null)
+                                    }}
+                                    className="w-28 rounded-lg border border-app-line-25 bg-transparent px-2.5 py-1.5 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                    autoFocus
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleChangePin(p.id)}
+                                    disabled={newPin.length < 4 || savingPin}
+                                    className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-950 transition-colors hover:bg-amber-400 active:bg-amber-600 disabled:opacity-40"
+                                  >
+                                    {savingPin ? 'Salvo…' : 'Salva'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setChangingPinFor(null); setNewPin(''); setPinMsg(null) }}
+                                    className="text-xs text-app-fg-muted hover:text-app-fg"
+                                  >
+                                    Annulla
+                                  </button>
+                                </div>
+                                {pinMsg && (
+                                  <p className={`text-xs font-medium ${pinMsg.ok ? 'text-emerald-300' : 'text-red-300'}`}>
+                                    {pinMsg.text}
+                                  </p>
+                                )}
                               </div>
                             )}
                           </div>
