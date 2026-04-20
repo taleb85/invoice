@@ -14,7 +14,7 @@ import { timingSafeEqual, createHmac } from 'crypto'
 const MAX_PIN_LEN = 12
 
 /** HMAC key derived from a stable server secret so digests are deployment-specific. */
-const HMAC_KEY = process.env.ADMIN_GATE_HMAC_KEY ?? process.env.CRON_SECRET ?? 'fluxo-gate-fallback'
+const HMAC_KEY = process.env.ADMIN_LOGIN_GATE_PIN_HMAC_KEY ?? process.env.CRON_SECRET ?? 'fluxo-gate-fallback'
 
 function hmacDigest(value: string): Buffer {
   return Buffer.from(
