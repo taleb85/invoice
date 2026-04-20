@@ -1,12 +1,16 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense } from 'react'
+import useSWR from 'swr'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
 import type { OperatorWorkspaceHeaderPayload } from '@/types/operator-workspace-header'
 import DashboardWorkspaceQuickNav from '@/components/DashboardWorkspaceQuickNav'
 import DashboardHeaderSedeToolsMenu from '@/components/DashboardHeaderSedeToolsMenu'
+
+const headerFetcher = (url: string): Promise<OperatorWorkspaceHeaderPayload | null> =>
+  fetch(url).then((r) => (r.ok ? r.json() : null))
 
 function OperatorDesktopWorkspaceHeaderInner() {
   const pathname = usePathname()
@@ -17,30 +21,20 @@ function OperatorDesktopWorkspaceHeaderInner() {
   const fyRaw = searchParams?.get('fy')?.trim() ?? ''
   const fyQuery = fyRaw ? `fy=${encodeURIComponent(fyRaw)}` : ''
 
-  const [data, setData] = useState<OperatorWorkspaceHeaderPayload | null>(null)
+  // Passing null as key disables the fetch when hideStrip is true
+  const swrKey = hideStrip
+    ? null
+    : fyQuery
+      ? `/api/operator-workspace-header?${fyQuery}`
+      : '/api/operator-workspace-header'
 
-  useEffect(() => {
-    if (hideStrip) {
-      setData(null)
-      return
-    }
-    const ac = new AbortController()
-    ;(async () => {
-      try {
-        const url = fyQuery ? `/api/operator-workspace-header?${fyQuery}` : '/api/operator-workspace-header'
-        const res = await fetch(url, { signal: ac.signal, cache: 'no-store' })
-        if (!res.ok) return
-        const json = (await res.json()) as OperatorWorkspaceHeaderPayload
-        if (!ac.signal.aborted) setData(json)
-      } catch {
-        /* ignore abort */
-      }
-    })()
-    return () => ac.abort()
-  }, [hideStrip, fyQuery])
+  const { data } = useSWR<OperatorWorkspaceHeaderPayload | null>(swrKey, headerFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval:  20_000,
+    refreshInterval:   60_000,
+  })
 
-  if (hideStrip) return null
-  if (!data) return null
+  if (hideStrip || !data) return null
 
   return (
     <div
@@ -53,12 +47,12 @@ function OperatorDesktopWorkspaceHeaderInner() {
           t={t}
           fiscalYear={data.fiscalYear}
           counts={{
-            ordini: data.counts.ordini,
-            bolle: data.counts.bolle,
-            fatture: data.counts.fatture,
+            ordini:     data.counts.ordini,
+            bolle:      data.counts.bolle,
+            fatture:    data.counts.fatture,
             statements: data.counts.statements,
-            listino: data.counts.listino,
-            documenti: data.counts.documenti,
+            listino:    data.counts.listino,
+            documenti:  data.counts.documenti,
           }}
         />
       ) : null}

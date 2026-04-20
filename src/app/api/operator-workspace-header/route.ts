@@ -45,7 +45,9 @@ export async function GET(req: NextRequest) {
       sollecitiFornitori,
       counts: null,
     }
-    return NextResponse.json(payload)
+    return NextResponse.json(payload, {
+      headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=40' },
+    })
   }
 
   const [fornitoreIds, sedeMetaRow] = await Promise.all([
@@ -74,5 +76,7 @@ export async function GET(req: NextRequest) {
       documenti: kpis.documentiPending,
     },
   }
-  return NextResponse.json(payload)
+  return NextResponse.json(payload, {
+    headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=40' },
+  })
 }

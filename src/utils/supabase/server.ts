@@ -58,8 +58,8 @@ export function createServiceClient() {
   )
 }
 
-/** Restituisce il profilo dell'utente corrente inclusa la sede. */
-export async function getProfile(): Promise<Profile | null> {
+/** Restituisce il profilo dell'utente corrente inclusa la sede. Memoised per request via cache(). */
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const { supabase, user } = await getRequestAuth()
   if (!user) return null
 
@@ -70,4 +70,4 @@ export async function getProfile(): Promise<Profile | null> {
     .single()
 
   return (data as Profile) ?? null
-}
+})

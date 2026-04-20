@@ -8,17 +8,20 @@ export async function GET() {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
   const me = r.me
-  return NextResponse.json({
-    user: me.user,
-    full_name: me.full_name,
-    role: me.role,
-    sede_id: me.sede_id,
-    sede_nome: me.sede_nome,
-    country_code: me.country_code,
-    currency: me.currency,
-    timezone: me.timezone,
-    is_admin: me.is_admin,
-    is_admin_sede: me.is_admin_sede,
-    all_sedi: me.all_sedi,
-  })
+  return NextResponse.json(
+    {
+      user: me.user,
+      full_name: me.full_name,
+      role: me.role,
+      sede_id: me.sede_id,
+      sede_nome: me.sede_nome,
+      country_code: me.country_code,
+      currency: me.currency,
+      timezone: me.timezone,
+      is_admin: me.is_admin,
+      is_admin_sede: me.is_admin_sede,
+      all_sedi: me.all_sedi,
+    },
+    { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } },
+  )
 }

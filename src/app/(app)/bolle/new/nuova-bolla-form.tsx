@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { mutate as swrMutate } from 'swr'
 
 const SCAN_ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const
 
@@ -529,6 +530,10 @@ export default function NuovaBollaForm() {
     if (sedeId) {
       void supabase.from('scanner_flow_events').insert({ sede_id: sedeId, step: 'archiviata_bolla' })
     }
+
+    // Invalidate SWR caches that include bolla counts / open-bolle lists
+    void swrMutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/bolle-aperte'), undefined, { revalidate: true })
+    void swrMutate('/api/operator-workspace-header', undefined, { revalidate: true })
 
     router.push('/bolle?tutte=1')
     router.refresh()

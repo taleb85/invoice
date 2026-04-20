@@ -19,6 +19,7 @@ import {
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
 import { useT } from '@/lib/use-t'
+import { revalidateFornitoriForSede } from '@/lib/use-fornitori'
 
 interface FornitoreRow {
   id: string
@@ -255,6 +256,7 @@ export default function SedeFornitoriPage() {
   const handleSaved = (f: FornitoreRow) => {
     setFornitori(prev => [...prev, f].sort((a, b) => a.nome.localeCompare(b.nome)))
     setShowModal(false)
+    revalidateFornitoriForSede(sede_id)
   }
 
   const handleDelete = async (id: string, nome: string) => {
@@ -263,6 +265,7 @@ export default function SedeFornitoriPage() {
     try {
       await fetch(`/api/fornitori?id=${id}`, { method: 'DELETE' })
       setFornitori(prev => prev.filter(f => f.id !== id))
+      revalidateFornitoriForSede(sede_id)
     } finally {
       setDeleting(null)
     }

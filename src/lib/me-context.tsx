@@ -1,18 +1,20 @@
 'use client'
 
 /**
- * UserContext — fetcha /api/me UNA SOLA VOLTA per l'intera sessione dell'app
- * ed espone i dati a tutti i componenti figli tramite useMe().
+ * UserContext — fetches /api/me once per session via SWR.
  *
- * Sostituisce le chiamate individuali a /api/me in Sidebar, ScanEmailButton,
- * use-sede.ts e altri consumer, riducendo le richieste di rete da N a 1.
+ * SWR deduplication ensures only one in-flight request regardless of
+ * how many components call useMe(). The dedupingInterval prevents
+ * re-fetches within a 30 s window; fallbackData provides instant
+ * hydration from the SSR payload so there is no loading flash.
  */
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useCallback, type ReactNode } from 'react'
+import useSWR, { mutate as globalMutate } from 'swr'
 
 export interface MeData {
   user:         { id: string; email: string } | null
-  /** `profiles.full_name` — nome mostrato in UI (es. sidebar) quando non c’è operatore attivo nel contesto */
+  /** `profiles.full_name` — nome mostrato in UI (es. sidebar) quando non c'è operatore attivo nel contesto */
   full_name:    string | null
   role:         'admin' | 'admin_sede' | 'operatore' | null
   sede_id:      string | null
@@ -36,6 +38,8 @@ interface MeContextValue {
   refresh: () => void
 }
 
+export const ME_SWR_KEY = '/api/me'
+
 const DEFAULT_ME: MeData = {
   user:         null,
   full_name:    null,
@@ -50,6 +54,34 @@ const DEFAULT_ME: MeData = {
   all_sedi:     [],
 }
 
+function parseMeResponse(data: Record<string, unknown>): MeData {
+  const raw = String(data.role ?? '').toLowerCase()
+  const role: MeData['role'] =
+    raw === 'admin'
+      ? 'admin'
+      : raw === 'admin_sede'
+        ? 'admin_sede'
+        : raw === 'operatore'
+          ? 'operatore'
+          : null
+  return {
+    user:          (data.user as MeData['user']) ?? null,
+    full_name:     typeof data.full_name === 'string' ? data.full_name.trim() || null : null,
+    role,
+    sede_id:       (data.sede_id as string) ?? null,
+    sede_nome:     (data.sede_nome as string) ?? null,
+    country_code:  (data.country_code as string) ?? 'UK',
+    currency:      (data.currency as string) ?? 'GBP',
+    timezone:      (data.timezone as string) ?? 'Europe/London',
+    is_admin:      !!(data.is_admin) || role === 'admin',
+    is_admin_sede: !!(data.is_admin_sede) || role === 'admin_sede',
+    all_sedi:      (data.all_sedi as MeData['all_sedi']) ?? [],
+  }
+}
+
+const meFetcher = (url: string): Promise<MeData | null> =>
+  fetch(url).then((r) => (r.ok ? r.json().then(parseMeResponse) : null))
+
 const MeContext = createContext<MeContextValue>({
   me:      null,
   loading: true,
@@ -60,56 +92,27 @@ export function UserProvider({
   children,
   initialMe = null,
 }: {
-  children: ReactNode
-  /** Da Server Component: stesso payload di `/api/me`, evita flash dock/padding in attesa del fetch. */
+  children:   ReactNode
+  /** Da Server Component: stesso payload di `/api/me`, evita flash mentre SWR carica. */
   initialMe?: MeData | null
 }) {
-  const [me, setMe] = useState<MeData | null>(() => initialMe ?? null)
-  const [loading, setLoading] = useState(() => initialMe == null)
-  const [tick, setTick] = useState(0)
+  const { data, isLoading, mutate } = useSWR<MeData | null>(
+    ME_SWR_KEY,
+    meFetcher,
+    {
+      revalidateOnFocus:    false,
+      revalidateOnReconnect: true,
+      dedupingInterval:     30_000,
+      // Provide SSR data immediately; SWR revalidates in the background
+      fallbackData:         initialMe ?? undefined,
+    },
+  )
 
-  useEffect(() => {
-    if (tick > 0) setLoading(true)
-    fetch('/api/me')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data) {
-          /* 401/404 o risposta vuota: non cancellare un utente già idratato da RSC (evita loop /accesso ↔ /). */
-          setMe((prev) => (prev?.user != null ? prev : DEFAULT_ME))
-          return
-        }
-        const raw = String(data.role ?? '').toLowerCase()
-        const role: MeData['role'] | null =
-          raw === 'admin'
-            ? 'admin'
-            : raw === 'admin_sede'
-              ? 'admin_sede'
-              : raw === 'operatore'
-                ? 'operatore'
-                : null
-        const isAdmin = !!data.is_admin || role === 'admin'
-        const isAdminSede = !!data.is_admin_sede || role === 'admin_sede'
-        setMe({
-          user: data.user ?? null,
-          full_name: typeof data.full_name === 'string' ? data.full_name.trim() || null : null,
-          role,
-          sede_id: data.sede_id ?? null,
-          sede_nome: data.sede_nome ?? null,
-          country_code: data.country_code ?? 'UK',
-          currency: data.currency ?? 'GBP',
-          timezone: data.timezone ?? 'Europe/London',
-          is_admin: isAdmin,
-          is_admin_sede: isAdminSede,
-          all_sedi: data.all_sedi ?? [],
-        })
-      })
-      .catch(() => {
-        setMe((prev) => (prev?.user != null ? prev : DEFAULT_ME))
-      })
-      .finally(() => setLoading(false))
-  }, [tick])
+  // data === null means a non-ok response (401/404) — fall back to initialMe
+  const me = data === null ? (initialMe ?? null) : (data ?? null)
+  const loading = isLoading && me === null
 
-  const refresh = () => setTick((n) => n + 1)
+  const refresh = useCallback(() => { mutate() }, [mutate])
 
   return (
     <MeContext.Provider value={{ me, loading, refresh }}>
@@ -122,3 +125,10 @@ export function UserProvider({
 export function useMe(): MeContextValue {
   return useContext(MeContext)
 }
+
+/**
+ * Global helper — call from anywhere after mutations that change the user
+ * profile (e.g. sede switch) to immediately revalidate /api/me in all
+ * components that share the UserProvider.
+ */
+export const revalidateMe = () => globalMutate(ME_SWR_KEY)
