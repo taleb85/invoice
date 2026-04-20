@@ -245,25 +245,29 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Execute updates
-    for (const item of toUpdate) {
+    // Single upsert replaces U sequential UPDATE calls (N+1 pattern).
+    // Upsert on `id` merges updates + inserts into two round-trips max.
+    if (toUpdate.length > 0) {
       const { error: updErr } = await service
         .from('listino_prezzi')
-        .update({
-          prezzo: item.prezzo,
-          prodotto: item.prodotto,
-          data_prezzo: dataPrezzo,
-        })
-        .eq('id', item.id)
+        .upsert(
+          toUpdate.map((item) => ({
+            id:          item.id,
+            prezzo:      item.prezzo,
+            prodotto:    item.prodotto,
+            data_prezzo: dataPrezzo,
+          })),
+          { onConflict: 'id' },
+        )
 
       if (updErr) {
         errors.push({ row: -1, error: `Errore aggiornamento: ${updErr.message}` })
       } else {
-        result.updated++
+        result.updated = toUpdate.length
       }
     }
 
-    // Execute inserts
+    // Execute inserts (already a single bulk insert — unchanged)
     if (toCreate.length > 0) {
       const { error: insErr } = await service
         .from('listino_prezzi')

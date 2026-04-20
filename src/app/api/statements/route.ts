@@ -70,18 +70,21 @@ export async function GET(req: NextRequest) {
     const lines = existingRows.map(r => ({ numero: r.numero_doc, importo: Number(r.importo) }))
     const { results } = await runTripleCheck(supabase, lines, stmt.sede_id, stmt.fornitore_id)
 
-    // Update each row
-    for (const r of results) {
-      const bolle_json = r.bolle.length ? r.bolle : null
-      await supabase.from('statement_rows').update({
-        check_status:  r.status,
-        delta_importo: r.deltaImporto,
-        fattura_id:    r.fattura?.id ?? null,
+    // Single upsert replaces R sequential UPDATE calls (N+1 pattern).
+    // Conflict target: the (statement_id, numero_doc) unique constraint on statement_rows.
+    await supabase.from('statement_rows').upsert(
+      results.map((r) => ({
+        statement_id:   statementId,
+        numero_doc:     r.numero,
+        check_status:   r.status,
+        delta_importo:  r.deltaImporto,
+        fattura_id:     r.fattura?.id ?? null,
         fattura_numero: r.fattura?.numero_fattura ?? null,
-        fornitore_id:  r.fornitore?.id ?? null,
-        bolle_json,
-      }).eq('statement_id', statementId).eq('numero_doc', r.numero)
-    }
+        fornitore_id:   r.fornitore?.id ?? null,
+        bolle_json:     r.bolle.length ? r.bolle : null,
+      })),
+      { onConflict: 'statement_id,numero_doc' },
+    )
 
     const missingRows = results.filter(r => r.status !== 'ok').length
     await supabase.from('statements').update({

@@ -94,20 +94,44 @@ export async function runTripleCheck(
 ): Promise<{ results: CheckResult[]; summary: CheckSummary }> {
   const results: CheckResult[] = []
 
+  if (lines.length === 0) {
+    return { results, summary: { ok: 0, fattura_mancante: 0, bolle_mancanti: 0, errore_importo: 0, rekki_prezzo_discordanza: 0 } }
+  }
+
+  // ── Bulk prefetch: one query for fatture, one for bolle ──────────────
+  //
+  // Old behaviour: 2 DB round-trips × N lines (N+1 per-line pattern).
+  // New behaviour: 2 round-trips total, then in-memory matching.
+  //
+  // Scope: load all fatture/bolle for the given (sede, fornitore) pair.
+  // In-memory ilike match replaces per-line .ilike() query.
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fattureQ = (supabase as any)
+    .from('fatture')
+    .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, fornitori(id, nome, email)')
+  if (sede_id)      fattureQ = fattureQ.eq('sede_id',      sede_id)
+  if (fornitore_id) fattureQ = fattureQ.eq('fornitore_id', fornitore_id)
+  const { data: allFattureRaw } = await fattureQ
+  const fatturePool = (allFattureRaw ?? []) as FatturaRow[]
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let bolleQ = (supabase as any)
+    .from('bolle')
+    .select('id, numero_bolla, importo, data, fornitore_id')
+    .eq('stato', 'completato')
+  if (sede_id)      bolleQ = bolleQ.eq('sede_id',      sede_id)
+  if (fornitore_id) bolleQ = bolleQ.eq('fornitore_id', fornitore_id)
+  const { data: allBolleRaw } = await bolleQ
+  type BollaPoolRow = { id: string; numero_bolla: string | null; importo: number | null; data: string; fornitore_id: string }
+  const bollePool = (allBolleRaw ?? []) as BollaPoolRow[]
+
   for (const line of lines) {
-    // ── STEP 1: Find matching invoice ──────────────────────────────────
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let fattureQuery = (supabase as any)
-      .from('fatture')
-      .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, fornitori(id, nome, email)')
-      .ilike('numero_fattura', `%${line.numero}%`)
-      .limit(1)
-
-    if (sede_id)       fattureQuery = fattureQuery.eq('sede_id', sede_id)
-    if (fornitore_id)  fattureQuery = fattureQuery.eq('fornitore_id', fornitore_id)
-
-    const { data: fattureRows } = await fattureQuery
-    const rawFattura = fattureRows?.[0] as FatturaRow | undefined
+    // ── STEP 1: Find matching invoice (in-memory ilike) ─────────────────
+    const numLower = line.numero.toLowerCase()
+    const rawFattura = fatturePool.find(
+      (f) => f.numero_fattura != null && f.numero_fattura.toLowerCase().includes(numLower),
+    )
 
     if (!rawFattura) {
       results.push({
@@ -125,24 +149,16 @@ export async function runTripleCheck(
       file_url: rawFattura.file_url, fornitore_id: rawFattura.fornitore_id,
     }
 
-    // ── STEP 2: Find associated GRNs (bolle) ───────────────────────────
+    // ── STEP 2: Filter bolle in-memory (date window + fornitore) ────────
     const fatturaDate = rawFattura.data
     const dateFrom    = new Date(fatturaDate); dateFrom.setDate(dateFrom.getDate() - 45)
     const dateTo      = new Date(fatturaDate); dateTo.setDate(dateTo.getDate() + 5)
+    const dfStr = dateFrom.toISOString().slice(0, 10)
+    const dtStr = dateTo.toISOString().slice(0, 10)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let bolleQuery = (supabase as any)
-      .from('bolle')
-      .select('id, numero_bolla, importo, data')
-      .eq('fornitore_id', rawFattura.fornitore_id)
-      .eq('stato', 'completato')
-      .gte('data', dateFrom.toISOString().slice(0, 10))
-      .lte('data', dateTo.toISOString().slice(0, 10))
-
-    if (sede_id) bolleQuery = bolleQuery.eq('sede_id', sede_id)
-
-    const { data: bolleRows } = await bolleQuery
-    const bolle = (bolleRows ?? []) as { id: string; numero_bolla: string | null; importo: number | null; data: string }[]
+    const bolle = bollePool.filter(
+      (b) => b.fornitore_id === rawFattura.fornitore_id && b.data >= dfStr && b.data <= dtStr,
+    )
 
     // ── STEP 3: Amount checks ───────────────────────────────────────────
     const dbImporto         = rawFattura.importo ?? 0
