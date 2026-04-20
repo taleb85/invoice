@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Credenziali salvate con successo',
+      hint: 'Credenziali salvate nel database. Per configurazione statica aggiungi GMAIL_CLIENT_ID e GMAIL_CLIENT_SECRET nelle variabili Vercel.',
     })
 
   } catch (err) {

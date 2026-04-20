@@ -45,41 +45,98 @@ type GmailPayloadPart = {
 class GmailService {
   private oauth2Client: GoogleOAuth2Client
   private supabase: SupabaseClient | null = null
-  
+  /** Set to true once clientId + clientSecret have been successfully resolved. */
+  private _configured = false
+
   constructor() {
-    const redirectUri = process.env.NEXT_PUBLIC_SITE_URL 
+    // Build a placeholder client using the redirect URI only.
+    // Credentials (clientId / clientSecret) are resolved in init() — either
+    // from env vars (fast path) or from Supabase user_settings (wizard path).
+    // This avoids baking potentially-absent env values at construction time.
+    this.oauth2Client = new google.auth.OAuth2(
+      undefined,
+      undefined,
+      this._redirectUri()
+    )
+
+    // If both env vars are already present, pre-configure now so callers that
+    // skip init() (e.g. unit tests, getAuthUrl()) still work.
+    if (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET) {
+      this.oauth2Client = new google.auth.OAuth2(
+        process.env.GMAIL_CLIENT_ID,
+        process.env.GMAIL_CLIENT_SECRET,
+        this._redirectUri()
+      )
+      this._configured = true
+      if (process.env.GMAIL_REFRESH_TOKEN) {
+        this.oauth2Client.setCredentials({
+          refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+        })
+      }
+    }
+  }
+
+  private _redirectUri(): string {
+    return process.env.NEXT_PUBLIC_SITE_URL
       ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/google/callback`
       : 'http://localhost:3000/api/auth/google/callback'
-    
-    this.oauth2Client = new google.auth.OAuth2(
-      process.env.GMAIL_CLIENT_ID,
-      process.env.GMAIL_CLIENT_SECRET,
-      redirectUri
-    )
-    
-    // Set refresh token if available in env (fallback for development)
+  }
+
+  /**
+   * Initialize with a Supabase client for token management.
+   *
+   * Resolves Gmail OAuth credentials in priority order:
+   *  1. GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET env vars (already handled in
+   *     constructor — this branch is a fast no-op if already configured)
+   *  2. user_settings rows saved via /api/auth/google/save-credentials wizard
+   *
+   * After Fix #4 the wizard no longer writes to process.env, so this DB
+   * fallback is the only way wizard-configured credentials reach the service.
+   */
+  async init(supabase?: SupabaseClient): Promise<void> {
+    this.supabase = supabase ?? createServiceClient()
+
+    // Fast path: env vars resolved in constructor
+    if (this._configured) return
+
+    // Fallback: load clientId + clientSecret from Supabase
+    let clientId = process.env.GMAIL_CLIENT_ID
+    let clientSecret = process.env.GMAIL_CLIENT_SECRET
+
+    if (!clientId || !clientSecret) {
+      const { data } = await this.supabase
+        .from('user_settings')
+        .select('setting_key, setting_value')
+        .in('setting_key', ['gmail_client_id', 'gmail_client_secret'])
+        .limit(2)
+
+      const row = (data ?? []).reduce<Record<string, string>>(
+        (acc, r) => ({ ...acc, [r.setting_key as string]: r.setting_value as string }),
+        {}
+      )
+      clientId    = clientId    ?? row['gmail_client_id']
+      clientSecret = clientSecret ?? row['gmail_client_secret']
+    }
+
+    if (!clientId || !clientSecret) return // not configured — _configured stays false
+
+    // Re-initialize the OAuth2 client with the resolved credentials
+    this.oauth2Client = new google.auth.OAuth2(clientId, clientSecret, this._redirectUri())
+    this._configured = true
+
     if (process.env.GMAIL_REFRESH_TOKEN) {
       this.oauth2Client.setCredentials({
         refresh_token: process.env.GMAIL_REFRESH_TOKEN,
       })
     }
   }
-  
+
   /**
-   * Initialize with Supabase client for token management
-   */
-  async init(supabase?: SupabaseClient) {
-    this.supabase = supabase || createServiceClient()
-  }
-  
-  /**
-   * Check if Gmail API credentials are configured
+   * Returns true once clientId + clientSecret have been resolved (env or DB).
+   * Replaces the old env-only check so wizard-configured deployments work.
    */
   isConfigured(): boolean {
-    return !!(
-      process.env.GMAIL_CLIENT_ID &&
-      process.env.GMAIL_CLIENT_SECRET
-    )
+    return this._configured
   }
   
   /**
