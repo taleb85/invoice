@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { classifyImapError, type ClassifiedImapError } from '@/lib/imap-error-classifier'
+import { recordImapFailure, recordImapSuccess } from '@/lib/imap-health'
 import { fetchUnseenEmails, ScannedEmail, type FetchUnseenImapHooks } from '@/lib/mail-scanner'
 import { createServiceClient } from '@/utils/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
@@ -1745,6 +1746,9 @@ type EmailScanCoreResult = {
   bozzeCreate: number
   messaggio: string
   avvisi?: string[]
+  /** Structured IMAP errors — one per failed sede/global mailbox. UI can use kind + actionHint
+   *  to show targeted guidance (e.g. "wrong credentials" → link to IMAP settings). */
+  imapErrorDetails?: ClassifiedImapError[]
   mailsFound: number
   mailsProcessed: number
   attachmentsTotal: number
@@ -1790,6 +1794,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   let totalBozzeCreate = 0
   let totalSkippedAlready = 0
   const avvisi: string[] = []
+  const imapErrorDetails: ClassifiedImapError[] = []
 
   let mailsFound = 0
   let mailsProcessed = 0
@@ -2065,18 +2070,38 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           })
         }
 
-        await supabase
-          .from('sedi')
-          .update({ last_imap_sync_at: new Date().toISOString(), last_imap_sync_error: null })
-          .eq('id', sede.id)
+        await Promise.all([
+          supabase
+            .from('sedi')
+            .update({ last_imap_sync_at: new Date().toISOString(), last_imap_sync_error: null })
+            .eq('id', sede.id),
+          recordImapSuccess(supabase, sede.id),
+        ])
       } catch (err) {
-        const avviso = imapErrorMessage(err, sede.nome)
-        console.error(`[SEDE] ❌ Errore sede "${sede.nome}":`, err)
+        const { avviso, classified } = classifyImapErrorForSede(err, sede.nome)
+        console.error(`[SEDE] ❌ Errore sede "${sede.nome}" [${classified.kind}]:`, err)
         avvisi.push(avviso)
-        await supabase
-          .from('sedi')
-          .update({ last_imap_sync_error: avviso.slice(0, 2000) })
-          .eq('id', sede.id)
+        imapErrorDetails.push(classified)
+        // Stream a structured event so the UI can render a per-sede error card immediately
+        await s({
+          type: 'sede_error',
+          sede_id: sede.id,
+          sede_nome: sede.nome,
+          error: classified.message,
+          kind: classified.kind,
+          retryable: classified.retryable,
+          actionHint: classified.actionHint,
+        })
+        // Prefix with [kind] so admins can filter by error type without a schema migration
+        const persistedError = `[${classified.kind}] ${classified.message} — ${classified.actionHint}`
+        await Promise.all([
+          supabase
+            .from('sedi')
+            .update({ last_imap_sync_error: persistedError.slice(0, 2000) })
+            .eq('id', sede.id),
+          recordImapFailure(supabase, sede.id, classified.kind, classified.message),
+        ])
+        // Intentional: do NOT rethrow — continue scanning remaining sedi (partial results)
       }
     }
   }
@@ -2199,9 +2224,22 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           ...snap(),
         })
       }
+      await recordImapSuccess(supabase, null)
     } catch (err) {
-      console.error('[GLOBALE] ❌ Errore casella globale:', err)
-      avvisi.push(imapErrorMessage(err, 'casella globale'))
+      const { avviso, classified } = classifyImapErrorForSede(err, 'casella globale')
+      console.error(`[GLOBALE] ❌ Errore casella globale [${classified.kind}]:`, err)
+      avvisi.push(avviso)
+      imapErrorDetails.push(classified)
+      await s({
+        type: 'sede_error',
+        sede_id: 'global',
+        sede_nome: 'Casella Globale',
+        error: classified.message,
+        kind: classified.kind,
+        retryable: classified.retryable,
+        actionHint: classified.actionHint,
+      })
+      await recordImapFailure(supabase, null, classified.kind, classified.message)
     }
   } else if (!skipGlobalImap) {
     mailDebugLog('[GLOBALE] Casella globale non configurata — salto')
@@ -2231,6 +2269,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     bozzeCreate: totalBozzeCreate,
     messaggio,
     ...(avvisi.length > 0 && { avvisi }),
+    ...(imapErrorDetails.length > 0 && { imapErrorDetails }),
     mailsFound,
     mailsProcessed,
     attachmentsTotal: attTotalRun,
@@ -2302,6 +2341,7 @@ export async function POST(req: Request) {
             skippedAlreadyCompleted: result.skippedAlreadyCompleted,
             messaggio: result.messaggio,
             avvisi: result.avvisi,
+            imapErrorDetails: result.imapErrorDetails,
             mailsFound: result.mailsFound,
             mailsProcessed: result.mailsProcessed,
             attachmentsTotal: result.attachmentsTotal,

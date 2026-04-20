@@ -1,3 +1,5 @@
+import type { ImapErrorKind } from './imap-error-classifier'
+
 /** Fasi sincronizzazione email (allineate a messaggi UI / percentuali). */
 export type EmailScanPhase = 'queued' | 'connect' | 'search' | 'process' | 'persist' | 'complete'
 
@@ -33,6 +35,18 @@ export type EmailScanStreamEvent =
       connectStep?: EmailScanConnectStep | null
     }
   | {
+      /** Emitted immediately when one sede's IMAP connection fails.
+       *  Lets the UI show an inline per-sede error card without waiting for `done`. */
+      type: 'sede_error'
+      sede_id: string
+      sede_nome: string
+      /** User-friendly Italian message from the classifier. */
+      error: string
+      kind: ImapErrorKind
+      retryable: boolean
+      actionHint: string
+    }
+  | {
       type: 'done'
       ricevuti: number
       ignorate: number
@@ -40,6 +54,13 @@ export type EmailScanStreamEvent =
       skippedAlreadyCompleted?: number
       messaggio: string
       avvisi?: string[]
+      /** Structured per-sede errors — mirrors every `sede_error` event that was streamed. */
+      imapErrorDetails?: Array<{
+        kind: ImapErrorKind
+        message: string
+        retryable: boolean
+        actionHint: string
+      }>
       mailsFound?: number
       mailsProcessed?: number
       attachmentsTotal?: number

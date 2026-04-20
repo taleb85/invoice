@@ -1,5 +1,6 @@
 import type { ConnectionOptions } from 'tls'
 import { ImapFlow, type ImapFlowOptions } from 'imapflow'
+import { classifyImapError } from '@/lib/imap-error-classifier'
 
 /** imapflow definisce questa classe in `lib/tools.js` ma non la re-esporta dal `main` → spesso `undefined` in bundle. */
 function isImapAuthenticationFailure(err: unknown): boolean {
@@ -37,12 +38,10 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isRetryableImapError(err: unknown): boolean {
+  // Auth failures detected by imapflow's native flag are never retryable
   if (isImapAuthenticationFailure(err)) return false
-  const msg = err instanceof Error ? err.message : String(err)
-  if (/authentication failed|invalid credentials|login failed|AUTHENTICATIONFAILED/i.test(msg)) return false
-  return /unexpected close|connection closed|ECONNRESET|ECONNABORTED|ETIMEDOUT|timeout|socket|ENOTFOUND|EAI_AGAIN/i.test(
-    msg
-  )
+  // Delegate to the shared classifier so retry logic stays consistent with UI feedback
+  return classifyImapError(err).retryable
 }
 
 export async function safeImapLogout(client: ImapFlow): Promise<void> {
