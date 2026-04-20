@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
@@ -8,7 +9,7 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import SollecitiButton from '@/components/SollecitiButton'
-import ScanEmailButton from '@/components/ScanEmailButton'
+const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
 
 const MENU_TRIGGER_CLS =
   'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap touch-manipulation sm:px-2.5 sm:text-[11px]'

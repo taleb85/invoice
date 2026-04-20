@@ -1,11 +1,15 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import type { Fornitore } from '@/types'
-import OperatorPinStepUpModal from '@/components/OperatorPinStepUpModal'
+const OperatorPinStepUpModal = dynamic(
+  () => import('@/components/OperatorPinStepUpModal'),
+  { ssr: false, loading: () => null },
+)
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsFornitoreGridAdmin } from '@/lib/effective-operator-ui'
 import { useMe } from '@/lib/me-context'

@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import {
   useCallback,
   useEffect,
@@ -37,7 +38,14 @@ import {
   countSupplierMonthRekkiPriceAnomalies,
   statementMatchesCalendarWindow,
 } from '@/lib/rekki-price-anomalies'
-import { PendingMatchesTab, VerificationStatusTab } from '@/app/(app)/statements/statements-views'
+const PendingMatchesTab = dynamic(
+  () => import('@/app/(app)/statements/statements-views').then(m => ({ default: m.PendingMatchesTab })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
+)
+const VerificationStatusTab = dynamic(
+  () => import('@/app/(app)/statements/statements-views').then(m => ({ default: m.VerificationStatusTab })),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
+)
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib, formatCurrency, formatMonthYearUppercase } from '@/lib/locale'
@@ -50,16 +58,28 @@ import { segmentParam } from '@/lib/segment-param'
 import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment-kind'
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
-import ScanEmailButton from '@/components/ScanEmailButton'
+const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
-import StatoSincronizzazioneIntelligente from '@/components/StatoSincronizzazioneIntelligente'
-import FattureInAttesaAutoSync from '@/components/FattureInAttesaAutoSync'
-import RecuperoCreditiAudit from '@/components/RecuperoCreditiAudit'
+const StatoSincronizzazioneIntelligente = dynamic(
+  () => import('@/components/StatoSincronizzazioneIntelligente'),
+  { ssr: false, loading: () => <div className="h-32 animate-pulse rounded-xl bg-app-line-10/40" /> },
+)
+const FattureInAttesaAutoSync = dynamic(
+  () => import('@/components/FattureInAttesaAutoSync'),
+  { ssr: false, loading: () => null },
+)
+const RecuperoCreditiAudit = dynamic(
+  () => import('@/components/RecuperoCreditiAudit'),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
+)
 import ErrorBoundary from '@/components/ErrorBoundary'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
-import FornitoreConfermeOrdineTab from '@/components/FornitoreConfermeOrdineTab'
+const FornitoreConfermeOrdineTab = dynamic(
+  () => import('@/components/FornitoreConfermeOrdineTab'),
+  { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
+)
 import DeleteButton from '@/components/DeleteButton'
 import {
   SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE,

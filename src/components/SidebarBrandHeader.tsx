@@ -1,10 +1,11 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
 import { useLocale } from '@/lib/locale-context'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
-import ScanEmailButton from '@/components/ScanEmailButton'
+const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
 import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
 
 /** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop sopra il main. */
