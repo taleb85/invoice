@@ -37,13 +37,8 @@ export async function GET(req: NextRequest) {
   }
   
   const authHeader = req.headers.get('authorization')
-  const querySecret = req.nextUrl.searchParams.get('secret')
-  
-  const isAuthorized = 
-    authHeader === `Bearer ${secret}` || 
-    querySecret === secret
-  
-  if (!isAuthorized) {
+
+  if (authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   
