@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
   // ── Resolve sede for language + reply-to ─────────────────────────────
   let sedeLang: Lang = 'en'
   let replyTo: string | undefined
-  let sedeName = 'FLUXO'
+  let sedeName = 'Smart Pair'
   const svc = createServiceClient()
 
   if (sedeId) {
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
     const { subject, html } = buildInvoiceRequestEmail({ nome, sedeName, dates: date, lang })
 
     const { error: mailError } = await resend.emails.send({
-      from:    'FLUXO <onboarding@resend.dev>',
+      from:    'Smart Pair <onboarding@resend.dev>',
       replyTo: replyTo,
       to:      email,
       subject,

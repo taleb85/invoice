@@ -17,7 +17,6 @@ export const DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID = 'desktop-header-page-action
  */
 export function SidebarRailBrand() {
   const router = useRouter()
-  const { t } = useLocale()
 
   return (
     <div className="app-shell-rail-panel flex h-full min-h-[40px] w-full shrink-0 flex-row items-center gap-1.5 px-2 text-app-fg lg:gap-2 lg:px-2.5">

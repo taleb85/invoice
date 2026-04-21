@@ -24,7 +24,7 @@ export default function ExportZipButton() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `FLUXO_${year}-${String(month).padStart(2, '0')}.zip`
+      a.download = `SmartPair_${year}-${String(month).padStart(2, '0')}.zip`
       a.click()
       URL.revokeObjectURL(url)
     } finally {

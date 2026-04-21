@@ -31,7 +31,7 @@ export default async function AppNotFound() {
               />
             </svg>
           </div>
-          <span className="text-lg font-bold tracking-tight text-app-fg-muted">FLUXO</span>
+          <span className="text-lg font-bold tracking-tight text-app-fg-muted">Smart Pair</span>
         </Link>
 
         <div className="app-card-login flex flex-col overflow-hidden">

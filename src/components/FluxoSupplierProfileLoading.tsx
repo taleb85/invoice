@@ -62,12 +62,12 @@ export default function FluxoSupplierProfileLoading({
               <text
                 x="0"
                 y="24"
-                fontFamily="Arial Black, Arial, sans-serif"
-                fontWeight="900"
-                fontSize="26"
+                fontFamily="Outfit, system-ui, sans-serif"
+                fontWeight="600"
+                fontSize="22"
                 fill={`url(#${textGrad})`}
               >
-                FLUXO
+                Smart Pair
               </text>
             </svg>
             <span className="text-[10px] font-semibold uppercase tracking-wider text-app-fg-muted sm:text-left">{tagline}</span>

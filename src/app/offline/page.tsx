@@ -78,7 +78,7 @@ export default function OfflinePage() {
           fill="url(#flow)"
           letterSpacing="1"
         >
-          FLUXO
+          SP
         </text>
         <path
           d="M20 65 C30 50, 50 50, 60 65 S80 80, 85 65"
@@ -94,7 +94,7 @@ export default function OfflinePage() {
 
       <h1 className="app-page-title mb-2 text-2xl font-bold">Sei offline</h1>
       <p className="max-w-sm text-sm text-app-fg-muted">
-        Connettiti a internet per accedere a FLUXO. Riproveremo automaticamente ogni {INTERVAL_MS / 1000} secondi quando la
+        Connettiti a internet per accedere a Smart Pair. Riproveremo automaticamente ogni {INTERVAL_MS / 1000} secondi quando la
         connessione torna, oppure appena il browser segnala di essere di nuovo online.
       </p>
       <p className="mt-3 max-w-sm text-xs text-app-fg-muted">

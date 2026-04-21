@@ -66,7 +66,7 @@ function Phone({ children }: { children: React.ReactNode }) {
     <div className="mx-auto w-[375px] rounded-[2.8rem] border-[7px] border-gray-800 shadow-2xl bg-white overflow-hidden">
       <div className="bg-gray-900 text-white text-[10px] flex items-center justify-between px-6 py-1.5">
         <span className="font-medium">9:41</span>
-        <span className="font-bold tracking-widest">FLUXO</span>
+        <span className="font-bold tracking-widest">Smart Pair</span>
         <span>●●●</span>
       </div>
       <div className="overflow-y-auto" style={{ maxHeight: 680 }}>
@@ -413,7 +413,7 @@ function MockSidebar({ active }: { active: string }) {
                   <stop offset="100%" stopColor="#22d3ee"/>
                 </linearGradient>
               </defs>
-              <text x="0" y="24" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="24" fill="url(#px-text)">FLUXO</text>
+              <text x="0" y="24" fontFamily="Outfit, system-ui, sans-serif" fontWeight="600" fontSize="22" fill="url(#px-text)">Smart Pair</text>
             </svg>
             <p className="text-[9px] font-semibold text-app-fg-muted tracking-wider uppercase -mt-1">Gestione Acquisti</p>
           </div>

@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
 
   // ── Detect language + currency ────────────────────────────────────────
   // Priority: 1) supplier's own language, 2) sede country_code, 3) 'en'
-  let sedeNome    = 'FLUXO'
+  let sedeNome    = 'Smart Pair'
   let sedeReplyTo = 'noreply@resend.dev'
   let sedeLang: Lang = 'en'
   let currency    = currencyParam ?? 'EUR'
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const { error: emailErr } = await resend.emails.send({
-    from:    'FLUXO <onboarding@resend.dev>',
+    from:    'Smart Pair <onboarding@resend.dev>',
     replyTo: sedeReplyTo !== 'noreply@resend.dev' ? sedeReplyTo : undefined,
     to:      [fornitore.email],
     subject,

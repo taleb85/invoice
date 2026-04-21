@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   ])
 
   const zip = new JSZip()
-  const folderName = `FLUXO_${year}-${monthStr}`
+  const folderName = `SmartPair_${year}-${monthStr}`
   const root = zip.folder(folderName)!
 
   const sanitize = (s: string) => s.replace(/[/\\?%*:|"<>]/g, '-').trim()

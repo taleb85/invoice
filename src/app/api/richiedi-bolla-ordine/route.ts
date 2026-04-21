@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  let sedeNome = 'FLUXO'
+  let sedeNome = 'Smart Pair'
   let sedeReplyTo = 'noreply@resend.dev'
   let sedeLang: Lang = 'en'
 
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
 
   const resend = new Resend(process.env.RESEND_API_KEY)
   const { error: emailErr } = await resend.emails.send({
-    from: 'FLUXO <onboarding@resend.dev>',
+    from: 'Smart Pair <onboarding@resend.dev>',
     replyTo: sedeReplyTo !== 'noreply@resend.dev' ? sedeReplyTo : undefined,
     to: [fornitore.email.trim()],
     subject,

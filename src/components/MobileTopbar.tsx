@@ -11,6 +11,7 @@ import {
 } from '@/lib/mobile-hub-routes'
 import { useLocale } from '@/lib/locale-context'
 import { LOCALES } from '@/lib/translations'
+import { SmartPairLogo } from '@/components/smart-pair-logo'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
@@ -87,59 +88,7 @@ export default function MobileTopbar() {
             }
           }}
         >
-          <svg viewBox="0 0 96 56" xmlns="http://www.w3.org/2000/svg" className="h-7 w-12 shrink-0">
-            <defs>
-              <linearGradient id="tb-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#1e3a5f" />
-                <stop offset="100%" stopColor="#172554" />
-              </linearGradient>
-              <linearGradient id="tb-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#5b7cf9" />
-                <stop offset="50%" stopColor="#38bdf8" />
-                <stop offset="100%" stopColor="#22d3ee" />
-              </linearGradient>
-            </defs>
-            <rect width="56" height="56" rx="13" fill="url(#tb-card-bg)" />
-            <path
-              d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
-              stroke="url(#tb-wave)"
-              strokeWidth="3.5"
-              fill="none"
-              strokeLinecap="round"
-            />
-            <circle cx="7" cy="28" r="3.5" fill="#5b7cf9" />
-            <circle cx="48" cy="28" r="3.5" fill="#38bdf8" />
-            <circle cx="88" cy="28" r="3.5" fill="#22d3ee" />
-          </svg>
-
-          <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 leading-none">
-            <svg
-              viewBox="0 0 130 32"
-              className="h-auto w-[4.5rem] shrink-0 sm:w-20"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden
-            >
-              <defs>
-                <linearGradient id="tb-text" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#6b8ef5" />
-                  <stop offset="100%" stopColor="#22d3ee" />
-                </linearGradient>
-              </defs>
-              <text
-                x="0"
-                y="24"
-                fontFamily="Arial Black, Arial, sans-serif"
-                fontWeight="900"
-                fontSize="26"
-                fill="url(#tb-text)"
-              >
-                FLUXO
-              </text>
-            </svg>
-            <span className="-mt-0.5 block truncate text-[8px] font-semibold uppercase tracking-wider text-app-fg-muted sm:text-[9px]">
-              {t.ui.tagline}
-            </span>
-          </div>
+          <SmartPairLogo variant="full" size="sm" className="shrink-0" />
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale } from '@/lib/locale-context'
+import { SmartPairLogo } from '@/components/smart-pair-logo'
 
 interface Props {
   mode: 'name' | 'admin'
@@ -82,45 +83,17 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
             </>
           ) : (
             <h1 className="text-base font-semibold tracking-wide text-white/60">
-              Fluxo Management
+              Smart Pair
             </h1>
           )}
         </div>
       </div>
 
-      {/* ── Powered by FLUXO ── */}
-      <div className="flex items-center gap-2">
-        <svg
-          viewBox="0 0 96 56"
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-[20px] w-8 shrink-0 opacity-60"
-          aria-hidden
-        >
-          <defs>
-            <linearGradient id="lg-card-sm" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1e3a5f" />
-              <stop offset="100%" stopColor="#172554" />
-            </linearGradient>
-            <linearGradient id="lg-wave-sm" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#5b7cf9" />
-              <stop offset="50%" stopColor="#38bdf8" />
-              <stop offset="100%" stopColor="#22d3ee" />
-            </linearGradient>
-          </defs>
-          <rect width="56" height="56" rx="13" fill="url(#lg-card-sm)" />
-          <path
-            d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
-            stroke="url(#lg-wave-sm)"
-            strokeWidth="3.5"
-            fill="none"
-            strokeLinecap="round"
-          />
-          <circle cx="7" cy="28" r="3.5" fill="#5b7cf9" />
-          <circle cx="48" cy="28" r="3.5" fill="#38bdf8" />
-          <circle cx="88" cy="28" r="3.5" fill="#22d3ee" />
-        </svg>
+      {/* ── Powered by Smart Pair ── */}
+      <div className="flex items-center gap-2 opacity-60">
+        <SmartPairLogo variant="icon" size="sm" />
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
-          powered by FLUXO
+          powered by Smart Pair
         </span>
       </div>
 

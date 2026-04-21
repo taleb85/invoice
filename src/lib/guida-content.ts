@@ -18,7 +18,7 @@ type GuidaContent = {
 
 const IT: GuidaContent = {
   pageTitle: 'Guida all\'utilizzo',
-  pageSubtitle: 'Tutte le funzionalità di FLUXO spiegate in dettaglio.',
+  pageSubtitle: 'Tutte le funzionalità di Smart Pair spiegate in dettaglio.',
   fnLabel: 'funzioni',
   tipLabel: 'Suggerimento:',
   sections: [
@@ -94,7 +94,7 @@ const IT: GuidaContent = {
 
 const EN: GuidaContent = {
   pageTitle: 'User Guide',
-  pageSubtitle: 'All FLUXO features explained in detail.',
+  pageSubtitle: 'All Smart Pair features explained in detail.',
   fnLabel: 'features',
   tipLabel: 'Tip:',
   sections: [
@@ -170,7 +170,7 @@ const EN: GuidaContent = {
 
 const ES: GuidaContent = {
   pageTitle: 'Guía de uso',
-  pageSubtitle: 'Todas las funciones de FLUXO explicadas en detalle.',
+  pageSubtitle: 'Todas las funciones de Smart Pair explicadas en detalle.',
   fnLabel: 'funciones',
   tipLabel: 'Consejo:',
   sections: [
@@ -246,7 +246,7 @@ const ES: GuidaContent = {
 
 const FR: GuidaContent = {
   pageTitle: 'Guide d\'utilisation',
-  pageSubtitle: 'Toutes les fonctionnalités de FLUXO expliquées en détail.',
+  pageSubtitle: 'Toutes les fonctionnalités de Smart Pair expliquées en détail.',
   fnLabel: 'fonctions',
   tipLabel: 'Conseil :',
   sections: [
@@ -322,7 +322,7 @@ const FR: GuidaContent = {
 
 const DE: GuidaContent = {
   pageTitle: 'Benutzerhandbuch',
-  pageSubtitle: 'Alle FLUXO-Funktionen im Detail erklärt.',
+  pageSubtitle: 'Alle Smart Pair-Funktionen im Detail erklärt.',
   fnLabel: 'Funktionen',
   tipLabel: 'Tipp:',
   sections: [

@@ -104,7 +104,7 @@ type Translations = {
     remindersSentMany: string
   }
   login: {
-    /** Sotto il logo FLUXO (maiuscole via CSS) */
+    /** Sotto il logo Smart Pair (maiuscole via CSS) */
     brandTagline: string
     subtitle: string
     /** Titolo sotto il logo in modalità admin */
@@ -2325,7 +2325,7 @@ const it: Translations = {
     rekkiDocumentLink: 'Rekki',
   },
   appStrings: {
-    brandFooter: 'FLUXO · Gestione Acquisti',
+    brandFooter: 'Smart Pair · Gestione Acquisti',
     pageNotFoundTitle: 'Pagina non trovata',
     pageNotFoundDesc: 'Il collegamento potrebbe essere errato o la pagina è stata rimossa.',
     notFoundInAppTitle: 'Contenuto non disponibile',
@@ -2802,7 +2802,7 @@ const en: Translations = {
     rekkiDocumentLink: 'Rekki',
   },
   appStrings: {
-    brandFooter: 'FLUXO · Purchase Management',
+    brandFooter: 'Smart Pair · Purchase Management',
     pageNotFoundTitle: 'Page not found',
     pageNotFoundDesc: 'The link may be wrong or the page was removed.',
     notFoundInAppTitle: 'Content unavailable',
@@ -3234,7 +3234,7 @@ const es: Translations = {
     rekkiDocumentLink: 'Rekki',
   },
   appStrings: {
-    brandFooter: 'FLUXO · Gestión de compras',
+    brandFooter: 'Smart Pair · Gestión de compras',
     pageNotFoundTitle: 'Página no encontrada',
     pageNotFoundDesc: 'El enlace puede ser incorrecto o la página ya no existe.',
     notFoundInAppTitle: 'Contenido no disponible',
@@ -3663,7 +3663,7 @@ const fr: Translations = {
     rekkiDocumentLink: 'Rekki',
   },
   appStrings: {
-    brandFooter: 'FLUXO · Gestion des achats',
+    brandFooter: 'Smart Pair · Gestion des achats',
     pageNotFoundTitle: 'Page introuvable',
     pageNotFoundDesc: 'Le lien est peut-être incorrect ou la page a été supprimée.',
     notFoundInAppTitle: 'Contenu indisponible',
@@ -4091,7 +4091,7 @@ const de: Translations = {
     rekkiDocumentLink: 'Rekki',
   },
   appStrings: {
-    brandFooter: 'FLUXO · Einkaufsverwaltung',
+    brandFooter: 'Smart Pair · Einkaufsverwaltung',
     pageNotFoundTitle: 'Seite nicht gefunden',
     pageNotFoundDesc: 'Der Link ist ungültig oder die Seite wurde entfernt.',
     notFoundInAppTitle: 'Inhalt nicht verfügbar',
