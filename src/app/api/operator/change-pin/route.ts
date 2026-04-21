@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
 import { clearSessionActivity } from '@/lib/session-activity'
+import { logActivity } from '@/lib/activity-logger'
 
 /**
  * POST /api/operator/change-pin
@@ -80,6 +81,15 @@ export async function POST(req: NextRequest) {
 
   // Clear server-side session-activity tracking so the inactivity timer resets
   await clearSessionActivity(service, operatorId)
+
+  logActivity(service, {
+    userId: user.id,
+    sedeId: (opProfile as { sede_id?: string | null }).sede_id ?? profile?.sede_id ?? null,
+    action: 'operatore.pin_changed',
+    entityType: 'operatore',
+    entityId: operatorId,
+    entityLabel: opProfile.full_name ?? undefined,
+  }).catch(() => {})
 
   return NextResponse.json({
     ok: true,

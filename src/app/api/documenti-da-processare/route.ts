@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { logActivity } from '@/lib/activity-logger'
 import { recordManualSupplierAssociation } from '@/lib/mittente-fornitore-assoc'
 import { mergeFornitoreMissingFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
 import { recordLearnedKindFromDocMetadata } from '@/lib/fornitore-doc-type-hints'
@@ -46,6 +47,7 @@ async function finalizePendingByTipo(
   supabase: SupabaseClient,
   id: string,
   doc: DocRowFinalizza,
+  userId?: string,
 ): Promise<NextResponse> {
   const meta =
     doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
@@ -177,6 +179,17 @@ async function finalizePendingByTipo(
             : {}),
         },
         body: JSON.stringify({ fattura_id: fattura.id, fornitore_id: doc.fornitore_id }),
+      }).catch(() => {})
+    }
+    if (userId) {
+      logActivity(supabase, {
+        userId,
+        sedeId: sedeDefinitiva,
+        action: 'fattura.created',
+        entityType: 'fattura',
+        entityId: fattura.id,
+        entityLabel: numeroNorm ?? undefined,
+        metadata: { fornitore_id: doc.fornitore_id ?? undefined },
       }).catch(() => {})
     }
     return NextResponse.json({ ok: true, fattura_id: fattura.id })
@@ -516,7 +529,7 @@ export async function POST(req: NextRequest) {
 
   // ── finalizza_tipo — alias esplicito (stessa logica di associa + finalizza_da_tipo) ──
   if (azioneNorm === 'finalizza_tipo') {
-    return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza)
+    return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
   }
 
   // ── scarta ────────────────────────────────────────────────────────────────
@@ -528,7 +541,7 @@ export async function POST(req: NextRequest) {
   // ── associa ───────────────────────────────────────────────────────────────
   if (azioneNorm === 'associa') {
     if (body.finalizza_da_tipo === true) {
-      return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza)
+      return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
     }
     if (!bollaIds.length) return NextResponse.json({ error: 'Nessuna bolla selezionata' }, { status: 400 })
 
@@ -642,6 +655,15 @@ export async function POST(req: NextRequest) {
       metadata: doc.metadata,
       pendingKind: 'fattura',
     })
+
+    logActivity(supabase, {
+      userId: user.id,
+      sedeId: sedeDefinitiva,
+      action: 'fattura.associated',
+      entityType: 'fattura',
+      entityId: fattura.id,
+      metadata: { fornitore_id: fornitoreMergeId ?? undefined, bolle_count: bollaIds.length },
+    }).catch(() => {})
 
     return NextResponse.json({ ok: true, fattura_id: fattura.id, bolleCount: bollaIds.length })
   }

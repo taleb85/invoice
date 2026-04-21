@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { logActivity } from '@/lib/activity-logger'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -71,6 +72,17 @@ export async function POST(req: NextRequest) {
   if (updateErr) {
     return NextResponse.json({ error: updateErr.message }, { status: 500 })
   }
+
+  // Fire-and-forget: log activity
+  logActivity(service, {
+    userId: user.id,
+    sedeId: profile?.sede_id ?? (fattura as { sede_id?: string }).sede_id ?? null,
+    action: action === 'approve' ? 'fattura.approved' : 'fattura.rejected',
+    entityType: 'fattura',
+    entityId: fattura_id,
+    entityLabel: (fattura as { fornitori?: { nome?: string | null } | null }).fornitori?.nome ?? undefined,
+    metadata: action === 'reject' ? { reason } : undefined,
+  }).catch(() => {})
 
   // Fire-and-forget push notification
   const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'

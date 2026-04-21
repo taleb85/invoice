@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { logActivity } from '@/lib/activity-logger'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -61,6 +62,15 @@ export async function POST(req: NextRequest) {
   if (profileErr) {
     return NextResponse.json({ error: `Operatore creato ma errore nel profilo: ${profileErr.message}` }, { status: 500 })
   }
+
+  logActivity(adminClient as Parameters<typeof logActivity>[0], {
+    userId: user.id,
+    sedeId: sedeId as string,
+    action: 'operatore.created',
+    entityType: 'operatore',
+    entityId: newUser.user!.id,
+    entityLabel: displayName,
+  }).catch(() => {})
 
   return NextResponse.json({ message: `Operatore "${displayName}" creato con successo.` })
 }

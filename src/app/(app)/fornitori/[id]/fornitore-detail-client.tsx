@@ -114,6 +114,7 @@ import {
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ActivityFeed } from '@/components/activity/activity-feed'
 
 type Tab = 'dashboard' | 'bolle' | 'fatture' | 'listino' | 'conferme' | 'documenti' | 'verifica' | 'audit'
 
@@ -5061,29 +5062,41 @@ function FornitoreDetailClient({
           <div className="w-full min-w-0 py-3 sm:py-3.5 md:py-5 lg:py-6 xl:py-8">
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
             {displayTab === 'dashboard' ? (
-              <SupplierDesktopMonthlyDocSummary
-                fornitoreId={fornitore.id}
-                endYear={monthlySummaryPeriod.y}
-                endMonth={monthlySummaryPeriod.m}
-                selectedYear={filterYear}
-                selectedMonth={filterMonth}
-                countryCode={countryCode}
-                currency={currency ?? 'GBP'}
-                activeTab="dashboard"
-                periodNav={{
-                  onPrevYear: () => shiftMonthlySummaryYear(-1),
-                  onNextYear: () => shiftMonthlySummaryYear(1),
-                  onResetToNow: () => setMonthlySummaryPeriod({ y: nowY, m: nowM }),
-                  disableNextYear: !canShiftMonthlySummaryYearForward,
-                  showResetToNow: !isMonthlySummaryAtCurrentMonth,
-                }}
-                onOpenMonthTab={(y, m, nextTab) => {
-                  const c = clampSupplierPeriod(y, m)
-                  const b = supplierMonthCalendarBounds(c.y, c.m)
-                  setLedgerPeriod(clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(new Date())))
-                  setTab(nextTab)
-                }}
-              />
+              <>
+                <SupplierDesktopMonthlyDocSummary
+                  fornitoreId={fornitore.id}
+                  endYear={monthlySummaryPeriod.y}
+                  endMonth={monthlySummaryPeriod.m}
+                  selectedYear={filterYear}
+                  selectedMonth={filterMonth}
+                  countryCode={countryCode}
+                  currency={currency ?? 'GBP'}
+                  activeTab="dashboard"
+                  periodNav={{
+                    onPrevYear: () => shiftMonthlySummaryYear(-1),
+                    onNextYear: () => shiftMonthlySummaryYear(1),
+                    onResetToNow: () => setMonthlySummaryPeriod({ y: nowY, m: nowM }),
+                    disableNextYear: !canShiftMonthlySummaryYearForward,
+                    showResetToNow: !isMonthlySummaryAtCurrentMonth,
+                  }}
+                  onOpenMonthTab={(y, m, nextTab) => {
+                    const c = clampSupplierPeriod(y, m)
+                    const b = supplierMonthCalendarBounds(c.y, c.m)
+                    setLedgerPeriod(clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(new Date())))
+                    setTab(nextTab)
+                  }}
+                />
+                {/* Mini activity feed for this fornitore */}
+                <div className="mt-4 rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <svg className="h-4 w-4 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm font-semibold text-app-fg">Attività recente</p>
+                  </div>
+                  <ActivityFeed fornitoreId={fornitore.id} limit={5} compact={true} />
+                </div>
+              </>
             ) : null}
             <div
               className="fornitore-tab-panel min-w-0 scroll-mt-6 rounded-xl border border-app-line-15 bg-transparent p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8"

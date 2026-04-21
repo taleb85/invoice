@@ -225,6 +225,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
     ),
   }
 
+  const attivitaNavItem = {
+    label: 'Attività',
+    href: '/attivita',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  }
+
   const adminNavItems = [
     {
       label: t.nav.dashboard,
@@ -237,6 +247,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     },
     analyticsNavItem,
     approvazioniNavItem,
+    attivitaNavItem,
     {
       label: t.nav.fornitori,
       href: '/fornitori',
@@ -252,7 +263,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const navItems = isMasterAdmin
     ? adminNavItems
     : isAdminSede
-      ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
+      ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
 
   const handleLogout = async () => {
