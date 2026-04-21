@@ -1,7 +1,6 @@
 'use client'
 
 import { useLocale } from '@/lib/locale-context'
-import { SmartPairLogo } from '@/components/smart-pair-logo'
 
 interface Props {
   mode: 'name' | 'admin'
@@ -19,19 +18,20 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
   return (
     <div className="mb-6 flex w-full flex-col items-center text-center">
 
-      {/* ── Brand sede dinamico ── */}
+      {/* ── Brand area ── */}
       <div className="mb-5 flex flex-col items-center gap-2.5">
-        {/* Icona / placeholder logo */}
+
+        {/* Icon container */}
         <div
           className={[
             'flex h-16 w-16 items-center justify-center rounded-2xl ring-1 transition-all duration-300',
             displayName
               ? 'bg-gradient-to-br from-emerald-700/70 to-emerald-900/80 shadow-[0_0_32px_rgba(16,185,129,0.28)] ring-emerald-500/30'
-              : 'bg-gradient-to-br from-slate-700/60 to-slate-900/70 shadow-[0_0_24px_rgba(99,102,241,0.18)] ring-white/10',
+              : 'bg-[#0f2a4a] shadow-[0_0_24px_rgba(34,211,238,0.2)] ring-[#22d3ee]/30',
           ].join(' ')}
         >
           {displayName ? (
-            /* Foglia basilico stilizzata */
+            /* Leaf icon when a sede is selected */
             <svg
               className="h-9 w-9 text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.55)]"
               fill="none"
@@ -48,20 +48,27 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v18" />
             </svg>
           ) : (
-            /* Icona generica (casa/azienda) quando la sede non è nota */
-            <svg
-              className="h-8 w-8 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
+            /* Smart Pair arrows icon */
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>
+              <path
+                d="M4 20 L16 8 L16 15 L28 15 L28 20"
+                stroke="#22d3ee"
+                strokeWidth="4"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              <path
+                d="M36 20 L24 32 L24 25 L12 25 L12 20"
+                stroke="#5b7cf9"
+                strokeWidth="4"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
             </svg>
           )}
         </div>
 
-        {/* Nome sede o titolo generico */}
+        {/* Label below icon */}
         <div>
           {displayName ? (
             <>
@@ -82,19 +89,22 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
               )}
             </>
           ) : (
-            <h1 className="text-base font-semibold tracking-wide text-white/60">
-              Smart Pair
-            </h1>
+            /* Smart Pair wordmark + tagline */
+            <div className="mt-1 flex flex-col items-center gap-0.5">
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-outfit text-xl font-medium" style={{ color: '#22d3ee' }}>
+                  Smart
+                </span>
+                <span className="font-outfit text-xl font-light text-white/85">
+                  Pair
+                </span>
+              </div>
+              <span className="text-[9px] font-light uppercase tracking-[3px]" style={{ color: 'rgb(34 211 238 / 0.4)' }}>
+                Invoice Management
+              </span>
+            </div>
           )}
         </div>
-      </div>
-
-      {/* ── Powered by Smart Pair ── */}
-      <div className="flex items-center gap-2 opacity-60">
-        <SmartPairLogo variant="icon" size="sm" />
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
-          powered by Smart Pair
-        </span>
       </div>
 
       {/* Sottotitolo dinamico */}

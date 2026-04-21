@@ -63,6 +63,7 @@
 /* `sm:` = sopra la fascia smartphone larga (480px); md/lg allineati a tablet. */
 @theme {
   --breakpoint-sm: 480px;
+  --font-family-outfit: 'Outfit', var(--font-outfit), sans-serif;
   /* Token Tailwind v4: `text-app-fg`, `text-app-fg-muted`, `border-app-soft-border` */
   --color-app-fg: var(--app-fg-body);
   --color-app-fg-muted: var(--app-fg-muted);

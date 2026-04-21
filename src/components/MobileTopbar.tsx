@@ -87,34 +87,40 @@ export default function MobileTopbar() {
             }
           }}
         >
-          {/* Inline icon — 32×32 */}
-          <svg
-            viewBox="0 0 72 72"
-            className="h-8 w-8 shrink-0"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden
-          >
-            <rect width="72" height="72" rx="16" fill="#0f2a4a" />
-            <path d="M24 50 L30 18 L36 50 L33 50 L33 56 L27 56 L27 50 Z" fill="#22d3ee" />
-            <path d="M36 22 L42 54 L48 22 L45 22 L45 16 L39 16 L39 22 Z" fill="#5b7cf9" />
-          </svg>
+          {/* Icon container — 32×32 */}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0f2a4a] ring-1 ring-[#22d3ee]/30">
+            <svg width="18" height="18" viewBox="0 0 40 40" fill="none" aria-hidden>
+              <path
+                d="M4 20 L16 8 L16 15 L28 15 L28 20"
+                stroke="#22d3ee"
+                strokeWidth="4.5"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+              <path
+                d="M36 20 L24 32 L24 25 L12 25 L12 20"
+                stroke="#5b7cf9"
+                strokeWidth="4.5"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
 
-          {/* Wordmark — HTML text so page fonts apply */}
-          <div className="min-w-0 leading-none">
-            <div className="flex items-baseline gap-[3px]">
-              <span
-                className="text-[15px] tracking-tight sm:text-base"
-                style={{ fontWeight: 600, color: '#22d3ee' }}
-              >
-                Smart
-              </span>
-              <span
-                className="text-[15px] tracking-tight sm:text-base"
-                style={{ fontWeight: 300, color: '#ecfeff' }}
-              >
-                Pair
-              </span>
-            </div>
+          {/* Wordmark */}
+          <div className="flex items-baseline gap-1 leading-none">
+            <span
+              className="font-outfit text-[15px] tracking-tight sm:text-base"
+              style={{ fontWeight: 600, color: '#22d3ee' }}
+            >
+              Smart
+            </span>
+            <span
+              className="font-outfit text-[15px] tracking-tight sm:text-base"
+              style={{ fontWeight: 300, color: 'rgb(255 255 255 / 0.85)' }}
+            >
+              Pair
+            </span>
           </div>
         </div>
 
