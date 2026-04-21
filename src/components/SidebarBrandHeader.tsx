@@ -4,7 +4,6 @@ import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
-import { SmartPairLogo } from '@/components/smart-pair-logo'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
 import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
 
@@ -19,9 +18,9 @@ export function SidebarRailBrand() {
   const router = useRouter()
 
   return (
-    <div className="app-shell-rail-panel flex h-full min-h-[40px] w-full shrink-0 flex-row items-center gap-1.5 px-2 text-app-fg lg:gap-2 lg:px-2.5">
+    <div className="app-shell-rail-panel flex h-full min-h-[40px] w-full shrink-0 flex-row items-center px-3 text-app-fg lg:px-3.5">
       <div
-        className="app-shell-rail-panel flex min-w-0 flex-1 cursor-pointer items-center gap-1.5"
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5"
         onClick={() => {
           if (typeof window === 'undefined' || window.innerWidth < 768) return
           router.push('/')
@@ -35,7 +34,35 @@ export function SidebarRailBrand() {
           router.push('/')
         }}
       >
-        <SmartPairLogo variant="full" size="sm" className="shrink-0" />
+        {/* Inline icon — 30×30, two arrows */}
+        <svg
+          viewBox="0 0 72 72"
+          className="h-[30px] w-[30px] shrink-0"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden
+        >
+          <rect width="72" height="72" rx="16" fill="#0f2a4a" />
+          <path d="M24 50 L30 18 L36 50 L33 50 L33 56 L27 56 L27 50 Z" fill="#22d3ee" />
+          <path d="M36 22 L42 54 L48 22 L45 22 L45 16 L39 16 L39 22 Z" fill="#5b7cf9" />
+        </svg>
+
+        {/* Wordmark — HTML text so page fonts apply */}
+        <div className="min-w-0 leading-none">
+          <div className="flex items-baseline gap-[3px]">
+            <span
+              className="text-[13px] tracking-tight lg:text-[14px]"
+              style={{ fontWeight: 600, color: '#22d3ee' }}
+            >
+              Smart
+            </span>
+            <span
+              className="text-[13px] tracking-tight lg:text-[14px]"
+              style={{ fontWeight: 300, color: '#ecfeff' }}
+            >
+              Pair
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -11,7 +11,6 @@ import {
 } from '@/lib/mobile-hub-routes'
 import { useLocale } from '@/lib/locale-context'
 import { LOCALES } from '@/lib/translations'
-import { SmartPairLogo } from '@/components/smart-pair-logo'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
@@ -88,7 +87,35 @@ export default function MobileTopbar() {
             }
           }}
         >
-          <SmartPairLogo variant="full" size="sm" className="shrink-0" />
+          {/* Inline icon — 32×32 */}
+          <svg
+            viewBox="0 0 72 72"
+            className="h-8 w-8 shrink-0"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden
+          >
+            <rect width="72" height="72" rx="16" fill="#0f2a4a" />
+            <path d="M24 50 L30 18 L36 50 L33 50 L33 56 L27 56 L27 50 Z" fill="#22d3ee" />
+            <path d="M36 22 L42 54 L48 22 L45 22 L45 16 L39 16 L39 22 Z" fill="#5b7cf9" />
+          </svg>
+
+          {/* Wordmark — HTML text so page fonts apply */}
+          <div className="min-w-0 leading-none">
+            <div className="flex items-baseline gap-[3px]">
+              <span
+                className="text-[15px] tracking-tight sm:text-base"
+                style={{ fontWeight: 600, color: '#22d3ee' }}
+              >
+                Smart
+              </span>
+              <span
+                className="text-[15px] tracking-tight sm:text-base"
+                style={{ fontWeight: 300, color: '#ecfeff' }}
+              >
+                Pair
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
