@@ -14,6 +14,7 @@ import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import { usePushNotifications } from '@/hooks/use-push-notifications'
 
 function ProfileMobileHub() {
   const { me } = useMe()
@@ -155,6 +156,43 @@ function ImapConfigCard() {
           </Link>
         </div>
       </div>
+    </div>
+  )
+}
+
+function NotificationSettings() {
+  const { supported, subscribed, loading, subscribe, unsubscribe } = usePushNotifications()
+
+  if (!supported) return null
+
+  return (
+    <div className="flex items-center justify-between rounded-xl border
+      border-app-line-30 bg-app-line-10 p-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15">
+          <svg className="h-4 w-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-app-fg">Notifiche push</p>
+          <p className="text-xs text-app-fg-muted mt-0.5">
+            Ricevi avvisi per nuovi documenti e anomalie prezzi
+          </p>
+        </div>
+      </div>
+      <button
+        onClick={subscribed ? unsubscribe : subscribe}
+        disabled={loading}
+        aria-label={subscribed ? 'Disattiva notifiche push' : 'Attiva notifiche push'}
+        className={`relative h-6 w-11 rounded-full transition-colors
+          disabled:opacity-50 ${subscribed ? 'bg-[#22d3ee]' : 'bg-app-line-30'}`}
+      >
+        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white
+          shadow transition-transform ${subscribed ? 'translate-x-5' : 'translate-x-0.5'}`}
+        />
+      </button>
     </div>
   )
 }
@@ -331,6 +369,7 @@ export default function ImpostazioniPage() {
           </div>
         </div>
         <ImapConfigCard />
+        <NotificationSettings />
         <ProfileMobileHub />
       </div>
 
@@ -384,6 +423,9 @@ export default function ImpostazioniPage() {
             </div>
           </div>
           <ImapConfigCard />
+          <div className="mt-4">
+            <NotificationSettings />
+          </div>
         </div>
       </div>
     </>

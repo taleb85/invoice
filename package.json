@@ -40,6 +40,7 @@
     "resend": "^6.10.0",
     "sharp": "^0.33.5",
     "swr": "^2.4.1",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -49,6 +50,7 @@
     "@types/papaparse": "^5.5.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "canvas": "^3.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",

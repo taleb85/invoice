@@ -2296,6 +2296,24 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     `\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} skippedAlready=${totalSkippedAlready} avvisi=${avvisi.length}`,
   )
 
+  // Fire push notification when new documents arrive (fire-and-forget)
+  if (totalRicevuti > 0 && process.env.NEXT_PUBLIC_SITE_URL && process.env.CRON_SECRET) {
+    const pushSedeId = params.filterSedeId ?? params.userSedeId
+    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/push/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+      },
+      body: JSON.stringify({
+        title: 'Nuovi documenti',
+        body: `${totalRicevuti} document${totalRicevuti > 1 ? 'i' : 'o'} da elaborare`,
+        url: '/documenti',
+        ...(pushSedeId ? { sede_id: pushSedeId } : {}),
+      }),
+    }).catch(() => {})
+  }
+
   let messaggio: string
   if (totalRicevuti === 0) {
     if (totalSkippedAlready > 0) {

@@ -217,6 +217,23 @@ export async function GET(req: NextRequest) {
       }
     }
     
+    // Fire push notification if anomalies were detected (fire-and-forget)
+    if (result.anomaliesDetected > 0 && process.env.NEXT_PUBLIC_SITE_URL && process.env.CRON_SECRET) {
+      const n = result.anomaliesDetected
+      fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/push/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.CRON_SECRET}`,
+        },
+        body: JSON.stringify({
+          title: '⚠️ Anomalie prezzi rilevate',
+          body: `${n} anomali${n > 1 ? 'e' : 'a'} di prezzo trovata`,
+          url: '/fornitori',
+        }),
+      }).catch(() => {})
+    }
+
     return NextResponse.json({
       ...result,
       message: `Processed ${result.invoicesProcessed}/${result.invoicesFound} invoices, detected ${result.anomaliesDetected} anomalies`,
