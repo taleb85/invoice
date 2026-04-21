@@ -254,6 +254,7 @@ export default async function DashboardPage({
           erroriRecenti: 0,
           anomaliePrezziCount: 0,
           bolleRekkiSavingsHint: false,
+          listinoAnomaliesCount: 0,
         }),
     operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
     operatorScoped && sedeId

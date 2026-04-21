@@ -237,6 +237,8 @@ export type OperatorDashboardKpis = {
   anomaliePrezziCount: number
   /** Indicatore UI: almeno una bolla nel periodo ha prezzo effettivo sopra il riferimento Rekki (colonna o stima). */
   bolleRekkiSavingsHint: boolean
+  /** Anomalie non risolte nella tabella price_anomalies (fattura vs listino_prezzi), tutte le sedi. */
+  listinoAnomaliesCount: number
 }
 
 /** Soglia data come in POST /api/solleciti (data bolla prima di domani). */
@@ -477,7 +479,7 @@ export async function fetchOperatorDashboardKpis(
     if (bounds) {
       docDaAssocQ = docDaAssocQ.gte('created_at', bounds.tsFrom).lt('created_at', bounds.tsToExclusive)
     }
-    const [{ count: stmtTotal }, { count: docDaAssoc }, statementsWithIssues, anomaliePrezziCount, bolleRekkiSavingsHint] =
+    const [{ count: stmtTotal }, { count: docDaAssoc }, statementsWithIssues, anomaliePrezziCount, bolleRekkiSavingsHint, listinoAnomaliesResEmpty] =
       await Promise.all([
         stmtCountQ,
         docDaAssocQ,
@@ -490,6 +492,14 @@ export async function fetchOperatorDashboardKpis(
           labelYear: fiscal?.labelYear ?? null,
         }),
         computeBolleRekkiSavingsHint(supabase, null, bounds),
+        (() => {
+          let q = supabase
+            .from('price_anomalies')
+            .select('id', { count: 'exact', head: true })
+            .eq('resolved', false)
+          if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
+          return q
+        })(),
       ])
     const docRev = (docDaAssoc ?? 0) + (typeof anomaliePrezziCount === 'number' ? anomaliePrezziCount : 0)
     return {
@@ -511,6 +521,7 @@ export async function fetchOperatorDashboardKpis(
       erroriRecenti,
       anomaliePrezziCount,
       bolleRekkiSavingsHint,
+      listinoAnomaliesCount: listinoAnomaliesResEmpty.error ? 0 : (listinoAnomaliesResEmpty.count ?? 0),
     }
   }
 
@@ -603,7 +614,7 @@ export async function fetchOperatorDashboardKpis(
   ])
 
   const statementsTotal = stmtCountRes.count ?? 0
-  const [statementsWithIssues, anomaliePrezziCount, bolleRekkiSavingsHint] = await Promise.all([
+  const [statementsWithIssues, anomaliePrezziCount, bolleRekkiSavingsHint, listinoAnomaliesRes] = await Promise.all([
     computeStatementsWithIssuesExtended(supabase, sedeId, bounds, fid),
     countDashboardRekkiPriceAnomalies(supabase, {
       sedeId,
@@ -613,6 +624,15 @@ export async function fetchOperatorDashboardKpis(
       labelYear: fiscal?.labelYear ?? null,
     }),
     computeBolleRekkiSavingsHint(supabase, fid, bounds),
+    (() => {
+      let q = supabase
+        .from('price_anomalies')
+        .select('id', { count: 'exact', head: true })
+        .eq('resolved', false)
+      if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
+      else if (fid?.length) q = q.in('fornitore_id', fid) as typeof q
+      return q
+    })(),
   ])
   const ordiniCount = ordiniRes.error ? 0 : ordiniRes.count ?? 0
   const listinoSampleRows = (listinoProdottiRes.data ?? []) as { prodotto: string }[]
@@ -654,6 +674,7 @@ export async function fetchOperatorDashboardKpis(
     erroriRecenti,
     anomaliePrezziCount,
     bolleRekkiSavingsHint,
+    listinoAnomaliesCount: listinoAnomaliesRes.error ? 0 : (listinoAnomaliesRes.count ?? 0),
   }
 }
 

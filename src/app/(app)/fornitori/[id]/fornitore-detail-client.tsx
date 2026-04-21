@@ -291,6 +291,8 @@ type SupplierPeriodStats = {
   statementsWithIssues: number
   /** Stessa logica del KPI listino dashboard: anomalie Rekki (estratto + bolla vs `prezzo_rekki`). */
   rekkiPriceAnomalies: number
+  /** Anomalie non risolte nella tabella price_anomalies (fattura vs listino_prezzi). */
+  listinoAnomaliesCount: number
 }
 
 const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
@@ -306,6 +308,7 @@ const EMPTY_SUPPLIER_PERIOD_STATS: SupplierPeriodStats = {
   statementsInPeriod: 0,
   statementsWithIssues: 0,
   rekkiPriceAnomalies: 0,
+  listinoAnomaliesCount: 0,
 }
 
 function useSupplierPeriodStats(
@@ -372,8 +375,13 @@ function useSupplierPeriodStats(
         .gte('created_at', from)
         .lt('created_at', to),
       countSupplierMonthRekkiPriceAnomalies(supabase, fornitoreId, from, to),
+      supabase
+        .from('price_anomalies')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .eq('resolved', false),
     ])
-      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes, ordiniRes, rekkiAnom]) => {
+      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes, ordiniRes, rekkiAnom, anomalieRes]) => {
         if (cancelled) return
         const fattureRows = (fattureRes.data ?? []) as {
           id: string
@@ -414,6 +422,8 @@ function useSupplierPeriodStats(
           statementsInPeriod,
           statementsWithIssues,
           rekkiPriceAnomalies: typeof rekkiAnom === 'number' ? rekkiAnom : 0,
+          listinoAnomaliesCount:
+            anomalieRes && !anomalieRes.error ? (anomalieRes.count ?? 0) : 0,
         })
       })
       .catch(() => {
@@ -576,19 +586,23 @@ function buildSupplierKpiItems(
         </svg>
       ),
       sub:
-        (stats?.rekkiPriceAnomalies ?? 0) > 0
-          ? t.fornitori.subListinoPriceAnomalies.replace('{n}', String(stats?.rekkiPriceAnomalies ?? 0))
-          : (stats?.listinoRows ?? 0) === 0
-            ? t.fornitori.subListinoPeriodoVuoto
-            : t.fornitori.subListinoProdottiEAggiornamenti
-                .replace('{p}', String(stats?.listinoProdottiDistinti ?? 0))
-                .replace('{u}', String(stats?.listinoRows ?? 0)),
+        (stats?.listinoAnomaliesCount ?? 0) > 0
+          ? `${stats?.listinoAnomaliesCount} anomali${(stats?.listinoAnomaliesCount ?? 0) === 1 ? 'a' : 'e'} prezzo da verificare`
+          : (stats?.rekkiPriceAnomalies ?? 0) > 0
+            ? t.fornitori.subListinoPriceAnomalies.replace('{n}', String(stats?.rekkiPriceAnomalies ?? 0))
+            : (stats?.listinoRows ?? 0) === 0
+              ? t.fornitori.subListinoPeriodoVuoto
+              : t.fornitori.subListinoProdottiEAggiornamenti
+                  .replace('{p}', String(stats?.listinoProdottiDistinti ?? 0))
+                  .replace('{u}', String(stats?.listinoRows ?? 0)),
       subColor:
-        (stats?.rekkiPriceAnomalies ?? 0) > 0
+        (stats?.listinoAnomaliesCount ?? 0) > 0
           ? 'text-rose-300'
-          : (stats?.listinoRows ?? 0) > 0
-            ? l.subStrong
-            : 'text-app-fg-muted',
+          : (stats?.rekkiPriceAnomalies ?? 0) > 0
+            ? 'text-rose-300'
+            : (stats?.listinoRows ?? 0) > 0
+              ? l.subStrong
+              : 'text-app-fg-muted',
     },
     {
       label: t.fornitori.kpiPending,
@@ -2310,6 +2324,22 @@ function ListinoTab({
   const [autoImportResult, setAutoImportResult]   = useState<{ inserted: number; fatture: number } | null>(null)
   const [autoImportError, setAutoImportError]     = useState<string | null>(null)
 
+  // Price anomalies state
+  type PriceAnomaly = {
+    id: string
+    prodotto: string
+    prezzo_pagato: number
+    prezzo_listino: number
+    differenza_percent: number
+    fattura_id: string | null
+    resolved: boolean
+    resolved_at: string | null
+    created_at: string
+  }
+  const [priceAnomalies, setPriceAnomalies] = useState<PriceAnomaly[]>([])
+  const [anomaliesLoading, setAnomaliesLoading] = useState(false)
+  const [resolvingId, setResolvingId] = useState<string | null>(null)
+
   const loadListino = async () => {
     const supabase = createClient()
     const { data, error } = await supabase
@@ -2324,6 +2354,37 @@ function ListinoTab({
       setListTabloExists(true)
       setListino((data ?? []) as ListinoProdotto[])
     }
+  }
+
+  const loadPriceAnomalies = async () => {
+    setAnomaliesLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('price_anomalies')
+      .select('id, prodotto, prezzo_pagato, prezzo_listino, differenza_percent, fattura_id, resolved, resolved_at, created_at')
+      .eq('fornitore_id', fornitoreId)
+      .order('resolved', { ascending: true })
+      .order('differenza_percent', { ascending: false })
+      .limit(200)
+    setPriceAnomalies((data ?? []) as PriceAnomaly[])
+    setAnomaliesLoading(false)
+  }
+
+  const resolveAnomaly = async (anomalyId: string) => {
+    setResolvingId(anomalyId)
+    const supabase = createClient()
+    await supabase
+      .from('price_anomalies')
+      .update({ resolved: true, resolved_at: new Date().toISOString() })
+      .eq('id', anomalyId)
+    setPriceAnomalies((prev) =>
+      prev.map((a) =>
+        a.id === anomalyId
+          ? { ...a, resolved: true, resolved_at: new Date().toISOString() }
+          : a,
+      ),
+    )
+    setResolvingId(null)
   }
 
   useEffect(() => {
@@ -2363,6 +2424,11 @@ function ListinoTab({
   useEffect(() => {
     setListinoSpendFilter('all')
     setListinoPeriod('all')
+  }, [fornitoreId])
+
+  useEffect(() => {
+    loadPriceAnomalies()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fornitoreId])
 
   // ── Price comparison helpers ────────────────────────────────────────
@@ -3046,8 +3112,75 @@ function ListinoTab({
   const totBolle  = filteredRows.filter(r => r.tipo === 'bolla').reduce((s, r) => s + (r.importo ?? 0), 0)
   const totFatture = filteredRows.filter(r => r.tipo === 'fattura').reduce((s, r) => s + (r.importo ?? 0), 0)
 
+  const unresolvedAnomalies = priceAnomalies.filter((a) => !a.resolved)
+  const resolvedAnomalies = priceAnomalies.filter((a) => a.resolved)
+
   return (
     <div className="space-y-5">
+
+      {/* ── Anomalie Prezzi (fattura vs listino) ── */}
+      {!anomaliesLoading && priceAnomalies.length > 0 && (
+        <div className="supplier-detail-tab-shell overflow-hidden border-rose-500/30">
+          <div className="app-card-bar-accent bg-rose-500/70" aria-hidden />
+          <div className="flex items-center justify-between border-b border-app-line-22 px-5 py-3">
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-semibold text-app-fg">Anomalie Prezzi</span>
+              {unresolvedAnomalies.length > 0 && (
+                <span className="ml-1 rounded-full bg-rose-500/20 px-2 py-0.5 text-xs font-bold text-rose-300">
+                  {unresolvedAnomalies.length}
+                </span>
+              )}
+            </div>
+            {resolvedAnomalies.length > 0 && (
+              <span className="text-xs text-app-fg-muted">
+                {resolvedAnomalies.length} verificat{resolvedAnomalies.length === 1 ? 'a' : 'e'}
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-app-line-22">
+            {priceAnomalies.map((anomaly) => (
+              <div key={anomaly.id} className={`flex flex-col gap-1 px-5 py-3 sm:flex-row sm:items-center sm:gap-4 ${anomaly.resolved ? 'opacity-50' : ''}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate text-sm font-medium text-app-fg">{anomaly.prodotto}</p>
+                  <p className="text-xs text-app-fg-muted mt-0.5">
+                    Pagato{' '}
+                    <span className="font-semibold text-rose-300">
+                      {fmtMoney(anomaly.prezzo_pagato)}
+                    </span>
+                    {' vs listino '}
+                    <span className="font-semibold text-app-fg">{fmtMoney(anomaly.prezzo_listino)}</span>
+                    {' · '}
+                    <span className="font-semibold text-rose-300">
+                      +{(anomaly.differenza_percent * 100).toFixed(1)}%
+                    </span>
+                  </p>
+                </div>
+                {anomaly.resolved ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300">
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Verificato
+                  </span>
+                ) : (
+                  !readOnly && (
+                    <button
+                      disabled={resolvingId === anomaly.id}
+                      onClick={() => resolveAnomaly(anomaly.id)}
+                      className="shrink-0 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
+                    >
+                      {resolvingId === anomaly.id ? 'Salvando…' : 'Risolvi'}
+                    </button>
+                  )
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Listino Prodotti (se la tabella esiste) ── */}
       {listTabloExists === false ? (

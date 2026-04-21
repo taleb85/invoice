@@ -175,6 +175,7 @@ export default function DashboardOperatorKpiGrid({
       : undefined
 
   const listinoAnomaly = k.anomaliePrezziCount > 0
+  const listinoAnomaliesCount = k.listinoAnomaliesCount ?? 0
   const verificaAnomalyParams = k.anomaliePrezziCount > 0 ? { stato: 'anomalia' as const } : undefined
 
   const items: KpiItem[] = [
@@ -294,14 +295,17 @@ export default function DashboardOperatorKpiGrid({
         : withFiscalYearQuery('/listino', fy),
       label: t.fornitori.kpiListinoProdottiPeriodo,
       value: k.listinoProdottiDistinti,
-      sub: listinoAnomaly
-        ? t.dashboard.kpiListinoAnomaliesCountLine.replace('{n}', String(k.anomaliePrezziCount))
-        : k.listinoRows === 0
-          ? t.fornitori.subListinoPeriodoVuoto
-          : t.fornitori.subListinoProdottiEAggiornamenti
-              .replace('{p}', String(k.listinoProdottiDistinti))
-              .replace('{u}', String(k.listinoRows)),
-      listinoAnomalySubHighlight: listinoAnomaly,
+      sub:
+        listinoAnomaliesCount > 0
+          ? `${listinoAnomaliesCount} anomali${listinoAnomaliesCount === 1 ? 'a' : 'e'} prezzo da verificare`
+          : listinoAnomaly
+            ? t.dashboard.kpiListinoAnomaliesCountLine.replace('{n}', String(k.anomaliePrezziCount))
+            : k.listinoRows === 0
+              ? t.fornitori.subListinoPeriodoVuoto
+              : t.fornitori.subListinoProdottiEAggiornamenti
+                  .replace('{p}', String(k.listinoProdottiDistinti))
+                  .replace('{u}', String(k.listinoRows)),
+      listinoAnomalySubHighlight: listinoAnomaly || listinoAnomaliesCount > 0,
       accentHex: operatorKpiVisualAt(4).accentHex,
       glowRgb: operatorKpiVisualAt(4).glowRgb,
       borderClass: operatorKpiVisualAt(4).borderClass,

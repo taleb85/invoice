@@ -142,6 +142,21 @@ async function finalizePendingByTipo(
       metadata: doc.metadata,
       pendingKind: 'fattura',
     })
+    // Fire-and-forget: check price anomalies for this fattura against listino_prezzi
+    if (fattura.id && doc.fornitore_id) {
+      const baseUrl =
+        (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+      fetch(`${baseUrl}/api/price-anomalies/check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(process.env.CRON_SECRET
+            ? { Authorization: `Bearer ${process.env.CRON_SECRET}` }
+            : {}),
+        },
+        body: JSON.stringify({ fattura_id: fattura.id, fornitore_id: doc.fornitore_id }),
+      }).catch(() => {})
+    }
     return NextResponse.json({ ok: true, fattura_id: fattura.id })
   }
 
