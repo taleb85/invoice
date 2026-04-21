@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-)
-
 export async function POST(req: NextRequest) {
+  if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
+    return NextResponse.json({ error: 'Push notifications not configured' }, { status: 503 })
+  }
+
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT ?? 'mailto:admin@smartpair.app',
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  )
+
   // Accept either a valid admin session OR the CRON_SECRET bearer token (for internal fire-and-forget calls)
   const cronSecret = process.env.CRON_SECRET
   const authHeader = req.headers.get('authorization')
