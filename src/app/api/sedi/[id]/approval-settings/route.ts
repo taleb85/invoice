@@ -1,0 +1,92 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, sede_id')
+    .eq('id', user.id)
+    .single()
+
+  const isMaster = isMasterAdminRole(profile?.role)
+  const isAdminSede = isAdminSedeRole(profile?.role)
+  if (!isMaster && !isAdminSede) {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+  }
+  if (isAdminSede && !isMaster && profile?.sede_id !== id) {
+    return NextResponse.json({ error: 'Accesso negato a questa sede' }, { status: 403 })
+  }
+
+  const service = createServiceClient()
+  const { data, error } = await service
+    .from('approval_settings')
+    .select('id, sede_id, threshold, require_approval')
+    .eq('sede_id', id)
+    .maybeSingle()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Return defaults if no settings row exists yet
+  return NextResponse.json(
+    data ?? { sede_id: id, threshold: 500, require_approval: true },
+  )
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, sede_id')
+    .eq('id', user.id)
+    .single()
+
+  const isMaster = isMasterAdminRole(profile?.role)
+  const isAdminSede = isAdminSedeRole(profile?.role)
+  if (!isMaster && !isAdminSede) {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+  }
+  if (isAdminSede && !isMaster && profile?.sede_id !== id) {
+    return NextResponse.json({ error: 'Accesso negato a questa sede' }, { status: 403 })
+  }
+
+  const body = (await req.json().catch(() => ({}))) as {
+    threshold?: number
+    require_approval?: boolean
+  }
+
+  const threshold = Number(body.threshold ?? 500)
+  if (!Number.isFinite(threshold) || threshold < 0) {
+    return NextResponse.json({ error: 'Soglia non valida' }, { status: 400 })
+  }
+  const requireApproval = body.require_approval !== false
+
+  const service = createServiceClient()
+  const { data, error } = await service
+    .from('approval_settings')
+    .upsert(
+      { sede_id: id, threshold, require_approval: requireApproval, updated_at: new Date().toISOString() },
+      { onConflict: 'sede_id' },
+    )
+    .select('id, sede_id, threshold, require_approval')
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, settings: data })
+}

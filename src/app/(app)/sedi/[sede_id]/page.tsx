@@ -13,6 +13,7 @@ import { fetchOperatorDashboardKpis, fornitoreIdsForSede } from '@/lib/dashboard
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
+import { ApprovalSettingsForm } from '@/components/approval/approval-settings-form'
 
 interface SedeProfile {
   id: string
@@ -66,9 +67,9 @@ export default async function SedeProfilePage({
   if (!sede) redirect('/sedi')
 
   const profile = await getProfile()
-  const canManageSedeOperators =
-    profile?.role === 'admin' ||
-    (profile?.role === 'admin_sede' && profile?.sede_id === sede_id)
+  const isMasterAdmin = profile?.role === 'admin'
+  const isAdminSede = profile?.role === 'admin_sede' && profile?.sede_id === sede_id
+  const canManageSedeOperators = isMasterAdmin || isAdminSede
 
   const [tDashboard, appLocale, currency, fornitoreIds] = await Promise.all([
     getT(),
@@ -255,6 +256,24 @@ export default async function SedeProfilePage({
           </div>
         </Link>
       </div>
+
+      {/* Approval settings */}
+      {(isMasterAdmin || isAdminSede) && (
+        <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15">
+              <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-app-fg">Approvazione fatture</p>
+              <p className="text-xs text-app-fg-muted">Configura la soglia per l&apos;approvazione manuale</p>
+            </div>
+          </div>
+          <ApprovalSettingsForm sedeId={sede_id} />
+        </div>
+      )}
 
       {/* IMAP not configured warning */}
       {!imapConfigured && (

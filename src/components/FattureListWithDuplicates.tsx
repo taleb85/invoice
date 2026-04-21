@@ -25,6 +25,7 @@ import {
 } from '@/lib/app-shell-layout'
 import { standardBadgeClassName } from '@/components/ui/StandardBadge'
 import { ActionButton } from '@/components/ui/ActionButton'
+import { ApprovalBadge } from '@/components/approval/approval-badge'
 
 export type FattureDuplicateListRow = {
   id: string
@@ -35,6 +36,8 @@ export type FattureDuplicateListRow = {
   fornitore_id: string | null
   fornitoreNome: string | null
   importoLabel: string | null
+  approval_status?: string | null
+  rejection_reason?: string | null
 }
 
 const dupBadgeInteractiveCls = standardBadgeClassName(
@@ -130,6 +133,13 @@ export default function FattureListWithDuplicates({
                       {f.importoLabel}
                     </span>
                   ) : null}
+                  {f.approval_status && f.approval_status !== 'approved' && (
+                    <ApprovalBadge
+                      status={f.approval_status as 'pending' | 'approved' | 'rejected'}
+                      rejectionReason={f.rejection_reason}
+                      size="sm"
+                    />
+                  )}
                 </div>
               </div>
               <p className="mb-2 text-xs text-app-fg-muted">
@@ -270,7 +280,16 @@ export default function FattureListWithDuplicates({
                     : `${APP_SECTION_TABLE_TD_NUMERIC} text-app-fg-muted`
                 }
               >
-                {f.importoLabel ?? '—'}
+                <div className="flex flex-col items-end gap-1">
+                  <span>{f.importoLabel ?? '—'}</span>
+                  {f.approval_status && f.approval_status !== 'approved' && (
+                    <ApprovalBadge
+                      status={f.approval_status as 'pending' | 'approved' | 'rejected'}
+                      rejectionReason={f.rejection_reason}
+                      size="sm"
+                    />
+                  )}
+                </div>
               </td>
               <td className="px-6 py-4 text-right">
                 <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />

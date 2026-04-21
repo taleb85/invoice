@@ -39,6 +39,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [fornitoriOpen, setFornitoriOpen] = useState(true)
   const [fornitoriSearch, setFornitoriSearch] = useState('')
   const [langOpen, setLangOpen] = useState(false)
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
 
   /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
   const gestisciSediLinkLabel = navGestisciSediLabel(t, getAssociatedSedeNome(me, getCookie))
@@ -182,12 +183,44 @@ export default function Sidebar({ onClose }: SidebarProps) {
     ),
   }
 
+  // Fetch pending approvals count for admin/admin_sede badge
+  useEffect(() => {
+    if (!isMasterAdmin && !isAdminSede) return
+    let cancelled = false
+    const fetchCount = () => {
+      fetch('/api/fatture/pending-approval')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { count?: number } | null) => {
+          if (!cancelled && d?.count != null) setPendingApprovalCount(d.count)
+        })
+        .catch(() => {})
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 60_000) // refresh every minute
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMasterAdmin, isAdminSede])
+
   const analyticsNavItem = {
     label: 'Analytics',
     href: '/analytics',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      </svg>
+    ),
+  }
+
+  const approvazioniNavItem = {
+    label: 'Approvazioni',
+    href: '/approvazioni',
+    count: pendingApprovalCount,
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
   }
@@ -203,6 +236,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       ),
     },
     analyticsNavItem,
+    approvazioniNavItem,
     {
       label: t.nav.fornitori,
       href: '/fornitori',
@@ -218,7 +252,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const navItems = isMasterAdmin
     ? adminNavItems
     : isAdminSede
-      ? [operatoreNavItems[0], analyticsNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
+      ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
 
   const handleLogout = async () => {
@@ -430,11 +464,17 @@ export default function Sidebar({ onClose }: SidebarProps) {
             .map((item) => {
               const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
               const hasBadge = (item as { badge?: boolean }).badge
+              const itemCount = (item as { count?: number }).count
               return (
                 <Link key={item.href} href={item.href} onClick={onClose} className={`${navLink(isActive)} relative`}>
                   {item.icon}
                   <span className="truncate flex-1">{item.label}</span>
                   {hasBadge && <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500" />}
+                  {itemCount != null && itemCount > 0 && (
+                    <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white">
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </span>
+                  )}
                 </Link>
               )
             })}

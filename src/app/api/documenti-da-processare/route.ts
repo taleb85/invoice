@@ -110,6 +110,26 @@ async function finalizePendingByTipo(
         }
       }
     }
+    const fatturaImporto = m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null
+
+    // Determine approval_status before insert
+    let approvalStatus = 'pending'
+    if (sedeDefinitiva && fatturaImporto != null) {
+      const { data: approvalSettings } = await supabase
+        .from('approval_settings')
+        .select('threshold, require_approval')
+        .eq('sede_id', sedeDefinitiva)
+        .maybeSingle()
+      const requireApproval = approvalSettings?.require_approval !== false
+      const threshold = Number(approvalSettings?.threshold ?? 500)
+      if (!requireApproval || fatturaImporto < threshold) {
+        approvalStatus = 'approved'
+      }
+    } else {
+      // No importo known yet — auto-approve (can be re-evaluated later)
+      approvalStatus = 'approved'
+    }
+
     const { data: fattura, error: insErr } = await supabase
       .from('fatture')
       .insert([{
@@ -118,9 +138,11 @@ async function finalizePendingByTipo(
         sede_id: sedeDefinitiva,
         data: dataDoc,
         file_url: doc.file_url,
-        importo: m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null,
+        importo: fatturaImporto,
         verificata_estratto_conto: false,
         numero_fattura: numeroNorm,
+        approval_status: approvalStatus,
+        ...(approvalStatus === 'approved' ? { approved_at: new Date().toISOString() } : {}),
       }])
       .select('id')
       .single()
@@ -562,6 +584,25 @@ export async function POST(req: NextRequest) {
 
     // Create one fattura covering all selected bolle.
     // bolla_id is set to the first bolla for backward-compatibility (schema has single FK).
+    const associaImporto = importoTotale > 0 ? importoTotale : null
+
+    // Determine approval_status for associa path
+    let associaApprovalStatus = 'pending'
+    if (sedeDefinitiva && associaImporto != null) {
+      const { data: approvalSettingsA } = await supabase
+        .from('approval_settings')
+        .select('threshold, require_approval')
+        .eq('sede_id', sedeDefinitiva)
+        .maybeSingle()
+      const requireApprovalA = approvalSettingsA?.require_approval !== false
+      const thresholdA = Number(approvalSettingsA?.threshold ?? 500)
+      if (!requireApprovalA || associaImporto < thresholdA) {
+        associaApprovalStatus = 'approved'
+      }
+    } else {
+      associaApprovalStatus = 'approved'
+    }
+
     const { data: fattura, error: insertError } = await supabase
       .from('fatture')
       .insert([{
@@ -570,8 +611,10 @@ export async function POST(req: NextRequest) {
         sede_id:                  sedeDefinitiva,
         data:                     dataFatturaAssocia,
         file_url:                 doc.file_url,
-        importo:                  importoTotale > 0 ? importoTotale : null,
+        importo:                  associaImporto,
         verificata_estratto_conto: false,
+        approval_status:          associaApprovalStatus,
+        ...(associaApprovalStatus === 'approved' ? { approved_at: new Date().toISOString() } : {}),
       }])
       .select('id')
       .single()
