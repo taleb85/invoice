@@ -46,8 +46,17 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Smart Pair",
-  description: "Gestione acquisti, bolle e fatture fornitori",
+  description: "Invoice Management",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Smart Pair",
+    description: "Invoice Management",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/og-image.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
