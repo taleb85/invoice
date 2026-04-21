@@ -21,51 +21,24 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
       {/* ── Brand area ── */}
       <div className="mb-5 flex flex-col items-center gap-2.5">
 
-        {/* Icon container */}
-        <div
-          className={[
-            'flex h-16 w-16 items-center justify-center rounded-2xl ring-1 transition-all duration-300',
-            displayName
-              ? 'bg-gradient-to-br from-emerald-700/70 to-emerald-900/80 shadow-[0_0_32px_rgba(16,185,129,0.28)] ring-emerald-500/30'
-              : 'bg-[#0f2a4a] shadow-[0_0_24px_rgba(34,211,238,0.2)] ring-[#22d3ee]/30',
-          ].join(' ')}
-        >
-          {displayName ? (
-            /* Leaf icon when a sede is selected */
-            <svg
-              className="h-9 w-9 text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.55)]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 3C7 3 3 7.5 3 12c0 4 2.5 7.5 6 9 .5-3 1-5 3-7-2 2-2.5 4-2.5 6.5M12 3c5 0 9 4.5 9 9 0 4-2.5 7.5-6 9-.5-3-1-5-3-7 2 2 2.5 4 2.5 6.5"
-              />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v18" />
-            </svg>
-          ) : (
-            /* Smart Pair arrows icon */
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>
-              <path
-                d="M4 20 L16 8 L16 15 L28 15 L28 20"
-                stroke="#22d3ee"
-                strokeWidth="4"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-              <path
-                d="M36 20 L24 32 L24 25 L12 25 L12 20"
-                stroke="#5b7cf9"
-                strokeWidth="4"
-                strokeLinejoin="round"
-                strokeLinecap="round"
-              />
-            </svg>
-          )}
+        {/* Icon container — Smart Pair icon in both states */}
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0f2a4a] ring-1 ring-[#22d3ee]/30 shadow-[0_0_24px_rgba(34,211,238,0.2)]">
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden>
+            <path
+              d="M4 20 L16 8 L16 15 L28 15 L28 20"
+              stroke="#22d3ee"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            <path
+              d="M36 20 L24 32 L24 25 L12 25 L12 20"
+              stroke="#5b7cf9"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </svg>
         </div>
 
         {/* Label below icon */}
