@@ -29,6 +29,8 @@ export interface MeData {
   /** Responsabile di sede: permessi elevati solo su `sede_id` */
   is_admin_sede: boolean
   all_sedi:     { id: string; nome: string }[]
+  /** False only for master admin with zero sedi configured — triggers onboarding */
+  onboarding_complete: boolean
 }
 
 interface MeContextValue {
@@ -52,6 +54,7 @@ const DEFAULT_ME: MeData = {
   is_admin:     false,
   is_admin_sede: false,
   all_sedi:     [],
+  onboarding_complete: true,
 }
 
 function parseMeResponse(data: Record<string, unknown>): MeData {
@@ -76,6 +79,7 @@ function parseMeResponse(data: Record<string, unknown>): MeData {
     is_admin:      !!(data.is_admin) || role === 'admin',
     is_admin_sede: !!(data.is_admin_sede) || role === 'admin_sede',
     all_sedi:      (data.all_sedi as MeData['all_sedi']) ?? [],
+    onboarding_complete: typeof data.onboarding_complete === 'boolean' ? data.onboarding_complete : true,
   }
 }
 

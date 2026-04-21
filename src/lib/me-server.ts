@@ -75,6 +75,9 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
     rawRole === 'admin' ? 'admin' : rawRole === 'admin_sede' ? 'admin_sede' : rawRole === 'operatore' ? 'operatore' : null
 
   const fn = typeof profile.full_name === 'string' ? profile.full_name.trim() : ''
+  // Master admin without any sedi configured → onboarding not yet complete
+  const onboarding_complete = !isAdmin || allSedi.length > 0
+
   return {
     ok: true,
     me: {
@@ -89,6 +92,7 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
       is_admin: isAdmin,
       is_admin_sede: isAdminSede,
       all_sedi: allSedi,
+      onboarding_complete,
     },
   }
 }

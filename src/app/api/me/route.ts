@@ -45,6 +45,7 @@ export async function GET() {
       is_admin:     me.is_admin,
       is_admin_sede: me.is_admin_sede,
       all_sedi:     me.all_sedi,
+      onboarding_complete: me.onboarding_complete,
     },
     { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' } },
   )

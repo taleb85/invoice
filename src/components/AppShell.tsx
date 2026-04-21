@@ -87,6 +87,25 @@ function readBrowserCookie(name: string): string {
 }
 
 /**
+ * Redirect master admin to /onboarding when no sedi are configured yet.
+ */
+function OnboardingGuard() {
+  const { me } = useMe()
+  const router = useRouter()
+  const pathname = usePathname()
+
+  useEffect(() => {
+    if (!me) return
+    if (!me.is_admin) return
+    if (me.onboarding_complete) return
+    if (pathname?.startsWith('/onboarding')) return
+    router.replace('/onboarding')
+  }, [me, pathname, router])
+
+  return null
+}
+
+/**
  * Dopo il PIN operatore, `fluxo-acting-role` e `admin-sede-id` devono restare allineati
  * a `activeOperator` (persistito in localStorage). Se il cookie acting viene azzerato
  * (es. cambio sede) ma l’operatore resta in memoria, il server mostra il banner cyan
@@ -152,7 +171,8 @@ export default function AppShell({
       <UserProvider initialMe={initialMe}>
         <NetworkProvider>
         <LocaleSyncFromSede />
-        <ActiveOperatorProvider>
+          <ActiveOperatorProvider>
+          <OnboardingGuard />
           <ActiveOperatorSessionReconcile />
           <AdminActingRoleCookieSync />
           <ToastProvider>

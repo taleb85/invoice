@@ -1,6 +1,48 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+
+export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (!isMasterAdminRole(profile?.role)) {
+    return NextResponse.json({ error: 'Solo l\'admin può creare sedi' }, { status: 403 })
+  }
+
+  const body = await req.json() as {
+    nome?: string
+    country_code?: string
+    currency?: string
+    timezone?: string
+  }
+
+  const nome = typeof body.nome === 'string' ? body.nome.trim() : ''
+  if (!nome) return NextResponse.json({ error: 'Nome sede obbligatorio' }, { status: 400 })
+
+  const validCountries = ['UK', 'IT', 'FR', 'DE', 'ES', 'GB']
+  const country_code = validCountries.includes(body.country_code ?? '') ? body.country_code! : 'IT'
+  const currency = body.currency ?? 'EUR'
+  const timezone = body.timezone ?? 'Europe/Rome'
+
+  const svc = createServiceClient()
+  const { data: sede, error } = await svc
+    .from('sedi')
+    .insert([{ nome, country_code, currency, timezone }])
+    .select('id, nome')
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  return NextResponse.json({ ok: true, sede })
+}
 
 export async function GET() {
   const supabase = await createClient()
