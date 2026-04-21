@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import { VatLookupField } from '@/components/vat-lookup-field'
 
 interface DiscoveredSender {
   email: string
@@ -175,12 +176,15 @@ function ScannerRow({
             {/* P.IVA */}
             <div>
               <label className="block text-xs font-medium text-app-fg-muted mb-1">P.IVA</label>
-              <input
-                type="text"
+              <VatLookupField
                 value={form.piva}
-                onChange={e => setForm(f => ({ ...f, piva: e.target.value }))}
+                onChange={(val) => setForm(f => ({ ...f, piva: val }))}
+                onFound={(data) => setForm(f => ({
+                  ...f,
+                  nome: data.ragione_sociale ?? f.nome,
+                }))}
+                inputClassName="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
                 placeholder="12345678901"
-                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
               />
             </div>
 

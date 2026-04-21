@@ -10,6 +10,7 @@ import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effec
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
+import { VatLookupField } from '@/components/vat-lookup-field'
 
 const fieldBaseCls =
   'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
@@ -159,10 +160,17 @@ export default function NewFornitoreForm() {
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.pivaLabel}</label>
-            <input
-              className={inputCls}
+            <VatLookupField
               value={form.piva}
-              onChange={(e) => setForm({ ...form, piva: e.target.value })}
+              onChange={(val) => setForm({ ...form, piva: val })}
+              onFound={(data) => {
+                setForm((prev) => ({
+                  ...prev,
+                  nome: data.ragione_sociale ?? prev.nome,
+                  indirizzo: data.indirizzo ?? prev.indirizzo,
+                }))
+              }}
+              inputClassName={inputCls}
               placeholder={t.fornitori.pivaPlaceholder}
             />
           </div>
