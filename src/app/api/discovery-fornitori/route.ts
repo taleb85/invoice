@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
 import { ImapFlow } from 'imapflow'
 
 // ── MIME structure helper ─────────────────────────────────────────────────────
@@ -105,9 +106,18 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
+  // Only admin and admin_sede can scan IMAP accounts (they expose credentials)
+  const profile = await getProfile()
+  if (!isMasterAdminRole(profile?.role) && !isAdminSedeRole(profile?.role)) {
+    return NextResponse.json({ error: 'Accesso riservato agli amministratori' }, { status: 403 })
+  }
+
   // Optional: restrict scan to one specific branch
   const { searchParams } = new URL(req.url)
-  const filterSedeId = searchParams.get('sede_id') ?? undefined
+  // admin_sede is restricted to their own sede
+  const callerSedeId = profile?.sede_id ?? null
+  const requestedSedeId = searchParams.get('sede_id') ?? undefined
+  const filterSedeId = isAdminSedeRole(profile?.role) ? (callerSedeId ?? undefined) : requestedSedeId
 
   const service = createServiceClient()
 
@@ -203,6 +213,12 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
+  // Only admin and admin_sede can create fornitori via discovery
+  const profile = await getProfile()
+  if (!isMasterAdminRole(profile?.role) && !isAdminSedeRole(profile?.role)) {
+    return NextResponse.json({ error: 'Accesso riservato agli amministratori' }, { status: 403 })
+  }
+
   const body = await req.json() as {
     email: string
     nome: string
@@ -213,6 +229,11 @@ export async function POST(req: NextRequest) {
   const { email, nome, piva, sede_id } = body
   if (!email?.trim() || !nome?.trim()) {
     return NextResponse.json({ error: 'Email e nome sono obbligatori' }, { status: 400 })
+  }
+
+  // admin_sede can only create fornitori in their own sede
+  if (isAdminSedeRole(profile?.role) && sede_id && sede_id !== profile?.sede_id) {
+    return NextResponse.json({ error: 'Non puoi creare fornitori in un\'altra sede' }, { status: 403 })
   }
 
   const service = createServiceClient()

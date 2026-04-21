@@ -66,9 +66,21 @@ export async function POST(req: NextRequest) {
   if (!fornitore_id) {
     return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
   }
-  
+
+  // Verify the caller has access to this fornitore's sede before using the service client.
+  const { data: fornitoreRow } = await authClient
+    .from('fornitori')
+    .select('sede_id')
+    .eq('id', fornitore_id)
+    .maybeSingle()
+
+  if (!fornitoreRow) {
+    // Either the fornitore doesn't exist or RLS blocked it (caller has no access)
+    return NextResponse.json({ error: 'Fornitore non trovato o accesso negato' }, { status: 404 })
+  }
+
   const service = createServiceClient()
-  
+
   // 1. Get all listino entries with rekki_product_id for this supplier
   const { data: listinoEntries, error: listinoErr } = await service
     .from('listino_prezzi')
