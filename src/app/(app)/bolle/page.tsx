@@ -33,6 +33,8 @@ import {
 } from '@/lib/app-shell-layout'
 import { analyzeBolleDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
+import { ExportButton } from '@/components/export-button'
+import type { ExportRow } from '@/lib/export-report'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -155,6 +157,16 @@ export default async function BollePage({
   const excessBollaIds = dupAnalysis.excessIds
   const formatDate = (d: string) => fmtDate(d, locale, tz)
 
+  const exportPeriod = String(fiscal?.labelYear ?? sp.fy ?? new Date().getFullYear())
+  const exportRows: ExportRow[] = bolle.map(b => ({
+    data: b.data,
+    numero: b.numero_bolla ?? null,
+    fornitore: b.fornitori?.nome ?? '—',
+    importo: (b as Record<string, unknown>).importo as number | null,
+    stato: b.stato,
+    sede: null,
+  }))
+
   const subtitle = (() => {
     if (!showAll) {
       return `${bolle.length} ${bolle.length === 1 ? t.bolle.countTodaySingolo : t.bolle.countTodayPlural}`
@@ -183,7 +195,10 @@ export default async function BollePage({
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.bolle.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
-        <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
+          <ExportButton rows={exportRows} type="bolle" period={exportPeriod} />
+          <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
+        </div>
       </AppPageHeaderStrip>
 
       <AppSectionFiltersBar>

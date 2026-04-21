@@ -29,6 +29,8 @@ import {
 import FattureListWithDuplicates from '@/components/FattureListWithDuplicates'
 import { ActionLink } from '@/components/ui/ActionButton'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ExportButton } from '@/components/export-button'
+import type { ExportRow } from '@/lib/export-report'
 
 type FatturaListRow = {
   id: string
@@ -92,6 +94,7 @@ export default async function FatturePage({
   const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
 
   let fatture: FatturaListRow[] = []
+  let fiscal: Awaited<ReturnType<typeof resolveFiscalFilterForSede>> | null = null
   if (!sedeId && !isMasterAdmin) {
     fatture = []
   } else if (!sedeId && isMasterAdmin) {
@@ -99,7 +102,7 @@ export default async function FatturePage({
   } else if (sedeId && fornitoreIds.length === 0) {
     fatture = []
   } else {
-    const fiscal = await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy)
+    fiscal = await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy)
     fatture = await getFatture(supabase, fornitoreIds, fiscal?.bounds ?? null)
   }
   const formatDate = (d: string) => fmtDate(d, locale, tz)
@@ -123,6 +126,16 @@ export default async function FatturePage({
     secondary: `${fatture.length} ${t.fatture.countLabel}`,
   }
 
+  const exportPeriod = String(fiscal?.labelYear ?? searchParams.fy ?? new Date().getFullYear())
+  const exportRows: ExportRow[] = fatture.map(f => ({
+    data: f.data,
+    numero: f.numero_fattura,
+    fornitore: f.fornitore?.nome ?? '—',
+    importo: f.importo,
+    stato: f.bolla_id ? 'Associata' : 'Senza bolla',
+    sede: null,
+  }))
+
   const fattureRowsClient = fatture.map((f) => ({
     id: f.id,
     dataLabel: formatDate(f.data),
@@ -144,6 +157,7 @@ export default async function FatturePage({
         </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
           <DashboardDuplicateFattureButton alwaysShowLabel />
+          <ExportButton rows={exportRows} type="fatture" period={exportPeriod} />
           <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
         </div>
       </AppPageHeaderStrip>
