@@ -1,0 +1,318 @@
+'use client'
+import { useEffect, useState } from 'react'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  Legend,
+} from 'recharts'
+import { KpiCard } from './kpi-card'
+import type { AnalyticsOverview } from '@/app/api/analytics/overview/route'
+
+const CHART_BG = '#0f172b'
+const AXIS_COLOR = 'rgba(255,255,255,0.35)'
+const GRID_COLOR = 'rgba(255,255,255,0.06)'
+const CYAN = '#22d3ee'
+const PURPLE = '#818cf8'
+
+function fmt(n: number, currency = 'GBP') {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 0,
+  }).format(n)
+}
+
+function fmtShort(n: number) {
+  if (n >= 1_000_000) return `£${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `£${(n / 1_000).toFixed(0)}k`
+  return `£${n.toFixed(0)}`
+}
+
+type Props = {
+  sedeId?: string | null
+  fiscalYear?: number | null
+  months?: number
+}
+
+const chartCardClass =
+  'rounded-2xl border border-app-line-22 bg-[#0f172b]/80 px-5 pt-5 pb-4'
+
+export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
+  const [data, setData] = useState<AnalyticsOverview | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    const params = new URLSearchParams({ months: String(months) })
+    if (sedeId) params.set('sede_id', sedeId)
+    if (fiscalYear) params.set('fy', String(fiscalYear))
+    fetch(`/api/analytics/overview?${params}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Errore caricamento dati'))))
+      .then((d: AnalyticsOverview) => setData(d))
+      .catch((e: Error) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [sedeId, fiscalYear, months])
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {/* KPI skeleton */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-2xl border border-app-line-22 bg-[#0f172b]/60"
+            />
+          ))}
+        </div>
+        {/* Chart skeletons */}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className={`h-[280px] animate-pulse rounded-2xl border border-app-line-22 bg-[#0f172b]/60 ${i === 0 ? 'lg:col-span-2' : ''}`}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-app-fg-muted">{error ?? 'Nessun dato disponibile.'}</p>
+      </div>
+    )
+  }
+
+  const totaleImporto = data.spesaMensile.reduce((s, m) => s + m.importo, 0)
+  const anomalieNonRisolte = data.anomaliePrezzi.totale - data.anomaliePrezzi.risolte
+
+  const tooltipStyle = {
+    backgroundColor: '#1e2d4a',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '10px',
+    color: '#e2e8f0',
+    fontSize: 12,
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* ── KPI Cards ─────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard
+          title="Totale fatturato"
+          value={fmt(totaleImporto)}
+          subtitle={`${data.spesaMensile.reduce((s, m) => s + m.fatture, 0)} fatture`}
+          color="cyan"
+        />
+        <KpiCard
+          title="Riconciliazione"
+          value={`${data.riconciliazione.percentuale}%`}
+          subtitle={`${data.riconciliazione.completate} completate`}
+          trend={
+            data.riconciliazione.percentuale >= 80
+              ? 'up'
+              : data.riconciliazione.percentuale >= 50
+                ? 'neutral'
+                : 'down'
+          }
+          trendValue={`${data.riconciliazione.completate}/${data.riconciliazione.completate + data.riconciliazione.inAttesa}`}
+          color={
+            data.riconciliazione.percentuale >= 80
+              ? 'green'
+              : data.riconciliazione.percentuale >= 50
+                ? 'amber'
+                : 'red'
+          }
+        />
+        <KpiCard
+          title="Tempo medio riconciliazione"
+          value={`${data.tempoMedioRiconciliazione} gg`}
+          subtitle="giorni dalla bolla alla fattura"
+          color={data.tempoMedioRiconciliazione > 14 ? 'amber' : 'cyan'}
+          trend={data.tempoMedioRiconciliazione > 14 ? 'down' : 'up'}
+          trendValue={data.tempoMedioRiconciliazione > 14 ? 'lento' : 'ok'}
+        />
+        <KpiCard
+          title="Anomalie prezzi"
+          value={String(anomalieNonRisolte)}
+          subtitle={`${data.anomaliePrezzi.risolte} risolte su ${data.anomaliePrezzi.totale}`}
+          color={anomalieNonRisolte > 0 ? 'red' : 'green'}
+          trend={anomalieNonRisolte > 0 ? 'down' : 'up'}
+          trendValue={anomalieNonRisolte > 0 ? 'da verificare' : 'tutto ok'}
+        />
+      </div>
+
+      {/* ── Charts ────────────────────────────────────────────────── */}
+
+      {/* Chart 1: Spesa mensile — full width */}
+      <div className={chartCardClass}>
+        <h3 className="mb-4 text-sm font-semibold text-app-fg">Spesa mensile</h3>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={data.spesaMensile} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="spesaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={CYAN} stopOpacity={0.35} />
+                <stop offset="95%" stopColor={CYAN} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+            <XAxis
+              dataKey="mese"
+              tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tickFormatter={fmtShort}
+              tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              width={48}
+            />
+            <Tooltip
+              formatter={(value, name) => [
+                name === 'importo' ? fmt(Number(value ?? 0)) : value,
+                name === 'importo' ? 'Importo' : 'Fatture',
+              ]}
+              contentStyle={tooltipStyle}
+              cursor={{ stroke: CYAN, strokeWidth: 1, strokeOpacity: 0.3 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="importo"
+              stroke={CYAN}
+              strokeWidth={2}
+              fill="url(#spesaGrad)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Chart 2: Top fornitori */}
+        <div className={chartCardClass}>
+          <h3 className="mb-4 text-sm font-semibold text-app-fg">Top fornitori</h3>
+          {data.topFornitori.length === 0 ? (
+            <div className="flex h-[220px] items-center justify-center text-xs text-app-fg-muted">
+              Nessun dato
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                layout="vertical"
+                data={data.topFornitori}
+                margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} horizontal={false} />
+                <XAxis
+                  type="number"
+                  tickFormatter={fmtShort}
+                  tick={{ fill: AXIS_COLOR, fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="nome"
+                  width={90}
+                  tick={{ fill: AXIS_COLOR, fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(v: string) => (v.length > 14 ? v.slice(0, 13) + '…' : v)}
+                />
+                <Tooltip
+                  formatter={(value) => [fmt(Number(value ?? 0)), 'Importo']}
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: 'rgba(129,140,248,0.08)' }}
+                />
+                <Bar dataKey="importo" fill={PURPLE} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Chart 3: Bolle vs Fatture */}
+        <div className={chartCardClass}>
+          <h3 className="mb-4 text-sm font-semibold text-app-fg">Bolle vs Fatture</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart
+              data={data.andamentoBolle}
+              margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+              <XAxis
+                dataKey="mese"
+                tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                width={28}
+                allowDecimals={false}
+              />
+              <Tooltip
+                formatter={(value, name) => [value, name === 'bolle' ? 'Bolle' : 'Fatture']}
+                contentStyle={tooltipStyle}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: 11, color: AXIS_COLOR }}
+                formatter={(v) => (v === 'bolle' ? 'Bolle' : 'Fatture')}
+              />
+              <Line
+                type="monotone"
+                dataKey="bolle"
+                stroke={CYAN}
+                strokeWidth={2}
+                dot={{ fill: CYAN, r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="fatture"
+                stroke={PURPLE}
+                strokeWidth={2}
+                dot={{ fill: PURPLE, r: 3 }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Summary row */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <div className="rounded-xl border border-app-line-22 bg-[#0f172b]/60 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">Documenti pendenti</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.documentiPendenti}</p>
+        </div>
+        <div className="rounded-xl border border-app-line-22 bg-[#0f172b]/60 px-4 py-3">
+          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">Bolle in attesa</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.riconciliazione.inAttesa}</p>
+        </div>
+        <div className="col-span-2 rounded-xl border border-app-line-22 bg-[#0f172b]/60 px-4 py-3 lg:col-span-1">
+          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">Fatture archiviate</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">
+            {data.spesaMensile.reduce((s, m) => s + m.fatture, 0)}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
