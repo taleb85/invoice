@@ -3,8 +3,8 @@
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
-import { useLocale } from '@/lib/locale-context'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
+import { SmartPairLogo } from '@/components/smart-pair-logo'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
 import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
 
@@ -36,74 +36,7 @@ export function SidebarRailBrand() {
           router.push('/')
         }}
       >
-        <svg
-          viewBox="0 0 96 56"
-          className="h-[26px] w-[2.65rem] shrink-0 lg:h-[28px] lg:w-[2.9rem]"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden
-        >
-          <defs>
-            <linearGradient id="fx-rail-card-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1e3a5f" />
-              <stop offset="100%" stopColor="#172554" />
-            </linearGradient>
-            <linearGradient id="fx-rail-wave" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#5b7cf9" />
-              <stop offset="50%" stopColor="#38bdf8" />
-              <stop offset="100%" stopColor="#22d3ee" />
-            </linearGradient>
-            <filter id="fx-rail-wave-fluo" x="-60%" y="-60%" width="220%" height="220%" filterUnits="objectBoundingBox">
-              <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="b1" />
-              <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" result="b2" />
-              <feMerge>
-                <feMergeNode in="b2" />
-                <feMergeNode in="b1" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <rect width="56" height="56" rx="13" fill="url(#fx-rail-card-bg)" />
-          <path
-            d="M7 28 C18 10, 34 10, 48 28 S72 46, 88 28"
-            stroke="url(#fx-rail-wave)"
-            strokeWidth="3.5"
-            fill="none"
-            strokeLinecap="round"
-            filter="url(#fx-rail-wave-fluo)"
-          />
-          <circle cx="7" cy="28" r="3.5" fill="#5b7cf9" />
-          <circle cx="48" cy="28" r="3.5" fill="#38bdf8" />
-          <circle cx="88" cy="28" r="3.5" fill="#22d3ee" />
-        </svg>
-
-        <div className="app-shell-rail-panel min-w-0">
-          <svg
-            viewBox="0 0 130 32"
-            className="h-auto max-w-[min(100%,5.25rem)] w-[4.75rem] lg:w-[5.6rem]"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden
-          >
-            <defs>
-              <linearGradient id="fx-rail-text" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#6b8ef5" />
-                <stop offset="100%" stopColor="#22d3ee" />
-              </linearGradient>
-            </defs>
-            <text
-              x="0"
-              y="24"
-              fontFamily="Arial Black, Arial, sans-serif"
-              fontWeight="900"
-              fontSize="24"
-              fill="url(#fx-rail-text)"
-            >
-              FLUXO
-            </text>
-          </svg>
-          <p className="-mt-0.5 truncate text-[8px] font-semibold uppercase tracking-wider text-app-fg-muted lg:text-[9px]">
-            {t.ui.tagline}
-          </p>
-        </div>
+        <SmartPairLogo variant="full" size="sm" className="shrink-0" />
       </div>
     </div>
   )

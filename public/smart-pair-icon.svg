@@ -1,0 +1,7 @@
+<svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+  <rect width="72" height="72" rx="16" fill="#0f2a4a"/>
+  <!-- Up arrow (cyan) -->
+  <path d="M24 50 L30 18 L36 50 L33 50 L33 56 L27 56 L27 50 Z" fill="#22d3ee"/>
+  <!-- Down arrow (blue-violet), offset right and overlapping -->
+  <path d="M36 22 L42 54 L48 22 L45 22 L45 16 L39 16 L39 22 Z" fill="#5b7cf9"/>
+</svg>

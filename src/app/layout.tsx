@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Geist, Outfit } from "next/font/google";
 import Script from "next/script";
 import PWARegister from "@/components/PWARegister";
 import "./globals.css";
@@ -26,6 +26,13 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
 export const viewport: Viewport = {
   themeColor: "#0a192f",
   colorScheme: "dark",
@@ -33,18 +40,18 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  /** Riempie safe area (notch) senza modificare la palette dell’app. */
+  /** Riempie safe area (notch) senza modificare la palette dell'app. */
   viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
-  title: "FLUXO",
+  title: "Smart Pair",
   description: "Gestione acquisti, bolle e fatture fornitori",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "FLUXO",
+    title: "Smart Pair",
   },
   icons: {
     icon: [
@@ -59,7 +66,7 @@ export const metadata: Metadata = {
   },
   other: {
     "mobile-web-app-capable": "yes",
-    "application-name": "FLUXO",
+    "application-name": "Smart Pair",
     "msapplication-TileColor": "#020617",
     "msapplication-TileImage": "/icons/icon-512.png",
   },
@@ -71,7 +78,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="it" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="it" className={`${geistSans.variable} ${outfit.variable} h-full antialiased`}>
       <body
         className="h-dvh min-h-dvh text-app-fg-muted antialiased"
         style={{

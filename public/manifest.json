@@ -1,14 +1,19 @@
 {
-  "name": "FLUXO – Invoice Management",
-  "short_name": "FLUXO",
-  "description": "Gestione acquisti, bolle e fatture fornitori",
+  "name": "Smart Pair",
+  "short_name": "SmartPair",
+  "description": "Invoice Management",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#475569",
-  "theme_color": "#475569",
+  "background_color": "#0a192f",
+  "theme_color": "#0a192f",
   "categories": ["business", "productivity"],
   "icons": [
+    {
+      "src": "/smart-pair-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",

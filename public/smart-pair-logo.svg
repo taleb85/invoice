@@ -1,0 +1,25 @@
+<svg viewBox="0 0 290 72" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon square (72x72) -->
+  <rect width="72" height="72" rx="16" fill="#0f2a4a"/>
+  <!-- Up arrow (cyan) -->
+  <path d="M24 50 L30 18 L36 50 L33 50 L33 56 L27 56 L27 50 Z" fill="#22d3ee"/>
+  <!-- Down arrow (blue-violet), offset right and overlapping -->
+  <path d="M36 22 L42 54 L48 22 L45 22 L45 16 L39 16 L39 22 Z" fill="#5b7cf9"/>
+
+  <!-- Wordmark: "Smart" (weight 500, cyan) + "Pair" (weight 300, near-white) -->
+  <text x="88" y="42" font-family="Outfit, system-ui, sans-serif" font-size="30" letter-spacing="-0.5">
+    <tspan font-weight="500" fill="#22d3ee">Smart</tspan><tspan font-weight="300" fill="#ecfeff"> Pair</tspan>
+  </text>
+
+  <!-- Tagline: "INVOICE MANAGEMENT" -->
+  <text
+    x="89"
+    y="60"
+    font-family="Outfit, system-ui, sans-serif"
+    font-weight="400"
+    font-size="8"
+    fill="#22d3ee"
+    opacity="0.4"
+    letter-spacing="2.5"
+  >INVOICE MANAGEMENT</text>
+</svg>
