@@ -60,7 +60,11 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
     if (sedeId) params.set('sede_id', sedeId)
     if (fiscalYear) params.set('fy', String(fiscalYear))
     fetch(`/api/analytics/overview?${params}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(t.appStrings.analyticsErrorLoading))))
+      .then(async (r) => {
+        if (r.ok) return r.json() as Promise<AnalyticsOverview>
+        const body = await r.text().catch(() => '')
+        return Promise.reject(new Error(`HTTP ${r.status}: ${body || t.appStrings.analyticsErrorLoading}`))
+      })
       .then((d: AnalyticsOverview) => setData(d))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))

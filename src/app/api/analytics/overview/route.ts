@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 
+  try {
   const { searchParams } = new URL(req.url)
   const sedeId = searchParams.get('sede_id') || null
   const monthsCount = Math.min(24, Math.max(1, parseInt(searchParams.get('months') ?? '6', 10)))
@@ -119,7 +120,17 @@ export async function GET(req: NextRequest) {
       })(),
     ])
 
-  type FatturaRow = {
+    // Log Supabase errors (non-fatal — fall back to empty data)
+    const errors = [
+      fattureRes.error && `fatture: ${fattureRes.error.message}`,
+      bolleRes.error && `bolle: ${bolleRes.error.message}`,
+      anomalieTotaleRes.error && `anomalie_tot: ${anomalieTotaleRes.error.message}`,
+      anomalieRisolteRes.error && `anomalie_ris: ${anomalieRisolteRes.error.message}`,
+      documentiRes.error && `documenti: ${documentiRes.error.message}`,
+    ].filter(Boolean)
+    if (errors.length) console.error('[analytics/overview] Supabase errors:', errors.join(' | '))
+
+
     id: string
     data: string
     importo: number | null
@@ -288,5 +299,12 @@ export async function GET(req: NextRequest) {
     andamentoBolle,
   }
 
-  return NextResponse.json(result)
+    return NextResponse.json(result)
+  } catch (err) {
+    console.error('[analytics/overview] Unexpected error:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Internal error' },
+      { status: 500 },
+    )
+  }
 }
