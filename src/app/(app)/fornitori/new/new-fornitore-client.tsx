@@ -157,6 +157,9 @@ export default function NewFornitoreForm() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder={t.fornitori.emailPlaceholder}
             />
+            {!form.email && (
+              <p className="mt-1.5 text-[11px] text-amber-400/90">{t.appStrings.noEmailSyncHint}</p>
+            )}
           </div>
           <div>
             <label className={labelCls}>{t.fornitori.pivaLabel}</label>
