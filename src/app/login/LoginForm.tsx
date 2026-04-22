@@ -618,7 +618,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                   void lookupSede(token, { silentNotFound: false })
                 }}
                 className={`${inputCls} text-left sm:text-center`}
-                autoFocus
+                ref={el => {
+                  /* autofocus solo su dispositivi non-touch per non aprire la tastiera su mobile */
+                  if (el && !('ontouchstart' in window)) el.focus()
+                }}
                 disabled={loading}
               />
               {/* Badge sede */}
