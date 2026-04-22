@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
+import { useT } from '@/lib/use-t'
 import type { PendingApprovalFattura } from '@/app/api/fatture/pending-approval/route'
 
 function fmt(n: number | null) {
@@ -25,6 +26,7 @@ function fmtDate(d: string | null) {
 type RejectState = { id: string; reason: string }
 
 export function ApprovalQueue() {
+  const t = useT()
   const [rows, setRows] = useState<PendingApprovalFattura[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,8 +98,8 @@ export function ApprovalQueue() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="font-semibold text-app-fg">Nessuna fattura in attesa</p>
-        <p className="text-sm text-app-fg-muted">Tutte le fatture sopra soglia sono state revisionate.</p>
+        <p className="font-semibold text-app-fg">{t.appStrings.approvazioni_noPending}</p>
+        <p className="text-sm text-app-fg-muted">{t.appStrings.approvazioni_allReviewed}</p>
       </div>
     )
   }
@@ -127,7 +129,7 @@ export function ApprovalQueue() {
                 {f.numero_fattura && <span>N° {f.numero_fattura}</span>}
                 {f.approval_threshold != null && (
                   <span className="text-amber-400/70">
-                    soglia {fmt(f.approval_threshold)}
+                    {t.appStrings.approvazioni_threshold} {fmt(f.approval_threshold)}
                   </span>
                 )}
               </div>
@@ -142,7 +144,7 @@ export function ApprovalQueue() {
                 href={`/fatture/${f.id}`}
                 className="text-[10px] text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
               >
-                Vedi fattura →
+                {t.appStrings.approvazioni_viewInvoice}
               </Link>
             </div>
           </div>
@@ -151,13 +153,13 @@ export function ApprovalQueue() {
           {rejectState?.id === f.id && (
             <div className="mt-4 space-y-2">
               <label className="text-xs font-semibold text-app-fg-muted">
-                Motivo rifiuto (opzionale)
+                {t.appStrings.approvazioni_rejectReason}
               </label>
               <input
                 type="text"
                 value={rejectState.reason}
                 onChange={(e) => setRejectState({ id: f.id, reason: e.target.value })}
-                placeholder="Es: importo non corrisponde alla bolla..."
+                placeholder={t.appStrings.approvazioni_rejectPlaceholder}
                 className="w-full rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-rose-400/50 focus:outline-none focus:ring-2 focus:ring-rose-400/20"
                 autoFocus
               />
@@ -181,14 +183,14 @@ export function ApprovalQueue() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   )}
-                  Conferma rifiuto
+                  {t.appStrings.approvazioni_confirmReject}
                 </button>
                 <button
                   type="button"
                   onClick={() => setRejectState(null)}
                   className="rounded-xl border border-app-line-25 px-3 py-2 text-sm text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
                 >
-                  Annulla
+                  {t.common.cancel}
                 </button>
               </>
             ) : (
@@ -206,7 +208,7 @@ export function ApprovalQueue() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
-                  Approva
+                  {t.appStrings.approvazioni_approve}
                 </button>
                 <button
                   type="button"
@@ -217,7 +219,7 @@ export function ApprovalQueue() {
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                  Rifiuta
+                  {t.appStrings.approvazioni_reject}
                 </button>
               </>
             )}

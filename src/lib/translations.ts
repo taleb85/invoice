@@ -1387,6 +1387,50 @@ type Translations = {
     attivitaAllOperators: string
     /** Activity log — clear filters button */
     attivitaRemoveFilters: string
+    // Analytics
+    analyticsErrorLoading: string
+    analyticsNoData: string
+    analyticsKpiTotalInvoiced: string
+    analyticsKpiNFatture: string
+    analyticsKpiReconciliation: string
+    analyticsKpiCompleted: string
+    analyticsKpiAvgTime: string
+    analyticsKpiDays: string
+    analyticsKpiDaysFrom: string
+    analyticsKpiSlow: string
+    analyticsKpiOk: string
+    analyticsKpiPriceAnomalies: string
+    analyticsKpiResolvedOf: string
+    analyticsKpiToCheck: string
+    analyticsKpiAllOk: string
+    analyticsChartMonthlySpend: string
+    analyticsChartAmount: string
+    analyticsChartInvoices: string
+    analyticsChartTopSuppliers: string
+    analyticsChartNoData: string
+    analyticsChartBolleVsFatture: string
+    analyticsChartDeliveryNotes: string
+    analyticsSummaryPendingDocs: string
+    analyticsSummaryPendingNotes: string
+    analyticsSummaryArchivedInvoices: string
+    // Approvals
+    approvazioni_noPending: string
+    approvazioni_allReviewed: string
+    approvazioni_viewInvoice: string
+    approvazioni_rejectReason: string
+    approvazioni_rejectPlaceholder: string
+    approvazioni_confirmReject: string
+    approvazioni_approve: string
+    approvazioni_reject: string
+    approvazioni_threshold: string
+    // Activity
+    attivitaFilterAll: string
+    attivitaFilterBolle: string
+    attivitaFilterFatture: string
+    attivitaFilterDocumenti: string
+    attivitaFilterOperatori: string
+    attivitaError: string
+    attivitaNoRecent: string
   }
 }
 
@@ -2504,6 +2548,47 @@ const it: Translations = {
     attivitaExportCsv: 'Esporta CSV',
     attivitaAllOperators: 'Tutti gli operatori',
     attivitaRemoveFilters: 'Rimuovi filtri',
+    analyticsErrorLoading: 'Errore caricamento dati',
+    analyticsNoData: 'Nessun dato disponibile.',
+    analyticsKpiTotalInvoiced: 'Totale fatturato',
+    analyticsKpiNFatture: '{n} fatture',
+    analyticsKpiReconciliation: 'Riconciliazione',
+    analyticsKpiCompleted: '{n} completate',
+    analyticsKpiAvgTime: 'Tempo medio riconciliazione',
+    analyticsKpiDays: '{n} gg',
+    analyticsKpiDaysFrom: 'giorni dalla bolla alla fattura',
+    analyticsKpiSlow: 'lento',
+    analyticsKpiOk: 'ok',
+    analyticsKpiPriceAnomalies: 'Anomalie prezzi',
+    analyticsKpiResolvedOf: '{n} risolte su {total}',
+    analyticsKpiToCheck: 'da verificare',
+    analyticsKpiAllOk: 'tutto ok',
+    analyticsChartMonthlySpend: 'Spesa mensile',
+    analyticsChartAmount: 'Importo',
+    analyticsChartInvoices: 'Fatture',
+    analyticsChartTopSuppliers: 'Top fornitori',
+    analyticsChartNoData: 'Nessun dato',
+    analyticsChartBolleVsFatture: 'Bolle vs Fatture',
+    analyticsChartDeliveryNotes: 'Bolle',
+    analyticsSummaryPendingDocs: 'Documenti pendenti',
+    analyticsSummaryPendingNotes: 'Bolle in attesa',
+    analyticsSummaryArchivedInvoices: 'Fatture archiviate',
+    approvazioni_noPending: 'Nessuna fattura in attesa',
+    approvazioni_allReviewed: 'Tutte le fatture sopra soglia sono state revisionate.',
+    approvazioni_viewInvoice: 'Vedi fattura →',
+    approvazioni_rejectReason: 'Motivo rifiuto (opzionale)',
+    approvazioni_rejectPlaceholder: 'Es: importo non corrisponde alla bolla...',
+    approvazioni_confirmReject: 'Conferma rifiuto',
+    approvazioni_approve: 'Approva',
+    approvazioni_reject: 'Rifiuta',
+    approvazioni_threshold: 'soglia',
+    attivitaFilterAll: 'Tutti',
+    attivitaFilterBolle: 'Bolle',
+    attivitaFilterFatture: 'Fatture',
+    attivitaFilterDocumenti: 'Documenti',
+    attivitaFilterOperatori: 'Operatori',
+    attivitaError: 'Impossibile caricare le attività.',
+    attivitaNoRecent: 'Nessuna attività recente',
   },
 }
 
@@ -2993,6 +3078,47 @@ const en: Translations = {
     attivitaExportCsv: 'Export CSV',
     attivitaAllOperators: 'All operators',
     attivitaRemoveFilters: 'Remove filters',
+    analyticsErrorLoading: 'Error loading data',
+    analyticsNoData: 'No data available.',
+    analyticsKpiTotalInvoiced: 'Total invoiced',
+    analyticsKpiNFatture: '{n} invoices',
+    analyticsKpiReconciliation: 'Reconciliation',
+    analyticsKpiCompleted: '{n} completed',
+    analyticsKpiAvgTime: 'Avg. reconciliation time',
+    analyticsKpiDays: '{n} days',
+    analyticsKpiDaysFrom: 'days from delivery note to invoice',
+    analyticsKpiSlow: 'slow',
+    analyticsKpiOk: 'ok',
+    analyticsKpiPriceAnomalies: 'Price anomalies',
+    analyticsKpiResolvedOf: '{n} resolved of {total}',
+    analyticsKpiToCheck: 'to check',
+    analyticsKpiAllOk: 'all ok',
+    analyticsChartMonthlySpend: 'Monthly spend',
+    analyticsChartAmount: 'Amount',
+    analyticsChartInvoices: 'Invoices',
+    analyticsChartTopSuppliers: 'Top suppliers',
+    analyticsChartNoData: 'No data',
+    analyticsChartBolleVsFatture: 'Delivery Notes vs Invoices',
+    analyticsChartDeliveryNotes: 'Delivery Notes',
+    analyticsSummaryPendingDocs: 'Pending documents',
+    analyticsSummaryPendingNotes: 'Pending delivery notes',
+    analyticsSummaryArchivedInvoices: 'Archived invoices',
+    approvazioni_noPending: 'No invoices pending',
+    approvazioni_allReviewed: 'All invoices above threshold have been reviewed.',
+    approvazioni_viewInvoice: 'View invoice →',
+    approvazioni_rejectReason: 'Rejection reason (optional)',
+    approvazioni_rejectPlaceholder: 'E.g.: amount does not match delivery note...',
+    approvazioni_confirmReject: 'Confirm rejection',
+    approvazioni_approve: 'Approve',
+    approvazioni_reject: 'Reject',
+    approvazioni_threshold: 'threshold',
+    attivitaFilterAll: 'All',
+    attivitaFilterBolle: 'Delivery Notes',
+    attivitaFilterFatture: 'Invoices',
+    attivitaFilterDocumenti: 'Documents',
+    attivitaFilterOperatori: 'Operators',
+    attivitaError: 'Unable to load activity.',
+    attivitaNoRecent: 'No recent activity',
   },
 }
 
@@ -3430,6 +3556,47 @@ const es: Translations = {
     attivitaExportCsv: 'Exportar CSV',
     attivitaAllOperators: 'Todos los operadores',
     attivitaRemoveFilters: 'Quitar filtros',
+    analyticsErrorLoading: 'Error al cargar datos',
+    analyticsNoData: 'Sin datos disponibles.',
+    analyticsKpiTotalInvoiced: 'Total facturado',
+    analyticsKpiNFatture: '{n} facturas',
+    analyticsKpiReconciliation: 'Conciliación',
+    analyticsKpiCompleted: '{n} completadas',
+    analyticsKpiAvgTime: 'Tiempo medio de conciliación',
+    analyticsKpiDays: '{n} días',
+    analyticsKpiDaysFrom: 'días desde el albarán hasta la factura',
+    analyticsKpiSlow: 'lento',
+    analyticsKpiOk: 'ok',
+    analyticsKpiPriceAnomalies: 'Anomalías de precios',
+    analyticsKpiResolvedOf: '{n} resueltas de {total}',
+    analyticsKpiToCheck: 'a verificar',
+    analyticsKpiAllOk: 'todo ok',
+    analyticsChartMonthlySpend: 'Gasto mensual',
+    analyticsChartAmount: 'Importe',
+    analyticsChartInvoices: 'Facturas',
+    analyticsChartTopSuppliers: 'Top proveedores',
+    analyticsChartNoData: 'Sin datos',
+    analyticsChartBolleVsFatture: 'Albaranes vs Facturas',
+    analyticsChartDeliveryNotes: 'Albaranes',
+    analyticsSummaryPendingDocs: 'Documentos pendientes',
+    analyticsSummaryPendingNotes: 'Albaranes en espera',
+    analyticsSummaryArchivedInvoices: 'Facturas archivadas',
+    approvazioni_noPending: 'Sin facturas pendientes',
+    approvazioni_allReviewed: 'Todas las facturas por encima del umbral han sido revisadas.',
+    approvazioni_viewInvoice: 'Ver factura →',
+    approvazioni_rejectReason: 'Motivo de rechazo (opcional)',
+    approvazioni_rejectPlaceholder: 'Ej: importe no coincide con el albarán...',
+    approvazioni_confirmReject: 'Confirmar rechazo',
+    approvazioni_approve: 'Aprobar',
+    approvazioni_reject: 'Rechazar',
+    approvazioni_threshold: 'umbral',
+    attivitaFilterAll: 'Todos',
+    attivitaFilterBolle: 'Albaranes',
+    attivitaFilterFatture: 'Facturas',
+    attivitaFilterDocumenti: 'Documentos',
+    attivitaFilterOperatori: 'Operadores',
+    attivitaError: 'No se pueden cargar las actividades.',
+    attivitaNoRecent: 'Sin actividad reciente',
   },
 }
 
@@ -3867,6 +4034,47 @@ const fr: Translations = {
     attivitaExportCsv: 'Exporter CSV',
     attivitaAllOperators: 'Tous les opérateurs',
     attivitaRemoveFilters: 'Supprimer les filtres',
+    analyticsErrorLoading: 'Erreur de chargement des données',
+    analyticsNoData: 'Aucune donnée disponible.',
+    analyticsKpiTotalInvoiced: 'Total facturé',
+    analyticsKpiNFatture: '{n} factures',
+    analyticsKpiReconciliation: 'Rapprochement',
+    analyticsKpiCompleted: '{n} complétées',
+    analyticsKpiAvgTime: 'Temps moyen de rapprochement',
+    analyticsKpiDays: '{n} j',
+    analyticsKpiDaysFrom: 'jours du bon de livraison à la facture',
+    analyticsKpiSlow: 'lent',
+    analyticsKpiOk: 'ok',
+    analyticsKpiPriceAnomalies: 'Anomalies de prix',
+    analyticsKpiResolvedOf: '{n} résolues sur {total}',
+    analyticsKpiToCheck: 'à vérifier',
+    analyticsKpiAllOk: 'tout ok',
+    analyticsChartMonthlySpend: 'Dépenses mensuelles',
+    analyticsChartAmount: 'Montant',
+    analyticsChartInvoices: 'Factures',
+    analyticsChartTopSuppliers: 'Top fournisseurs',
+    analyticsChartNoData: 'Aucune donnée',
+    analyticsChartBolleVsFatture: 'BL vs Factures',
+    analyticsChartDeliveryNotes: 'Bons de livraison',
+    analyticsSummaryPendingDocs: 'Documents en attente',
+    analyticsSummaryPendingNotes: 'BL en attente',
+    analyticsSummaryArchivedInvoices: 'Factures archivées',
+    approvazioni_noPending: 'Aucune facture en attente',
+    approvazioni_allReviewed: 'Toutes les factures au-dessus du seuil ont été examinées.',
+    approvazioni_viewInvoice: 'Voir la facture →',
+    approvazioni_rejectReason: 'Motif de rejet (optionnel)',
+    approvazioni_rejectPlaceholder: 'Ex : montant ne correspond pas au BL...',
+    approvazioni_confirmReject: 'Confirmer le rejet',
+    approvazioni_approve: 'Approuver',
+    approvazioni_reject: 'Rejeter',
+    approvazioni_threshold: 'seuil',
+    attivitaFilterAll: 'Tous',
+    attivitaFilterBolle: 'Bons de livraison',
+    attivitaFilterFatture: 'Factures',
+    attivitaFilterDocumenti: 'Documents',
+    attivitaFilterOperatori: 'Opérateurs',
+    attivitaError: 'Impossible de charger les activités.',
+    attivitaNoRecent: 'Aucune activité récente',
   },
 }
 
@@ -4303,6 +4511,47 @@ const de: Translations = {
     attivitaExportCsv: 'CSV exportieren',
     attivitaAllOperators: 'Alle Operatoren',
     attivitaRemoveFilters: 'Filter entfernen',
+    analyticsErrorLoading: 'Fehler beim Laden der Daten',
+    analyticsNoData: 'Keine Daten verfügbar.',
+    analyticsKpiTotalInvoiced: 'Gesamt fakturiert',
+    analyticsKpiNFatture: '{n} Rechnungen',
+    analyticsKpiReconciliation: 'Abstimmung',
+    analyticsKpiCompleted: '{n} abgeschlossen',
+    analyticsKpiAvgTime: 'Durchschn. Abstimmungszeit',
+    analyticsKpiDays: '{n} Tage',
+    analyticsKpiDaysFrom: 'Tage vom Lieferschein zur Rechnung',
+    analyticsKpiSlow: 'langsam',
+    analyticsKpiOk: 'ok',
+    analyticsKpiPriceAnomalies: 'Preisanomalien',
+    analyticsKpiResolvedOf: '{n} gelöst von {total}',
+    analyticsKpiToCheck: 'zu prüfen',
+    analyticsKpiAllOk: 'alles ok',
+    analyticsChartMonthlySpend: 'Monatliche Ausgaben',
+    analyticsChartAmount: 'Betrag',
+    analyticsChartInvoices: 'Rechnungen',
+    analyticsChartTopSuppliers: 'Top Lieferanten',
+    analyticsChartNoData: 'Keine Daten',
+    analyticsChartBolleVsFatture: 'Lieferscheine vs Rechnungen',
+    analyticsChartDeliveryNotes: 'Lieferscheine',
+    analyticsSummaryPendingDocs: 'Ausstehende Dokumente',
+    analyticsSummaryPendingNotes: 'Ausstehende Lieferscheine',
+    analyticsSummaryArchivedInvoices: 'Archivierte Rechnungen',
+    approvazioni_noPending: 'Keine Rechnungen ausstehend',
+    approvazioni_allReviewed: 'Alle Rechnungen über dem Schwellenwert wurden überprüft.',
+    approvazioni_viewInvoice: 'Rechnung ansehen →',
+    approvazioni_rejectReason: 'Ablehnungsgrund (optional)',
+    approvazioni_rejectPlaceholder: 'Z.B.: Betrag stimmt nicht mit Lieferschein überein...',
+    approvazioni_confirmReject: 'Ablehnung bestätigen',
+    approvazioni_approve: 'Genehmigen',
+    approvazioni_reject: 'Ablehnen',
+    approvazioni_threshold: 'Schwellenwert',
+    attivitaFilterAll: 'Alle',
+    attivitaFilterBolle: 'Lieferscheine',
+    attivitaFilterFatture: 'Rechnungen',
+    attivitaFilterDocumenti: 'Dokumente',
+    attivitaFilterOperatori: 'Operatoren',
+    attivitaError: 'Aktivitäten konnten nicht geladen werden.',
+    attivitaNoRecent: 'Keine neueren Aktivitäten',
   },
 }
 

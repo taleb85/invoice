@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
+import { useT } from '@/lib/use-t'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
 import { activityColor } from '@/lib/activity-logger'
 import type { ActivityAction } from '@/lib/activity-logger'
@@ -37,13 +38,13 @@ const COLOR_BADGE: Record<ReturnType<typeof activityColor>, string> = {
 }
 
 type FilterChip = 'all' | 'bolle' | 'fatture' | 'documenti' | 'operatori'
-const FILTER_CHIPS: { id: FilterChip; label: string; actions: string[] }[] = [
-  { id: 'all', label: 'Tutti', actions: [] },
-  { id: 'bolle', label: 'Bolle', actions: ['bolla.created', 'bolla.deleted'] },
-  { id: 'fatture', label: 'Fatture', actions: ['fattura.created', 'fattura.deleted', 'fattura.associated', 'fattura.approved', 'fattura.rejected'] },
-  { id: 'documenti', label: 'Documenti', actions: ['documento.processed', 'documento.discarded', 'email.synced'] },
-  { id: 'operatori', label: 'Operatori', actions: ['operatore.created', 'operatore.pin_changed', 'fornitore.created', 'fornitore.updated'] },
-]
+const FILTER_CHIP_ACTIONS: Record<FilterChip, string[]> = {
+  all: [],
+  bolle: ['bolla.created', 'bolla.deleted'],
+  fatture: ['fattura.created', 'fattura.deleted', 'fattura.associated', 'fattura.approved', 'fattura.rejected'],
+  documenti: ['documento.processed', 'documento.discarded', 'email.synced'],
+  operatori: ['operatore.created', 'operatore.pin_changed', 'fornitore.created', 'fornitore.updated'],
+}
 
 type Props = {
   sedeId?: string | null
@@ -63,6 +64,7 @@ type FeedResponse = {
 const fetcher = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error('error'))))
 
 export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilters = false, compact = false }: Props) {
+  const t = useT()
   const [activeFilter, setActiveFilter] = useState<FilterChip>('all')
   const [page, setPage] = useState(1)
   const [allRows, setAllRows] = useState<ActivityLogRow[]>([])
@@ -74,7 +76,7 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
       if (sedeId) params.set('sede_id', sedeId)
       if (userId) params.set('user_id', userId)
       if (fornitoreId) params.set('fornitore_id', fornitoreId)
-      const chipActions = FILTER_CHIPS.find((c) => c.id === activeFilter)?.actions ?? []
+      const chipActions = FILTER_CHIP_ACTIONS[activeFilter] ?? []
       if (chipActions.length === 1) params.set('action', chipActions[0]!)
       return `/api/activity-log?${params}`
     },
@@ -119,8 +121,16 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
   }, [page, buildUrl, allRows.length])
 
   // For compact mode: apply client-side action filter
+  const filterLabels: Record<FilterChip, string> = {
+    all: t.appStrings.attivitaFilterAll,
+    bolle: t.appStrings.attivitaFilterBolle,
+    fatture: t.appStrings.attivitaFilterFatture,
+    documenti: t.appStrings.attivitaFilterDocumenti,
+    operatori: t.appStrings.attivitaFilterOperatori,
+  }
+
   const displayedRows = (() => {
-    const chipActions = FILTER_CHIPS.find((c) => c.id === activeFilter)?.actions ?? []
+    const chipActions = FILTER_CHIP_ACTIONS[activeFilter] ?? []
     if (chipActions.length === 0) return allRows
     return allRows.filter((r) => chipActions.includes(r.action))
   })()
@@ -130,18 +140,18 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
       {/* Filter chips */}
       {showFilters && (
         <div className="flex flex-wrap gap-1.5">
-          {FILTER_CHIPS.map((chip) => (
+          {(Object.keys(FILTER_CHIP_ACTIONS) as FilterChip[]).map((id) => (
             <button
-              key={chip.id}
+              key={id}
               type="button"
-              onClick={() => setActiveFilter(chip.id)}
+              onClick={() => setActiveFilter(id)}
               className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                activeFilter === chip.id
+                activeFilter === id
                   ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
                   : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
               }`}
             >
-              {chip.label}
+              {filterLabels[id]}
             </button>
           ))}
         </div>
@@ -164,7 +174,7 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
 
       {/* Error */}
       {error && (
-        <p className="text-xs text-rose-400">Impossibile caricare le attività.</p>
+        <p className="text-xs text-rose-400">{t.appStrings.attivitaError}</p>
       )}
 
       {/* Empty state */}
@@ -173,7 +183,7 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
           <svg className="h-8 w-8 text-app-fg-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-sm font-medium text-app-fg-muted">Nessuna attività recente</p>
+          <p className="text-sm font-medium text-app-fg-muted">{t.appStrings.attivitaNoRecent}</p>
         </div>
       )}
 

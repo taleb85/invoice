@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useT } from '@/lib/use-t'
 import {
   AreaChart,
   Area,
@@ -47,6 +48,7 @@ const chartCardClass =
   'rounded-2xl border border-app-line-22 bg-[#0f172b]/80 px-5 pt-5 pb-4'
 
 export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
+  const t = useT()
   const [data, setData] = useState<AnalyticsOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +60,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
     if (sedeId) params.set('sede_id', sedeId)
     if (fiscalYear) params.set('fy', String(fiscalYear))
     fetch(`/api/analytics/overview?${params}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Errore caricamento dati'))))
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(t.appStrings.analyticsErrorLoading))))
       .then((d: AnalyticsOverview) => setData(d))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
@@ -92,7 +94,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
   if (error || !data) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-app-fg-muted">{error ?? 'Nessun dato disponibile.'}</p>
+        <p className="text-app-fg-muted">{error ?? t.appStrings.analyticsNoData}</p>
       </div>
     )
   }
@@ -113,15 +115,15 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
       {/* ── KPI Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard
-          title="Totale fatturato"
+          title={t.appStrings.analyticsKpiTotalInvoiced}
           value={fmt(totaleImporto)}
-          subtitle={`${data.spesaMensile.reduce((s, m) => s + m.fatture, 0)} fatture`}
+          subtitle={t.appStrings.analyticsKpiNFatture.replace('{n}', String(data.spesaMensile.reduce((s, m) => s + m.fatture, 0)))}
           color="cyan"
         />
         <KpiCard
-          title="Riconciliazione"
+          title={t.appStrings.analyticsKpiReconciliation}
           value={`${data.riconciliazione.percentuale}%`}
-          subtitle={`${data.riconciliazione.completate} completate`}
+          subtitle={t.appStrings.analyticsKpiCompleted.replace('{n}', String(data.riconciliazione.completate))}
           trend={
             data.riconciliazione.percentuale >= 80
               ? 'up'
@@ -139,20 +141,20 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
           }
         />
         <KpiCard
-          title="Tempo medio riconciliazione"
-          value={`${data.tempoMedioRiconciliazione} gg`}
-          subtitle="giorni dalla bolla alla fattura"
+          title={t.appStrings.analyticsKpiAvgTime}
+          value={t.appStrings.analyticsKpiDays.replace('{n}', String(data.tempoMedioRiconciliazione))}
+          subtitle={t.appStrings.analyticsKpiDaysFrom}
           color={data.tempoMedioRiconciliazione > 14 ? 'amber' : 'cyan'}
           trend={data.tempoMedioRiconciliazione > 14 ? 'down' : 'up'}
-          trendValue={data.tempoMedioRiconciliazione > 14 ? 'lento' : 'ok'}
+          trendValue={data.tempoMedioRiconciliazione > 14 ? t.appStrings.analyticsKpiSlow : t.appStrings.analyticsKpiOk}
         />
         <KpiCard
-          title="Anomalie prezzi"
+          title={t.appStrings.analyticsKpiPriceAnomalies}
           value={String(anomalieNonRisolte)}
-          subtitle={`${data.anomaliePrezzi.risolte} risolte su ${data.anomaliePrezzi.totale}`}
+          subtitle={t.appStrings.analyticsKpiResolvedOf.replace('{n}', String(data.anomaliePrezzi.risolte)).replace('{total}', String(data.anomaliePrezzi.totale))}
           color={anomalieNonRisolte > 0 ? 'red' : 'green'}
           trend={anomalieNonRisolte > 0 ? 'down' : 'up'}
-          trendValue={anomalieNonRisolte > 0 ? 'da verificare' : 'tutto ok'}
+          trendValue={anomalieNonRisolte > 0 ? t.appStrings.analyticsKpiToCheck : t.appStrings.analyticsKpiAllOk}
         />
       </div>
 
@@ -160,7 +162,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
       {/* Chart 1: Spesa mensile — full width */}
       <div className={chartCardClass}>
-        <h3 className="mb-4 text-sm font-semibold text-app-fg">Spesa mensile</h3>
+        <h3 className="mb-4 text-sm font-semibold text-app-fg">{t.appStrings.analyticsChartMonthlySpend}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={data.spesaMensile} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <defs>
@@ -186,7 +188,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
             <Tooltip
               formatter={(value, name) => [
                 name === 'importo' ? fmt(Number(value ?? 0)) : value,
-                name === 'importo' ? 'Importo' : 'Fatture',
+                name === 'importo' ? t.appStrings.analyticsChartAmount : t.appStrings.analyticsChartInvoices,
               ]}
               contentStyle={tooltipStyle}
               cursor={{ stroke: CYAN, strokeWidth: 1, strokeOpacity: 0.3 }}
@@ -205,10 +207,10 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Chart 2: Top fornitori */}
         <div className={chartCardClass}>
-          <h3 className="mb-4 text-sm font-semibold text-app-fg">Top fornitori</h3>
+          <h3 className="mb-4 text-sm font-semibold text-app-fg">{t.appStrings.analyticsChartTopSuppliers}</h3>
           {data.topFornitori.length === 0 ? (
             <div className="flex h-[220px] items-center justify-center text-xs text-app-fg-muted">
-              Nessun dato
+              {t.appStrings.analyticsChartNoData}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
@@ -235,7 +237,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
                   tickFormatter={(v: string) => (v.length > 14 ? v.slice(0, 13) + '…' : v)}
                 />
                 <Tooltip
-                  formatter={(value) => [fmt(Number(value ?? 0)), 'Importo']}
+                  formatter={(value) => [fmt(Number(value ?? 0)), t.appStrings.analyticsChartAmount]}
                   contentStyle={tooltipStyle}
                   cursor={{ fill: 'rgba(129,140,248,0.08)' }}
                 />
@@ -247,7 +249,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
         {/* Chart 3: Bolle vs Fatture */}
         <div className={chartCardClass}>
-          <h3 className="mb-4 text-sm font-semibold text-app-fg">Bolle vs Fatture</h3>
+          <h3 className="mb-4 text-sm font-semibold text-app-fg">{t.appStrings.analyticsChartBolleVsFatture}</h3>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart
               data={data.andamentoBolle}
@@ -268,12 +270,12 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
                 allowDecimals={false}
               />
               <Tooltip
-                formatter={(value, name) => [value, name === 'bolle' ? 'Bolle' : 'Fatture']}
+                formatter={(value, name) => [value, name === 'bolle' ? t.appStrings.analyticsChartDeliveryNotes : t.appStrings.analyticsChartInvoices]}
                 contentStyle={tooltipStyle}
               />
               <Legend
                 wrapperStyle={{ fontSize: 11, color: AXIS_COLOR }}
-                formatter={(v) => (v === 'bolle' ? 'Bolle' : 'Fatture')}
+                formatter={(v) => (v === 'bolle' ? t.appStrings.analyticsChartDeliveryNotes : t.appStrings.analyticsChartInvoices)}
               />
               <Line
                 type="monotone"
@@ -299,15 +301,15 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
       {/* Summary row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <div className="rounded-xl border border-app-line-22 bg-[#0f172b]/60 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">Documenti pendenti</p>
+          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryPendingDocs}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.documentiPendenti}</p>
         </div>
         <div className="rounded-xl border border-app-line-22 bg-[#0f172b]/60 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">Bolle in attesa</p>
+          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryPendingNotes}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.riconciliazione.inAttesa}</p>
         </div>
         <div className="col-span-2 rounded-xl border border-app-line-22 bg-[#0f172b]/60 px-4 py-3 lg:col-span-1">
-          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">Fatture archiviate</p>
+          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryArchivedInvoices}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">
             {data.spesaMensile.reduce((s, m) => s + m.fatture, 0)}
           </p>
