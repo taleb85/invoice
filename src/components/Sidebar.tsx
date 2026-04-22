@@ -517,69 +517,48 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </div>
         </nav>
 
-        {/* ── Stesso canvas dell’aside: solo separatore + padding (contesto, lingua, utilità) ── */}
-        <div className="app-shell-rail-panel relative z-0 mt-auto flex shrink-0 flex-col gap-1.5 border-t border-app-line-22 -mx-2.5 px-2.5 py-2 text-app-fg lg:-mx-3 lg:px-3">
-          <div className="app-shell-rail-panel space-y-1">
-            {isMasterAdmin ? (
-              <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.4)]" />
-                <span className="text-[11px] font-semibold leading-snug text-app-fg-muted text-balance">{t.sedi.adminRole}</span>
-              </div>
-            ) : null}
+        {/* ── Footer compatto: riga contesto + riga icone ── */}
+        <div className="app-shell-rail-panel relative z-0 mt-auto flex shrink-0 flex-col gap-0.5 border-t border-app-line-22 -mx-2.5 px-2.5 py-1.5 text-app-fg lg:-mx-3 lg:px-3">
 
-            {!isMasterAdmin ? (
-              <div className="app-shell-rail-panel space-y-1">
-                {isAdminSede ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.38)]" />
-                    <span className="text-[11px] font-semibold text-app-fg-muted">{t.sedi.adminSedeRole}</span>
-                  </div>
-                ) : null}
-                {sedeNome ? (
-                  <div className="flex items-center gap-1.5 rounded-lg border border-app-line-25 bg-transparent px-2 py-1 text-xs font-bold text-app-fg">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-app-cyan-400/90 shadow-[0_0_10px_rgba(34,211,238,0.32)]" />
-                    <span className="min-w-0 truncate">{sedeNome}</span>
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={openSwitchModal}
-                  title={operatorDockAria}
-                  aria-label={operatorDockAria}
-                  className="flex w-full touch-manipulation items-center gap-1.5 rounded-lg border border-app-line-25 bg-transparent px-2 py-1 text-left text-xs font-bold text-app-fg transition-colors hover:bg-app-line-10"
-                >
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-app-cyan-400/90 shadow-[0_0_10px_rgba(34,211,238,0.32)]" />
-                  <span className="min-w-0 flex-1 truncate">{operatorDockName}</span>
-                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-app-fg-muted">
-                    {t.ui.changeOperatorShort}
-                  </span>
-                </button>
-              </div>
-            ) : null}
-          </div>
+          {/* Riga 1 — contesto attivo */}
+          {isMasterAdmin ? (
+            <div className="flex items-center gap-2 px-1.5 py-0.5">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/55">{t.sedi.adminRole}</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={openSwitchModal}
+              title={operatorDockAria}
+              aria-label={operatorDockAria}
+              className="group flex w-full touch-manipulation items-center gap-2 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-app-line-10"
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+              {sedeNome && (
+                <span className="shrink-0 max-w-[60px] truncate text-[11px] font-medium text-white/45">{sedeNome}</span>
+              )}
+              {sedeNome && <span className="shrink-0 text-[11px] text-white/25">·</span>}
+              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/70">{operatorDockName}</span>
+              <svg className="ml-auto h-3 w-3 shrink-0 text-white/25 transition-colors group-hover:text-white/55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+            </button>
+          )}
 
-          <div className="app-shell-rail-panel space-y-0.5 border-t border-app-line-22 pt-1.5">
-          {/* Language switcher */}
-            <div className="relative z-10 bg-transparent">
+          {/* Riga 2 — icone azioni in fila */}
+          <div className="flex items-center gap-0.5 pt-0.5">
+            {/* Lingua */}
+            <div className="relative z-10">
               <button
                 onClick={() => setLangOpen(o => !o)}
-                className="group flex w-full items-center gap-2 rounded-lg border border-transparent bg-transparent px-2 py-1 text-[11px] text-app-fg-muted transition-colors hover:border-app-line-30 hover:bg-app-line-10"
+                title={LOCALES.find(l => l.code === locale)?.label ?? locale}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-base leading-none text-white/40 transition-colors hover:bg-app-line-10 hover:text-app-fg"
               >
-                <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}</span>
-                <span className="min-w-0 flex-1 truncate text-left font-medium text-app-fg group-hover:text-app-fg">
-                  {LOCALES.find(l => l.code === locale)?.label ?? locale}
-                </span>
-                <svg
-                  className={`ml-auto h-3 w-3 shrink-0 text-app-fg-muted transition-transform group-hover:text-app-fg-muted ${langOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                </svg>
+                {LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}
               </button>
               {langOpen && (
-                <div className="absolute bottom-full left-0 right-0 z-20 mb-1 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-xl border border-app-line-28 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15 backdrop-blur-xl [-webkit-backdrop-filter:blur(20px)] backdrop-saturate-150">
+                <div className="absolute bottom-full left-0 z-20 mb-1 w-40 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-xl border border-app-line-28 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15 backdrop-blur-xl [-webkit-backdrop-filter:blur(20px)] backdrop-saturate-150">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
@@ -607,45 +586,40 @@ export default function Sidebar({ onClose }: SidebarProps) {
               )}
             </div>
 
-              <Link
-                href="/impostazioni"
-                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold transition-colors ${
-                  pathname === '/impostazioni'
-                    ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[7px] text-app-fg'
-                    : 'border-l-2 border-transparent bg-transparent pl-[7px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
-                }`}
-              >
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="truncate">{t.nav.impostazioni}</span>
-              </Link>
+            {/* Settings */}
+            <Link
+              href="/impostazioni"
+              title={t.nav.impostazioni}
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname === '/impostazioni' ? 'text-app-cyan-400' : 'text-white/40 hover:text-app-fg'}`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </Link>
 
-              <Link
-                href="/guida"
-                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold transition-colors ${
-                  pathname === '/guida'
-                    ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[7px] text-app-fg'
-                    : 'border-l-2 border-transparent bg-transparent pl-[7px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
-                }`}
-              >
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="truncate">{t.nav.guida}</span>
-              </Link>
+            {/* Help */}
+            <Link
+              href="/guida"
+              title={t.nav.guida}
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname === '/guida' ? 'text-app-cyan-400' : 'text-white/40 hover:text-app-fg'}`}
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </Link>
 
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-line-25 hover:bg-app-line-10 hover:text-app-fg"
-              >
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span className="truncate">{t.nav.esci}</span>
-              </button>
+            {/* Sign out */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              title={t.nav.esci}
+              className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-white/40 transition-colors hover:bg-red-500/10 hover:text-red-400"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
           </div>
         </div>
     </div>
