@@ -4136,7 +4136,7 @@ function ListinoTab({
                                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
-                                <span>Aggiungi</span>
+                                <span>{t.common.add}</span>
                               </button>
                             )}
                           </div>
@@ -4194,14 +4194,14 @@ function ListinoTab({
         <>
         {/* Selettore periodo */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted mr-1">Periodo</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted mr-1">{t.fornitori.listinoPeriodLabel}</span>
           {(
             [
-              { key: 'all', label: 'Tutto' },
-              { key: 'cm',  label: 'Mese corrente' },
-              { key: 'pm',  label: 'Mese precedente' },
-              { key: '3m',  label: 'Ultimi 3 mesi' },
-              { key: 'fy',  label: 'Anno fiscale' },
+              { key: 'all', label: t.fornitori.listinoPeriodAll },
+              { key: 'cm',  label: t.fornitori.listinoPeriodCurrentMonth },
+              { key: 'pm',  label: t.fornitori.listinoPeriodPreviousMonth },
+              { key: '3m',  label: t.fornitori.listinoPeriodLast3Months },
+              { key: 'fy',  label: t.fornitori.listinoPeriodFiscalYear },
             ] as const
           ).map(({ key, label }) => (
             <button

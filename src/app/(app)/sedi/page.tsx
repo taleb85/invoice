@@ -248,7 +248,7 @@ export default function SediPage() {
   const handleSaveAccessPassword = async (sedeId: string) => {
     const digits = accessPwValue.replace(/\D/g, '').slice(0, 4)
     if (digits.length > 0 && digits.length !== 4) {
-      setError('Il PIN di accesso sede deve essere di 4 cifre oppure vuoto.')
+      setError(t.sedi.sedePinError4Digits)
       return
     }
     setSavingAccessPw(true)
@@ -720,7 +720,7 @@ export default function SediPage() {
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardAddOperatorsTitle}</p>
-                    <p className="text-xs text-app-fg-muted mb-4">Gli operatori accedono con nome + PIN. Puoi aggiungerne altri dopo.</p>
+                    <p className="text-xs text-app-fg-muted mb-4">{t.sedi.wizardOperatorHint}</p>
                   </div>
 
                   {/* Lista operatori aggiunti */}
@@ -790,7 +790,7 @@ export default function SediPage() {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
                       </svg>
-                      Aggiungi operatore
+                      {t.appStrings.addOperatorBtn}
                     </button>
                   </div>
 
@@ -864,7 +864,10 @@ export default function SediPage() {
                           <h3 className="font-semibold text-app-fg leading-tight">{sede.nome}</h3>
                           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                             <span className="text-xs text-app-fg-muted">
-                              {sede.users_count} operatori · {sede.fornitori_count} fornitori
+                              {t.sedi.sedeStats
+                                .replace('{operatori}', String(sede.users_count))
+                                .replace('{fornitori}', String(sede.fornitori_count))
+                              }
                             </span>
                             {sede.access_password && (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/35">PIN</span>
@@ -934,7 +937,7 @@ export default function SediPage() {
                   return (
                     <div className="border-t border-app-line-22 px-5 py-3">
                       <p className="text-[11px] font-semibold text-app-fg-muted uppercase tracking-wide mb-2">
-                        Operatori ({sedeProfiles.length})
+                        {t.sedi.operatoriHeader.replace('{n}', String(sedeProfiles.length))}
                       </p>
                       <div className="space-y-1">
                         {sedeProfiles.map((p) => (
@@ -1016,7 +1019,7 @@ export default function SediPage() {
                                         ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
                                         : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                                   }`}>
-                                    {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
+                                    {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
                                   </span>
                                   {p.role === 'operatore' && (
                                     <button
@@ -1027,7 +1030,7 @@ export default function SediPage() {
                                         setPinMsg(null)
                                       }}
                                       className="p-1 text-app-fg-muted hover:text-amber-400 hover:bg-amber-500/15 rounded transition-colors"
-                                      title="Cambia PIN"
+                                      title={t.sedi.changePinTitle}
                                     >
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -1069,7 +1072,7 @@ export default function SediPage() {
                             {changingPinFor === p.id && (
                               <div className="mt-1.5 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 space-y-2">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
-                                  Nuovo PIN per {p.full_name ?? '—'}
+                                  {t.sedi.newPinFor.replace('{name}', p.full_name ?? '—')}
                                 </p>
                                 <div className="flex items-center gap-2">
                                   <input
@@ -1127,7 +1130,7 @@ export default function SediPage() {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                       </svg>
-                      Aggiungi operatore
+                      {t.appStrings.addOperatorBtn}
                     </span>
                     <svg className={`w-3.5 h-3.5 transition-transform ${createUserOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
@@ -1172,7 +1175,7 @@ export default function SediPage() {
                       )}
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setCreateUserOpen(null)}
-                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">Annulla</button>
+                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
                         <button type="button" onClick={() => handleCreateUser(sede.id)}
                           disabled={creatingUser || !newUserName.trim() || newUserPassword.length < 4}
                           className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
@@ -1200,7 +1203,7 @@ export default function SediPage() {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                       </svg>
-                      Codice accesso sede
+                      {t.sedi.sedeAccessCodeLabel}
                     </span>
                     <svg className={`w-3.5 h-3.5 transition-transform ${accessPwOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
@@ -1229,10 +1232,10 @@ export default function SediPage() {
                           </svg>
                         </button>
                       </div>
-                      <p className="text-[11px] text-app-fg-muted">PIN numerico di 4 cifre. Lascia vuoto per disabilitare.</p>
+                      <p className="text-[11px] text-app-fg-muted">{t.sedi.sedePinHint}</p>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setAccessPwOpen(null)}
-                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">Annulla</button>
+                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
                         <button type="button" onClick={() => handleSaveAccessPassword(sede.id)} disabled={savingAccessPw}
                           className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
                           {savingAccessPw ? t.appStrings.savingShort : t.common.save}
@@ -1250,7 +1253,7 @@ export default function SediPage() {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
                       </svg>
-                      Valuta &amp; Fuso orario
+                      {t.sedi.valutaFuso}
                     </span>
                     <svg className={`w-3.5 h-3.5 transition-transform ${locOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
@@ -1469,7 +1472,7 @@ export default function SediPage() {
                             : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                       }`}
                     >
-                      {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? 'Ad. sede' : 'Op.'}
+                      {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
                     </span>
                     <button
                       type="button"
