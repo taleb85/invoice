@@ -406,7 +406,31 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           )}
 
-          {/* ── Operator: Fornitori section ── */}
+          {/* Main flat nav items — rendered before Fornitori so analytics/approvazioni/attività/log
+              are always reachable without scrolling past the supplier list.
+              Fornitori appears as a flat link for master admin only (others use the expandable below). */}
+          {navItems
+            .slice(1)
+            .filter((item) => isMasterAdmin || item.href !== '/fornitori')
+            .map((item) => {
+              const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+              const hasBadge = (item as { badge?: boolean }).badge
+              const itemCount = (item as { count?: number }).count
+              return (
+                <Link key={item.href} href={item.href} onClick={onClose} className={`${navLink(isActive)} relative`}>
+                  {item.icon}
+                  <span className="truncate flex-1">{item.label}</span>
+                  {hasBadge && <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500" />}
+                  {itemCount != null && itemCount > 0 && (
+                    <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white">
+                      {itemCount > 99 ? '99+' : itemCount}
+                    </span>
+                  )}
+                </Link>
+              )
+            })}
+
+          {/* ── Operator: Fornitori expandable section (below main nav items) ── */}
           {!isMasterAdmin && (
             <div className="bg-transparent">
               <button
@@ -478,28 +502,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
               )}
             </div>
           )}
-
-          {/* Resto voci piatte. Fornitori: solo per master — operatori/admin sede hanno già il blocco espandibile sopra (o l’icona se sidebar compatta). */}
-          {navItems
-            .slice(1)
-            .filter((item) => isMasterAdmin || item.href !== '/fornitori')
-            .map((item) => {
-              const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-              const hasBadge = (item as { badge?: boolean }).badge
-              const itemCount = (item as { count?: number }).count
-              return (
-                <Link key={item.href} href={item.href} onClick={onClose} className={`${navLink(isActive)} relative`}>
-                  {item.icon}
-                  <span className="truncate flex-1">{item.label}</span>
-                  {hasBadge && <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500" />}
-                  {itemCount != null && itemCount > 0 && (
-                    <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white">
-                      {itemCount > 99 ? '99+' : itemCount}
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
           </div>
         </nav>
 
