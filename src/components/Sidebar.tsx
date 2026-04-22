@@ -518,25 +518,25 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </nav>
 
         {/* ── Stesso canvas dell’aside: solo separatore + padding (contesto, lingua, utilità) ── */}
-        <div className="app-shell-rail-panel relative z-0 mt-auto flex shrink-0 flex-col gap-2 border-t border-app-line-22 -mx-2.5 px-2.5 py-2.5 text-app-fg lg:-mx-3 lg:px-3">
-          <div className="app-shell-rail-panel space-y-1.5">
+        <div className="app-shell-rail-panel relative z-0 mt-auto flex shrink-0 flex-col gap-1.5 border-t border-app-line-22 -mx-2.5 px-2.5 py-2 text-app-fg lg:-mx-3 lg:px-3">
+          <div className="app-shell-rail-panel space-y-1">
             {isMasterAdmin ? (
-              <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1.5">
+              <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1">
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.4)]" />
                 <span className="text-[11px] font-semibold leading-snug text-app-fg-muted text-balance">{t.sedi.adminRole}</span>
               </div>
             ) : null}
 
             {!isMasterAdmin ? (
-              <div className="app-shell-rail-panel space-y-1.5">
+              <div className="app-shell-rail-panel space-y-1">
                 {isAdminSede ? (
-                  <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1.5">
+                  <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.38)]" />
                     <span className="text-[11px] font-semibold text-app-fg-muted">{t.sedi.adminSedeRole}</span>
                   </div>
                 ) : null}
                 {sedeNome ? (
-                  <div className="flex items-center gap-1.5 rounded-lg border border-app-line-25 bg-transparent px-3 py-2 text-xs font-bold text-app-fg">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-app-line-25 bg-transparent px-2 py-1 text-xs font-bold text-app-fg">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-app-cyan-400/90 shadow-[0_0_10px_rgba(34,211,238,0.32)]" />
                     <span className="min-w-0 truncate">{sedeNome}</span>
                   </div>
@@ -546,7 +546,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   onClick={openSwitchModal}
                   title={operatorDockAria}
                   aria-label={operatorDockAria}
-                  className="flex w-full touch-manipulation items-center gap-1.5 rounded-lg border border-app-line-25 bg-transparent px-3 py-2 text-left text-xs font-bold text-app-fg transition-colors hover:bg-app-line-10"
+                  className="flex w-full touch-manipulation items-center gap-1.5 rounded-lg border border-app-line-25 bg-transparent px-2 py-1 text-left text-xs font-bold text-app-fg transition-colors hover:bg-app-line-10"
                 >
                   <span className="h-2 w-2 shrink-0 rounded-full bg-app-cyan-400/90 shadow-[0_0_10px_rgba(34,211,238,0.32)]" />
                   <span className="min-w-0 flex-1 truncate">{operatorDockName}</span>
@@ -558,12 +558,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
             ) : null}
           </div>
 
-          <div className="app-shell-rail-panel space-y-1 border-t border-app-line-22 pt-2">
+          <div className="app-shell-rail-panel space-y-0.5 border-t border-app-line-22 pt-1.5">
           {/* Language switcher */}
             <div className="relative z-10 bg-transparent">
               <button
                 onClick={() => setLangOpen(o => !o)}
-                className="group flex w-full items-center gap-2 rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-[11px] text-app-fg-muted transition-colors hover:border-app-line-30 hover:bg-app-line-10"
+                className="group flex w-full items-center gap-2 rounded-lg border border-transparent bg-transparent px-2 py-1 text-[11px] text-app-fg-muted transition-colors hover:border-app-line-30 hover:bg-app-line-10"
               >
                 <span className="text-sm leading-none">{LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}</span>
                 <span className="min-w-0 flex-1 truncate text-left font-medium text-app-fg group-hover:text-app-fg">
@@ -609,7 +609,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               <Link
                 href="/impostazioni"
-                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold transition-colors ${
                   pathname === '/impostazioni'
                     ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[7px] text-app-fg'
                     : 'border-l-2 border-transparent bg-transparent pl-[7px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
@@ -624,7 +624,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               <Link
                 href="/guida"
-                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold transition-colors ${
                   pathname === '/guida'
                     ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[7px] text-app-fg'
                     : 'border-l-2 border-transparent bg-transparent pl-[7px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
@@ -639,7 +639,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-line-25 hover:bg-app-line-10 hover:text-app-fg"
+                className="flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-line-25 hover:bg-app-line-10 hover:text-app-fg"
               >
                 <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
