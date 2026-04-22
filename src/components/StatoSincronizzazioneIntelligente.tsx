@@ -233,7 +233,7 @@ export default function StatoSincronizzazioneIntelligente({
         <div
           className="fixed left-1/2 z-[90] -translate-x-1/2 w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] md:hidden"
           style={{
-            bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px) + 90px + 0.625rem)',
+            bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px + 3.5rem + 1.25rem)',
             paddingLeft: 'env(safe-area-inset-left, 0px)',
             paddingRight: 'env(safe-area-inset-right, 0px)',
           }}
