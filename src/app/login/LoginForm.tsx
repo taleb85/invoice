@@ -59,6 +59,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   /* PIN: array di 4 cifre */
   const [pin, setPin]   = useState<string[]>(Array(PIN_LENGTH).fill(''))
   const pinRefs         = useRef<(HTMLInputElement | null)[]>([])
+  const nameInputRef    = useRef<HTMLInputElement | null>(null)
 
   /* ── admin ─────────────────────────────────────────── */
   const [email, setEmail]           = useState('')
@@ -356,7 +357,12 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   /* sposta focus al PIN appena il nome è risolto */
   useEffect(() => {
     if (nameReady && pin.every(d => d === '')) {
-      pinRefs.current[0]?.focus()
+      /* blur esplicito prima di focus su mobile evita che iOS ignori la chiamata */
+      nameInputRef.current?.blur()
+      const timer = window.setTimeout(() => {
+        pinRefs.current[0]?.focus()
+      }, 80)
+      return () => window.clearTimeout(timer)
     }
   }, [nameReady, pin])
 
@@ -636,6 +642,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 }}
                 className={`${inputCls} text-center`}
                 ref={el => {
+                  nameInputRef.current = el
                   /* autofocus solo su dispositivi non-touch per non aprire la tastiera su mobile */
                   if (el && !('ontouchstart' in window)) el.focus()
                 }}
