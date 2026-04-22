@@ -101,7 +101,7 @@ export default async function SedeProfilePage({
         <span className="font-medium text-app-fg">{sede.nome}</span>
       </div>
 
-      <AppPageHeaderStrip dense>
+      <AppPageHeaderStrip dense accent="teal">
         <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent">

@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
@@ -114,16 +113,9 @@ export default async function LogPage() {
       timeZone: tz,
     })
 
-  const statCard = (children: ReactNode) => (
-    <div className="app-card overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
-      <div className="p-4 md:p-5">{children}</div>
-    </div>
-  )
-
   return (
     <div className="app-shell-page-padding">
-      <AppPageHeaderStrip accent="cyan">
+      <AppPageHeaderStrip accent="teal">
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.subtitle}</p>
@@ -131,7 +123,7 @@ export default async function LogPage() {
       </AppPageHeaderStrip>
 
       <AppSummaryHighlightCard
-        accent="cyan"
+        accent="teal"
         label={t.log.totalLogs}
         primary={entries.length}
         secondary={
@@ -146,24 +138,36 @@ export default async function LogPage() {
       />
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 md:mb-8 md:gap-4">
-        {statCard(
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="text-2xl font-bold tabular-nums text-app-fg md:text-3xl">{entries.length}</p>
-            <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-app-fg-muted md:text-xs">{t.log.totalLogs}</p>
+        {/* Total Logs */}
+        <div className="relative overflow-hidden rounded-2xl border border-teal-500/20 bg-transparent">
+          <div className="h-0.5 shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-700" />
+          <div className="p-4 md:p-5">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className="text-2xl font-bold tabular-nums text-app-fg md:text-3xl">{entries.length}</p>
+              <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-app-fg-muted md:text-xs">{t.log.totalLogs}</p>
+            </div>
           </div>
-        )}
-        {statCard(
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="text-2xl font-bold tabular-nums text-emerald-300 md:text-3xl">{totaleSuccessi}</p>
-            <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-emerald-400/90 md:text-xs">{t.log.linkedInvoices}</p>
+        </div>
+        {/* Documents Received */}
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-transparent">
+          <div className="h-0.5 shrink-0 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-700" />
+          <div className="p-4 md:p-5">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className="text-2xl font-bold tabular-nums text-emerald-300 md:text-3xl">{totaleSuccessi}</p>
+              <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-emerald-400/90 md:text-xs">{t.log.linkedInvoices}</p>
+            </div>
           </div>
-        )}
-        {statCard(
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="text-2xl font-bold tabular-nums text-red-300 md:text-3xl">{totaleErrori}</p>
-            <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-400/90 md:text-xs">{t.log.withErrors}</p>
+        </div>
+        {/* With Errors */}
+        <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-transparent">
+          <div className="h-0.5 shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700" />
+          <div className="p-4 md:p-5">
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className="text-2xl font-bold tabular-nums text-red-300 md:text-3xl">{totaleErrori}</p>
+              <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-400/90 md:text-xs">{t.log.withErrors}</p>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {entries.length === 0 ? (
