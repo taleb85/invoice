@@ -237,7 +237,20 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     setDesktopNavHost(el)
   }, [])
   const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false)
-  useEffect(() => { setTabletSidebarOpen(false) }, [pathname])
+  // Close tablet sidebar on genuine navigation (not on router.refresh() which re-emits the same path).
+  const sidebarNavPathRef = useRef(pathname ?? '')
+  useEffect(() => {
+    const p = pathname ?? ''
+    if (p === sidebarNavPathRef.current) return
+    sidebarNavPathRef.current = p
+    setTabletSidebarOpen(false)
+  }, [pathname])
+  // Also close on browser back/forward (popstate fires for history navigation, not for router.refresh()).
+  useEffect(() => {
+    const onPop = () => setTabletSidebarOpen(false)
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   /** Dock compatto (solo icone) per operatore hub; dock più alto con riga operatore per admin e scheda fornitore. */
   const tallMobileDock =
     (loading && !me) ||
@@ -318,7 +331,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 <button
                   type="button"
                   onClick={() => setTabletSidebarOpen((o) => !o)}
-                  className="flex lg:hidden h-full min-h-[40px] w-10 shrink-0 items-center justify-center border-r border-app-line-25 text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                  className="flex lg:hidden h-full min-h-[40px] w-10 shrink-0 touch-manipulation items-center justify-center border-r border-app-line-25 text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
                   aria-label="Menu navigazione"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

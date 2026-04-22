@@ -44,12 +44,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
   /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
   const gestisciSediLinkLabel = navGestisciSediLabel(t, getAssociatedSedeNome(me, getCookie))
 
-  /** Close tablet overlay on navigation (skip first mount to avoid immediate close). */
-  const mountedRef = useRef(false)
+  // Close tablet overlay only when the user genuinely navigates to a different path.
+  // Using a ref instead of mounting flag so same-path router.refresh() calls are ignored.
+  const openPathRef = useRef(pathname)
   useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; return }
+    if (pathname === openPathRef.current) return
+    openPathRef.current = pathname
     onClose?.()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on pathname; onClose is parent setState(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: close on nav, not on onClose identity change
   }, [pathname])
 
   useEffect(() => {
