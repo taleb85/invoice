@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LOCALES } from '@/lib/translations'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
@@ -44,8 +44,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
   /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
   const gestisciSediLinkLabel = navGestisciSediLabel(t, getAssociatedSedeNome(me, getCookie))
 
-  /** Legacy: parent may reset state on navigation (mobile drawer removed). */
+  /** Close tablet overlay on navigation (skip first mount to avoid immediate close). */
+  const mountedRef = useRef(false)
   useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return }
     onClose?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on pathname; onClose is parent setState(false)
   }, [pathname])
