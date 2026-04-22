@@ -1319,6 +1319,7 @@ type Translations = {
     noContactRegistered: string
     noEmailSyncHint: string
     noEmailSyncWarning: string
+    filterNoEmail: string
     noAddressRegistered: string
     noFiscalRegistered: string
     clientSince: string
@@ -2637,6 +2638,7 @@ const it: Translations = {
     noContactRegistered: 'Nessun contatto registrato',
     noEmailSyncHint: 'Senza email lo scanner non potrà abbinare automaticamente i documenti di questo fornitore.',
     noEmailSyncWarning: 'Nessuna email associata — i documenti non saranno riconosciuti automaticamente.',
+    filterNoEmail: 'Senza email',
     noAddressRegistered: 'Nessun indirizzo registrato',
     noFiscalRegistered: 'Nessun dato fiscale registrato',
     clientSince: 'Cliente dal',
@@ -3301,6 +3303,7 @@ const en: Translations = {
     noContactRegistered: 'No contact on file',
     noEmailSyncHint: 'Without an email, the scanner cannot automatically match documents from this supplier.',
     noEmailSyncWarning: 'No email linked — documents from this supplier will not be recognised automatically.',
+    filterNoEmail: 'No email',
     noAddressRegistered: 'No address on file',
     noFiscalRegistered: 'No tax data on file',
     clientSince: 'Customer since',
@@ -3916,6 +3919,7 @@ const es: Translations = {
     noContactRegistered: 'Sin contacto registrado',
     noEmailSyncHint: 'Sin email, el escáner no podrá asociar automáticamente los documentos de este proveedor.',
     noEmailSyncWarning: 'Sin email asociado — los documentos no se reconocerán automáticamente.',
+    filterNoEmail: 'Sin email',
     noAddressRegistered: 'Sin dirección registrada',
     noFiscalRegistered: 'Sin datos fiscales',
     clientSince: 'Cliente desde',
@@ -4528,6 +4532,7 @@ const fr: Translations = {
     noContactRegistered: 'Aucun contact enregistré',
     noEmailSyncHint: 'Sans email, le scanner ne pourra pas associer automatiquement les documents de ce fournisseur.',
     noEmailSyncWarning: 'Aucun email associé — les documents ne seront pas reconnus automatiquement.',
+    filterNoEmail: 'Sans email',
     noAddressRegistered: 'Aucune adresse enregistrée',
     noFiscalRegistered: 'Aucune donnée fiscale',
     clientSince: 'Client depuis',
@@ -5139,6 +5144,7 @@ const de: Translations = {
     noContactRegistered: 'Kein Kontakt hinterlegt',
     noEmailSyncHint: 'Ohne E-Mail kann der Scanner die Dokumente dieses Lieferanten nicht automatisch zuordnen.',
     noEmailSyncWarning: 'Keine E-Mail hinterlegt — Dokumente werden nicht automatisch erkannt.',
+    filterNoEmail: 'Ohne E-Mail',
     noAddressRegistered: 'Keine Adresse hinterlegt',
     noFiscalRegistered: 'Keine Steuerdaten',
     clientSince: 'Kunde seit',

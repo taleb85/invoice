@@ -34,14 +34,22 @@ export default function FornitoriListSection({
 }) {
   const t = useT()
   const [query, setQuery] = useState('')
+  const [filterNoEmail, setFilterNoEmail] = useState(false)
+
+  const noEmailCount = useMemo(() => fornitori.filter((f) => !f.email).length, [fornitori])
 
   const filtered = useMemo(
-    () => fornitori.filter((f) => fornitoreMatchesQuery(f, query)),
-    [fornitori, query],
+    () =>
+      fornitori.filter(
+        (f) =>
+          fornitoreMatchesQuery(f, query) &&
+          (!filterNoEmail || !f.email),
+      ),
+    [fornitori, query, filterNoEmail],
   )
 
   const trimmed = query.trim()
-  const isSearchEmpty = filtered.length === 0 && trimmed.length > 0 && fornitori.length > 0
+  const isSearchEmpty = filtered.length === 0 && (trimmed.length > 0 || filterNoEmail) && fornitori.length > 0
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6">
@@ -73,6 +81,27 @@ export default function FornitoriListSection({
             />
           </div>
         </label>
+
+        {noEmailCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setFilterNoEmail((v) => !v)}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+              filterNoEmail
+                ? 'border-amber-400/60 bg-amber-500/20 text-amber-200'
+                : 'border-amber-500/35 bg-amber-950/30 text-amber-400/80 hover:bg-amber-500/15 hover:text-amber-300'
+            }`}
+            aria-pressed={filterNoEmail}
+          >
+            <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            {t.appStrings.filterNoEmail}
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${filterNoEmail ? 'bg-amber-400/25 text-amber-100' : 'bg-amber-900/50 text-amber-400'}`}>
+              {noEmailCount}
+            </span>
+          </button>
+        )}
 
         {/* Nuovo Fornitore: visible on mobile (header CTAs are md:hidden on sm and below) */}
         <Link
