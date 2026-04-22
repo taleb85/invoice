@@ -17,6 +17,7 @@ import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
 import { parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
 import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
@@ -347,26 +348,10 @@ export default async function DashboardPage({
             </div>
           ) : null}
           {dashboardAdminSedeUi && sedeId ? (
-            <div className="grid grid-cols-1 gap-2 md:hidden">
-              <Link
-                href={`/fornitori/new?prefill_sede_id=${encodeURIComponent(sedeId)}`}
-                className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-violet-500/35 bg-violet-600/20 px-3 py-2.5 text-sm font-bold text-violet-100"
-              >
-                {t.fornitori.new}
-              </Link>
-              <Link
-                href={`/sedi/${sedeId}#sede-operatori`}
-                className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-violet-500/30 bg-violet-950/25 px-3 py-2.5 text-sm font-semibold text-violet-200"
-              >
-                {t.sedi.addOperatorSedeTitle}
-              </Link>
-              <Link
-                href="/log"
-                className="flex min-h-[44px] items-center justify-center rounded-xl border border-app-line-28 px-3 py-2 text-xs font-medium text-app-fg-muted"
-              >
-                {t.nav.logEmail}
-              </Link>
-            </div>
+            <DashboardAdminMobileActions
+              sedeId={sedeId}
+              sedeOperatoriHref={`/sedi/${sedeId}#sede-operatori`}
+            />
           ) : null}
         </>
       ) : null}
