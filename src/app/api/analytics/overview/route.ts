@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
   const fyYear = fyParam ? parseInt(fyParam, 10) : null
 
   const supabase = await createClient()
+  const now = new Date()
 
   // Date range: FY-anchored when fy is set, rolling window otherwise
   let dateFromStr: string
@@ -65,7 +66,6 @@ export async function GET(req: NextRequest) {
     dateToStr = actualEnd.toISOString().split('T')[0]!
   } else {
     // Rolling: last N full months up to today
-    const now = new Date()
     const dateFrom = new Date(now.getFullYear(), now.getMonth() - monthsCount + 1, 1)
     dateFromStr = dateFrom.toISOString().split('T')[0]!
     dateToStr = now.toISOString().split('T')[0]!
@@ -149,9 +149,10 @@ export async function GET(req: NextRequest) {
     spesaMap.set(key, entry)
   }
 
-  // Fill months with no data
+  // Fill months with no data — use dateFromStr as anchor (works for both rolling and FY mode)
+  const fillBase = new Date(dateFromStr + 'T00:00:00Z')
   for (let i = 0; i < monthsCount; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - monthsCount + 1 + i, 1)
+    const d = new Date(fillBase.getUTCFullYear(), fillBase.getUTCMonth() + i, 1)
     const key = d.toISOString().slice(0, 7)
     if (!spesaMap.has(key)) {
       spesaMap.set(key, {
@@ -249,7 +250,7 @@ export async function GET(req: NextRequest) {
 
   const allMonthKeys = new Set([...bollePerMese.keys(), ...fatturePerMese.keys()])
   for (let i = 0; i < monthsCount; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - monthsCount + 1 + i, 1)
+    const d = new Date(fillBase.getUTCFullYear(), fillBase.getUTCMonth() + i, 1)
     allMonthKeys.add(d.toISOString().slice(0, 7))
   }
 
