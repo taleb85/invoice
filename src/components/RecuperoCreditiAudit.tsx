@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useT } from '@/lib/use-t'
+import { useLocale } from '@/lib/locale-context'
 
 interface OverchargeItem {
   fatturaId: string
@@ -36,25 +38,27 @@ export default function RecuperoCreditiAudit({
   currency?: string
 }) {
   const router = useRouter()
+  const t = useT()
+  const { locale } = useLocale()
   const [loading, setLoading] = useState(false)
   const [audit, setAudit] = useState<AuditSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<{ from: string; to: string }>({
-    from: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year ago
+    from: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     to: new Date().toISOString().split('T')[0],
   })
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('it-IT', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
     }).format(amount)
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('it-IT', {
+    return new Date(dateStr).toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -81,21 +85,21 @@ export default function RecuperoCreditiAudit({
       const data = await res.json()
       
       if (!res.ok) {
-        setError(data.error || `Errore ${res.status}`)
+        setError(data.error || t.appStrings.auditErrStatus.replace('{status}', String(res.status)))
         setLoading(false)
         return
       }
       
       setAudit(data.summary)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore durante l\'audit')
+      setError(err instanceof Error ? err.message : t.appStrings.auditErrGeneric)
     } finally {
       setLoading(false)
     }
   }
 
   const handleSyncStorico = async () => {
-    if (!confirm('Questa operazione analizzerà tutte le fatture storiche e aggiornerà le date di riferimento nel listino. Procedere?')) {
+    if (!confirm(t.appStrings.auditSyncConfirm)) {
       return
     }
     
@@ -114,7 +118,7 @@ export default function RecuperoCreditiAudit({
       const data = await res.json()
       
       if (!res.ok) {
-        setError(data.error || `Errore ${res.status}`)
+        setError(data.error || t.appStrings.auditErrStatus.replace('{status}', String(res.status)))
         setSyncing(false)
         return
       }
@@ -122,7 +126,7 @@ export default function RecuperoCreditiAudit({
       setSyncSuccess(data.message)
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore durante la sincronizzazione')
+      setError(err instanceof Error ? err.message : t.appStrings.auditErrSync)
     } finally {
       setSyncing(false)
     }
@@ -136,9 +140,9 @@ export default function RecuperoCreditiAudit({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400/80">Rekki Audit</p>
-            <h3 className="mt-0.5 text-sm font-bold text-app-fg">Audit Recupero Crediti</h3>
+            <h3 className="mt-0.5 text-sm font-bold text-app-fg">{t.appStrings.auditTitle}</h3>
             <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">
-              Analizza tutte le fatture storiche per identificare sovraprezzi rispetto ai prezzi Rekki pattuiti
+              {t.appStrings.auditDesc}
             </p>
           </div>
           <svg className="h-5 w-5 shrink-0 text-rose-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -150,7 +154,7 @@ export default function RecuperoCreditiAudit({
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[120px]">
             <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-rose-400/70">
-              Da
+              {t.appStrings.auditDateFrom}
             </label>
             <input
               type="date"
@@ -161,7 +165,7 @@ export default function RecuperoCreditiAudit({
           </div>
           <div className="flex-1 min-w-[120px]">
             <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-rose-400/70">
-              A
+              {t.appStrings.auditDateTo}
             </label>
             <input
               type="date"
@@ -176,7 +180,7 @@ export default function RecuperoCreditiAudit({
             disabled={loading}
             className="shrink-0 rounded-xl border border-rose-500/40 bg-rose-600/80 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-rose-500/80 disabled:opacity-50"
           >
-            {loading ? 'Analisi in corso...' : 'Esegui Audit'}
+            {loading ? t.appStrings.auditRunning : t.appStrings.auditRunBtn}
           </button>
         </div>
 
@@ -207,10 +211,9 @@ export default function RecuperoCreditiAudit({
           <div className="h-px w-full bg-gradient-to-r from-violet-500/60 via-violet-400/40 to-violet-600/60" aria-hidden />
           <div className="flex items-start justify-between gap-3 px-4 py-3">
             <div className="flex-1">
-              <p className="text-xs font-bold text-violet-300">Sincronizza Storico con Rekki</p>
+              <p className="text-xs font-bold text-violet-300">{t.appStrings.auditSyncTitle}</p>
               <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">
-                Analizza tutte le fatture passate e aggiorna automaticamente le date di riferimento
-                per eliminare i blocchi &quot;Data documento anteriore&quot;
+                {t.appStrings.auditSyncDesc}
               </p>
             </div>
             <button
@@ -219,7 +222,7 @@ export default function RecuperoCreditiAudit({
               disabled={syncing}
               className="shrink-0 rounded-xl border border-violet-500/40 bg-violet-600/70 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500/70 disabled:opacity-50"
             >
-              {syncing ? 'Sync...' : 'Sincronizza'}
+              {syncing ? t.appStrings.auditSyncing : t.appStrings.auditSyncBtn}
             </button>
           </div>
         </div>
@@ -231,7 +234,7 @@ export default function RecuperoCreditiAudit({
               <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-transparent">
                 <div className="h-0.5 shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700" />
                 <div className="px-4 py-3 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-rose-400/80">Spreco Totale</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-rose-400/80">{t.appStrings.auditKpiSpreco}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-rose-300">
                     {formatCurrency(audit.totalSpreco)}
                   </p>
@@ -240,7 +243,7 @@ export default function RecuperoCreditiAudit({
               <div className="relative overflow-hidden rounded-2xl border border-app-soft-border bg-transparent">
                 <div className="h-0.5 shrink-0 bg-gradient-to-r from-app-fg-muted/30 to-app-fg-muted/10" />
                 <div className="px-4 py-3 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Anomalie</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.auditKpiAnomalies}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
                     {audit.totalOvercharges}
                   </p>
@@ -249,7 +252,7 @@ export default function RecuperoCreditiAudit({
               <div className="relative overflow-hidden rounded-2xl border border-app-soft-border bg-transparent">
                 <div className="h-0.5 shrink-0 bg-gradient-to-r from-app-fg-muted/30 to-app-fg-muted/10" />
                 <div className="px-4 py-3 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Prodotti</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.auditKpiProducts}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
                     {audit.productCount}
                   </p>
@@ -258,7 +261,7 @@ export default function RecuperoCreditiAudit({
               <div className="relative overflow-hidden rounded-2xl border border-app-soft-border bg-transparent">
                 <div className="h-0.5 shrink-0 bg-gradient-to-r from-app-fg-muted/30 to-app-fg-muted/10" />
                 <div className="px-4 py-3 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Fatture</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.auditKpiFatture}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
                     {audit.fattureCount}
                   </p>
@@ -272,10 +275,10 @@ export default function RecuperoCreditiAudit({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="mt-3 text-sm font-semibold text-emerald-200">
-                  Nessun sovrapprezzo rilevato!
+                  {t.appStrings.auditNoOvercharges}
                 </p>
                 <p className="mt-1 text-xs text-emerald-300/70">
-                  Tutti i prezzi fatturati sono in linea o inferiori a quelli Rekki pattuiti
+                  {t.appStrings.auditNoOverchargesDesc}
                 </p>
               </div>
             ) : (
@@ -286,16 +289,16 @@ export default function RecuperoCreditiAudit({
                     <thead className="sticky top-0 app-workspace-inset-bg">
                       <tr>
                         <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
-                          Fattura
+                          {t.appStrings.auditColFattura}
                         </th>
                         <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
-                          Prodotto
+                          {t.appStrings.auditColProdotto}
                         </th>
                         <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
-                          Pagato
+                          {t.appStrings.auditColPagato}
                         </th>
                         <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
-                          Pattuito
+                          {t.appStrings.auditColPattuito}
                         </th>
                         <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
                           Δ%
@@ -304,7 +307,7 @@ export default function RecuperoCreditiAudit({
                           Qty
                         </th>
                         <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
-                          Spreco
+                          {t.appStrings.auditColSpreco}
                         </th>
                       </tr>
                     </thead>
@@ -362,8 +365,9 @@ export default function RecuperoCreditiAudit({
                   <button
                     type="button"
                     onClick={() => {
+                      const a = t.appStrings
                       const csv = [
-                        ['Data', 'Numero Fattura', 'Prodotto', 'Rekki ID', 'Pagato', 'Pattuito', 'Differenza %', 'Quantità', 'Spreco'].join(','),
+                        [a.auditCsvDate, a.auditCsvInvoiceNum, a.auditCsvProduct, a.auditCsvRekkiId, a.auditCsvPaid, a.auditCsvAgreed, a.auditCsvDiffPct, a.auditCsvQty, a.auditCsvWaste].join(','),
                         ...audit.items.map(item => [
                           item.fatturaData,
                           item.fatturaNumero ?? '',
@@ -378,10 +382,10 @@ export default function RecuperoCreditiAudit({
                       ].join('\n')
                       const blob = new Blob([csv], { type: 'text/csv' })
                       const url = URL.createObjectURL(blob)
-                      const a = document.createElement('a')
-                      a.href = url
-                      a.download = `audit-${fornitoreNome}-${dateRange.from}-${dateRange.to}.csv`
-                      a.click()
+                      const el = document.createElement('a')
+                      el.href = url
+                      el.download = `audit-${fornitoreNome}-${dateRange.from}-${dateRange.to}.csv`
+                      el.click()
                       URL.revokeObjectURL(url)
                     }}
                     className="flex items-center gap-2 rounded-xl border border-app-line-25 bg-transparent px-4 py-2 text-sm font-medium text-app-fg transition-colors hover:bg-app-line-10"
@@ -389,7 +393,7 @@ export default function RecuperoCreditiAudit({
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Esporta CSV
+                    {t.appStrings.attivitaExportCsv}
                   </button>
                 </div>
               </>
@@ -401,18 +405,18 @@ export default function RecuperoCreditiAudit({
         {!audit && (
           <details className="mt-4 rounded-xl border border-app-soft-border px-3 py-2">
             <summary className="cursor-pointer text-xs font-semibold text-rose-300/80 hover:text-rose-200">
-              Come funziona l&apos;audit?
+              {t.appStrings.auditHelpTitle}
             </summary>
             <div className="mt-2 space-y-2 text-xs leading-relaxed text-app-fg-muted">
-              <p>L&apos;audit analizza tutte le fatture nel periodo selezionato e:</p>
+              <p>{t.appStrings.auditHelpP1}</p>
               <ul className="ml-4 list-disc space-y-1">
-                <li>Estrae i line items da ogni fattura usando AI</li>
-                <li>Confronta i prezzi pagati con i prezzi Rekki pattuiti (listino)</li>
-                <li>Identifica tutti i casi in cui è stato pagato un prezzo superiore</li>
-                <li>Calcola lo spreco totale basandosi sulla quantità acquistata</li>
+                <li>{t.appStrings.auditHelpLi1}</li>
+                <li>{t.appStrings.auditHelpLi2}</li>
+                <li>{t.appStrings.auditHelpLi3}</li>
+                <li>{t.appStrings.auditHelpLi4}</li>
               </ul>
               <p className="font-semibold text-rose-300/80">
-                💡 Usa questo report per richiedere note di credito al fornitore
+                {t.appStrings.auditHelpCta}
               </p>
             </div>
           </details>

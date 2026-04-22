@@ -228,7 +228,7 @@ export default async function LogPage() {
                       <DeleteButton
                         id={log.id}
                         table="log_sincronizzazione"
-                        confirmMessage="Eliminare questo log? L'operazione è irreversibile."
+                        confirmMessage={t.appStrings.deleteLogConfirm}
                       />
                     </div>
                   </div>
@@ -313,7 +313,7 @@ export default async function LogPage() {
                             <DeleteButton
                               id={log.id}
                               table="log_sincronizzazione"
-                              confirmMessage="Eliminare questo log? L'operazione è irreversibile."
+                              confirmMessage={t.appStrings.deleteLogConfirm}
                             />
                           </div>
                         </td>

@@ -112,7 +112,7 @@ export default function SediPage() {
     setCreatingWizard(true); setWizardError(null)
     const { data: newSede, error: sedeErr } = await supabase
       .from('sedi').insert([{ nome: wizardSedeName.trim(), country_code: wizardCountryCode }]).select().single()
-    if (sedeErr || !newSede) { setWizardError(sedeErr?.message ?? 'Errore nella creazione della sede.'); setCreatingWizard(false); return }
+    if (sedeErr || !newSede) { setWizardError(sedeErr?.message ?? t.appStrings.sedeErrCreating); setCreatingWizard(false); return }
 
     if (wizardImap.imap_host.trim() && wizardImap.imap_user.trim()) {
       await supabase.from('sedi').update({
@@ -131,7 +131,7 @@ export default function SediPage() {
     }
 
     setCreatingWizard(false); setShowWizard(false)
-    setSuccessMsg(`Sede "${wizardSedeName}" creata con successo.`)
+    setSuccessMsg(t.appStrings.sedeCreatedSuccess.replace('{nome}', wizardSedeName))
     setTimeout(() => setSuccessMsg(null), 3000)
     await loadData()
   }
@@ -154,7 +154,7 @@ export default function SediPage() {
     const data = await res.json().catch(() => ({}))
     setSavingProfile(false)
     if (!res.ok) {
-      setError(typeof data.error === 'string' ? data.error : 'Errore salvataggio profilo.')
+      setError(typeof data.error === 'string' ? data.error : t.appStrings.sedeErrSavingProfile)
       return
     }
     setEditingProfile(null)
@@ -182,19 +182,19 @@ export default function SediPage() {
     const data = await res.json() as { ok?: boolean; message?: string; error?: string }
     setSavingPin(false)
     if (res.ok) {
-      setPinMsg({ ok: true, text: data.message ?? 'PIN aggiornato.' })
+      setPinMsg({ ok: true, text: data.message ?? t.appStrings.sedePinUpdated })
       setNewPin('')
       setTimeout(() => {
         setChangingPinFor(null)
         setPinMsg(null)
       }, 2500)
     } else {
-      setPinMsg({ ok: false, text: data.error ?? 'Errore durante l\'aggiornamento del PIN.' })
+      setPinMsg({ ok: false, text: data.error ?? t.appStrings.sedeErrUpdatingPin })
     }
   }
 
   const handleDeleteUser = async (userId: string, email: string) => {
-    if (!confirm(`Eliminare l'utente ${email}? Questa azione è irreversibile.`)) return
+    if (!confirm(t.appStrings.deleteUserConfirm.replace('{email}', email))) return
     setDeletingUserId(userId)
     const res = await fetch('/api/delete-user', {
       method: 'DELETE',
@@ -260,7 +260,7 @@ export default function SediPage() {
     const d = await res.json().catch(() => ({}))
     setSavingAccessPw(false)
     if (!res.ok) {
-      setError(typeof d.error === 'string' ? d.error : 'Errore salvataggio PIN sede.')
+      setError(typeof d.error === 'string' ? d.error :  t.appStrings.sedeErrSavingPin)
       return
     }
     setAccessPwOpen(null)
@@ -304,7 +304,7 @@ export default function SediPage() {
       return
     }
     setLocOpen(null)
-    setSuccessMsg('Localizzazione salvata.')
+    setSuccessMsg(t.appStrings.sedeLocSaved)
     setTimeout(() => setSuccessMsg(null), 3000)
     await loadData()
   }
@@ -320,7 +320,7 @@ export default function SediPage() {
 
     if (!res.ok) {
       const data = await res.json()
-      setError(data.error ?? 'Errore caricamento dati')
+      setError(data.error ?? t.appStrings.sedeErrLoadData)
       setLoading(false)
       return
     }
@@ -351,22 +351,22 @@ export default function SediPage() {
     })
     const d = await res.json().catch(() => ({}))
     if (!res.ok) {
-      setError(typeof d.error === 'string' ? d.error : 'Errore aggiornamento sede.')
+      setError(typeof d.error === 'string' ? d.error :  t.appStrings.sedeErrUpdating)
       return
     }
     setEditingSede(null)
-    setSuccessMsg('Sede aggiornata.')
+    setSuccessMsg(t.appStrings.sedeUpdated)
     setTimeout(() => setSuccessMsg(null), 3000)
     await loadData()
   }
 
   const handleDeleteSede = async (id: string, nome: string) => {
     if (adminListScope === 'sede') return
-    if (!confirm(`Elimina la sede "${nome}"? I dati collegati rimarranno ma perderanno il riferimento alla sede.`)) return
+    if (!confirm(t.appStrings.deleteSedeConfirm.replace('{nome}', nome))) return
     setError(null)
     const { error: err } = await supabase.from('sedi').delete().eq('id', id)
     if (err) { setError(err.message); return }
-    setSuccessMsg('Sede eliminata.')
+    setSuccessMsg(t.appStrings.sedeDeleted)
     setTimeout(() => setSuccessMsg(null), 3000)
     await loadData()
   }
@@ -402,10 +402,10 @@ export default function SediPage() {
     const d = await res.json().catch(() => ({}))
     setSavingImap(false)
     if (!res.ok) {
-      setError(typeof d.error === 'string' ? d.error : 'Errore salvataggio IMAP.')
+      setError(typeof d.error === 'string' ? d.error :  t.appStrings.sedeErrSavingImap)
       return
     }
-    setSuccessMsg('Configurazione email salvata.')
+    setSuccessMsg(t.appStrings.emailSaved)
     setTimeout(() => setSuccessMsg(null), 3000)
     setImapOpen(null)
     await loadData()
@@ -429,7 +429,7 @@ export default function SediPage() {
       const data = await res.json()
       setImapTestResult({ ok: res.ok, message: data.message ?? data.error ?? 'Risposta sconosciuta' })
     } catch {
-      setImapTestResult({ ok: false, message: 'Errore di rete.' })
+      setImapTestResult({ ok: false, message: t.ui.networkError })
     }
     setTestingImap(false)
   }
@@ -496,12 +496,12 @@ export default function SediPage() {
             {/* Wizard header */}
             <div className="px-6 py-4 border-b border-app-line-22 flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-app-fg">Nuova sede</h2>
+                <h2 className="font-semibold text-app-fg">{t.sedi.newSede}</h2>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   {[1,2,3].map((s) => (
                     <div key={s} className={`h-1 rounded-full transition-all ${s <= wizardStep ? 'w-8 bg-app-cyan-500' : 'w-4 bg-cyan-950/50'}`} />
                   ))}
-                  <span className="text-xs text-app-fg-muted ml-1">Passo {wizardStep} di 3</span>
+                  <span className="text-xs text-app-fg-muted ml-1">{t.appStrings.sedeWizardStepOf.replace('{step}', String(wizardStep))}</span>
                 </div>
               </div>
               <button onClick={() => setShowWizard(false)} className="rounded-lg p-2 text-app-fg-muted transition-colors hover:bg-app-line-12 hover:text-app-fg">
@@ -519,7 +519,7 @@ export default function SediPage() {
                 return (
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm font-semibold text-app-fg-muted mb-1">Nome della sede</p>
+                      <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardNameLabel}</p>
                       <p className="text-xs text-app-fg-muted mb-4">Es. &quot;Ristorante Roma&quot; o &quot;Magazzino Nord&quot;</p>
                       <input
                         type="text" autoFocus placeholder="Nome sede…"
@@ -593,7 +593,7 @@ export default function SediPage() {
                         disabled={!wizardSedeName.trim()}
                         className="px-5 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
                       >
-                        Avanti
+                        {t.appStrings.sedeWizardNext}
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
                         </svg>
@@ -607,8 +607,8 @@ export default function SediPage() {
               {wizardStep === 2 && (
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm font-semibold text-app-fg-muted mb-1">Configurazione email</p>
-                    <p className="text-xs text-app-fg-muted mb-4">Per ricevere fatture via email. Puoi configurarla anche dopo.</p>
+                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardEmailConfigTitle}</p>
+                    <p className="text-xs text-app-fg-muted mb-4">{t.appStrings.sedeWizardEmailConfigDesc}</p>
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="sm:col-span-2">
@@ -696,16 +696,16 @@ export default function SediPage() {
                   )}
                   <div className="flex justify-between">
                     <button onClick={() => setWizardStep(1)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
-                      ← Indietro
+                      {t.appStrings.sedeWizardBack}
                     </button>
                     <div className="flex gap-2">
                       <button onClick={() => { setWizardImap({ imap_host:'', imap_port:'993', imap_user:'', imap_password:'', imap_lookback_days: '30' }); setWizardStep(3) }}
                         className="px-4 py-2 text-sm text-app-fg-muted hover:text-app-fg rounded-xl hover:bg-black/12">
-                        Salta
+                        {t.appStrings.sedeWizardSkip}
                       </button>
                       <button onClick={() => setWizardStep(3)}
                         className="px-5 py-2 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-                        Avanti
+                        {t.appStrings.sedeWizardNext}
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
                         </svg>
@@ -719,7 +719,7 @@ export default function SediPage() {
               {wizardStep === 3 && (
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm font-semibold text-app-fg-muted mb-1">Aggiungi operatori</p>
+                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardAddOperatorsTitle}</p>
                     <p className="text-xs text-app-fg-muted mb-4">Gli operatori accedono con nome + PIN. Puoi aggiungerne altri dopo.</p>
                   </div>
 
@@ -800,14 +800,14 @@ export default function SediPage() {
 
                   <div className="flex justify-between pt-1">
                     <button onClick={() => setWizardStep(2)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
-                      ← Indietro
+                      {t.appStrings.sedeWizardBack}
                     </button>
                     <button onClick={handleWizardCreate} disabled={creatingWizard}
                       className="px-6 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
                       {creatingWizard ? (
-                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Creazione…</>
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> {t.appStrings.sedeWizardCreatingBtn}</>
                       ) : (
-                        <>Crea sede{wizardOperators.length > 0 ? ` + ${wizardOperators.length} operatore${wizardOperators.length > 1 ? 'i' : ''}` : ''}</>
+                        <>{t.appStrings.sedeWizardCreateBtn.replace('{n}', String(wizardOperators.length))}</>
                       )}
                     </button>
                   </div>
@@ -831,7 +831,7 @@ export default function SediPage() {
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
               </svg>
-              Avvia setup guidato
+              {t.appStrings.sedeWizardStartSetup}
             </a>
           </div>
         ) : (
@@ -878,7 +878,7 @@ export default function SediPage() {
                               </span>
                             ) : (
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-300/80 ring-1 ring-amber-500/25">
-                                Email non config.
+                                {t.appStrings.sedeEmailNotConfigured}
                               </span>
                             )}
                           </div>
@@ -992,7 +992,7 @@ export default function SediPage() {
                                     disabled={savingProfile}
                                     className="w-full sm:w-auto min-h-[44px] px-4 py-2 text-sm font-semibold bg-app-cyan-500 text-white rounded-lg shadow-sm hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 touch-manipulation"
                                   >
-                                    {savingProfile ? 'Salvo…' : t.common.save}
+                                    {savingProfile ? t.appStrings.savingShort : t.common.save}
                                   </button>
                                 </div>
                               </form>
@@ -1091,7 +1091,7 @@ export default function SediPage() {
                                     disabled={newPin.length < 4 || savingPin}
                                     className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-950 transition-colors hover:bg-amber-400 active:bg-amber-600 disabled:opacity-40"
                                   >
-                                    {savingPin ? 'Salvo…' : 'Salva'}
+                                    {savingPin ? t.appStrings.savingShort : t.common.save}
                                   </button>
                                   <button
                                     type="button"
@@ -1176,7 +1176,7 @@ export default function SediPage() {
                         <button type="button" onClick={() => handleCreateUser(sede.id)}
                           disabled={creatingUser || !newUserName.trim() || newUserPassword.length < 4}
                           className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
-                          {creatingUser ? 'Creazione…' : 'Crea operatore'}
+                          {creatingUser ? t.sedi.creatingBtn : t.sedi.createBtn}
                         </button>
                       </div>
                     </div>
@@ -1235,7 +1235,7 @@ export default function SediPage() {
                           className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">Annulla</button>
                         <button type="button" onClick={() => handleSaveAccessPassword(sede.id)} disabled={savingAccessPw}
                           className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
-                          {savingAccessPw ? 'Salvataggio…' : 'Salva'}
+                          {savingAccessPw ? t.appStrings.savingShort : t.common.save}
                         </button>
                       </div>
                     </div>

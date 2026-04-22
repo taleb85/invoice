@@ -102,6 +102,12 @@ type Translations = {
     /** Batch reminder API: 1 vs N sent (proper plural per language) */
     remindersSentOne: string
     remindersSentMany: string
+    /** Sidebar — tooltip: active location badge "{name}" */
+    sidebarSedeActive: string
+    /** Sidebar — tooltip: switch to location "{name}" */
+    sidebarSedeSwitchTo: string
+    /** Sidebar — tooltip: settings for location "{name}" */
+    sidebarSedeSettings: string
   }
   login: {
     /** Sotto il logo Smart Pair (maiuscole via CSS) */
@@ -1465,6 +1471,81 @@ type Translations = {
     rekkiDoneResult: string
     rekkiErrUnknown: string
     rekkiErrNetwork: string
+    /** Analytics — short label next to FY period button ("da inizio FY") */
+    analyticsSinceFY: string
+    /** Backup page — title and description */
+    backupPageTitle: string
+    backupPageDesc: string
+    // RecuperoCreditiAudit component
+    auditTitle: string
+    auditDesc: string
+    auditDateFrom: string
+    auditDateTo: string
+    auditRunBtn: string
+    auditRunning: string
+    auditSyncConfirm: string
+    auditSyncTitle: string
+    auditSyncDesc: string
+    auditSyncBtn: string
+    auditSyncing: string
+    auditKpiSpreco: string
+    auditKpiAnomalies: string
+    auditKpiProducts: string
+    auditKpiFatture: string
+    auditNoOvercharges: string
+    auditNoOverchargesDesc: string
+    auditColFattura: string
+    auditColProdotto: string
+    auditColPagato: string
+    auditColPattuito: string
+    auditColSpreco: string
+    auditHelpTitle: string
+    auditHelpP1: string
+    auditHelpLi1: string
+    auditHelpLi2: string
+    auditHelpLi3: string
+    auditHelpLi4: string
+    auditHelpCta: string
+    auditErrStatus: string
+    auditErrGeneric: string
+    auditErrSync: string
+    auditCsvDate: string
+    auditCsvInvoiceNum: string
+    auditCsvProduct: string
+    auditCsvRekkiId: string
+    auditCsvPaid: string
+    auditCsvAgreed: string
+    auditCsvDiffPct: string
+    auditCsvQty: string
+    auditCsvWaste: string
+    // sedi/page.tsx — toast messages and wizard labels
+    sedeErrCreating: string
+    sedeErrSavingProfile: string
+    sedePinUpdated: string
+    sedeErrUpdatingPin: string
+    sedeErrSavingPin: string
+    sedeLocSaved: string
+    sedeErrLoadData: string
+    sedeErrUpdating: string
+    sedeUpdated: string
+    sedeDeleted: string
+    sedeErrSavingImap: string
+    sedeWizardStepOf: string
+    sedeWizardNext: string
+    sedeWizardBack: string
+    sedeWizardSkip: string
+    sedeWizardNameLabel: string
+    sedeWizardEmailConfigTitle: string
+    sedeWizardEmailConfigDesc: string
+    sedeWizardAppPassRequired: string
+    sedeWizardAddOperatorsTitle: string
+    sedeWizardAddOperatorsDesc: string
+    sedeWizardCreateBtn: string
+    sedeWizardCreatingBtn: string
+    sedeWizardStartSetup: string
+    sedeEmailNotConfigured: string
+    /** "{nome}" = name of the new sede */
+    sedeCreatedSuccess: string
   }
 }
 
@@ -1511,6 +1592,9 @@ const it: Translations = {
     operatorAutoLockLabel: 'Blocco automatico dopo',
     operatorAutoLockNever: 'Mai',
     operatorAutoLockMinutes: '{n} min',
+    sidebarSedeActive: 'Sede attiva: {name}',
+    sidebarSedeSwitchTo: 'Passa a: {name}',
+    sidebarSedeSettings: 'Impostazioni {name}',
   },
   login: {
     brandTagline: 'Gestione fatture',
@@ -2656,6 +2740,76 @@ const it: Translations = {
     rekkiDoneResult: 'Completato — {n} email elaborate',
     rekkiErrUnknown: 'Errore sconosciuto',
     rekkiErrNetwork: 'Errore di rete',
+    analyticsSinceFY: 'da inizio FY',
+    backupPageTitle: 'Backup Dati',
+    backupPageDesc: 'Esportazioni CSV automatiche settimanali · Ogni lunedì alle 02:00 UTC',
+    auditTitle: 'Audit Recupero Crediti',
+    auditDesc: 'Analizza tutte le fatture storiche per identificare sovraprezzi rispetto ai prezzi Rekki pattuiti',
+    auditDateFrom: 'Da',
+    auditDateTo: 'A',
+    auditRunBtn: 'Esegui Audit',
+    auditRunning: 'Analisi in corso...',
+    auditSyncConfirm: 'Questa operazione analizzerà tutte le fatture storiche e aggiornerà le date di riferimento nel listino. Procedere?',
+    auditSyncTitle: 'Sincronizza Storico con Rekki',
+    auditSyncDesc: 'Analizza tutte le fatture passate e aggiorna automaticamente le date di riferimento per eliminare i blocchi «Data documento anteriore»',
+    auditSyncBtn: 'Sincronizza',
+    auditSyncing: 'Sync...',
+    auditKpiSpreco: 'Spreco Totale',
+    auditKpiAnomalies: 'Anomalie',
+    auditKpiProducts: 'Prodotti',
+    auditKpiFatture: 'Fatture',
+    auditNoOvercharges: 'Nessun sovrapprezzo rilevato!',
+    auditNoOverchargesDesc: 'Tutti i prezzi fatturati sono in linea o inferiori a quelli Rekki pattuiti',
+    auditColFattura: 'Fattura',
+    auditColProdotto: 'Prodotto',
+    auditColPagato: 'Pagato',
+    auditColPattuito: 'Pattuito',
+    auditColSpreco: 'Spreco',
+    auditHelpTitle: "Come funziona l'audit?",
+    auditHelpP1: "L'audit analizza tutte le fatture nel periodo selezionato e:",
+    auditHelpLi1: 'Estrae i line items da ogni fattura usando AI',
+    auditHelpLi2: 'Confronta i prezzi pagati con i prezzi Rekki pattuiti (listino)',
+    auditHelpLi3: 'Identifica tutti i casi in cui è stato pagato un prezzo superiore',
+    auditHelpLi4: 'Calcola lo spreco totale basandosi sulla quantità acquistata',
+    auditHelpCta: '💡 Usa questo report per richiedere note di credito al fornitore',
+    auditErrStatus: 'Errore {status}',
+    auditErrGeneric: "Errore durante l'audit",
+    auditErrSync: 'Errore durante la sincronizzazione',
+    auditCsvDate: 'Data',
+    auditCsvInvoiceNum: 'Numero Fattura',
+    auditCsvProduct: 'Prodotto',
+    auditCsvRekkiId: 'Rekki ID',
+    auditCsvPaid: 'Pagato',
+    auditCsvAgreed: 'Pattuito',
+    auditCsvDiffPct: 'Differenza %',
+    auditCsvQty: 'Quantità',
+    auditCsvWaste: 'Spreco',
+    sedeErrCreating: 'Errore nella creazione della sede.',
+    sedeErrSavingProfile: 'Errore salvataggio profilo.',
+    sedePinUpdated: 'PIN aggiornato.',
+    sedeErrUpdatingPin: "Errore durante l'aggiornamento del PIN.",
+    sedeErrSavingPin: 'Errore salvataggio PIN sede.',
+    sedeLocSaved: 'Localizzazione salvata.',
+    sedeErrLoadData: 'Errore caricamento dati.',
+    sedeErrUpdating: 'Errore aggiornamento sede.',
+    sedeUpdated: 'Sede aggiornata.',
+    sedeDeleted: 'Sede eliminata.',
+    sedeErrSavingImap: 'Errore salvataggio IMAP.',
+    sedeWizardStepOf: 'Passo {step} di 3',
+    sedeWizardNext: 'Avanti',
+    sedeWizardBack: '← Indietro',
+    sedeWizardSkip: 'Salta',
+    sedeWizardNameLabel: 'Nome della sede',
+    sedeWizardEmailConfigTitle: 'Configurazione email',
+    sedeWizardEmailConfigDesc: 'Per ricevere fatture via email. Puoi configurarla anche dopo.',
+    sedeWizardAppPassRequired: 'App Password richiesta.',
+    sedeWizardAddOperatorsTitle: 'Aggiungi operatori',
+    sedeWizardAddOperatorsDesc: 'Gli operatori accedono con nome + PIN (min. 4 cifre).',
+    sedeWizardCreateBtn: 'Crea sede + {n} operatori',
+    sedeWizardCreatingBtn: 'Creazione…',
+    sedeWizardStartSetup: 'Avvia setup guidato',
+    sedeEmailNotConfigured: 'Email non config.',
+    sedeCreatedSuccess: 'Sede "{nome}" creata con successo.',
   },
 }
 
@@ -2702,6 +2856,9 @@ const en: Translations = {
     operatorAutoLockLabel: 'Auto-lock after',
     operatorAutoLockNever: 'Off',
     operatorAutoLockMinutes: '{n} min',
+    sidebarSedeActive: 'Active location: {name}',
+    sidebarSedeSwitchTo: 'Switch to: {name}',
+    sidebarSedeSettings: '{name} settings',
   },
   login: {
     brandTagline: 'Branch Management',
@@ -3219,6 +3376,76 @@ const en: Translations = {
     rekkiDoneResult: 'Completed — {n} emails processed',
     rekkiErrUnknown: 'Unknown error',
     rekkiErrNetwork: 'Network error',
+    analyticsSinceFY: 'since FY start',
+    backupPageTitle: 'Data Backup',
+    backupPageDesc: 'Automatic weekly CSV exports · Every Monday at 02:00 UTC',
+    auditTitle: 'Price Recovery Audit',
+    auditDesc: 'Analyse all historical invoices to identify overcharges vs agreed Rekki prices',
+    auditDateFrom: 'From',
+    auditDateTo: 'To',
+    auditRunBtn: 'Run Audit',
+    auditRunning: 'Running...',
+    auditSyncConfirm: 'This will analyse all historical invoices and update the reference dates in the price list. Continue?',
+    auditSyncTitle: 'Sync History with Rekki',
+    auditSyncDesc: 'Analyse all past invoices and automatically update reference dates to remove «Document date earlier» blocks',
+    auditSyncBtn: 'Sync',
+    auditSyncing: 'Syncing...',
+    auditKpiSpreco: 'Total Waste',
+    auditKpiAnomalies: 'Anomalies',
+    auditKpiProducts: 'Products',
+    auditKpiFatture: 'Invoices',
+    auditNoOvercharges: 'No overcharges detected!',
+    auditNoOverchargesDesc: 'All invoiced prices are in line with or below the agreed Rekki prices',
+    auditColFattura: 'Invoice',
+    auditColProdotto: 'Product',
+    auditColPagato: 'Paid',
+    auditColPattuito: 'Agreed',
+    auditColSpreco: 'Waste',
+    auditHelpTitle: 'How does the audit work?',
+    auditHelpP1: 'The audit analyses all invoices in the selected period and:',
+    auditHelpLi1: 'Extracts line items from each invoice using AI',
+    auditHelpLi2: 'Compares paid prices with the agreed Rekki prices (price list)',
+    auditHelpLi3: 'Identifies all cases where a higher price was paid',
+    auditHelpLi4: 'Calculates total waste based on quantity purchased',
+    auditHelpCta: '💡 Use this report to request credit notes from the supplier',
+    auditErrStatus: 'Error {status}',
+    auditErrGeneric: 'Error running audit',
+    auditErrSync: 'Error during synchronisation',
+    auditCsvDate: 'Date',
+    auditCsvInvoiceNum: 'Invoice Number',
+    auditCsvProduct: 'Product',
+    auditCsvRekkiId: 'Rekki ID',
+    auditCsvPaid: 'Paid',
+    auditCsvAgreed: 'Agreed',
+    auditCsvDiffPct: 'Difference %',
+    auditCsvQty: 'Quantity',
+    auditCsvWaste: 'Waste',
+    sedeErrCreating: 'Error creating location.',
+    sedeErrSavingProfile: 'Error saving profile.',
+    sedePinUpdated: 'PIN updated.',
+    sedeErrUpdatingPin: 'Error updating PIN.',
+    sedeErrSavingPin: 'Error saving location PIN.',
+    sedeLocSaved: 'Localisation saved.',
+    sedeErrLoadData: 'Error loading data.',
+    sedeErrUpdating: 'Error updating location.',
+    sedeUpdated: 'Location updated.',
+    sedeDeleted: 'Location deleted.',
+    sedeErrSavingImap: 'Error saving IMAP settings.',
+    sedeWizardStepOf: 'Step {step} of 3',
+    sedeWizardNext: 'Next',
+    sedeWizardBack: '← Back',
+    sedeWizardSkip: 'Skip',
+    sedeWizardNameLabel: 'Location name',
+    sedeWizardEmailConfigTitle: 'Email setup',
+    sedeWizardEmailConfigDesc: 'To receive invoices by email. You can set this up later too.',
+    sedeWizardAppPassRequired: 'App Password required.',
+    sedeWizardAddOperatorsTitle: 'Add operators',
+    sedeWizardAddOperatorsDesc: 'Operators sign in with name + PIN (min. 4 digits).',
+    sedeWizardCreateBtn: 'Create location + {n} operators',
+    sedeWizardCreatingBtn: 'Creating…',
+    sedeWizardStartSetup: 'Start guided setup',
+    sedeEmailNotConfigured: 'Email not set.',
+    sedeCreatedSuccess: 'Location "{nome}" created successfully.',
   },
 }
 
@@ -3265,6 +3492,9 @@ const es: Translations = {
     operatorAutoLockLabel: 'Bloqueo automático tras',
     operatorAutoLockNever: 'Nunca',
     operatorAutoLockMinutes: '{n} min',
+    sidebarSedeActive: 'Sede activa: {name}',
+    sidebarSedeSwitchTo: 'Cambiar a: {name}',
+    sidebarSedeSettings: 'Ajustes de {name}',
   },
   login: {
     brandTagline: 'Gestión de facturas',
@@ -3298,7 +3528,7 @@ const es: Translations = {
     sessionGateSubtitle: 'Nueva sesión: introduce de nuevo tu nombre y el PIN de 4 dígitos para continuar.',
     sessionGateWrongUser: 'Este nombre no coincide con la cuenta con la que iniciaste sesión.',
   },
-  nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Email Log', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)', analytics: 'Analytics', approvazioni: 'Aprobaciones', attivita: 'Actividad', backup: 'Copia de seguridad' },
+  nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Registro de email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)', analytics: 'Analytics', approvazioni: 'Aprobaciones', attivita: 'Actividad', backup: 'Copia de seguridad' },
   common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', phone: 'Teléfono', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: 'Añadir', rename: 'Renombrar', role: 'Rol', aiExtracted: 'Datos extraídos por IA', matched: 'Asociado', notMatched: 'No asociado', recordSupplierLinked: 'Vinculado', company: 'Empresa', invoiceNum: 'N.º Factura', total: 'Total', duplicateBadge: 'DUPLICADO' },
   status: { inAttesa: 'Pendiente', completato: 'Completado', completata: 'Completada' },
   dashboard: { title: 'Panel', suppliers: 'Proveedores', totalBills: 'Total albaranes', pendingBills: 'Albaranes pendientes', invoices: 'Facturas', recentBills: 'Albaranes recientes', recentBillsMobileListDisabled: 'El listado detallado no se muestra en esta pantalla. Usa «Ver todos» para abrir el listado de albaranes o cambia a una pantalla más grande.', viewAll: 'Ver todos →', syncEmail: 'Sincronizar Email', emailSyncScopeLookback: 'Días recientes (sede)', emailSyncScopeFiscal: 'Año fiscal', emailSyncFiscalYearSelectAria: 'Periodo de sincronización de email', emailSyncScopeHint: 'IT, FR, DE, ES: año civil. UK: año fiscal que termina el 5 abr. Cada sede usa su país.', emailSyncLookbackSedeDefault: 'Predeterminado de sede (IMAP)', emailSyncLookbackDaysN: 'Últimos {n} días', emailSyncLookbackDaysAria: 'Cuántos días atrás buscar en el buzón', emailSyncLookbackDaysHint: 'Predeterminado de sede: usa los días configurados en la sede. Si no, limita la búsqueda IMAP a los últimos N días (leídos y no leídos).', emailSyncDocumentKindAria: 'Tipo de documentos a importar al sincronizar el correo', emailSyncDocumentKindHint: 'Todos: predeterminado. Nuevo proveedor: solo remitentes no dados de alta. Albarán / Factura: fuerza el tipo de borrador. Extracto: solo correos cuyo asunto parece un extracto (statement).', emailSyncDocumentKindAll: 'Todos los documentos', emailSyncDocumentKindFornitore: 'Nuevo proveedor', emailSyncDocumentKindBolla: 'Albarán (DDT)', emailSyncDocumentKindFattura: 'Factura', emailSyncDocumentKindEstratto: 'Extracto de cuenta', syncing: 'Sincronizando...', sendReminders: 'Enviar recordatorios', sending: 'Enviando...', viewLog: 'Ver Log', sedeOverview: 'Resumen por Sede', manageSedeNamed: 'Gestionar {name} →', manageSedi: 'Gestionar sedes →', sedeImapOn: 'Email activa', digitalizzaRicevuto: 'Digitalizar recibo', scannerFlowCardTitle: 'Escáner — hoy', scannerFlowCardHint: 'PDF analizados por IA y documentos guardados hoy en esta sede (tu zona horaria).', scannerFlowAiElaborate: 'Procesadas (IA)', scannerFlowArchived: 'Archivadas', scannerFlowOpenScanner: 'Nuevo escaneo', scannerFlowBolleHubTitle: 'Archivo de albaranes', scannerFlowRecentTitle: 'Actividad reciente del escáner IA', scannerFlowNoRecent: 'Sin eventos de escaneo recientes. Usa el escáner IA en la barra inferior o inicia un escaneo nuevo.', scannerFlowTodayCounts: 'Hoy: {ai} procesadas (IA) · {arch} archivadas', scannerFlowStepAiElaborata: 'PDF analizado por IA — texto y datos extraídos (OCR)', scannerFlowStepArchiviataBolla: 'Albarán registrado y guardado en el archivo', scannerFlowStepArchiviataFattura: 'Factura registrada y guardada en el archivo', scannerFlowTodayActivityTitle: 'Actividad de hoy', scannerFlowNoEventsToday: 'No hay actividad del escáner IA hoy en esta sede.', scannerFlowEventsAllLink: 'Registro completo de eventos →', scannerFlowEventsPageTitle: 'Escáner IA — eventos', scannerFlowEventsEmpty: 'No hay eventos del escáner registrados.', scannerFlowEventsPrev: 'Anterior', scannerFlowEventsNext: 'Siguiente', scannerFlowEventsPageOf: 'Página {current} de {pages}', scannerMobileTileTap: 'Toca para empezar', duplicateFattureScanButton: 'Buscar facturas duplicadas', duplicateFattureModalTitle: 'Facturas duplicadas', duplicateFattureScanning: 'Analizando facturas…',
@@ -3717,7 +3947,7 @@ const es: Translations = {
     rekkiSyncUnmatched: 'Por asociar',
     rekkiSyncRecentEmails: 'Últimos emails procesados',
     rekkiSyncNoData: 'Sin precios detectados',
-    rekkiSyncNoDataDesc: 'Pulsa “Comprobar ahora” para escanear los emails Rekki de {nombre}',
+    rekkiSyncNoDataDesc: 'Pulsa “Comprobar ahora” para escanear los emails Rekki de {nome}',
     rekkiImapNotConfigured: 'Correo no configurado',
     rekkiImapNotConfiguredDesc: 'Configura las credenciales IMAP en Configuración → Sede para activar la sincronización.',
     rekkiPhaseQueued: 'En cola...',
@@ -3730,6 +3960,76 @@ const es: Translations = {
     rekkiDoneResult: 'Completado — {n} emails procesados',
     rekkiErrUnknown: 'Error desconocido',
     rekkiErrNetwork: 'Error de red',
+    analyticsSinceFY: 'desde inicio del EF',
+    backupPageTitle: 'Copia de Seguridad',
+    backupPageDesc: 'Exportaciones CSV automáticas semanales · Cada lunes a las 02:00 UTC',
+    auditTitle: 'Auditoría de Recuperación',
+    auditDesc: 'Analiza todas las facturas históricas para identificar sobreprecios respecto a los precios Rekki acordados',
+    auditDateFrom: 'Desde',
+    auditDateTo: 'Hasta',
+    auditRunBtn: 'Ejecutar Auditoría',
+    auditRunning: 'Analizando...',
+    auditSyncConfirm: 'Esta operación analizará todas las facturas históricas y actualizará las fechas de referencia en el tarifario. ¿Continuar?',
+    auditSyncTitle: 'Sincronizar Historial con Rekki',
+    auditSyncDesc: 'Analiza todas las facturas pasadas y actualiza automáticamente las fechas de referencia para eliminar los bloqueos «Fecha de documento anterior»',
+    auditSyncBtn: 'Sincronizar',
+    auditSyncing: 'Sincronizando...',
+    auditKpiSpreco: 'Derroche Total',
+    auditKpiAnomalies: 'Anomalías',
+    auditKpiProducts: 'Productos',
+    auditKpiFatture: 'Facturas',
+    auditNoOvercharges: '¡Sin sobreprecios detectados!',
+    auditNoOverchargesDesc: 'Todos los precios facturados están en línea o por debajo de los precios Rekki acordados',
+    auditColFattura: 'Factura',
+    auditColProdotto: 'Producto',
+    auditColPagato: 'Pagado',
+    auditColPattuito: 'Acordado',
+    auditColSpreco: 'Derroche',
+    auditHelpTitle: '¿Cómo funciona la auditoría?',
+    auditHelpP1: 'La auditoría analiza todas las facturas del periodo seleccionado y:',
+    auditHelpLi1: 'Extrae las líneas de cada factura usando IA',
+    auditHelpLi2: 'Compara los precios pagados con los precios Rekki acordados (tarifario)',
+    auditHelpLi3: 'Identifica todos los casos en que se pagó un precio superior',
+    auditHelpLi4: 'Calcula el derroche total en base a la cantidad comprada',
+    auditHelpCta: '💡 Usa este informe para solicitar notas de crédito al proveedor',
+    auditErrStatus: 'Error {status}',
+    auditErrGeneric: 'Error durante la auditoría',
+    auditErrSync: 'Error durante la sincronización',
+    auditCsvDate: 'Fecha',
+    auditCsvInvoiceNum: 'Número de factura',
+    auditCsvProduct: 'Producto',
+    auditCsvRekkiId: 'ID Rekki',
+    auditCsvPaid: 'Pagado',
+    auditCsvAgreed: 'Acordado',
+    auditCsvDiffPct: 'Diferencia %',
+    auditCsvQty: 'Cantidad',
+    auditCsvWaste: 'Derroche',
+    sedeErrCreating: 'Error al crear la sede.',
+    sedeErrSavingProfile: 'Error al guardar el perfil.',
+    sedePinUpdated: 'PIN actualizado.',
+    sedeErrUpdatingPin: 'Error al actualizar el PIN.',
+    sedeErrSavingPin: 'Error al guardar el PIN de sede.',
+    sedeLocSaved: 'Localización guardada.',
+    sedeErrLoadData: 'Error al cargar los datos.',
+    sedeErrUpdating: 'Error al actualizar la sede.',
+    sedeUpdated: 'Sede actualizada.',
+    sedeDeleted: 'Sede eliminada.',
+    sedeErrSavingImap: 'Error al guardar la configuración IMAP.',
+    sedeWizardStepOf: 'Paso {step} de 3',
+    sedeWizardNext: 'Siguiente',
+    sedeWizardBack: '← Atrás',
+    sedeWizardSkip: 'Omitir',
+    sedeWizardNameLabel: 'Nombre de la sede',
+    sedeWizardEmailConfigTitle: 'Configuración de email',
+    sedeWizardEmailConfigDesc: 'Para recibir facturas por email. Puedes configurarlo después.',
+    sedeWizardAppPassRequired: 'Contraseña de aplicación requerida.',
+    sedeWizardAddOperatorsTitle: 'Añadir operadores',
+    sedeWizardAddOperatorsDesc: 'Los operadores acceden con nombre + PIN (mín. 4 cifras).',
+    sedeWizardCreateBtn: 'Crear sede + {n} operadores',
+    sedeWizardCreatingBtn: 'Creando…',
+    sedeWizardStartSetup: 'Iniciar configuración guiada',
+    sedeEmailNotConfigured: 'Email no configurado.',
+    sedeCreatedSuccess: 'Sede "{nome}" creada con éxito.',
   },
 }
 
@@ -3776,6 +4076,9 @@ const fr: Translations = {
     operatorAutoLockLabel: 'Verrouillage auto après',
     operatorAutoLockNever: 'Jamais',
     operatorAutoLockMinutes: '{n} min',
+    sidebarSedeActive: 'Site actif : {name}',
+    sidebarSedeSwitchTo: 'Passer à : {name}',
+    sidebarSedeSettings: 'Paramètres de {name}',
   },
   login: {
     brandTagline: 'Gestion des factures',
@@ -3809,7 +4112,7 @@ const fr: Translations = {
     sessionGateSubtitle: 'Nouvelle session : saisissez à nouveau votre nom et le PIN à 4 chiffres pour continuer.',
     sessionGateWrongUser: 'Ce nom ne correspond pas au compte avec lequel vous êtes connecté.',
   },
-  nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Email Log', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)', analytics: 'Analytics', approvazioni: 'Approbations', attivita: 'Activité', backup: 'Sauvegarde' },
+  nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Journal email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)', analytics: 'Analytics', approvazioni: 'Approbations', attivita: 'Activité', backup: 'Sauvegarde' },
   common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', phone: 'Téléphone', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: 'Ajouter', rename: 'Renommer', role: 'Rôle', aiExtracted: 'Données extraites par IA', matched: 'Associé', notMatched: 'Non associé', recordSupplierLinked: 'Lié', company: 'Société', invoiceNum: 'N° Facture', total: 'Total', duplicateBadge: 'DOUBLON' },
   status: { inAttesa: 'En attente', completato: 'Complété', completata: 'Complétée' },
   dashboard: { title: 'Tableau de bord', suppliers: 'Fournisseurs', totalBills: 'Total BL', pendingBills: 'BL en attente', invoices: 'Factures', recentBills: 'BL récents', recentBillsMobileListDisabled: 'La liste détaillée n’est pas affichée sur cet écran. Utilisez « Voir tout » pour ouvrir l’archive ou passez à un affichage plus large.', viewAll: 'Voir tout →', syncEmail: 'Sync Email', emailSyncScopeLookback: 'Jours récents (site)', emailSyncScopeFiscal: 'Exercice fiscal', emailSyncFiscalYearSelectAria: 'Période de synchronisation e-mail', emailSyncScopeHint: 'IT, FR, DE, ES : année civile. UK : exercice se terminant le 5 avr. Chaque site utilise son pays.', emailSyncLookbackSedeDefault: 'Défaut du site (IMAP)', emailSyncLookbackDaysN: '{n} derniers jours', emailSyncLookbackDaysAria: 'Combien de jours en arrière chercher dans la boîte', emailSyncLookbackDaysHint: 'Défaut du site : utilise les jours définis sur la fiche site. Sinon limite la recherche IMAP aux N derniers jours (lus et non lus).', emailSyncDocumentKindAria: 'Type de documents à importer lors de la synchro e-mail', emailSyncDocumentKindHint: 'Tout : défaut. Nouveau fournisseur : expéditeurs absents de l’annuaire. BL / Facture : force le type de brouillon. Relevé : e-mails dont l’objet ressemble à un relevé (statement).', emailSyncDocumentKindAll: 'Tous les documents', emailSyncDocumentKindFornitore: 'Nouveau fournisseur', emailSyncDocumentKindBolla: 'Bon de livraison (BL)', emailSyncDocumentKindFattura: 'Facture', emailSyncDocumentKindEstratto: 'Relevé / extrait', syncing: 'Synchronisation...', sendReminders: 'Envoyer les relances', sending: 'Envoi en cours...', viewLog: 'Voir Log', sedeOverview: 'Vue par Site', manageSedeNamed: 'Gérer {name} →', manageSedi: 'Gérer les sites →', sedeImapOn: 'E-mail active', digitalizzaRicevuto: 'Numériser le reçu', scannerFlowCardTitle: 'Scanner — aujourd’hui', scannerFlowCardHint: 'PDF traités par l’IA et documents enregistrés aujourd’hui pour ce site (fuseau des réglages).', scannerFlowAiElaborate: 'Traitées (IA)', scannerFlowArchived: 'Archivées', scannerFlowOpenScanner: 'Nouveau scan', scannerFlowBolleHubTitle: 'Archive des BL', scannerFlowRecentTitle: 'Activité Scanner AI récente', scannerFlowNoRecent: 'Aucun scan récent. Utilisez Scanner AI (barre du bas) ou lancez un nouveau scan.', scannerFlowTodayCounts: 'Aujourd’hui : {ai} traitées (IA) · {arch} archivées', scannerFlowStepAiElaborata: 'PDF analysé par l’IA — texte et données extraits (OCR)', scannerFlowStepArchiviataBolla: 'Bon de livraison enregistré et archivé', scannerFlowStepArchiviataFattura: 'Facture enregistrée et archivée', scannerFlowTodayActivityTitle: 'Activité du jour', scannerFlowNoEventsToday: 'Aucune activité Scanner IA enregistrée aujourd’hui pour ce site.', scannerFlowEventsAllLink: 'Journal complet des événements →', scannerFlowEventsPageTitle: 'Scanner IA — événements', scannerFlowEventsEmpty: 'Aucun événement Scanner enregistré.', scannerFlowEventsPrev: 'Précédent', scannerFlowEventsNext: 'Suivant', scannerFlowEventsPageOf: 'Page {current} sur {pages}', scannerMobileTileTap: 'Touchez pour commencer', duplicateFattureScanButton: 'Rechercher factures en double', duplicateFattureModalTitle: 'Factures en double', duplicateFattureScanning: 'Analyse des factures…',
@@ -4241,6 +4544,76 @@ const fr: Translations = {
     rekkiDoneResult: 'Terminé — {n} emails traités',
     rekkiErrUnknown: 'Erreur inconnue',
     rekkiErrNetwork: 'Erreur réseau',
+    analyticsSinceFY: 'depuis début EX',
+    backupPageTitle: 'Sauvegarde des données',
+    backupPageDesc: 'Exports CSV automatiques hebdomadaires · Chaque lundi à 02h00 UTC',
+    auditTitle: 'Audit de récupération de créances',
+    auditDesc: 'Analyse toutes les factures historiques pour identifier les surfacturations par rapport aux prix Rekki convenus',
+    auditDateFrom: 'Du',
+    auditDateTo: 'Au',
+    auditRunBtn: "Lancer l'audit",
+    auditRunning: 'Analyse en cours...',
+    auditSyncConfirm: 'Cette opération analysera toutes les factures historiques et mettra à jour les dates de référence dans le tarif. Continuer ?',
+    auditSyncTitle: "Synchroniser l'historique avec Rekki",
+    auditSyncDesc: 'Analyse toutes les factures passées et met à jour automatiquement les dates de référence pour lever les blocages «Date de document antérieure»',
+    auditSyncBtn: 'Synchroniser',
+    auditSyncing: 'Synchro...',
+    auditKpiSpreco: 'Gaspillage total',
+    auditKpiAnomalies: 'Anomalies',
+    auditKpiProducts: 'Produits',
+    auditKpiFatture: 'Factures',
+    auditNoOvercharges: 'Aucune surfacturation détectée !',
+    auditNoOverchargesDesc: 'Tous les prix facturés sont conformes ou inférieurs aux prix Rekki convenus',
+    auditColFattura: 'Facture',
+    auditColProdotto: 'Produit',
+    auditColPagato: 'Payé',
+    auditColPattuito: 'Convenu',
+    auditColSpreco: 'Gaspillage',
+    auditHelpTitle: "Comment fonctionne l'audit ?",
+    auditHelpP1: "L'audit analyse toutes les factures de la période sélectionnée et :",
+    auditHelpLi1: "Extrait les lignes de chaque facture grâce à l'IA",
+    auditHelpLi2: 'Compare les prix payés avec les prix Rekki convenus (tarif)',
+    auditHelpLi3: 'Identifie tous les cas où un prix supérieur a été payé',
+    auditHelpLi4: 'Calcule le gaspillage total en fonction des quantités achetées',
+    auditHelpCta: '💡 Utilisez ce rapport pour demander des avoirs au fournisseur',
+    auditErrStatus: 'Erreur {status}',
+    auditErrGeneric: "Erreur lors de l'audit",
+    auditErrSync: 'Erreur lors de la synchronisation',
+    auditCsvDate: 'Date',
+    auditCsvInvoiceNum: 'Numéro de facture',
+    auditCsvProduct: 'Produit',
+    auditCsvRekkiId: 'ID Rekki',
+    auditCsvPaid: 'Payé',
+    auditCsvAgreed: 'Convenu',
+    auditCsvDiffPct: 'Différence %',
+    auditCsvQty: 'Quantité',
+    auditCsvWaste: 'Gaspillage',
+    sedeErrCreating: 'Erreur lors de la création du site.',
+    sedeErrSavingProfile: "Erreur lors de l'enregistrement du profil.",
+    sedePinUpdated: 'PIN mis à jour.',
+    sedeErrUpdatingPin: 'Erreur lors de la mise à jour du PIN.',
+    sedeErrSavingPin: "Erreur lors de l'enregistrement du PIN du site.",
+    sedeLocSaved: 'Localisation enregistrée.',
+    sedeErrLoadData: 'Erreur lors du chargement des données.',
+    sedeErrUpdating: 'Erreur lors de la mise à jour du site.',
+    sedeUpdated: 'Site mis à jour.',
+    sedeDeleted: 'Site supprimé.',
+    sedeErrSavingImap: "Erreur lors de l'enregistrement IMAP.",
+    sedeWizardStepOf: 'Étape {step} sur 3',
+    sedeWizardNext: 'Suivant',
+    sedeWizardBack: '← Retour',
+    sedeWizardSkip: 'Passer',
+    sedeWizardNameLabel: 'Nom du site',
+    sedeWizardEmailConfigTitle: 'Configuration e-mail',
+    sedeWizardEmailConfigDesc: 'Pour recevoir les factures par e-mail. Vous pouvez le configurer plus tard.',
+    sedeWizardAppPassRequired: "Mot de passe d'application requis.",
+    sedeWizardAddOperatorsTitle: 'Ajouter des opérateurs',
+    sedeWizardAddOperatorsDesc: 'Les opérateurs se connectent avec leur nom + PIN (min. 4 chiffres).',
+    sedeWizardCreateBtn: 'Créer le site + {n} opérateurs',
+    sedeWizardCreatingBtn: 'Création…',
+    sedeWizardStartSetup: 'Démarrer la configuration guidée',
+    sedeEmailNotConfigured: 'E-mail non configuré.',
+    sedeCreatedSuccess: 'Site "{nome}" créé avec succès.',
   },
 }
 
@@ -4287,6 +4660,9 @@ const de: Translations = {
     operatorAutoLockLabel: 'Auto-Sperre nach',
     operatorAutoLockNever: 'Aus',
     operatorAutoLockMinutes: '{n} Min',
+    sidebarSedeActive: 'Aktiver Standort: {name}',
+    sidebarSedeSwitchTo: 'Wechseln zu: {name}',
+    sidebarSedeSettings: 'Einstellungen {name}',
   },
   login: {
     brandTagline: 'Rechnungsverwaltung',
@@ -4751,6 +5127,76 @@ const de: Translations = {
     rekkiDoneResult: 'Abgeschlossen — {n} E-Mails verarbeitet',
     rekkiErrUnknown: 'Unbekannter Fehler',
     rekkiErrNetwork: 'Netzwerkfehler',
+    analyticsSinceFY: 'seit GJ-Beginn',
+    backupPageTitle: 'Datensicherung',
+    backupPageDesc: 'Automatische wöchentliche CSV-Exporte · Jeden Montag um 02:00 UTC',
+    auditTitle: 'Preisrückforderungs-Audit',
+    auditDesc: 'Analysiert alle historischen Rechnungen auf Überpreise gegenüber vereinbarten Rekki-Preisen',
+    auditDateFrom: 'Von',
+    auditDateTo: 'Bis',
+    auditRunBtn: 'Audit starten',
+    auditRunning: 'Analyse läuft...',
+    auditSyncConfirm: 'Diese Operation analysiert alle historischen Rechnungen und aktualisiert die Referenzdaten in der Preisliste. Fortfahren?',
+    auditSyncTitle: 'Verlauf mit Rekki synchronisieren',
+    auditSyncDesc: 'Analysiert alle bisherigen Rechnungen und aktualisiert automatisch Referenzdaten, um Sperren «Dokumentdatum zu alt» aufzuheben',
+    auditSyncBtn: 'Synchronisieren',
+    auditSyncing: 'Läuft...',
+    auditKpiSpreco: 'Gesamtverlust',
+    auditKpiAnomalies: 'Anomalien',
+    auditKpiProducts: 'Produkte',
+    auditKpiFatture: 'Rechnungen',
+    auditNoOvercharges: 'Keine Überpreise festgestellt!',
+    auditNoOverchargesDesc: 'Alle berechneten Preise entsprechen den vereinbarten Rekki-Preisen oder liegen darunter',
+    auditColFattura: 'Rechnung',
+    auditColProdotto: 'Produkt',
+    auditColPagato: 'Gezahlt',
+    auditColPattuito: 'Vereinbart',
+    auditColSpreco: 'Verlust',
+    auditHelpTitle: 'Wie funktioniert der Audit?',
+    auditHelpP1: 'Der Audit analysiert alle Rechnungen im ausgewählten Zeitraum und:',
+    auditHelpLi1: 'Extrahiert Positionen aus jeder Rechnung mittels KI',
+    auditHelpLi2: 'Vergleicht gezahlte Preise mit vereinbarten Rekki-Preisen (Preisliste)',
+    auditHelpLi3: 'Identifiziert alle Fälle, in denen ein höherer Preis bezahlt wurde',
+    auditHelpLi4: 'Berechnet den Gesamtverlust anhand der gekauften Mengen',
+    auditHelpCta: '💡 Verwenden Sie diesen Bericht, um Gutschriften vom Lieferanten anzufordern',
+    auditErrStatus: 'Fehler {status}',
+    auditErrGeneric: 'Fehler beim Audit',
+    auditErrSync: 'Fehler bei der Synchronisierung',
+    auditCsvDate: 'Datum',
+    auditCsvInvoiceNum: 'Rechnungsnummer',
+    auditCsvProduct: 'Produkt',
+    auditCsvRekkiId: 'Rekki-ID',
+    auditCsvPaid: 'Gezahlt',
+    auditCsvAgreed: 'Vereinbart',
+    auditCsvDiffPct: 'Differenz %',
+    auditCsvQty: 'Menge',
+    auditCsvWaste: 'Verlust',
+    sedeErrCreating: 'Fehler beim Erstellen des Standorts.',
+    sedeErrSavingProfile: 'Fehler beim Speichern des Profils.',
+    sedePinUpdated: 'PIN aktualisiert.',
+    sedeErrUpdatingPin: 'Fehler beim Aktualisieren des PINs.',
+    sedeErrSavingPin: 'Fehler beim Speichern des Standort-PINs.',
+    sedeLocSaved: 'Lokalisierung gespeichert.',
+    sedeErrLoadData: 'Fehler beim Laden der Daten.',
+    sedeErrUpdating: 'Fehler beim Aktualisieren des Standorts.',
+    sedeUpdated: 'Standort aktualisiert.',
+    sedeDeleted: 'Standort gelöscht.',
+    sedeErrSavingImap: 'Fehler beim Speichern der IMAP-Einstellungen.',
+    sedeWizardStepOf: 'Schritt {step} von 3',
+    sedeWizardNext: 'Weiter',
+    sedeWizardBack: '← Zurück',
+    sedeWizardSkip: 'Überspringen',
+    sedeWizardNameLabel: 'Standortname',
+    sedeWizardEmailConfigTitle: 'E-Mail-Einrichtung',
+    sedeWizardEmailConfigDesc: 'Zum Empfangen von Rechnungen per E-Mail. Kann auch später eingerichtet werden.',
+    sedeWizardAppPassRequired: 'App-Passwort erforderlich.',
+    sedeWizardAddOperatorsTitle: 'Operatoren hinzufügen',
+    sedeWizardAddOperatorsDesc: 'Operatoren melden sich mit Name + PIN an (mind. 4 Ziffern).',
+    sedeWizardCreateBtn: 'Standort + {n} Operatoren erstellen',
+    sedeWizardCreatingBtn: 'Wird erstellt…',
+    sedeWizardStartSetup: 'Geführte Einrichtung starten',
+    sedeEmailNotConfigured: 'E-Mail nicht eingerichtet.',
+    sedeCreatedSuccess: 'Standort "{nome}" erfolgreich erstellt.',
   },
 }
 

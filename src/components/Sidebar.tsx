@@ -368,7 +368,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                         <button
                           type="button"
                           onClick={() => { switchSede(s.id); onClose?.() }}
-                          title={isCurrent ? `Sede attiva: ${s.nome}` : `Passa a: ${s.nome}`}
+                          title={isCurrent ? t.ui.sidebarSedeActive.replace('{name}', s.nome) : t.ui.sidebarSedeSwitchTo.replace('{name}', s.nome)}
                           className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
                             isCurrent
                               ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
@@ -386,7 +386,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                         <Link
                           href={`/sedi/${s.id}`}
                           onClick={onClose}
-                          title={`Impostazioni ${s.nome}`}
+                          title={t.ui.sidebarSedeSettings.replace('{name}', s.nome)}
                           className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
                         >
                           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -566,7 +566,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <button
               type="button"
               onClick={() => setFooterOpen(o => !o)}
-              title={footerOpen ? "Comprimi" : "Espandi"}
+              title={footerOpen ? t.ui.collapseSidebar : t.ui.expandSidebar}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white/30 transition-colors hover:bg-app-line-10 hover:text-white/70"
             >
               <svg className={`h-3 w-3 transition-transform ${footerOpen ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">

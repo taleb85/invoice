@@ -78,7 +78,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
             </a>
           ))}
           <span className="ml-2 text-[10px] font-medium text-sky-400/40 uppercase tracking-wider">
-            da inizio FY
+            {t.appStrings.analyticsSinceFY}
           </span>
         </div>
       </div>
