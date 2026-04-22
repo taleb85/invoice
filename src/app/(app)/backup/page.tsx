@@ -4,6 +4,7 @@ import { useMe } from '@/lib/me-context'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { BackupManager } from '@/components/backup/backup-manager'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 export default function BackupPage() {
   const { me, loading } = useMe()
@@ -24,13 +25,13 @@ export default function BackupPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <div>
-        <h1 className="text-xl font-bold text-app-fg">Backup Dati</h1>
-        <p className="mt-1 text-sm text-app-fg-muted">
-          Esportazioni CSV automatiche settimanali · Ogni lunedì alle 02:00 UTC
-        </p>
-      </div>
+    <div className="app-shell-page-padding">
+      <AppPageHeaderStrip accent="amber" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>}>
+        <div className="min-w-0">
+          <h1 className="text-base font-bold text-app-fg sm:text-lg">Backup Dati</h1>
+          <p className="text-xs text-app-fg-muted">Esportazioni CSV automatiche settimanali · Ogni lunedì alle 02:00 UTC</p>
+        </div>
+      </AppPageHeaderStrip>
       <BackupManager />
     </div>
   )

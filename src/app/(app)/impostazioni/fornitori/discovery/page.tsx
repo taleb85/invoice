@@ -281,7 +281,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
 
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="amber" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}>
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2 text-sm text-app-fg-muted">
