@@ -463,7 +463,7 @@ export default function SediPage() {
   return (
     <div className="w-full min-w-0 app-shell-page-padding space-y-6 md:space-y-8">
 
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="teal">
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.sedi.titleGlobalAdmin}</h1>
           <p className="mt-1 hidden text-sm text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
@@ -837,7 +837,8 @@ export default function SediPage() {
         ) : (
           <div className="space-y-3">
             {sedi.map((sede) => (
-              <div key={sede.id} className="app-workspace-surface-elevated border border-app-line-22 rounded-xl shadow-sm overflow-hidden">
+              <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-teal-500/20 bg-transparent">
+                <div className="h-0.5 shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-700 [box-shadow:0_0_16px_rgba(20,184,166,0.48)]" aria-hidden />
 
                 {/* ── Header sede ── */}
                 <div className="flex items-center justify-between px-5 py-4">
