@@ -570,7 +570,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           >
 
             {/* Nome */}
-            <div className="text-left sm:text-center">
+            <div className="text-center">
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.login.nameLabel}</label>
               <input
                 type="text"
@@ -617,7 +617,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                   setName(token)
                   void lookupSede(token, { silentNotFound: false })
                 }}
-                className={`${inputCls} text-left sm:text-center`}
+                className={`${inputCls} text-center`}
                 ref={el => {
                   /* autofocus solo su dispositivi non-touch per non aprire la tastiera su mobile */
                   if (el && !('ontouchstart' in window)) el.focus()
@@ -625,7 +625,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 disabled={loading}
               />
               {/* Badge sede */}
-              <div className="mt-2 flex h-6 min-h-6 items-center justify-start sm:justify-center">
+              <div className="mt-2 flex h-6 min-h-6 items-center justify-center">
                 {lookingUp && (
                   <span className="text-xs text-app-fg-muted flex items-center gap-1.5">
                     <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -650,7 +650,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             </div>
 
             {/* PIN a 4 caselle */}
-            <div className="text-left sm:text-center">
+            <div className="text-center">
               <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                 <span>{t.login.pinLabel}</span>
                 <span className="font-normal normal-case text-app-fg-muted"> {t.login.pinDigits}</span>
