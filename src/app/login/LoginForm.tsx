@@ -60,6 +60,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const [pin, setPin]   = useState<string[]>(Array(PIN_LENGTH).fill(''))
   const pinRefs         = useRef<(HTMLInputElement | null)[]>([])
   const nameInputRef    = useRef<HTMLInputElement | null>(null)
+  /** Ref callback stabile (useCallback) per evitare che il focus torni al nome ad ogni re-render */
+  const nameInputRefCb  = useCallback((el: HTMLInputElement | null) => {
+    nameInputRef.current = el
+    if (el && !('ontouchstart' in window)) el.focus()
+  }, [])
 
   /* ── admin ─────────────────────────────────────────── */
   const [email, setEmail]           = useState('')
@@ -643,11 +648,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                   void lookupSede(token, { silentNotFound: false })
                 }}
                 className={`${inputCls} text-center`}
-                ref={el => {
-                  nameInputRef.current = el
-                  /* autofocus solo su dispositivi non-touch per non aprire la tastiera su mobile */
-                  if (el && !('ontouchstart' in window)) el.focus()
-                }}
+                ref={nameInputRefCb}
                 disabled={loading}
               />
               {/* Badge sede */}
