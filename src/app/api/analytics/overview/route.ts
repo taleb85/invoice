@@ -148,6 +148,7 @@ export async function GET(req: NextRequest) {
     if (errors.length) console.error('[analytics/overview] Supabase errors:', errors.join(' | '))
 
   const fatture = (fattureRes.data ?? []) as FatturaRow[]
+  const bolle = (bolleRes.data ?? []) as BollaRow[]
   const spesaMap = new Map<string, { importo: number; fatture: number; label: string }>()
   for (const f of fatture) {
     if (!f.data) continue
