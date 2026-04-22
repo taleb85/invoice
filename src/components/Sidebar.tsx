@@ -424,11 +424,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault()
-                    onClose?.()
-                    router.push(item.href)
-                  }}
+                  onClick={onClose}
                   className={`${navLink(isActive)} relative min-w-0`}
                 >
                   {item.icon}
