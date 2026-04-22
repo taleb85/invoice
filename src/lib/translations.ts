@@ -1603,7 +1603,7 @@ const it: Translations = {
     adminSubtitleHint:
       'Email e password per il Portale Gestionale. Per nome operatore e codice usa «Accesso Sede» (responsabile sede e operatori).',
     nameLabel: 'Nome Operatore',
-    namePlaceholder: 'MARIO',
+    namePlaceholder: '',
     pinLabel: 'Codice Accesso Sede',
     pinDigits: '(4 cifre)',
     lookingUp: 'Verifica nome…',
@@ -2867,7 +2867,7 @@ const en: Translations = {
     adminSubtitleHint:
       'Admin email & password for the Management Portal. For staff access use Branch Access below.',
     nameLabel: 'Staff Name',
-    namePlaceholder: 'JOHN',
+    namePlaceholder: '',
     pinLabel: 'Staff PIN',
     pinDigits: '(4 digits)',
     lookingUp: 'Looking up…',
@@ -3503,7 +3503,7 @@ const es: Translations = {
     adminSubtitleHint:
       'Correo y contraseña para el portal de gestión. Para nombre de operador y PIN, usa «Acceso operador» (admins de sede y operadores).',
     nameLabel: 'Nombre',
-    namePlaceholder: 'JUAN',
+    namePlaceholder: '',
     pinLabel: 'PIN',
     pinDigits: '(4 dígitos)',
     lookingUp: 'Comprobando nombre…',
@@ -4087,7 +4087,7 @@ const fr: Translations = {
     adminSubtitleHint:
       'E-mail et mot de passe pour le portail de gestion. Pour le nom d’opérateur et le PIN, utilisez « Accès opérateur » (admins de site et opérateurs).',
     nameLabel: 'Nom',
-    namePlaceholder: 'JEAN',
+    namePlaceholder: '',
     pinLabel: 'PIN',
     pinDigits: '(4 chiffres)',
     lookingUp: 'Vérification du nom…',
@@ -4671,7 +4671,7 @@ const de: Translations = {
     adminSubtitleHint:
       'E-Mail und Passwort für das Verwaltungsportal. Für Operatorenname und PIN nutzen Sie «Operator-Zugang» (Standort-Admins und Operatoren).',
     nameLabel: 'Name',
-    namePlaceholder: 'MAX',
+    namePlaceholder: '',
     pinLabel: 'PIN',
     pinDigits: '(4 Ziffern)',
     lookingUp: 'Name wird geprüft…',
