@@ -313,7 +313,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
             return (
-              <Link key={item.href} href={item.href} onClick={onClose} className={navLink(isActive)}>
+              <Link key={item.href} href={item.href} onClick={() => { onClose?.(); router.push(item.href) }} className={navLink(isActive)}>
                 {item.icon}
                 <span className="truncate">{item.label}</span>
               </Link>
@@ -424,7 +424,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={onClose}
+                  onClick={() => {
+                    onClose?.()
+                    router.push(item.href)
+                  }}
                   className={`${navLink(isActive)} relative min-w-0`}
                 >
                   {item.icon}
