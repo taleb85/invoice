@@ -1,7 +1,7 @@
 -- Create activity_log table for operator activity tracking
 CREATE TABLE IF NOT EXISTS public.activity_log (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id     uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_id     uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   sede_id     uuid REFERENCES public.sedi(id) ON DELETE CASCADE,
   action      text NOT NULL,
   entity_type text NOT NULL,
