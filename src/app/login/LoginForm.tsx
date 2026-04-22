@@ -694,9 +694,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 ))}
               </div>
 
-              {/* Numpad — solo su /accesso (sessione gate operatore) */}
+              {/* Numpad — solo su /accesso (sessione gate operatore), solo mobile */}
               {sessionGateNext && (
-                <div className="mt-4">
+                <div className="mt-4 md:hidden">
                   {loading ? (
                     <div className="flex justify-center py-6">
                       <svg className="w-8 h-8 text-app-cyan-500 animate-spin" fill="none" viewBox="0 0 24 24">
