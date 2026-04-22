@@ -13,6 +13,7 @@ import {
   markSessionOperatorGateOk,
 } from '@/lib/session-operator-gate'
 import LoginBrandedHero from '@/components/LoginBrandedHero'
+import { PinNumpad } from '@/components/PinNumpad'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -293,6 +294,33 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     }
   }
 
+  /* Numpad helpers (used by PinNumpad on /accesso) */
+  const pressNumpadDigit = useCallback((d: string) => {
+    setPin(prev => {
+      const filled = prev.filter(x => x !== '').length
+      if (filled >= PIN_LENGTH) return prev
+      const next = [...prev]
+      next[filled] = d
+      return next
+    })
+    setMessage(null)
+  }, [])
+
+  const numpadBackspace = useCallback(() => {
+    setPin(prev => {
+      const filled = prev.filter(x => x !== '').length
+      if (filled === 0) return prev
+      const next = [...prev]
+      next[filled - 1] = ''
+      return next
+    })
+  }, [])
+
+  const numpadClear = useCallback(() => {
+    setPin(Array(PIN_LENGTH).fill(''))
+    setMessage(null)
+  }, [])
+
   /* gestione incolla (es. "1234" → riempie tutto) */
   const handlePinPaste = (e: React.ClipboardEvent) => {
     const text   = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, PIN_LENGTH)
@@ -314,6 +342,14 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       pinRefs.current[0]?.focus()
     }
   }, [nameReady, pin])
+
+  /* auto-submit quando il PIN viene completato via numpad */
+  useEffect(() => {
+    const full = pin.join('')
+    if (full.length === PIN_LENGTH && nameReady && resolvedEmail.current && sessionGateNext) {
+      doLoginByName(resolvedEmail.current, full)
+    }
+  }, [pin, nameReady, sessionGateNext]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Gate admin: stato da server */
   useEffect(() => {
@@ -657,6 +693,27 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                   ].join(' ')} />
                 ))}
               </div>
+
+              {/* Numpad — solo su /accesso (sessione gate operatore) */}
+              {sessionGateNext && (
+                <div className="mt-4">
+                  {loading ? (
+                    <div className="flex justify-center py-6">
+                      <svg className="w-8 h-8 text-app-cyan-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                    </div>
+                  ) : (
+                    <PinNumpad
+                      onDigit={pressNumpadDigit}
+                      onBackspace={numpadBackspace}
+                      onClear={numpadClear}
+                      disabled={loading || !nameReady}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Indicatore auto-login */}
               {(pinFilled || loading) && (

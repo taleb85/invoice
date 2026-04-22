@@ -5,6 +5,7 @@ import { useActiveOperator, ActiveOperator } from '@/lib/active-operator-context
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
+import { PinNumpad } from '@/components/PinNumpad'
 
 const PIN_LENGTH = 4
 
@@ -33,7 +34,6 @@ export default function OperatorSwitchModal() {
   const [loadingOps, setLoadingOps] = useState(false)
   const [noSedeContext, setNoSedeContext] = useState(false)
 
-  const pinRefs = useRef<(HTMLButtonElement | null)[]>([])
   const firstBtnRef = useRef<HTMLButtonElement | null>(null)
 
   /**
@@ -217,13 +217,6 @@ export default function OperatorSwitchModal() {
 
   if (!showSwitchModal) return null
 
-  const KEYS = [
-    ['1','2','3'],
-    ['4','5','6'],
-    ['7','8','9'],
-    ['C','0','⌫'],
-  ]
-
   return (
     <div
       role="dialog"
@@ -393,7 +386,7 @@ export default function OperatorSwitchModal() {
                 </div>
               )}
 
-              {/* Keypad — tablet optimized */}
+              {/* Keypad */}
               {loading ? (
                 <div className="py-6 flex justify-center">
                   <svg className="w-8 h-8 text-app-cyan-500 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -402,35 +395,12 @@ export default function OperatorSwitchModal() {
                   </svg>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-                  {KEYS.flat().map((key, i) => {
-                    const isDigit   = key >= '0' && key <= '9'
-                    const isDelete  = key === '⌫'
-                    const isClear   = key === 'C'
-
-                    return (
-                      <button
-                        key={i}
-                        ref={el => { pinRefs.current[i] = el }}
-                        onClick={() => {
-                          if (isDigit)  pressDigit(key)
-                          if (isDelete) backspace()
-                          if (isClear)  clearPin()
-                        }}
-                        className={[
-                          'min-h-[52px] rounded-2xl border text-xl font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg',
-                          isDigit
-                            ? 'border-app-line-35 app-workspace-surface-elevated text-app-fg ring-1 ring-app-line-10 hover:border-app-a-50 hover:brightness-110'
-                            : isClear
-                              ? 'border-app-soft-border app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-35 hover:bg-black/18'
-                              : 'border-app-soft-border app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-35 hover:bg-black/18',
-                        ].join(' ')}
-                      >
-                        {key}
-                      </button>
-                    )
-                  })}
-                </div>
+                <PinNumpad
+                  onDigit={pressDigit}
+                  onBackspace={backspace}
+                  onClear={clearPin}
+                  disabled={loading}
+                />
               )}
             </div>
           )}
