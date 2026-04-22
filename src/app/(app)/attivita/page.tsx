@@ -91,7 +91,7 @@ export default function AttivitaPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="app-shell-page-padding">
       <AppPageHeaderStrip accent="indigo">
         <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
           <div className="min-w-0">
@@ -163,14 +163,12 @@ export default function AttivitaPage() {
       </div>
 
       {/* Feed */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-        <ActivityFeed
-          sedeId={sedeId || (isMaster ? undefined : me?.sede_id)}
-          userId={userId || undefined}
-          limit={30}
-          showFilters={true}
-        />
-      </div>
+      <ActivityFeed
+        sedeId={sedeId || (isMaster ? undefined : me?.sede_id)}
+        userId={userId || undefined}
+        limit={30}
+        showFilters={true}
+      />
     </div>
   )
 }

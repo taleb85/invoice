@@ -13,7 +13,7 @@ export default async function ApprovazioniPage() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="app-shell-page-padding">
       <AppPageHeaderStrip accent="emerald">
         <div className="min-w-0">
           <h1 className="text-base font-bold text-app-fg sm:text-lg">{t.nav.approvazioni}</h1>
@@ -21,9 +21,7 @@ export default async function ApprovazioniPage() {
         </div>
       </AppPageHeaderStrip>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-        <ApprovalQueue />
-      </div>
+      <ApprovalQueue />
     </div>
   )
 }
