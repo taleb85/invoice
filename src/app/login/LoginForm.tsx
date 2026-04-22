@@ -272,14 +272,31 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         const full = next.join('')
         if (full.length === PIN_LENGTH && resolvedEmail.current) {
           doLoginByName(resolvedEmail.current, full)
-        } else if (full.length === PIN_LENGTH && !resolvedEmail.current) {
-          /* nome non ancora risolto → aspetta lookup */
         }
       }
     }
   }
 
   const handlePinKeyDown = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    /* Digit 0-9: gestisci direttamente per garantire funzionamento anche con inputMode="none" */
+    if (e.key >= '0' && e.key <= '9') {
+      e.preventDefault()
+      const digit = e.key
+      const next  = [...pin]
+      next[idx]   = digit
+      setPin(next)
+      setMessage(null)
+      if (idx < PIN_LENGTH - 1) {
+        pinRefs.current[idx + 1]?.focus()
+      } else {
+        pinRefs.current[idx]?.blur()
+        const full = next.join('')
+        if (full.length === PIN_LENGTH && resolvedEmail.current) {
+          doLoginByName(resolvedEmail.current, full)
+        }
+      }
+      return
+    }
     if (e.key === 'Backspace') {
       if (pin[idx]) {
         const next = [...pin]; next[idx] = ''; setPin(next)
