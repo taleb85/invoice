@@ -129,18 +129,19 @@ export default function RecuperoCreditiAudit({
   }
 
   return (
-    <div className="app-card overflow-hidden border-red-500/25">
-      <div className="app-card-bar-accent bg-gradient-to-r from-red-500/80 to-orange-500/60" aria-hidden />
-      
+    <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-transparent">
+      <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-600 [box-shadow:0_0_16px_rgba(244,63,94,0.5),0_0_28px_rgba(225,29,72,0.3)]" aria-hidden />
+
       <div className="px-5 py-4">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-app-fg">Audit Recupero Crediti</h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400/80">Rekki Audit</p>
+            <h3 className="mt-0.5 text-sm font-bold text-app-fg">Audit Recupero Crediti</h3>
             <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">
               Analizza tutte le fatture storiche per identificare sovraprezzi rispetto ai prezzi Rekki pattuiti
             </p>
           </div>
-          <svg className="h-6 w-6 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5 shrink-0 text-rose-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -148,39 +149,39 @@ export default function RecuperoCreditiAudit({
         {/* Date range selector */}
         <div className="mb-4 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[120px]">
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+            <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-rose-400/70">
               Da
             </label>
             <input
               type="date"
               value={dateRange.from}
               onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-              className="w-full rounded-lg border border-app-line-28 bg-app-line-15 px-3 py-2 text-sm text-app-fg [color-scheme:dark] focus:border-red-500/40 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              className="w-full rounded-xl border border-rose-500/35 bg-rose-500/[0.06] px-3 py-2 text-sm text-app-fg [color-scheme:dark] placeholder:text-rose-300/55 focus:border-rose-500/50 focus:outline-none"
             />
           </div>
           <div className="flex-1 min-w-[120px]">
-            <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-app-fg-muted">
+            <label className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-rose-400/70">
               A
             </label>
             <input
               type="date"
               value={dateRange.to}
               onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-              className="w-full rounded-lg border border-app-line-28 bg-app-line-15 px-3 py-2 text-sm text-app-fg [color-scheme:dark] focus:border-red-500/40 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              className="w-full rounded-xl border border-rose-500/35 bg-rose-500/[0.06] px-3 py-2 text-sm text-app-fg [color-scheme:dark] placeholder:text-rose-300/55 focus:border-rose-500/50 focus:outline-none"
             />
           </div>
           <button
             type="button"
             onClick={handleRunAudit}
             disabled={loading}
-            className="shrink-0 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-500 disabled:opacity-50"
+            className="shrink-0 rounded-xl border border-rose-500/40 bg-rose-600/80 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-rose-500/80 disabled:opacity-50"
           >
             {loading ? 'Analisi in corso...' : 'Esegui Audit'}
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
+          <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-200">
             <div className="flex items-start gap-2">
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -191,7 +192,7 @@ export default function RecuperoCreditiAudit({
         )}
 
         {syncSuccess && (
-          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
+          <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
             <div className="flex items-start gap-2">
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -202,11 +203,12 @@ export default function RecuperoCreditiAudit({
         )}
 
         {/* Sync storico button */}
-        <div className="mb-4 rounded-lg border border-violet-500/30 bg-violet-500/10 px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
+        <div className="mb-4 relative overflow-hidden rounded-xl border border-violet-500/25 bg-transparent">
+          <div className="h-px w-full bg-gradient-to-r from-violet-500/60 via-violet-400/40 to-violet-600/60" aria-hidden />
+          <div className="flex items-start justify-between gap-3 px-4 py-3">
             <div className="flex-1">
-              <p className="text-xs font-bold text-violet-200">Sincronizza Storico con Rekki</p>
-              <p className="mt-1 text-xs leading-relaxed text-violet-300/80">
+              <p className="text-xs font-bold text-violet-300">Sincronizza Storico con Rekki</p>
+              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">
                 Analizza tutte le fatture passate e aggiorna automaticamente le date di riferimento
                 per eliminare i blocchi &quot;Data documento anteriore&quot;
               </p>
@@ -215,7 +217,7 @@ export default function RecuperoCreditiAudit({
               type="button"
               onClick={handleSyncStorico}
               disabled={syncing}
-              className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
+              className="shrink-0 rounded-xl border border-violet-500/40 bg-violet-600/70 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500/70 disabled:opacity-50"
             >
               {syncing ? 'Sync...' : 'Sincronizza'}
             </button>
@@ -226,48 +228,60 @@ export default function RecuperoCreditiAudit({
           <>
             {/* Summary KPIs */}
             <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-center">
-                <p className="text-xs text-red-300/80">Spreco Totale</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-red-200">
-                  {formatCurrency(audit.totalSpreco)}
-                </p>
+              <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-transparent">
+                <div className="h-0.5 shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700" />
+                <div className="px-4 py-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-rose-400/80">Spreco Totale</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-rose-300">
+                    {formatCurrency(audit.totalSpreco)}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-lg border border-app-line-22 bg-app-line-10 px-4 py-3 text-center">
-                <p className="text-xs text-app-fg-muted">Anomalie</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
-                  {audit.totalOvercharges}
-                </p>
+              <div className="relative overflow-hidden rounded-2xl border border-app-soft-border bg-transparent">
+                <div className="h-0.5 shrink-0 bg-gradient-to-r from-app-fg-muted/30 to-app-fg-muted/10" />
+                <div className="px-4 py-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Anomalie</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
+                    {audit.totalOvercharges}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-lg border border-app-line-22 bg-app-line-10 px-4 py-3 text-center">
-                <p className="text-xs text-app-fg-muted">Prodotti</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
-                  {audit.productCount}
-                </p>
+              <div className="relative overflow-hidden rounded-2xl border border-app-soft-border bg-transparent">
+                <div className="h-0.5 shrink-0 bg-gradient-to-r from-app-fg-muted/30 to-app-fg-muted/10" />
+                <div className="px-4 py-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Prodotti</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
+                    {audit.productCount}
+                  </p>
+                </div>
               </div>
-              <div className="rounded-lg border border-app-line-22 bg-app-line-10 px-4 py-3 text-center">
-                <p className="text-xs text-app-fg-muted">Fatture</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
-                  {audit.fattureCount}
-                </p>
+              <div className="relative overflow-hidden rounded-2xl border border-app-soft-border bg-transparent">
+                <div className="h-0.5 shrink-0 bg-gradient-to-r from-app-fg-muted/30 to-app-fg-muted/10" />
+                <div className="px-4 py-3 text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Fatture</p>
+                  <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">
+                    {audit.fattureCount}
+                  </p>
+                </div>
               </div>
             </div>
 
             {audit.items.length === 0 ? (
-              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-6 text-center">
-                <svg className="mx-auto h-12 w-12 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.05] px-4 py-6 text-center">
+                <svg className="mx-auto h-10 w-10 text-emerald-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="mt-3 text-sm font-semibold text-emerald-200">
                   Nessun sovrapprezzo rilevato!
                 </p>
-                <p className="mt-1 text-xs text-emerald-300/80">
+                <p className="mt-1 text-xs text-emerald-300/70">
                   Tutti i prezzi fatturati sono in linea o inferiori a quelli Rekki pattuiti
                 </p>
               </div>
             ) : (
               <>
                 {/* Overcharges table */}
-                <div className="mb-4 max-h-[600px] overflow-y-auto rounded-lg border border-app-line-22">
+                <div className="mb-4 max-h-[600px] overflow-y-auto rounded-xl border border-app-soft-border">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 app-workspace-inset-bg">
                       <tr>
@@ -296,12 +310,12 @@ export default function RecuperoCreditiAudit({
                     </thead>
                     <tbody>
                       {audit.items.map((item, idx) => (
-                        <tr key={idx} className="border-t border-app-line-15 bg-red-500/5 hover:bg-red-500/10">
+                        <tr key={idx} className="border-t border-app-line-15 bg-rose-500/[0.03] hover:bg-rose-500/[0.08]">
                           <td className="px-3 py-2">
                             <div className="flex flex-col gap-0.5">
                               <Link
                                 href={`/fornitori/${fornitoreId}?tab=fatture&fattura=${item.fatturaId}`}
-                                className="font-semibold text-app-fg hover:text-red-300"
+                                className="font-semibold text-app-fg hover:text-rose-300"
                               >
                                 {formatDate(item.fatturaData)}
                               </Link>
@@ -315,26 +329,26 @@ export default function RecuperoCreditiAudit({
                           <td className="px-3 py-2">
                             <div className="flex flex-col gap-0.5">
                               <span className="font-medium text-app-fg">{item.prodotto}</span>
-                              <span className="font-mono text-[10px] text-violet-300">
+                              <span className="font-mono text-[10px] text-violet-300/80">
                                 {item.rekkiProductId}
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-red-300">
+                          <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums text-rose-300">
                             {formatCurrency(item.prezzoPagato)}
                           </td>
                           <td className="px-3 py-2 text-right font-mono tabular-nums text-emerald-300">
                             {formatCurrency(item.prezzoPattuito)}
                           </td>
                           <td className="px-3 py-2 text-center">
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-200">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-200">
                               +{item.differenzaPercent.toFixed(1)}%
                             </span>
                           </td>
                           <td className="px-3 py-2 text-center font-mono text-app-fg-muted">
                             {item.quantita ?? '?'}
                           </td>
-                          <td className="px-3 py-2 text-right font-mono font-bold tabular-nums text-red-200">
+                          <td className="px-3 py-2 text-right font-mono font-bold tabular-nums text-rose-200">
                             {formatCurrency(item.sprecoTotale)}
                           </td>
                         </tr>
@@ -348,7 +362,6 @@ export default function RecuperoCreditiAudit({
                   <button
                     type="button"
                     onClick={() => {
-                      // Export to CSV
                       const csv = [
                         ['Data', 'Numero Fattura', 'Prodotto', 'Rekki ID', 'Pagato', 'Pattuito', 'Differenza %', 'Quantità', 'Spreco'].join(','),
                         ...audit.items.map(item => [
@@ -363,7 +376,6 @@ export default function RecuperoCreditiAudit({
                           item.sprecoTotale.toFixed(2),
                         ].join(',')),
                       ].join('\n')
-                      
                       const blob = new Blob([csv], { type: 'text/csv' })
                       const url = URL.createObjectURL(blob)
                       const a = document.createElement('a')
@@ -372,7 +384,7 @@ export default function RecuperoCreditiAudit({
                       a.click()
                       URL.revokeObjectURL(url)
                     }}
-                    className="flex items-center gap-2 rounded-lg border border-app-line-28 bg-app-line-10 px-4 py-2 text-sm font-medium text-app-fg transition-colors hover:bg-app-line-15"
+                    className="flex items-center gap-2 rounded-xl border border-app-line-25 bg-transparent px-4 py-2 text-sm font-medium text-app-fg transition-colors hover:bg-app-line-10"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -387,8 +399,8 @@ export default function RecuperoCreditiAudit({
 
         {/* Help text */}
         {!audit && (
-          <details className="mt-4 rounded-lg border border-app-line-22 bg-app-line-15 px-3 py-2">
-            <summary className="cursor-pointer text-xs font-semibold text-red-300 hover:text-red-200">
+          <details className="mt-4 rounded-xl border border-app-soft-border px-3 py-2">
+            <summary className="cursor-pointer text-xs font-semibold text-rose-300/80 hover:text-rose-200">
               Come funziona l&apos;audit?
             </summary>
             <div className="mt-2 space-y-2 text-xs leading-relaxed text-app-fg-muted">
@@ -399,7 +411,7 @@ export default function RecuperoCreditiAudit({
                 <li>Identifica tutti i casi in cui è stato pagato un prezzo superiore</li>
                 <li>Calcola lo spreco totale basandosi sulla quantità acquistata</li>
               </ul>
-              <p className="font-semibold text-red-300">
+              <p className="font-semibold text-rose-300/80">
                 💡 Usa questo report per richiedere note di credito al fornitore
               </p>
             </div>
