@@ -56,41 +56,12 @@ export default function OfflinePage() {
   return (
     <LoginBrandedShell>
       <div className="flex w-full max-w-md flex-col items-center px-6 text-center">
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="mb-8 h-24 w-24">
-        <defs>
-          <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#1e3a5f" />
-            <stop offset="100%" stopColor="#0f2a3f" />
-          </linearGradient>
-          <linearGradient id="flow" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#22d3ee" />
-          </linearGradient>
-        </defs>
-        <rect x="5" y="5" width="90" height="90" rx="22" fill="url(#bg)" />
-        <text
-          x="50"
-          y="52"
-          textAnchor="middle"
-          fontFamily="Arial, Helvetica, sans-serif"
-          fontSize="20"
-          fontWeight="700"
-          fill="url(#flow)"
-          letterSpacing="1"
-        >
-          SP
-        </text>
-        <path
-          d="M20 65 C30 50, 50 50, 60 65 S80 80, 85 65"
-          stroke="url(#flow)"
-          strokeWidth="3.5"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <circle cx="20" cy="65" r="3" fill="#3b82f6" />
-        <circle cx="60" cy="65" r="3" fill="#22d3ee" />
-        <circle cx="85" cy="65" r="3" fill="#3b82f6" />
-      </svg>
+      <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-3xl bg-[#0f2a4a] shadow-[0_0_48px_rgba(34,211,238,0.25)] ring-2 ring-[#22d3ee]/20">
+        <svg width="52" height="52" viewBox="0 0 40 40" fill="none" aria-hidden>
+          <path d="M4 20 L16 8 L16 15 L28 15 L28 20" stroke="#22d3ee" strokeWidth="3.8" strokeLinejoin="round" strokeLinecap="round"/>
+          <path d="M36 20 L24 32 L24 25 L12 25 L12 20" stroke="#5b7cf9" strokeWidth="3.8" strokeLinejoin="round" strokeLinecap="round"/>
+        </svg>
+      </div>
 
       <h1 className="app-page-title mb-2 text-2xl font-bold">Sei offline</h1>
       <p className="max-w-sm text-sm text-app-fg-muted">

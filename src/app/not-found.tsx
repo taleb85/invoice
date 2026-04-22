@@ -15,14 +15,10 @@ export default async function NotFound() {
     <LoginBrandedShell>
       <div className="w-full max-w-md space-y-6 text-center">
         <Link href="/" className="group inline-flex items-center justify-center gap-2.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-app-a-35 bg-app-line-15 shadow-[0_0_24px_rgba(34,211,238,0.22)] ring-1 ring-inset ring-white/10 transition-colors group-hover:border-app-tint-300-45 group-hover:bg-app-line-22">
-            <svg className="h-5 w-5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-app-a-35 bg-[#0f2a4a] shadow-[0_0_24px_rgba(34,211,238,0.22)] ring-1 ring-inset ring-[#22d3ee]/30 transition-colors group-hover:border-app-tint-300-45 group-hover:bg-[#0f2a4a]/80">
+            <svg width="22" height="22" viewBox="0 0 40 40" fill="none" aria-hidden>
+              <path d="M4 20 L16 8 L16 15 L28 15 L28 20" stroke="#22d3ee" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="round"/>
+              <path d="M36 20 L24 32 L24 25 L12 25 L12 20" stroke="#5b7cf9" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="round"/>
             </svg>
           </div>
           <span className="text-lg font-bold tracking-tight text-app-fg-muted">Smart Pair</span>
