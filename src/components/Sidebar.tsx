@@ -292,7 +292,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   // Shared icon-link style helpers
   const navLink = (isActive: boolean) =>
-    `flex items-center gap-2 px-2 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap overflow-hidden ${
+    `flex items-center gap-2 px-2 py-1.5 rounded-xl text-xs font-semibold transition-all ${
       isActive
         ? 'border-l-2 border-app-cyan-400/90 bg-gradient-to-r from-app-line-15 to-app-a-20 pl-[7px] text-app-fg shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]'
         : 'border-l-2 border-transparent bg-transparent pl-[7px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
@@ -303,8 +303,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
       suppressHydrationWarning
       className="app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3"
     >
-        <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-hidden text-app-fg">
-          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto py-2.5">
+        <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
+          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto py-2.5">
           {/* Dashboard */}
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
@@ -417,9 +417,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
               const hasBadge = (item as { badge?: boolean }).badge
               const itemCount = (item as { count?: number }).count
               return (
-                <Link key={item.href} href={item.href} onClick={onClose} className={`${navLink(isActive)} relative`}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    onClose?.()
+                    router.push(item.href)
+                  }}
+                  className={`${navLink(isActive)} relative min-w-0`}
+                >
                   {item.icon}
-                  <span className="truncate flex-1">{item.label}</span>
+                  <span className="truncate flex-1 min-w-0">{item.label}</span>
                   {hasBadge && <span className="ml-auto shrink-0 w-2 h-2 rounded-full bg-red-500" />}
                   {itemCount != null && itemCount > 0 && (
                     <span className="ml-auto shrink-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold tabular-nums text-white">
