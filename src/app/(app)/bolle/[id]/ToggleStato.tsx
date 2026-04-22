@@ -32,8 +32,8 @@ export default function ToggleStato({ id, stato }: { id: string; stato: BollaSta
       aria-label={label}
       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
         current === 'completato'
-          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'
-          : 'border-amber-500/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25'
+          ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'
+          : 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200 hover:bg-amber-500/25'
       }`}
     >
       {label}

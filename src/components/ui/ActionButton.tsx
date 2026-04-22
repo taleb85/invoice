@@ -11,17 +11,17 @@ const INTENT_CLASS: Record<ActionButtonIntent, string> = {
   /** Viola neon — Rekki, Google, ricerche, collegamenti integrazione */
   integration: [
     ACTION_BUTTON_BASE,
-    'rounded-xl border border-violet-400/55 bg-violet-950/55 px-4 py-2.5 text-sm text-violet-50',
+    'rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-950/55 px-4 py-2.5 text-sm text-violet-50',
     'shadow-[0_0_0_1px_rgba(167,139,250,0.35),0_0_28px_rgba(139,92,246,0.42),0_0_52px_rgba(76,29,149,0.28)]',
-    'hover:border-violet-300/70 hover:bg-violet-600/35 hover:shadow-[0_0_0_1px_rgba(196,181,253,0.45),0_0_36px_rgba(167,139,250,0.5)]',
+    'hover:border-[rgba(34,211,238,0.15)] hover:bg-violet-600/35 hover:shadow-[0_0_0_1px_rgba(196,181,253,0.45),0_0_36px_rgba(167,139,250,0.5)]',
     'focus-visible:ring-violet-400/55 active:scale-[0.99]',
   ].join(' '),
   /** Viola contorno — azioni secondarie Rekki (es. ricerca Google site:rekki) */
   outline: [
     ACTION_BUTTON_BASE,
-    'rounded-xl border border-violet-400/55 bg-transparent px-4 py-2.5 text-sm text-violet-100',
+    'rounded-xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 py-2.5 text-sm text-violet-100',
     'shadow-[0_0_0_1px_rgba(167,139,250,0.2)]',
-    'hover:border-violet-300/70 hover:bg-violet-950/40 hover:shadow-[0_0_24px_rgba(139,92,246,0.22)]',
+    'hover:border-[rgba(34,211,238,0.15)] hover:bg-violet-950/40 hover:shadow-[0_0_24px_rgba(139,92,246,0.22)]',
     'focus-visible:ring-violet-400/55 active:scale-[0.99]',
   ].join(' '),
   /** Verde neon #39FF14 — salva, conferma, prezzo OK */

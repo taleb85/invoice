@@ -115,7 +115,7 @@ export default function FattureInAttesaAutoSync({
       </div>
 
       {error && (
-        <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
+        <div className="mb-4 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
           <div className="flex items-start gap-2">
             <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -21,7 +21,7 @@ export default function AppError({
     <div className="flex-1 flex items-center justify-center p-4 min-h-[60vh]">
       <div className="w-full max-w-md text-center space-y-6">
         <div className="flex justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-red-500/30 bg-red-950/40">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[rgba(34,211,238,0.15)] bg-red-950/40">
             <svg className="h-8 w-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                 d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -44,7 +44,7 @@ export default function AppError({
               <summary className="cursor-pointer text-xs text-app-fg-muted hover:text-app-fg">
                 {t.appStrings.errorDevDetailsSummary}
               </summary>
-              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2 text-left font-mono text-[11px] text-red-300">
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-3 py-2 text-left font-mono text-[11px] text-red-300">
                 {error.message}
                 {error.stack ? `\n\n${error.stack}` : ''}
               </pre>

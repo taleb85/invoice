@@ -72,14 +72,14 @@ export type AppSectionTableHeadAccent =
   | 'sky'
 
 const APP_SECTION_TABLE_HEAD_ACCENT_BORDER: Record<AppSectionTableHeadAccent, string> = {
-  indigo: 'border-b-2 border-indigo-500/50',
-  emerald: 'border-b-2 border-emerald-500/50',
-  rose: 'border-b-2 border-rose-500/50',
-  amber: 'border-b-2 border-amber-500/50',
-  fuchsia: 'border-b-2 border-fuchsia-500/50',
-  violet: 'border-b-2 border-violet-500/50',
-  cyan: 'border-b-2 border-cyan-400/45',
-  sky: 'border-b-2 border-sky-500/50',
+  indigo: 'border-b border-[rgba(34,211,238,0.15)]',
+  emerald: 'border-b border-[rgba(34,211,238,0.15)]',
+  rose: 'border-b border-[rgba(34,211,238,0.15)]',
+  amber: 'border-b border-[rgba(34,211,238,0.15)]',
+  fuchsia: 'border-b border-[rgba(34,211,238,0.15)]',
+  violet: 'border-b border-[rgba(34,211,238,0.15)]',
+  cyan: 'border-b border-[rgba(34,211,238,0.15)]',
+  sky: 'border-b border-[rgba(34,211,238,0.15)]',
 }
 
 /** Thead con bordo colorato + stesso sfondo delle altre tabelle sezione. */

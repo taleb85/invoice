@@ -25,13 +25,13 @@ const CONFERME_TABLE_HEAD_ROW = 'border-b border-app-soft-border bg-transparent'
 
 /** Apri PDF: contorno rosa, fill trasparente. */
 const CONFERME_OPEN_PILL =
-  'inline-flex items-center gap-1 rounded-lg border border-rose-500/30 bg-transparent px-2 py-1 text-[10px] font-semibold text-rose-100/90 transition-colors hover:bg-rose-500/10'
+  'inline-flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-rose-100/90 transition-colors hover:bg-rose-500/10'
 
 const RED_ACTION_PILL =
-  'inline-flex items-center justify-center rounded-lg border border-red-400/45 bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
+  'inline-flex items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
 
 const inputClass =
-  'w-full rounded-lg border border-rose-500/35 bg-rose-500/[0.06] px-3 py-2 text-sm text-rose-50/[0.96] placeholder:text-rose-300/55 focus:border-rose-400/55 focus:outline-none focus:ring-1 focus:ring-rose-400/25 [color-scheme:dark]'
+  'w-full rounded-lg border border-[rgba(34,211,238,0.15)] bg-rose-500/[0.06] px-3 py-2 text-sm text-rose-50/[0.96] placeholder:text-rose-300/55 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-rose-400/25 [color-scheme:dark]'
 
 function pathFromDocumentiPublicUrl(url: string): string | null {
   try {
@@ -213,7 +213,7 @@ export default function FornitoreConfermeOrdineTab({
     return (
       <div className={`supplier-detail-tab-shell mt-4 overflow-hidden ${migrationTheme.border}`}>
         <div className={`app-card-bar-accent ${migrationTheme.bar}`} aria-hidden />
-        <div className="border-b border-amber-500/25 bg-transparent px-5 py-4 text-sm text-amber-100/95">
+        <div className="border-b border-[rgba(34,211,238,0.15)] bg-transparent px-5 py-4 text-sm text-amber-100/95">
           <p className="font-semibold text-amber-200">{t.fornitori.confermeOrdineMigrationTitle}</p>
           <p className="mt-1.5 text-xs leading-relaxed text-amber-100/85">{t.fornitori.confermeOrdineMigrationHint}</p>
         </div>
@@ -239,7 +239,7 @@ export default function FornitoreConfermeOrdineTab({
                 type="file"
                 accept="application/pdf"
                 onChange={onPickFile}
-                className={`block w-full text-sm ${confermeSecondaryClass} file:mr-3 file:rounded-lg file:border file:border-rose-500/40 file:bg-rose-500/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-rose-100/90 hover:file:bg-rose-500/20`}
+                className={`block w-full text-sm ${confermeSecondaryClass} file:mr-3 file:rounded-lg file:border file:border-[rgba(34,211,238,0.15)] file:bg-rose-500/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-rose-100/90 hover:file:bg-rose-500/20`}
               />
             </div>
             <div className="flex min-h-0 flex-col">
@@ -282,7 +282,7 @@ export default function FornitoreConfermeOrdineTab({
             </div>
           </div>
           {error ? (
-            <p className="mt-3 rounded-lg border border-red-400/35 bg-transparent px-3 py-2 text-sm text-red-200/95">{error}</p>
+            <p className="mt-3 rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-3 py-2 text-sm text-red-200/95">{error}</p>
           ) : null}
         </div>
         ) : null}

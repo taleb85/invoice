@@ -534,8 +534,8 @@ function AiDataCard({
   )
 
   return (
-    <div className="mx-1 mt-2 overflow-hidden rounded-xl border border-violet-400/40 bg-slate-800/85 ring-1 ring-inset ring-violet-500/15">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-violet-500/30 bg-violet-950/50 px-3 py-2">
+    <div className="mx-1 mt-2 overflow-hidden rounded-xl border border-[rgba(34,211,238,0.15)] bg-slate-800/85 ring-1 ring-inset ring-violet-500/15">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-[rgba(34,211,238,0.15)] bg-violet-950/50 px-3 py-2">
         <svg className="h-3.5 w-3.5 shrink-0 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
@@ -544,7 +544,7 @@ function AiDataCard({
           {showCreateSupplier && newFornitoreHref && (
             <Link
               href={newFornitoreHref}
-              className="shrink-0 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+              className="shrink-0 rounded-md border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-100 transition-colors hover:bg-emerald-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
             >
               {t.statements.btnCreateSupplierFromAi}
             </Link>
@@ -595,7 +595,7 @@ function AiDataCard({
               <span className="ml-2 inline-flex items-center gap-1">
                 <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-semibold ${
                   forcedFormat
-                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-200'
+                    ? 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200'
                     : 'border-slate-600 bg-slate-700 text-slate-200'
                 }`}>
                   {fmtBadgeLabel}
@@ -607,7 +607,7 @@ function AiDataCard({
                     const cur = forcedFormat ?? metadata.formato_importo
                     setForcedFormat(cur === 'dot' ? 'comma' : 'dot')
                   }}
-                  className="rounded border border-violet-500/40 px-1 py-0.5 text-[9px] leading-none text-violet-300 transition-colors hover:bg-violet-500/15"
+                  className="rounded border border-[rgba(34,211,238,0.15)] px-1 py-0.5 text-[9px] leading-none text-violet-300 transition-colors hover:bg-violet-500/15"
                 >
                   ⇄
                 </button>
@@ -762,7 +762,7 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
 
       {/* Request Missing Documents button */}
       {!loading && missing.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-red-500/25 bg-red-950/35 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(34,211,238,0.15)] bg-red-950/35 px-4 py-3">
           <p className="text-xs font-medium text-red-200">{missing.length} fattura{missing.length > 1 ? 'e' : ''} mancante{missing.length > 1 ? 'i' : ''} in questo estratto</p>
           <button
             onClick={() => {
@@ -785,7 +785,7 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
         </div>
       )}
       {!loading && missing.length === 0 && bolle.length > 0 && (
-        <div className="flex items-center gap-2 border-t border-emerald-500/25 bg-emerald-950/30 px-4 py-3">
+        <div className="flex items-center gap-2 border-t border-[rgba(34,211,238,0.15)] bg-emerald-950/30 px-4 py-3">
           <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
@@ -795,7 +795,7 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
 
       {/* Statement total from AI vs number of matched invoices */}
       {!loading && doc.metadata?.totale_iva_inclusa !== null && doc.metadata?.totale_iva_inclusa !== undefined && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-violet-500/25 bg-violet-950/25 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(34,211,238,0.15)] bg-violet-950/25 px-4 py-3">
           <div className="flex items-center gap-1.5">
             <svg className="h-3.5 w-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -1514,7 +1514,7 @@ export function PendingMatchesTab({
     <>
       {/* Header banner: bozze create automaticamente */}
       {bozzeCreate > 0 && (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3">
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3">
           <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -1530,7 +1530,7 @@ export function PendingMatchesTab({
           <button onClick={() => setFilter('in_attesa')}
             className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
               filter === 'in_attesa'
-                ? 'border border-orange-500/45 bg-orange-500/15 text-orange-50 shadow-[0_0_20px_-8px_rgba(249,115,22,0.35)]'
+                ? 'border border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-50 shadow-[0_0_20px_-8px_rgba(249,115,22,0.35)]'
                 : supplierDocShell
                   ? 'border border-transparent bg-transparent text-app-fg-muted hover:bg-amber-500/10 hover:text-app-fg'
                   : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -1777,19 +1777,19 @@ export function PendingMatchesTab({
                               kind: 'ordine',
                               label: t.statements.docKindOrdine,
                               title: t.statements.docKindHintOrdine,
-                              activeCls: 'border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-200',
+                              activeCls: 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-200',
                             },
                             {
                               kind: 'bolla',
                               label: t.statements.docKindBolla,
                               title: t.statements.docKindHintBolla,
-                              activeCls: 'border-amber-500/40 bg-amber-500/15 text-amber-200',
+                              activeCls: 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200',
                             },
                             {
                               kind: 'fattura',
                               label: t.statements.docKindFattura,
                               title: t.statements.docKindHintFattura,
-                              activeCls: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200',
+                              activeCls: 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200',
                             },
                             {
                               kind: 'statement',
@@ -1834,8 +1834,8 @@ export function PendingMatchesTab({
                               onClick={() => void finalizzaTipo(doc.id)}
                               className={`min-h-[36px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
                                 pendingKindForDoc(doc) === 'ordine'
-                                  ? 'border-fuchsia-500/45 bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
-                                  : 'border-emerald-500/45 bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
+                                  ? 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
+                                  : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
                               }`}
                             >
                               {finalizingTipoId === doc.id
@@ -2310,11 +2310,11 @@ function normalizeCheckStatus(raw: unknown): CheckStatus {
 
 const STATUS_STYLE: Record<CheckStatus, { cls: string; dot: string; icon: string }> = {
   pending:                   { cls: 'border border-slate-400/45 bg-slate-800/50 text-slate-100',        dot: 'bg-slate-400',  icon: '…' },
-  ok:                        { cls: 'border border-emerald-500/35 bg-emerald-500/15 text-emerald-200',   dot: 'bg-green-500',  icon: '✓' },
-  fattura_mancante:          { cls: 'border border-yellow-500/35 bg-yellow-500/15 text-yellow-200', dot: 'bg-yellow-400', icon: '!' },
-  bolle_mancanti:            { cls: 'border border-orange-500/35 bg-orange-500/15 text-orange-200', dot: 'bg-orange-500', icon: '⚠' },
-  errore_importo:            { cls: 'border border-red-500/35 bg-red-500/15 text-red-200',          dot: 'bg-red-500',    icon: '✗' },
-  rekki_prezzo_discordanza:  { cls: 'border border-amber-500/40 bg-amber-500/12 text-amber-100',   dot: 'bg-amber-400',  icon: '⚠' },
+  ok:                        { cls: 'border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200',   dot: 'bg-green-500',  icon: '✓' },
+  fattura_mancante:          { cls: 'border border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-200', dot: 'bg-yellow-400', icon: '!' },
+  bolle_mancanti:            { cls: 'border border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-200', dot: 'bg-orange-500', icon: '⚠' },
+  errore_importo:            { cls: 'border border-[rgba(34,211,238,0.15)] bg-red-500/15 text-red-200',          dot: 'bg-red-500',    icon: '✗' },
+  rekki_prezzo_discordanza:  { cls: 'border border-[rgba(34,211,238,0.15)] bg-amber-500/12 text-amber-100',   dot: 'bg-amber-400',  icon: '⚠' },
 }
 function useStatusConfig() {
   const t = useT()
@@ -2375,7 +2375,7 @@ function MigrationCard() {
     })
   }
   return (
-    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 overflow-hidden border-amber-500/25`}>
+    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 overflow-hidden border-[rgba(34,211,238,0.15)]`}>
       <div className={`app-card-bar-accent ${SUMMARY_HIGHLIGHT_ACCENTS.amber.bar}`} aria-hidden />
       <div className="flex items-start gap-3 px-5 py-4">
         <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2400,7 +2400,7 @@ function MigrationCard() {
         </div>
         <button onClick={copy}
           className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
-            copied ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-200' : 'border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
+            copied ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/20 text-emerald-200' : 'border-[rgba(34,211,238,0.15)] bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
           }`}>
           {copied ? (
             <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>{t.statements.migrationCopied}</>
@@ -2409,7 +2409,7 @@ function MigrationCard() {
           )}
         </button>
       </div>
-      <details className="border-t border-amber-500/25">
+      <details className="border-t border-[rgba(34,211,238,0.15)]">
         <summary className="cursor-pointer select-none px-5 py-2 text-[11px] text-amber-300/90 transition-colors hover:bg-slate-700/50">{t.statements.migrationShowSQL}</summary>
         <pre className="overflow-x-auto whitespace-pre bg-slate-700/50 px-5 py-3 font-mono text-[10px] text-amber-100/90">{STMT_MIGRATION_SQL}</pre>
       </details>
@@ -2998,7 +2998,7 @@ export function VerificationStatusTab({
                         {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
                       </p>
                       {s.missing_rows > 0 ? (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-red-500/35 bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold text-red-200">
                           {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
                         </span>
                       ) : (
@@ -3250,7 +3250,7 @@ export function VerificationStatusTab({
                   {needAction && (
                     sollecitoState === 'sent' ? (
                       <div className="shrink-0 flex flex-col items-center gap-0.5 text-center">
-                        <span className="flex items-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-200">
+                        <span className="flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-200">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
                           {t.statements.btnSent}
                         </span>
@@ -3277,8 +3277,8 @@ export function VerificationStatusTab({
                         className={`shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border transition-colors min-h-[38px] touch-manipulation ${
                           !hasEmail
                             ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
-                          : r.status === 'fattura_mancante' ? 'border-yellow-500/40 bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
-                          : 'border-orange-500/40 bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'}`}>
+                          : r.status === 'fattura_mancante' ? 'border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-100 hover:bg-yellow-500/25'
+                          : 'border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-100 hover:bg-orange-500/25'}`}>
                         {sollecitoState === 'loading' ? (
                           <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                         ) : (
@@ -3483,7 +3483,7 @@ export function VerificationStatusTab({
                           {needAction && (
                             sollecitoState === 'sent' ? (
                               <div className="mx-auto inline-flex max-w-full flex-col items-center gap-0.5">
-                                <span className="flex items-center gap-0.5 rounded-md border border-emerald-500/35 bg-emerald-500/15 px-2 py-1 text-[11px] font-bold text-emerald-200">
+                                <span className="flex items-center gap-0.5 rounded-md border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-1 text-[11px] font-bold text-emerald-200">
                                   <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                   </svg>
@@ -3506,7 +3506,7 @@ export function VerificationStatusTab({
                                 className={`mx-auto flex w-full max-w-[9.5rem] items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-bold transition-colors ${
                                   !hasEmail
                                     ? 'cursor-not-allowed border-app-line-28 bg-transparent text-app-fg-muted'
-                                    : 'border-amber-500/40 bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
+                                    : 'border-[rgba(34,211,238,0.15)] bg-amber-500/20 text-amber-100 hover:bg-amber-500/30'
                                 }`}
                               >
                                 {sollecitoState === 'loading' ? (
@@ -3623,7 +3623,7 @@ export function VerificationStatusTab({
 
       {/* Bulk select bar */}
       {selezione.size > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-4 py-3">
           <span className="flex-1 text-sm font-medium text-amber-200">
             {selezione.size} bolla{selezione.size !== 1 ? 'e' : ''} selezionata{selezione.size !== 1 ? '' : ''}
           </span>
@@ -3755,7 +3755,7 @@ export function VerificationStatusTab({
                       </svg>
                       <div
                         className={`flex min-w-[60px] flex-col items-center rounded-lg border px-3 py-1.5 ${
-                          allGood ? 'border-emerald-500/35 bg-emerald-500/10' : 'border-red-500/35 bg-red-500/10'
+                          allGood ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10' : 'border-[rgba(34,211,238,0.15)] bg-red-500/10'
                         }`}
                       >
                         <span className={`text-xs font-bold ${allGood ? 'text-emerald-300' : 'text-red-300'}`}>{gMissing}</span>
@@ -3791,7 +3791,7 @@ export function VerificationStatusTab({
                         <span className="flex-1" />
                         {bolla.fattura ? (
                           <>
-                            <span className="rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-200">✓ Verificata</span>
+                            <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-200">✓ Verificata</span>
                             {bolla.fattura.file_url && (
                               <OpenDocumentInAppButton
                                 fatturaId={bolla.fattura.id}
@@ -3804,9 +3804,9 @@ export function VerificationStatusTab({
                           </>
                         ) : (
                           <>
-                            <span className="rounded-full border border-red-500/35 bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-300">Fattura mancante</span>
+                            <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-300">Fattura mancante</span>
                             <button onClick={() => requestSingle(bolla.id)} disabled={stato === 'loading' || stato === 'sent'}
-                              className="flex min-h-[44px] items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/15 px-3 py-2.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/25 disabled:opacity-50 touch-manipulation">
+                              className="flex min-h-[44px] items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-3 py-2.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/25 disabled:opacity-50 touch-manipulation">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                               </svg>
@@ -3821,7 +3821,7 @@ export function VerificationStatusTab({
 
                 {/* Supplier-level request if any missing */}
                 {gMissing > 0 && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-red-500/25 bg-red-500/10 px-5 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[rgba(34,211,238,0.15)] bg-red-500/10 px-5 py-3">
                     <p className="text-xs text-red-300">{gMissing} fattura{gMissing > 1 ? 'e' : ''} mancante{gMissing > 1 ? '' : ''}</p>
                     <button
                       onClick={() => setSelezione(prev => {

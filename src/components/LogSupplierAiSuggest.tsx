@@ -66,7 +66,7 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
       <button
         type="button"
         onClick={runSuggest}
-        className="rounded-lg border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-100 transition-colors hover:bg-violet-500/25"
+        className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-100 transition-colors hover:bg-violet-500/25"
       >
         {t.log.aiSuggest}
       </button>
@@ -76,7 +76,7 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
             <h3 className="text-sm font-semibold text-app-fg">{t.log.aiSuggestTitle}</h3>
             {loading && <p className="mt-3 text-xs text-app-fg-muted">{t.log.aiSuggestLoading}</p>}
             {err && (
-              <p className="mt-3 rounded-lg border border-red-500/35 bg-red-950/40 px-3 py-2 text-xs text-red-200">{err}</p>
+              <p className="mt-3 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-3 py-2 text-xs text-red-200">{err}</p>
             )}
             {!loading && !err && (
               <dl className="mt-4 space-y-2 text-xs">

@@ -828,7 +828,7 @@ export default function NuovaBollaForm() {
           {ocrStatus === 'not_found' && (ocrNome || ocrPiva) && (
             <button
               type="button"
-              className="mt-2 w-full rounded-xl border border-violet-400/40 bg-violet-950/45 py-2 text-sm font-bold text-violet-50 transition-colors hover:bg-violet-900/55"
+              className="mt-2 w-full rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-950/45 py-2 text-sm font-bold text-violet-50 transition-colors hover:bg-violet-900/55"
               onClick={() => navigateToImport(ocrNome, ocrPiva, ocrIndirizzo)}
             >
               {t.bolle.scannerCreateSupplierCta}
@@ -919,7 +919,7 @@ export default function NuovaBollaForm() {
         </div>
 
         {error && (
-          <p className="rounded-xl border border-red-400/40 bg-red-950/50 px-3 py-2 text-sm font-semibold text-red-200">{error}</p>
+          <p className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-950/50 px-3 py-2 text-sm font-semibold text-red-200">{error}</p>
         )}
 
         <button

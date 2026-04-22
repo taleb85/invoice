@@ -227,7 +227,7 @@ export default function FornitoriCardsGrid({
       />
 
       {listSource === 'cache' && (
-        <div className="mb-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-100/90 sm:mb-4 sm:px-3 sm:py-2 sm:text-xs">
+        <div className="mb-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-100/90 sm:mb-4 sm:px-3 sm:py-2 sm:text-xs">
           {t.fornitori.rekkiCachedListBanner}
         </div>
       )}
@@ -258,7 +258,7 @@ export default function FornitoriCardsGrid({
                     {display}
                   </p>
                   {rekkiMapped ? (
-                    <span className="shrink-0 rounded-full border border-violet-500/40 bg-violet-500/15 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-violet-200 sm:px-2 sm:py-0.5 sm:text-[9px]">
+                    <span className="shrink-0 rounded-full border border-[rgba(34,211,238,0.15)] bg-violet-500/15 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-violet-200 sm:px-2 sm:py-0.5 sm:text-[9px]">
                       {t.fornitori.rekkiConnectedBadge}
                     </span>
                   ) : null}
@@ -280,7 +280,7 @@ export default function FornitoriCardsGrid({
           return (
             <div
               key={f.id}
-              className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} group relative flex h-full flex-col rounded-2xl sm:rounded-3xl transition-all duration-200 will-change-transform ${fornitoriCardTheme.border} hover:border-sky-400/45 hover:shadow-xl hover:shadow-sky-500/15 hover:-translate-y-0.5 hover:scale-[1.015]`}
+              className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} group relative flex h-full flex-col rounded-2xl sm:rounded-3xl transition-all duration-200 will-change-transform ${fornitoriCardTheme.border} hover:border-[rgba(34,211,238,0.15)] hover:shadow-xl hover:shadow-sky-500/15 hover:-translate-y-0.5 hover:scale-[1.015]`}
             >
               <div
                 className={`h-0.5 w-full shrink-0 rounded-t-2xl sm:h-1 sm:rounded-t-3xl ${fornitoriCardTheme.bar}`}
@@ -300,7 +300,7 @@ export default function FornitoriCardsGrid({
                 </Link>
               )}
 
-              <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-2xl border-t border-sky-500/20 app-workspace-inset-bg-soft px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm sm:rounded-b-3xl sm:px-3 sm:py-2 lg:px-2.5 lg:py-1.5">
+              <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-2xl border-t border-[rgba(34,211,238,0.15)] app-workspace-inset-bg-soft px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm sm:rounded-b-3xl sm:px-3 sm:py-2 lg:px-2.5 lg:py-1.5">
                 {unlockedIds.has(f.id) ? (
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>
@@ -348,7 +348,7 @@ export default function FornitoriCardsGrid({
                   <button
                     type="button"
                     onClick={() => request('unlock', f.id, f.nome)}
-                    className="flex min-h-[44px] w-full max-w-full items-center justify-center gap-2 rounded-lg border border-sky-500/15 app-workspace-inset-bg-soft px-2 text-amber-300/95 transition-colors hover:border-amber-500/25 hover:bg-amber-950/20 hover:text-amber-200 touch-manipulation"
+                    className="flex min-h-[44px] w-full max-w-full items-center justify-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] app-workspace-inset-bg-soft px-2 text-amber-300/95 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-950/20 hover:text-amber-200 touch-manipulation"
                     title={t.ui.operatorPinStepUpHint}
                     aria-label={`${t.ui.operatorPinStepUpTitle} — ${t.fornitori.cardFooterUnlockPin}`}
                   >

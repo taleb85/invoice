@@ -20,13 +20,13 @@ export function DashboardAdminMobileActions({ sedeId, sedeOperatoriHref }: Props
     <div className="grid grid-cols-1 gap-2 md:hidden">
       <Link
         href={`/fornitori/new?prefill_sede_id=${encodeURIComponent(sedeId)}`}
-        className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-violet-500/35 bg-violet-600/20 px-3 py-2.5 text-sm font-bold text-violet-100"
+        className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-600/20 px-3 py-2.5 text-sm font-bold text-violet-100"
       >
         {t.fornitori.new}
       </Link>
       <Link
         href={sedeOperatoriHref}
-        className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-violet-500/30 bg-violet-950/25 px-3 py-2.5 text-sm font-semibold text-violet-200"
+        className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-950/25 px-3 py-2.5 text-sm font-semibold text-violet-200"
       >
         {t.sedi.addOperatorSedeTitle}
       </Link>

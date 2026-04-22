@@ -124,7 +124,7 @@ export default async function LogPage() {
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 md:mb-8 md:gap-4">
         {/* Total Logs */}
-        <div className="relative overflow-hidden rounded-2xl border border-teal-500/20 bg-transparent">
+        <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
           <div className="h-0.5 shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-700" />
           <div className="p-4 md:p-5">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -134,7 +134,7 @@ export default async function LogPage() {
           </div>
         </div>
         {/* Documents Received */}
-        <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-transparent">
+        <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
           <div className="h-0.5 shrink-0 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-700" />
           <div className="p-4 md:p-5">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -144,7 +144,7 @@ export default async function LogPage() {
           </div>
         </div>
         {/* With Errors */}
-        <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-transparent">
+        <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
           <div className="h-0.5 shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700" />
           <div className="p-4 md:p-5">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">

@@ -59,7 +59,7 @@ export default async function RevisioneInboxPage({
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
           {t.dashboard.operatorNoSede}
         </div>
       ) : (
@@ -72,7 +72,7 @@ export default async function RevisioneInboxPage({
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="block rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-app-fg transition-colors hover:border-rose-400/35 hover:bg-rose-950/20"
+                    className="block rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-app-fg transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-rose-950/20"
                   >
                     {item.label}
                     <span className="mt-0.5 block text-xs font-normal text-app-fg-muted">{item.href}</span>

@@ -20,7 +20,7 @@ interface Props {
 }
 
 const defaultButtonClass =
-  'inline-flex items-center gap-1.5 rounded-lg border border-red-500/55 bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm shadow-red-950/30 ring-1 ring-inset ring-red-400/15 transition-colors hover:border-red-400/70 hover:bg-red-600/25 hover:text-red-50 hover:shadow-red-900/40'
+  'inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm shadow-red-950/30 ring-1 ring-inset ring-red-400/15 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/25 hover:text-red-50 hover:shadow-red-900/40'
 
 export default function DeleteButton({
   id,

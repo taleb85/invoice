@@ -130,9 +130,9 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
       {testStatus !== 'idle' && testMessage && (
         <div className={`rounded-xl border px-4 py-2.5 text-sm ${
           testStatus === 'ok'
-            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+            ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-400'
             : testStatus === 'error'
-              ? 'border-rose-500/30 bg-rose-500/10 text-rose-400'
+              ? 'border-[rgba(34,211,238,0.15)] bg-rose-500/10 text-rose-400'
               : 'border-white/10 bg-white/5 text-white/60'
         }`}>
           {testStatus === 'testing' && (
@@ -146,7 +146,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
       )}
 
       {error && (
-        <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-400">{error}</p>
+        <p className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/10 px-4 py-2 text-sm text-rose-400">{error}</p>
       )}
 
       <div className="flex flex-col gap-3">

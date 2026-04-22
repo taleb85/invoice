@@ -61,7 +61,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       </AppPageHeaderStrip>
 
       {/* Period selector — sky accent card, matches AppPageHeaderStrip accent="sky" */}
-      <div className="relative mb-5 overflow-hidden rounded-2xl border border-sky-500/25 bg-transparent">
+      <div className="relative mb-5 overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
         <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600 [box-shadow:0_0_16px_rgba(14,165,233,0.6),0_0_28px_rgba(2,132,199,0.35)]" />
         <div className="flex items-center gap-1.5 px-4 py-3 sm:px-5">
           {[3, 6, 12].map((value) => (

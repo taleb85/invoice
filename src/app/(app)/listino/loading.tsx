@@ -14,7 +14,7 @@ export default function ListinoLoading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="rounded-xl border border-fuchsia-500/20 bg-app-line-10/40 px-4 py-3"
+            className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-app-line-10/40 px-4 py-3"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1 space-y-2">
@@ -32,7 +32,7 @@ export default function ListinoLoading() {
       </div>
 
       {/* Table skeleton desktop */}
-      <div className="hidden md:block rounded-xl border border-fuchsia-500/20 bg-app-line-10/40 overflow-hidden">
+      <div className="hidden md:block rounded-xl border border-[rgba(34,211,238,0.15)] bg-app-line-10/40 overflow-hidden">
         <div className="h-1 w-full bg-gradient-to-r from-fuchsia-500/60 to-purple-500/40" />
         <div className="divide-y divide-app-line-10">
           {Array.from({ length: 8 }).map((_, i) => (

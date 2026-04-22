@@ -84,7 +84,7 @@ export function ApprovalQueue() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-400">
+      <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/10 p-4 text-sm text-rose-400">
         {error}
       </div>
     )
@@ -109,7 +109,7 @@ export function ApprovalQueue() {
       {rows.map((f) => (
         <div
           key={f.id}
-          className="rounded-2xl border border-app-line-22 bg-[#0f172b]/80 p-5 transition-all hover:border-amber-500/30"
+          className="rounded-2xl border border-app-line-22 bg-[#0f172b]/80 p-5 transition-all hover:border-[rgba(34,211,238,0.15)]"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             {/* Info */}
@@ -160,7 +160,7 @@ export function ApprovalQueue() {
                 value={rejectState.reason}
                 onChange={(e) => setRejectState({ id: f.id, reason: e.target.value })}
                 placeholder={t.appStrings.approvazioni_rejectPlaceholder}
-                className="w-full rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-rose-400/50 focus:outline-none focus:ring-2 focus:ring-rose-400/20"
+                className="w-full rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-2 focus:ring-rose-400/20"
                 autoFocus
               />
             </div>
@@ -214,7 +214,7 @@ export function ApprovalQueue() {
                   type="button"
                   disabled={actionPending === f.id}
                   onClick={() => setRejectState({ id: f.id, reason: '' })}
-                  className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-400 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-400 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />

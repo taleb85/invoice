@@ -104,7 +104,7 @@ export default async function ListinoOverviewPage({
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
           {t.dashboard.operatorNoSede}
         </div>
       ) : rows.length === 0 ? (
@@ -143,7 +143,7 @@ export default async function ListinoOverviewPage({
                 <Link
                   key={r.id}
                   href={`/fornitori/${r.fornitore_id}?tab=listino`}
-                  className="block rounded-xl border border-fuchsia-500/25 bg-app-line-10/40 px-4 py-3 transition-colors active:bg-fuchsia-500/10"
+                  className="block rounded-xl border border-[rgba(34,211,238,0.15)] bg-app-line-10/40 px-4 py-3 transition-colors active:bg-fuchsia-500/10"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">

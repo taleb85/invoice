@@ -468,7 +468,7 @@ export default function NuovaFatturaForm() {
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="flex items-start gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">
             <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

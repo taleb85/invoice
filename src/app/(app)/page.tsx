@@ -104,7 +104,7 @@ export default async function DashboardPage({
             {emailBodySupplierHints.map((h) => (
               <div
                 key={`${h.sedeId ?? 'all'}-${h.displayName}`}
-                className="flex flex-col gap-2 rounded-xl border border-violet-500/35 bg-violet-950/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-950/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <p className="text-sm text-violet-100">
                   {t.dashboard.potentialSupplierFromEmailBodyBanner.replace(/\{name\}/g, h.displayName)}
@@ -144,7 +144,7 @@ export default async function DashboardPage({
                 key={sede.id}
                 className={`rounded-xl border app-workspace-inset-bg p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] ${
                   unhealthy
-                    ? 'border-red-500/45 ring-1 ring-red-500/25'
+                    ? 'border-[rgba(34,211,238,0.15)] ring-1 ring-red-500/25'
                     : 'border-app-soft-border'
                 }`}
               >
@@ -170,7 +170,7 @@ export default async function DashboardPage({
                   </AdminSelectSedeButton>
                 </div>
                 {unhealthy && (
-                  <div className="mb-3 rounded-lg border border-red-500/35 bg-red-950/35 px-2.5 py-2 text-[11px] leading-snug text-red-100">
+                  <div className="mb-3 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/35 px-2.5 py-2 text-[11px] leading-snug text-red-100">
                     <p className="font-semibold">{t.dashboard.syncHealthAlert}</p>
                     {imapErr ? <p className="mt-1 font-mono text-red-200/90">{imapErr}</p> : null}
                     {ocrN > 0 ? (
@@ -183,7 +183,7 @@ export default async function DashboardPage({
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <Link
                     href={`/sedi/${sede.id}/fornitori`}
-                    className="rounded-lg border border-violet-500/20 bg-violet-500/5 py-2.5 transition-colors hover:border-violet-400/40 hover:bg-violet-500/15 active:scale-[0.98] touch-manipulation"
+                    className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/5 py-2.5 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-violet-500/15 active:scale-[0.98] touch-manipulation"
                   >
                     <p className="text-xl font-bold text-violet-200">{sede.fornitori}</p>
                     <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-violet-400/80">
@@ -192,7 +192,7 @@ export default async function DashboardPage({
                   </Link>
                   <Link
                     href="/bolle"
-                    className="rounded-lg border border-amber-500/20 bg-amber-500/5 py-2.5 transition-colors hover:border-amber-400/40 hover:bg-amber-500/15 active:scale-[0.98] touch-manipulation"
+                    className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/5 py-2.5 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-500/15 active:scale-[0.98] touch-manipulation"
                   >
                     <p className="text-xl font-bold text-amber-200">{sede.bolleInAttesa}</p>
                     <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400/80">
@@ -201,7 +201,7 @@ export default async function DashboardPage({
                   </Link>
                   <Link
                     href="/fatture"
-                    className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 py-2.5 transition-colors hover:border-emerald-400/40 hover:bg-emerald-500/15 active:scale-[0.98] touch-manipulation"
+                    className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/5 py-2.5 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-emerald-500/15 active:scale-[0.98] touch-manipulation"
                   >
                     <p className="text-xl font-bold text-emerald-200">{sede.fatture}</p>
                     <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-400/80">
@@ -285,7 +285,7 @@ export default async function DashboardPage({
       </AppPageHeaderStrip>
 
       {!operatorScoped && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
           {t.dashboard.operatorNoSede}
         </div>
       )}
@@ -308,7 +308,7 @@ export default async function DashboardPage({
                 </Link>
                 <Link
                   href={supplierHint.importHref}
-                  className="inline-flex items-center rounded-lg border border-violet-400/60 bg-violet-800/45 px-3 py-2 text-xs font-semibold text-violet-100 transition-colors hover:border-violet-300/70 hover:bg-violet-700/50 hover:text-white"
+                  className="inline-flex items-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-800/45 px-3 py-2 text-xs font-semibold text-violet-100 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-violet-700/50 hover:text-white"
                 >
                   {t.dashboard.suggestedSupplierImport}
                 </Link>
@@ -326,7 +326,7 @@ export default async function DashboardPage({
       {operatorScoped ? (
         <>
           {isAdminSede && sedeId ? (
-            <div className="hidden flex-wrap gap-2 rounded-xl border border-violet-500/30 bg-violet-950/20 px-3 py-3 md:flex md:items-center">
+            <div className="hidden flex-wrap gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-950/20 px-3 py-3 md:flex md:items-center">
               <Link
                 href={`/fornitori/new?prefill_sede_id=${encodeURIComponent(sedeId)}`}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-500"
@@ -335,7 +335,7 @@ export default async function DashboardPage({
               </Link>
               <Link
                 href={`/sedi/${sedeId}#sede-operatori`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/40 px-3 py-2 text-xs font-semibold text-violet-200 transition-colors hover:bg-violet-950/40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] px-3 py-2 text-xs font-semibold text-violet-200 transition-colors hover:bg-violet-950/40"
               >
                 {t.sedi.addOperatorSedeTitle}
               </Link>

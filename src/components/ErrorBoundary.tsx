@@ -102,7 +102,7 @@ export class ErrorBoundary extends Component<Props, State> {
     /* ── Compact: one-line banner for widget / sidebar slots ── */
     if (compact) {
       return (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/25 bg-red-500/8 px-3 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/8 px-3 py-2">
           <svg className="h-4 w-4 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -110,7 +110,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={this.handleReset}
-            className="shrink-0 rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1 text-[10px] font-semibold text-red-200 transition-colors hover:bg-red-950/60"
+            className="shrink-0 rounded-md border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-2 py-1 text-[10px] font-semibold text-red-200 transition-colors hover:bg-red-950/60"
           >
             Riprova
           </button>
@@ -151,7 +151,7 @@ function ErrorCard({
   return (
     <div className="w-full max-w-md space-y-5 text-center">
       <div className="flex justify-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-red-500/30 bg-red-950/40">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgba(34,211,238,0.15)] bg-red-950/40">
           <svg className="h-6 w-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -172,7 +172,7 @@ function ErrorCard({
               <summary className="cursor-pointer text-xs text-app-fg-muted hover:text-app-fg">
                 Dettagli tecnici (solo in sviluppo)
               </summary>
-              <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2 font-mono text-[11px] text-red-300">
+              <pre className="mt-2 max-h-36 overflow-auto whitespace-pre-wrap rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-3 py-2 font-mono text-[11px] text-red-300">
                 {error.message}
                 {error.stack ? `\n\n${error.stack}` : ''}
               </pre>

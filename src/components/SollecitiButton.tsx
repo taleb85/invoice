@@ -89,8 +89,8 @@ export default function SollecitiButton({
             <span
               className={
                 toolbarStrip
-                  ? 'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-sky-500/40 bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums leading-none text-sky-100 sm:text-[10px]'
-                  : 'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-sky-500/40 bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums text-sky-100'
+                  ? 'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-[rgba(34,211,238,0.15)] bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums leading-none text-sky-100 sm:text-[10px]'
+                  : 'inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-sm border border-[rgba(34,211,238,0.15)] bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums text-sky-100'
               }
             >
               {fornitoriInScadenza > 9 ? '9+' : fornitoriInScadenza}

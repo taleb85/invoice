@@ -131,7 +131,7 @@ export default function ListinoDocReferenceTable({
               <td className="py-2 text-right">
                 {blocked && isLatestForProduct ? (
                   <div className="flex flex-col items-end gap-1">
-                    <span className="rounded border border-amber-500/35 bg-amber-950/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
+                    <span className="rounded border border-[rgba(34,211,238,0.15)] bg-amber-950/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-100">
                       {t.appStrings.listinoDocRowBlockedBadge}
                     </span>
                     {allowAdminForce ? (
@@ -139,7 +139,7 @@ export default function ListinoDocReferenceTable({
                         type="button"
                         disabled={workingKey != null}
                         onClick={() => void forceRow(row)}
-                        className="rounded-md border border-violet-500/45 bg-violet-950/50 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-violet-100 transition-colors hover:bg-violet-900/45 disabled:opacity-40"
+                        className="rounded-md border border-[rgba(34,211,238,0.15)] bg-violet-950/50 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-violet-100 transition-colors hover:bg-violet-900/45 disabled:opacity-40"
                       >
                         {workingKey === key ? t.appStrings.listinoDocForceWorking : t.appStrings.listinoDocForceButton}
                       </button>

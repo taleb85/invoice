@@ -102,7 +102,7 @@ async function readDuplicateReportNdjsonStream(
 const toolbarStripBtnCls =
   'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-semibold leading-none text-app-fg transition-colors hover:border-app-line-50 hover:brightness-110 sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
 const defaultBtnCls =
-  'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
+  'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-950/55'
 
 export default function DashboardDuplicateFattureButton({
   className,
@@ -246,7 +246,7 @@ export default function DashboardDuplicateFattureButton({
             aria-labelledby="dup-fatture-title"
             onClick={(e) => e.target === e.currentTarget && setOpen(false)}
           >
-            <div className="flex max-h-[min(90vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-amber-500/35 app-workspace-surface-elevated shadow-[0_0_40px_-12px_rgba(245,158,11,0.35)]">
+            <div className="flex max-h-[min(90vh,720px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] app-workspace-surface-elevated shadow-[0_0_40px_-12px_rgba(245,158,11,0.35)]">
               <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
                 <div className="min-w-0">
                   <h2 id="dup-fatture-title" className="text-base font-bold text-amber-100 sm:text-lg">
@@ -347,7 +347,7 @@ export default function DashboardDuplicateFattureButton({
                 ) : data ? (
                   <div className="flex flex-col gap-4">
                     {data.truncated ? (
-                      <p className="rounded-lg border border-amber-500/30 bg-amber-950/40 px-3 py-2 text-xs text-amber-100">
+                      <p className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/40 px-3 py-2 text-xs text-amber-100">
                         {t.dashboard.duplicateFattureTruncated}
                       </p>
                     ) : null}
@@ -390,7 +390,7 @@ export default function DashboardDuplicateFattureButton({
                               </Link>
                               <button
                                 type="button"
-                                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-red-500/45 bg-red-950/35 px-2.5 py-2 text-red-200 transition-colors hover:border-red-400/65 hover:bg-red-950/55 disabled:cursor-not-allowed disabled:opacity-45"
+                                className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/35 px-2.5 py-2 text-red-200 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/55 disabled:cursor-not-allowed disabled:opacity-45"
                                 aria-label={t.dashboard.duplicateFattureDeleteAria}
                                 title={t.common.delete}
                                 disabled={deletingId !== null}

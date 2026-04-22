@@ -35,7 +35,7 @@ import {
 } from '@/lib/app-shell-layout'
 
 const dupBadgeCls =
-  'ml-1.5 inline-flex shrink-0 align-middle rounded border border-orange-500/55 bg-orange-950/45 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.35)]'
+  'ml-1.5 inline-flex shrink-0 align-middle rounded border border-[rgba(34,211,238,0.15)] bg-orange-950/45 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.35)]'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,7 +112,7 @@ export default async function FattureRiepilogoPage({
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
           {t.dashboard.operatorNoSede}
         </div>
       ) : summary.fattureCount === 0 ? (

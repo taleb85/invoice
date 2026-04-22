@@ -330,7 +330,7 @@ function FatturaLayerBody({
       type="button"
       onClick={handleDelete}
       disabled={deleting}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/55 bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm transition-colors hover:border-red-400/70 hover:bg-red-600/25 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/25 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {deleting ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -556,7 +556,7 @@ function BollaLayerBody({
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-lg font-bold text-app-fg">{bolla.fornitore?.nome}</h3>
           {rekkiPrezzoFlag && (
-            <span className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-amber-400/45 bg-amber-950/50 px-2 py-1 text-[10px] font-semibold text-amber-50">
+            <span className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-950/50 px-2 py-1 text-[10px] font-semibold text-amber-50">
               {t.bolle.rekkiPrezzoIndicativoBadge}
             </span>
           )}

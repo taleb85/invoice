@@ -60,7 +60,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
               <h1 className="app-page-title text-2xl font-bold">{bolla.fornitore?.nome}</h1>
               {rekkiPrezzoFlag && (
                 <span
-                  className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-amber-400/45 bg-amber-950/50 px-2 py-1.5 text-[10px] font-semibold leading-snug text-amber-50 shadow-md shadow-amber-950/40 sm:px-2.5 sm:text-[11px]"
+                  className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-950/50 px-2 py-1.5 text-[10px] font-semibold leading-snug text-amber-50 shadow-md shadow-amber-950/40 sm:px-2.5 sm:text-[11px]"
                   title={`${t.bolle.verificaPrezzoFornitore} — ${t.bolle.prezzoDaApp}`}
                 >
                   {t.bolle.rekkiPrezzoIndicativoBadge}
@@ -121,8 +121,8 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
               <dd>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                   bolla.stato === 'completato'
-                    ? 'border border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
-                    : 'border border-amber-500/30 bg-amber-500/15 text-amber-200'
+                    ? 'border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-300'
+                    : 'border border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200'
                 }`}>
                   {bolla.stato === 'completato' ? t.status.completato : t.status.inAttesa}
                 </span>

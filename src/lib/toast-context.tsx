@@ -145,9 +145,9 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
           key={toast.id}
           className={`pointer-events-auto flex max-w-xs animate-[slideInDown_0.2s_ease-out] items-start gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium shadow-xl backdrop-blur-md ${
             toast.type === 'success'
-              ? 'border-emerald-500/35 bg-emerald-950/90 text-emerald-50'
+              ? 'border-[rgba(34,211,238,0.15)] bg-emerald-950/90 text-emerald-50'
               : toast.type === 'error'
-              ? 'border-red-500/35 bg-red-950/90 text-red-50'
+              ? 'border-[rgba(34,211,238,0.15)] bg-red-950/90 text-red-50'
               : 'border-app-line-28 app-workspace-surface-elevated text-app-fg'
           }`}
         >

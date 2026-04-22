@@ -140,7 +140,7 @@ export default function OperatorPinStepUpModal({
             </p>
           ) : (
             <>
-              <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-950/25 px-3 py-2 text-sm text-amber-100/95">
+              <p className="mt-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/25 px-3 py-2 text-sm text-amber-100/95">
                 {t.ui.operatorPinStepUpNoActive}
               </p>
               <button

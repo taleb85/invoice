@@ -28,7 +28,7 @@ export default function FattureLoading() {
       {/* Mobile card list */}
       <div className="flex flex-col gap-2 md:hidden">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-violet-500/20 bg-app-line-10/40 px-4 py-3.5">
+          <div key={i} className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-app-line-10/40 px-4 py-3.5">
             <div className="mb-2 flex items-center justify-between gap-3">
               <div className="h-3.5 w-32 animate-pulse rounded bg-app-line-20" />
               <div className="h-5 w-20 animate-pulse rounded bg-app-line-15 font-mono" />
@@ -40,7 +40,7 @@ export default function FattureLoading() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block overflow-hidden rounded-xl border border-violet-500/20 bg-app-line-10/30">
+      <div className="hidden md:block overflow-hidden rounded-xl border border-[rgba(34,211,238,0.15)] bg-app-line-10/30">
         <div className="h-1 w-full bg-gradient-to-r from-violet-500/55 to-purple-500/30" />
         <div className="flex items-center gap-4 border-b border-app-line-18 px-5 py-3">
           {[14, 24, 15, 16, 12, 10, 6].map((w, i) => (

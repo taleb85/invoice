@@ -276,7 +276,7 @@ export default function StatoSincronizzazioneIntelligente({
                   <button
                     type="button"
                     onClick={stopSync}
-                    className="flex items-center gap-1 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+                    className="flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-2.5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20"
                     title={t.appStrings.rekkiSyncStop}
                   >
                     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
@@ -332,8 +332,8 @@ export default function StatoSincronizzazioneIntelligente({
         {imapReady && (
           <div className="mb-3 md:hidden">
             {syncing ? (
-              <div className="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5">
-                <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-red-300 border-t-transparent" />
+              <div className="flex items-center gap-3 rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-2.5">
+                <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[rgba(34,211,238,0.15)] border-t-transparent" />
                 <p className="min-w-0 flex-1 text-xs font-semibold text-red-200">{t.appStrings.rekkiSyncProcessing}</p>
                 <button
                   type="button"
@@ -367,7 +367,7 @@ export default function StatoSincronizzazioneIntelligente({
 
         {/* ── IMAP non configurato ──────────────────────────────── */}
         {!imapReady && (
-          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+          <div className="mb-4 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-4 py-3">
             <div className="flex items-start gap-3">
               <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -420,7 +420,7 @@ export default function StatoSincronizzazioneIntelligente({
 
         {/* ── Feedback sync ────────────────────────────────────── */}
         {syncResult && !syncing && (
-          <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
             <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -428,7 +428,7 @@ export default function StatoSincronizzazioneIntelligente({
           </div>
         )}
         {error && (
-          <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
             <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -465,11 +465,11 @@ export default function StatoSincronizzazioneIntelligente({
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncDocuments}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_products_found}</p>
                 </div>
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-center">
+                <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">{t.appStrings.rekkiSyncMatched}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-200">{matched}</p>
                 </div>
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-center">
+                <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">{t.appStrings.rekkiSyncUnmatched}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-amber-200">{status.unmatched_count}</p>
                 </div>

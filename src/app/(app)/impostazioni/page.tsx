@@ -103,7 +103,7 @@ function ProfileMobileHub() {
         <button
           type="button"
           onClick={handleLogout}
-          className={`${rowCls} border-red-500/35 bg-red-950/35 text-red-100 hover:border-red-400/45 hover:bg-red-950/50`}
+          className={`${rowCls} border-[rgba(34,211,238,0.15)] bg-red-950/35 text-red-100 hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/50`}
         >
           <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -356,7 +356,7 @@ export default function ImpostazioniPage() {
           <div className="space-y-5 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
           <FormBody />
           {saved && (
-            <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
+            <div className="flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
               <span suppressHydrationWarning>{t.impostazioni.saved}</span>
             </div>
@@ -401,7 +401,7 @@ export default function ImpostazioniPage() {
             <div className="space-y-6 px-6 py-6 sm:px-8">
               <FormBody />
               {saved && (
-                <div className="flex items-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
+                <div className="flex items-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
                   <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>

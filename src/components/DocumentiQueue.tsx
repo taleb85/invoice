@@ -108,7 +108,7 @@ export default function DocumentiQueue({ documenti, fornitori, formattedDates, l
           <h2 className="text-sm font-bold text-app-fg">{labels.sectionTitle}</h2>
           <p className="mt-0.5 text-xs text-app-fg-muted">{labels.sectionSubtitle}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-0.5 text-xs font-bold text-amber-200">
+        <span className="shrink-0 rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2.5 py-0.5 text-xs font-bold text-amber-200">
           {documenti.length}
         </span>
       </div>
@@ -155,7 +155,7 @@ export default function DocumentiQueue({ documenti, fornitori, formattedDates, l
                     key={doc.id}
                     className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
                       isUnmatched
-                        ? 'border-amber-500/25 bg-amber-500/10'
+                        ? 'border-[rgba(34,211,238,0.15)] bg-amber-500/10'
                         : 'border-app-line-22 app-workspace-inset-bg-soft'
                     }`}
                   >
@@ -178,8 +178,8 @@ export default function DocumentiQueue({ documenti, fornitori, formattedDates, l
                       <span
                         className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${
                           doc.stato === 'da_associare'
-                            ? 'border-sky-500/30 bg-sky-500/15 text-sky-200'
-                            : 'border-amber-500/30 bg-amber-500/15 text-amber-200'
+                            ? 'border-[rgba(34,211,238,0.15)] bg-sky-500/15 text-sky-200'
+                            : 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200'
                         }`}
                       >
                         {doc.stato === 'da_associare' ? labels.statusDaAssociare : labels.statusInAttesa}

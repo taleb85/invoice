@@ -43,7 +43,7 @@ export function ApprovalBadge({ status, rejectionReason, size = 'sm' }: Approval
           Rifiutata
         </button>
         {showReason && rejectionReason && (
-          <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-xl border border-rose-500/30 bg-[#1a1f35] p-3 shadow-xl">
+          <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-xl border border-[rgba(34,211,238,0.15)] bg-[#1a1f35] p-3 shadow-xl">
             <p className="text-[11px] font-semibold text-rose-400">Motivo rifiuto</p>
             <p className="mt-1 text-[11px] text-app-fg-muted">{rejectionReason}</p>
           </div>

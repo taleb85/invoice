@@ -177,7 +177,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
           {/* Step 1: Input Credentials */}
           {step === 'input' && (
             <div className="space-y-5">
-              <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+              <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-blue-500/10 p-4">
                 <h3 className="text-sm font-bold text-blue-200">📋 Passaggi Rapidi</h3>
                 <ol className="mt-3 ml-4 list-decimal space-y-2 text-xs leading-relaxed text-blue-200/80">
                   <li>
@@ -258,7 +258,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 </div>
 
                 {error && (
-                  <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
+                  <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
                     <div className="flex items-start gap-2">
                       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -295,7 +295,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
           {/* Step 2: Connect Gmail */}
           {step === 'connect' && (
             <div className="space-y-5">
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center">
+              <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 p-4 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/20 ring-2 ring-emerald-500/40">
                   <svg className="h-8 w-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -307,7 +307,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+              <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-blue-500/10 p-4">
                 <h4 className="text-sm font-bold text-blue-200">📧 Prossimi Passaggi</h4>
                 <ol className="mt-3 ml-4 list-decimal space-y-2 text-xs leading-relaxed text-blue-200/80">
                   <li>Verrai reindirizzato alla pagina di autorizzazione Google</li>
@@ -327,7 +327,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
               </div>
 
               {error && (
-                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
+                <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
                   <div className="flex items-start gap-2">
                     <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -375,7 +375,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 </p>
               </div>
 
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left">
+              <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 p-4 text-left">
                 <p className="text-xs font-semibold text-emerald-200">✅ Funzionalità Attive:</p>
                 <ul className="mt-2 ml-4 list-disc space-y-1 text-xs text-emerald-200/80">
                   <li>Scanner automatico email Rekki (ogni 15 minuti)</li>

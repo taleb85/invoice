@@ -124,7 +124,7 @@ function ScannerRow({
 
           {/* Badge sede */}
           {sender.sede_nome && (
-            <span className="px-2 py-0.5 border border-violet-500/35 bg-violet-500/15 text-violet-200 text-xs font-medium rounded-full">
+            <span className="px-2 py-0.5 border border-[rgba(34,211,238,0.15)] bg-violet-500/15 text-violet-200 text-xs font-medium rounded-full">
               {sender.sede_nome}
             </span>
           )}
@@ -207,7 +207,7 @@ function ScannerRow({
           </div>
 
           {error && (
-            <p className="mt-2 text-xs text-red-300 bg-red-500/10 border border-red-500/25 px-3 py-1.5 rounded-lg">{error}</p>
+            <p className="mt-2 text-xs text-red-300 bg-red-500/10 border border-[rgba(34,211,238,0.15)] px-3 py-1.5 rounded-lg">{error}</p>
           )}
 
           <div className="mt-3 flex justify-end">
@@ -351,7 +351,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
 
       {/* Errore scansione */}
       {scanError && (
-        <div className="mb-6 flex items-start gap-3 bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+        <div className="mb-6 flex items-start gap-3 bg-red-500/10 border border-[rgba(34,211,238,0.15)] rounded-xl p-4">
           <svg className="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -361,7 +361,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
 
       {/* Nessun account IMAP configurato */}
       {!scanning && result && result.scanned_sedi === 0 && !result.has_global_imap && (
-        <div className="mb-6 flex items-start gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+        <div className="mb-6 flex items-start gap-3 bg-amber-500/10 border border-[rgba(34,211,238,0.15)] rounded-xl p-4">
           <svg className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -376,7 +376,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
 
       {/* Errori parziali IMAP */}
       {result && result.errors.length > 0 && (
-        <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+        <div className="mb-6 bg-amber-500/10 border border-[rgba(34,211,238,0.15)] rounded-xl p-4">
           <p className="text-sm font-semibold text-amber-200 mb-2">Scansione parziale — alcune caselle hanno avuto errori:</p>
           <ul className="space-y-1">
             {result.errors.map((e, i) => (
@@ -397,7 +397,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
               </span>
             </div>
             {added.size > 0 && (
-              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-3 py-1.5">
+              <div className="flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-1.5">
                 <svg className="h-3.5 w-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>

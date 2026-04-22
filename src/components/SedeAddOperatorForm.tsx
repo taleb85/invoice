@@ -76,9 +76,9 @@ export default function SedeAddOperatorForm({
 
   const inner = (
     <>
-      {error && <div className="mb-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
+      {error && <div className="mb-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>}
       {success && (
-        <div className="mb-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{success}</div>
+        <div className="mb-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">{success}</div>
       )}
 
       <form

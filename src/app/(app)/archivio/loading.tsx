@@ -11,10 +11,10 @@ export default function ArchivioLoading() {
       </div>
 
       {/* Summary highlight card */}
-      <div className="h-16 w-full animate-pulse rounded-xl border border-amber-500/20 bg-amber-500/8" />
+      <div className="h-16 w-full animate-pulse rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-500/8" />
 
       {/* DocumentiQueue placeholder */}
-      <div className="overflow-hidden rounded-xl border border-amber-500/20 bg-app-line-10/30">
+      <div className="overflow-hidden rounded-xl border border-[rgba(34,211,238,0.15)] bg-app-line-10/30">
         <div className="h-1 w-full bg-gradient-to-r from-amber-500/50 to-orange-500/30" />
         <div className="flex items-center justify-between border-b border-app-line-18 px-4 py-3">
           <div className="space-y-1.5">

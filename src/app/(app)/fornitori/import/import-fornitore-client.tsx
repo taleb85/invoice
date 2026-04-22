@@ -213,10 +213,10 @@ export default function ImportFornitoreInner() {
           )}
 
           <div className="flex gap-2 flex-wrap">
-            {extracted.nome && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.nome}</span>}
-            {extracted.piva && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.piva}</span>}
-            {extracted.email && <span className="text-xs px-2.5 py-1 border border-emerald-500/35 bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.email}</span>}
-            {!extracted.nome && <span className="text-xs px-2.5 py-1 border border-amber-500/35 bg-amber-500/15 text-amber-200 rounded-full font-medium">⚠ {t.bolle.ocrNotFound}</span>}
+            {extracted.nome && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.nome}</span>}
+            {extracted.piva && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.piva}</span>}
+            {extracted.email && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.email}</span>}
+            {!extracted.nome && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200 rounded-full font-medium">⚠ {t.bolle.ocrNotFound}</span>}
           </div>
 
           <form onSubmit={handleSave} className="app-workspace-surface-elevated rounded-xl border border-app-line-22 p-6 space-y-4">

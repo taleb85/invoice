@@ -15,7 +15,7 @@ const MENU_TRIGGER_CLS =
   'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center justify-center gap-1 rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap touch-manipulation sm:px-2.5 sm:text-[11px]'
 
 const DUPLICATE_IN_PANEL_CLS =
-  'flex h-9 w-full min-w-0 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-amber-500/40 bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/55 hover:bg-amber-950/55'
+  'flex h-9 w-full min-w-0 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-950/55'
 
 type PanelRect = { top: number; left: number; width: number }
 
@@ -200,7 +200,7 @@ export default function DashboardHeaderSedeToolsMenu({ fornitoriInScadenza = 0 }
           {remindersBadge ? (
             <span
               aria-hidden
-              className="inline-flex h-4 min-w-4 items-center justify-center rounded-sm border border-sky-500/40 bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums leading-none text-sky-100 sm:text-[10px]"
+              className="inline-flex h-4 min-w-4 items-center justify-center rounded-sm border border-[rgba(34,211,238,0.15)] bg-sky-500/20 px-0.5 text-[9px] font-bold tabular-nums leading-none text-sky-100 sm:text-[10px]"
             >
               {fornitoriInScadenza > 9 ? '9+' : fornitoriInScadenza}
             </span>

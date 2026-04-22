@@ -203,8 +203,8 @@ export default async function ArchivioPage() {
                           <span
                             className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                               b.stato === 'completato'
-                                ? 'border border-emerald-500/25 bg-emerald-500/15 text-emerald-200'
-                                : 'border border-amber-500/25 bg-amber-500/15 text-amber-200'
+                                ? 'border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200'
+                                : 'border border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200'
                             }`}
                           >
                             {b.stato === 'completato' ? t.status.completata : t.status.inAttesa}
@@ -277,14 +277,14 @@ export default async function ArchivioPage() {
                     {f.documenti.map((doc) => (
                       <div
                         key={doc.id}
-                        className="flex items-center justify-between rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2"
+                        className="flex items-center justify-between rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2"
                       >
                         <div className="flex min-w-0 items-center gap-2">
                           <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
                           <span className="whitespace-nowrap text-sm font-medium text-app-fg-muted">
                             {doc.data_documento ? formatDate(doc.data_documento) : formatDate(doc.created_at)}
                           </span>
-                          <span className="whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
+                          <span className="whitespace-nowrap rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-200">
                             {t.status.inAttesa}
                           </span>
                         </div>

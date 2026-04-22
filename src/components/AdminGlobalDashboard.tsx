@@ -85,25 +85,25 @@ export function AdminGlobalDashboard({
       <div className="mb-8 rounded-xl border border-app-soft-border app-workspace-inset-bg-soft p-4 shadow-[0_0_24px_-8px_rgba(6,182,212,0.25)] md:p-5">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.dashboard.adminGlobalTotalsLabel}</p>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-3">
+          <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/5 px-3 py-3">
             <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
               <p className="text-2xl font-bold tabular-nums text-app-fg">{globalTotals.totFornitori}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.dashboard.suppliers}</p>
             </div>
           </div>
-          <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-3 py-3">
+          <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-sky-500/5 px-3 py-3">
             <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
               <p className="text-2xl font-bold tabular-nums text-app-fg">{globalTotals.totBolle}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.dashboard.totalBills}</p>
             </div>
           </div>
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-3">
+          <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/5 px-3 py-3">
             <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
               <p className="text-2xl font-bold tabular-nums text-app-fg">{globalTotals.bolleInAttesa}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.dashboard.pendingBills}</p>
             </div>
           </div>
-          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-3">
+          <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/5 px-3 py-3">
             <div className="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-0.5 text-center">
               <p className="text-2xl font-bold tabular-nums text-app-fg">{globalTotals.totFatture}</p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.dashboard.invoices}</p>
@@ -177,7 +177,7 @@ export function AdminGlobalDashboard({
                     >
                       {imapOk ? t.dashboard.sedeImapOn : t.sedi.notConfigured}
                     </span>
-                    <span className="inline-flex items-center rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-200/95">
+                    <span className="inline-flex items-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-200/95">
                       {t.dashboard.pendingBills}: {sede.bolleInAttesa}
                     </span>
                     <span className="inline-flex items-center rounded-lg border border-app-soft-border bg-app-line-10 px-2 py-1 text-[10px] font-semibold text-app-fg-muted">

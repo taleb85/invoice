@@ -25,12 +25,12 @@ const QUICK_NAV_BADGE_CLASS = [
 
 /** Bordo / fondo / alone proporzionati al testo molto piccolo (non il chrome `ActionButton` nav). */
 const QUICK_NAV_FRAME_CLASS = [
-  'border border-rose-400/35 bg-rose-950/40 shadow-[inset_0_0_0_1px_rgba(244,63,94,0.12)] hover:border-rose-300/50 hover:bg-rose-950/55',
-  'border border-indigo-400/35 bg-indigo-950/40 shadow-[inset_0_0_0_1px_rgba(129,140,248,0.12)] hover:border-indigo-300/50 hover:bg-indigo-950/55',
-  'border border-emerald-400/35 bg-emerald-950/40 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.12)] hover:border-emerald-300/50 hover:bg-emerald-950/55',
+  'border border-[rgba(34,211,238,0.15)] bg-rose-950/40 shadow-[inset_0_0_0_1px_rgba(244,63,94,0.12)] hover:border-[rgba(34,211,238,0.15)] hover:bg-rose-950/55',
+  'border border-[rgba(34,211,238,0.15)] bg-indigo-950/40 shadow-[inset_0_0_0_1px_rgba(129,140,248,0.12)] hover:border-[rgba(34,211,238,0.15)] hover:bg-indigo-950/55',
+  'border border-[rgba(34,211,238,0.15)] bg-emerald-950/40 shadow-[inset_0_0_0_1px_rgba(52,211,153,0.12)] hover:border-[rgba(34,211,238,0.15)] hover:bg-emerald-950/55',
   'border border-cyan-400/35 bg-cyan-950/40 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.12)] hover:border-cyan-300/50 hover:bg-cyan-950/55',
-  'border border-fuchsia-400/35 bg-fuchsia-950/40 shadow-[inset_0_0_0_1px_rgba(217,70,239,0.12)] hover:border-fuchsia-300/50 hover:bg-fuchsia-950/55',
-  'border border-amber-400/35 bg-amber-950/40 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.14)] hover:border-amber-300/50 hover:bg-amber-950/55',
+  'border border-[rgba(34,211,238,0.15)] bg-fuchsia-950/40 shadow-[inset_0_0_0_1px_rgba(217,70,239,0.12)] hover:border-[rgba(34,211,238,0.15)] hover:bg-fuchsia-950/55',
+  'border border-[rgba(34,211,238,0.15)] bg-amber-950/40 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.14)] hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-950/55',
 ] as const
 
 /** Chip compatti: altezza ridotta e padding stretto per stare tutti su una riga senza troncamento. */

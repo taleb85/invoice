@@ -147,7 +147,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
                         type="button"
                         disabled={saving[sg.email]}
                         onClick={() => handleSave(sg.email)}
-                        className="shrink-0 rounded-md border border-emerald-500/40 bg-emerald-950/35 px-2 py-1 text-[10px] font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="shrink-0 rounded-md border border-[rgba(34,211,238,0.15)] bg-emerald-950/35 px-2 py-1 text-[10px] font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {saving[sg.email] ? (
                           <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">

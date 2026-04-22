@@ -13,7 +13,7 @@ export const SUPPLIER_DETAIL_TAB_HIGHLIGHT = {
   listino: SUMMARY_HIGHLIGHT_ACCENTS.fuchsia,
   documenti: SUMMARY_HIGHLIGHT_ACCENTS.amber,
   audit: {
-    border: 'border-red-500/25',
+    border: 'border-[rgba(34,211,238,0.15)]',
     bar: 'bg-gradient-to-r from-red-500/80 to-orange-500/60',
   },
 } as const
@@ -23,13 +23,13 @@ export type SupplierDetailTabKey = keyof typeof SUPPLIER_DETAIL_TAB_HIGHLIGHT
 /** Bordo inferiore tab attiva (desktop fornitore), allineato a `SUPPLIER_DETAIL_TAB_HIGHLIGHT` / barra `.app-card-bar-accent`. */
 export const SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE: Record<SupplierDetailTabKey, string> = {
   dashboard: 'border-b-app-cyan-400',
-  bolle: 'border-b-indigo-400',
-  fatture: 'border-b-emerald-400',
-  listino: 'border-b-fuchsia-400',
-  conferme: 'border-b-rose-400',
-  documenti: 'border-b-amber-400',
+  bolle: 'border-b-[rgba(34,211,238,0.15)]',
+  fatture: 'border-b-[rgba(34,211,238,0.15)]',
+  listino: 'border-b-[rgba(34,211,238,0.15)]',
+  conferme: 'border-b-[rgba(34,211,238,0.15)]',
+  documenti: 'border-b-[rgba(34,211,238,0.15)]',
   verifica: 'border-b-app-cyan-400',
-  audit: 'border-b-red-400',
+  audit: 'border-b-[rgba(34,211,238,0.15)]',
 }
 
 /** Tabella «riepilogo per mese»: stessi accenti della card del tab attivo (fatture, bolle, …). */
@@ -64,7 +64,7 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     focusRing: 'focus-visible:ring-rose-500/40',
     resetNav: 'text-rose-400 hover:bg-rose-500/20 hover:text-rose-300',
     periodNavWrap:
-      'border-rose-500/40 bg-rose-500/[0.09] shadow-[inset_0_0_0_1px_rgba(244,63,94,0.08)]',
+      'border-[rgba(34,211,238,0.15)] bg-rose-500/[0.09] shadow-none',
     periodNavIconBtn: 'text-rose-100/90 hover:bg-rose-500/20 hover:text-white',
   },
   bolle: {
@@ -74,7 +74,7 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     focusRing: 'focus-visible:ring-indigo-500/40',
     resetNav: 'text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300',
     periodNavWrap:
-      'border-indigo-500/40 bg-indigo-500/[0.09] shadow-[inset_0_0_0_1px_rgba(99,102,241,0.08)]',
+      'border-[rgba(34,211,238,0.15)] bg-indigo-500/[0.09] shadow-none',
     periodNavIconBtn: 'text-indigo-100/90 hover:bg-indigo-500/20 hover:text-white',
   },
   fatture: {
@@ -84,7 +84,7 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     focusRing: 'focus-visible:ring-emerald-500/40',
     resetNav: 'text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300',
     periodNavWrap:
-      'border-emerald-500/40 bg-emerald-500/[0.09] shadow-[inset_0_0_0_1px_rgba(16,185,129,0.08)]',
+      'border-[rgba(34,211,238,0.15)] bg-emerald-500/[0.09] shadow-none',
     periodNavIconBtn: 'text-emerald-100/90 hover:bg-emerald-500/20 hover:text-white',
   },
   verifica: {
@@ -104,7 +104,7 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     focusRing: 'focus-visible:ring-fuchsia-500/40',
     resetNav: 'text-fuchsia-400 hover:bg-fuchsia-500/20 hover:text-fuchsia-300',
     periodNavWrap:
-      'border-fuchsia-500/40 bg-fuchsia-500/[0.09] shadow-[inset_0_0_0_1px_rgba(192,38,211,0.1)]',
+      'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/[0.09] shadow-none',
     periodNavIconBtn: 'text-fuchsia-100/90 hover:bg-fuchsia-500/20 hover:text-white',
   },
   documenti: {
@@ -114,7 +114,7 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     focusRing: 'focus-visible:ring-amber-500/40',
     resetNav: 'text-amber-400 hover:bg-amber-500/20 hover:text-amber-300',
     periodNavWrap:
-      'border-amber-500/40 bg-amber-500/[0.09] shadow-[inset_0_0_0_1px_rgba(251,191,36,0.1)]',
+      'border-[rgba(34,211,238,0.15)] bg-amber-500/[0.09] shadow-none',
     periodNavIconBtn: 'text-amber-100/90 hover:bg-amber-500/20 hover:text-white',
   },
   audit: {
@@ -124,7 +124,7 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     focusRing: 'focus-visible:ring-red-500/40',
     resetNav: 'text-red-400 hover:bg-red-500/20 hover:text-red-300',
     periodNavWrap:
-      'border-red-500/40 bg-red-500/[0.09] shadow-[inset_0_0_0_1px_rgba(239,68,68,0.1)]',
+      'border-[rgba(34,211,238,0.15)] bg-red-500/[0.09] shadow-none',
     periodNavIconBtn: 'text-red-100/90 hover:bg-red-500/20 hover:text-white',
   },
 }

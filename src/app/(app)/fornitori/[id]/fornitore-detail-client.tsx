@@ -1513,7 +1513,7 @@ function DashboardTab({
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={`/fornitori/${fornitoreId}/edit`}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-950/35 px-2.5 py-1.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/20"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/35 px-2.5 py-1.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/20"
                 >
                   <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
@@ -1588,7 +1588,7 @@ function DashboardTab({
 function attachmentKindPillClass(kind: AttachmentKind): string {
   const base = 'inline-flex shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums'
   if (kind === 'pdf') return `${base} border-app-line-35 bg-app-line-10 text-app-fg-muted`
-  if (kind === 'image') return `${base} border-violet-500/35 bg-violet-500/10 text-violet-200`
+  if (kind === 'image') return `${base} border-[rgba(34,211,238,0.15)] bg-violet-500/10 text-violet-200`
   return `${base} border-app-line-25 app-workspace-inset-bg-soft text-app-fg-muted`
 }
 
@@ -1608,7 +1608,7 @@ const FORNITORE_TABLE_CYAN_ACTION_PILL =
 
 /** Pill elimina icon-only compatto (solo icona, nessun testo). */
 const FORNITORE_TABLE_DELETE_PILL =
-  'inline-flex h-6 w-6 items-center justify-center rounded-md border border-red-500/40 bg-red-950/30 text-red-300 opacity-0 transition-all group-hover:opacity-100 hover:border-red-400/65 hover:bg-red-600/20 hover:text-red-100 focus-visible:opacity-100'
+  'inline-flex h-6 w-6 items-center justify-center rounded-md border border-[rgba(34,211,238,0.15)] bg-red-950/30 text-red-300 opacity-0 transition-all group-hover:opacity-100 hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/20 hover:text-red-100 focus-visible:opacity-100'
 
 function attachmentKindText(
   kind: AttachmentKind,
@@ -1812,11 +1812,11 @@ function BolleTab({
             </div>
             <div className="flex items-center gap-2">
                 {b.stato === 'completato' ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> {t.bolle.statoCompletato}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {t.bolle.statoInAttesa}
                 </span>
               )}
@@ -1892,11 +1892,11 @@ function BolleTab({
                 </td>
                 <td className="px-5 py-3">
                   {b.stato === 'completato' ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(34,211,238,0.15)] bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
                       <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> {t.bolle.statoCompletato}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
                       <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {t.bolle.statoInAttesa}
                     </span>
                   )}
@@ -3138,7 +3138,7 @@ function ListinoTab({
 
       {/* ── Anomalie Prezzi (fattura vs listino) ── */}
       {!anomaliesLoading && priceAnomalies.length > 0 && (
-        <div className="supplier-detail-tab-shell overflow-hidden border-rose-500/30">
+        <div className="supplier-detail-tab-shell overflow-hidden border-[rgba(34,211,238,0.15)]">
           <div className="app-card-bar-accent bg-rose-500/70" aria-hidden />
           <div className="flex items-center justify-between border-b border-app-line-22 px-5 py-3">
             <div className="flex items-center gap-2">
@@ -3188,7 +3188,7 @@ function ListinoTab({
                     <button
                       disabled={resolvingId === anomaly.id}
                       onClick={() => resolveAnomaly(anomaly.id)}
-                      className="shrink-0 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
+                      className="shrink-0 rounded-lg border border-[rgba(34,211,238,0.15)] bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50"
                     >
                       {resolvingId === anomaly.id ? 'Salvando…' : 'Risolvi'}
                     </button>
@@ -3203,7 +3203,7 @@ function ListinoTab({
       {/* ── Listino Prodotti (se la tabella esiste) ── */}
       {listTabloExists === false ? (
         /* Setup card — compact 2-step flow */
-        <div className="supplier-detail-tab-shell overflow-hidden border-amber-500/25">
+        <div className="supplier-detail-tab-shell overflow-hidden border-[rgba(34,211,238,0.15)]">
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="px-5 py-4 flex items-start gap-3 bg-amber-500/10">
             <svg className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3230,8 +3230,8 @@ function ListinoTab({
               onClick={copy}
               className={`shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all ${
                 copied
-                  ? 'bg-emerald-500/20 text-emerald-200 border-emerald-500/35'
-                  : 'bg-amber-500/25 text-amber-100 border-amber-500/40 hover:bg-amber-500/35'
+                  ? 'bg-emerald-500/20 text-emerald-200 border-[rgba(34,211,238,0.15)]'
+                  : 'bg-amber-500/25 text-amber-100 border-[rgba(34,211,238,0.15)] hover:bg-amber-500/35'
               }`}
             >
               {copied ? (
@@ -3243,11 +3243,11 @@ function ListinoTab({
             ) : null}
           </div>
           {!readOnly ? (
-          <details className="border-t border-amber-500/20">
+          <details className="border-t border-[rgba(34,211,238,0.15)]">
             <summary className="px-5 py-2 text-[11px] text-amber-300/90 cursor-pointer hover:bg-amber-500/10 select-none">
               {t.fornitori.listinoSetupShowSQL}
             </summary>
-            <pre className="text-[10px] text-amber-100/90 app-workspace-inset-bg-soft px-5 py-3 overflow-x-auto whitespace-pre font-mono border-t border-amber-500/15">
+            <pre className="text-[10px] text-amber-100/90 app-workspace-inset-bg-soft px-5 py-3 overflow-x-auto whitespace-pre font-mono border-t border-[rgba(34,211,238,0.15)]">
               {MIGRATION_SQL}
             </pre>
           </details>
@@ -3273,10 +3273,10 @@ function ListinoTab({
                 onClick={handleAutoImport}
                 disabled={autoImporting}
                 title="Importa automaticamente i prezzi da tutte le fatture non ancora analizzate"
-                className="hidden md:flex items-center gap-1 rounded-lg border border-violet-500/40 bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
+                className="hidden md:flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/15 px-2.5 py-1 text-[11px] font-bold text-violet-200 transition-colors hover:bg-violet-500/25 disabled:opacity-50"
               >
                 {autoImporting ? (
-                  <div className="h-3 w-3 animate-spin rounded-full border border-violet-300 border-t-transparent" />
+                  <div className="h-3 w-3 animate-spin rounded-full border border-[rgba(34,211,238,0.15)] border-t-transparent" />
                 ) : (
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -3309,12 +3309,12 @@ function ListinoTab({
           </div>
 
           {deleteError && (
-            <div className="border-b border-red-500/25 bg-red-500/10 px-5 py-2 text-xs text-red-200">{deleteError}</div>
+            <div className="border-b border-[rgba(34,211,238,0.15)] bg-red-500/10 px-5 py-2 text-xs text-red-200">{deleteError}</div>
           )}
 
           {/* Risultato auto-import */}
           {(autoImportResult || autoImportError) && !autoImporting && (
-            <div className={`border-b px-5 py-2.5 text-xs ${autoImportError ? 'border-red-500/25 bg-red-500/10 text-red-200' : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-200'}`}>
+            <div className={`border-b px-5 py-2.5 text-xs ${autoImportError ? 'border-[rgba(34,211,238,0.15)] bg-red-500/10 text-red-200' : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200'}`}>
               <div className="flex items-center justify-between gap-2">
                 <span>
                   {autoImportError
@@ -3337,7 +3337,7 @@ function ListinoTab({
 
           {/* Import from invoice panel — nascosto su mobile */}
           {showImport && !readOnly && (
-            <div className="hidden md:block border-b border-violet-500/25 bg-violet-500/10 px-5 py-4">
+            <div className="hidden md:block border-b border-[rgba(34,211,238,0.15)] bg-violet-500/10 px-5 py-4">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-violet-200">{t.appStrings.listinoImportPanelTitle}</p>
                 <button type="button" onClick={() => setShowImport(false)} className="text-violet-400/80 transition-colors hover:text-violet-200">
@@ -3370,7 +3370,7 @@ function ListinoTab({
                           <div
                             className={`mt-2 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-opacity ${
                               sel.analizzata
-                                ? 'border-emerald-500/35 bg-emerald-500/10 text-emerald-100'
+                                ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-100'
                                 : 'border-app-line-22 app-workspace-inset-bg-soft text-app-fg-muted opacity-[0.88]'
                             }`}
                           >
@@ -3378,7 +3378,7 @@ function ListinoTab({
                               {sel.label}
                             </span>
                             {sel.analizzata ? (
-                              <span className="shrink-0 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">
+                              <span className="shrink-0 rounded-full border border-[rgba(34,211,238,0.15)] bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">
                                 {t.appStrings.listinoInvoiceAnalyzedBadge}
                               </span>
                             ) : null}
@@ -3400,7 +3400,7 @@ function ListinoTab({
                   </div>
 
                   {importError && (
-                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2 text-xs text-red-200">
                       <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                       {importError}
                     </div>
@@ -3576,7 +3576,7 @@ function ListinoTab({
                                                 placeholder="Rekki ID"
                                                 disabled={importSavingRekkiIdx === idx}
                                                 autoFocus
-                                                className="flex-1 rounded border border-violet-500/40 bg-violet-950/30 px-1.5 py-0.5 text-[10px] text-app-fg placeholder:text-app-fg-muted/60 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
+                                                className="flex-1 rounded border border-[rgba(34,211,238,0.15)] bg-violet-950/30 px-1.5 py-0.5 text-[10px] text-app-fg placeholder:text-app-fg-muted/60 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
                                               />
                                               <button
                                                 type="button"
@@ -3601,7 +3601,7 @@ function ListinoTab({
                                               </button>
                                             </>
                                           ) : item.rekki_product_id ? (
-                                            <div className="flex items-center gap-1 rounded-md border border-violet-500/25 bg-violet-500/10 px-1.5 py-0.5">
+                                            <div className="flex items-center gap-1 rounded-md border border-[rgba(34,211,238,0.15)] bg-violet-500/10 px-1.5 py-0.5">
                                               <span className="text-[9px] font-bold uppercase tracking-wide text-violet-300/70">
                                                 Rekki:
                                               </span>
@@ -3683,7 +3683,7 @@ function ListinoTab({
                                             <svg className="h-3.5 w-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
-                                            <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-1 hidden w-48 rounded-md border border-amber-500/30 bg-amber-950/95 px-2 py-1.5 text-[9px] leading-snug text-amber-100 shadow-lg group-hover/tooltip:block">
+                                            <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-1 hidden w-48 rounded-md border border-[rgba(34,211,238,0.15)] bg-amber-950/95 px-2 py-1.5 text-[9px] leading-snug text-amber-100 shadow-lg group-hover/tooltip:block">
                                               {t.appStrings.listinoImportDateOlderThanListinoHint}
                                             </div>
                                           </div>
@@ -3700,8 +3700,8 @@ function ListinoTab({
                                             }
                                             className={`flex-1 rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition-colors ${
                                               item.forceOutdated
-                                                ? 'border-emerald-500/45 bg-emerald-950/40 text-emerald-100'
-                                                : 'border-amber-500/40 bg-amber-950/35 text-amber-100 hover:border-amber-400/55'
+                                                ? 'border-[rgba(34,211,238,0.15)] bg-emerald-950/40 text-emerald-100'
+                                                : 'border-[rgba(34,211,238,0.15)] bg-amber-950/35 text-amber-100 hover:border-[rgba(34,211,238,0.15)]'
                                             }`}
                                           >
                                             {item.forceOutdated
@@ -3819,7 +3819,7 @@ function ListinoTab({
                   !isDocumentDateAtLeastLatestListino(formData, latestF)
                 if (!manualDateBlocked) return null
                 return (
-                  <div className="mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-100/95">
+                  <div className="mt-3 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-100/95">
                     <p>{t.appStrings.listinoManualDateBlockedHint}</p>
                     <label className="mt-2 flex cursor-pointer items-center gap-2 font-medium">
                       <input
@@ -3876,7 +3876,7 @@ function ListinoTab({
               <button
                 type="button"
                 onClick={() => setListinoSpendFilter('all')}
-                className="mt-3 rounded-lg border border-app-line-28 bg-app-line-10 px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-violet-500/40 hover:text-violet-200"
+                className="mt-3 rounded-lg border border-app-line-28 bg-app-line-10 px-3 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-[rgba(34,211,238,0.15)] hover:text-violet-200"
               >
                 {t.fornitori.listinoClearKpiFilter}
               </button>
@@ -4024,7 +4024,7 @@ function ListinoTab({
 
                         {/* Riga Stato Anomalie */}
                         {summaryLine ? (
-                          <div className={`rounded-md px-2.5 py-1.5 ${hasAnomaly ? 'bg-red-500/10 border border-red-500/25' : 'bg-emerald-500/10 border border-emerald-500/25'}`}>
+                          <div className={`rounded-md px-2.5 py-1.5 ${hasAnomaly ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]' : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'}`}>
                             <p className={`text-xs font-semibold leading-tight ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
                               {hasAnomaly ? '⚠️ Attenzione: ' : '✓ '}{summaryLine}
                             </p>
@@ -4032,7 +4032,7 @@ function ListinoTab({
                         ) : null}
 
                         {listinoPriceStale ? (
-                          <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5">
+                          <div className="rounded-md border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-2.5 py-1.5">
                             <p className="text-[10px] font-bold uppercase tracking-wide text-amber-200">
                               {t.fornitori.listinoPriceStaleBadge}
                             </p>
@@ -4074,7 +4074,7 @@ function ListinoTab({
 
                         {/* Codice Rekki inline */}
                         {rekkiLinked && !readOnly ? (
-                          <div className="flex items-center gap-2 rounded-md bg-violet-950/20 px-2.5 py-1.5 border border-violet-500/20">
+                          <div className="flex items-center gap-2 rounded-md bg-violet-950/20 px-2.5 py-1.5 border border-[rgba(34,211,238,0.15)]">
                             <span className="text-[10px] font-bold uppercase tracking-wide text-violet-300/80">
                               Rekki ID:
                             </span>
@@ -4087,7 +4087,7 @@ function ListinoTab({
                                   placeholder="es. WINE-123"
                                   disabled={savingRekkiId}
                                   autoFocus
-                                  className="flex-1 rounded border border-violet-500/40 bg-violet-950/30 px-2 py-0.5 text-xs text-app-fg placeholder:text-app-fg-muted/60 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
+                                  className="flex-1 rounded border border-[rgba(34,211,238,0.15)] bg-violet-950/30 px-2 py-0.5 text-xs text-app-fg placeholder:text-app-fg-muted/60 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
                                 />
                                 <button
                                   type="button"
@@ -4180,7 +4180,7 @@ function ListinoTab({
                                 onClick={() => handleDelete(ultimo.id)}
                                 disabled={deletingId === ultimo.id}
                                 title={t.common.delete}
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-red-500/45 hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
                               >
                                 {deletingId === ultimo.id ? (
                                   <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
@@ -4250,7 +4250,7 @@ function ListinoTab({
                 key: 'bolle' as const,
                 label: t.fornitori.listinoDaBolle,
                 value: totBolle,
-                cls: 'border-blue-500/30 bg-blue-500/10 text-blue-200',
+                cls: 'border-[rgba(34,211,238,0.15)] bg-blue-500/10 text-blue-200',
                 bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar,
                 aria: t.fornitori.listinoKpiAriaBolle,
               },
@@ -4258,7 +4258,7 @@ function ListinoTab({
                 key: 'fatture' as const,
                 label: t.fornitori.listinoDaFatture,
                 value: totFatture,
-                cls: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200',
+                cls: 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200',
                 bar: SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar,
                 aria: t.fornitori.listinoKpiAriaFatture,
               },
@@ -4350,8 +4350,8 @@ function ListinoTab({
                   <td className="px-5 py-3.5">
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
                       r.tipo === 'fattura'
-                        ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300'
-                        : 'border-blue-500/25 bg-blue-500/10 text-blue-300'
+                        ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-300'
+                        : 'border-[rgba(34,211,238,0.15)] bg-blue-500/10 text-blue-300'
                     }`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${r.tipo === 'fattura' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
                       {r.tipo === 'fattura' ? t.fatture.title : t.bolle.title}

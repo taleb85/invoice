@@ -7,12 +7,12 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 
 const COLOR_MAP: Record<string, { bg: string; text: string; border: string; dot: string; chip: string }> = {
-  blue:   { bg: 'bg-blue-500/10',   text: 'text-blue-200',   border: 'border-blue-500/30',   dot: 'bg-blue-500',   chip: 'bg-blue-500/20 text-blue-200' },
+  blue:   { bg: 'bg-blue-500/10',   text: 'text-blue-200',   border: 'border-[rgba(34,211,238,0.15)]',   dot: 'bg-blue-500',   chip: 'bg-blue-500/20 text-blue-200' },
   cyan:   { bg: 'bg-app-line-10',   text: 'text-app-fg-muted',   border: 'border-app-line-30',   dot: 'bg-app-cyan-500',   chip: 'bg-app-line-20 text-app-fg-muted' },
-  green:  { bg: 'bg-emerald-500/10',  text: 'text-emerald-200',  border: 'border-emerald-500/30',  dot: 'bg-emerald-500',  chip: 'bg-emerald-500/20 text-emerald-200' },
-  purple: { bg: 'bg-purple-500/10', text: 'text-purple-200', border: 'border-purple-500/30', dot: 'bg-purple-500', chip: 'bg-purple-500/20 text-purple-200' },
-  orange: { bg: 'bg-orange-500/10', text: 'text-orange-200', border: 'border-orange-500/30', dot: 'bg-orange-500', chip: 'bg-orange-500/20 text-orange-200' },
-  amber:  { bg: 'bg-amber-500/10',  text: 'text-amber-200',  border: 'border-amber-500/30',  dot: 'bg-amber-500',  chip: 'bg-amber-500/20 text-amber-200' },
+  green:  { bg: 'bg-emerald-500/10',  text: 'text-emerald-200',  border: 'border-[rgba(34,211,238,0.15)]',  dot: 'bg-emerald-500',  chip: 'bg-emerald-500/20 text-emerald-200' },
+  purple: { bg: 'bg-purple-500/10', text: 'text-purple-200', border: 'border-[rgba(34,211,238,0.15)]', dot: 'bg-purple-500', chip: 'bg-purple-500/20 text-purple-200' },
+  orange: { bg: 'bg-orange-500/10', text: 'text-orange-200', border: 'border-[rgba(34,211,238,0.15)]', dot: 'bg-orange-500', chip: 'bg-orange-500/20 text-orange-200' },
+  amber:  { bg: 'bg-amber-500/10',  text: 'text-amber-200',  border: 'border-[rgba(34,211,238,0.15)]',  dot: 'bg-amber-500',  chip: 'bg-amber-500/20 text-amber-200' },
   slate:  { bg: 'app-workspace-inset-bg-soft',  text: 'text-app-fg',  border: 'border-app-line-25',  dot: 'bg-white/40',  chip: 'app-workspace-inset-bg text-app-fg-muted' },
 }
 
@@ -125,7 +125,7 @@ export default function GuidaPage() {
                       <p className="mb-1 text-sm font-semibold text-app-fg">{item.title}</p>
                       <p className="text-sm leading-relaxed text-app-fg-muted">{item.desc}</p>
                       {item.tip && (
-                        <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                        <div className="mt-2.5 flex items-start gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2">
                           <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                           </svg>

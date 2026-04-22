@@ -281,7 +281,7 @@ export default function EditFornitore() {
           </div>
 
           {error && (
-            <p className="rounded-xl border border-red-500/35 app-workspace-inset-bg-soft px-4 py-2.5 text-sm text-red-200/95">
+            <p className="rounded-xl border border-[rgba(34,211,238,0.15)] app-workspace-inset-bg-soft px-4 py-2.5 text-sm text-red-200/95">
               {error}
             </p>
           )}

@@ -220,7 +220,7 @@ export default function ManualDeliveryForm({
               type="button"
               disabled={loading}
               onClick={clearPhoto}
-              className="touch-manipulation rounded-lg border border-red-900/50 bg-red-950/40 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-900/50 disabled:opacity-50"
+              className="touch-manipulation rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-3 py-2 text-xs font-semibold text-red-200 transition-colors hover:bg-red-900/50 disabled:opacity-50"
             >
               {t.dashboard.manualReceiptRemovePhoto}
             </button>

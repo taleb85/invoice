@@ -38,7 +38,7 @@ export function OfflineBanner() {
             <button
               type="button"
               onClick={() => void syncPending()}
-              className="ml-1 rounded-full border border-amber-800/30 px-2 py-0.5 text-xs font-semibold hover:bg-amber-600/20"
+              className="ml-1 rounded-full border border-[rgba(34,211,238,0.15)] px-2 py-0.5 text-xs font-semibold hover:bg-amber-600/20"
             >
               Riprova
             </button>

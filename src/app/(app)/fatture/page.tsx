@@ -170,7 +170,7 @@ export default async function FatturePage({
       </AppPageHeaderStrip>
 
       {!sedeId && !isMasterAdmin ? (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
+        <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
           {t.dashboard.operatorNoSede}
         </div>
       ) : null}

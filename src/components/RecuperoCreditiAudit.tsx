@@ -133,7 +133,7 @@ export default function RecuperoCreditiAudit({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-transparent">
+    <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
       <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-600 [box-shadow:0_0_16px_rgba(244,63,94,0.5),0_0_28px_rgba(225,29,72,0.3)]" aria-hidden />
 
       <div className="px-5 py-4">
@@ -160,7 +160,7 @@ export default function RecuperoCreditiAudit({
               type="date"
               value={dateRange.from}
               onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
-              className="w-full rounded-xl border border-rose-500/35 bg-rose-500/[0.06] px-3 py-2 text-sm text-app-fg [color-scheme:dark] placeholder:text-rose-300/55 focus:border-rose-500/50 focus:outline-none"
+              className="w-full rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/[0.06] px-3 py-2 text-sm text-app-fg [color-scheme:dark] placeholder:text-rose-300/55 focus:border-[rgba(34,211,238,0.15)] focus:outline-none"
             />
           </div>
           <div className="flex-1 min-w-[120px]">
@@ -171,21 +171,21 @@ export default function RecuperoCreditiAudit({
               type="date"
               value={dateRange.to}
               onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
-              className="w-full rounded-xl border border-rose-500/35 bg-rose-500/[0.06] px-3 py-2 text-sm text-app-fg [color-scheme:dark] placeholder:text-rose-300/55 focus:border-rose-500/50 focus:outline-none"
+              className="w-full rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/[0.06] px-3 py-2 text-sm text-app-fg [color-scheme:dark] placeholder:text-rose-300/55 focus:border-[rgba(34,211,238,0.15)] focus:outline-none"
             />
           </div>
           <button
             type="button"
             onClick={handleRunAudit}
             disabled={loading}
-            className="shrink-0 rounded-xl border border-rose-500/40 bg-rose-600/80 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-rose-500/80 disabled:opacity-50"
+            className="shrink-0 rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-600/80 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-rose-500/80 disabled:opacity-50"
           >
             {loading ? t.appStrings.auditRunning : t.appStrings.auditRunBtn}
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-xs text-rose-200">
+          <div className="mb-4 rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/10 px-3 py-2.5 text-xs text-rose-200">
             <div className="flex items-start gap-2">
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -196,7 +196,7 @@ export default function RecuperoCreditiAudit({
         )}
 
         {syncSuccess && (
-          <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
+          <div className="mb-4 rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
             <div className="flex items-start gap-2">
               <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -207,7 +207,7 @@ export default function RecuperoCreditiAudit({
         )}
 
         {/* Sync storico button */}
-        <div className="mb-4 relative overflow-hidden rounded-xl border border-violet-500/25 bg-transparent">
+        <div className="mb-4 relative overflow-hidden rounded-xl border border-[rgba(34,211,238,0.15)] bg-transparent">
           <div className="h-px w-full bg-gradient-to-r from-violet-500/60 via-violet-400/40 to-violet-600/60" aria-hidden />
           <div className="flex items-start justify-between gap-3 px-4 py-3">
             <div className="flex-1">
@@ -220,7 +220,7 @@ export default function RecuperoCreditiAudit({
               type="button"
               onClick={handleSyncStorico}
               disabled={syncing}
-              className="shrink-0 rounded-xl border border-violet-500/40 bg-violet-600/70 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500/70 disabled:opacity-50"
+              className="shrink-0 rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-600/70 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500/70 disabled:opacity-50"
             >
               {syncing ? t.appStrings.auditSyncing : t.appStrings.auditSyncBtn}
             </button>
@@ -231,7 +231,7 @@ export default function RecuperoCreditiAudit({
           <>
             {/* Summary KPIs */}
             <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <div className="relative overflow-hidden rounded-2xl border border-rose-500/25 bg-transparent">
+              <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
                 <div className="h-0.5 shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700" />
                 <div className="px-4 py-3 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-rose-400/80">{t.appStrings.auditKpiSpreco}</p>
@@ -270,7 +270,7 @@ export default function RecuperoCreditiAudit({
             </div>
 
             {audit.items.length === 0 ? (
-              <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.05] px-4 py-6 text-center">
+              <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/[0.05] px-4 py-6 text-center">
                 <svg className="mx-auto h-10 w-10 text-emerald-400/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>

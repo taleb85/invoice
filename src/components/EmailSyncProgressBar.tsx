@@ -165,13 +165,13 @@ export default function EmailSyncProgressBar() {
         onBolleNewMobile ? 'max-md:mt-[calc(3.5rem+env(safe-area-inset-top,0px))]' : ''
       } ${
         barError
-          ? 'border-red-500/40 bg-red-950/90 shadow-[0_4px_24px_-8px_rgba(239,68,68,0.35)]'
+          ? 'border-[rgba(34,211,238,0.15)] bg-red-950/90 shadow-[0_4px_24px_-8px_rgba(239,68,68,0.35)]'
           : completionWarn
-            ? 'border-amber-500/35 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(245,158,11,0.28)]'
+            ? 'border-[rgba(34,211,238,0.15)] app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(245,158,11,0.28)]'
             : showCompletionSummary
-              ? 'border-emerald-500/35 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(16,185,129,0.3)]'
+              ? 'border-[rgba(34,211,238,0.15)] app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(16,185,129,0.3)]'
               : stalledActive
-                ? 'border-amber-500/30 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(245,158,11,0.2)]'
+                ? 'border-[rgba(34,211,238,0.15)] app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(245,158,11,0.2)]'
                 : 'border-app-line-25 app-workspace-surface-elevated shadow-[0_4px_24px_-8px_rgba(6,182,212,0.35)]'
       }`}
       role="status"
@@ -202,8 +202,8 @@ export default function EmailSyncProgressBar() {
                 onClick={() => dismissEmailSyncCompletion()}
                 className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors sm:text-sm ${
                   completionWarn
-                    ? 'border-amber-400/50 text-amber-100 hover:bg-amber-500/15'
-                    : 'border-emerald-400/50 text-emerald-100 hover:bg-emerald-500/15'
+                    ? 'border-[rgba(34,211,238,0.15)] text-amber-100 hover:bg-amber-500/15'
+                    : 'border-[rgba(34,211,238,0.15)] text-emerald-100 hover:bg-emerald-500/15'
                 }`}
                 aria-label={t.dashboard.emailSyncDismissAria}
               >
@@ -216,9 +216,9 @@ export default function EmailSyncProgressBar() {
                 onClick={() => cancelEmailSync()}
                 className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors sm:text-sm ${
                   barError
-                    ? 'border-red-400/50 text-red-100 hover:bg-red-500/15'
+                    ? 'border-[rgba(34,211,238,0.15)] text-red-100 hover:bg-red-500/15'
                     : stalledActive
-                      ? 'border-amber-400/45 text-amber-100 hover:bg-amber-500/15'
+                      ? 'border-[rgba(34,211,238,0.15)] text-amber-100 hover:bg-amber-500/15'
                       : 'border-app-a-45 text-app-fg-muted hover:bg-app-line-15'
                 }`}
                 aria-label={t.dashboard.emailSyncStopAria}
@@ -245,7 +245,7 @@ export default function EmailSyncProgressBar() {
         </div>
 
         {barError && imapRetry ? (
-          <div className="rounded-lg border border-red-500/35 bg-red-950/35 px-3 py-2.5 sm:px-4">
+          <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/35 px-3 py-2.5 sm:px-4">
             <p className="text-xs font-semibold text-red-100/95 sm:text-sm">
               {t.dashboard.emailSyncImapRetryLine
                 .replace(/\{current\}/g, String(imapRetry.attempt))
@@ -262,7 +262,7 @@ export default function EmailSyncProgressBar() {
         ) : null}
 
         {progress.stalled && progress.active && !barError ? (
-          <div className="rounded-xl border border-amber-500/35 bg-gradient-to-br from-amber-950/50 via-[rgb(30_41_59/0.44)] to-[rgb(30_27_75/0.55)] px-3 py-3 shadow-inner shadow-amber-950/20 sm:px-4">
+          <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-gradient-to-br from-amber-950/50 via-[rgb(30_41_59/0.44)] to-[rgb(30_27_75/0.55)] px-3 py-3 shadow-inner shadow-amber-950/20 sm:px-4">
             <div className="flex gap-3 sm:gap-4">
               <div className="flex shrink-0 flex-col items-center pt-1" aria-hidden>
                 <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-400/30">
@@ -316,8 +316,8 @@ export default function EmailSyncProgressBar() {
           <div
             className={`rounded-xl border px-3 py-3 shadow-inner sm:px-4 ${
               completionWarn
-                ? 'border-amber-500/35 bg-gradient-to-br from-amber-950/40 via-[rgb(30_41_59/0.38)] to-[rgb(30_27_75/0.5)] shadow-amber-950/15'
-                : 'border-emerald-500/35 bg-gradient-to-br from-emerald-950/40 via-[rgb(30_41_59/0.38)] to-[rgb(30_27_75/0.5)] shadow-emerald-950/20'
+                ? 'border-[rgba(34,211,238,0.15)] bg-gradient-to-br from-amber-950/40 via-[rgb(30_41_59/0.38)] to-[rgb(30_27_75/0.5)] shadow-amber-950/15'
+                : 'border-[rgba(34,211,238,0.15)] bg-gradient-to-br from-emerald-950/40 via-[rgb(30_41_59/0.38)] to-[rgb(30_27_75/0.5)] shadow-emerald-950/20'
             }`}
           >
             <div className="flex gap-3 sm:gap-4">

@@ -17,22 +17,22 @@ const colorMap = {
     badge: 'bg-[#22d3ee]/10 text-[#22d3ee]',
   },
   purple: {
-    border: 'border-violet-500/25',
+    border: 'border-[rgba(34,211,238,0.15)]',
     bar: 'bg-gradient-to-r from-violet-500 via-violet-400 to-violet-800 shadow-[0_0_16px_rgba(139,92,246,0.4)]',
     badge: 'bg-violet-400/10 text-violet-300',
   },
   green: {
-    border: 'border-emerald-500/20',
+    border: 'border-[rgba(34,211,238,0.15)]',
     bar: 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-700 shadow-[0_0_16px_rgba(16,185,129,0.4)]',
     badge: 'bg-emerald-400/10 text-emerald-400',
   },
   red: {
-    border: 'border-rose-500/25',
+    border: 'border-[rgba(34,211,238,0.15)]',
     bar: 'bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700 shadow-[0_0_16px_rgba(244,63,94,0.4)]',
     badge: 'bg-rose-400/10 text-rose-400',
   },
   amber: {
-    border: 'border-amber-500/20',
+    border: 'border-[rgba(34,211,238,0.15)]',
     bar: 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-700 shadow-[0_0_16px_rgba(245,158,11,0.4)]',
     badge: 'bg-amber-400/10 text-amber-300',
   },

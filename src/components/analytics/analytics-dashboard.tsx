@@ -45,7 +45,7 @@ type Props = {
 }
 
 const chartCardClass =
-  'relative overflow-hidden rounded-2xl border border-sky-500/15 bg-transparent px-5 pt-5 pb-4'
+  'relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-5 pt-5 pb-4'
 
 export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
   const t = useT()
@@ -78,7 +78,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-24 animate-pulse rounded-2xl border border-sky-500/15 bg-sky-500/5"
+              className="h-24 animate-pulse rounded-2xl border border-[rgba(34,211,238,0.15)] bg-sky-500/5"
             />
           ))}
         </div>
@@ -87,7 +87,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className={`h-[280px] animate-pulse rounded-2xl border border-sky-500/15 bg-sky-500/5 ${i === 0 ? 'lg:col-span-2' : ''}`}
+              className={`h-[280px] animate-pulse rounded-2xl border border-[rgba(34,211,238,0.15)] bg-sky-500/5 ${i === 0 ? 'lg:col-span-2' : ''}`}
             />
           ))}
         </div>
@@ -304,17 +304,17 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
       {/* Summary row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl border border-sky-500/15 bg-transparent px-4 pb-3 pt-3.5">
+        <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5">
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
           <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryPendingDocs}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.documentiPendenti}</p>
         </div>
-        <div className="relative overflow-hidden rounded-2xl border border-sky-500/15 bg-transparent px-4 pb-3 pt-3.5">
+        <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5">
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
           <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryPendingNotes}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.riconciliazione.inAttesa}</p>
         </div>
-        <div className="relative col-span-2 overflow-hidden rounded-2xl border border-sky-500/15 bg-transparent px-4 pb-3 pt-3.5 lg:col-span-1">
+        <div className="relative col-span-2 overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5 lg:col-span-1">
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
           <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryArchivedInvoices}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">

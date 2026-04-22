@@ -445,7 +445,7 @@ export default function SediPage() {
   if (!isAdmin) {
     return (
       <div className="p-8 max-w-lg">
-        <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-6 text-center">
+        <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-950/40 p-6 text-center">
           <svg className="mx-auto mb-3 h-10 w-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
@@ -485,8 +485,8 @@ export default function SediPage() {
         ) : null}
       </AppPageHeaderStrip>
 
-      {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
-      {successMsg && <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
+      {error && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+      {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
 
       {/* ── Wizard nuova sede ── */}
       {showWizard && (
@@ -536,7 +536,7 @@ export default function SediPage() {
                         ? 'app-workspace-inset-bg-soft border-app-line-25 text-app-fg-muted'
                         : wizardGeoStatus === 'detected'
                         ? 'border-app-line-35 bg-app-line-10 text-app-fg-muted'
-                        : 'border-amber-500/35 bg-amber-500/10 text-amber-100'
+                        : 'border-[rgba(34,211,238,0.15)] bg-amber-500/10 text-amber-100'
                     }`}>
                       {/* Status row */}
                       <div className="flex items-center gap-2 mb-2.5">
@@ -682,7 +682,7 @@ export default function SediPage() {
                     </div>
                   </div>
                   {(wizardImap.imap_host.includes('gmail') || wizardImap.imap_host.includes('outlook') || wizardImap.imap_host.includes('office365')) && (
-                    <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    <div className="flex gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                       <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                       </svg>
@@ -727,7 +727,7 @@ export default function SediPage() {
                   {wizardOperators.length > 0 && (
                     <div className="space-y-1.5 mb-2">
                       {wizardOperators.map((op, i) => (
-                        <div key={i} className="flex items-center justify-between rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
+                        <div key={i} className="flex items-center justify-between rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2">
                           <div className="flex items-center gap-2">
                             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600">
                               <span className="text-white text-[10px] font-bold">{op.name.charAt(0).toUpperCase()}</span>
@@ -795,7 +795,7 @@ export default function SediPage() {
                   </div>
 
                   {wizardError && (
-                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">{wizardError}</div>
+                    <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2 text-xs text-red-300">{wizardError}</div>
                   )}
 
                   <div className="flex justify-between pt-1">
@@ -837,7 +837,7 @@ export default function SediPage() {
         ) : (
           <div className="space-y-3">
             {sedi.map((sede) => (
-              <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-teal-500/20 bg-transparent">
+              <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
                 <div className="h-0.5 shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-700 [box-shadow:0_0_16px_rgba(20,184,166,0.48)]" aria-hidden />
 
                 {/* ── Header sede ── */}
@@ -1070,7 +1070,7 @@ export default function SediPage() {
                             )}
                             {/* Inline PIN-change form — only visible when this operator is selected */}
                             {changingPinFor === p.id && (
-                              <div className="mt-1.5 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 space-y-2">
+                              <div className="mt-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/8 px-3 py-2.5 space-y-2">
                                 <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
                                   {t.sedi.newPinFor.replace('{name}', p.full_name ?? '—')}
                                 </p>
@@ -1085,7 +1085,7 @@ export default function SediPage() {
                                       setNewPin(e.target.value.replace(/\D/g, ''))
                                       setPinMsg(null)
                                     }}
-                                    className="w-28 rounded-lg border border-app-line-25 bg-transparent px-2.5 py-1.5 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                    className="w-28 rounded-lg border border-app-line-25 bg-transparent px-2.5 py-1.5 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                                     autoFocus
                                   />
                                   <button
@@ -1169,7 +1169,7 @@ export default function SediPage() {
                         </div>
                       </div>
                       {createUserMsg && (
-                        <div className={`text-xs px-3 py-2 rounded-lg border ${createUserMsg.ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
+                        <div className={`text-xs px-3 py-2 rounded-lg border ${createUserMsg.ok ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200' : 'border-[rgba(34,211,238,0.15)] bg-red-500/10 text-red-300'}`}>
                           {createUserMsg.text}
                         </div>
                       )}
@@ -1406,7 +1406,7 @@ export default function SediPage() {
                       </div>
 
                       {(imapForm.imap_host.includes('gmail') || imapForm.imap_host.includes('googlemail') || imapForm.imap_host.includes('outlook') || imapForm.imap_host.includes('office365')) && (
-                        <div className="flex gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                        <div className="flex gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                           <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                           </svg>
@@ -1419,7 +1419,7 @@ export default function SediPage() {
                         </div>
                       )}
                       {imapTestResult && (
-                        <div className={`rounded-lg border px-3 py-2 text-xs ${imapTestResult.ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200' : 'border-red-500/30 bg-red-500/10 text-red-300'}`}>
+                        <div className={`rounded-lg border px-3 py-2 text-xs ${imapTestResult.ok ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200' : 'border-[rgba(34,211,238,0.15)] bg-red-500/10 text-red-300'}`}>
                           {imapTestResult.message}
                         </div>
                       )}

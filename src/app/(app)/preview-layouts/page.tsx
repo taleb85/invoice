@@ -36,10 +36,10 @@ const ACTIVITY_LOG = [
 /* ─── Helpers ────────────────────────────────────────────────────── */
 
 const badgeCls: Record<string, string> = {
-  green:  'bg-green-100 text-green-700 border border-green-200',
-  orange: 'bg-orange-100 text-orange-700 border border-orange-200',
-  red:    'bg-red-100 text-red-700 border border-red-200',
-  amber:  'bg-amber-100 text-amber-700 border border-amber-200',
+  green:  'bg-green-100 text-green-700 border border-[rgba(34,211,238,0.15)]',
+  orange: 'bg-orange-100 text-orange-700 border border-[rgba(34,211,238,0.15)]',
+  red:    'bg-red-100 text-red-700 border border-[rgba(34,211,238,0.15)]',
+  amber:  'bg-amber-100 text-amber-700 border border-[rgba(34,211,238,0.15)]',
   gray:   'bg-gray-100 text-gray-500 border border-gray-200',
 }
 const dotCls: Record<string, string> = {
@@ -114,7 +114,7 @@ function MLayout0() {
         <h2 className="text-lg font-bold mb-4">Good morning 👋</h2>
         <div className="grid grid-cols-3 gap-2">
           {[{ label: 'Suppliers', value: '6' }, { label: 'Pending', value: '3', alert: true }, { label: 'This month', value: '£2.4k' }].map(k => (
-            <div key={k.label} className={`rounded-xl p-2.5 text-center ${'alert' in k && k.alert ? 'bg-orange-500/30 border border-orange-400/40' : 'bg-white/10'}`}>
+            <div key={k.label} className={`rounded-xl p-2.5 text-center ${'alert' in k && k.alert ? 'bg-orange-500/30 border border-[rgba(34,211,238,0.15)]' : 'bg-white/10'}`}>
               <p className="text-xl font-bold tabular-nums">{k.value}</p>
               <p className="text-[10px] text-gray-400 mt-0.5">{k.label}</p>
             </div>
@@ -124,11 +124,11 @@ function MLayout0() {
 
       <div className="px-3 -mt-4">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-3 grid grid-cols-2 gap-2">
-          <button onClick={handleScan} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${scanning ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+          <button onClick={handleScan} className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${scanning ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 border border-[rgba(34,211,238,0.15)]'}`}>
             <svg className={`w-3.5 h-3.5 shrink-0 ${scanning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             {scanning ? 'Scanning…' : 'Scan Emails'}
           </button>
-          <button className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 text-xs font-bold">
+          <button className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-50 text-amber-700 border border-[rgba(34,211,238,0.15)] text-xs font-bold">
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             Send Reminders
           </button>
@@ -144,7 +144,7 @@ function MLayout0() {
       </div>
 
       <div className="px-3 mt-4">
-        <div className="bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+        <div className="bg-orange-50 border border-[rgba(34,211,238,0.15)] rounded-2xl px-4 py-3 flex items-start gap-3">
           <svg className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
           <div>
             <p className="text-xs font-bold text-orange-700">3 documents need attention</p>
@@ -192,7 +192,7 @@ function MLayout1() {
     <div className="p-3 space-y-2 pb-6 bg-gray-50 min-h-full">
       <div className="flex items-center justify-between py-2 px-1">
         <h1 className="text-base font-bold text-gray-800">Documents</h1>
-        <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full">{MOCK_DOCS.length} items</span>
+        <span className="text-xs bg-blue-50 text-blue-600 border border-[rgba(34,211,238,0.15)] px-2 py-0.5 rounded-full">{MOCK_DOCS.length} items</span>
       </div>
       {MOCK_DOCS.map(doc => (
         <div key={doc.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm">
@@ -209,7 +209,7 @@ function MLayout1() {
           </div>
           <div className="flex justify-end gap-2 px-4 pb-3">
             {doc.actions.map(a => (
-              <button key={a} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg ${a === 'Email' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-900 text-white'}`}>
+              <button key={a} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg ${a === 'Email' ? 'bg-blue-50 text-blue-600 border border-[rgba(34,211,238,0.15)]' : 'bg-gray-900 text-white'}`}>
                 {a === 'Email'
                   ? <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>Email</>
                   : <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>View</>
@@ -254,7 +254,7 @@ function MLayout2() {
                       <p className="text-[9px] text-gray-400 mb-0.5">Statement</p>
                       <p className="font-semibold text-gray-700">{row.stmt}</p>
                     </div>
-                    <div className={`rounded-lg border px-2 py-1.5 text-center ${row.sys === '—' ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                    <div className={`rounded-lg border px-2 py-1.5 text-center ${row.sys === '—' ? 'bg-red-50 border-[rgba(34,211,238,0.15)]' : 'bg-white border-gray-100'}`}>
                       <p className="text-[9px] text-gray-400 mb-0.5">System {row.sys === '—' && <span className="text-red-500">✗</span>}</p>
                       <p className={`font-semibold ${row.sys === '—' ? 'text-red-500' : 'text-gray-700'}`}>{row.sys}</p>
                     </div>
@@ -549,11 +549,11 @@ function DLayout0() {
         {/* Toolbar */}
         <div className="border-b border-gray-200 bg-white px-5 py-3 flex items-center gap-3 flex-shrink-0">
           <h1 className="text-sm font-bold text-gray-800 mr-auto">Dashboard</h1>
-          <button onClick={handleScan} className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${scanning ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 border border-blue-100'}`}>
+          <button onClick={handleScan} className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${scanning ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 border border-[rgba(34,211,238,0.15)]'}`}>
             <svg className={`w-3.5 h-3.5 shrink-0 ${scanning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             {scanning ? 'Scanning…' : 'Scan Emails'}
           </button>
-          <button className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
+          <button className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-[rgba(34,211,238,0.15)]">
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             Send Reminders
           </button>
@@ -561,7 +561,7 @@ function DLayout0() {
 
         <div className="flex-1 overflow-y-auto p-5 grid grid-cols-3 gap-4 content-start">
           {/* Alert banner */}
-          <div className="col-span-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <div className="col-span-3 bg-orange-50 border border-[rgba(34,211,238,0.15)] rounded-xl px-4 py-3 flex items-center gap-3">
             <span className="text-orange-500">⚠</span>
             <div className="flex-1">
               <p className="text-xs font-bold text-orange-700">3 documents need attention</p>
@@ -665,7 +665,7 @@ function DLayout1() {
         {/* List */}
         <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
           {filtered.map(doc => (
-            <button key={doc.id} onClick={() => setSelected(doc)} className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${selected.id === doc.id ? 'bg-blue-50 border-l-2 border-blue-500' : ''}`}>
+            <button key={doc.id} onClick={() => setSelected(doc)} className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${selected.id === doc.id ? 'bg-blue-50 border-l-2 border-[rgba(34,211,238,0.15)]' : ''}`}>
               <div className="flex items-center gap-2 mb-1">
                 <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeCls[doc.color]}`}>{doc.badge}</span>
                 <span className="ml-auto text-[10px] text-gray-400">{doc.date}</span>
@@ -687,7 +687,7 @@ function DLayout1() {
           </div>
           <div className="ml-auto flex gap-2">
             {selected.actions.map(a => (
-              <button key={a} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg ${a === 'Email' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'bg-gray-900 text-white'}`}>
+              <button key={a} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg ${a === 'Email' ? 'bg-blue-50 text-blue-600 border border-[rgba(34,211,238,0.15)]' : 'bg-gray-900 text-white'}`}>
                 {a === 'Email'
                   ? <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>Email</>
                   : <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>View</>
@@ -716,7 +716,7 @@ function DLayout1() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
               <p className="text-xs font-bold text-gray-700">OCR Extracted Data</p>
-              <span className="text-[10px] bg-green-50 text-green-600 border border-green-100 px-2 py-0.5 rounded-full font-semibold">AI ✓</span>
+              <span className="text-[10px] bg-green-50 text-green-600 border border-[rgba(34,211,238,0.15)] px-2 py-0.5 rounded-full font-semibold">AI ✓</span>
             </div>
             <div className="divide-y divide-gray-50">
               {[
@@ -735,7 +735,7 @@ function DLayout1() {
           </div>
 
           {/* Batch action hint */}
-          <div className="col-span-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-3">
+          <div className="col-span-2 bg-blue-50 border border-[rgba(34,211,238,0.15)] rounded-xl px-4 py-3 flex items-center gap-3">
             <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             <p className="text-xs text-blue-600">Select multiple rows in the list to perform batch actions (e.g. send reminders to all Missing documents at once).</p>
           </div>
@@ -816,7 +816,7 @@ function DLayout2() {
                       </td>
                     </tr>
                     {isOpen && (
-                      <tr key={`${stmt.id}-exp`} className="bg-blue-50/50 border-b border-blue-100">
+                      <tr key={`${stmt.id}-exp`} className="bg-blue-50/50 border-b border-[rgba(34,211,238,0.15)]">
                         <td colSpan={9} className="px-8 py-4">
                           <div className="grid grid-cols-2 gap-4 max-w-xl">
                             {[{ label: 'Date', stmt: stmt.stmtDate, sys: stmt.sysDate }, { label: 'Amount', stmt: stmt.stmtAmount, sys: stmt.sysAmount }].map(row => (
@@ -827,7 +827,7 @@ function DLayout2() {
                                   <p className="text-xs font-bold text-gray-700">{row.stmt}</p>
                                 </div>
                                 <span className="text-gray-300">→</span>
-                                <div className={`rounded-lg border px-3 py-1.5 text-center flex-1 ${row.sys === '—' ? 'bg-red-50 border-red-200' : 'bg-white border-gray-100'}`}>
+                                <div className={`rounded-lg border px-3 py-1.5 text-center flex-1 ${row.sys === '—' ? 'bg-red-50 border-[rgba(34,211,238,0.15)]' : 'bg-white border-gray-100'}`}>
                                   <p className="text-[9px] text-gray-400">System {row.sys === '—' && '✗'}</p>
                                   <p className={`text-xs font-bold ${row.sys === '—' ? 'text-red-500' : 'text-gray-700'}`}>{row.sys}</p>
                                 </div>

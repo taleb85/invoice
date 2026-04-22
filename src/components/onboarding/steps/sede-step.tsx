@@ -99,7 +99,7 @@ export function SedeStep({ onComplete }: Props) {
       </div>
 
       {error && (
-        <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-400">{error}</p>
+        <p className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/10 px-4 py-2 text-sm text-rose-400">{error}</p>
       )}
 
       <button

@@ -7,8 +7,8 @@ const TONE_CLASS: Record<StatusBadgeTone, string> = {
   red: 'border-[#FF3131]/55 bg-red-950/50 text-red-100 shadow-[0_0_12px_rgba(255,49,49,0.35)]',
   green:
     'border-[#39FF14]/45 bg-emerald-950/45 text-[#b8ffc4] shadow-[0_0_12px_rgba(57,255,20,0.22)]',
-  orange: 'border-orange-400/55 bg-orange-950/50 text-orange-100 shadow-[0_0_12px_rgba(251,146,60,0.32)]',
-  violet: 'border-violet-400/50 bg-violet-950/45 text-violet-100 shadow-[0_0_12px_rgba(167,139,250,0.28)]',
+  orange: 'border-[rgba(34,211,238,0.15)] bg-orange-950/50 text-orange-100 shadow-[0_0_12px_rgba(251,146,60,0.32)]',
+  violet: 'border-[rgba(34,211,238,0.15)] bg-violet-950/45 text-violet-100 shadow-[0_0_12px_rgba(167,139,250,0.28)]',
 }
 
 export const STATUS_BADGE_BASE =

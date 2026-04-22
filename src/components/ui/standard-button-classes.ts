@@ -11,7 +11,7 @@ export const STANDARD_BUTTON_SECONDARY =
   'rounded-xl border border-app-line-35 bg-gradient-to-b from-app-line-15 to-violet-500/10 px-4 py-2.5 text-sm text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_18px_-8px_rgba(34,211,238,0.25)] ring-1 ring-inset ring-white/10 hover:border-app-a-45 hover:text-app-fg hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_-6px_rgba(34,211,238,0.38)] active:scale-[0.99]'
 
 export const STANDARD_BUTTON_DANGER =
-  'rounded-xl border border-red-500/55 bg-red-950/45 px-4 py-2.5 text-sm text-red-100 shadow-[0_0_16px_-6px_rgba(248,113,113,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-inset ring-red-400/15 hover:border-red-400/75 hover:bg-red-600/25 hover:text-red-50 hover:shadow-[0_0_22px_-4px_rgba(248,113,113,0.45)] active:scale-[0.99]'
+  'rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-950/45 px-4 py-2.5 text-sm text-red-100 shadow-[0_0_16px_-6px_rgba(248,113,113,0.35),inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-inset ring-red-400/15 hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/25 hover:text-red-50 hover:shadow-[0_0_22px_-4px_rgba(248,113,113,0.45)] active:scale-[0.99]'
 
 export const STANDARD_BUTTON_SIZE_SM_PRIMARY = 'rounded-lg px-3 py-1.5 text-xs'
 export const STANDARD_BUTTON_SIZE_SM_SECONDARY = 'rounded-lg px-3 py-1.5 text-xs'

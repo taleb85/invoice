@@ -42,7 +42,7 @@ export type FattureDuplicateListRow = {
 
 const dupBadgeInteractiveCls = standardBadgeClassName(
   'duplicate',
-  'ml-1.5 cursor-pointer align-middle transition-colors hover:border-red-400/80 hover:bg-red-900/55 focus:outline-none focus:ring-2 focus:ring-red-400/60',
+  'ml-1.5 cursor-pointer align-middle transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-900/55 focus:outline-none focus:ring-2 focus:ring-red-400/60',
 )
 
 const highlightRowCls = 'ring-2 ring-red-400/75 ring-offset-2 ring-offset-transparent'
