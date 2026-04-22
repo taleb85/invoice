@@ -11,7 +11,7 @@ export type PendingApprovalFattura = {
   sede_id: string | null
   approval_status: string
   approval_threshold: number | null
-  created_at: string | null
+  creato_il: string | null
   fornitoreNome: string | null
   sedeNome: string | null
 }
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   let q = service
     .from('fatture')
     .select(
-      'id, data, importo, numero_fattura, file_url, sede_id, approval_status, approval_threshold, created_at, fornitori(nome), sedi(nome)',
+      'id, data, importo, numero_fattura, file_url, sede_id, approval_status, approval_threshold, creato_il, fornitori(nome), sedi(nome)',
     )
     .eq('approval_status', 'pending')
     .order('importo', { ascending: false })
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     sede_id: string | null
     approval_status: string
     approval_threshold: number | null
-    created_at: string | null
+    creato_il: string | null
     fornitori: { nome: string | null } | null
     sedi: { nome: string | null } | null
   }
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     sede_id: f.sede_id,
     approval_status: f.approval_status,
     approval_threshold: f.approval_threshold,
-    created_at: f.created_at,
+    creato_il: f.creato_il,
     fornitoreNome: f.fornitori?.nome ?? null,
     sedeNome: f.sedi?.nome ?? null,
   }))
