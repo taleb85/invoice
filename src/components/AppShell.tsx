@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
+import { SplashScreen } from './splash-screen'
 import { UserProvider, useMe, type MeData } from '@/lib/me-context'
 import { LocaleProvider, useLocale } from '@/lib/locale-context'
 import {
@@ -38,6 +39,10 @@ const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
 const OperatorSwitchModal = dynamic(() => import('./OperatorSwitchModal'), { ssr: false })
 const OfflineBanner = dynamic(
   () => import('./offline/offline-banner').then((m) => m.OfflineBanner),
+  { ssr: false },
+)
+const UpdatePrompt = dynamic(
+  () => import('./update-prompt').then((m) => m.UpdatePrompt),
   { ssr: false },
 )
 
@@ -193,6 +198,7 @@ export default function AppShell({
                 </EmailSyncProgressProvider>
                 <DashboardMobileBottomNav />
                 <OperatorSwitchModal />
+                <UpdatePrompt />
               </div>
             </ErrorBoundary>
           </ToastProvider>
@@ -265,6 +271,12 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     : tallMobileDock
       ? 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
       : 'pb-[calc(7.25rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+
+  // Show splash during initial auth check (only when SSR couldn't pre-load the session)
+  if (loading && !me) {
+    return <SplashScreen />
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-transparent max-md:min-h-dvh max-md:overflow-x-hidden">
       <DesktopHeaderPageActionsProvider>

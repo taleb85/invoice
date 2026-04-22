@@ -24,7 +24,14 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   )
-  self.skipWaiting()
+  // Do NOT call skipWaiting() here — let the UpdatePrompt control when to activate
+})
+
+// Message: handle SKIP_WAITING from UpdatePrompt
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 // Activate: rimuove cache vecchie
