@@ -1,5 +1,13 @@
-const CACHE_NAME = 'fluxo-v2'
+const CACHE_NAME = 'fluxo-v3'
 const OFFLINE_URL = '/offline'
+
+// API routes to cache with NetworkFirst strategy (fallback to cache when offline)
+const API_CACHE_NAME = 'fluxo-api-v1'
+const API_CACHE_ROUTES = {
+  '/api/me': 60 * 60,              // 1 hour
+  '/api/fornitori': 30 * 60,        // 30 minutes
+  '/api/bolle-aperte': 5 * 60,      // 5 minutes
+}
 
 // Asset statici da pre-cachare all'installazione
 const PRECACHE_URLS = [
@@ -21,9 +29,10 @@ self.addEventListener('install', (event) => {
 
 // Activate: rimuove cache vecchie
 self.addEventListener('activate', (event) => {
+  const VALID_CACHES = [CACHE_NAME, API_CACHE_NAME]
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => !VALID_CACHES.includes(k)).map((k) => caches.delete(k)))
     )
   )
   self.clients.claim()
@@ -47,8 +56,35 @@ self.addEventListener('fetch', (event) => {
   // Il SW gestisce solo risorse della stessa origine per evitare log ridondanti
   if (url.origin !== self.location.origin) return
 
-  // API routes → Network first, fallback offline
+  // API routes → NetworkFirst with selective caching for read-heavy endpoints
   if (url.pathname.startsWith('/api/')) {
+    const cacheable = Object.keys(API_CACHE_ROUTES).some((p) => url.pathname === p)
+
+    if (cacheable && request.method === 'GET') {
+      // NetworkFirst with cache fallback
+      event.respondWith(
+        fetch(request)
+          .then(async (networkRes) => {
+            if (networkRes.ok) {
+              const clone = networkRes.clone()
+              const cache = await caches.open(API_CACHE_NAME)
+              cache.put(request, clone)
+            }
+            return networkRes
+          })
+          .catch(async () => {
+            const cached = await caches.match(request, { cacheName: API_CACHE_NAME })
+            if (cached) return cached
+            return new Response(JSON.stringify({ error: 'Offline', cached: false }), {
+              headers: { 'Content-Type': 'application/json' },
+              status: 503,
+            })
+          })
+      )
+      return
+    }
+
+    // Non-cacheable API routes → network only, offline fallback JSON
     event.respondWith(
       fetch(request).catch(() =>
         new Response(JSON.stringify({ error: 'Offline' }), {

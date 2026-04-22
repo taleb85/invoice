@@ -40,6 +40,10 @@ const QuickScanFab = dynamic(
   () => import('./quick-scan/quick-scan-fab').then((m) => m.QuickScanFab),
   { ssr: false },
 )
+const OfflineBanner = dynamic(
+  () => import('./offline/offline-banner').then((m) => m.OfflineBanner),
+  { ssr: false },
+)
 
 /**
  * Syncs locale, currency and timezone from the active sede when the user
@@ -185,6 +189,7 @@ export default function AppShell({
             */}
             <ErrorBoundary fullPage sectionName="applicazione">
               <div className="relative flex w-full min-h-dvh flex-col bg-transparent md:h-full md:min-h-0">
+                <OfflineBanner />
                 <EmailSyncProgressProvider>
                   <AppActivitiesProvider>
                     <AppShellMain>{children}</AppShellMain>

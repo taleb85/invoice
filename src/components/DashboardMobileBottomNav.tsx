@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
 import {
   fornitoreIdFromProfilePath,
@@ -147,8 +148,10 @@ export default function DashboardMobileBottomNav() {
   const t = useT()
   const { me, loading } = useMe()
   const { activeOperator } = useActiveOperator()
+  const { pendingCount, isOnline } = useOfflineSync()
 
   const role: 'admin' | 'admin_sede' | 'operatore' | null = me?.role ?? null
+  const showOfflineBadge = !isOnline && pendingCount > 0
 
   const normalized = normalizeAppPath(pathname)
 
@@ -199,7 +202,14 @@ export default function DashboardMobileBottomNav() {
       <DashboardHomeScannerDockCta />
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
-          <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+          <span className="relative">
+            <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+            {showOfflineBadge && (
+              <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
+                {pendingCount > 9 ? '9+' : pendingCount}
+              </span>
+            )}
+          </span>
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
         </Link>
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
@@ -224,7 +234,14 @@ export default function DashboardMobileBottomNav() {
       <DashboardHomeScannerDockCta />
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
-          <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+          <span className="relative">
+            <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+            {showOfflineBadge && (
+              <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
+                {pendingCount > 9 ? '9+' : pendingCount}
+              </span>
+            )}
+          </span>
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
         </Link>
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { mutate as swrMutate } from 'swr'
+import { useOnlineStatus } from '@/hooks/use-online-status'
+import { queueAction } from '@/lib/offline-queue'
 
 const SCAN_ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const
 
@@ -85,6 +87,7 @@ export default function NuovaBollaForm() {
   const searchParams = useSearchParams()
   const preselectedFornitoreId = searchParams.get('fornitore_id') ?? ''
   const supabase = createClient()
+  const isOnline = useOnlineStatus()
   const fileRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -428,6 +431,41 @@ export default function NuovaBollaForm() {
     if (!file) { setError('Carica un documento.'); return }
     setSaving(true)
     setError(null)
+
+    // ── Offline path: queue the action for later sync ──────────────────
+    if (!isOnline) {
+      try {
+        const fileData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+        await queueAction({
+          type: 'bolla.create',
+          payload: {
+            fornitore_id: fornitoreId,
+            sede_id: sedeId ?? '',
+            data,
+            numero_bolla: numeroBolla.trim() || '',
+            importo: importo || '',
+            registrato_da: registratoDa.trim().toUpperCase() || '',
+          },
+          fileData,
+          fileType: file.type,
+        })
+        setSaving(false)
+        setError(null)
+        // Show inline success message then navigate
+        alert('Bolla salvata offline — verrà sincronizzata quando torni online')
+        router.push('/bolle?tutte=1')
+      } catch {
+        setSaving(false)
+        setError('Impossibile salvare offline. Riprova.')
+      }
+      return
+    }
+    // ─────────────────────────────────────────────────────────────────
 
     if (registrationTarget === 'fattura') {
       const num = normalizeNumeroFattura(numeroBolla)
