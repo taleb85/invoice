@@ -51,7 +51,7 @@ export default async function RevisioneInboxPage({
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
-      <AppPageHeaderStrip accent="rose">
+      <AppPageHeaderStrip accent="rose" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}>
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.dashboard.inboxUrgentePageTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>

@@ -41,6 +41,8 @@ export default function AppPageHeaderStrip({
    * Richiede `accent` (stessa tinta etichetta metriche).
    */
   mergedSummary,
+  /** Icona colorata visualizzata a sinistra del titolo, stessa tinta dell'accent. */
+  icon,
 }: {
   children: ReactNode
   embedded?: boolean
@@ -50,6 +52,7 @@ export default function AppPageHeaderStrip({
   dense?: boolean
   flushBottom?: boolean
   mergedSummary?: Omit<AppSummaryHighlightMetricsProps, 'accent'>
+  icon?: ReactNode
 }) {
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
@@ -68,7 +71,14 @@ export default function AppPageHeaderStrip({
 
   const headerRow = (
     <div className={dense ? innerClsDense : innerCls}>
-      <div className="min-w-0 flex-1">{first}</div>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        {icon && (
+          <span className={`shrink-0 opacity-90 ${theme ? theme.label : 'text-app-fg-muted'}`} aria-hidden>
+            {icon}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">{first}</div>
+      </div>
       <div className={dense ? innerRightClsDense : innerRightCls}>
         {rest}
         <AppPageHeaderDesktopTray />

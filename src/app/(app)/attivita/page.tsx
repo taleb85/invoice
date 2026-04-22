@@ -92,7 +92,7 @@ export default function AttivitaPage() {
 
   return (
     <div className="app-shell-page-padding">
-      <AppPageHeaderStrip accent="indigo">
+      <AppPageHeaderStrip accent="indigo" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>}>
         <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
           <div className="min-w-0">
             <h1 className="text-base font-bold text-app-fg truncate sm:text-lg">{t.appStrings.attivitaPageTitle}</h1>
