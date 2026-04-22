@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useT } from '@/lib/use-t'
 
 interface LineItem {
   prodotto: string
@@ -50,6 +51,7 @@ export default function FattureInAttesaAutoSync({
   onComplete?: () => void
 }) {
   const router = useRouter()
+  const t = useT()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<AutoSyncResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +60,6 @@ export default function FattureInAttesaAutoSync({
   const handleAutoSync = async () => {
     setLoading(true)
     setError(null)
-    
     try {
       const res = await fetch('/api/listino/auto-sync-fattura', {
         method: 'POST',
@@ -66,18 +67,15 @@ export default function FattureInAttesaAutoSync({
         body: JSON.stringify({ fattura_id: fatturaId }),
         credentials: 'include',
       })
-      
       const data = await res.json()
-      
       if (!res.ok) {
         setError(data.error || `Errore ${res.status}`)
         setLoading(false)
         return
       }
-      
       setResult(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore durante l\'analisi')
+      setError(err instanceof Error ? err.message : t.appStrings.autoSyncErrAnalysis)
     } finally {
       setLoading(false)
     }
@@ -85,16 +83,13 @@ export default function FattureInAttesaAutoSync({
 
   const handleConfirmImport = async () => {
     if (!result) return
-    
     setImporting(true)
     setError(null)
-    
     try {
-      // Future: inviare `result.matches` (con match) a un endpoint di import listino
       if (onComplete) onComplete()
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Errore durante l\'importazione')
+      setError(err instanceof Error ? err.message : t.appStrings.autoSyncErrImport)
     } finally {
       setImporting(false)
     }
@@ -104,10 +99,8 @@ export default function FattureInAttesaAutoSync({
     <div className="rounded-xl border border-app-line-15 bg-transparent p-4">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-app-fg">Auto-Sync Fattura</h3>
-          <p className="mt-1 text-xs text-app-fg-muted">
-            Estrai e confronta automaticamente i prodotti dalla fattura con il listino
-          </p>
+          <h3 className="text-sm font-bold text-app-fg">{t.appStrings.autoSyncTitle}</h3>
+          <p className="mt-1 text-xs text-app-fg-muted">{t.appStrings.autoSyncDesc}</p>
         </div>
         {!result && (
           <button
@@ -116,7 +109,7 @@ export default function FattureInAttesaAutoSync({
             disabled={loading}
             className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
           >
-            {loading ? 'Analisi in corso...' : 'Analizza Fattura'}
+            {loading ? t.appStrings.autoSyncBtnLoading : t.appStrings.autoSyncBtn}
           </button>
         )}
       </div>
@@ -134,10 +127,9 @@ export default function FattureInAttesaAutoSync({
 
       {result && (
         <>
-          {/* Summary */}
           <div className="mb-4 grid grid-cols-4 gap-2">
             <div className="rounded-md bg-app-line-15 px-3 py-2 text-center">
-              <p className="text-xs text-app-fg-muted">Totale</p>
+              <p className="text-xs text-app-fg-muted">{t.appStrings.autoSyncTotal}</p>
               <p className="text-xl font-bold tabular-nums text-app-fg">{result.summary.total}</p>
             </div>
             <div className="rounded-md bg-emerald-500/10 px-3 py-2 text-center">
@@ -145,25 +137,24 @@ export default function FattureInAttesaAutoSync({
               <p className="text-xl font-bold tabular-nums text-emerald-200">{result.summary.matched}</p>
             </div>
             <div className="rounded-md bg-red-500/10 px-3 py-2 text-center">
-              <p className="text-xs text-red-300/80">Anomalie</p>
+              <p className="text-xs text-red-300/80">{t.appStrings.autoSyncAnomalies}</p>
               <p className="text-xl font-bold tabular-nums text-red-200">{result.summary.anomalies}</p>
             </div>
             <div className="rounded-md bg-violet-500/10 px-3 py-2 text-center">
-              <p className="text-xs text-violet-300/80">Nuovi</p>
+              <p className="text-xs text-violet-300/80">{t.appStrings.autoSyncNewItems}</p>
               <p className="text-xl font-bold tabular-nums text-violet-200">{result.summary.new}</p>
             </div>
           </div>
 
-          {/* Matches table */}
           <div className="mb-4 max-h-96 overflow-y-auto rounded-lg border border-app-line-22">
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-app-line-15">
                 <tr>
                   <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase text-app-fg-muted">
-                    Prodotto
+                    {t.appStrings.autoSyncProduct}
                   </th>
                   <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase text-app-fg-muted">
-                    Prezzo
+                    {t.appStrings.autoSyncPrice}
                   </th>
                   <th className="px-3 py-2 text-center text-[10px] font-semibold uppercase text-app-fg-muted">
                     Match
@@ -182,7 +173,6 @@ export default function FattureInAttesaAutoSync({
                       : match.match
                         ? 'bg-emerald-500/5'
                         : ''
-                  
                   return (
                     <tr key={idx} className={`border-t border-app-line-15 ${rowBg}`}>
                       <td className="px-3 py-2">
@@ -194,9 +184,7 @@ export default function FattureInAttesaAutoSync({
                             </span>
                           )}
                           {match.match && match.match.matchType === 'fuzzy_name' && match.match.prodotto !== match.lineItem.prodotto && (
-                            <span className="text-[9px] italic text-app-fg-muted">
-                              ≈ {match.match.prodotto}
-                            </span>
+                            <span className="text-[9px] italic text-app-fg-muted">≈ {match.match.prodotto}</span>
                           )}
                         </div>
                       </td>
@@ -214,7 +202,7 @@ export default function FattureInAttesaAutoSync({
                           </span>
                         ) : (
                           <span className="text-[9px] font-bold uppercase tracking-wide text-app-fg-muted">
-                            Nuovo
+                            {t.appStrings.autoSyncNewItem}
                           </span>
                         )}
                       </td>
@@ -240,12 +228,13 @@ export default function FattureInAttesaAutoSync({
             </table>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 text-xs text-app-fg-muted">
               {result.summary.anomalies > 0 && (
                 <span className="font-semibold text-red-300">
-                  ⚠️ {result.summary.anomalies} prodotto{result.summary.anomalies > 1 ? 'i' : ''} con rincaro anomalo
+                  ⚠️ {t.appStrings.autoSyncAnomalyWarning
+                    .replace('{n}', String(result.summary.anomalies))
+                    .replace('{s}', result.summary.anomalies > 1 ? 'i' : '')}
                 </span>
               )}
             </div>
@@ -255,7 +244,7 @@ export default function FattureInAttesaAutoSync({
                 onClick={() => setResult(null)}
                 className="rounded-lg border border-app-line-28 bg-app-line-10 px-4 py-2 text-sm font-medium text-app-fg-muted transition-colors hover:bg-app-line-15"
               >
-                Annulla
+                {t.common.cancel}
               </button>
               <button
                 type="button"
@@ -263,7 +252,9 @@ export default function FattureInAttesaAutoSync({
                 disabled={importing || result.summary.matched === 0}
                 className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
               >
-                {importing ? 'Importazione...' : `Conferma ${result.summary.matched} prodotti`}
+                {importing
+                  ? t.appStrings.autoSyncImporting
+                  : t.appStrings.autoSyncConfirmBtn.replace('{n}', String(result.summary.matched))}
               </button>
             </div>
           </div>

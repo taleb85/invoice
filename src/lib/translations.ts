@@ -1546,6 +1546,36 @@ type Translations = {
     sedeEmailNotConfigured: string
     /** "{nome}" = name of the new sede */
     sedeCreatedSuccess: string
+    // Gmail Audit Ready Badge
+    gmailBadgeTitle: string
+    gmailBadgeDescConfigured: string
+    gmailBadgeDescNotConfigured: string
+    gmailBadgeCTAConnect: string
+    gmailBadgeCTASetup: string
+    gmailBadgeDismiss: string
+    gmailBadgeAPIConfigured: string
+    gmailBadgeConnectAccount: string
+    gmailBadgePriceCheck: string
+    gmailBadgePriceCheckSub: string
+    gmailBadgeRecoverySub: string
+    // Auto-Sync Invoice
+    autoSyncTitle: string
+    autoSyncDesc: string
+    autoSyncBtn: string
+    autoSyncBtnLoading: string
+    autoSyncTotal: string
+    autoSyncAnomalies: string
+    autoSyncNewItems: string
+    autoSyncProduct: string
+    autoSyncPrice: string
+    autoSyncNewItem: string
+    /** "{n}" = count, "{s}" = plural suffix */
+    autoSyncAnomalyWarning: string
+    /** "{n}" = count */
+    autoSyncConfirmBtn: string
+    autoSyncImporting: string
+    autoSyncErrAnalysis: string
+    autoSyncErrImport: string
   }
 }
 
@@ -2810,6 +2840,32 @@ const it: Translations = {
     sedeWizardStartSetup: 'Avvia setup guidato',
     sedeEmailNotConfigured: 'Email non config.',
     sedeCreatedSuccess: 'Sede "{nome}" creata con successo.',
+    gmailBadgeTitle: '💡 Pronto per l\'audit dei prezzi?',
+    gmailBadgeDescConfigured: 'Gmail API è configurato! Connetti il tuo account per attivare lo scanner automatico e recuperare potenziali rimborsi su {nome}.',
+    gmailBadgeDescNotConfigured: 'Configura Gmail (2 minuti) per analizzare automaticamente le email di {nome} e identificare overcharges non autorizzati.',
+    gmailBadgeCTAConnect: 'Connetti e Scansiona',
+    gmailBadgeCTASetup: 'Configura Ora',
+    gmailBadgeDismiss: 'Nascondi',
+    gmailBadgeAPIConfigured: 'API Configurato',
+    gmailBadgeConnectAccount: 'Connetti Account',
+    gmailBadgePriceCheck: 'Controllo Prezzi',
+    gmailBadgePriceCheckSub: 'Auto anomalie',
+    gmailBadgeRecoverySub: 'Storico 2 anni',
+    autoSyncTitle: 'Auto-Sync Fattura',
+    autoSyncDesc: 'Estrai e confronta automaticamente i prodotti dalla fattura con il listino',
+    autoSyncBtn: 'Analizza Fattura',
+    autoSyncBtnLoading: 'Analisi in corso...',
+    autoSyncTotal: 'Totale',
+    autoSyncAnomalies: 'Anomalie',
+    autoSyncNewItems: 'Nuovi',
+    autoSyncProduct: 'Prodotto',
+    autoSyncPrice: 'Prezzo',
+    autoSyncNewItem: 'Nuovo',
+    autoSyncAnomalyWarning: '{n} prodotto{s} con rincaro anomalo',
+    autoSyncConfirmBtn: 'Conferma {n} prodotti',
+    autoSyncImporting: 'Importazione...',
+    autoSyncErrAnalysis: "Errore durante l'analisi",
+    autoSyncErrImport: "Errore durante l'importazione",
   },
 }
 
@@ -3446,6 +3502,32 @@ const en: Translations = {
     sedeWizardStartSetup: 'Start guided setup',
     sedeEmailNotConfigured: 'Email not set.',
     sedeCreatedSuccess: 'Location "{nome}" created successfully.',
+    gmailBadgeTitle: '💡 Ready for the price audit?',
+    gmailBadgeDescConfigured: 'Gmail API is configured! Connect your account to activate the automatic scanner and recover potential refunds on {nome}.',
+    gmailBadgeDescNotConfigured: 'Set up Gmail (2 min) to automatically scan emails from {nome} and identify unauthorised overcharges.',
+    gmailBadgeCTAConnect: 'Connect & Scan',
+    gmailBadgeCTASetup: 'Set Up Now',
+    gmailBadgeDismiss: 'Dismiss',
+    gmailBadgeAPIConfigured: 'API Configured',
+    gmailBadgeConnectAccount: 'Connect Account',
+    gmailBadgePriceCheck: 'Price Check',
+    gmailBadgePriceCheckSub: 'Auto anomalies',
+    gmailBadgeRecoverySub: '2yr history',
+    autoSyncTitle: 'Auto-Sync Invoice',
+    autoSyncDesc: 'Automatically extract and compare invoice products with the price list',
+    autoSyncBtn: 'Analyse Invoice',
+    autoSyncBtnLoading: 'Analysing...',
+    autoSyncTotal: 'Total',
+    autoSyncAnomalies: 'Anomalies',
+    autoSyncNewItems: 'New',
+    autoSyncProduct: 'Product',
+    autoSyncPrice: 'Price',
+    autoSyncNewItem: 'New',
+    autoSyncAnomalyWarning: '{n} item{s} with abnormal price increase',
+    autoSyncConfirmBtn: 'Confirm {n} items',
+    autoSyncImporting: 'Importing...',
+    autoSyncErrAnalysis: 'Error during analysis',
+    autoSyncErrImport: 'Error during import',
   },
 }
 
@@ -4030,6 +4112,32 @@ const es: Translations = {
     sedeWizardStartSetup: 'Iniciar configuración guiada',
     sedeEmailNotConfigured: 'Email no configurado.',
     sedeCreatedSuccess: 'Sede "{nome}" creada con éxito.',
+    gmailBadgeTitle: '💡 ¿Listo para la auditoría de precios?',
+    gmailBadgeDescConfigured: '¡Gmail API está configurado! Conecta tu cuenta para activar el escáner automático y recuperar posibles reembolsos en {nome}.',
+    gmailBadgeDescNotConfigured: 'Configura Gmail (2 min) para analizar automáticamente los correos de {nome} e identificar cobros no autorizados.',
+    gmailBadgeCTAConnect: 'Conectar y Escanear',
+    gmailBadgeCTASetup: 'Configurar Ahora',
+    gmailBadgeDismiss: 'Ocultar',
+    gmailBadgeAPIConfigured: 'API Configurado',
+    gmailBadgeConnectAccount: 'Conectar Cuenta',
+    gmailBadgePriceCheck: 'Control de Precios',
+    gmailBadgePriceCheckSub: 'Anomalías auto',
+    gmailBadgeRecoverySub: 'Historial 2 años',
+    autoSyncTitle: 'Auto-Sync Factura',
+    autoSyncDesc: 'Extrae y compara automáticamente los productos de la factura con el listino',
+    autoSyncBtn: 'Analizar Factura',
+    autoSyncBtnLoading: 'Analizando...',
+    autoSyncTotal: 'Total',
+    autoSyncAnomalies: 'Anomalías',
+    autoSyncNewItems: 'Nuevos',
+    autoSyncProduct: 'Producto',
+    autoSyncPrice: 'Precio',
+    autoSyncNewItem: 'Nuevo',
+    autoSyncAnomalyWarning: '{n} producto{s} con aumento anómalo',
+    autoSyncConfirmBtn: 'Confirmar {n} productos',
+    autoSyncImporting: 'Importando...',
+    autoSyncErrAnalysis: 'Error durante el análisis',
+    autoSyncErrImport: 'Error durante la importación',
   },
 }
 
@@ -4614,6 +4722,32 @@ const fr: Translations = {
     sedeWizardStartSetup: 'Démarrer la configuration guidée',
     sedeEmailNotConfigured: 'E-mail non configuré.',
     sedeCreatedSuccess: 'Site "{nome}" créé avec succès.',
+    gmailBadgeTitle: "💡 Prêt pour l'audit des prix ?",
+    gmailBadgeDescConfigured: "Gmail API est configuré ! Connectez votre compte pour activer le scanner automatique et récupérer des remboursements potentiels sur {nome}.",
+    gmailBadgeDescNotConfigured: "Configurez Gmail (2 min) pour analyser automatiquement les emails de {nome} et identifier les surfacturations non autorisées.",
+    gmailBadgeCTAConnect: "Connecter et Scanner",
+    gmailBadgeCTASetup: "Configurer maintenant",
+    gmailBadgeDismiss: "Masquer",
+    gmailBadgeAPIConfigured: "API Configuré",
+    gmailBadgeConnectAccount: "Connecter le compte",
+    gmailBadgePriceCheck: "Contrôle des prix",
+    gmailBadgePriceCheckSub: "Anomalies auto",
+    gmailBadgeRecoverySub: "Historique 2 ans",
+    autoSyncTitle: "Auto-Sync Facture",
+    autoSyncDesc: "Extrayez et comparez automatiquement les produits de la facture avec le listino",
+    autoSyncBtn: "Analyser la Facture",
+    autoSyncBtnLoading: "Analyse en cours...",
+    autoSyncTotal: "Total",
+    autoSyncAnomalies: "Anomalies",
+    autoSyncNewItems: "Nouveaux",
+    autoSyncProduct: "Produit",
+    autoSyncPrice: "Prix",
+    autoSyncNewItem: "Nouveau",
+    autoSyncAnomalyWarning: "{n} produit{s} avec hausse anormale",
+    autoSyncConfirmBtn: "Confirmer {n} produits",
+    autoSyncImporting: "Importation...",
+    autoSyncErrAnalysis: "Erreur lors de l'analyse",
+    autoSyncErrImport: "Erreur lors de l'importation",
   },
 }
 
@@ -5197,6 +5331,32 @@ const de: Translations = {
     sedeWizardStartSetup: 'Geführte Einrichtung starten',
     sedeEmailNotConfigured: 'E-Mail nicht eingerichtet.',
     sedeCreatedSuccess: 'Standort "{nome}" erfolgreich erstellt.',
+    gmailBadgeTitle: '💡 Bereit für die Preisrevision?',
+    gmailBadgeDescConfigured: 'Gmail API ist konfiguriert! Verbinde dein Konto, um den automatischen Scanner zu aktivieren und potenzielle Erstattungen bei {nome} zurückzuholen.',
+    gmailBadgeDescNotConfigured: 'Richte Gmail ein (2 Min.), um E-Mails von {nome} automatisch zu scannen und unbefugte Überzahlungen zu erkennen.',
+    gmailBadgeCTAConnect: 'Verbinden & Scannen',
+    gmailBadgeCTASetup: 'Jetzt einrichten',
+    gmailBadgeDismiss: 'Ausblenden',
+    gmailBadgeAPIConfigured: 'API Konfiguriert',
+    gmailBadgeConnectAccount: 'Konto verbinden',
+    gmailBadgePriceCheck: 'Preiskontrolle',
+    gmailBadgePriceCheckSub: 'Auto-Anomalien',
+    gmailBadgeRecoverySub: '2J. Verlauf',
+    autoSyncTitle: 'Auto-Sync Rechnung',
+    autoSyncDesc: 'Produkte aus der Rechnung automatisch extrahieren und mit der Preisliste vergleichen',
+    autoSyncBtn: 'Rechnung analysieren',
+    autoSyncBtnLoading: 'Analyse läuft...',
+    autoSyncTotal: 'Gesamt',
+    autoSyncAnomalies: 'Anomalien',
+    autoSyncNewItems: 'Neu',
+    autoSyncProduct: 'Produkt',
+    autoSyncPrice: 'Preis',
+    autoSyncNewItem: 'Neu',
+    autoSyncAnomalyWarning: '{n} Produkt{s} mit anomalem Preisanstieg',
+    autoSyncConfirmBtn: '{n} Produkte bestätigen',
+    autoSyncImporting: 'Importieren...',
+    autoSyncErrAnalysis: 'Fehler bei der Analyse',
+    autoSyncErrImport: 'Fehler beim Import',
   },
 }
 
