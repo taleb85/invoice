@@ -36,10 +36,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
 const OperatorSwitchModal = dynamic(() => import('./OperatorSwitchModal'), { ssr: false })
-const QuickScanFab = dynamic(
-  () => import('./quick-scan/quick-scan-fab').then((m) => m.QuickScanFab),
-  { ssr: false },
-)
 const OfflineBanner = dynamic(
   () => import('./offline/offline-banner').then((m) => m.OfflineBanner),
   { ssr: false },
@@ -196,7 +192,6 @@ export default function AppShell({
                   </AppActivitiesProvider>
                 </EmailSyncProgressProvider>
                 <DashboardMobileBottomNav />
-                <QuickScanFab />
                 <OperatorSwitchModal />
               </div>
             </ErrorBoundary>

@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { FileText, Home, Plus, Settings, Users } from 'lucide-react'
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
+import { FileText, Home, Settings, Users } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
@@ -9,12 +11,16 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
 import {
-  fornitoreIdFromProfilePath,
   isFornitoreProfileRoute,
   normalizeAppPath,
 } from '@/lib/mobile-hub-routes'
-import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 import DashboardHomeScannerDockCta from '@/components/DashboardHomeScannerDockCta'
+import type { QuickScanResult } from './quick-scan/quick-scan-modal'
+
+const QuickScanModal = dynamic(
+  () => import('./quick-scan/quick-scan-modal').then((m) => m.QuickScanModal),
+  { ssr: false },
+)
 
 /**
  * Dock mobile “pill”: margini da bordo schermo, angoli pieni, ombra esterna.
@@ -112,10 +118,20 @@ function FornitoreProfileBottomNav({
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
   const masterAdminNoOperator = Boolean(me?.is_admin && !activeOperator)
-  const fid = fornitoreIdFromProfilePath(normalized)
-  const nuovaBollaHref = fid ? `/bolle/new?fornitore_id=${encodeURIComponent(fid)}` : '/bolle/new'
-  const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const dashboardActive = pathname === '/' || pathname === ''
+  const [scanOpen, setScanOpen] = useState(false)
+
+  async function handleScanConfirm(result: QuickScanResult, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('tipo', result.tipo)
+    formData.append('fornitore_id', result.fornitore_id ?? '')
+    formData.append('importo', String(result.importo ?? ''))
+    formData.append('data', result.data ?? '')
+    formData.append('numero', result.numero ?? '')
+    formData.append('sede_id', me?.sede_id ?? '')
+    await fetch('/api/quick-scan/save', { method: 'POST', body: formData })
+  }
 
   const navCls = glassDockNavShellClass('flex-col gap-2 px-2 sm:gap-3 sm:px-4')
 
@@ -131,14 +147,31 @@ function FornitoreProfileBottomNav({
           <Users className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
-        {!supplierReadOnlyMobile ? (
-        <Link href={nuovaBollaHref} className={itemCls(false)} prefetch={false}>
-          <Plus className="h-6 w-6 shrink-0" aria-hidden />
-          <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.addNewDelivery}</span>
-        </Link>
-        ) : null}
+
+        {/* ── Scan button — elevated centre pill ────────────────── */}
+        <button
+          type="button"
+          onClick={() => setScanOpen(true)}
+          className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/15 px-2 py-2 text-[10px] font-bold touch-manipulation text-cyan-300 ring-1 ring-inset ring-cyan-400/20 transition-all active:scale-95 active:bg-cyan-500/25 sm:text-xs shadow-[0_0_16px_-4px_rgba(34,211,238,0.35)]"
+          aria-label="Scansiona documento"
+        >
+          <svg className="h-6 w-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Scan</span>
+        </button>
+
         {!masterAdminNoOperator ? <OperatorHubNavItem itemCls={itemCls} /> : null}
       </div>
+
+      {scanOpen && me && (
+        <QuickScanModal
+          onClose={() => setScanOpen(false)}
+          onConfirm={handleScanConfirm}
+          sedeId={me.sede_id ?? null}
+        />
+      )}
     </nav>
   )
 }
