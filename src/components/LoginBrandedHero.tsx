@@ -44,14 +44,14 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
         {/* Wordmark + tagline — shown in both states */}
         <div className="mt-3 flex flex-col items-center gap-0.5">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-outfit text-lg font-medium" style={{ color: '#22d3ee' }}>
+            <span className="font-outfit text-2xl font-medium" style={{ color: '#22d3ee' }}>
               Smart
             </span>
-            <span className="font-outfit text-lg font-light text-white/85">
+            <span className="font-outfit text-2xl font-light text-white/85">
               Pair
             </span>
           </div>
-          <span className="text-[9px] uppercase tracking-[3px]" style={{ color: 'rgb(34 211 238 / 0.4)' }}>
+          <span className="text-[10px] uppercase tracking-[3px]" style={{ color: 'rgb(34 211 238 / 0.4)' }}>
             Invoice Management
           </span>
         </div>
