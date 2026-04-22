@@ -663,7 +663,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     type="password"
                     name={`fluxo-access-segment-${idx}`}
                     autoComplete="off"
-                    inputMode="numeric"
+                    inputMode="none"
                     maxLength={2}
                     value={pin[idx]}
                     onChange={e => handlePinChange(idx, e.target.value)}
