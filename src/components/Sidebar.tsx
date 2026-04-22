@@ -296,10 +296,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   // Shared icon-link style helpers
   const navLink = (isActive: boolean) =>
-    `flex items-center gap-2 px-2 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+    `flex items-center gap-2 px-2 py-2 rounded-xl text-[13px] font-semibold transition-all ${
       isActive
         ? 'border-l-2 border-app-cyan-400/90 bg-gradient-to-r from-app-line-15 to-app-a-20 pl-[7px] text-app-fg shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]'
-        : 'border-l-2 border-transparent bg-transparent pl-[7px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+        : 'border-l-2 border-transparent bg-transparent pl-[7px] text-white/65 hover:bg-app-line-10 hover:text-app-fg'
     }`
 
   return (
@@ -308,7 +308,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       className="app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3"
     >
         <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
-          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto py-2.5">
+          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto py-3">
           {/* Dashboard */}
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
@@ -325,7 +325,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <div className="bg-transparent">
               <button
                 onClick={() => setBranchesOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                className="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-lg text-[13px] font-semibold text-white/65 transition-colors hover:bg-app-line-10 hover:text-app-fg"
               >
                 <span className="flex items-center gap-2 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -356,10 +356,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
                           type="button"
                           onClick={() => { switchSede(s.id); onClose?.() }}
                           title={isCurrent ? `Sede attiva: ${s.nome}` : `Passa a: ${s.nome}`}
-                          className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11px] font-semibold transition-colors touch-manipulation ${
+                          className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-semibold transition-colors touch-manipulation ${
                             isCurrent
                               ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
-                              : 'bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+                              : 'bg-transparent text-white/55 hover:bg-app-line-10 hover:text-app-fg'
                           }`}
                         >
                           <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isCurrent ? 'bg-cyan-400' : 'bg-current opacity-40'}`} aria-hidden />
@@ -447,7 +447,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <div className="bg-transparent">
               <button
                 onClick={() => setFornitoriOpen(o => !o)}
-                className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors ${pathname.startsWith('/fornitori') ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[7px] text-app-fg shadow-[inset_0_0_16px_rgba(6,182,212,0.08)]' : 'border-l-2 border-transparent bg-transparent pl-[7px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'}`}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-[13px] font-semibold transition-colors ${pathname.startsWith('/fornitori') ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[7px] text-app-fg shadow-[inset_0_0_16px_rgba(6,182,212,0.08)]' : 'border-l-2 border-transparent bg-transparent pl-[7px] text-white/65 hover:bg-app-line-10 hover:text-app-fg'}`}
               >
                 <span className="flex items-center gap-2 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -482,7 +482,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
                   {/* All suppliers */}
                   <Link href="/fornitori" onClick={onClose}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${pathname === '/fornitori' ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'}`}>
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-semibold transition-colors ${pathname === '/fornitori' ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}>
                     <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     </svg>
@@ -495,7 +495,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       pathname === `/fornitori/${f.id}` || pathname.startsWith(`/fornitori/${f.id}/`)
                     return (
                       <Link key={f.id} href={`/fornitori/${f.id}`} onClick={onClose}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${isActive ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'}`}>
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded-md text-xs font-semibold transition-colors ${isActive ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}>
                         <span className={`h-1 w-1 shrink-0 rounded-full ${isActive ? 'bg-app-cyan-400' : 'bg-current opacity-50'}`} />
                         <span className="min-w-0 flex-1 truncate">{fornitoreDisplayLabel(f)}</span>
                       </Link>
