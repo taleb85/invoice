@@ -28,7 +28,7 @@ function downloadCsv(rows: ActivityLogRow[]) {
 }
 
 export default function AttivitaPage() {
-  const { me } = useMe()
+  const { me, loading } = useMe()
   const [sedeId, setSedeId] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
   const [dateFrom, setDateFrom] = useState('')
@@ -70,6 +70,14 @@ export default function AttivitaPage() {
       setExporting(false)
     }
   }, [sedeId, userId, dateFrom, dateTo])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-app-cyan-500 border-t-transparent" />
+      </div>
+    )
+  }
 
   if (!isMaster && !isAdminSede) {
     return (
