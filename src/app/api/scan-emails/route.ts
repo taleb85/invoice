@@ -1382,15 +1382,11 @@ async function processEmails(
         const dataDoc = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
         const numRef = ocr.numero_fattura?.trim() || null
         const tipo = ocr.tipo_documento ?? null
-        const isBollaTipo = tipo === 'bolla'
         const isFatturaTipo = tipo === 'fattura'
-        const isAltroTipo = tipo === 'altro'
         const ctxFattura = scanContextSuggestsFattura(email.subject, storedFileName)
         const ctxBolla = scanContextSuggestsBolla(email.subject, storedFileName)
 
-        let createFatturaBozza =
-          isFatturaTipo ||
-          (!isBollaTipo && !isAltroTipo && !!numRef)
+        let createFatturaBozza = isFatturaTipo
 
         // OCR tipo "bolla" / "altro" / assente ma oggetto o nome file da chiaramente fattura.
         if (!createFatturaBozza && ctxFattura && !ctxBolla) {

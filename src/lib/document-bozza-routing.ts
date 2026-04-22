@@ -208,9 +208,5 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   if (ctxFat) return 'fattura'
   if (ctxBol) return 'bolla'
 
-  const num = typeof md?.numero_fattura === 'string' ? md.numero_fattura.trim() : ''
-  const tot = md?.totale_iva_inclusa
-  if (num && tot != null && tot > 0) return 'fattura'
-
   return null
 }
