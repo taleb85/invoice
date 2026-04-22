@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getProfile } from '@/utils/supabase/server'
+import { fiscalYearRangeUtc } from '@/lib/fiscal-year'
 
 export type SpesaMensileItem = { mese: string; importo: number; fatture: number }
 export type TopFornitoreItem = { nome: string; importo: number; fatture: number }
@@ -33,14 +34,42 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const sedeId = searchParams.get('sede_id') || null
   const monthsCount = Math.min(24, Math.max(1, parseInt(searchParams.get('months') ?? '6', 10)))
-
-  // Calculate date range: last N full months + current partial month
-  const now = new Date()
-  const dateFrom = new Date(now.getFullYear(), now.getMonth() - monthsCount + 1, 1)
-  const dateFromStr = dateFrom.toISOString().split('T')[0]!
-  const dateToStr = now.toISOString().split('T')[0]!
+  const fyParam = searchParams.get('fy')
+  const fyYear = fyParam ? parseInt(fyParam, 10) : null
 
   const supabase = await createClient()
+
+  // Date range: FY-anchored when fy is set, rolling window otherwise
+  let dateFromStr: string
+  let dateToStr: string
+
+  if (fyYear && Number.isFinite(fyYear) && sedeId) {
+    const { data: sedeRow } = await supabase
+      .from('sedi')
+      .select('country_code')
+      .eq('id', sedeId)
+      .maybeSingle()
+    const countryCode = (sedeRow?.country_code ?? 'IT').trim() || 'IT'
+    const { start: fyStart, endExclusive: fyEnd } = fiscalYearRangeUtc(countryCode, fyYear)
+    // Offset end = FY start + monthsCount months
+    const periodEnd = new Date(
+      fyStart.getUTCFullYear(),
+      fyStart.getUTCMonth() + monthsCount,
+      fyStart.getUTCDate(),
+    )
+    // Cap at FY end (exclusive → subtract 1 day) and today
+    const fyEndInclusive = new Date(fyEnd.getTime() - 86_400_000)
+    const today = new Date()
+    const actualEnd = new Date(Math.min(periodEnd.getTime() - 86_400_000, fyEndInclusive.getTime(), today.getTime()))
+    dateFromStr = fyStart.toISOString().split('T')[0]!
+    dateToStr = actualEnd.toISOString().split('T')[0]!
+  } else {
+    // Rolling: last N full months up to today
+    const now = new Date()
+    const dateFrom = new Date(now.getFullYear(), now.getMonth() - monthsCount + 1, 1)
+    dateFromStr = dateFrom.toISOString().split('T')[0]!
+    dateToStr = now.toISOString().split('T')[0]!
+  }
 
   // Run all queries in parallel
   const [fattureRes, bolleRes, anomalieTotaleRes, anomalieRisolteRes, documentiRes] =

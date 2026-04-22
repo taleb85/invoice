@@ -4,6 +4,7 @@ import { getCookieStore, getT } from '@/lib/locale-server'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AnalyticsDashboard } from '@/components/analytics/analytics-dashboard'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { isValidFiscalYear } from '@/lib/fiscal-year'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
   const sedeId = adminPick ?? (profile.role !== 'admin' ? (profile.sede_id ?? null) : null)
 
   const months = sp.months ? Math.min(24, Math.max(1, parseInt(sp.months, 10))) : 6
+  const fyRaw = sp.fy ? parseInt(sp.fy, 10) : null
+  const fiscalYear = fyRaw && isValidFiscalYear(fyRaw) ? fyRaw : null
+
+  // Period button labels: fiscal-year-aware when FY is selected
+  const periodLabels: Record<number, string> = fiscalYear
+    ? { 3: 'Q1', 6: 'H1', 12: `FY ${fiscalYear}` }
+    : { 3: t.appStrings.analyticsMonths.replace('{n}', '3'), 6: t.appStrings.analyticsMonths.replace('{n}', '6'), 12: t.appStrings.analyticsMonths.replace('{n}', '12') }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -50,12 +58,17 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
                   : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
               }`}
             >
-              {t.appStrings.analyticsMonths.replace('{n}', String(value))}
+              {periodLabels[value]}
             </a>
           ))}
+          {fiscalYear && (
+            <span className="ml-1 text-[10px] font-medium text-white/30 uppercase tracking-wider">
+              da inizio FY
+            </span>
+          )}
         </div>
 
-        <AnalyticsDashboard sedeId={sedeId} months={months} />
+        <AnalyticsDashboard sedeId={sedeId} months={months} fiscalYear={fiscalYear} />
       </div>
     </div>
   )
