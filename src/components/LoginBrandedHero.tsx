@@ -21,20 +21,20 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
       {/* ── Brand area ── */}
       <div className="mb-5 flex flex-col items-center gap-2.5">
 
-        {/* Icon — corrected arrow paths */}
+        {/* Icon */}
         <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0f2a4a] ring-1 ring-[#22d3ee]/30 shadow-[0_0_24px_rgba(34,211,238,0.2)]">
-          <svg width="38" height="38" viewBox="0 0 40 40" fill="none" aria-hidden>
+          <svg width="48" height="48" viewBox="0 0 64 64" fill="none" aria-hidden>
             <path
-              d="M6 22 L18 10 L18 17 L32 17 L32 22"
+              d="M8 32 L22 18 L22 26 L42 26 L42 32"
               stroke="#22d3ee"
-              strokeWidth="3.8"
+              strokeWidth="5"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
             <path
-              d="M34 22 L22 34 L22 27 L8 27 L8 22"
+              d="M56 32 L42 46 L42 38 L22 38 L22 32"
               stroke="#5b7cf9"
-              strokeWidth="3.8"
+              strokeWidth="5"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
