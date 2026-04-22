@@ -231,8 +231,8 @@ export default function FornitoreConfermeOrdineTab({
 
         {!readOnly ? (
         <div className="border-b border-app-line-20 bg-rose-500/[0.04] px-5 py-4">
-          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid-cols-12 lg:items-stretch">
-            <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-4">
+          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid lg:grid-cols-[2fr_1.2fr_1.2fr_2fr_auto] lg:items-end">
+            <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-1">
               <label className={confermeFormLabelClass}>{t.common.document}</label>
               <input
                 ref={fileRef}
@@ -242,7 +242,7 @@ export default function FornitoreConfermeOrdineTab({
                 className={`block w-full text-sm ${confermeSecondaryClass} file:mr-3 file:rounded-lg file:border file:border-rose-500/40 file:bg-rose-500/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-rose-100/90 hover:file:bg-rose-500/20`}
               />
             </div>
-            <div className="flex min-h-0 flex-col lg:col-span-2">
+            <div className="flex min-h-0 flex-col">
               <label className={confermeFormLabelClass}>{t.fornitori.confermeOrdineOptionalTitle}</label>
               <input
                 value={titolo}
@@ -251,7 +251,7 @@ export default function FornitoreConfermeOrdineTab({
                 className={inputClass}
               />
             </div>
-            <div className="flex min-h-0 flex-col lg:col-span-2">
+            <div className="flex min-h-0 flex-col">
               <label className={confermeFormLabelClass}>{t.fornitori.confermeOrdineOptionalOrderDate}</label>
               <input
                 type="date"
@@ -260,7 +260,7 @@ export default function FornitoreConfermeOrdineTab({
                 className={`${inputClass} [color-scheme:dark]`}
               />
             </div>
-            <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-3">
+            <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-1">
               <label className={confermeFormLabelClass}>{t.common.notes}</label>
               <input
                 value={note}
@@ -275,7 +275,7 @@ export default function FornitoreConfermeOrdineTab({
                 type="button"
                 disabled={saving || !file}
                 onClick={() => void handleSave()}
-                className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl border border-app-cyan-400/45 bg-cyan-400/12 px-4 py-2.5 text-sm font-bold text-app-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/18 disabled:cursor-not-allowed disabled:opacity-40 lg:min-w-[9rem]"
+                className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-app-cyan-400/45 bg-cyan-400/12 px-4 py-2.5 text-sm font-bold text-app-cyan-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-cyan-400/60 hover:bg-cyan-400/18 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {saving ? t.common.saving : t.fornitori.confermeOrdineAdd}
               </button>
