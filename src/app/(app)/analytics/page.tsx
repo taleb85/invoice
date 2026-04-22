@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getProfile } from '@/utils/supabase/server'
-import { getCookieStore } from '@/lib/locale-server'
+import { getCookieStore, getT } from '@/lib/locale-server'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AnalyticsDashboard } from '@/components/analytics/analytics-dashboard'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -15,8 +15,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     redirect('/')
   }
 
-  const sp = await searchParams
-  const cookieStore = await getCookieStore()
+  const [sp, cookieStore, t] = await Promise.all([searchParams, getCookieStore(), getT()])
 
   const isMasterAdmin = profile.role === 'admin'
   const adminPick = isMasterAdmin
@@ -31,10 +30,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       <AppPageHeaderStrip>
         <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-app-fg truncate sm:text-lg">Analytics</h1>
-            <p className="text-xs text-app-fg-muted truncate">
-              Panoramica acquisti e riconciliazione
-            </p>
+            <h1 className="text-base font-bold text-app-fg truncate sm:text-lg">{t.nav.analytics}</h1>
+            <p className="text-xs text-app-fg-muted truncate">{t.appStrings.analyticsPageSub}</p>
           </div>
           <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
         </div>
@@ -43,11 +40,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
         {/* Period selector */}
         <div className="mb-5 flex items-center gap-2">
-          {[
-            { label: '3 mesi', value: 3 },
-            { label: '6 mesi', value: 6 },
-            { label: '12 mesi', value: 12 },
-          ].map(({ label, value }) => (
+          {[3, 6, 12].map((value) => (
             <a
               key={value}
               href={`/analytics?months=${value}${sp.fy ? `&fy=${sp.fy}` : ''}`}
@@ -57,7 +50,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
                   : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
               }`}
             >
-              {label}
+              {t.appStrings.analyticsMonths.replace('{n}', String(value))}
             </a>
           ))}
         </div>

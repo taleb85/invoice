@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useMe } from '@/lib/me-context'
+import { useT } from '@/lib/use-t'
 import { ActivityFeed } from '@/components/activity/activity-feed'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
 
@@ -29,6 +30,7 @@ function downloadCsv(rows: ActivityLogRow[]) {
 
 export default function AttivitaPage() {
   const { me, loading } = useMe()
+  const t = useT()
   const [sedeId, setSedeId] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
   const [dateFrom, setDateFrom] = useState('')
@@ -92,8 +94,8 @@ export default function AttivitaPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 border-b border-app-line-22 px-4 py-4 sm:px-6">
         <div>
-          <h1 className="text-base font-bold text-app-fg sm:text-lg">Registro Attività</h1>
-          <p className="text-xs text-app-fg-muted">Storico completo delle operazioni degli operatori</p>
+          <h1 className="text-base font-bold text-app-fg sm:text-lg">{t.appStrings.attivitaPageTitle}</h1>
+          <p className="text-xs text-app-fg-muted">{t.appStrings.attivitaPageSub}</p>
         </div>
         <button
           type="button"
@@ -108,7 +110,7 @@ export default function AttivitaPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
           )}
-          Esporta CSV
+          {t.appStrings.attivitaExportCsv}
         </button>
       </div>
 
@@ -121,7 +123,7 @@ export default function AttivitaPage() {
             onChange={(e) => setUserId(e.target.value)}
             className="rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
           >
-            <option value="">Tutti gli operatori</option>
+            <option value="">{t.appStrings.attivitaAllOperators}</option>
             {operatori.map((op) => (
               <option key={op.id} value={op.id}>
                 {op.full_name ?? op.id}
@@ -153,7 +155,7 @@ export default function AttivitaPage() {
             onClick={() => { setUserId(''); setDateFrom(''); setDateTo('') }}
             className="text-xs text-app-fg-muted hover:text-rose-400"
           >
-            Rimuovi filtri
+            {t.appStrings.attivitaRemoveFilters}
           </button>
         )}
       </div>

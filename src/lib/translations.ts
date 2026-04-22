@@ -1371,6 +1371,22 @@ type Translations = {
     /** Root layout failure (global-error.tsx) */
     errorFatalTitle: string
     errorFatalBody: string
+    /** Approvals page subtitle */
+    approvazioni_pageSub: string
+    /** Analytics page subtitle */
+    analyticsPageSub: string
+    /** Analytics period selector — replace {n} with the number */
+    analyticsMonths: string
+    /** Activity log page title */
+    attivitaPageTitle: string
+    /** Activity log page subtitle */
+    attivitaPageSub: string
+    /** Activity log export button */
+    attivitaExportCsv: string
+    /** Activity log operator filter — empty option */
+    attivitaAllOperators: string
+    /** Activity log — clear filters button */
+    attivitaRemoveFilters: string
   }
 }
 
@@ -2480,6 +2496,14 @@ const it: Translations = {
     errorDevDetailsSummary: 'Dettagli errore (solo sviluppo)',
     errorFatalTitle: 'Errore critico',
     errorFatalBody: 'L\'applicazione ha riscontrato un problema imprevisto.',
+    approvazioni_pageSub: 'Fatture in attesa di approvazione sopra soglia',
+    analyticsPageSub: 'Panoramica acquisti e riconciliazione',
+    analyticsMonths: '{n} mesi',
+    attivitaPageTitle: 'Registro Attività',
+    attivitaPageSub: 'Storico completo delle operazioni degli operatori',
+    attivitaExportCsv: 'Esporta CSV',
+    attivitaAllOperators: 'Tutti gli operatori',
+    attivitaRemoveFilters: 'Rimuovi filtri',
   },
 }
 
@@ -2961,6 +2985,14 @@ const en: Translations = {
     errorDevDetailsSummary: 'Error details (development only)',
     errorFatalTitle: 'Critical error',
     errorFatalBody: 'The application hit an unexpected problem.',
+    approvazioni_pageSub: 'Invoices pending approval above threshold',
+    analyticsPageSub: 'Purchases and reconciliation overview',
+    analyticsMonths: '{n} months',
+    attivitaPageTitle: 'Activity Log',
+    attivitaPageSub: 'Complete history of operator actions',
+    attivitaExportCsv: 'Export CSV',
+    attivitaAllOperators: 'All operators',
+    attivitaRemoveFilters: 'Remove filters',
   },
 }
 
@@ -3390,6 +3422,14 @@ const es: Translations = {
     errorDevDetailsSummary: 'Detalles del error (solo desarrollo)',
     errorFatalTitle: 'Error crítico',
     errorFatalBody: 'La aplicación encontró un problema inesperado.',
+    approvazioni_pageSub: 'Facturas pendientes de aprobación por encima del umbral',
+    analyticsPageSub: 'Resumen de compras y conciliación',
+    analyticsMonths: '{n} meses',
+    attivitaPageTitle: 'Registro de Actividad',
+    attivitaPageSub: 'Historial completo de operaciones de los operadores',
+    attivitaExportCsv: 'Exportar CSV',
+    attivitaAllOperators: 'Todos los operadores',
+    attivitaRemoveFilters: 'Quitar filtros',
   },
 }
 
@@ -3819,6 +3859,14 @@ const fr: Translations = {
     errorDevDetailsSummary: 'Détails de l’erreur (développement uniquement)',
     errorFatalTitle: 'Erreur critique',
     errorFatalBody: 'L’application a rencontré un problème inattendu.',
+    approvazioni_pageSub: 'Factures en attente d\'approbation au-dessus du seuil',
+    analyticsPageSub: 'Vue d\'ensemble des achats et de la réconciliation',
+    analyticsMonths: '{n} mois',
+    attivitaPageTitle: 'Journal d\'activité',
+    attivitaPageSub: 'Historique complet des opérations des opérateurs',
+    attivitaExportCsv: 'Exporter CSV',
+    attivitaAllOperators: 'Tous les opérateurs',
+    attivitaRemoveFilters: 'Supprimer les filtres',
   },
 }
 
@@ -4247,6 +4295,14 @@ const de: Translations = {
     errorDevDetailsSummary: 'Fehlerdetails (nur Entwicklung)',
     errorFatalTitle: 'Kritischer Fehler',
     errorFatalBody: 'Die Anwendung ist auf ein unerwartetes Problem gestoßen.',
+    approvazioni_pageSub: 'Rechnungen zur Genehmigung über dem Schwellenwert',
+    analyticsPageSub: 'Einkaufs- und Abstimmungsübersicht',
+    analyticsMonths: '{n} Monate',
+    attivitaPageTitle: 'Aktivitätsprotokoll',
+    attivitaPageSub: 'Vollständige Geschichte der Operatorenaktionen',
+    attivitaExportCsv: 'CSV exportieren',
+    attivitaAllOperators: 'Alle Operatoren',
+    attivitaRemoveFilters: 'Filter entfernen',
   },
 }
 
