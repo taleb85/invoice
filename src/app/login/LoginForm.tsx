@@ -356,9 +356,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   /* sposta focus al PIN appena il nome è risolto */
   useEffect(() => {
-    if (nameReady && pin.every(d => d === '')) {
-      /* blur esplicito prima di focus su mobile evita che iOS ignori la chiamata */
-      nameInputRef.current?.blur()
+    if (!nameReady || !pin.every(d => d === '')) return
+    /* Su mobile: chiudi solo la tastiera virtuale (l'utente usa il numpad) */
+    nameInputRef.current?.blur()
+    /* Su desktop: sposta il cursore al primo box PIN */
+    if (!('ontouchstart' in window)) {
       const timer = window.setTimeout(() => {
         pinRefs.current[0]?.focus()
       }, 80)
