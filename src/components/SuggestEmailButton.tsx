@@ -85,10 +85,10 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
       {open && (
         <div
           ref={panelRef}
-          className="absolute left-0 z-50 mt-1.5 w-80 rounded-xl border border-app-line-22 bg-app-surface-elevated shadow-2xl ring-1 ring-black/30"
+          className="absolute left-0 z-50 mt-1.5 w-80 rounded-xl border border-white/10 bg-neutral-900 shadow-2xl ring-1 ring-black/50"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-app-line-15 px-3 py-2">
+          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2 bg-neutral-800/80 rounded-t-xl">
             <p className="text-[11px] font-semibold text-app-fg">{s.suggestEmailTitle}</p>
             <button
               type="button"
@@ -123,7 +123,7 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
                 {suggestions.map(sg => (
                   <li
                     key={sg.email}
-                    className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-app-line-10/40"
+                    className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 hover:bg-white/5"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-xs font-medium text-app-fg">{sg.email}</p>
