@@ -41,6 +41,8 @@ export default function AppPageHeaderStrip({
    * Richiede `accent` (stessa tinta etichetta metriche).
    */
   mergedSummary,
+  /** Icona colorata visualizzata a sinistra del titolo, stessa tinta dell'accent. */
+  icon,
   /** Slot libero per contenuto arbitrario nella sezione merged (alternativo a `mergedSummary`). */
   mergedSlot,
 }: {
