@@ -346,10 +346,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   /* auto-submit quando il PIN viene completato via numpad */
   useEffect(() => {
     const full = pin.join('')
-    if (full.length === PIN_LENGTH && nameReady && resolvedEmail.current && sessionGateNext) {
+    if (full.length === PIN_LENGTH && nameReady && resolvedEmail.current) {
       doLoginByName(resolvedEmail.current, full)
     }
-  }, [pin, nameReady, sessionGateNext]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pin, nameReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Gate admin: stato da server */
   useEffect(() => {
@@ -697,26 +697,24 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 ))}
               </div>
 
-              {/* Numpad — solo su /accesso (sessione gate operatore), solo mobile */}
-              {sessionGateNext && (
-                <div className="mt-4 md:hidden">
-                  {loading ? (
-                    <div className="flex justify-center py-6">
-                      <svg className="w-8 h-8 text-app-cyan-500 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                      </svg>
-                    </div>
-                  ) : (
-                    <PinNumpad
-                      onDigit={pressNumpadDigit}
-                      onBackspace={numpadBackspace}
-                      onClear={numpadClear}
-                      disabled={loading || !nameReady}
-                    />
-                  )}
-                </div>
-              )}
+              {/* Numpad — solo mobile (sempre, sia su /login che su /accesso) */}
+              <div className="mt-4 md:hidden">
+                {loading ? (
+                  <div className="flex justify-center py-6">
+                    <svg className="w-8 h-8 text-app-cyan-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                  </div>
+                ) : (
+                  <PinNumpad
+                    onDigit={pressNumpadDigit}
+                    onBackspace={numpadBackspace}
+                    onClear={numpadClear}
+                    disabled={loading || !nameReady}
+                  />
+                )}
+              </div>
 
               {/* Indicatore auto-login */}
               {(pinFilled || loading) && (
