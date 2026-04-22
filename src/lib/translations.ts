@@ -1431,6 +1431,40 @@ type Translations = {
     attivitaFilterOperatori: string
     attivitaError: string
     attivitaNoRecent: string
+    // StatoSincronizzazioneIntelligente
+    rekkiSyncTitle: string
+    rekkiSyncDesc: string
+    rekkiSyncMobileTap: string
+    rekkiSyncNeverRun: string
+    rekkiSyncTapUpdate: string
+    rekkiSyncTapStart: string
+    rekkiSyncButtonLabel: string
+    rekkiSyncInProgress: string
+    rekkiSyncProcessing: string
+    rekkiSyncStop: string
+    rekkiSyncCheckNow: string
+    rekkiSyncStarting: string
+    rekkiSyncDays: string
+    rekkiSyncLastScan: string
+    rekkiSyncEmails: string
+    rekkiSyncDocuments: string
+    rekkiSyncMatched: string
+    rekkiSyncUnmatched: string
+    rekkiSyncRecentEmails: string
+    rekkiSyncNoData: string
+    rekkiSyncNoDataDesc: string
+    rekkiImapNotConfigured: string
+    rekkiImapNotConfiguredDesc: string
+    rekkiPhaseQueued: string
+    rekkiPhaseConnect: string
+    rekkiPhaseSearch: string
+    rekkiPhaseProcess: string
+    rekkiPhasePersist: string
+    rekkiPhaseDone: string
+    rekkiPhaseError: string
+    rekkiDoneResult: string
+    rekkiErrUnknown: string
+    rekkiErrNetwork: string
   }
 }
 
@@ -2589,6 +2623,39 @@ const it: Translations = {
     attivitaFilterOperatori: 'Operatori',
     attivitaError: 'Impossibile caricare le attività.',
     attivitaNoRecent: 'Nessuna attività recente',
+    rekkiSyncTitle: 'Sincronizzazione Email Rekki',
+    rekkiSyncDesc: 'Scansiona la casella email della sede e abbina automaticamente gli ordini Rekki',
+    rekkiSyncMobileTap: 'Sincronizza Email Rekki',
+    rekkiSyncNeverRun: 'Mai eseguita',
+    rekkiSyncTapUpdate: 'tocca per aggiornare',
+    rekkiSyncTapStart: 'tocca per avviare',
+    rekkiSyncButtonLabel: 'SCANSIONA BOLLA / FATTURA',
+    rekkiSyncInProgress: 'Scansione in corso',
+    rekkiSyncProcessing: 'Elaborazione email Rekki…',
+    rekkiSyncStop: 'Stop',
+    rekkiSyncCheckNow: 'Controlla ora',
+    rekkiSyncStarting: 'Avvio scansione...',
+    rekkiSyncDays: '{n} giorni',
+    rekkiSyncLastScan: 'Ultima scansione',
+    rekkiSyncEmails: 'Email',
+    rekkiSyncDocuments: 'Documenti',
+    rekkiSyncMatched: 'Abbinati',
+    rekkiSyncUnmatched: 'Da abbinare',
+    rekkiSyncRecentEmails: 'Ultime email elaborate',
+    rekkiSyncNoData: 'Nessun prezzo rilevato',
+    rekkiSyncNoDataDesc: 'Premi «Controlla ora» per scansionare le email Rekki di {nome}',
+    rekkiImapNotConfigured: 'Casella email non configurata',
+    rekkiImapNotConfiguredDesc: 'Configura le credenziali IMAP in Impostazioni → Sede per abilitare la sincronizzazione.',
+    rekkiPhaseQueued: 'In coda...',
+    rekkiPhaseConnect: 'Connessione alla casella email...',
+    rekkiPhaseSearch: 'Ricerca email Rekki...',
+    rekkiPhaseProcess: 'Elaborazione email...',
+    rekkiPhasePersist: 'Salvataggio dati...',
+    rekkiPhaseDone: 'Completato',
+    rekkiPhaseError: 'Errore',
+    rekkiDoneResult: 'Completato — {n} email elaborate',
+    rekkiErrUnknown: 'Errore sconosciuto',
+    rekkiErrNetwork: 'Errore di rete',
   },
 }
 
@@ -3119,6 +3186,39 @@ const en: Translations = {
     attivitaFilterOperatori: 'Operators',
     attivitaError: 'Unable to load activity.',
     attivitaNoRecent: 'No recent activity',
+    rekkiSyncTitle: 'Rekki Email Sync',
+    rekkiSyncDesc: 'Scan the venue email inbox and automatically match Rekki orders',
+    rekkiSyncMobileTap: 'Sync Rekki Emails',
+    rekkiSyncNeverRun: 'Never run',
+    rekkiSyncTapUpdate: 'tap to update',
+    rekkiSyncTapStart: 'tap to start',
+    rekkiSyncButtonLabel: 'SCAN DELIVERY NOTE / INVOICE',
+    rekkiSyncInProgress: 'Scan in progress',
+    rekkiSyncProcessing: 'Processing Rekki emails…',
+    rekkiSyncStop: 'Stop',
+    rekkiSyncCheckNow: 'Check now',
+    rekkiSyncStarting: 'Starting scan...',
+    rekkiSyncDays: '{n} days',
+    rekkiSyncLastScan: 'Last scan',
+    rekkiSyncEmails: 'Emails',
+    rekkiSyncDocuments: 'Documents',
+    rekkiSyncMatched: 'Matched',
+    rekkiSyncUnmatched: 'Unmatched',
+    rekkiSyncRecentEmails: 'Recent processed emails',
+    rekkiSyncNoData: 'No prices detected',
+    rekkiSyncNoDataDesc: 'Press “Check now” to scan Rekki emails from {nome}',
+    rekkiImapNotConfigured: 'Email inbox not configured',
+    rekkiImapNotConfiguredDesc: 'Configure IMAP credentials in Settings → Venue to enable sync.',
+    rekkiPhaseQueued: 'Queued...',
+    rekkiPhaseConnect: 'Connecting to email inbox...',
+    rekkiPhaseSearch: 'Searching Rekki emails...',
+    rekkiPhaseProcess: 'Processing emails...',
+    rekkiPhasePersist: 'Saving data...',
+    rekkiPhaseDone: 'Completed',
+    rekkiPhaseError: 'Error',
+    rekkiDoneResult: 'Completed — {n} emails processed',
+    rekkiErrUnknown: 'Unknown error',
+    rekkiErrNetwork: 'Network error',
   },
 }
 
@@ -3597,6 +3697,39 @@ const es: Translations = {
     attivitaFilterOperatori: 'Operadores',
     attivitaError: 'No se pueden cargar las actividades.',
     attivitaNoRecent: 'Sin actividad reciente',
+    rekkiSyncTitle: 'Sincronización Email Rekki',
+    rekkiSyncDesc: 'Escanea el correo de la sede y asocia automáticamente los pedidos Rekki',
+    rekkiSyncMobileTap: 'Sincronizar Emails Rekki',
+    rekkiSyncNeverRun: 'Nunca ejecutado',
+    rekkiSyncTapUpdate: 'toca para actualizar',
+    rekkiSyncTapStart: 'toca para iniciar',
+    rekkiSyncButtonLabel: 'ESCANEAR ALBARÁN / FACTURA',
+    rekkiSyncInProgress: 'Escaneo en curso',
+    rekkiSyncProcessing: 'Procesando emails Rekki…',
+    rekkiSyncStop: 'Detener',
+    rekkiSyncCheckNow: 'Comprobar ahora',
+    rekkiSyncStarting: 'Iniciando escaneo...',
+    rekkiSyncDays: '{n} días',
+    rekkiSyncLastScan: 'Último escaneo',
+    rekkiSyncEmails: 'Emails',
+    rekkiSyncDocuments: 'Documentos',
+    rekkiSyncMatched: 'Asociados',
+    rekkiSyncUnmatched: 'Por asociar',
+    rekkiSyncRecentEmails: 'Últimos emails procesados',
+    rekkiSyncNoData: 'Sin precios detectados',
+    rekkiSyncNoDataDesc: 'Pulsa “Comprobar ahora” para escanear los emails Rekki de {nombre}',
+    rekkiImapNotConfigured: 'Correo no configurado',
+    rekkiImapNotConfiguredDesc: 'Configura las credenciales IMAP en Configuración → Sede para activar la sincronización.',
+    rekkiPhaseQueued: 'En cola...',
+    rekkiPhaseConnect: 'Conectando al correo...',
+    rekkiPhaseSearch: 'Buscando emails Rekki...',
+    rekkiPhaseProcess: 'Procesando emails...',
+    rekkiPhasePersist: 'Guardando datos...',
+    rekkiPhaseDone: 'Completado',
+    rekkiPhaseError: 'Error',
+    rekkiDoneResult: 'Completado — {n} emails procesados',
+    rekkiErrUnknown: 'Error desconocido',
+    rekkiErrNetwork: 'Error de red',
   },
 }
 
@@ -4075,6 +4208,39 @@ const fr: Translations = {
     attivitaFilterOperatori: 'Opérateurs',
     attivitaError: 'Impossible de charger les activités.',
     attivitaNoRecent: 'Aucune activité récente',
+    rekkiSyncTitle: 'Synchronisation Email Rekki',
+    rekkiSyncDesc: 'Scanne la boîte mail du site et associe automatiquement les commandes Rekki',
+    rekkiSyncMobileTap: 'Synchroniser Emails Rekki',
+    rekkiSyncNeverRun: 'Jamais exécuté',
+    rekkiSyncTapUpdate: 'appuyer pour mettre à jour',
+    rekkiSyncTapStart: 'appuyer pour démarrer',
+    rekkiSyncButtonLabel: 'SCANNER BON / FACTURE',
+    rekkiSyncInProgress: 'Scan en cours',
+    rekkiSyncProcessing: 'Traitement des emails Rekki…',
+    rekkiSyncStop: 'Arrêter',
+    rekkiSyncCheckNow: 'Vérifier maintenant',
+    rekkiSyncStarting: 'Démarrage du scan...',
+    rekkiSyncDays: '{n} jours',
+    rekkiSyncLastScan: 'Dernier scan',
+    rekkiSyncEmails: 'Emails',
+    rekkiSyncDocuments: 'Documents',
+    rekkiSyncMatched: 'Associés',
+    rekkiSyncUnmatched: 'À associer',
+    rekkiSyncRecentEmails: 'Derniers emails traités',
+    rekkiSyncNoData: 'Aucun prix détecté',
+    rekkiSyncNoDataDesc: 'Appuyez sur «Vérifier maintenant» pour scanner les emails Rekki de {nome}',
+    rekkiImapNotConfigured: 'Boîte mail non configurée',
+    rekkiImapNotConfiguredDesc: 'Configurez les identifiants IMAP dans Paramètres → Site pour activer la synchronisation.',
+    rekkiPhaseQueued: 'En file...',
+    rekkiPhaseConnect: 'Connexion à la boîte mail...',
+    rekkiPhaseSearch: 'Recherche des emails Rekki...',
+    rekkiPhaseProcess: 'Traitement des emails...',
+    rekkiPhasePersist: 'Enregistrement des données...',
+    rekkiPhaseDone: 'Terminé',
+    rekkiPhaseError: 'Erreur',
+    rekkiDoneResult: 'Terminé — {n} emails traités',
+    rekkiErrUnknown: 'Erreur inconnue',
+    rekkiErrNetwork: 'Erreur réseau',
   },
 }
 
@@ -4552,6 +4718,39 @@ const de: Translations = {
     attivitaFilterOperatori: 'Operatoren',
     attivitaError: 'Aktivitäten konnten nicht geladen werden.',
     attivitaNoRecent: 'Keine neueren Aktivitäten',
+    rekkiSyncTitle: 'Rekki E-Mail-Synchronisation',
+    rekkiSyncDesc: 'Durchsucht das E-Mail-Postfach des Standorts und ordnet Rekki-Bestellungen automatisch zu',
+    rekkiSyncMobileTap: 'Rekki-E-Mails synchronisieren',
+    rekkiSyncNeverRun: 'Nie ausgeführt',
+    rekkiSyncTapUpdate: 'tippen zum Aktualisieren',
+    rekkiSyncTapStart: 'tippen zum Starten',
+    rekkiSyncButtonLabel: 'LIEFERSCHEIN / RECHNUNG SCANNEN',
+    rekkiSyncInProgress: 'Scan läuft',
+    rekkiSyncProcessing: 'Rekki-E-Mails werden verarbeitet…',
+    rekkiSyncStop: 'Stopp',
+    rekkiSyncCheckNow: 'Jetzt prüfen',
+    rekkiSyncStarting: 'Scan wird gestartet...',
+    rekkiSyncDays: '{n} Tage',
+    rekkiSyncLastScan: 'Letzter Scan',
+    rekkiSyncEmails: 'E-Mails',
+    rekkiSyncDocuments: 'Dokumente',
+    rekkiSyncMatched: 'Zugeordnet',
+    rekkiSyncUnmatched: 'Zuzuordnen',
+    rekkiSyncRecentEmails: 'Zuletzt verarbeitete E-Mails',
+    rekkiSyncNoData: 'Keine Preise erkannt',
+    rekkiSyncNoDataDesc: 'Drücken Sie «Jetzt prüfen», um die Rekki-E-Mails von {nome} zu scannen',
+    rekkiImapNotConfigured: 'E-Mail-Postfach nicht konfiguriert',
+    rekkiImapNotConfiguredDesc: 'Konfigurieren Sie die IMAP-Zugangsdaten unter Einstellungen → Standort, um die Synchronisation zu aktivieren.',
+    rekkiPhaseQueued: 'In der Warteschlange...',
+    rekkiPhaseConnect: 'Verbindung zum Postfach...',
+    rekkiPhaseSearch: 'Rekki-E-Mails suchen...',
+    rekkiPhaseProcess: 'E-Mails verarbeiten...',
+    rekkiPhasePersist: 'Daten speichern...',
+    rekkiPhaseDone: 'Abgeschlossen',
+    rekkiPhaseError: 'Fehler',
+    rekkiDoneResult: 'Abgeschlossen — {n} E-Mails verarbeitet',
+    rekkiErrUnknown: 'Unbekannter Fehler',
+    rekkiErrNetwork: 'Netzwerkfehler',
   },
 }
 

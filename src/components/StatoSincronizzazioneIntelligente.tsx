@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
-import { it } from 'date-fns/locale'
+import type { Locale as DateFnsLocale } from 'date-fns'
+import { it as itLocale, enUS, es, fr, de } from 'date-fns/locale'
+import { useT } from '@/lib/use-t'
+import { useLocale } from '@/lib/locale-context'
 
 interface EmailUpdate {
   prodotto: string
@@ -23,6 +26,10 @@ interface SyncStatus {
   imap_configured: boolean
 }
 
+const DATE_FNS_LOCALES: Record<string, DateFnsLocale> = {
+  it: itLocale, en: enUS, es, fr, de,
+}
+
 export default function StatoSincronizzazioneIntelligente({
   fornitoreId,
   fornitoreNome,
@@ -35,15 +42,22 @@ export default function StatoSincronizzazioneIntelligente({
   type SyncPhase = 'queued' | 'connect' | 'search' | 'process' | 'persist' | 'done' | 'error'
   type SyncLog   = { phase: SyncPhase; label: string; percent: number }
 
-  const PHASE_LABEL: Record<SyncPhase, string> = {
-    queued:  'In coda...',
-    connect: 'Connessione alla casella email...',
-    search:  'Ricerca email Rekki...',
-    process: 'Elaborazione email...',
-    persist: 'Salvataggio dati...',
-    done:    'Completato',
-    error:   'Errore',
-  }
+  const t = useT()
+  const { locale } = useLocale()
+  const dateFnsLocale = DATE_FNS_LOCALES[locale] ?? enUS
+
+  const PHASE_LABEL = useCallback((phase: SyncPhase): string => {
+    const map: Record<SyncPhase, string> = {
+      queued:  t.appStrings.rekkiPhaseQueued,
+      connect: t.appStrings.rekkiPhaseConnect,
+      search:  t.appStrings.rekkiPhaseSearch,
+      process: t.appStrings.rekkiPhaseProcess,
+      persist: t.appStrings.rekkiPhasePersist,
+      done:    t.appStrings.rekkiPhaseDone,
+      error:   t.appStrings.rekkiPhaseError,
+    }
+    return map[phase] ?? phase
+  }, [t])
 
   const [status, setStatus]             = useState<SyncStatus | null>(null)
   const [loading, setLoading]           = useState(true)
@@ -82,7 +96,6 @@ export default function StatoSincronizzazioneIntelligente({
     }
   }, [fornitoreId])
 
-  // Quando cambia fornitore: interrompe sync in corso e ricarica status
   useEffect(() => {
     abortRef.current?.abort()
     abortRef.current = null
@@ -106,7 +119,6 @@ export default function StatoSincronizzazioneIntelligente({
   }, [loadStatus])
 
   const handleSync = async () => {
-    // Cancella eventuale sync precedente ancora in corso
     abortRef.current?.abort()
     const ac = new AbortController()
     abortRef.current = ac
@@ -136,7 +148,7 @@ export default function StatoSincronizzazioneIntelligente({
 
       if (!res.ok || !res.body) {
         const data = await res.json().catch(() => ({}))
-        if (mountedRef.current) setError((data as { error?: string }).error || `Errore ${res.status}`)
+        if (mountedRef.current) setError((data as { error?: string }).error ?? `${t.appStrings.rekkiPhaseError} ${res.status}`)
         return
       }
 
@@ -145,7 +157,6 @@ export default function StatoSincronizzazioneIntelligente({
       let   buf     = ''
 
       while (true) {
-        // Se il componente si è smontato o l'abort è scattato, esci subito
         if (ac.signal.aborted || !mountedRef.current) {
           await reader.cancel()
           break
@@ -180,21 +191,23 @@ export default function StatoSincronizzazioneIntelligente({
               setSyncLog(prev => {
                 const last = prev[prev.length - 1]
                 if (last?.phase === phase) return prev.map((l, i) => i === prev.length - 1 ? { ...l, percent } : l)
-                return [...prev, { phase, label: PHASE_LABEL[phase] ?? phase, percent }]
+                return [...prev, { phase, label: PHASE_LABEL(phase), percent }]
               })
             } else if (evt.type === 'done') {
               setSyncPercent(100)
-              setSyncResult(evt.messaggio ?? `Completato — ${evt.ricevuti ?? 0} email elaborate`)
+              setSyncResult(
+                evt.messaggio ?? t.appStrings.rekkiDoneResult.replace('{n}', String(evt.ricevuti ?? 0))
+              )
               await loadStatus()
             } else if (evt.type === 'error') {
-              setError(evt.error ?? 'Errore sconosciuto')
+              setError(evt.error ?? t.appStrings.rekkiErrUnknown)
             }
           } catch { /* line non JSON */ }
         }
       }
     } catch (err) {
       if ((err as { name?: string }).name === 'AbortError') return
-      if (mountedRef.current) setError(err instanceof Error ? err.message : 'Errore di rete')
+      if (mountedRef.current) setError(err instanceof Error ? err.message : t.appStrings.rekkiErrNetwork)
     } finally {
       if (mountedRef.current) setSyncing(false)
     }
@@ -228,7 +241,7 @@ export default function StatoSincronizzazioneIntelligente({
     <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
       <div className="app-card-bar-accent bg-gradient-to-r from-cyan-500/80 to-blue-500/60" aria-hidden />
 
-      {/* ── Action Bar mobile: sopra il bottom nav (90px) + safe area bottom + gap landscape ─── */}
+      {/* ── Action Bar mobile ─── */}
       {imapReady && (
         <div
           className="fixed left-1/2 z-[90] -translate-x-1/2 w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] md:hidden"
@@ -242,13 +255,13 @@ export default function StatoSincronizzazioneIntelligente({
             <div className="flex items-center gap-3 rounded-2xl bg-red-600 px-5 py-3 shadow-[0_8px_32px_rgba(239,68,68,0.55)] ring-1 ring-red-400/40">
               <div className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent" />
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-red-100/80">Scansione in corso</p>
-                <p className="text-sm font-bold text-white">Elaborazione email Rekki…</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-red-100/80">{t.appStrings.rekkiSyncInProgress}</p>
+                <p className="text-sm font-bold text-white">{t.appStrings.rekkiSyncProcessing}</p>
               </div>
               <button
                 type="button"
                 onClick={stopSync}
-                aria-label="Interrompi scansione"
+                aria-label={t.appStrings.rekkiSyncStop}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 transition-colors active:bg-white/25"
               >
                 <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -260,10 +273,9 @@ export default function StatoSincronizzazioneIntelligente({
             <button
               type="button"
               onClick={handleSync}
-              aria-label="Scansiona bolla o fattura"
+              aria-label={t.appStrings.rekkiSyncButtonLabel}
               className="flex w-full items-center gap-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-5 py-3 shadow-[0_8px_32px_rgba(6,182,212,0.45)] ring-1 ring-cyan-300/30 transition-transform active:scale-[0.97]"
             >
-              {/* Icona fotocamera */}
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
                 <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -272,7 +284,7 @@ export default function StatoSincronizzazioneIntelligente({
               </div>
               <div className="min-w-0 flex-1 text-left">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-cyan-100/70">Rekki · Email</p>
-                <p className="text-base font-bold leading-tight text-white">SCANSIONA BOLLA / FATTURA</p>
+                <p className="text-base font-bold leading-tight text-white">{t.appStrings.rekkiSyncButtonLabel}</p>
               </div>
               <svg className="h-5 w-5 shrink-0 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -287,14 +299,11 @@ export default function StatoSincronizzazioneIntelligente({
         {/* ── Header desktop ──────────────────────────────────────── */}
         <div className="mb-4 hidden md:flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-sm font-bold text-app-fg">Sincronizzazione Email Rekki</h3>
-            <p className="mt-0.5 text-xs text-app-fg-muted">
-              Scansiona la casella email della sede e abbina automaticamente gli ordini Rekki
-            </p>
+            <h3 className="text-sm font-bold text-app-fg">{t.appStrings.rekkiSyncTitle}</h3>
+            <p className="mt-0.5 text-xs text-app-fg-muted">{t.appStrings.rekkiSyncDesc}</p>
           </div>
           {imapReady && (
             <div className="flex shrink-0 items-center gap-1.5">
-              {/* Selettore finestra giorni */}
               <div className="flex items-center gap-1 rounded-lg border border-app-line-25 bg-app-line-10/60 px-2 py-1.5">
                 <svg className="h-3 w-3 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -306,7 +315,7 @@ export default function StatoSincronizzazioneIntelligente({
                   className="bg-transparent text-[11px] font-semibold text-app-fg-muted focus:outline-none disabled:opacity-50 [color-scheme:dark] cursor-pointer"
                 >
                   {[7, 14, 30, 60, 90, 180, 365].map(d => (
-                    <option key={d} value={d}>{d} giorni</option>
+                    <option key={d} value={d}>{t.appStrings.rekkiSyncDays.replace('{n}', String(d))}</option>
                   ))}
                 </select>
               </div>
@@ -315,18 +324,18 @@ export default function StatoSincronizzazioneIntelligente({
                 <>
                   <div className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-300">
                     <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
-                    Scansione...
+                    {t.appStrings.rekkiSyncInProgress}…
                   </div>
                   <button
                     type="button"
                     onClick={stopSync}
                     className="flex items-center gap-1 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20"
-                    title="Interrompi scansione"
+                    title={t.appStrings.rekkiSyncStop}
                   >
                     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
                       <rect x="6" y="6" width="12" height="12" rx="1" />
                     </svg>
-                    Stop
+                    {t.appStrings.rekkiSyncStop}
                   </button>
                 </>
               ) : (
@@ -338,33 +347,34 @@ export default function StatoSincronizzazioneIntelligente({
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Controlla ora
+                  {t.appStrings.rekkiSyncCheckNow}
                 </button>
               )}
             </div>
           )}
         </div>
 
-        {/* ── Header mobile: titolo + timer + tap-to-sync ─────────── */}
+        {/* ── Header mobile ─────────────────────────────────────── */}
         <button
           type="button"
           className="mb-3 flex w-full items-center justify-between gap-2 rounded-lg px-0 py-0 text-left md:hidden active:opacity-70"
           onClick={() => { if (!syncing && imapReady) handleSync() }}
-          title={syncing ? 'Scansione in corso…' : 'Tocca per avviare la sync'}
-          aria-label={syncing ? 'Scansione in corso' : 'Avvia sync email Rekki'}
+          title={syncing ? t.appStrings.rekkiSyncInProgress : t.appStrings.rekkiSyncCheckNow}
+          aria-label={syncing ? t.appStrings.rekkiSyncInProgress : t.appStrings.rekkiSyncMobileTap}
         >
           <div className="min-w-0">
-            <h3 className="text-xs font-bold text-white">Sincronizza Email Rekki</h3>
+            <h3 className="text-xs font-bold text-white">{t.appStrings.rekkiSyncMobileTap}</h3>
             {status?.last_sync_at ? (
               <p className="mt-0.5 text-[11px] text-white/60">
-                {formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: it })}
+                {formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: dateFnsLocale })}
                 {!syncing && imapReady && (
-                  <span className="ml-1.5 text-cyan-400">· tocca per aggiornare</span>
+                  <span className="ml-1.5 text-cyan-400">· {t.appStrings.rekkiSyncTapUpdate}</span>
                 )}
               </p>
             ) : (
               <p className="mt-0.5 text-[11px] text-white/60">
-                Mai eseguita{!syncing && imapReady && <span className="ml-1.5 text-cyan-400">· tocca per avviare</span>}
+                {t.appStrings.rekkiSyncNeverRun}
+                {!syncing && imapReady && <span className="ml-1.5 text-cyan-400">· {t.appStrings.rekkiSyncTapStart}</span>}
               </p>
             )}
           </div>
@@ -379,9 +389,9 @@ export default function StatoSincronizzazioneIntelligente({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-amber-300">Casella email non configurata</p>
+                <p className="text-xs font-semibold text-amber-300">{t.appStrings.rekkiImapNotConfigured}</p>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-amber-200/70">
-                  Configura le credenziali IMAP in <span className="font-semibold text-amber-300">Impostazioni → Sede</span> per abilitare la sincronizzazione.
+                  {t.appStrings.rekkiImapNotConfiguredDesc}
                 </p>
               </div>
             </div>
@@ -391,19 +401,17 @@ export default function StatoSincronizzazioneIntelligente({
         {/* ── Progresso streaming ──────────────────────────────── */}
         {syncing && (
           <div className="mb-4 overflow-hidden rounded-lg border border-cyan-500/25 bg-app-line-10/40">
-            {/* Barra progresso */}
             <div className="h-1 w-full bg-app-line-15">
               <div
                 className="h-1 bg-gradient-to-r from-cyan-500 to-blue-400 transition-all duration-500"
                 style={{ width: `${syncPercent}%` }}
               />
             </div>
-            {/* Log fasi */}
             <div className="px-3 py-2.5 space-y-1.5">
               {syncLog.length === 0 && (
                 <div className="flex items-center gap-2 text-xs text-app-fg-muted">
                   <div className="h-3 w-3 animate-spin rounded-full border border-cyan-400 border-t-transparent" />
-                  <span>Avvio scansione...</span>
+                  <span>{t.appStrings.rekkiSyncStarting}</span>
                 </div>
               )}
               {syncLog.map((log, i) => {
@@ -448,50 +456,48 @@ export default function StatoSincronizzazioneIntelligente({
         {status && (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[auto_1fr]">
 
-            {/* Colonna sinistra: ultimo sync + KPI — nascosta su mobile */}
+            {/* Colonna sinistra — nascosta su mobile */}
             <div className="hidden md:flex flex-col gap-3 lg:w-56">
-              {/* Ultimo sync */}
               <div className="rounded-lg border border-app-line-22 bg-app-line-10/50 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Ultima scansione</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncLastScan}</p>
                     <p className="mt-1 text-sm font-bold text-app-fg">
                       {status.last_sync_at
-                        ? formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: it })
-                        : 'Mai eseguita'}
+                        ? formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: dateFnsLocale })
+                        : t.appStrings.rekkiSyncNeverRun}
                     </p>
                   </div>
                   <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${synced ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
                 </div>
               </div>
 
-              {/* KPI 2×2 */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg border border-app-line-22 bg-app-line-10/50 px-3 py-2.5 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Email</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncEmails}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_emails_scanned}</p>
                 </div>
                 <div className="rounded-lg border border-app-line-22 bg-app-line-10/50 px-3 py-2.5 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Documenti</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncDocuments}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_products_found}</p>
                 </div>
                 <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2.5 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Abbinati</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">{t.appStrings.rekkiSyncMatched}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-200">{matched}</p>
                 </div>
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">Da abbinare</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">{t.appStrings.rekkiSyncUnmatched}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-amber-200">{status.unmatched_count}</p>
                 </div>
               </div>
             </div>
 
-            {/* Colonna destra: email elaborate — nascosta su mobile */}
+            {/* Colonna destra — nascosta su mobile */}
             <div className="hidden md:block min-w-0">
               {status.recent_updates.length > 0 ? (
                 <div className="rounded-lg border border-app-line-22 bg-app-line-10/30 p-3">
                   <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                    Ultime email elaborate
+                    {t.appStrings.rekkiSyncRecentEmails}
                   </p>
                   <div className="space-y-1.5 overflow-y-auto" style={{ maxHeight: '14rem' }}>
                     {status.recent_updates.slice(0, 15).map((u, i) => (
@@ -517,7 +523,7 @@ export default function StatoSincronizzazioneIntelligente({
                             {u.email_subject ?? u.prodotto ?? '—'}
                           </p>
                           <p className="truncate text-[10px] text-app-fg-muted">
-                            {formatDistanceToNow(new Date(u.email_date), { addSuffix: true, locale: it })}
+                            {formatDistanceToNow(new Date(u.email_date), { addSuffix: true, locale: dateFnsLocale })}
                           </p>
                         </div>
                       </div>
@@ -529,9 +535,9 @@ export default function StatoSincronizzazioneIntelligente({
                   <svg className="h-10 w-10 text-app-fg-muted/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  <p className="mt-3 text-sm font-semibold text-app-fg-muted">Nessun prezzo rilevato</p>
+                  <p className="mt-3 text-sm font-semibold text-app-fg-muted">{t.appStrings.rekkiSyncNoData}</p>
                   <p className="mt-1 text-xs text-app-fg-muted">
-                    Premi «Controlla ora» per scansionare le email Rekki di {fornitoreNome}
+                    {t.appStrings.rekkiSyncNoDataDesc.replace('{nome}', fornitoreNome)}
                   </p>
                 </div>
               )}
