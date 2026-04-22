@@ -1933,6 +1933,7 @@ function FattureTab({
   readOnly,
   onLedgerMutated,
   currency,
+  epoch,
 }: {
   fornitoreId: string
   dateFrom: string
@@ -1942,6 +1943,7 @@ function FattureTab({
   readOnly?: boolean
   onLedgerMutated?: () => void
   currency: string
+  epoch?: number
 }) {
   const t = useT()
   const { locale } = useLocale()
@@ -1978,7 +1980,7 @@ function FattureTab({
         setFatture(data ?? [])
         setLoading(false)
       })
-  }, [fornitoreId, dateFrom, dateToExclusive])
+  }, [fornitoreId, dateFrom, dateToExclusive, epoch])
 
   const onDuplicateRemoved = useCallback(
     (removedId: string) => {
@@ -4646,6 +4648,7 @@ function FornitoreDetailClient({
             readOnly={supplierReadOnlyMobile}
             onLedgerMutated={bumpPeriodLedger}
             currency={currency ?? 'GBP'}
+            epoch={periodLedgerEpoch}
           />
         ) : null)}
       {displayTab === 'listino' &&
@@ -4731,6 +4734,7 @@ function FornitoreDetailClient({
         fornitoreId={fornitore.id}
         bollaId={searchParams.get('bolla')}
         fatturaId={searchParams.get('fattura')}
+        onAfterDelete={bumpPeriodLedger}
       />
       {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
       <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden">

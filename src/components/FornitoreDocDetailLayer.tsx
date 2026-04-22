@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Loader2, Trash2 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import {
@@ -19,6 +20,7 @@ import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useMe } from '@/lib/me-context'
 import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
+import { createClient } from '@/utils/supabase/client'
 
 type BollaPayload = {
   id: string
@@ -161,10 +163,12 @@ export default function FornitoreDocDetailLayer({
   fornitoreId,
   bollaId,
   fatturaId,
+  onAfterDelete,
 }: {
   fornitoreId: string
   bollaId: string | null
   fatturaId: string | null
+  onAfterDelete?: () => void
 }) {
   const t = useT()
   const { locale, timezone } = useLocale()
@@ -224,6 +228,8 @@ export default function FornitoreDocDetailLayer({
               searchParams={searchParams}
               locale={locale}
               timezone={timezone}
+              close={close}
+              onAfterDelete={onAfterDelete}
             />
           )}
           {showBolla && bollaId && (
@@ -249,6 +255,8 @@ function FatturaLayerBody({
   searchParams,
   locale,
   timezone,
+  close,
+  onAfterDelete,
 }: {
   fatturaId: string
   fornitoreId: string
@@ -256,12 +264,15 @@ function FatturaLayerBody({
   searchParams: ReturnType<typeof useSearchParams>
   locale: Locale
   timezone: string
+  close: () => void
+  onAfterDelete?: () => void
 }) {
   const t = useT()
   const { me } = useMe()
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [fattura, setFattura] = useState<FatturaPayload | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -296,6 +307,39 @@ function FatturaLayerBody({
   }, [fatturaId, fornitoreId])
 
   const formatDate = (d: string) => formatDateLib(d, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' })
+
+  const isAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
+
+  const handleDelete = async () => {
+    if (!fattura) return
+    if (!confirm(t.fatture.deleteConfirm)) return
+    setDeleting(true)
+    const supabase = createClient()
+    const { error } = await supabase.from('fatture').delete().eq('id', fattura.id)
+    setDeleting(false)
+    if (error) {
+      alert(`${t.appStrings.deleteFailed} ${error.message}`)
+      return
+    }
+    onAfterDelete?.()
+    close()
+  }
+
+  const deleteBtn = isAdmin ? (
+    <button
+      type="button"
+      onClick={handleDelete}
+      disabled={deleting}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/55 bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm transition-colors hover:border-red-400/70 hover:bg-red-600/25 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {deleting ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+      ) : (
+        <Trash2 className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
+      )}
+      {t.common.delete}
+    </button>
+  ) : null
 
   const scrollPad = 'min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-6 md:py-6'
 
@@ -332,6 +376,7 @@ function FatturaLayerBody({
           {listinoAdmin ? (
             <p className="mt-1 text-[10px] leading-snug text-app-fg-muted/85">{t.appStrings.listinoDocDetailImportHintAdmin}</p>
           ) : null}
+          {deleteBtn && <div className="mt-2">{deleteBtn}</div>}
         </div>
       </div>
     )
@@ -394,7 +439,10 @@ function FatturaLayerBody({
         <div className="p-5">
           <h4 className="mb-3 text-sm font-semibold text-app-fg">{t.common.actions}</h4>
           <p className="mb-3 text-sm text-app-fg-muted">Nessun allegato</p>
-          <ReplaceFileButton fatturaId={fattura.id} />
+          <div className="flex flex-wrap gap-2">
+            <ReplaceFileButton fatturaId={fattura.id} />
+            {deleteBtn}
+          </div>
         </div>
       </div>
 
