@@ -45,14 +45,6 @@ export default function FornitoriListSection({
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-5 md:gap-6">
-      <AppSummaryHighlightCard
-        className="!mb-0"
-        accent="sky"
-        label={t.common.total}
-        primary={fornitori.length}
-        secondary={t.fornitori.countLabel}
-      />
-
       <AppSectionFiltersBar aria-label={t.nav.cerca}>
         <label className="block min-w-0 flex-1 sm:max-w-md">
           <span className="sr-only">{t.nav.cerca}</span>

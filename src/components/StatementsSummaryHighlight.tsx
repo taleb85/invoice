@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
+import AppSummaryHighlightMetrics from '@/components/AppSummaryHighlightMetrics'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 
 const tabBtnBase =
@@ -17,6 +18,8 @@ export type StatementsSummaryHighlightProps = {
   tabMode?: 'routes' | 'tabs'
   activeTab?: 'pending' | 'status'
   onTabChange?: (tab: 'pending' | 'status') => void
+  /** Quando true renderizza solo le metriche senza card wrapper (per uso in `mergedSlot`). */
+  embedded?: boolean
 }
 
 /**
@@ -27,6 +30,7 @@ export default function StatementsSummaryHighlight({
   tabMode = 'routes',
   activeTab: activeTabProp,
   onTabChange,
+  embedded = false,
 }: StatementsSummaryHighlightProps = {}) {
   const pathname = usePathname() ?? ''
   const t = useT()
@@ -116,6 +120,19 @@ export default function StatementsSummaryHighlight({
     ) : null
 
   const summaryAccent = isVerifica ? 'cyan' : 'amber'
+
+  if (embedded) {
+    return (
+      <AppSummaryHighlightMetrics
+        accent={summaryAccent}
+        label={t.common.total}
+        primary={primary}
+        secondary={secondary}
+        trailing={trailingTabs ?? undefined}
+        trailingAlign={trailingTabs ? 'with-label' : 'with-metrics'}
+      />
+    )
+  }
 
   return (
     <AppSummaryHighlightCard

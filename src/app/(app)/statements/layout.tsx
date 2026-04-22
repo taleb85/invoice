@@ -49,7 +49,7 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
-      <AppPageHeaderStrip accent={statementsPageAccent} icon={statementsIcon}>
+      <AppPageHeaderStrip accent={statementsPageAccent} icon={statementsIcon} mergedSlot={<StatementsSummaryHighlight embedded />}>
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={`min-w-0 flex-1 truncate ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>
             {isVerifica ? t.statements.heading : t.statements.tabDocumenti}
@@ -59,8 +59,6 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
           <DashboardFiscalYearHeaderSelectMe />
         </Suspense>
       </AppPageHeaderStrip>
-
-      <StatementsSummaryHighlight />
 
       <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 md:mb-8 ${statementsMainTheme.border}`}>
         <div className={`app-card-bar-accent ${statementsMainTheme.bar}`} aria-hidden />

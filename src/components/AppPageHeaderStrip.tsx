@@ -41,8 +41,8 @@ export default function AppPageHeaderStrip({
    * Richiede `accent` (stessa tinta etichetta metriche).
    */
   mergedSummary,
-  /** Icona colorata visualizzata a sinistra del titolo, stessa tinta dell'accent. */
-  icon,
+  /** Slot libero per contenuto arbitrario nella sezione merged (alternativo a `mergedSummary`). */
+  mergedSlot,
 }: {
   children: ReactNode
   embedded?: boolean
@@ -52,7 +52,9 @@ export default function AppPageHeaderStrip({
   dense?: boolean
   flushBottom?: boolean
   mergedSummary?: Omit<AppSummaryHighlightMetricsProps, 'accent'>
+  /** Icona colorata visualizzata a sinistra del titolo, stessa tinta dell'accent. */
   icon?: ReactNode
+  mergedSlot?: ReactNode
 }) {
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
@@ -68,6 +70,7 @@ export default function AppPageHeaderStrip({
   const items = Children.toArray(children)
   const [first, ...rest] = items.length > 0 ? items : [null]
   const showMerged = accent != null && mergedSummary != null
+  const showMergedSlot = mergedSlot != null
 
   const headerRow = (
     <div className={dense ? innerClsDense : innerCls}>
@@ -94,6 +97,13 @@ export default function AppPageHeaderStrip({
           {headerRow}
           <div className={`border-t border-app-soft-border ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
             <AppSummaryHighlightMetrics accent={accent} {...mergedSummary} />
+          </div>
+        </>
+      ) : showMergedSlot ? (
+        <>
+          {headerRow}
+          <div className={`border-t border-app-soft-border ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
+            {mergedSlot}
           </div>
         </>
       ) : (
