@@ -13,7 +13,7 @@ import { APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS } from '@/lib/app-shell-layou
 
 /** Riga interna: titolo a sinistra; azioni + campana/rete raggruppate a destra (padding X = `app-shell-page-padding-x`). */
 const innerCls =
-  'flex w-full min-w-0 flex-col gap-3 px-3 py-3.5 sm:flex-row sm:flex-nowrap sm:items-start sm:gap-x-4 sm:px-4 sm:py-3.5 md:items-start md:gap-x-5 md:px-6 md:py-4 lg:gap-x-7 lg:px-8 xl:px-10'
+  'flex w-full min-w-0 flex-col gap-3 px-3 py-3.5 sm:flex-row sm:flex-nowrap sm:items-center sm:gap-x-4 sm:px-4 sm:py-3.5 md:items-center md:gap-x-5 md:px-6 md:py-4 lg:gap-x-7 lg:px-8 xl:px-10'
 
 const innerClsDense =
   `flex w-full min-w-0 flex-col gap-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:flex-row sm:flex-nowrap sm:items-center sm:gap-x-3 md:items-center`
