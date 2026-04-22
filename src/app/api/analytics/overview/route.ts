@@ -25,13 +25,14 @@ function monthKey(dateStr: string): string {
   return dateStr.slice(0, 7) // YYYY-MM
 }
 
+type FornitoreRef = { nome: string | null; display_name: string | null } | null
 type FatturaRow = {
   id: string
   data: string
   importo: number | null
   fornitore_id: string | null
   bolla_id: string | null
-  fornitori: { nome?: string | null; display_name?: string | null } | null
+  fornitori: FornitoreRef
 }
 type BollaRow = {
   id: string
@@ -181,9 +182,8 @@ export async function GET(req: NextRequest) {
     if (!f.fornitore_id) continue
     const fn = f.fornitori
     const nome =
-      (typeof fn === 'object' && fn !== null
-        ? ((fn as { display_name?: string | null; nome?: string | null }).display_name?.trim() ||
-          (fn as { nome?: string | null }).nome?.trim())
+      (fn !== null && fn !== undefined
+        ? (fn.display_name?.trim() || fn.nome?.trim())
         : null) ?? f.fornitore_id
     const entry = fornitoriMap.get(f.fornitore_id) ?? { nome, importo: 0, fatture: 0 }
     entry.importo += f.importo ?? 0
