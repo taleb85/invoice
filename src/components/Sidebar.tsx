@@ -39,6 +39,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [fornitoriOpen, setFornitoriOpen] = useState(true)
   const [fornitoriSearch, setFornitoriSearch] = useState('')
   const [langOpen, setLangOpen] = useState(false)
+  const [footerOpen, setFooterOpen] = useState(false)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
 
   /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
@@ -517,33 +518,105 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </div>
         </nav>
 
-        {/* ── Footer compatto: riga contesto + riga icone ── */}
-        <div className="app-shell-rail-panel relative z-0 mt-auto flex shrink-0 flex-col gap-0.5 border-t border-app-line-22 -mx-2.5 px-2.5 py-1.5 text-app-fg lg:-mx-3 lg:px-3">
+        {/* ── Footer espandibile: riga contesto + pannello opzionale + riga icone ── */}
+        <div className="app-shell-rail-panel relative z-0 mt-auto flex shrink-0 flex-col border-t border-app-line-22 -mx-2.5 px-2.5 py-1.5 text-app-fg lg:-mx-3 lg:px-3">
 
-          {/* Riga 1 — contesto attivo */}
-          {isMasterAdmin ? (
-            <div className="flex items-center gap-2 px-1.5 py-0.5">
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
-              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/55">{t.sedi.adminRole}</span>
-            </div>
-          ) : (
+          {/* Riga 1 — contesto + chevron espandi */}
+          <div className="flex items-center gap-1">
+            {isMasterAdmin ? (
+              <div className="flex min-w-0 flex-1 items-center gap-2 px-1 py-0.5">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/55">{t.sedi.adminRole}</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={openSwitchModal}
+                title={operatorDockAria}
+                aria-label={operatorDockAria}
+                className="group flex min-w-0 flex-1 touch-manipulation items-center gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-app-line-10"
+              >
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
+                {sedeNome && (
+                  <span className="shrink-0 max-w-[56px] truncate text-[11px] font-medium text-white/45">{sedeNome}</span>
+                )}
+                {sedeNome && <span className="shrink-0 text-[11px] text-white/25">·</span>}
+                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/70">{operatorDockName}</span>
+                <svg className="ml-1 h-3 w-3 shrink-0 text-white/25 transition-colors group-hover:text-white/55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </button>
+            )}
+            {/* Chevron espandi/comprimi */}
             <button
               type="button"
-              onClick={openSwitchModal}
-              title={operatorDockAria}
-              aria-label={operatorDockAria}
-              className="group flex w-full touch-manipulation items-center gap-2 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-app-line-10"
+              onClick={() => setFooterOpen(o => !o)}
+              title={footerOpen ? "Comprimi" : "Espandi"}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white/30 transition-colors hover:bg-app-line-10 hover:text-white/70"
             >
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]" />
-              {sedeNome && (
-                <span className="shrink-0 max-w-[60px] truncate text-[11px] font-medium text-white/45">{sedeNome}</span>
-              )}
-              {sedeNome && <span className="shrink-0 text-[11px] text-white/25">·</span>}
-              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/70">{operatorDockName}</span>
-              <svg className="ml-auto h-3 w-3 shrink-0 text-white/25 transition-colors group-hover:text-white/55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              <svg className={`h-3 w-3 transition-transform ${footerOpen ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
+          </div>
+
+          {/* Pannello espanso */}
+          {footerOpen && (
+            <div className="mt-1.5 space-y-0.5 border-t border-app-line-18 pt-1.5">
+              {/* Ruolo */}
+              {isMasterAdmin && (
+                <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.4)]" />
+                  <span className="text-[11px] font-semibold text-white/55 text-balance">{t.sedi.adminRole}</span>
+                </div>
+              )}
+              {!isMasterAdmin && isAdminSede && (
+                <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.4)]" />
+                  <span className="text-[11px] font-semibold text-white/55">{t.sedi.adminSedeRole}</span>
+                </div>
+              )}
+              {!isMasterAdmin && sedeNome && (
+                <div className="flex items-center gap-2 rounded-lg border border-app-line-25 bg-transparent px-2 py-1 text-xs font-bold text-app-fg">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-app-cyan-400/90" />
+                  <span className="min-w-0 truncate">{sedeNome}</span>
+                </div>
+              )}
+              {/* Settings */}
+              <Link
+                href="/impostazioni"
+                onClick={() => setFooterOpen(false)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${pathname === '/impostazioni' ? 'text-app-fg bg-app-line-10' : 'text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}
+              >
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="truncate">{t.nav.impostazioni}</span>
+              </Link>
+              {/* Help */}
+              <Link
+                href="/guida"
+                onClick={() => setFooterOpen(false)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${pathname === '/guida' ? 'text-app-fg bg-app-line-10' : 'text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}
+              >
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="truncate">{t.nav.guida}</span>
+              </Link>
+              {/* Sign out */}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold text-white/45 transition-colors hover:bg-red-500/8 hover:text-red-400"
+              >
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="truncate">{t.nav.esci}</span>
+              </button>
+            </div>
           )}
 
           {/* Riga 2 — icone azioni in fila */}
