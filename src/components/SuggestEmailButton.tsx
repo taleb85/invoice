@@ -85,10 +85,11 @@ export default function SuggestEmailButton({ fornitoreId, onSaved }: Props) {
       {open && (
         <div
           ref={panelRef}
-          className="absolute left-0 z-50 mt-1.5 w-80 rounded-xl border border-white/10 bg-neutral-900 shadow-2xl ring-1 ring-black/50"
+          className="absolute left-0 z-50 mt-1.5 w-80 rounded-xl border border-white/10 shadow-2xl ring-1 ring-black/50"
+          style={{ backgroundColor: '#1c1c1e' }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2 bg-neutral-800/80 rounded-t-xl">
+          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2 rounded-t-xl" style={{ backgroundColor: '#252528' }}>
             <p className="text-[11px] font-semibold text-app-fg">{s.suggestEmailTitle}</p>
             <button
               type="button"
