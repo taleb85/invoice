@@ -130,7 +130,7 @@ export async function GET(req: NextRequest) {
     ].filter(Boolean)
     if (errors.length) console.error('[analytics/overview] Supabase errors:', errors.join(' | '))
 
-
+  type FatturaRow = {
     id: string
     data: string
     importo: number | null
