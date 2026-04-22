@@ -6,6 +6,7 @@ import { useT } from '@/lib/use-t'
 import { useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
+import { getEmailSyncProgressSnapshot } from '@/lib/email-sync-run-store'
 import {
   readEmailSyncScopePrefs,
   writeEmailSyncScopePrefs,
@@ -110,7 +111,7 @@ export default function ScanEmailButton({
     if (sedeIdKey) fallbackSedeIdRef.current = sedeIdKey
   }, [propSedeId, sedeIdKey])
 
-  const handleClick = async () => {
+  const handleClick = async (): Promise<boolean> => {
     setLoading(true)
     setToast(null)
     try {
@@ -129,6 +130,14 @@ export default function ScanEmailButton({
 
       if (emailSync) {
         await emailSync.runEmailSync(payload)
+        // Mirror any error from the global store into the local toast so the
+        // inline popup can show it (the global progress bar may not be visible).
+        const snap = getEmailSyncProgressSnapshot()
+        if (snap.toast?.type === 'error') {
+          setToast({ type: 'error', text: snap.toast.text })
+          setTimeout(() => setToast(null), 7000)
+          return false
+        }
       } else {
         const body = JSON.stringify(payload)
         const res = await fetch('/api/scan-emails', {
@@ -140,6 +149,7 @@ export default function ScanEmailButton({
 
         if (!res.ok) {
           setToast({ type: 'error', text: json.error ?? t.ui.syncError })
+          return false
         } else {
           const tipo = json.avvisi?.length ? 'warn' : 'ok'
           setToast({ type: tipo, text: json.messaggio ?? t.ui.syncSuccess })
@@ -148,10 +158,12 @@ export default function ScanEmailButton({
       }
     } catch {
       setToast({ type: 'error', text: t.ui.networkError })
+      return false
     } finally {
       setLoading(false)
       if (!emailSync) setTimeout(() => setToast(null), 5000)
     }
+    return true
   }
 
   const isHeaderPlacement = placement === 'desktopHeader'
@@ -366,8 +378,8 @@ export default function ScanEmailButton({
         <button
           type="button"
           onClick={async () => {
-            await handleClick()
-            setHeaderMenuOpen(false)
+            const ok = await handleClick()
+            if (ok) setHeaderMenuOpen(false)
           }}
           disabled={controlsDisabled}
           className="mt-1 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-app-a-55 bg-app-line-30 text-xs font-bold text-app-fg shadow-sm shadow-cyan-950/30 transition-colors hover:bg-app-line-40 active:bg-app-line-35 disabled:cursor-not-allowed disabled:opacity-50"
