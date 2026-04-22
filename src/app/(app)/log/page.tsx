@@ -115,27 +115,12 @@ export default async function LogPage() {
 
   return (
     <div className="app-shell-page-padding">
-      <AppPageHeaderStrip accent="teal" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}>
+      <AppPageHeaderStrip accent="teal" mergedSummary={{ label: t.log.totalLogs, primary: entries.length, secondary: <>{t.log.linkedInvoices}: {totaleSuccessi}<span className="mx-1.5 text-app-fg-muted" aria-hidden>·</span>{t.log.withErrors}: {totaleErrori}</> }} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}>
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.subtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
-
-      <AppSummaryHighlightCard
-        accent="teal"
-        label={t.log.totalLogs}
-        primary={entries.length}
-        secondary={
-          <>
-            {t.log.linkedInvoices}: {totaleSuccessi}
-            <span className="mx-1.5 text-app-fg-muted" aria-hidden>
-              ·
-            </span>
-            {t.log.withErrors}: {totaleErrori}
-          </>
-        }
-      />
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3 md:mb-8 md:gap-4">
         {/* Total Logs */}
