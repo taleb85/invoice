@@ -216,7 +216,7 @@ export default function StatoSincronizzazioneIntelligente({
   if (loading) {
     return (
       <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
-        <div className="app-card-bar-accent bg-gradient-to-r from-cyan-500/80 to-blue-500/60" aria-hidden />
+        <div className="app-card-bar-accent bg-gradient-to-r from-[rgba(34,211,238,0.35)] via-[rgba(34,211,238,0.12)] to-transparent" aria-hidden />
         <div className="flex items-center justify-center px-5 py-10">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-300 border-t-transparent" />
         </div>
@@ -239,7 +239,7 @@ export default function StatoSincronizzazioneIntelligente({
 
   return (
     <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
-      <div className="app-card-bar-accent bg-gradient-to-r from-cyan-500/80 to-blue-500/60" aria-hidden />
+      <div className="app-card-bar-accent bg-gradient-to-r from-[rgba(34,211,238,0.35)] via-[rgba(34,211,238,0.12)] to-transparent" aria-hidden />
 
       <div className="px-5 py-4">
 

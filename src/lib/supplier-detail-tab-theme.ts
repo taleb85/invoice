@@ -14,7 +14,7 @@ export const SUPPLIER_DETAIL_TAB_HIGHLIGHT = {
   documenti: SUMMARY_HIGHLIGHT_ACCENTS.amber,
   audit: {
     border: 'border-[rgba(34,211,238,0.15)]',
-    bar: 'bg-gradient-to-r from-red-500/80 to-orange-500/60',
+    bar: 'bg-gradient-to-r from-[rgba(34,211,238,0.35)] via-[rgba(34,211,238,0.12)] to-transparent',
   },
 } as const
 

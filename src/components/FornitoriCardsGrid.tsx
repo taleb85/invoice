@@ -280,7 +280,7 @@ export default function FornitoriCardsGrid({
           return (
             <div
               key={f.id}
-              className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} group relative flex h-full flex-col rounded-2xl sm:rounded-3xl transition-all duration-200 will-change-transform ${fornitoriCardTheme.border} hover:border-[rgba(34,211,238,0.15)] hover:shadow-xl hover:shadow-sky-500/15 hover:-translate-y-0.5 hover:scale-[1.015]`}
+              className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} group relative flex h-full flex-col rounded-2xl sm:rounded-3xl transition-all duration-200 will-change-transform ${fornitoriCardTheme.border} hover:border-[rgba(34,211,238,0.25)] hover:shadow-xl hover:-translate-y-0.5 hover:scale-[1.015]`}
             >
               <div
                 className={`h-0.5 w-full shrink-0 rounded-t-2xl sm:h-1 sm:rounded-t-3xl ${fornitoriCardTheme.bar}`}

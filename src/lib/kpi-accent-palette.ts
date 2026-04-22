@@ -98,12 +98,11 @@ export function hexToRgbTuple(hex: string): string {
   return `${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)}`
 }
 
-/** Alone tile KPI scheda fornitore: tinta sull'accento, senza cyan `.app-card`. */
-export function supplierDesktopKpiOuterShadow(hex: string): string {
-  const rgb = hexToRgbTuple(hex)
+/** Ombra tile KPI scheda fornitore: neutrale, senza anello colorato. */
+export function supplierDesktopKpiOuterShadow(_hex: string): string {
   return [
-    `0 0 0 1px rgba(${rgb},0.2)`,
-    `0 0 44px -12px rgba(${rgb},0.28)`,
+    '0 0 0 1px rgba(34,211,238,0.12)',
+    '0 0 44px -12px rgba(0,0,0,0.4)',
     '0 20px 44px -12px rgba(0,0,0,0.5)',
   ].join(', ')
 }
