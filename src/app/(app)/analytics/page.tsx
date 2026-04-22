@@ -50,7 +50,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="sky">
         <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
           <div className="min-w-0">
             <h1 className="text-base font-bold text-app-fg truncate sm:text-lg">{t.nav.analytics}</h1>
@@ -61,24 +61,27 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
       </AppPageHeaderStrip>
 
       <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-        {/* Period selector */}
-        <div className="mb-5 flex items-center gap-1.5">
-          {[3, 6, 12].map((value) => (
-            <a
-              key={value}
-              href={`/analytics?months=${value}&fy=${fiscalYear}`}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                months === value
-                  ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
-                  : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
-              }`}
-            >
-              {periodLabels[value]}
-            </a>
-          ))}
-          <span className="ml-2 text-[10px] font-medium text-white/35 uppercase tracking-wider">
-            da inizio FY
-          </span>
+        {/* Period selector — sky accent card, matches AppPageHeaderStrip accent="sky" */}
+        <div className="relative mb-5 overflow-hidden rounded-2xl border border-sky-500/25 bg-transparent">
+          <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600 [box-shadow:0_0_16px_rgba(14,165,233,0.6),0_0_28px_rgba(2,132,199,0.35)]" />
+          <div className="flex items-center gap-1.5 px-4 py-3 sm:px-5">
+            {[3, 6, 12].map((value) => (
+              <a
+                key={value}
+                href={`/analytics?months=${value}&fy=${fiscalYear}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  months === value
+                    ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/30'
+                    : 'text-sky-300/50 hover:bg-sky-500/10 hover:text-sky-300/80'
+                }`}
+              >
+                {periodLabels[value]}
+              </a>
+            ))}
+            <span className="ml-2 text-[10px] font-medium text-sky-400/40 uppercase tracking-wider">
+              da inizio FY
+            </span>
+          </div>
         </div>
 
         <AnalyticsDashboard sedeId={sedeId} months={months} fiscalYear={fiscalYear} />
