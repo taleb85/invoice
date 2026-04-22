@@ -25,6 +25,22 @@ function monthKey(dateStr: string): string {
   return dateStr.slice(0, 7) // YYYY-MM
 }
 
+type FatturaRow = {
+  id: string
+  data: string
+  importo: number | null
+  fornitore_id: string | null
+  bolla_id: string | null
+  fornitori: { nome?: string | null; display_name?: string | null } | null
+}
+type BollaRow = {
+  id: string
+  data: string
+  importo: number | null
+  fornitore_id: string | null
+  stato: string | null
+}
+
 export async function GET(req: NextRequest) {
   const profile = await getProfile()
   if (!profile || !['admin', 'admin_sede'].includes(profile.role ?? '')) {
@@ -130,26 +146,7 @@ export async function GET(req: NextRequest) {
     ].filter(Boolean)
     if (errors.length) console.error('[analytics/overview] Supabase errors:', errors.join(' | '))
 
-  type FatturaRow = {
-    id: string
-    data: string
-    importo: number | null
-    fornitore_id: string | null
-    bolla_id: string | null
-    fornitori: { nome?: string | null; display_name?: string | null } | null
-  }
-  type BollaRow = {
-    id: string
-    data: string
-    importo: number | null
-    fornitore_id: string | null
-    stato: string | null
-  }
-
   const fatture = (fattureRes.data ?? []) as FatturaRow[]
-  const bolle = (bolleRes.data ?? []) as BollaRow[]
-
-  // ── spesaMensile ──────────────────────────────────────────────────
   const spesaMap = new Map<string, { importo: number; fatture: number; label: string }>()
   for (const f of fatture) {
     if (!f.data) continue
