@@ -59,6 +59,7 @@ import { attachmentKindFromFileUrl, type AttachmentKind } from '@/lib/attachment
 import { useMe } from '@/lib/me-context'
 import { useMobileSupplierReadOnly } from '@/lib/use-mobile-supplier-read-only'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
+const SuggestEmailButton = dynamic(() => import('@/components/SuggestEmailButton'), { ssr: false, loading: () => null })
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 const StatoSincronizzazioneIntelligente = dynamic(
   () => import('@/components/StatoSincronizzazioneIntelligente'),
@@ -1509,15 +1510,18 @@ function DashboardTab({
               <p className="text-xs italic text-app-fg-muted">{t.appStrings.noContactRegistered}</p>
             )}
             {!fornitore.email && !readOnly && (
-              <Link
-                href={`/fornitori/${fornitoreId}/edit`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-950/35 px-2.5 py-1.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/20"
-              >
-                <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                </svg>
-                {t.appStrings.noEmailSyncWarning}
-              </Link>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/fornitori/${fornitoreId}/edit`}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-950/35 px-2.5 py-1.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/20"
+                >
+                  <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  </svg>
+                  {t.appStrings.noEmailSyncWarning}
+                </Link>
+                <SuggestEmailButton fornitoreId={fornitoreId} />
+              </div>
             )}
           </div>
 

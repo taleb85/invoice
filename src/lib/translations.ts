@@ -1320,6 +1320,15 @@ type Translations = {
     noEmailSyncHint: string
     noEmailSyncWarning: string
     filterNoEmail: string
+    suggestEmailBtn: string
+    suggestEmailSearching: string
+    suggestEmailNoResults: string
+    suggestEmailSave: string
+    suggestEmailSaved: string
+    suggestEmailSourceLog: string
+    suggestEmailSourceQueue: string
+    suggestEmailSourceUnmatched: string
+    suggestEmailTitle: string
     noAddressRegistered: string
     noFiscalRegistered: string
     clientSince: string
@@ -2639,6 +2648,15 @@ const it: Translations = {
     noEmailSyncHint: 'Senza email lo scanner non potrà abbinare automaticamente i documenti di questo fornitore.',
     noEmailSyncWarning: 'Nessuna email associata — i documenti non saranno riconosciuti automaticamente.',
     filterNoEmail: 'Senza email',
+    suggestEmailBtn: 'Cerca email',
+    suggestEmailSearching: 'Ricerca in corso…',
+    suggestEmailNoResults: 'Nessuna email trovata nei log esistenti.',
+    suggestEmailSave: 'Aggiungi',
+    suggestEmailSaved: 'Salvata',
+    suggestEmailSourceLog: 'da log sync',
+    suggestEmailSourceQueue: 'da coda documenti',
+    suggestEmailSourceUnmatched: 'da P.IVA non abbinata',
+    suggestEmailTitle: 'Email trovate nei documenti ricevuti',
     noAddressRegistered: 'Nessun indirizzo registrato',
     noFiscalRegistered: 'Nessun dato fiscale registrato',
     clientSince: 'Cliente dal',
@@ -3304,6 +3322,15 @@ const en: Translations = {
     noEmailSyncHint: 'Without an email, the scanner cannot automatically match documents from this supplier.',
     noEmailSyncWarning: 'No email linked — documents from this supplier will not be recognised automatically.',
     filterNoEmail: 'No email',
+    suggestEmailBtn: 'Find email',
+    suggestEmailSearching: 'Searching…',
+    suggestEmailNoResults: 'No emails found in existing logs.',
+    suggestEmailSave: 'Add',
+    suggestEmailSaved: 'Saved',
+    suggestEmailSourceLog: 'from sync log',
+    suggestEmailSourceQueue: 'from document queue',
+    suggestEmailSourceUnmatched: 'from unmatched VAT',
+    suggestEmailTitle: 'Emails found in received documents',
     noAddressRegistered: 'No address on file',
     noFiscalRegistered: 'No tax data on file',
     clientSince: 'Customer since',
@@ -3920,6 +3947,15 @@ const es: Translations = {
     noEmailSyncHint: 'Sin email, el escáner no podrá asociar automáticamente los documentos de este proveedor.',
     noEmailSyncWarning: 'Sin email asociado — los documentos no se reconocerán automáticamente.',
     filterNoEmail: 'Sin email',
+    suggestEmailBtn: 'Buscar email',
+    suggestEmailSearching: 'Buscando…',
+    suggestEmailNoResults: 'No se encontraron emails en los registros existentes.',
+    suggestEmailSave: 'Agregar',
+    suggestEmailSaved: 'Guardado',
+    suggestEmailSourceLog: 'del log de sync',
+    suggestEmailSourceQueue: 'de la cola de documentos',
+    suggestEmailSourceUnmatched: 'de NIF no asociado',
+    suggestEmailTitle: 'Emails encontrados en documentos recibidos',
     noAddressRegistered: 'Sin dirección registrada',
     noFiscalRegistered: 'Sin datos fiscales',
     clientSince: 'Cliente desde',
@@ -4533,6 +4569,15 @@ const fr: Translations = {
     noEmailSyncHint: 'Sans email, le scanner ne pourra pas associer automatiquement les documents de ce fournisseur.',
     noEmailSyncWarning: 'Aucun email associé — les documents ne seront pas reconnus automatiquement.',
     filterNoEmail: 'Sans email',
+    suggestEmailBtn: 'Chercher email',
+    suggestEmailSearching: 'Recherche…',
+    suggestEmailNoResults: 'Aucun email trouvé dans les journaux existants.',
+    suggestEmailSave: 'Ajouter',
+    suggestEmailSaved: 'Enregistré',
+    suggestEmailSourceLog: 'du journal sync',
+    suggestEmailSourceQueue: "de la file d'attente",
+    suggestEmailSourceUnmatched: 'de TVA non associée',
+    suggestEmailTitle: 'Emails trouvés dans les documents reçus',
     noAddressRegistered: 'Aucune adresse enregistrée',
     noFiscalRegistered: 'Aucune donnée fiscale',
     clientSince: 'Client depuis',
@@ -5145,6 +5190,15 @@ const de: Translations = {
     noEmailSyncHint: 'Ohne E-Mail kann der Scanner die Dokumente dieses Lieferanten nicht automatisch zuordnen.',
     noEmailSyncWarning: 'Keine E-Mail hinterlegt — Dokumente werden nicht automatisch erkannt.',
     filterNoEmail: 'Ohne E-Mail',
+    suggestEmailBtn: 'E-Mail suchen',
+    suggestEmailSearching: 'Suche…',
+    suggestEmailNoResults: 'Keine E-Mails in vorhandenen Logs gefunden.',
+    suggestEmailSave: 'Hinzufügen',
+    suggestEmailSaved: 'Gespeichert',
+    suggestEmailSourceLog: 'aus Sync-Log',
+    suggestEmailSourceQueue: 'aus Dokumenten-Warteschlange',
+    suggestEmailSourceUnmatched: 'aus nicht zugeordneter USt-IdNr.',
+    suggestEmailTitle: 'E-Mails in empfangenen Dokumenten gefunden',
     noAddressRegistered: 'Keine Adresse hinterlegt',
     noFiscalRegistered: 'Keine Steuerdaten',
     clientSince: 'Kunde seit',
