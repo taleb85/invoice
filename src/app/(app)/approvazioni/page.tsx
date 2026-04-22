@@ -14,7 +14,7 @@ export default async function ApprovazioniPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <AppPageHeaderStrip>
+      <AppPageHeaderStrip accent="emerald">
         <div className="min-w-0">
           <h1 className="text-base font-bold text-app-fg sm:text-lg">{t.nav.approvazioni}</h1>
           <p className="text-xs text-app-fg-muted">{t.appStrings.approvazioni_pageSub}</p>
