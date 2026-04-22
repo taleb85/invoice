@@ -114,7 +114,7 @@ export default async function LogPage() {
     })
 
   return (
-    <div className="app-shell-page-padding">
+    <div className="flex min-h-0 flex-1 flex-col">
       <AppPageHeaderStrip accent="teal">
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
@@ -122,6 +122,7 @@ export default async function LogPage() {
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 
+      <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
       <AppSummaryHighlightCard
         accent="teal"
         label={t.log.totalLogs}
@@ -341,6 +342,7 @@ export default async function LogPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
