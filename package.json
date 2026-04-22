@@ -7,6 +7,8 @@
     "dev:webpack": "NODE_OPTIONS='--max-old-space-size=8192' next dev --webpack",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "next start",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint",
     "verify": "npm run lint && npm run build",
     "deploy": "npm run build && bash scripts/vercel-deploy-nogit.sh --no-wait",
@@ -51,6 +53,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
+    "@vitest/coverage-v8": "^4.1.5",
     "canvas": "^3.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
@@ -58,6 +61,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vercel": "^50.44.0"
+    "vercel": "^50.44.0",
+    "vitest": "^4.1.5"
   }
 }

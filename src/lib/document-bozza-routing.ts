@@ -134,7 +134,7 @@ export function scanContextSuggestsFattura(
   subject: string | null | undefined,
   fileName: string | null | undefined,
 ): boolean {
-  const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase()
+  const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase().replace(/[_.\-]/g, ' ')
   if (!blob.trim()) return false
   return (
     /\bfattura\b/.test(blob) ||
@@ -154,7 +154,7 @@ export function scanContextSuggestsBolla(
   subject: string | null | undefined,
   fileName: string | null | undefined,
 ): boolean {
-  const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase()
+  const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase().replace(/[_.\-]/g, ' ')
   if (!blob.trim()) return false
   return (
     /\bddt\b/.test(blob) ||
