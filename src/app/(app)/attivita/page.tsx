@@ -5,6 +5,7 @@ import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 import { ActivityFeed } from '@/components/activity/activity-feed'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
+import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 type Operatore = { id: string; full_name: string | null }
 
@@ -91,28 +92,29 @@ export default function AttivitaPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 border-b border-app-line-22 px-4 py-4 sm:px-6">
-        <div>
-          <h1 className="text-base font-bold text-app-fg sm:text-lg">{t.appStrings.attivitaPageTitle}</h1>
-          <p className="text-xs text-app-fg-muted">{t.appStrings.attivitaPageSub}</p>
+      <AppPageHeaderStrip>
+        <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-app-fg truncate sm:text-lg">{t.appStrings.attivitaPageTitle}</h1>
+            <p className="text-xs text-app-fg-muted truncate">{t.appStrings.attivitaPageSub}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleExport()}
+            disabled={exporting}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-app-line-25 px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:opacity-50"
+          >
+            {exporting ? (
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            )}
+            {t.appStrings.attivitaExportCsv}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => void handleExport()}
-          disabled={exporting}
-          className="flex items-center gap-1.5 rounded-xl border border-app-line-25 px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:opacity-50"
-        >
-          {exporting ? (
-            <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          ) : (
-            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-          )}
-          {t.appStrings.attivitaExportCsv}
-        </button>
-      </div>
+      </AppPageHeaderStrip>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 border-b border-app-line-15 px-4 py-3 sm:px-6">

@@ -62,21 +62,21 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
 
       <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
         {/* Period selector */}
-        <div className="mb-5 flex items-center gap-2">
+        <div className="mb-5 flex items-center gap-1.5">
           {[3, 6, 12].map((value) => (
             <a
               key={value}
               href={`/analytics?months=${value}&fy=${fiscalYear}`}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 months === value
-                  ? 'bg-[#22d3ee]/15 text-[#22d3ee]'
-                  : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+                  ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
+                  : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
               }`}
             >
               {periodLabels[value]}
             </a>
           ))}
-          <span className="ml-1 text-[10px] font-medium text-white/30 uppercase tracking-wider">
+          <span className="ml-2 text-[10px] font-medium text-white/35 uppercase tracking-wider">
             da inizio FY
           </span>
         </div>
