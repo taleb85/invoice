@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation'
-import { getProfile } from '@/utils/supabase/server'
+import { createClient, getProfile } from '@/utils/supabase/server'
 import { getCookieStore, getT } from '@/lib/locale-server'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AnalyticsDashboard } from '@/components/analytics/analytics-dashboard'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { isValidFiscalYear } from '@/lib/fiscal-year'
+import { parseFiscalYearQueryParam, formatFiscalYearShort } from '@/lib/fiscal-year'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,12 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     redirect('/')
   }
 
-  const [sp, cookieStore, t] = await Promise.all([searchParams, getCookieStore(), getT()])
+  const [sp, cookieStore, t, supabase] = await Promise.all([
+    searchParams,
+    getCookieStore(),
+    getT(),
+    createClient(),
+  ])
 
   const isMasterAdmin = profile.role === 'admin'
   const adminPick = isMasterAdmin
@@ -24,14 +29,24 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
     : null
   const sedeId = adminPick ?? (profile.role !== 'admin' ? (profile.sede_id ?? null) : null)
 
-  const months = sp.months ? Math.min(24, Math.max(1, parseInt(sp.months, 10))) : 6
-  const fyRaw = sp.fy ? parseInt(sp.fy, 10) : null
-  const fiscalYear = fyRaw && isValidFiscalYear(fyRaw) ? fyRaw : null
+  // Resolve country code to get correct default FY (UK vs IT/EU)
+  let countryCode = 'IT'
+  if (sedeId) {
+    const { data } = await supabase.from('sedi').select('country_code').eq('id', sedeId).maybeSingle()
+    countryCode = (data?.country_code ?? 'IT').trim() || 'IT'
+  }
 
-  // Period button labels: fiscal-year-aware when FY is selected
-  const periodLabels: Record<number, string> = fiscalYear
-    ? { 3: 'Q1', 6: 'H1', 12: `FY ${fiscalYear}` }
-    : { 3: t.appStrings.analyticsMonths.replace('{n}', '3'), 6: t.appStrings.analyticsMonths.replace('{n}', '6'), 12: t.appStrings.analyticsMonths.replace('{n}', '12') }
+  const months = sp.months ? Math.min(24, Math.max(1, parseInt(sp.months, 10))) : 6
+  // Always resolve a fiscal year (falls back to current FY for the country when ?fy is absent)
+  const fiscalYear = parseFiscalYearQueryParam(sp.fy, countryCode)
+  const fyLabel = formatFiscalYearShort(countryCode, fiscalYear)
+
+  // Period button labels — always FY-anchored
+  const periodLabels: Record<number, string> = {
+    3: 'Q1',
+    6: 'H1',
+    12: fyLabel,
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -51,7 +66,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
           {[3, 6, 12].map((value) => (
             <a
               key={value}
-              href={`/analytics?months=${value}${sp.fy ? `&fy=${sp.fy}` : ''}`}
+              href={`/analytics?months=${value}&fy=${fiscalYear}`}
               className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                 months === value
                   ? 'bg-[#22d3ee]/15 text-[#22d3ee]'
@@ -61,11 +76,9 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Se
               {periodLabels[value]}
             </a>
           ))}
-          {fiscalYear && (
-            <span className="ml-1 text-[10px] font-medium text-white/30 uppercase tracking-wider">
-              da inizio FY
-            </span>
-          )}
+          <span className="ml-1 text-[10px] font-medium text-white/30 uppercase tracking-wider">
+            da inizio FY
+          </span>
         </div>
 
         <AnalyticsDashboard sedeId={sedeId} months={months} fiscalYear={fiscalYear} />
