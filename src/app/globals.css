@@ -493,11 +493,11 @@
   }
 
   /**
-   * Solo struttura (stessa altezza di `.app-card-bar`): usare con classi `*.bar` / gradiente tema
-   * così il colore non viene coperto dal gradiente globale della barra default.
+   * Solo struttura: altezza zero perché il bordo top unificato (`border-top: 2px solid #22d3ee`)
+   * funge già da accento superiore su tutte le card.
    */
   .app-card-bar-accent {
-    height: 0.25rem;
+    height: 0;
     width: 100%;
     flex-shrink: 0;
   }
