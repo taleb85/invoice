@@ -18,7 +18,7 @@ export function SidebarRailBrand() {
   const router = useRouter()
 
   return (
-    <div className="app-shell-rail-panel flex h-full min-h-[40px] w-full shrink-0 flex-row items-center px-3 text-app-fg lg:px-3.5">
+    <div className="app-shell-rail-panel flex h-full min-h-[52px] w-full shrink-0 flex-row items-center px-3 text-app-fg lg:px-3.5">
       <div
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5"
         onClick={() => {

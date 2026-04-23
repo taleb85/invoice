@@ -8,25 +8,25 @@ export const APP_SHELL_SECTION_PAGE_CLASS = 'w-full min-w-0 app-shell-page-paddi
  * Contenitore modifica / nuovo fornitore: stesso canale orizzontale della scheda fornitore (`max-w-[83rem]` + `fornitore-desktop-main-x`).
  */
 export const APP_FORNITORE_FORM_PAGE_SHELL_CLASS =
-  'fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-[83rem] flex-col gap-5 pb-8 pt-2 md:gap-6 md:pb-10'
+  'fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-[83rem] flex-col gap-3 pb-8 pt-2 md:gap-4 md:pb-10'
 
 /**
  * Pagine sezione a stack (header → riepilogo → lista): stesso ritmo verticale della dashboard
  * (`gap-5 md:gap-6`). Sulle strip/card che hanno ancora `mb-6`/`mb-8`, passare `className="!mb-0"`.
  */
 export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
-  'flex w-full min-w-0 flex-col gap-5 md:gap-6 app-shell-page-padding'
+  'flex w-full min-w-0 flex-col gap-3 md:gap-4 app-shell-page-padding'
 
 /**
  * Padding della riga interna `AppPageHeaderStrip` con `dense` (corpo trasparente sul canvas).
  * Stesso filo per griglia KPI e card Scanner sulla dashboard.
  */
 export const APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS =
-  'px-3 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-2.5 lg:px-8 xl:px-10'
+  'px-4 py-2 sm:px-4 sm:py-2.5 md:px-6 md:py-2.5 lg:px-8 xl:px-10'
 
 /** h1 standard nelle strip di quelle pagine (stessa scala su tutti i breakpoint). */
 export const APP_SHELL_SECTION_PAGE_H1_CLASS =
-  'app-page-title app-page-title-glow text-lg font-bold leading-snug sm:text-xl md:text-2xl'
+  'app-page-title app-page-title-glow text-[18px] font-medium leading-snug sm:text-[20px] md:text-[22px]'
 
 /** Sottotitoli / metadati sotto il titolo o in card riepilogo. */
 export const APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS = 'text-sm leading-snug text-app-fg-muted'
@@ -35,7 +35,7 @@ export const APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS = 'text-sm leading-snug text-
  * Barra filtri sotto header (allineata al padding interno tabelle `SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS`).
  */
 export const APP_SECTION_FILTERS_STRIP_CLASS =
-  'flex w-full min-w-0 flex-wrap items-center gap-2 border-b border-app-line-22 app-workspace-inset-bg-soft px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:px-6 lg:px-8 xl:px-10'
+  'flex w-full min-w-0 flex-wrap items-center gap-2 border-b border-app-line-22 app-workspace-inset-bg-soft px-4 py-2.5 sm:gap-3 sm:px-4 sm:py-3 md:px-5 lg:px-6 xl:px-8'
 
 /** Link filtri / azioni nella card riepilogo (`AppSummaryHighlightCard` trailing). */
 export const APP_SECTION_TRAILING_LINK_CLASS =
@@ -98,10 +98,10 @@ export const APP_SECTION_TABLE_THEAD_STICKY =
   'sticky top-0 z-10 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)] bg-slate-900/85'
 
 export const APP_SECTION_TABLE_TH =
-  'px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-app-fg-muted md:px-5 md:py-3 lg:py-2'
+  'px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-app-fg-muted md:px-5 md:py-3 lg:py-2'
 
 export const APP_SECTION_TABLE_TH_RIGHT =
-  'px-4 py-2.5 text-right font-mono text-xs font-semibold uppercase tracking-wider tabular-nums text-app-fg-muted md:px-5 md:py-3 lg:py-2'
+  'px-4 py-2.5 text-right font-mono text-[11px] font-semibold uppercase tracking-[1.5px] tabular-nums text-app-fg-muted md:px-5 md:py-3 lg:py-2'
 
 /** Separazione righe in stack / liste (stesso token del tbody tabella). */
 export const APP_SECTION_DIVIDE_ROWS = 'divide-y divide-app-soft-border'
@@ -117,7 +117,7 @@ export const APP_SECTION_TABLE_TR = `group even:bg-white/[0.025] ${APP_SECTION_T
 export const APP_SECTION_TABLE_TR_GROUP = APP_SECTION_TABLE_TR
 
 /** Celle dati tabella — padding compatto su mobile, normale su tablet, denso su desktop. */
-export const APP_SECTION_TABLE_TD = 'px-4 py-2.5 text-sm align-middle md:px-5 md:py-3 lg:py-2'
+export const APP_SECTION_TABLE_TD = 'px-4 py-2.5 text-[13px] align-middle md:px-5 md:py-3 lg:py-2'
 
 /** Importi / numeri confrontabili: monospace, allineati a destra. */
 export const APP_SECTION_TABLE_TD_NUMERIC = `${APP_SECTION_TABLE_TD} text-right font-mono tabular-nums`

@@ -28,8 +28,8 @@ export type SummaryHighlightAccent = keyof typeof SUMMARY_HIGHLIGHT_ACCENTS
  * Guscio esterno card/sezione: bordo top cyan unificato, sfondo semi-trasparente neutro.
  */
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =
-  'relative overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
+  'relative overflow-hidden rounded-[10px] border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
 
 /** Padding interno corpo (`AppSummaryHighlightCard`, tabelle in stesso guscio). */
 export const SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS =
-  'px-3 py-4 sm:px-4 sm:py-5 md:px-6 lg:px-8 xl:px-10'
+  'px-4 py-3 sm:px-4 sm:py-4 md:px-5 md:py-4 lg:px-5'

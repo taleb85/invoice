@@ -35,7 +35,7 @@ const QUICK_NAV_FRAME_CLASS = [
 
 /** Chip compatti: altezza ridotta e padding stretto per stare tutti su una riga senza troncamento. */
 const QUICK_NAV_LINK_BASE =
-  'inline-flex h-6 min-h-6 max-h-6 shrink-0 items-center gap-0.5 rounded-md border px-1.5 py-0 font-semibold leading-none no-underline transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 active:scale-[0.99]'
+  'inline-flex h-7 min-h-7 shrink-0 items-center gap-0.5 rounded-md border px-2 py-0 font-semibold leading-none no-underline transition-[background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-950 active:scale-[0.99]'
 
 export type WorkspaceQuickNavCounts = {
   ordini: number
@@ -94,7 +94,7 @@ export default function DashboardWorkspaceQuickNav({
             </span>
           ) : null}
           <span
-            className={`min-w-0 whitespace-nowrap text-left text-[9px] font-bold uppercase tracking-wide ${QUICK_NAV_LABEL_CLASS[index]!}`}
+            className={`min-w-0 whitespace-nowrap text-left text-[11px] font-bold uppercase tracking-wide ${QUICK_NAV_LABEL_CLASS[index]!}`}
           >
             {item.label}
           </span>

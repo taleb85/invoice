@@ -306,10 +306,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   // Shared icon-link style helpers
   const navLink = (isActive: boolean) =>
-    `flex items-center gap-2 px-2 py-1.5 rounded-xl text-[13px] font-semibold transition-all ${
+    `flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] font-semibold transition-all ${
       isActive
-        ? 'border-l-2 border-app-cyan-400/90 bg-gradient-to-r from-app-line-15 to-app-a-20 pl-[7px] text-app-fg shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]'
-        : 'border-l-2 border-transparent bg-transparent pl-[7px] text-white/65 hover:bg-app-line-10 hover:text-app-fg'
+        ? 'border-l-2 border-app-cyan-400/90 bg-gradient-to-r from-app-line-15 to-app-a-20 pl-[10px] text-app-fg shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]'
+        : 'border-l-2 border-transparent bg-transparent pl-[10px] text-white/65 hover:bg-app-line-10 hover:text-app-fg'
     }`
 
   return (
@@ -338,7 +338,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <div className="bg-transparent">
               <button
                 onClick={() => setBranchesOpen(o => !o)}
-                className="w-full flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg text-[13px] font-semibold text-white/65 transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] font-semibold text-white/65 transition-colors hover:bg-app-line-10 hover:text-app-fg"
               >
                 <span className="flex items-center gap-2 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -463,7 +463,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <div className="bg-transparent">
               <button
                 onClick={() => setFornitoriOpen(o => !o)}
-                className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors ${pathname.startsWith('/fornitori') ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[7px] text-app-fg shadow-[inset_0_0_16px_rgba(6,182,212,0.08)]' : 'border-l-2 border-transparent bg-transparent pl-[7px] text-white/65 hover:bg-app-line-10 hover:text-app-fg'}`}
+                className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${pathname.startsWith('/fornitori') ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[10px] text-app-fg shadow-[inset_0_0_16px_rgba(6,182,212,0.08)]' : 'border-l-2 border-transparent bg-transparent pl-[10px] text-white/65 hover:bg-app-line-10 hover:text-app-fg'}`}
               >
                 <span className="flex items-center gap-2 min-w-0">
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

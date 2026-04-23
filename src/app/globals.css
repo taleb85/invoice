@@ -236,7 +236,7 @@
    */
   .supplier-detail-tab-shell {
     @apply relative overflow-hidden text-app-fg-muted;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     border-top: 2px solid #22d3ee !important;
     border-left: none !important;
     border-right: none !important;
@@ -251,7 +251,7 @@
   /** KPI scheda fornitore: stesso contorno; accento da `KpiLAccentOverlay` sulla tile. */
   .supplier-desktop-kpi-card {
     @apply relative overflow-hidden text-app-fg-muted;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     border-top: 2px solid #22d3ee !important;
     border-left: none !important;
     border-right: none !important;
@@ -383,7 +383,7 @@
   }
 
   .app-shell-page-padding-x {
-    @apply px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10;
+    @apply px-4 md:px-6 lg:px-8 xl:px-10;
   }
 
   /** Scheda fornitore desktop: meno margine laterale → più larghezza utile per KPI / tabella / tab. */
@@ -396,12 +396,12 @@
    * tablet (md:p-6), desktop e Full HD (lg/xl).
    */
   .app-shell-page-padding {
-    @apply px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 xl:px-10 xl:py-10;
+    @apply px-4 py-4 sm:px-4 sm:py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 xl:px-10 xl:py-10;
   }
 
   .app-card {
     @apply relative overflow-hidden text-app-fg-muted;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     border-top: 2px solid #22d3ee !important;
     border-left: none !important;
     border-right: none !important;
@@ -552,10 +552,11 @@
     );
   }
 
-  /** KPI dashboard operatore: stesso guscio .app-card; accento a L via `KpiLAccentOverlay`. */
+  /**
+   * KPI scheda fornitore: stesso contorno; accento a L via `KpiLAccentOverlay`. */
   .operator-kpi-card {
     @apply relative overflow-hidden text-app-fg-muted;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
     border-top: 2px solid #22d3ee !important;
     border-left: none !important;
     border-right: none !important;
@@ -716,7 +717,7 @@ body {
 
 /* Sotto la topbar mobile fissa (safe-area + h-14); su md la topbar non c’è → stesso effetto del bordo alto schermo */
 .navigation-top-progress--below-mobile-topbar {
-  top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  top: calc(3.25rem + env(safe-area-inset-top, 0px));
 }
 
 @media (min-width: 768px) {
@@ -783,15 +784,14 @@ body {
 .dashboard-operator-scanner-bolle-stack {
   display: flex;
   flex-direction: column;
-  /* Allineato a `gap-5 md:gap-6` del contenitore pagina dashboard */
-  gap: 1.25rem;
+  gap: 0.75rem;
   min-height: 0;
   width: 100%;
   min-width: 0;
 }
 @media (min-width: 768px) {
   .dashboard-operator-scanner-bolle-stack {
-    gap: 1.5rem;
+    gap: 1rem;
   }
 }
 .dashboard-operator-desktop-column {
@@ -799,11 +799,11 @@ body {
   width: 100%;
   min-width: 0;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.75rem;
 }
 @media (min-width: 768px) {
   .dashboard-operator-desktop-column {
-    gap: 1.5rem;
+    gap: 1rem;
   }
 }
 .dashboard-operator-empty-shell-desktop {
@@ -880,6 +880,13 @@ body,
     transition: border-color 120ms, box-shadow 120ms;
   }
 
+  /* Input / select desktop: altezza 36px, testo 13px */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select {
+    min-height: 36px;
+    font-size: 13px;
+  }
+
   /* Pulsanti generici: lieve scala + saturazione */
   button:not([disabled]):hover,
   [role="button"]:not([disabled]):hover {
@@ -949,7 +956,7 @@ body,
   border-left: none !important;
   border-right: none !important;
   border-bottom: none !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
   background: rgba(255, 255, 255, 0.04) !important;
   background-image: none !important;
   box-shadow: none !important;

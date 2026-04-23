@@ -27,7 +27,7 @@ const QuickScanModal = dynamic(
  * Effetto satinato fisso: `app-glass-dock-opaque` + blur (`globals.css`).
  */
 const NAV_SHELL_BASE =
-  'app-glass-dock fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[100] flex w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_14px_44px_-12px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pb-4 pt-3 ps-[max(0.375rem,env(safe-area-inset-left,0px))] pe-[max(0.375rem,env(safe-area-inset-right,0px))] md:hidden'
+  'app-glass-dock fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[100] flex w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_14px_44px_-12px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pb-2 pt-2 ps-[max(0.375rem,env(safe-area-inset-left,0px))] pe-[max(0.375rem,env(safe-area-inset-right,0px))] md:hidden'
 
 const NAV_SHELL_SATIN_GLASS =
   'app-glass-dock-opaque backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150'
@@ -37,8 +37,8 @@ function glassDockNavShellClass(layout: string) {
 }
 
 const hubIconsRow =
-  'flex w-full min-h-[48px] flex-1 items-stretch justify-between gap-0.5 sm:justify-around sm:gap-1'
-const fornitoreIconsRow = 'flex w-full min-h-[48px] flex-1 items-stretch justify-between gap-3 sm:gap-4'
+  'flex w-full min-h-[44px] flex-1 items-stretch justify-between gap-0.5 sm:justify-around sm:gap-1'
+const fornitoreIconsRow = 'flex w-full min-h-[44px] flex-1 items-stretch justify-between gap-3 sm:gap-4'
 
 /** Landmark `aria-label` fissi (allineati a `lang="it"`); evita mismatch SSR/client su `t.nav.*`. */
 const BOTTOM_NAV_ARIA_MAIN = 'Navigazione principale'
@@ -98,7 +98,7 @@ function OperatorHubNavItem({ itemCls }: { itemCls: (active: boolean) => string 
       className={itemCls(false)}
       aria-label={aria}
     >
-      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-app-line-20 text-[9px] font-bold text-app-fg-muted ring-1 ring-inset ring-app-line-20 sm:h-6 sm:w-6 sm:text-[10px]">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-app-line-20 text-[9px] font-bold text-app-fg-muted ring-1 ring-inset ring-app-line-20 sm:text-[10px]">
         {initial}
       </div>
       <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{short}</span>
@@ -208,9 +208,8 @@ export default function DashboardMobileBottomNav() {
     return pathname === href
   }
 
-  /** Voce compatta: Dashboard, Fornitori, Bolle, Impostazioni (scanner: CTA in dashboard mobile). */
   const itemCls = (active: boolean) =>
-    `flex min-h-[48px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-2 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-xs touch-manipulation transition-colors ${
+    `flex min-h-[44px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-[11px] touch-manipulation transition-colors ${
       active
         ? 'text-app-fg-muted'
         : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15'
@@ -218,7 +217,7 @@ export default function DashboardMobileBottomNav() {
 
   /** Tre colonne uguali sulla scheda fornitore (niente max-w 25%). */
   const fornitoreItemCls = (active: boolean) =>
-    `flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-medium touch-manipulation transition-colors ${
+    `flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] sm:text-[11px] font-medium touch-manipulation transition-colors ${
       active
         ? 'text-app-fg-muted'
         : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15'
@@ -236,7 +235,7 @@ export default function DashboardMobileBottomNav() {
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
           <span className="relative">
-            <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+            <Home className="h-6 w-6 shrink-0" aria-hidden />
             {showOfflineBadge && (
               <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
                 {pendingCount > 9 ? '9+' : pendingCount}
@@ -246,15 +245,15 @@ export default function DashboardMobileBottomNav() {
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
         </Link>
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
-          <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+          <Users className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
         <Link href="/bolle" className={itemCls(isActive('/bolle'))} prefetch={false}>
-          <FileText className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+          <FileText className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bolle}</span>
         </Link>
         <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
-          <Settings className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+          <Settings className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.impostazioni}</span>
         </Link>
       </div>
@@ -268,7 +267,7 @@ export default function DashboardMobileBottomNav() {
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
           <span className="relative">
-            <Home className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+            <Home className="h-6 w-6 shrink-0" aria-hidden />
             {showOfflineBadge && (
               <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
                 {pendingCount > 9 ? '9+' : pendingCount}
@@ -278,12 +277,12 @@ export default function DashboardMobileBottomNav() {
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
         </Link>
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
-          <Users className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+          <Users className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
         <OperatorHubNavItem itemCls={itemCls} />
         <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
-          <Settings className="h-5 w-5 shrink-0 sm:h-6 sm:w-6" aria-hidden />
+          <Settings className="h-6 w-6 shrink-0" aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.impostazioni}</span>
         </Link>
       </div>

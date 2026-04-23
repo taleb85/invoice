@@ -266,11 +266,11 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
    */
   const hubBottomPad = homeScannerDockCta
     ? tallMobileDock
-      ? 'pb-[calc(16.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
-      : 'pb-[calc(12.75rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      ? 'pb-[calc(14rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
     : tallMobileDock
-      ? 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
-      : 'pb-[calc(7.25rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      ? 'pb-[calc(8.75rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(5.75rem+1.125rem+env(safe-area-inset-bottom,0px))]'
 
   // Show splash during initial auth check (only when SSR couldn't pre-load the session)
   if (loading && !me) {
@@ -300,7 +300,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 onClick={(e) => e.stopPropagation()}
                 aria-label="Navigazione principale"
               >
-                <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 min-h-[40px]">
+                <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 min-h-[52px]">
                   <SidebarRailBrand />
                 </div>
                 <ErrorBoundary sectionName="navigazione">
@@ -317,7 +317,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-visible lg:relative lg:z-auto',
             ].join(' ')}
           >
-            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 lg:min-h-[40px]">
+            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 lg:min-h-[52px]">
               <SidebarRailBrand />
             </div>
             <ErrorBoundary sectionName="navigazione">
@@ -331,14 +331,14 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             <div
               ref={bindDesktopNavHost}
               id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-              className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[40px] md:w-full ${desktopHeaderCanvas}`}
+              className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[52px] md:w-full ${desktopHeaderCanvas}`}
             >
-              <div className="relative z-20 flex min-h-[40px] min-w-0 flex-1 items-stretch overflow-visible">
+              <div className="relative z-20 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible">
                 {/* Hamburger: visible on md (tablet), hidden on lg (desktop with sidebar) */}
                 <button
                   type="button"
                   onClick={() => setTabletSidebarOpen((o) => !o)}
-                  className="flex lg:hidden h-full min-h-[40px] w-10 shrink-0 touch-manipulation items-center justify-center border-r border-app-line-25 text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                  className="flex lg:hidden h-full min-h-[52px] w-10 shrink-0 touch-manipulation items-center justify-center border-r border-app-line-25 text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
                   aria-label="Menu navigazione"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -367,7 +367,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               className={`app-main-workspace-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] md:pt-0 ${
                 normalized === '/bolle/new'
                   ? 'pt-0'
-                  : 'pt-[calc(3.5rem+env(safe-area-inset-top,0px))]'
+                  : 'pt-[calc(3.25rem+env(safe-area-inset-top,0px))]'
               } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
             >
               <Suspense fallback={null}>
