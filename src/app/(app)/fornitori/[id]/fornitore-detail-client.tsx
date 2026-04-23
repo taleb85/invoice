@@ -1765,7 +1765,7 @@ function BolleTab({
           }
         >
           {!readOnly ? (
-            <ActionLink href={`/bolle/new?fornitore_id=${fornitoreId}`} intent="confirm" size="sm" className="mt-4">
+            <ActionLink href={`/bolle/new?fornitore_id=${fornitoreId}`} intent="nav" size="sm" className="mt-4">
               {t.bolle.creaLaPrimaBolla}
             </ActionLink>
           ) : null}
