@@ -15,6 +15,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { usePushNotifications } from '@/hooks/use-push-notifications'
+import DuplicateManager from '@/components/duplicates/duplicate-manager'
 
 function ProfileMobileHub() {
   const { me } = useMe()
@@ -199,10 +200,17 @@ function NotificationSettings() {
 
 export default function ImpostazioniPage() {
   const { locale, t, currency, setCurrency, timezone, setTimezone } = useLocale()
+  const { me } = useMe()
+  const { activeOperator } = useActiveOperator()
   const [mounted, setMounted] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [dupOpen, setDupOpen] = useState(false)
   const helpIconGradIdRaw = useId()
   const helpIconGradId = `imp-fluxo-help-${helpIconGradIdRaw.replace(/[^a-zA-Z0-9_-]/g, '') || 'g'}`
+
+  const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
+  const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
+  const canManageDuplicates = !!(me?.sede_id && (masterPlane || isAdminSede))
 
   // Local draft state — confirmed on Save
   const [draftCurrency, setDraftCurrency] = useState(currency)
@@ -370,6 +378,35 @@ export default function ImpostazioniPage() {
         </div>
         <ImapConfigCard />
         <NotificationSettings />
+        {canManageDuplicates && (
+          <div className="app-card overflow-hidden">
+            <div className="app-card-bar" aria-hidden />
+            <div className="flex items-start gap-4 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
+                <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Manutenzione dati</p>
+                <p className="mt-0.5 text-sm font-semibold text-app-fg">Gestione Duplicati</p>
+                <p className="mt-1 text-xs leading-snug text-app-fg-muted">
+                  Scansiona fatture, bolle e fornitori per trovare ed eliminare voci duplicate.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setDupOpen(true)}
+                  className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
+                >
+                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Scansiona duplicati
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <ProfileMobileHub />
       </div>
 
@@ -426,8 +463,40 @@ export default function ImpostazioniPage() {
           <div className="mt-4">
             <NotificationSettings />
           </div>
+          {canManageDuplicates && (
+            <div className="mt-4 app-card overflow-hidden">
+              <div className="app-card-bar" aria-hidden />
+              <div className="flex items-start gap-4 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
+                  <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Manutenzione dati</p>
+                  <p className="mt-0.5 text-sm font-semibold text-app-fg">Gestione Duplicati</p>
+                  <p className="mt-1 text-xs leading-snug text-app-fg-muted">
+                    Scansiona fatture, bolle e fornitori per trovare ed eliminare voci duplicate.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setDupOpen(true)}
+                    className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
+                  >
+                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Scansiona duplicati
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+      {canManageDuplicates && (
+        <DuplicateManager open={dupOpen} onOpenChange={setDupOpen} />
+      )}
     </>
   )
 }

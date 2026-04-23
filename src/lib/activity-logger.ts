@@ -12,6 +12,8 @@ export type ActivityAction =
   | 'documento.discarded'
   | 'fornitore.created'
   | 'fornitore.updated'
+  | 'fornitore.deleted'
+  | 'duplicate.bulk_deleted'
   | 'operatore.created'
   | 'operatore.pin_changed'
   | 'email.synced'
@@ -59,6 +61,8 @@ export function activityLabel(action: ActivityAction): string {
     'documento.discarded': 'Documento scartato',
     'fornitore.created': 'Fornitore creato',
     'fornitore.updated': 'Fornitore aggiornato',
+    'fornitore.deleted': 'Fornitore eliminato',
+    'duplicate.bulk_deleted': 'Duplicati eliminati',
     'operatore.created': 'Operatore creato',
     'operatore.pin_changed': 'PIN operatore cambiato',
     'email.synced': 'Email sincronizzata',
@@ -69,7 +73,7 @@ export function activityLabel(action: ActivityAction): string {
 
 export function activityColor(action: ActivityAction): 'green' | 'red' | 'blue' | 'amber' | 'purple' | 'gray' {
   if (action.endsWith('.created') || action.endsWith('.associated') || action === 'email.synced') return 'green'
-  if (action.endsWith('.deleted') || action.endsWith('.rejected')) return 'red'
+  if (action.endsWith('.deleted') || action.endsWith('.rejected') || action === 'duplicate.bulk_deleted') return 'red'
   if (action.endsWith('.approved') || action === 'price_anomaly.resolved') return 'blue'
   if (action.endsWith('.updated') || action.endsWith('.pin_changed')) return 'amber'
   if (action.startsWith('operatore') || action.startsWith('fornitore')) return 'purple'
@@ -84,5 +88,6 @@ export function activityIcon(action: ActivityAction): string {
   if (action.startsWith('operatore')) return '👤'
   if (action.startsWith('email')) return '📧'
   if (action.startsWith('price')) return '💰'
+  if (action === 'duplicate.bulk_deleted') return '🗑️'
   return '🔧'
 }

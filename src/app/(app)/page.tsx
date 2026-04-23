@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
+import DuplicateDashboardBanner from '@/components/duplicates/duplicate-dashboard-banner'
 import DashboardScannerFlowCard from '@/components/DashboardScannerFlowCard'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
@@ -288,6 +289,11 @@ export default async function DashboardPage({
         <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-950/25 px-4 py-3 text-sm text-amber-100">
           {t.dashboard.operatorNoSede}
         </div>
+      )}
+      {operatorScoped && (isMasterAdmin || isAdminSede) && (
+        <Suspense fallback={null}>
+          <DuplicateDashboardBanner />
+        </Suspense>
       )}
       {supplierHint && (
         <div
