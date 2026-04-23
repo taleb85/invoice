@@ -1315,7 +1315,7 @@ function DashboardTab({
       {/* ── Contacts section ── */}
       {!contattiError && (
         <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
-        <div className={`supplier-detail-tab-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+        <div className={`supplier-detail-tab-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
           {/* Accordion header: su mobile mostra toggle; su desktop è sempre aperto */}
           <div
@@ -1464,7 +1464,7 @@ function DashboardTab({
 
       {/* Supplier info card */}
       <div className="flex min-h-0 min-w-0 flex-col md:h-full md:min-h-[18rem]">
-      <div className={`supplier-detail-tab-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+      <div className={`supplier-detail-tab-shell flex h-full min-h-0 flex-1 flex-col overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
         <div
           className="flex shrink-0 items-center justify-between border-b border-app-line-22 px-5 py-3 cursor-pointer md:cursor-default"
@@ -1734,7 +1734,7 @@ function BolleTab({
 
   if (loading) {
     return (
-      <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.border}`}>
+      <div className={`supplier-detail-tab-shell overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
         <div className={APP_SECTION_DIVIDE_ROWS}>
         {[...Array(3)].map((_, i) => (
@@ -1750,7 +1750,7 @@ function BolleTab({
 
   if (bolle.length === 0) {
     return (
-      <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.border}`}>
+      <div className={`supplier-detail-tab-shell overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
         <AppSectionEmptyState
           message={t.bolle.nessunaBollaRegistrata}
@@ -1777,7 +1777,7 @@ function BolleTab({
   }
 
   return (
-    <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.border}`}>
+    <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}>
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
       <div className={APP_SECTION_MOBILE_LIST}>
@@ -2007,7 +2007,7 @@ function FattureTab({
 
   if (loading) {
     return (
-      <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
+      <div className={`supplier-detail-tab-shell overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
         <div className={APP_SECTION_DIVIDE_ROWS}>
           {[...Array(3)].map((_, i) => (
@@ -2023,7 +2023,7 @@ function FattureTab({
 
   if (fatture.length === 0) {
     return (
-      <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}>
+      <div className={`supplier-detail-tab-shell overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
         <AppSectionEmptyState message={t.fatture.nessunaFatturaRegistrata}>
           {!readOnly ? (
@@ -2071,7 +2071,7 @@ function FattureTab({
       
       <ErrorBoundary sectionName="lista fatture">
       <div
-        className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.border}`}
+        className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}
       >
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
@@ -3067,7 +3067,7 @@ function ListinoTab({
 
   if (loading) {
     return (
-      <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+      <div className={`supplier-detail-tab-shell overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
         <div className="flex animate-pulse items-center justify-between border-b border-app-line-22 px-5 py-3">
           <div className="h-3 w-32 rounded app-workspace-inset-bg" />
@@ -3255,7 +3255,7 @@ function ListinoTab({
         </div>
       ) : listTabloExists === true ? (
         /* Listino prodotti — with add form */
-        <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+        <div className={`supplier-detail-tab-shell overflow-hidden`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="px-5 py-3 border-b border-app-line-22 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoProdotti}</p>
@@ -4287,7 +4287,7 @@ function ListinoTab({
 
       {/* ── Storico cronologico documenti ── */}
       {rows.length === 0 ? (
-        <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden text-center ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+        <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden text-center`}>
           <div className={`app-card-bar-accent shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="px-6 py-16">
           <svg className="mx-auto mb-3 h-12 w-12 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -4297,7 +4297,7 @@ function ListinoTab({
           </div>
         </div>
       ) : (
-        <div className={`supplier-detail-tab-shell overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.border}`}>
+        <div className={`supplier-detail-tab-shell overflow-hidden`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.listino.bar}`} aria-hidden />
           <div className="flex items-center justify-between border-b border-app-line-22 px-5 py-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoStorico}</p>
@@ -5106,7 +5106,7 @@ function FornitoreDetailClient({
                   }}
                 />
                 {/* Mini activity feed for this fornitore */}
-                <div className={`mt-4 relative overflow-hidden rounded-2xl border bg-transparent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.border}`}>
+                <div className={`mt-4 relative overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04]`}>
                   <div className={`app-card-bar-accent shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
                   <div className="p-4">
                     <div className="mb-3 flex items-center gap-2">

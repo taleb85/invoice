@@ -1639,14 +1639,14 @@ export function PendingMatchesTab({
       )}
 
       {loading ? (
-        <div className={`${queueShellClass} overflow-hidden ${queueShellBorder}`}>
+        <div className={`${queueShellClass} overflow-hidden`}>
           <div className={`app-card-bar-accent ${queueShellBar}`} aria-hidden />
           <div className="px-6 py-16 text-center">
             <p className={`text-sm ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>{t.common.loading}</p>
           </div>
         </div>
       ) : docs.length === 0 ? (
-        <div className={`${queueShellClass} overflow-hidden ${queueShellBorder}`}>
+        <div className={`${queueShellClass} overflow-hidden`}>
           <div className={`app-card-bar-accent ${queueShellBar}`} aria-hidden />
           <div className="px-6 py-16 text-center">
             <svg
