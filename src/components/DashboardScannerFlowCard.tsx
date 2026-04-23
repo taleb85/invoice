@@ -8,6 +8,7 @@ import {
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
 } from '@/lib/summary-highlight-accent'
+import ScannerFlowKpiButtons from '@/components/ScannerFlowKpiButtons'
 
 export function scannerFlowStepLabel(step: ScannerFlowEventStep, t: Translations): string {
   switch (step) {
@@ -75,6 +76,7 @@ function ScannerFlowCardIntro({
   embedded,
   allEventsHref,
   headerLinks,
+  tz,
 }: {
   summary: ScannerFlowDaySummary
   t: Translations
@@ -83,6 +85,7 @@ function ScannerFlowCardIntro({
   embedded: boolean
   allEventsHref?: string
   headerLinks?: DashboardScannerFlowHeaderLinks
+  tz: string
 }) {
   const todayLine = t.dashboard.scannerFlowTodayCounts
     .replace('{ai}', String(summary.aiElaborate))
@@ -145,22 +148,16 @@ function ScannerFlowCardIntro({
         </div>
       )}
       <div className="mt-3 grid grid-cols-2 gap-2 md:gap-3">
-        <div
-          className={`flex flex-col items-center justify-center rounded-xl border px-2 py-2.5 text-center md:py-3 ${kpiBoxBorder} ${kpiBoxBg}`}
-        >
-          <span className={`text-2xl font-bold tabular-nums md:text-3xl ${kpiNumCls}`}>{summary.aiElaborate}</span>
-          <span className={`mt-0.5 text-[10px] font-medium uppercase tracking-wide ${kpiLabelCls}`}>
-            {t.dashboard.scannerFlowAiElaborate}
-          </span>
-        </div>
-        <div
-          className={`flex flex-col items-center justify-center rounded-xl border px-2 py-2.5 text-center md:py-3 ${kpiBoxBorder} ${kpiBoxBg}`}
-        >
-          <span className={`text-2xl font-bold tabular-nums md:text-3xl ${kpiNumCls}`}>{summary.archiviate}</span>
-          <span className={`mt-0.5 text-[10px] font-medium uppercase tracking-wide ${kpiLabelCls}`}>
-            {t.dashboard.scannerFlowArchived}
-          </span>
-        </div>
+        <ScannerFlowKpiButtons
+          aiElaborate={summary.aiElaborate}
+          archiviate={summary.archiviate}
+          t={t}
+          tz={tz}
+          kpiBoxBorder={kpiBoxBorder}
+          kpiBoxBg={kpiBoxBg}
+          kpiNumCls={kpiNumCls}
+          kpiLabelCls={kpiLabelCls}
+        />
       </div>
       {!embedded && showFooterEventsLink && allEventsHref ? (
         <div className="mt-3 flex justify-center border-t border-app-line-15 pt-3">
@@ -201,6 +198,7 @@ export default function DashboardScannerFlowCard({
   variant = 'section',
   allEventsHref,
   headerLinks,
+  tz = 'UTC',
 }: {
   summary: ScannerFlowDaySummary
   events: ScannerFlowEventRow[]
@@ -211,6 +209,8 @@ export default function DashboardScannerFlowCard({
   allEventsHref?: string
   /** CTA accanto al titolo «AI Scanner» (es. nuova scansione + eventi). */
   headerLinks?: DashboardScannerFlowHeaderLinks
+  /** IANA timezone for today-filtering in the detail modal. */
+  tz?: string
 }) {
   const embedded = variant === 'embedded'
 
@@ -225,6 +225,7 @@ export default function DashboardScannerFlowCard({
           embedded
           allEventsHref={allEventsHref}
           headerLinks={undefined}
+          tz={tz}
         />
       </div>
     )
@@ -244,6 +245,7 @@ export default function DashboardScannerFlowCard({
           embedded={false}
           allEventsHref={allEventsHref}
           headerLinks={headerLinks}
+          tz={tz}
         />
       </div>
     </section>

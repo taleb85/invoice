@@ -404,6 +404,7 @@ export default async function DashboardPage({
               formatEventTime={formatScannerEventTime}
               t={t}
               headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
+              tz={tz}
             />
           </div>
         </>
