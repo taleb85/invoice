@@ -4,8 +4,11 @@ import { useState, useCallback, useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useToast } from '@/lib/toast-context'
 import type { AllDuplicatesReport, DuplicateGroup, DuplicateItem } from '@/lib/duplicate-detector'
+import DocumentPreviewModal from './document-preview-modal'
 
 type Entity = 'fatture' | 'bolle' | 'fornitori'
+
+type PreviewTarget = { id: string; entity: Entity } | null
 
 type FetchState =
   | { status: 'idle' }
@@ -34,11 +37,13 @@ function GroupSection({
   entity,
   selected,
   onToggle,
+  onPreview,
 }: {
   group: DuplicateGroup
   entity: Entity
   selected: Set<string>
   onToggle: (id: string) => void
+  onPreview: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(true)
   const accentCls = entityAccent(entity)
@@ -86,8 +91,8 @@ function GroupSection({
           {group.items.map((item) => {
             const isSelected = selected.has(item.id)
             return (
-              <li key={item.id}>
-                <label className="flex cursor-pointer touch-manipulation items-start gap-3 px-4 py-2.5 transition-colors hover:bg-white/5">
+              <li key={item.id} className="flex items-start gap-2 px-4 py-2.5 transition-colors hover:bg-white/5">
+                <label className="flex min-w-0 flex-1 cursor-pointer touch-manipulation items-start gap-3">
                   <input
                     type="checkbox"
                     checked={isSelected}
@@ -101,6 +106,26 @@ function GroupSection({
                     </span>
                   </span>
                 </label>
+                <button
+                  type="button"
+                  onClick={() => onPreview(item.id)}
+                  className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded transition-colors"
+                  style={{
+                    background: 'rgba(34, 211, 238, 0.08)',
+                    border: '1px solid rgba(34, 211, 238, 0.2)',
+                    color: '#22d3ee',
+                    borderRadius: 6,
+                    padding: '3px 10px',
+                    fontSize: 11,
+                  }}
+                  aria-label={`Visualizza documento ${item.id.slice(0, 8)}`}
+                >
+                  <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Visualizza
+                </button>
               </li>
             )
           })}
@@ -119,6 +144,7 @@ function EntityPanel({
   onToggle,
   onSelectMostRecent,
   onDeselectAll,
+  onPreview,
 }: {
   entity: Entity
   groups: DuplicateGroup[]
@@ -126,6 +152,7 @@ function EntityPanel({
   onToggle: (id: string) => void
   onSelectMostRecent: (entity: Entity) => void
   onDeselectAll: (entity: Entity) => void
+  onPreview: (id: string, entity: Entity) => void
 }) {
   const [open, setOpen] = useState(true)
   const accentCls = entityAccent(entity)
@@ -193,6 +220,7 @@ function EntityPanel({
                 entity={entity}
                 selected={selected}
                 onToggle={onToggle}
+                onPreview={(id) => onPreview(id, entity)}
               />
             ))}
           </div>
@@ -292,6 +320,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
   const [showConfirm, setShowConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [previewTarget, setPreviewTarget] = useState<PreviewTarget>(null)
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -307,11 +336,17 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !showConfirm) onOpenChange(false)
+      if (e.key === 'Escape') {
+        if (previewTarget) {
+          setPreviewTarget(null)
+        } else if (!showConfirm) {
+          onOpenChange(false)
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [open, onOpenChange, showConfirm])
+  }, [open, onOpenChange, showConfirm, previewTarget])
 
   const runScan = useCallback(async () => {
     setFetchState({ status: 'loading' })
@@ -381,6 +416,10 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
     },
     [fetchState],
   )
+
+  const handlePreview = useCallback((id: string, entity: Entity) => {
+    setPreviewTarget({ id, entity })
+  }, [])
 
   // Validate: must keep at least 1 per group
   const getInvalidGroups = useCallback((): string[] => {
@@ -471,6 +510,17 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
           deleting={deleting}
         />
       )}
+      <DocumentPreviewModal
+        open={previewTarget !== null}
+        onClose={() => setPreviewTarget(null)}
+        itemId={previewTarget?.id ?? null}
+        entity={previewTarget?.entity ?? null}
+        isSelected={previewTarget !== null && selected.has(previewTarget.id)}
+        onMarkForDeletion={(id) => {
+          handleToggle(id)
+          setPreviewTarget(null)
+        }}
+      />
       <div
         className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-6"
         role="dialog"
@@ -560,6 +610,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                     onToggle={handleToggle}
                     onSelectMostRecent={handleSelectMostRecent}
                     onDeselectAll={handleDeselectAll}
+                    onPreview={handlePreview}
                   />
                 ))}
               </div>
