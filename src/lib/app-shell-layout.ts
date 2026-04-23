@@ -39,17 +39,17 @@ export const APP_SECTION_FILTERS_STRIP_CLASS =
 
 /** Link filtri / azioni nella card riepilogo (`AppSummaryHighlightCard` trailing). */
 export const APP_SECTION_TRAILING_LINK_CLASS =
-  'text-app-cyan-500 transition-colors hover:text-app-fg'
+  'text-app-fg-muted transition-colors hover:text-app-fg'
 
 export const APP_SECTION_TRAILING_SEP_CLASS = 'text-app-fg-muted'
 
 /** CTA sotto messaggio empty state (stesso stile ovunque). */
 export const APP_SECTION_EMPTY_LINK_CLASS =
-  'mt-4 inline-block text-sm font-semibold text-app-cyan-500 transition-colors hover:text-app-fg'
+  'mt-4 inline-block text-sm font-semibold text-app-fg-muted transition-colors hover:text-app-fg'
 
 /** Come sopra con `mt-3` (schede fornitore / card compatte). */
 export const APP_SECTION_EMPTY_LINK_CLASS_COMPACT =
-  'mt-3 inline-block text-sm font-semibold text-app-cyan-500 transition-colors hover:text-app-fg hover:underline'
+  'mt-3 inline-block text-sm font-semibold text-app-fg-muted transition-colors hover:text-app-fg hover:underline'
 
 /** Barra strumenti sotto header (liste dense / filtri). */
 export const APP_SECTION_TOOLBAR_STRIP = 'border-b border-app-line-22 app-workspace-inset-bg-soft px-4 py-2.5'
@@ -110,7 +110,7 @@ export const APP_SECTION_TABLE_TBODY = 'divide-y divide-app-soft-border'
 
 /** Hover riga unificato — più visibile su desktop con mouse. */
 export const APP_SECTION_TABLE_ROW_HOVER =
-  'transition-colors hover:bg-cyan-500/[0.08] hover:shadow-[inset_3px_0_0_rgba(6,182,212,0.35)]'
+  'transition-colors hover:bg-white/[0.04]'
 
 export const APP_SECTION_TABLE_TR = `group even:bg-white/[0.025] ${APP_SECTION_TABLE_ROW_HOVER}`
 
@@ -130,7 +130,7 @@ export const APP_SECTION_AMOUNT_NEGATIVE_CLASS = 'app-amount-negative-neon'
 
 /** Link primario in cella (fornitore / dettaglio riga). */
 export const APP_SECTION_TABLE_CELL_LINK =
-  'font-medium text-app-cyan-500 transition-colors hover:text-app-fg'
+  'font-medium text-app-fg-muted transition-colors hover:text-app-fg'
 
 /** Lista mobile sotto card dati. */
 export const APP_SECTION_MOBILE_LIST = 'divide-y divide-app-soft-border md:hidden'
