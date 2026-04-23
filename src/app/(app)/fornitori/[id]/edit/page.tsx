@@ -24,7 +24,7 @@ const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide tex
 
 /** Sezioni modulo: stesso contorno di `.app-card` ma `bg-transparent` così il gradiente `#app-main` resta visibile. */
 const editSectionShellCls =
-  'relative overflow-hidden rounded-2xl border border-app-line-35 bg-transparent text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.28),0_16px_40px_-14px_rgba(0,0,0,0.22)] ring-1 ring-inset ring-white/10'
+  'relative overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] text-app-fg shadow-[0_0_20px_-10px_rgba(6,182,212,0.28),0_16px_40px_-14px_rgba(0,0,0,0.22)] ring-1 ring-inset ring-white/10'
 const editSectionBodyCls = 'space-y-4 bg-transparent p-6'
 
 export default function EditFornitore() {

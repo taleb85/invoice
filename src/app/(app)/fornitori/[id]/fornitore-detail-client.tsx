@@ -4180,7 +4180,7 @@ function ListinoTab({
                                 onClick={() => handleDelete(ultimo.id)}
                                 disabled={deletingId === ultimo.id}
                                 title={t.common.delete}
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
                               >
                                 {deletingId === ultimo.id ? (
                                   <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
@@ -4826,7 +4826,7 @@ function FornitoreDetailClient({
           </div>
         </header>
 
-        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-xl border border-app-line-15 bg-transparent p-3 outline-none sm:p-4">
+        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] p-3 outline-none sm:p-4">
           <ErrorBoundary sectionName="dettaglio fornitore">
             <TabContent variant="mobile" />
           </ErrorBoundary>

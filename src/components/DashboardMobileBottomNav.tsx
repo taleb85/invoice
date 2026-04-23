@@ -27,7 +27,7 @@ const QuickScanModal = dynamic(
  * Effetto satinato fisso: `app-glass-dock-opaque` + blur (`globals.css`).
  */
 const NAV_SHELL_BASE =
-  'app-glass-dock fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[100] flex w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch overflow-hidden rounded-3xl border border-app-line-35 text-app-fg shadow-[0_14px_44px_-12px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pb-4 pt-3 ps-[max(0.375rem,env(safe-area-inset-left,0px))] pe-[max(0.375rem,env(safe-area-inset-right,0px))] md:hidden'
+  'app-glass-dock fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[100] flex w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_14px_44px_-12px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pb-4 pt-3 ps-[max(0.375rem,env(safe-area-inset-left,0px))] pe-[max(0.375rem,env(safe-area-inset-right,0px))] md:hidden'
 
 const NAV_SHELL_SATIN_GLASS =
   'app-glass-dock-opaque backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150'

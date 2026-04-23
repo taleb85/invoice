@@ -70,8 +70,8 @@ export function AppSheet({
 
   const centerPanelClass =
     size === 'wide'
-      ? 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex h-[min(96dvh,64rem)] w-[min(calc(100vw-1rem),90rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-app-line-25 shadow-2xl backdrop-blur-xl'
-      : 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex max-h-[min(92dvh,40rem)] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-app-line-25 shadow-2xl backdrop-blur-xl'
+      ? 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex h-[min(96dvh,64rem)] w-[min(calc(100vw-1rem),90rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 shadow-2xl backdrop-blur-xl'
+      : 'pointer-events-auto absolute left-1/2 top-1/2 z-[212] flex max-h-[min(92dvh,40rem)] w-[min(calc(100vw-1.5rem),28rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 shadow-2xl backdrop-blur-xl'
 
   const panelClassName = variant === 'center' ? centerPanelClass : sidePanelClass
   const panelStyle = {

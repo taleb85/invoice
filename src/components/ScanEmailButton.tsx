@@ -459,7 +459,7 @@ export default function ScanEmailButton({
                   width: headerMenuRect.width,
                   zIndex: 560,
                 }}
-                className="rounded-xl border border-app-line-25 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
+                className="rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
               >
                 {headerMenuInner}
               </div>,

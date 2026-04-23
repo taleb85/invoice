@@ -40,7 +40,7 @@ export default function AppSummaryHighlightCard({
   const theme = SUMMARY_HIGHLIGHT_ACCENTS[accent]
 
   return (
-    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 ${theme.border} ${className ?? ''}`}>
+    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 ${className ?? ''}`}>
       <div className={`app-card-bar-accent ${theme.bar}`} aria-hidden />
       <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}>
         <AppSummaryHighlightMetrics

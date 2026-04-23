@@ -83,7 +83,7 @@ export type SummaryHighlightAccent = keyof typeof SUMMARY_HIGHLIGHT_ACCENTS
  * Comporre con `SUMMARY_HIGHLIGHT_ACCENTS[accent].border` e `app-card-bar-accent` + classi `*.bar`.
  */
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =
-  'relative overflow-hidden rounded-2xl border bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
+  'relative overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
 
 /** Padding interno corpo sotto la barra (`AppSummaryHighlightCard`, tabelle in stesso guscio). */
 export const SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS =

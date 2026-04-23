@@ -2845,8 +2845,8 @@ export function VerificationStatusTab({
                   vsEmbeddedSupplier
                     ? vsCompactS1
                       ? 'inline-flex items-center gap-1 rounded-md border border-app-line-28 bg-transparent px-2 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
-                      : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
-                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
+                      : 'inline-flex items-center gap-1 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
+                    : 'inline-flex items-center gap-1 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40'
                 }
               >
                 <svg className={`${vsCompactS1 ? 'h-3 w-3' : 'h-3.5 w-3.5'} shrink-0 opacity-90`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -2870,8 +2870,8 @@ export function VerificationStatusTab({
                 vsEmbeddedSupplier
                   ? vsCompactS1
                     ? 'inline-flex items-center gap-1 rounded-md border border-app-line-28 bg-transparent px-2 py-1 text-[11px] font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
-                    : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
-                  : 'inline-flex items-center gap-1 rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
+                    : 'inline-flex items-center gap-1 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
+                  : 'inline-flex items-center gap-1 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-cyan-500/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40 disabled:pointer-events-none disabled:opacity-50'
               }
             >
               <svg
@@ -3745,7 +3745,7 @@ export function VerificationStatusTab({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                       <div
-                        className="flex min-w-[60px] flex-col items-center rounded-lg border border-app-line-28 bg-transparent px-3 py-1.5"
+                        className="flex min-w-[60px] flex-col items-center rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] px-3 py-1.5"
                       >
                         <span className="text-xs font-bold text-emerald-400">{gVerified}</span>
                         <span className="text-[9px] uppercase tracking-wide text-app-fg-muted">Fatture</span>

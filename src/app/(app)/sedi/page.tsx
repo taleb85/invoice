@@ -944,7 +944,7 @@ export default function SediPage() {
                           <div key={p.id}>
                             {editingProfile?.id === p.id ? (
                               <form
-                                className="space-y-3 rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2.5 ring-1 ring-app-line-10"
+                                className="space-y-3 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-surface-elevated px-3 py-2.5 ring-1 ring-app-line-10"
                                 onSubmit={(e) => {
                                   e.preventDefault()
                                   void handleSaveProfile()

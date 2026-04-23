@@ -129,7 +129,7 @@ export function BackupManager() {
     <div className="space-y-6">
       {/* Status bar */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-app-line-20 bg-app-line-5 p-4">
+        <div className="rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-5 p-4">
           <p className="text-xs text-app-fg-muted">Ultimo backup</p>
           <p className="mt-1 text-base font-semibold text-app-fg">
             {lastBackup ? lastBackup.date : 'Nessuno'}
@@ -141,13 +141,13 @@ export function BackupManager() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-app-line-20 bg-app-line-5 p-4">
+        <div className="rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-5 p-4">
           <p className="text-xs text-app-fg-muted">Prossimo backup</p>
           <p className="mt-1 text-sm font-semibold text-app-fg">{nextMonday2am()}</p>
           <p className="text-xs text-app-fg-muted">Ogni lunedì alle 02:00 UTC</p>
         </div>
 
-        <div className="rounded-2xl border border-app-line-20 bg-app-line-5 p-4">
+        <div className="rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-5 p-4">
           <p className="text-xs text-app-fg-muted">Totale backup disponibili</p>
           <p className="mt-1 text-base font-semibold text-app-fg">{backups.length}</p>
           <p className="text-xs text-app-fg-muted">Archiviati in Supabase Storage</p>
@@ -155,7 +155,7 @@ export function BackupManager() {
       </div>
 
       {/* Manual trigger */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-app-line-20 bg-app-line-5 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-5 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-app-fg">Esegui backup manuale</p>
           <p className="text-xs text-app-fg-muted">
@@ -280,7 +280,7 @@ export function BackupManager() {
       {history.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-app-fg">Storico esecuzioni</h2>
-          <div className="rounded-2xl border border-app-line-20 bg-app-line-5 divide-y divide-app-line-15 overflow-hidden">
+          <div className="rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-5 divide-y divide-app-line-15 overflow-hidden">
             {history.map((h) => (
               <div key={h.id} className="flex items-start justify-between px-4 py-3 gap-4">
                 <div className="min-w-0">

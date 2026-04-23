@@ -34,7 +34,7 @@ function ProfileMobileHub() {
   const showPickSedeForOperators = masterPlane && !sedeId
 
   const rowCls =
-    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-app-line-25 app-workspace-inset-bg-soft px-3 py-3 text-sm font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-a-40 hover:bg-black/12 active:scale-[0.99]'
+    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-inset-bg-soft px-3 py-3 text-sm font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-a-40 hover:bg-black/12 active:scale-[0.99]'
 
   const handleLogout = async () => {
     try {

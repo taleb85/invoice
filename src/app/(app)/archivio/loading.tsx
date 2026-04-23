@@ -41,7 +41,7 @@ export default function ArchivioLoading() {
       {/* Per-supplier cards */}
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="overflow-hidden rounded-xl border border-app-line-15 bg-app-line-10/30">
+          <div key={i} className="overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-10/30">
             <div className="h-1 w-full bg-gradient-to-r from-app-line-20 to-app-line-10" />
             {/* Supplier header */}
             <div className="flex items-center gap-3 border-b border-app-line-15 px-4 py-3">
