@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
 import { type CSSProperties, type ReactNode } from 'react'
-import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
 import {
   DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS,
   operatorKpiVisual,
@@ -90,8 +89,7 @@ export function DashboardOperatorKpiSkeleton() {
                 className={`operator-kpi-card relative flex h-full min-h-0 min-w-0 w-full animate-pulse flex-col overflow-hidden rounded-2xl ${OPERATOR_KPI_CARD_MIN_H} ${ov.borderClass} ${ov.ringClass}`}
                 style={{ boxShadow: operatorKpiCardShadow(ov.glowRgb) }}
               >
-                <KpiLAccentOverlay accentHex={ov.accentHex} edgePx={4} />
-                <div className={kpiTileInnerGridClass}>
+                                <div className={kpiTileInnerGridClass}>
                   <div className="col-start-1 row-start-1 flex min-h-[1.875rem] items-start sm:min-h-[2rem]">
                     <div className="mt-0.5 h-2.5 w-4/5 max-w-[8rem] rounded bg-white/12 sm:h-3" />
                   </div>
@@ -380,8 +378,7 @@ export default function DashboardOperatorKpiGrid({
           {items.map((item) => {
             const inner = (
               <>
-                <KpiLAccentOverlay accentHex={item.accentHex} edgePx={4} />
-                <div className={kpiTileInnerGridClass}>
+                                <div className={kpiTileInnerGridClass}>
                   <p className="col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[12px] font-semibold uppercase leading-[1.15] tracking-wide text-app-fg line-clamp-2 sm:min-h-[2rem] sm:text-sm">
                     {item.label}
                   </p>

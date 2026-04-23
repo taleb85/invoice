@@ -87,7 +87,6 @@ import {
   SUPPLIER_DETAIL_TAB_HIGHLIGHT,
   SUPPLIER_DETAIL_TAB_TABLE_ACCENT,
 } from '@/lib/supplier-detail-tab-theme'
-import KpiLAccentOverlay from '@/components/KpiLAccentOverlay'
 import {
   hexToRgbTuple,
   SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS,
@@ -668,7 +667,6 @@ function SupplierDesktopKpiGrid({
             ['--supplier-kpi-rgb' as string]: hexToRgbTuple(k.accentHex),
           }}
         >
-          <KpiLAccentOverlay accentHex={k.accentHex} edgePx={4} />
           <div className="relative z-[1] flex min-h-0 flex-1 flex-col p-1.5 md:p-3">
             {/* Mobile: layout orizzontale compatto icona+label a sinistra, valore a destra */}
             <div className="flex h-full items-center justify-between gap-1 md:hidden">
