@@ -23,13 +23,12 @@ const kpiTileIconWrapBase =
 const kpiTileSubLine =
   'w-full min-w-0 text-[11px] font-medium leading-snug text-app-fg-muted sm:text-[12px] sm:leading-snug'
 
-/** Alone KPI: alone dominante sul colore della card (non più cyan fisso). */
-function operatorKpiCardShadow(glowRgb: string) {
+/** Alone KPI: neutro, senza anello colorato. */
+function operatorKpiCardShadow(_glowRgb: string) {
   return [
-    `0 0 0 1px rgba(${glowRgb},0.14)`,
-    `0 0 44px -14px rgba(${glowRgb},0.22)`,
-    `0 0 40px -10px rgba(${glowRgb},0.4)`,
-    '0 18px 40px -12px rgba(0,0,0,0.48)',
+    '0 0 0 1px rgba(34,211,238,0.12)',
+    '0 0 44px -12px rgba(0,0,0,0.4)',
+    '0 20px 44px -12px rgba(0,0,0,0.5)',
   ].join(', ')
 }
 
