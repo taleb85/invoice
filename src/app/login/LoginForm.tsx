@@ -125,17 +125,6 @@ function AvatarGrid({
 
   return (
     <div className="flex w-full flex-col items-center gap-7 py-4">
-      {/* App logo */}
-      <div className="flex flex-col items-center gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/smart-pair-logo.svg"
-          alt="Smart Pair"
-          className="h-11 w-auto opacity-95"
-          draggable={false}
-        />
-      </div>
-
       {/* Sede badge */}
       {sedeNome && (
         <div className="flex items-center gap-2">
