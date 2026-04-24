@@ -16,8 +16,6 @@ import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { usePushNotifications } from '@/hooks/use-push-notifications'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
-import GeminiUsageDashboard from '@/components/GeminiUsageDashboard'
-
 function ProfileMobileHub() {
   const { me } = useMe()
   const { openSwitchModal, activeOperator } = useActiveOperator()
@@ -408,11 +406,6 @@ export default function ImpostazioniPage() {
             </div>
           </div>
         )}
-        {masterPlane && (
-          <div className="mt-4">
-            <GeminiUsageDashboard />
-          </div>
-        )}
         <ProfileMobileHub />
       </div>
 
@@ -498,11 +491,6 @@ export default function ImpostazioniPage() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-          {masterPlane && (
-            <div className="mt-4">
-              <GeminiUsageDashboard />
             </div>
           )}
         </div>
