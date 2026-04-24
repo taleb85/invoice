@@ -784,7 +784,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       <div className="w-full">
         {/* Logo above the card */}
         <div className="mb-6 flex justify-center">
-          <SmartPairLogo variant="full" size="sm" />
+          <SmartPairLogo variant="full" size="md" />
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
