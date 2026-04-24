@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
+import { createClient, getProfile } from '@/utils/supabase/server'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { geminiGenerateText, GEMINI_MODEL, type GeminiUsage } from '@/lib/gemini-vision'
 import { logActivity } from '@/lib/activity-logger'
@@ -67,9 +68,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const [{ data: { user } }, profile, cookieStore] = await Promise.all([
+      supabase.auth.getUser(),
+      getProfile(),
+      cookies(),
+    ])
+
+    // Resolve the sede the scan belongs to (for usage tracking)
+    let logSedeId: string | null = profile?.sede_id ?? null
+    if (profile?.role === 'admin' && !logSedeId) {
+      logSedeId = cookieStore.get('admin-sede-id')?.value?.trim() || null
+    }
 
     const formData = await req.formData()
     const file = formData.get('file') as File | null
@@ -102,7 +111,7 @@ export async function POST(req: NextRequest) {
       if (!user || !capturedUsage) return
       logActivity(supabase, {
         userId: user.id,
-        sedeId: null,
+        sedeId: logSedeId,
         action: 'gemini.ocr',
         entityType: 'document',
         entityLabel: `${file.type} → ${kind}`,
@@ -114,6 +123,7 @@ export async function POST(req: NextRequest) {
           model: GEMINI_MODEL,
           operation: 'scanner_hub',
           intent,
+          sedeId: logSedeId,
         },
       }).catch(() => {})
     }

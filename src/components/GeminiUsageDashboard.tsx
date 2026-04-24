@@ -19,6 +19,16 @@ interface RecentCall {
   estimatedCostUsd: number
 }
 
+interface PerSedeUsage {
+  sedeId: string | null
+  nome: string
+  calls: number
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  costUsd: number
+}
+
 interface UsageData {
   model: string
   pricing: { inputPerMillion: number; outputPerMillion: number }
@@ -30,6 +40,7 @@ interface UsageData {
   avgCostPerScan: number
   daily: DailyUsage[]
   recent: RecentCall[]
+  perSede: PerSedeUsage[]
 }
 
 function fmt(n: number, decimals = 0): string {
@@ -315,6 +326,71 @@ export default function GeminiUsageDashboard() {
                 <p className="mt-1 text-[11px] text-app-fg-muted opacity-60">
                   I dati vengono raccolti dalle scansioni manuali nello scanner.
                 </p>
+              </div>
+            )}
+
+            {/* Per-sede breakdown */}
+            {data.perSede && data.perSede.length > 0 && (
+              <div
+                className="overflow-hidden rounded-xl"
+                style={{
+                  background: 'rgba(15, 42, 74, 0.4)',
+                  border: '1px solid rgba(34, 211, 238, 0.12)',
+                }}
+              >
+                <div className="px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
+                    Costi per sede
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr
+                        style={{
+                          borderTop: '1px solid rgba(34,211,238,0.08)',
+                          borderBottom: '1px solid rgba(34,211,238,0.08)',
+                        }}
+                      >
+                        <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
+                          Sede
+                        </th>
+                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                          Scansioni
+                        </th>
+                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                          Token totali
+                        </th>
+                        <th className="px-4 py-2 text-right font-medium text-app-fg-muted">
+                          Costo (USD)
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.perSede.map((sede, i) => (
+                        <tr
+                          key={i}
+                          className="transition-colors hover:bg-white/5"
+                          style={{ borderBottom: '1px solid rgba(34,211,238,0.06)' }}
+                        >
+                          <td className="px-4 py-2 text-app-fg">{sede.nome}</td>
+                          <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
+                            {fmt(sede.calls)}
+                          </td>
+                          <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
+                            {fmt(sede.totalTokens)}
+                          </td>
+                          <td
+                            className="px-4 py-2 text-right font-mono"
+                            style={{ color: '#34d399' }}
+                          >
+                            {fmtCost(sede.costUsd)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
