@@ -343,16 +343,25 @@ export default function Sidebar({ onClose }: SidebarProps) {
     >
         <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
           <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto py-2">
-          {/* Dashboard */}
+          {/* Dashboard / Portale Gestionale */}
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
             const iconColor = (item as { iconColor?: string }).iconColor
+            // In gestionale puro (nessuna sede), il link principale diventa "Portale Gestionale"
+            // e al click ripulisce anche il cookie sede per sicurezza.
+            const isGestionalePuro = isMasterAdmin && !activeSede
+            const label = isGestionalePuro ? t.sedi.adminRole : item.label
+            const handleClick = () => {
+              if (isGestionalePuro) clearSede()
+              onClose?.()
+              router.push(item.href)
+            }
             return (
-              <Link key={item.href} href={item.href} onClick={() => { onClose?.(); router.push(item.href) }} className={navLink(isActive)}>
+              <Link key={item.href} href={item.href} onClick={handleClick} className={navLink(isActive)}>
                 <span className={`shrink-0 ${isActive ? (iconColor ?? 'text-app-cyan-300') : (iconColor ? `${iconColor}/75` : 'text-white/65')}`}>
                   {item.icon}
                 </span>
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{label}</span>
               </Link>
             )
           })}
@@ -403,31 +412,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               {branchesOpen && (
                 <div className="app-shell-rail-panel ml-3 mt-0.5 border-l border-app-line-22 pl-2">
-                  {/* Portale Gestionale (deseleziona sede) */}
-                  <div className="pb-1">
-                    <button
-                      type="button"
-                      onClick={() => { clearSede(); onClose?.() }}
-                      title={activeSede ? 'Torna alla vista Portale Gestionale' : 'Vista Portale Gestionale attiva'}
-                      className={`flex min-w-0 w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
-                        !activeSede
-                          ? 'border border-fuchsia-500/35 bg-fuchsia-500/10 text-fuchsia-200'
-                          : 'bg-transparent text-white/45 hover:bg-app-line-10 hover:text-app-fg'
-                      }`}
-                    >
-                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${!activeSede ? 'bg-fuchsia-400' : 'bg-current opacity-30'}`} aria-hidden />
-                      <span className="min-w-0 truncate">{t.sedi.adminRole}</span>
-                      {!activeSede && (
-                        <svg className="ml-auto h-3 w-3 shrink-0 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Divisore */}
-                  <div className="mb-1 border-t border-app-line-18" />
-
                   {/* Sede items: click = attiva sede, gear = gestisci */}
                   <div className="space-y-0.5 pb-1">
                     {allSedi.map((s) => {
