@@ -85,6 +85,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
     router.refresh()
   }
 
+  const clearSede = () => {
+    document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
+    document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
+    setActiveSede(null)
+    router.push('/')
+    router.refresh()
+  }
+
   useEffect(() => {
     if (!me) {
       setFornitori([])
@@ -375,6 +383,28 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
               {branchesOpen && (
                 <div className="app-shell-rail-panel ml-3 mt-0.5 space-y-0.5 border-l border-app-line-22 pl-2">
+                  {/* Opzione "Portale Gestionale" per deselezionare la sede attiva */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => { clearSede(); onClose?.() }}
+                      title={activeSede ? 'Torna alla vista Portale Gestionale' : 'Vista Portale Gestionale attiva'}
+                      className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
+                        !activeSede
+                          ? 'border border-fuchsia-500/35 bg-fuchsia-500/10 text-fuchsia-200'
+                          : 'bg-transparent text-white/45 hover:bg-app-line-10 hover:text-app-fg'
+                      }`}
+                    >
+                      <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${!activeSede ? 'bg-fuchsia-400' : 'bg-current opacity-30'}`} aria-hidden />
+                      <span className="min-w-0 truncate">{t.sedi.adminRole}</span>
+                      {!activeSede && (
+                        <svg className="ml-auto h-3 w-3 shrink-0 text-fuchsia-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+
                   {/* Sede items: click = attiva sede, gear = gestisci */}
                   {allSedi.map((s) => {
                     const isCurrent = s.id === activeSede
