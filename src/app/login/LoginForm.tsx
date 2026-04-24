@@ -20,14 +20,14 @@ type Message = { type: 'error' | 'success'; text: string }
 
 // ─── Avatar helpers ───────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  ['#22d3ee', '#0e7490'], // cyan
-  ['#a78bfa', '#6d28d9'], // violet
-  ['#34d399', '#065f46'], // emerald
-  ['#f472b6', '#9d174d'], // pink
-  ['#fb923c', '#92400e'], // orange
-  ['#60a5fa', '#1e3a8a'], // blue
-  ['#facc15', '#78350f'], // amber
-  ['#4ade80', '#14532d'], // green
+  ['#22d3ee', '#0e4f63'], // cyan
+  ['#818cf8', '#312e81'], // indigo
+  ['#7c9dfc', '#1e3a8a'], // blue-violet
+  ['#34d399', '#064e3b'], // teal-emerald
+  ['#67e8f9', '#0c4a6e'], // sky-cyan
+  ['#a78bfa', '#4c1d95'], // violet-purple
+  ['#2dd4bf', '#134e4a'], // teal
+  ['#93c5fd', '#1e3a8a'], // light-blue
 ]
 
 function avatarColors(name: string): [string, string] {
@@ -76,11 +76,11 @@ function AvatarCard({
           width: '7.5rem',
           height: '7.5rem',
           fontSize: '2.1rem',
-          background: `radial-gradient(circle at 35% 35%, ${fg}50, ${bg}d0)`,
+          background: `radial-gradient(circle at 35% 35%, ${fg}40, ${bg}e8)`,
           color: fg,
           boxShadow: hovered
-            ? `0 10px 40px ${bg}99, 0 0 0 3px ${fg}60, 0 0 28px ${fg}18`
-            : `0 4px 22px ${bg}70`,
+            ? `0 10px 40px ${bg}cc, 0 0 0 3px ${fg}55, 0 0 28px ${fg}22`
+            : `0 4px 22px ${bg}99`,
           transform: hovered ? 'scale(1.08)' : 'scale(1)',
           transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
         }}
