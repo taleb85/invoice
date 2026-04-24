@@ -27,20 +27,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ operators: [] })
   }
 
-  const { data, error } = await svc
-    .from('profiles')
-    .select('id, full_name, role')
-    .eq('sede_id', sedeId)
-    .in('role', ['operatore', 'admin_sede'])
-    .order('full_name')
+  const [profilesRes, sedeRes] = await Promise.all([
+    svc
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('sede_id', sedeId)
+      .in('role', ['operatore', 'admin_sede'])
+      .order('full_name'),
+    svc
+      .from('sedi')
+      .select('country_code')
+      .eq('id', sedeId)
+      .maybeSingle(),
+  ])
 
-  if (error) {
+  if (profilesRes.error) {
     return NextResponse.json({ operators: [] })
   }
 
   return NextResponse.json({
     sede_id: sedeId,
-    operators: (data ?? []).map((p) => ({
+    country_code: (sedeRes.data as { country_code?: string | null } | null)?.country_code ?? null,
+    operators: (profilesRes.data ?? []).map((p) => ({
       id: p.id,
       full_name: (p.full_name ?? '') as string,
     })),

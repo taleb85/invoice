@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
-import { LOCALES, type Locale } from '@/lib/translations'
+import { LOCALES, type Locale, getTranslations, localeFromCountryCode } from '@/lib/translations'
 import {
   branchSessionGateRequiredRole,
   isSessionOperatorGateOk,
@@ -105,10 +105,14 @@ function AvatarGrid({
   operators,
   onSelect,
   sedeNome,
+  title,
+  subtitle,
 }: {
   operators: SedeOperator[]
   onSelect: (op: SedeOperator) => void
   sedeNome: string | null
+  title: string
+  subtitle: string
 }) {
   const gridCols =
     operators.length <= 2
@@ -131,8 +135,8 @@ function AvatarGrid({
 
       {/* Title + subtitle */}
       <div className="flex flex-col items-center gap-1.5 text-center">
-        <h2 className="text-2xl font-bold text-app-fg sm:text-3xl">Chi è di turno?</h2>
-        <p className="text-xs text-app-fg-muted/75">Tocca il tuo nome per accedere</p>
+        <h2 className="text-2xl font-bold text-app-fg sm:text-3xl">{title}</h2>
+        <p className="text-xs text-app-fg-muted/75">{subtitle}</p>
       </div>
 
       {/* Grid */}
@@ -182,6 +186,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const [netflixOperators, setNetflixOperators] = useState<SedeOperator[]>([])
   const [netflixSelected, setNetflixSelected] = useState<SedeOperator | null>(null)
   const [netflixSedeName, setNetflixSedeName] = useState<string | null>(null)
+  /** Locale derived from the sede's country_code — used to translate the Netflix grid UI. */
+  const [sedeLocale, setSedeLocale] = useState<Locale>('it')
 
   /* ── operatore ─────────────────────────────────────── */
   const [name, setName]         = useState('')
@@ -266,11 +272,13 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     let active = true
     fetch('/api/sede-operators')
       .then(r => r.ok ? r.json() : { operators: [] })
-      .then((data: { operators?: SedeOperator[]; sede_id?: string }) => {
+      .then((data: { operators?: SedeOperator[]; sede_id?: string; country_code?: string | null }) => {
         if (!active) return
         const ops = data.operators ?? []
         if (ops.length === 0) { setNetflixStep('manual'); return }
         setNetflixOperators(ops)
+        // Derive locale from sede country_code so the grid speaks the right language
+        setSedeLocale(localeFromCountryCode(data.country_code))
         // Get sede name from remembered storage
         try {
           const stored = localStorage.getItem('fluxo-last-sede-nome')
@@ -770,6 +778,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   // ── Netflix: avatar grid ──
   if (netflixStep === 'grid') {
+    const sedeT = getTranslations(sedeLocale).login
     return (
       <div className="w-full">
         {/* Card wrapper: same dark glass look as the PIN card */}
@@ -780,6 +789,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               operators={netflixOperators}
               onSelect={handleNetflixSelect}
               sedeNome={netflixSedeName}
+              title={sedeT.netflixTitle}
+              subtitle={sedeT.netflixSubtitle}
             />
           </div>
           {/* Footer links */}
@@ -790,14 +801,14 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 onClick={() => { setNetflixStep('manual'); setMode('name') }}
                 className="text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
               >
-                Non trovi il tuo nome? Accedi manualmente →
+                {sedeT.netflixManualLogin}
               </button>
               <button
                 type="button"
                 onClick={() => { setNetflixStep('manual'); setMode('admin') }}
                 className="text-left text-[11px] text-app-fg-muted/60 transition-colors hover:text-app-fg-muted"
               >
-                {t.login.adminLink}
+                {sedeT.adminLink}
               </button>
             </div>
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
@@ -809,6 +820,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   // ── Netflix: PIN step ──
   if (netflixStep === 'pin' && netflixSelected) {
+    const sedeT = getTranslations(sedeLocale).login
     const [fg, bg] = avatarColors(netflixSelected.full_name)
     const firstName = netflixSelected.full_name.trim().split(/\s+/)[0] ?? netflixSelected.full_name
     return (
@@ -934,7 +946,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               }}
               className="text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
             >
-              ← Cambia operatore
+              {sedeT.netflixChangeOperator}
             </button>
           </div>
 
