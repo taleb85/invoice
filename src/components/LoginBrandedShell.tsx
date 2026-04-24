@@ -14,8 +14,8 @@ export default function LoginBrandedShell({ children }: { children: ReactNode })
         backgroundColor: '#0a192f',
       }}
     >
-      {/* Overlay scuro per leggibilità testi — extends to full scrollable height */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 min-h-full h-[300vh] bg-[#0a192f]/70" />
+      {/* Overlay per leggibilità testi — extends to full scrollable height */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 min-h-full h-[300vh] bg-[#0a192f]/35" />
       {/* Glow ciano in basso a destra */}
       <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-cyan-500/8 blur-3xl" />
       <div className="relative z-10 mx-auto flex min-h-dvh w-[92%] max-w-md flex-1 flex-col items-center justify-start pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:justify-center sm:pt-[max(1.5rem,env(safe-area-inset-top))]">
