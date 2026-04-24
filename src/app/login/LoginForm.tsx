@@ -14,6 +14,7 @@ import {
 } from '@/lib/session-operator-gate'
 import LoginBrandedHero from '@/components/LoginBrandedHero'
 import { PinNumpad } from '@/components/PinNumpad'
+import { SmartPairLogo } from '@/components/smart-pair-logo'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -781,6 +782,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     const sedeT = getTranslations(sedeLocale).login
     return (
       <div className="w-full">
+        {/* Logo above the card */}
+        <div className="mb-6 flex justify-center">
+          <SmartPairLogo variant="full" size="sm" />
+        </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
           <div className="px-4 pb-2 pt-4 sm:px-6">
