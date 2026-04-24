@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
 
 interface DailyUsage {
   date: string
@@ -141,8 +141,13 @@ function MiniBarChart({ daily }: { daily: DailyUsage[] }) {
   )
 }
 
+export interface GeminiUsageDashboardHandle {
+  refresh: () => void
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
-export default function GeminiUsageDashboard() {
+const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle>(
+  function GeminiUsageDashboard(_props, ref) {
   const [data, setData] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -162,71 +167,15 @@ export default function GeminiUsageDashboard() {
     }
   }, [])
 
+  useImperativeHandle(ref, () => ({ refresh: load }), [load])
+
   useEffect(() => {
     load()
   }, [load])
 
   return (
     <div className="app-card overflow-hidden">
-      {/* Header bar */}
-      <div className="app-card-bar" />
-
-      {/* Card header */}
-      <div className="flex items-center justify-between gap-3 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1"
-            style={{
-              background: 'rgba(34, 211, 238, 0.10)',
-              outline: '1px solid rgba(34, 211, 238, 0.25)',
-            }}
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              style={{ color: '#22d3ee' }}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.6}
-                d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
-              />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-[13px] font-semibold text-app-fg">Consumi Gemini AI</h3>
-            <p className="text-[11px] text-app-fg-muted">
-              {data?.model ?? 'gemini-2.5-flash-lite'} — Scansioni OCR
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={load}
-          disabled={loading}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/5 disabled:opacity-40"
-          aria-label="Aggiorna dati"
-        >
-          <svg
-            className={`h-4 w-4 text-app-fg-muted ${loading ? 'animate-spin' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-        </button>
-      </div>
-
-      <div className="app-workspace-inset-bg-soft px-5 pb-5">
+      <div className="app-workspace-inset-bg-soft px-5 pb-5 pt-5">
         {loading && !data && (
           <div className="flex items-center justify-center py-10">
             <svg
@@ -471,4 +420,6 @@ export default function GeminiUsageDashboard() {
       </div>
     </div>
   )
-}
+})
+
+export default GeminiUsageDashboard
