@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { createClient } from '@/utils/supabase/server'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
+import { geminiGenerateText, GEMINI_MODEL, type GeminiUsage } from '@/lib/gemini-vision'
+import { logActivity } from '@/lib/activity-logger'
 
 export type ScannerDocumentKind = 'ddt' | 'fattura' | 'supplier_card' | 'unknown'
 
@@ -29,27 +31,17 @@ function mapKind(v: unknown): ScannerDocumentKind {
   return 'unknown'
 }
 
-async function classifyFromInvoiceText(openai: OpenAI, textSnippet: string): Promise<ScannerDocumentKind> {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    max_tokens: 80,
-    temperature: 0,
-    messages: [{
-      role: 'user',
-      content: `Testo estratto da un PDF aziendale. Classifica UNA parola tra: ddt, fattura, supplier_card, unknown
-- ddt se è documento di trasporto / bolla / DDT
-- fattura se è fattura o nota di credito fiscale
-- supplier_card se è solo presentazione/lettera senza dettaglio fiscale completo
-- unknown se non determinabile
+async function classifyFromInvoiceText(textSnippet: string): Promise<ScannerDocumentKind> {
+  const system = `You are a document classifier. Given extracted text from a business PDF, respond with ONE word: ddt, fattura, supplier_card, or unknown.
+- ddt = delivery note / bolla / DDT / transport document
+- fattura = tax invoice or credit note
+- supplier_card = presentation/letter without full fiscal invoice content
+- unknown = cannot determine
 
-Solo JSON: {"document_kind":"ddt"|"fattura"|"supplier_card"|"unknown"}
-
-Testo (troncato):
-${textSnippet.slice(0, 6000)}`,
-    }],
-  })
+Return ONLY valid JSON: {"document_kind":"ddt"|"fattura"|"supplier_card"|"unknown"}`
   try {
-    const parsed = parseJsonContent(response.choices[0]?.message?.content ?? '')
+    const res = await geminiGenerateText(system, textSnippet.slice(0, 6000), 80)
+    const parsed = parseJsonContent(res.text)
     return mapKind(parsed.document_kind)
   } catch {
     return 'unknown'
@@ -69,15 +61,22 @@ function invoiceToHub(kind: ScannerDocumentKind, inv: Awaited<ReturnType<typeof 
 }
 
 export async function POST(req: NextRequest) {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 503 })
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ error: 'GEMINI_API_KEY non configurata.' }, { status: 503 })
   }
 
   try {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
     const formData = await req.formData()
     const file = formData.get('file') as File | null
     const intentRaw = (formData.get('intent') as string | null) ?? 'auto'
-    const intent = (['auto', 'bolla', 'fattura', 'nuovo_fornitore'].includes(intentRaw) ? intentRaw : 'auto') as ScannerIntent
+    const intent = (
+      ['auto', 'bolla', 'fattura', 'nuovo_fornitore'].includes(intentRaw) ? intentRaw : 'auto'
+    ) as ScannerIntent
 
     if (!file) {
       return NextResponse.json({ error: 'Nessun file ricevuto.' }, { status: 400 })
@@ -93,39 +92,57 @@ export async function POST(req: NextRequest) {
 
     const buffer = await file.arrayBuffer()
     const buf = new Uint8Array(buffer)
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+    let capturedUsage: GeminiUsage | null = null
+    const onUsage = (u: GeminiUsage) => {
+      capturedUsage = u
+    }
+
+    const fireLogUsage = (kind: ScannerDocumentKind) => {
+      if (!user || !capturedUsage) return
+      logActivity(supabase, {
+        userId: user.id,
+        sedeId: null,
+        action: 'gemini.ocr',
+        entityType: 'document',
+        entityLabel: `${file.type} → ${kind}`,
+        metadata: {
+          inputTokens: capturedUsage.inputTokens,
+          outputTokens: capturedUsage.outputTokens,
+          totalTokens: capturedUsage.totalTokens,
+          estimatedCostUsd: capturedUsage.estimatedCostUsd,
+          model: GEMINI_MODEL,
+          operation: 'scanner_hub',
+          intent,
+        },
+      }).catch(() => {})
+    }
 
     if (intent === 'nuovo_fornitore') {
-      const inv = await ocrInvoice(buf, file.type)
-      return NextResponse.json({
-        intent,
-        ...invoiceToHub('supplier_card', inv),
-      })
+      const inv = await ocrInvoice(buf, file.type, undefined, { onUsage })
+      fireLogUsage('supplier_card')
+      return NextResponse.json({ intent, ...invoiceToHub('supplier_card', inv) })
     }
 
     if (intent === 'fattura') {
-      const inv = await ocrInvoice(buf, file.type)
-      return NextResponse.json({
-        intent,
-        ...invoiceToHub('fattura', inv),
-      })
+      const inv = await ocrInvoice(buf, file.type, undefined, { onUsage })
+      fireLogUsage('fattura')
+      return NextResponse.json({ intent, ...invoiceToHub('fattura', inv) })
     }
 
     if (intent === 'bolla') {
-      const inv = await ocrInvoice(buf, file.type)
-      return NextResponse.json({
-        intent,
-        ...invoiceToHub('ddt', inv),
-      })
+      const inv = await ocrInvoice(buf, file.type, undefined, { onUsage })
+      fireLogUsage('ddt')
+      return NextResponse.json({ intent, ...invoiceToHub('ddt', inv) })
     }
 
     // intent === 'auto'
-    const inv = await ocrInvoice(buf, file.type)
+    const inv = await ocrInvoice(buf, file.type, undefined, { onUsage })
     let textForKind = ''
     if (file.type === 'application/pdf') {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mod = await import('pdf-parse') as any
+        const mod = (await import('pdf-parse')) as any
         const pdfParse = mod.default ?? mod
         const pdfBuf = Buffer.from(buffer)
         const result = await pdfParse(pdfBuf)
@@ -136,16 +153,17 @@ export async function POST(req: NextRequest) {
     } else {
       textForKind = [inv.nome, inv.numero_fattura, inv.piva].filter(Boolean).join(' ')
     }
-    const kind = textForKind.length > 40
-      ? await classifyFromInvoiceText(openai, textForKind)
-      : 'unknown'
+    const kind =
+      textForKind.length > 40 ? await classifyFromInvoiceText(textForKind) : 'unknown'
     const resolvedKind: ScannerDocumentKind =
-      kind === 'unknown' && (inv.numero_fattura || inv.totale_iva_inclusa != null) ? 'fattura' : kind === 'unknown' ? 'fattura' : kind
+      kind === 'unknown' && (inv.numero_fattura || inv.totale_iva_inclusa != null)
+        ? 'fattura'
+        : kind === 'unknown'
+          ? 'fattura'
+          : kind
 
-    return NextResponse.json({
-      intent,
-      ...invoiceToHub(resolvedKind, inv),
-    })
+    fireLogUsage(resolvedKind)
+    return NextResponse.json({ intent, ...invoiceToHub(resolvedKind, inv) })
   } catch (err: unknown) {
     if (err instanceof OcrInvoiceConfigurationError) {
       return NextResponse.json({ error: err.message }, { status: 503 })

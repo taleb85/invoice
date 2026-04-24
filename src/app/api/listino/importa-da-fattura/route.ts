@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import OpenAI from 'openai'
+import { geminiGenerateText, geminiGenerateVision } from '@/lib/gemini-vision'
 
 export interface LineItem {
   prodotto: string
@@ -36,68 +36,14 @@ Rules:
 - prodotto: use the original language as written on the invoice; prefer the description text over the code.
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
-const VISION_MODEL = 'gpt-4o' as const
-
 async function extractPdfText(buffer: Buffer): Promise<string | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = await import('pdf-parse') as any
+    const mod = (await import('pdf-parse')) as any
     const pdfParse = mod.default ?? mod
     const result = await pdfParse(buffer)
     return result.text?.trim() || null
   } catch {
-    return null
-  }
-}
-
-/**
- * PDF scannerizzato o senza text layer: stesso approccio di `ocr-invoice` (prima pagina → JPEG, poi Files API).
- */
-async function extractLineItemsFromScannedPdf(openai: OpenAI, buf: Buffer): Promise<string | null> {
-  const { tryRasterizePdfFirstPageForVision } = await import('@/lib/ocr-invoice-vision-prepare')
-  const raster = await tryRasterizePdfFirstPageForVision(buf)
-  if (raster) {
-    try {
-      const imageUrl = `data:image/jpeg;base64,${raster.toString('base64')}`
-      const completion = await openai.chat.completions.create({
-        model: VISION_MODEL,
-        max_tokens: 1500,
-        temperature: 0,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
-              { type: 'text', text: SYSTEM_PROMPT },
-            ],
-          },
-        ],
-      })
-      const out = completion.choices[0]?.message?.content?.trim()
-      if (out) return out
-    } catch (err) {
-      console.warn('[listino] Vision su PDF rasterizzato fallita, fallback Files API:', err)
-    }
-  }
-
-  try {
-    const file = new File([new Uint8Array(buf)], 'document.pdf', { type: 'application/pdf' })
-    const uploaded = await openai.files.create({ file, purpose: 'user_data' })
-    const parts = [
-      { type: 'file' as const, file: { file_id: uploaded.id } },
-      { type: 'text' as const, text: SYSTEM_PROMPT },
-    ]
-    const completion = await openai.chat.completions.create({
-      model: VISION_MODEL,
-      max_tokens: 1500,
-      temperature: 0,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      messages: [{ role: 'user', content: parts as any }],
-    })
-    openai.files.delete(uploaded.id).catch(() => {})
-    return completion.choices[0]?.message?.content?.trim() ?? null
-  } catch (err) {
-    console.error('[listino] Files API / vision su PDF fallita:', err)
     return null
   }
 }
@@ -129,8 +75,8 @@ function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string 
 }
 
 export async function POST(req: NextRequest) {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: 'OPENAI_API_KEY non configurata.' }, { status: 503 })
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ error: 'GEMINI_API_KEY non configurata.' }, { status: 503 })
   }
 
   const authClient = await createClient()
@@ -170,26 +116,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Impossibile scaricare il file: ${String(err)}` }, { status: 502 })
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   let rawResponse: string
 
   if (contentType.includes('pdf')) {
     const text = await extractPdfText(fileBuffer)
     if (text) {
-      const snippet = text.slice(0, 6000)
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 1500,
-        temperature: 0,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: snippet },
-        ],
-      })
-      rawResponse = completion.choices[0]?.message?.content ?? ''
+      try {
+        const res = await geminiGenerateText(SYSTEM_PROMPT, text.slice(0, 6000), 1500)
+        rawResponse = res.text
+      } catch (err) {
+        console.error('[listino] Gemini error on PDF testo:', err)
+        return NextResponse.json({ error: 'Errore estrazione testo PDF.' }, { status: 500 })
+      }
     } else {
-      const visionOut = await extractLineItemsFromScannedPdf(openai, fileBuffer)
-      if (!visionOut) {
+      // Scanned PDF — send directly to Gemini vision
+      try {
+        const base64 = fileBuffer.toString('base64')
+        const res = await geminiGenerateVision(
+          SYSTEM_PROMPT,
+          'application/pdf',
+          base64,
+          SYSTEM_PROMPT,
+          1500,
+        )
+        rawResponse = res.text
+      } catch (err) {
+        console.error('[listino] Gemini vision error on scanned PDF:', err)
         return NextResponse.json(
           {
             error:
@@ -198,24 +150,16 @@ export async function POST(req: NextRequest) {
           { status: 422 },
         )
       }
-      rawResponse = visionOut
     }
   } else {
-    const base64   = fileBuffer.toString('base64')
-    const imageUrl = `data:${contentType};base64,${base64}`
-    const completion = await openai.chat.completions.create({
-      model: VISION_MODEL,
-      max_tokens: 1500,
-      temperature: 0,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
-          { type: 'text', text: SYSTEM_PROMPT },
-        ],
-      }],
-    })
-    rawResponse = completion.choices[0]?.message?.content ?? ''
+    try {
+      const base64 = fileBuffer.toString('base64')
+      const res = await geminiGenerateVision(SYSTEM_PROMPT, contentType, base64, SYSTEM_PROMPT, 1500)
+      rawResponse = res.text
+    } catch (err) {
+      console.error('[listino] Gemini vision error on image:', err)
+      return NextResponse.json({ error: 'Errore lettura immagine.' }, { status: 500 })
+    }
   }
 
   const { items, data_fattura } = parseLineItems(rawResponse)

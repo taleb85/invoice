@@ -1,7 +1,13 @@
-import OpenAI from 'openai'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parseAnyAmount } from '@/lib/ocr-amount'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import {
+  geminiGenerateText,
+  geminiGenerateVision,
+  GeminiConfigurationError,
+  GeminiTransientError,
+  type GeminiUsage,
+} from '@/lib/gemini-vision'
 
 export { normalizeTipoDocumento }
 
@@ -10,18 +16,18 @@ export { normalizeTipoDocumento }
    Alias fields (nome, piva, data) are kept for legacy consumers.
 ───────────────────────────────────────────────────────────── */
 export interface OcrResult {
-  ragione_sociale:    string | null
-  p_iva:              string | null
+  ragione_sociale: string | null
+  p_iva: string | null
   /** Supplier address (street, CAP, city) when visible on document */
-  indirizzo:          string | null
+  indirizzo: string | null
   /** Document date normalised to YYYY-MM-DD */
-  data_fattura:       string | null
-  numero_fattura:     string | null
+  data_fattura: string | null
+  numero_fattura: string | null
   /**
    * Model classification: delivery note vs tax invoice vs other commercial PDF.
    * Used by email scan to choose bolla vs fattura bozza without misrouting DDT numbers.
    */
-  tipo_documento:     'fattura' | 'bolla' | 'altro' | null
+  tipo_documento: 'fattura' | 'bolla' | 'altro' | null
   /** Total amount as a pure float (no currency symbols) */
   totale_iva_inclusa: number | null
 
@@ -37,8 +43,7 @@ export interface OcrResult {
   estrazione_utile?: boolean | null
 
   /**
-   * The original raw amount string as returned by GPT before numeric parsing.
-   * Useful for the UI to show "£1,234.56" and let the user verify the format.
+   * The original raw amount string as returned by Gemini before numeric parsing.
    */
   importo_raw?: string | null
   /**
@@ -56,54 +61,45 @@ export interface OcrResult {
 }
 
 export const EMPTY_OCR: OcrResult = {
-  ragione_sociale: null, p_iva: null, indirizzo: null, data_fattura: null,
-  numero_fattura: null, tipo_documento: null, totale_iva_inclusa: null,
-  note_corpo_mail: null, estrazione_utile: undefined,
-  importo_raw: null, formato_importo: null,
-  nome: null, piva: null, data: null,
+  ragione_sociale: null,
+  p_iva: null,
+  indirizzo: null,
+  data_fattura: null,
+  numero_fattura: null,
+  tipo_documento: null,
+  totale_iva_inclusa: null,
+  note_corpo_mail: null,
+  estrazione_utile: undefined,
+  importo_raw: null,
+  formato_importo: null,
+  nome: null,
+  piva: null,
+  data: null,
 }
 
-/** Lanciata quando `OPENAI_API_KEY` non è configurata (visibile in log / catch API). */
+/** Thrown when `GEMINI_API_KEY` is not configured. */
 export class OcrInvoiceConfigurationError extends Error {
   override name = 'OcrInvoiceConfigurationError'
-  constructor(message = 'OPENAI_API_KEY non configurata: impossibile eseguire l\'estrazione OCR.') {
+  constructor(
+    message = "GEMINI_API_KEY non configurata: impossibile eseguire l'estrazione OCR.",
+  ) {
     super(message)
   }
 }
 
 /**
- * Lanciata quando la chiamata OpenAI fallisce per un motivo transitorio
- * (timeout, rate-limit, errore 5xx). Consente al caller di distinguere
- * "nessun dato estratto" da "estrazione impossibile: riprova al prossimo ciclo".
+ * Thrown when the Gemini call fails for a transient reason
+ * (timeout, rate-limit, 5xx). Allows the caller to distinguish
+ * "no data extracted" from "extraction failed: retry next cycle".
  */
 export class OcrTransientError extends Error {
   override name = 'OcrTransientError'
-  constructor(message: string, public readonly cause: unknown) {
+  constructor(
+    message: string,
+    public readonly cause: unknown,
+  ) {
     super(message)
   }
-}
-
-/** Max milliseconds for a single OpenAI chat completion call.
- *  Prevents one blocked request from consuming the full Vercel function budget. */
-const OCR_TIMEOUT_MS = 45_000
-
-/** True for transient API failures that should be retried on the next scan cycle. */
-function isTransientOpenAiError(err: unknown): boolean {
-  if (!(err instanceof Error)) return false
-  const name = err.name ?? ''
-  // OpenAI SDK typed errors
-  if (name === 'APIConnectionTimeoutError' || name === 'APIConnectionError') return true
-  // HTTP status-based: 429 rate-limit, 5xx server errors
-  const status = (err as { status?: number }).status
-  if (status === 429 || (typeof status === 'number' && status >= 500)) return true
-  // Message-based fallback for network-level errors
-  const msg = err.message.toLowerCase()
-  return (
-    msg.includes('timeout') || msg.includes('timed out') ||
-    msg.includes('rate limit') || msg.includes('rate_limit') ||
-    msg.includes('econnreset') || msg.includes('socket hang up') ||
-    msg.includes('etimedout')
-  )
 }
 
 export type OcrInvoiceLogContext = {
@@ -114,7 +110,6 @@ export type OcrInvoiceLogContext = {
   fornitore_id?: string | null
   file_url?: string | null
   sede_id?: string | null
-  /** Idempotenza scan email (log_sincronizzazione.scan_attachment_fingerprint) */
   scanAttachmentFingerprint?: string | null
   imapUid?: number | null
 }
@@ -123,6 +118,8 @@ export type OcrInvoiceOptions = {
   logContext?: OcrInvoiceLogContext
   /** Plain-text email body: fiscal hints + note_corpo_mail extraction */
   emailBodyText?: string | null
+  /** Called with token-usage stats after each successful Gemini call. */
+  onUsage?: (usage: GeminiUsage) => void
 }
 
 /** @deprecated Use OcrResult */
@@ -132,12 +129,9 @@ export type OcrInvoiceResult = OcrResult
    Detect which decimal convention a raw amount string uses.
 ───────────────────────────────────────────────────────────── */
 function detectFormatoImporto(raw: string): 'dot' | 'comma' | 'plain' {
-  // Strip currency symbols and whitespace first
   const s = raw.replace(/[£€$¥₹CHF\s]/g, '').trim()
-  // Comma-decimal: e.g. "1.234,56" or "234,56"
   if (/\d,\d{1,2}$/.test(s) && !s.includes('.')) return 'comma'
   if (/\d\.\d{3},\d{2}$/.test(s)) return 'comma'
-  // Dot-decimal: e.g. "1,234.56" or "234.56"
   if (/\d\.\d{1,2}$/.test(s) && !s.includes(',')) return 'dot'
   if (/\d,\d{3}\.\d{2}$/.test(s)) return 'dot'
   return 'plain'
@@ -145,42 +139,6 @@ function detectFormatoImporto(raw: string): 'dot' | 'comma' | 'plain' {
 
 /** @deprecated Import from `@/lib/ocr-amount` (client-safe). */
 export { parseAnyAmount } from '@/lib/ocr-amount'
-
-const VISION_MODEL = 'gpt-4o' as const
-const TEXT_MODEL = 'gpt-4o-mini' as const
-
-const OCR_VISION_CONCURRENCY = Math.min(
-  8,
-  Math.max(1, Number(process.env.OCR_VISION_CONCURRENCY ?? '3') || 3),
-)
-
-function createConcurrencyPool(limit: number) {
-  let active = 0
-  const queue: Array<() => void> = []
-  const pump = () => {
-    while (active < limit && queue.length > 0) {
-      const run = queue.shift()!
-      active++
-      run()
-    }
-  }
-  return function runWithPool<T>(fn: () => Promise<T>): Promise<T> {
-    return new Promise((resolve, reject) => {
-      queue.push(() => {
-        fn()
-          .then(resolve, reject)
-          .finally(() => {
-            active--
-            pump()
-          })
-      })
-      pump()
-    })
-  }
-}
-
-const withVisionConcurrency = createConcurrencyPool(OCR_VISION_CONCURRENCY)
-
 
 /** Max chars of email body sent to the model (per request). */
 const EMAIL_BODY_MAX_CHARS = 8000
@@ -191,7 +149,6 @@ function truncateEmailBody(text: string): string {
   return `${t.slice(0, EMAIL_BODY_MAX_CHARS)}\n…[truncated]`
 }
 
-/** Appended to user messages when an email body accompanies a document. */
 function buildEmailBodyInstructionBlock(emailBodyText: string): string {
   return [
     '',
@@ -268,7 +225,7 @@ export function ocrBodyOnlyWorthInserting(ocr: OcrResult): boolean {
   )
 }
 
-/** True se l'estrazione da allegato (o da un primo passaggio) non ha prodotto dati utili. */
+/** True if the extraction produced nothing useful. */
 export function ocrExtractedNothingUseful(ocr: OcrResult): boolean {
   return !ocrBodyOnlyWorthInserting(ocr)
 }
@@ -300,13 +257,14 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
     const parsed = JSON.parse(match[0])
 
     const ragione_sociale = parsed.ragione_sociale ?? null
-    const p_iva           = parsed.p_iva ? String(parsed.p_iva).replace(/\D/g, '') || null : null
-    const indirizzo       = typeof parsed.indirizzo === 'string' && parsed.indirizzo.trim()
-      ? String(parsed.indirizzo).trim()
-      : null
-    const data_fattura    = parsed.data_fattura ?? null
-    const numero_fattura  = parsed.numero_fattura ? String(parsed.numero_fattura) : null
-    const tipo_documento  = normalizeTipoDocumento(parsed.tipo_documento)
+    const p_iva = parsed.p_iva ? String(parsed.p_iva).replace(/\D/g, '') || null : null
+    const indirizzo =
+      typeof parsed.indirizzo === 'string' && parsed.indirizzo.trim()
+        ? String(parsed.indirizzo).trim()
+        : null
+    const data_fattura = parsed.data_fattura ?? null
+    const numero_fattura = parsed.numero_fattura ? String(parsed.numero_fattura) : null
+    const tipo_documento = normalizeTipoDocumento(parsed.tipo_documento)
 
     const noteRaw = parsed.note_corpo_mail
     const note_corpo_mail =
@@ -316,21 +274,33 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
     if (typeof parsed.estrazione_utile === 'boolean') estrazione_utile = parsed.estrazione_utile
     else estrazione_utile = undefined
 
-    // totale_iva_inclusa may now be a raw string or a number
-    const rawTotale    = parsed.totale_iva_inclusa
-    const importo_raw  = rawTotale != null ? String(rawTotale) : null
+    const rawTotale = parsed.totale_iva_inclusa
+    const importo_raw = rawTotale != null ? String(rawTotale) : null
     const formato_importo = importo_raw ? detectFormatoImporto(importo_raw) : null
-    const totale_iva_inclusa = typeof rawTotale === 'number'
-      ? rawTotale
-      : importo_raw ? parseAnyAmount(importo_raw) : null
+    const totale_iva_inclusa =
+      typeof rawTotale === 'number'
+        ? rawTotale
+        : importo_raw
+          ? parseAnyAmount(importo_raw)
+          : null
 
     return {
       ok: true,
       result: {
-        ragione_sociale, p_iva, indirizzo, data_fattura, numero_fattura, tipo_documento,
-        totale_iva_inclusa, importo_raw, formato_importo,
-        note_corpo_mail, estrazione_utile,
-        nome: ragione_sociale, piva: p_iva, data: data_fattura,
+        ragione_sociale,
+        p_iva,
+        indirizzo,
+        data_fattura,
+        numero_fattura,
+        tipo_documento,
+        totale_iva_inclusa,
+        importo_raw,
+        formato_importo,
+        note_corpo_mail,
+        estrazione_utile,
+        nome: ragione_sociale,
+        piva: p_iva,
+        data: data_fattura,
       },
     }
   } catch (e) {
@@ -359,18 +329,20 @@ async function finalizeParseOutcome(
 
   if (logContext) {
     try {
-      await logContext.supabase.from('log_sincronizzazione').insert([{
-        mittente:         logContext.mittente || 'sconosciuto',
-        oggetto_mail:     logContext.oggetto_mail,
-        stato:            'bolla_non_trovata',
-        errore_dettaglio: detail,
-        fornitore_id:     logContext.fornitore_id ?? null,
-        file_url:         logContext.file_url ?? null,
-        sede_id:          logContext.sede_id ?? null,
-        allegato_nome:    logContext.file_name ?? null,
-        imap_uid:         logContext.imapUid ?? null,
-        scan_attachment_fingerprint: logContext.scanAttachmentFingerprint ?? null,
-      }])
+      await logContext.supabase.from('log_sincronizzazione').insert([
+        {
+          mittente: logContext.mittente || 'sconosciuto',
+          oggetto_mail: logContext.oggetto_mail,
+          stato: 'bolla_non_trovata',
+          errore_dettaglio: detail,
+          fornitore_id: logContext.fornitore_id ?? null,
+          file_url: logContext.file_url ?? null,
+          sede_id: logContext.sede_id ?? null,
+          allegato_nome: logContext.file_name ?? null,
+          imap_uid: logContext.imapUid ?? null,
+          scan_attachment_fingerprint: logContext.scanAttachmentFingerprint ?? null,
+        },
+      ])
     } catch (logErr) {
       console.error('[OCR] Scrittura log_sincronizzazione fallita:', logErr)
     }
@@ -385,7 +357,7 @@ async function finalizeParseOutcome(
 async function extractPdfText(buffer: Buffer): Promise<string | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = await import('pdf-parse') as any
+    const mod = (await import('pdf-parse')) as any
     const pdfParse = mod.default ?? mod
     const result = await pdfParse(buffer)
     return result.text?.trim() || null
@@ -394,85 +366,11 @@ async function extractPdfText(buffer: Buffer): Promise<string | null> {
   }
 }
 
-/** PDF scannerizzato: stesso approccio di ocr-statement (Files API + vision). */
-async function ocrInvoicePdfAsFile(
-  openai: OpenAI,
-  buf: Buffer,
-  systemPrompt: string,
-  logContext: OcrInvoiceLogContext | undefined,
-  emailBodyText?: string | null,
-): Promise<OcrResult> {
-  return withVisionConcurrency(async () => {
-    const textPrompt =
-      systemPrompt +
-      (emailBodyText?.trim() ? `\n${buildEmailBodyInstructionBlock(emailBodyText)}` : '')
-
-    const { tryRasterizePdfFirstPageForVision } = await import('@/lib/ocr-invoice-vision-prepare')
-    const raster = await tryRasterizePdfFirstPageForVision(buf)
-    if (raster) {
-      try {
-        const base64 = raster.toString('base64')
-        const imageUrl = `data:image/jpeg;base64,${base64}`
-        const response = await openai.chat.completions.create({
-          model: VISION_MODEL,
-          max_tokens: 550,
-          temperature: 0,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
-              { type: 'text', text: textPrompt },
-            ],
-          }],
-        }, { timeout: OCR_TIMEOUT_MS })
-        const raw = response.choices[0]?.message?.content ?? ''
-        const outcome = parseOcrJson(raw)
-        return finalizeParseOutcome(outcome, logContext)
-      } catch (err) {
-        if (isTransientOpenAiError(err)) {
-          throw new OcrTransientError(
-            `Vision PDF rasterizzato: ${err instanceof Error ? err.message : String(err)}`, err
-          )
-        }
-        console.error('[OCR] Vision su PDF rasterizzato fallita, fallback Files API:', err)
-      }
-    }
-
-    try {
-      const file = new File([new Uint8Array(buf)], 'document.pdf', { type: 'application/pdf' })
-      const uploaded = await openai.files.create({ file, purpose: 'user_data' })
-      const content = [
-        { type: 'file' as const, file: { file_id: uploaded.id } },
-        { type: 'text' as const, text: textPrompt },
-      ]
-      const response = await openai.chat.completions.create({
-        model: VISION_MODEL,
-        max_tokens: 500,
-        temperature: 0,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        messages: [{ role: 'user', content: content as any }],
-      }, { timeout: OCR_TIMEOUT_MS })
-      const raw = response.choices[0]?.message?.content ?? ''
-      const outcome = parseOcrJson(raw)
-      openai.files.delete(uploaded.id).catch(() => {})
-      return finalizeParseOutcome(outcome, logContext)
-    } catch (err) {
-      if (isTransientOpenAiError(err)) {
-        throw new OcrTransientError(
-          `Files API PDF: ${err instanceof Error ? err.message : String(err)}`, err
-        )
-      }
-      console.error('[OCR] Errore Files API / vision su PDF:', err)
-      return EMPTY_OCR
-    }
-  })
-}
-
 /* ─────────────────────────────────────────────────────────────
    Main OCR function
-   - PDF con testo → GPT testo (mini)
-   - PDF solo immagine → Files API + gpt-4o
-   - Immagine → vision gpt-4o
+   - PDF con testo → Gemini text
+   - PDF solo immagine → Gemini vision (PDF inline — nativo)
+   - Immagine → Gemini vision
 ───────────────────────────────────────────────────────────── */
 export async function ocrInvoice(
   buffer: Buffer | Uint8Array,
@@ -480,49 +378,66 @@ export async function ocrInvoice(
   languageHint?: string,
   options?: OcrInvoiceOptions,
 ): Promise<OcrResult> {
-  if (!process.env.OPENAI_API_KEY?.trim()) {
+  if (!process.env.GEMINI_API_KEY?.trim()) {
     const err = new OcrInvoiceConfigurationError()
     console.error(`[OCR] ${err.message}`)
     throw err
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const buf = Buffer.from(buffer)
   const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'with_attachment')
   const logContext = options?.logContext
   const emailBody = options?.emailBodyText
+  const onUsage = options?.onUsage
+
+  const textUserMsg = (text: string) => {
+    let msg = `Document text (extracted from PDF):\n${text.slice(0, 4000)}`
+    if (emailBody?.trim()) msg += `\n\n${buildEmailBodyInstructionBlock(emailBody)}`
+    return msg
+  }
+
+  const visionTextPrompt =
+    SYSTEM_PROMPT + (emailBody?.trim() ? `\n${buildEmailBodyInstructionBlock(emailBody)}` : '')
 
   if (contentType === 'application/pdf') {
     const text = await extractPdfText(buf)
+
     if (text) {
-      const snippet = text.slice(0, 4000)
-      let userMsg = `Document text (extracted from PDF):\n${snippet}`
-      if (emailBody?.trim()) userMsg += `\n\n${buildEmailBodyInstructionBlock(emailBody)}`
       try {
-        const response = await openai.chat.completions.create({
-          model: TEXT_MODEL,
-          max_tokens: 400,
-          temperature: 0,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user',   content: userMsg },
-          ],
-        }, { timeout: OCR_TIMEOUT_MS })
-        const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
+        const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 550)
+        onUsage?.(res.usage)
+        const outcome = parseOcrJson(res.text)
         return finalizeParseOutcome(outcome, logContext)
       } catch (err) {
-        if (isTransientOpenAiError(err)) {
-          throw new OcrTransientError(
-            `PDF testo: ${err instanceof Error ? err.message : String(err)}`, err
-          )
+        if (err instanceof GeminiTransientError) {
+          throw new OcrTransientError(`PDF testo: ${err.message}`, err)
         }
-        console.error('[OCR] GPT error on PDF testo:', err)
+        console.error('[OCR] Gemini error on PDF testo:', err)
         return EMPTY_OCR
       }
     }
 
-    console.warn('[OCR] PDF senza testo estraibile — fallback vision (gpt-4o + Files API)')
-    return ocrInvoicePdfAsFile(openai, buf, SYSTEM_PROMPT, logContext, emailBody)
+    // Scanned PDF — send directly to Gemini vision (handles PDF natively)
+    console.info('[OCR] PDF senza testo estraibile — invio diretto a Gemini vision')
+    try {
+      const base64 = buf.toString('base64')
+      const res = await geminiGenerateVision(
+        SYSTEM_PROMPT,
+        'application/pdf',
+        base64,
+        visionTextPrompt,
+        550,
+      )
+      onUsage?.(res.usage)
+      const outcome = parseOcrJson(res.text)
+      return finalizeParseOutcome(outcome, logContext)
+    } catch (err) {
+      if (err instanceof GeminiTransientError) {
+        throw new OcrTransientError(`PDF vision: ${err.message}`, err)
+      }
+      console.error('[OCR] Gemini vision error on PDF:', err)
+      return EMPTY_OCR
+    }
   }
 
   const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -531,41 +446,25 @@ export async function ocrInvoice(
     return EMPTY_OCR
   }
 
-  return withVisionConcurrency(async () => {
-    try {
-      const { prepareImageBufferForVision } = await import('@/lib/ocr-invoice-vision-prepare')
-      const { buffer: visionBuf, contentType: visionMime } = await prepareImageBufferForVision(buf, contentType)
-      const base64 = visionBuf.toString('base64')
-      const imageUrl = `data:${visionMime};base64,${base64}`
-
-      const visionText =
-        SYSTEM_PROMPT +
-        (emailBody?.trim() ? `\n${buildEmailBodyInstructionBlock(emailBody)}` : '')
-
-      const response = await openai.chat.completions.create({
-        model: VISION_MODEL,
-        max_tokens: 550,
-        temperature: 0,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
-            { type: 'text', text: visionText },
-          ],
-        }],
-      }, { timeout: OCR_TIMEOUT_MS })
-      const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
-      return finalizeParseOutcome(outcome, logContext)
-    } catch (err) {
-      if (isTransientOpenAiError(err)) {
-        throw new OcrTransientError(
-          `Vision immagine: ${err instanceof Error ? err.message : String(err)}`, err
-        )
-      }
-      console.error('[OCR] GPT error on image:', err)
-      return EMPTY_OCR
+  try {
+    const base64 = buf.toString('base64')
+    const res = await geminiGenerateVision(
+      SYSTEM_PROMPT,
+      contentType,
+      base64,
+      visionTextPrompt,
+      550,
+    )
+    onUsage?.(res.usage)
+    const outcome = parseOcrJson(res.text)
+    return finalizeParseOutcome(outcome, logContext)
+  } catch (err) {
+    if (err instanceof GeminiTransientError) {
+      throw new OcrTransientError(`Vision immagine: ${err.message}`, err)
     }
-  })
+    console.error('[OCR] Gemini error on image:', err)
+    return EMPTY_OCR
+  }
 }
 
 /**
@@ -577,7 +476,7 @@ export async function ocrInvoiceFromEmailBody(
   languageHint?: string,
   options?: OcrInvoiceOptions,
 ): Promise<OcrResult> {
-  if (!process.env.OPENAI_API_KEY?.trim()) {
+  if (!process.env.GEMINI_API_KEY?.trim()) {
     const err = new OcrInvoiceConfigurationError()
     console.error(`[OCR] ${err.message}`)
     throw err
@@ -586,29 +485,23 @@ export async function ocrInvoiceFromEmailBody(
   const trimmed = emailBody?.trim()
   if (!trimmed) return { ...EMPTY_OCR, estrazione_utile: false }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'email_body_only')
   const logContext = options?.logContext
 
   try {
-    const response = await openai.chat.completions.create({
-      model: TEXT_MODEL,
-      max_tokens: 450,
-      temperature: 0,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Email message to parse:\n\n${truncateEmailBody(trimmed)}` },
-      ],
-    }, { timeout: OCR_TIMEOUT_MS })
-    const outcome = parseOcrJson(response.choices[0]?.message?.content ?? '')
+    const res = await geminiGenerateText(
+      SYSTEM_PROMPT,
+      `Email message to parse:\n\n${truncateEmailBody(trimmed)}`,
+      450,
+    )
+    options?.onUsage?.(res.usage)
+    const outcome = parseOcrJson(res.text)
     return finalizeParseOutcome(outcome, logContext)
   } catch (err) {
-    if (isTransientOpenAiError(err)) {
-      throw new OcrTransientError(
-        `Email body: ${err instanceof Error ? err.message : String(err)}`, err
-      )
+    if (err instanceof GeminiTransientError) {
+      throw new OcrTransientError(`Email body: ${err.message}`, err)
     }
-    console.error('[OCR] GPT error on email-body-only parse:', err)
+    console.error('[OCR] Gemini error on email-body-only parse:', err)
     return EMPTY_OCR
   }
 }

@@ -1,5 +1,5 @@
 /**
- * GPT-based statement parser.
+ * Gemini-based statement parser.
  *
  * Given the raw text of a bank or supplier statement PDF/Excel, extracts
  * all invoice/transaction rows as { numero, importo, data }.
@@ -7,12 +7,12 @@
  * The prompt is intentionally separate from ocrInvoice — a statement is a
  * tabular document listing multiple transactions, not a single invoice.
  */
-import OpenAI from 'openai'
+import { geminiGenerateText, geminiGenerateVision } from '@/lib/gemini-vision'
 
 export interface StatementRow {
-  numero:  string          // document / invoice reference number
-  importo: number          // amount (always positive)
-  data:    string | null   // YYYY-MM-DD or null
+  numero: string // document / invoice reference number
+  importo: number // amount (always positive)
+  data: string | null // YYYY-MM-DD or null
 }
 
 /** Header / metadata read from the PDF (not from individual transaction lines). */
@@ -33,7 +33,9 @@ export interface StatementOcrResult {
 }
 
 /** Shape stored in `statements.extracted_pdf_dates` (jsonb). */
-export function extractedPdfDatesToJson(d: ExtractedPdfDates | null): Record<string, string | number> | null {
+export function extractedPdfDatesToJson(
+  d: ExtractedPdfDates | null,
+): Record<string, string | number> | null {
   if (!d) return null
   const o: Record<string, string | number> = {}
   if (d.issued_date) o.issued_date = d.issued_date
@@ -94,14 +96,17 @@ Rules:
 
 function buildStatementPrompt(languageHint?: string): string {
   if (!languageHint) return STATEMENT_PROMPT_BASE
-  return STATEMENT_PROMPT_BASE + `\n\nThe document is likely in ${languageHint.toUpperCase()}. Prioritise parsing conventions for that language.`
+  return (
+    STATEMENT_PROMPT_BASE +
+    `\n\nThe document is likely in ${languageHint.toUpperCase()}. Prioritise parsing conventions for that language.`
+  )
 }
 
-/** Extract plain text from a PDF buffer (reuses pdf-parse already in the project) */
+/** Extract plain text from a PDF buffer */
 async function extractPdfText(buffer: Buffer): Promise<string | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = await import('pdf-parse') as any
+    const mod = (await import('pdf-parse')) as any
     const pdfParse = mod.default ?? mod
     const result = await pdfParse(buffer)
     return result.text?.trim() || null
@@ -111,17 +116,17 @@ async function extractPdfText(buffer: Buffer): Promise<string | null> {
 }
 
 function toRows(arr: unknown[]): StatementRow[] {
-  return arr.flatMap(r => {
+  return arr.flatMap((r) => {
     const row = r as Record<string, unknown>
-    const numero  = row.numero  ? String(row.numero).trim() : null
-    const importo = row.importo !== null && row.importo !== undefined ? Number(row.importo) : NaN
-    const data    = row.data    ? String(row.data).trim() : null
+    const numero = row.numero ? String(row.numero).trim() : null
+    const importo =
+      row.importo !== null && row.importo !== undefined ? Number(row.importo) : NaN
+    const data = row.data ? String(row.data).trim() : null
     if (!numero || isNaN(importo) || importo <= 0) return []
     return [{ numero, importo, data: data ?? null }]
   })
 }
 
-/** Accepts YYYY-MM-DD only (strict). */
 function normalizeIsoDate(raw: unknown): string | null {
   if (raw === null || raw === undefined) return null
   const s = String(raw).trim()
@@ -129,7 +134,8 @@ function normalizeIsoDate(raw: unknown): string | null {
   const [y, m, d] = s.split('-').map(Number)
   if (m < 1 || m > 12 || d < 1 || d > 31) return null
   const dt = new Date(Date.UTC(y, m - 1, d))
-  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d)
+    return null
   return s
 }
 
@@ -156,15 +162,9 @@ function headerAmount(v: unknown): number | null {
 function parseDocumentHeader(obj: unknown): ExtractedPdfDates | null {
   if (!obj || typeof obj !== 'object') return null
   const h = obj as Record<string, unknown>
-  const issued =
-    normalizeIsoDate(h.issuedDate) ??
-    normalizeIsoDate(h.issued_date)
-  const lastPay =
-    normalizeIsoDate(h.lastPaymentDate) ??
-    normalizeIsoDate(h.last_payment_date)
-  const account_no = headerStr(
-    h.accountNo ?? h.account_no ?? h.accountNumber ?? h.account_number,
-  )
+  const issued = normalizeIsoDate(h.issuedDate) ?? normalizeIsoDate(h.issued_date)
+  const lastPay = normalizeIsoDate(h.lastPaymentDate) ?? normalizeIsoDate(h.last_payment_date)
+  const account_no = headerStr(h.accountNo ?? h.account_no ?? h.accountNumber ?? h.account_number)
   const credit_limit = headerStr(h.creditLimit ?? h.credit_limit)
   const available_credit = headerStr(h.availableCredit ?? h.available_credit)
   const payment_terms = headerStr(h.paymentTerms ?? h.payment_terms)
@@ -211,7 +211,6 @@ function parseJsonResponse(raw: string): StatementOcrResult {
   }
 }
 
-/** Fallback: GPT returned a bare array instead of { rows: [] } */
 function parseJsonArrayResponse(raw: string): StatementOcrResult {
   try {
     const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
@@ -225,7 +224,6 @@ function parseJsonArrayResponse(raw: string): StatementOcrResult {
   }
 }
 
-/** Prefer object shape; if rows only in bare array, keep header from object parse when present. */
 function mergeOcrParse(raw: string): StatementOcrResult {
   const fromObj = parseJsonResponse(raw)
   if (fromObj.rows.length) return fromObj
@@ -244,12 +242,11 @@ export async function ocrStatement(
   contentType: string,
   languageHint?: string,
 ): Promise<StatementOcrResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('[OCR-STMT] OPENAI_API_KEY not configured — skipping statement parsing')
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('[OCR-STMT] GEMINI_API_KEY not configured — skipping statement parsing')
     return { rows: [], extractedPdfDates: null }
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   const buf = Buffer.from(buffer)
   const SYSTEM_PROMPT = buildStatementPrompt(languageHint)
 
@@ -257,48 +254,28 @@ export async function ocrStatement(
     const text = await extractPdfText(buf)
 
     if (text) {
-      // Text-based PDF — fast path via text completion
-      const snippet = text.slice(0, 8000)
       try {
-        const response = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          max_tokens: 2500,
-          temperature: 0,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user',   content: snippet },
-          ],
-        })
-        const raw = response.choices[0]?.message?.content ?? ''
-        return mergeOcrParse(raw)
+        const res = await geminiGenerateText(SYSTEM_PROMPT, text.slice(0, 8000), 2500)
+        return mergeOcrParse(res.text)
       } catch (err) {
-        console.error('[OCR-STMT] Errore GPT su PDF testo:', err)
+        console.error('[OCR-STMT] Errore Gemini su PDF testo:', err)
         return { rows: [], extractedPdfDates: null }
       }
     }
 
-    // Image-based PDF (scanned/Excel-exported) — use OpenAI Files API
+    // Scanned/image-based PDF — send directly to Gemini vision
     try {
-      const file = new File([buf], 'statement.pdf', { type: 'application/pdf' })
-      const uploaded = await openai.files.create({ file, purpose: 'user_data' })
-      const content = [
-        { type: 'file' as const, file: { file_id: uploaded.id } },
-        { type: 'text' as const, text: SYSTEM_PROMPT },
-      ]
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 2500,
-        temperature: 0,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        messages: [{ role: 'user', content: content as any }],
-      })
-      const raw = response.choices[0]?.message?.content ?? ''
-      const out = mergeOcrParse(raw)
-      // Clean up the uploaded file
-      openai.files.delete(uploaded.id).catch(() => {})
-      return out
+      const base64 = buf.toString('base64')
+      const res = await geminiGenerateVision(
+        SYSTEM_PROMPT,
+        'application/pdf',
+        base64,
+        SYSTEM_PROMPT,
+        2500,
+      )
+      return mergeOcrParse(res.text)
     } catch (err) {
-      console.error('[OCR-STMT] Errore Files API su PDF:', err)
+      console.error('[OCR-STMT] Errore Gemini vision su PDF:', err)
       return { rows: [], extractedPdfDates: null }
     }
   }
@@ -306,24 +283,17 @@ export async function ocrStatement(
   const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
   if (imageTypes.includes(contentType)) {
     try {
-      const base64   = buf.toString('base64')
-      const imageUrl = `data:${contentType};base64,${base64}`
-      const response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        max_tokens: 2500,
-        temperature: 0,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
-            { type: 'text', text: SYSTEM_PROMPT },
-          ],
-        }],
-      })
-      const raw = response.choices[0]?.message?.content ?? ''
-      return mergeOcrParse(raw)
+      const base64 = buf.toString('base64')
+      const res = await geminiGenerateVision(
+        SYSTEM_PROMPT,
+        contentType,
+        base64,
+        SYSTEM_PROMPT,
+        2500,
+      )
+      return mergeOcrParse(res.text)
     } catch (err) {
-      console.error('[OCR-STMT] Errore GPT su immagine:', err)
+      console.error('[OCR-STMT] Errore Gemini su immagine:', err)
       return { rows: [], extractedPdfDates: null }
     }
   }

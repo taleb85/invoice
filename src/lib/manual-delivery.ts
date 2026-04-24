@@ -11,15 +11,13 @@
  * `triple-check.ts` è richiesta per un flusso coerente (confronto importi attivo quando la fattura arriva).
  */
 
-import OpenAI from 'openai'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { geminiGenerateText, geminiGenerateVision } from '@/lib/gemini-vision'
 import {
   runTripleCheck,
   type CheckSummary,
   type StatementLine,
 } from '@/lib/triple-check'
-
-const MODEL = 'gpt-4o-mini' as const
 
 /** Riga estratta dall’AI (JSON strutturato richiesto). */
 export interface ManualDeliveryLine {
@@ -140,59 +138,34 @@ export async function extractManualDeliveryLines(
   const hasImage = Boolean(imageBase64 && imageMimeType)
 
   if (!text && !hasImage) return null
-  if (!process.env.OPENAI_API_KEY) {
-    console.warn('[MANUAL-DELIVERY] OPENAI_API_KEY missing')
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn('[MANUAL-DELIVERY] GEMINI_API_KEY missing')
     return null
   }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-
   if (hasImage) {
-    const imageUrl = `data:${imageMimeType!};base64,${imageBase64!}`
     const system = buildPrompt(options?.languageHint) + VISION_SYSTEM_SUFFIX
-    const userContent: OpenAI.Chat.ChatCompletionContentPart[] = [
-      { type: 'image_url', image_url: { url: imageUrl, detail: 'high' } },
-      {
-        type: 'text',
-        text: text
-          ? `The user also wrote:\n${text}`
-          : 'Extract every delivered product line from this image.',
-      },
-    ]
+    const textPrompt = text
+      ? `The user also wrote:\n${text}`
+      : 'Extract every delivered product line from this image.'
     try {
-      const res = await openai.chat.completions.create({
-        model: MODEL,
-        max_tokens: 1200,
-        temperature: 0,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: userContent },
-        ],
-      })
-      const lines = parseAiRows(res.choices[0]?.message?.content ?? '')
+      const res = await geminiGenerateVision(system, imageMimeType!, imageBase64!, textPrompt, 1200)
+      const lines = parseAiRows(res.text)
       if (!lines.length) return null
       return { lines }
     } catch (e) {
-      console.error('[MANUAL-DELIVERY] OpenAI vision error:', e)
+      console.error('[MANUAL-DELIVERY] Gemini vision error:', e)
       return null
     }
   }
 
   try {
-    const res = await openai.chat.completions.create({
-      model: MODEL,
-      max_tokens: 800,
-      temperature: 0,
-      messages: [
-        { role: 'system', content: buildPrompt(options?.languageHint) },
-        { role: 'user', content: text },
-      ],
-    })
-    const lines = parseAiRows(res.choices[0]?.message?.content ?? '')
+    const res = await geminiGenerateText(buildPrompt(options?.languageHint), text, 800)
+    const lines = parseAiRows(res.text)
     if (!lines.length) return null
     return { lines }
   } catch (e) {
-    console.error('[MANUAL-DELIVERY] OpenAI error:', e)
+    console.error('[MANUAL-DELIVERY] Gemini error:', e)
     return null
   }
 }
@@ -250,8 +223,8 @@ export async function saveManualDigitalReceipt(
     imageMimeType?: string
   },
 ): Promise<SaveManualDigitalReceiptResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    return { ok: false, error: 'OPENAI_API_KEY non configurata.', code: 'NO_API_KEY' }
+  if (!process.env.GEMINI_API_KEY) {
+    return { ok: false, error: 'GEMINI_API_KEY non configurata.', code: 'NO_API_KEY' }
   }
 
   const parsed = await extractManualDeliveryLines(opts.userText, {

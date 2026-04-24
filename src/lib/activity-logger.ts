@@ -18,6 +18,7 @@ export type ActivityAction =
   | 'operatore.pin_changed'
   | 'email.synced'
   | 'price_anomaly.resolved'
+  | 'gemini.ocr'
 
 export async function logActivity(
   supabase: SupabaseClient,
@@ -67,6 +68,7 @@ export function activityLabel(action: ActivityAction): string {
     'operatore.pin_changed': 'PIN operatore cambiato',
     'email.synced': 'Email sincronizzata',
     'price_anomaly.resolved': 'Anomalia prezzo risolta',
+    'gemini.ocr': 'Documento elaborato con Gemini',
   }
   return labels[action] ?? action
 }
@@ -89,5 +91,6 @@ export function activityIcon(action: ActivityAction): string {
   if (action.startsWith('email')) return '📧'
   if (action.startsWith('price')) return '💰'
   if (action === 'duplicate.bulk_deleted') return '🗑️'
+  if (action === 'gemini.ocr') return '✨'
   return '🔧'
 }
