@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
-import { LOCALES } from '@/lib/translations'
+import { LOCALES, type Locale } from '@/lib/translations'
 import {
   branchSessionGateRequiredRole,
   isSessionOperatorGateOk,
@@ -16,6 +16,91 @@ import LoginBrandedHero from '@/components/LoginBrandedHero'
 import { PinNumpad } from '@/components/PinNumpad'
 
 type Message = { type: 'error' | 'success'; text: string }
+
+// ─── Avatar helpers ───────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  ['#22d3ee', '#0e7490'], // cyan
+  ['#a78bfa', '#6d28d9'], // violet
+  ['#34d399', '#065f46'], // emerald
+  ['#f472b6', '#9d174d'], // pink
+  ['#fb923c', '#92400e'], // orange
+  ['#60a5fa', '#1e3a8a'], // blue
+  ['#facc15', '#78350f'], // amber
+  ['#4ade80', '#14532d'], // green
+]
+
+function avatarColors(name: string): [string, string] {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length] as [string, string]
+}
+
+function initials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+interface SedeOperator { id: string; full_name: string }
+
+// ─── Netflix Avatar Grid ───────────────────────────────────────────────────────
+function AvatarGrid({
+  operators,
+  onSelect,
+  sedeNome,
+}: {
+  operators: SedeOperator[]
+  onSelect: (op: SedeOperator) => void
+  sedeNome: string | null
+}) {
+  return (
+    <div className="flex w-full flex-col items-center gap-6 py-4">
+      {sedeNome && (
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)]" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-app-fg-muted">{sedeNome}</p>
+        </div>
+      )}
+      <h2 className="text-center text-xl font-bold text-app-fg sm:text-2xl">Chi è di turno?</h2>
+      <div
+        className={`grid w-full gap-3 ${
+          operators.length <= 2 ? 'grid-cols-2' :
+          operators.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' :
+          'grid-cols-3 sm:grid-cols-4'
+        }`}
+      >
+        {operators.map((op) => {
+          const [fg, bg] = avatarColors(op.full_name)
+          const firstName = op.full_name.trim().split(/\s+/)[0] ?? op.full_name
+          return (
+            <button
+              key={op.id}
+              type="button"
+              onClick={() => onSelect(op)}
+              className="group flex flex-col items-center gap-2 rounded-2xl p-3 transition-all hover:bg-white/5 active:scale-95"
+            >
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold shadow-lg ring-2 ring-transparent transition-all group-hover:ring-4 sm:h-20 sm:w-20 sm:text-xl"
+                style={{
+                  background: `radial-gradient(circle at 35% 35%, ${fg}55, ${bg}cc)`,
+                  color: fg,
+                  boxShadow: `0 4px 20px ${bg}80, 0 0 0 2px transparent`,
+                  outline: `2px solid transparent`,
+                }}
+              >
+                {initials(op.full_name)}
+              </div>
+              <span className="max-w-full truncate text-center text-xs font-semibold text-app-fg sm:text-[13px]">
+                {firstName}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 const EMAIL_DOMAINS = [
   'gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com',
@@ -46,6 +131,14 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const [mode, setMode]     = useState<'name' | 'admin'>('name')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
+
+  /* ── Netflix avatar grid ────────────────────────────── */
+  /** 'idle' = not yet checked; 'loading' = fetching; 'grid' = show picker;
+   *  'pin' = operator chosen, waiting PIN; 'manual' = fallback name+PIN */
+  const [netflixStep, setNetflixStep] = useState<'idle' | 'loading' | 'grid' | 'pin' | 'manual'>('idle')
+  const [netflixOperators, setNetflixOperators] = useState<SedeOperator[]>([])
+  const [netflixSelected, setNetflixSelected] = useState<SedeOperator | null>(null)
+  const [netflixSedeName, setNetflixSedeName] = useState<string | null>(null)
 
   /* ── operatore ─────────────────────────────────────── */
   const [name, setName]         = useState('')
@@ -119,6 +212,64 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       /* storage non disponibile (es. navigazione privata) */
     }
   }, [])
+
+  /* ─── Netflix: carica operatori se sede-verified è presente ─────── */
+  useEffect(() => {
+    if (sessionGateNext) return // gate mode: show manual login
+    const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('sede-verified='))
+    if (!hasCookie) { setNetflixStep('manual'); return }
+
+    setNetflixStep('loading')
+    let active = true
+    fetch('/api/sede-operators')
+      .then(r => r.ok ? r.json() : { operators: [] })
+      .then((data: { operators?: SedeOperator[]; sede_id?: string }) => {
+        if (!active) return
+        const ops = data.operators ?? []
+        if (ops.length === 0) { setNetflixStep('manual'); return }
+        setNetflixOperators(ops)
+        // Get sede name from remembered storage
+        try {
+          const stored = localStorage.getItem('fluxo-last-sede-nome')
+          if (stored) setNetflixSedeName(stored)
+        } catch { /* ignore */ }
+        setNetflixStep('grid')
+      })
+      .catch(() => { if (active) setNetflixStep('manual') })
+    return () => { active = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /* ─── Netflix: avatar selezionato → lookup nome → mostra PIN ─────── */
+  const handleNetflixSelect = useCallback(async (op: SedeOperator) => {
+    setNetflixSelected(op)
+    setNetflixStep('pin')
+    setPin(Array(PIN_LENGTH).fill(''))
+    setMessage(null)
+    // Pre-lookup the email so PIN entry can start immediately
+    const token = normalizeOperatorLoginName(op.full_name)
+    if (!token) return
+    setLookingUp(true)
+    try {
+      const res = await fetch('/api/lookup-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: token }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        resolvedEmail.current = data.email ?? null
+        setSedeNome(data.sede_nome ?? null)
+        setNameReady(true)
+      } else {
+        setMessage({ type: 'error', text: 'Operatore non trovato. Accedi manualmente.' })
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Errore di rete. Riprova.' })
+    } finally {
+      setLookingUp(false)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ─── login operatore ─────────────────────────────── */
   const doLoginByName = useCallback(async (internalEmail: string, pinStr: string) => {
@@ -564,6 +715,182 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     )
   }
 
+  // ── Netflix loading spinner ──
+  if (netflixStep === 'loading' || netflixStep === 'idle') {
+    return (
+      <div className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
+        <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
+      </div>
+    )
+  }
+
+  // ── Netflix: avatar grid ──
+  if (netflixStep === 'grid') {
+    return (
+      <div className="w-full">
+        <AvatarGrid
+          operators={netflixOperators}
+          onSelect={handleNetflixSelect}
+          sedeNome={netflixSedeName}
+        />
+        <div className="mt-4 flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={() => { setNetflixStep('manual'); setMode('name') }}
+            className="text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
+          >
+            Non trovi il tuo nome? Accedi manualmente →
+          </button>
+          <button
+            type="button"
+            onClick={() => { setNetflixStep('manual'); setMode('admin') }}
+            className="text-[11px] text-app-fg-muted/60 transition-colors hover:text-app-fg-muted"
+          >
+            {t.login.adminLink}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Netflix: PIN step ──
+  if (netflixStep === 'pin' && netflixSelected) {
+    const [fg, bg] = avatarColors(netflixSelected.full_name)
+    const firstName = netflixSelected.full_name.trim().split(/\s+/)[0] ?? netflixSelected.full_name
+    return (
+      <div className="w-full">
+        <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
+          <div className="app-card-bar" aria-hidden />
+          <div className="flex flex-col items-center gap-5 p-6 text-center">
+
+            {/* Avatar selezionato */}
+            <div className="flex flex-col items-center gap-2">
+              <div
+                className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold ring-2"
+                style={{
+                  background: `radial-gradient(circle at 35% 35%, ${fg}55, ${bg}cc)`,
+                  color: fg,
+                  boxShadow: `0 4px 28px ${bg}80, 0 0 0 2px ${fg}55`,
+                }}
+              >
+                {initials(netflixSelected.full_name)}
+              </div>
+              <p className="text-base font-bold text-app-fg">{firstName}</p>
+              {lookingUp && (
+                <span className="flex items-center gap-1.5 text-xs text-app-fg-muted">
+                  <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  Verifica in corso…
+                </span>
+              )}
+            </div>
+
+            {/* PIN */}
+            <div className="w-full text-center">
+              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
+                {t.login.pinLabel}
+                <span className="font-normal normal-case"> {t.login.pinDigits}</span>
+              </label>
+              <div
+                className="flex justify-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-2 py-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:gap-3 sm:px-3 sm:py-3"
+                onPaste={handlePinPaste}
+              >
+                {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
+                  <input
+                    key={idx}
+                    ref={el => { pinRefs.current[idx] = el }}
+                    type="password"
+                    name={`fluxo-access-segment-${idx}`}
+                    autoComplete="off"
+                    inputMode="none"
+                    maxLength={2}
+                    value={pin[idx]}
+                    onChange={e => handlePinChange(idx, e.target.value)}
+                    onKeyDown={e => handlePinKeyDown(idx, e)}
+                    disabled={loading || lookingUp}
+                    className={[
+                      'h-12 w-12 rounded-xl border-2 text-center text-lg font-bold transition-all sm:h-14 sm:w-14 sm:text-xl',
+                      'focus:outline-none focus:ring-2 focus:ring-cyan-500/30',
+                      loading || lookingUp
+                        ? 'border-slate-700 bg-slate-800/50 text-app-fg-muted'
+                        : pin[idx]
+                          ? 'border-cyan-500/70 bg-slate-800/60 text-app-fg shadow-sm shadow-cyan-500/10'
+                          : 'border-slate-600 bg-slate-800/50 text-app-fg hover:border-slate-500 focus:border-cyan-500',
+                    ].join(' ')}
+                  />
+                ))}
+              </div>
+
+              {/* Progress dots */}
+              <div className="mt-3 flex justify-center gap-2">
+                {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                  <span key={i} className={[
+                    'w-1.5 h-1.5 rounded-full transition-all duration-200',
+                    pin[i] ? 'bg-app-cyan-400 scale-110 shadow-[0_0_6px_rgba(34,211,238,0.6)]' : 'bg-cyan-950/55',
+                  ].join(' ')} />
+                ))}
+              </div>
+
+              {/* Numpad — mobile */}
+              <div className="mt-4 md:hidden">
+                {loading ? (
+                  <div className="flex justify-center py-6">
+                    <svg className="h-8 w-8 animate-spin text-app-cyan-500" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                  </div>
+                ) : (
+                  <PinNumpad
+                    onDigit={pressNumpadDigit}
+                    onBackspace={numpadBackspace}
+                    onClear={numpadClear}
+                    disabled={loading || lookingUp}
+                  />
+                )}
+              </div>
+
+              {(pin.join('').length === PIN_LENGTH || loading) && (
+                <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-blue-500">
+                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                  {loading ? t.login.verifying : t.login.accessing}
+                </p>
+              )}
+            </div>
+
+            {message && <FeedbackMsg msg={message} />}
+
+            <button
+              type="button"
+              onClick={() => {
+                setNetflixStep('grid')
+                setNetflixSelected(null)
+                setPin(Array(PIN_LENGTH).fill(''))
+                setMessage(null)
+                setNameReady(false)
+                resolvedEmail.current = null
+              }}
+              className="text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
+            >
+              ← Cambia operatore
+            </button>
+          </div>
+
+          {/* Footer lingua */}
+          <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/[0.08] bg-white/[0.03] px-4 py-2.5">
+            <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full">
 
@@ -907,105 +1234,146 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             sessionGateNext ? 'justify-center' : 'justify-between'
           }`}
         >
-          {!sessionGateNext &&
-            (mode === 'name' ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('admin')
-                  setMessage(null)
-                  setName('')
-                  setSedeNome(null)
-                  setNameReady(false)
-                  resolvedEmail.current = null
-                  setPin(Array(PIN_LENGTH).fill(''))
-                  setEmail('')
-                  setAdminPw('')
-                  setSuggestions([])
-                  setShowSugg(false)
-                }}
-                className="min-w-0 shrink text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
-              >
-                {t.login.adminLink}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('name')
-                  setMessage(null)
-                  setEmail('')
-                  setAdminPw('')
-                  setSuggestions([])
-                  setShowSugg(false)
-                  setName('')
-                  setSedeNome(null)
-                  setNameReady(false)
-                  resolvedEmail.current = null
-                  setPin(Array(PIN_LENGTH).fill(''))
-                }}
-                className="min-w-0 shrink text-left text-[11px] text-app-fg-muted/80 transition-colors hover:text-app-fg"
-              >
-                {t.login.operatorLink}
-              </button>
-            ))}
+          {!sessionGateNext && (
+            <div className="flex min-w-0 shrink flex-col gap-0.5">
+              {/* Back to Netflix grid if operators are loaded */}
+              {netflixOperators.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNetflixStep('grid')
+                    setMode('name')
+                    setName('')
+                    setSedeNome(null)
+                    setNameReady(false)
+                    resolvedEmail.current = null
+                    setPin(Array(PIN_LENGTH).fill(''))
+                    setMessage(null)
+                  }}
+                  className="text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
+                >
+                  ← Scegli operatore
+                </button>
+              )}
+              {mode === 'name' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('admin')
+                    setMessage(null)
+                    setName('')
+                    setSedeNome(null)
+                    setNameReady(false)
+                    resolvedEmail.current = null
+                    setPin(Array(PIN_LENGTH).fill(''))
+                    setEmail('')
+                    setAdminPw('')
+                    setSuggestions([])
+                    setShowSugg(false)
+                  }}
+                  className="text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
+                >
+                  {t.login.adminLink}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('name')
+                    setMessage(null)
+                    setEmail('')
+                    setAdminPw('')
+                    setSuggestions([])
+                    setShowSugg(false)
+                    setName('')
+                    setSedeNome(null)
+                    setNameReady(false)
+                    resolvedEmail.current = null
+                    setPin(Array(PIN_LENGTH).fill(''))
+                  }}
+                  className="text-left text-[11px] text-app-fg-muted/80 transition-colors hover:text-app-fg"
+                >
+                  {t.login.operatorLink}
+                </button>
+              )}
+            </div>
+          )}
 
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setLangOpen(o => !o)}
-              className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11px] text-app-fg-muted transition-colors hover:bg-white/5 hover:text-app-fg"
-              aria-expanded={langOpen}
-              aria-haspopup="listbox"
-            >
-              <span className="text-base leading-none">{LOCALES.find(l => l.code === locale)?.flag}</span>
-              <span className="max-w-[5.5rem] truncate text-left font-medium">
-                {LOCALES.find(l => l.code === locale)?.label}
-              </span>
-              <svg
-                className={`h-2.5 w-2.5 shrink-0 transition-transform ${langOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {langOpen && (
-              <div
-                className={`absolute bottom-full z-50 mb-1 w-40 overflow-hidden rounded-xl border border-app-line-25 app-workspace-surface-elevated shadow-[0_12px_32px_-8px_rgba(0,0,0,0.45),0_0_24px_-10px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-white/10 backdrop-blur-xl ${
-                  sessionGateNext ? 'left-1/2 right-auto -translate-x-1/2' : 'right-0'
-                }`}
-                role="listbox"
-              >
-                {LOCALES.map(l => (
-                  <button
-                    key={l.code}
-                    type="button"
-                    onClick={() => {
-                      setLocale(l.code)
-                      setLangOpen(false)
-                    }}
-                    className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[11px] font-medium transition-colors ${
-                      locale === l.code
-                        ? 'bg-app-line-18 text-app-fg'
-                        : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
-                    }`}
-                  >
-                    <span className="text-sm">{l.flag}</span>
-                    <span>{l.label}</span>
-                    {locale === l.code && (
-                      <svg className="ml-auto h-3 w-3 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} sessionGateNext={sessionGateNext} />
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── LangPicker sub-component ─────────────────────────────────────────────────
+function LangPicker({
+  locale,
+  setLocale,
+  langOpen,
+  setLangOpen,
+  sessionGateNext,
+}: {
+  locale: Locale
+  setLocale: (l: Locale) => void
+  langOpen: boolean
+  setLangOpen: (v: boolean | ((o: boolean) => boolean)) => void
+  sessionGateNext?: string
+}) {
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setLangOpen(o => !o)}
+        className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-[11px] text-app-fg-muted transition-colors hover:bg-white/5 hover:text-app-fg"
+        aria-expanded={langOpen}
+        aria-haspopup="listbox"
+      >
+        <span className="text-base leading-none">{LOCALES.find(l => l.code === locale)?.flag}</span>
+        <span className="max-w-[5.5rem] truncate text-left font-medium">
+          {LOCALES.find(l => l.code === locale)?.label}
+        </span>
+        <svg
+          className={`h-2.5 w-2.5 shrink-0 transition-transform ${langOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {langOpen && (
+        <div
+          className={`absolute bottom-full z-50 mb-1 w-40 overflow-hidden rounded-xl border border-app-line-25 app-workspace-surface-elevated shadow-[0_12px_32px_-8px_rgba(0,0,0,0.45),0_0_24px_-10px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-white/10 backdrop-blur-xl ${
+            sessionGateNext ? 'left-1/2 right-auto -translate-x-1/2' : 'right-0'
+          }`}
+          role="listbox"
+        >
+          {LOCALES.map(l => (
+            <button
+              key={l.code}
+              type="button"
+              onClick={() => {
+                setLocale(l.code as Locale)
+                setLangOpen(false)
+              }}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[11px] font-medium transition-colors ${
+                locale === l.code
+                  ? 'bg-app-line-18 text-app-fg'
+                  : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
+              }`}
+            >
+              <span className="text-sm">{l.flag}</span>
+              <span>{l.label}</span>
+              {locale === l.code && (
+                <svg className="ml-auto h-3 w-3 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
