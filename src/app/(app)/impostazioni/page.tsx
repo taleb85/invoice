@@ -34,7 +34,7 @@ function ProfileMobileHub() {
   const showPickSedeForOperators = masterPlane && !sedeId
 
   const rowCls =
-    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-inset-bg-soft px-3 py-3 text-sm font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-a-40 hover:bg-black/12 active:scale-[0.99]'
+    'flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg border border-app-line-25 app-workspace-inset-bg-soft px-3 py-3 text-sm font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-sm transition-colors hover:border-app-a-45 hover:bg-black/12 active:scale-[0.99]'
 
   const handleLogout = async () => {
     try {
@@ -51,8 +51,7 @@ function ProfileMobileHub() {
 
   return (
     <div className="app-card overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
-      <div className="space-y-3 border-t border-app-line-15 app-workspace-inset-bg-soft p-3 sm:p-4">
+      <div className="space-y-3 app-workspace-inset-bg-soft p-3 sm:p-4">
       {showOperatorForm && sedeId ? <SedeAddOperatorForm sedeId={sedeId} embedded /> : null}
       {showPickSedeForOperators ? (
         <div className="space-y-2">
@@ -127,8 +126,7 @@ function ImapConfigCard() {
 
   return (
     <div className="app-card overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
-      <div className="flex items-start gap-4 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
+      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
           <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -167,8 +165,7 @@ function NotificationSettings() {
 
   return (
     <div className="app-card overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
-      <div className="flex items-center justify-between gap-3 border-t border-app-line-15 app-workspace-inset-bg-soft p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3 app-workspace-inset-bg-soft p-4 sm:p-5">
         <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
             <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -359,8 +356,7 @@ export default function ImpostazioniPage() {
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
-          <div className="space-y-5 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
+          <div className="space-y-5 app-workspace-inset-bg-soft p-5">
           <FormBody />
           {saved && (
             <div className="flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
@@ -379,8 +375,7 @@ export default function ImpostazioniPage() {
         <NotificationSettings />
         {canManageDuplicates && (
           <div className="app-card overflow-hidden">
-            <div className="app-card-bar" aria-hidden />
-            <div className="flex items-start gap-4 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
+            <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
                 <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -413,7 +408,6 @@ export default function ImpostazioniPage() {
       <div className="hidden min-h-0 w-full flex-1 flex-col md:flex">
         <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 lg:px-8">
           <div className="app-card overflow-hidden">
-            <div className="app-card-bar" aria-hidden />
             <div className="border-b border-app-line-30 px-6 py-5 sm:px-8">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
@@ -466,8 +460,7 @@ export default function ImpostazioniPage() {
           </div>
           {canManageDuplicates && (
             <div className="mt-4 app-card overflow-hidden">
-              <div className="app-card-bar" aria-hidden />
-              <div className="flex items-start gap-4 border-t border-app-line-15 app-workspace-inset-bg-soft p-5">
+              <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
                   <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
