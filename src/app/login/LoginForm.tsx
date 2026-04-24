@@ -45,6 +45,62 @@ function initials(fullName: string): string {
 interface SedeOperator { id: string; full_name: string }
 
 // ─── Netflix Avatar Grid ───────────────────────────────────────────────────────
+
+function AvatarCard({
+  op,
+  onSelect,
+}: {
+  op: SedeOperator
+  onSelect: (op: SedeOperator) => void
+}) {
+  const [hovered, setHovered] = useState(false)
+  const [fg, bg] = avatarColors(op.full_name)
+  const firstName = op.full_name.trim().split(/\s+/)[0] ?? op.full_name
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(op)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      className="flex flex-col items-center gap-3 rounded-2xl p-3 outline-none transition-colors duration-150 hover:bg-white/[0.06] active:scale-95 sm:p-4"
+      style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+    >
+      {/* Avatar circle — 120 px */}
+      <div
+        className="flex shrink-0 items-center justify-center rounded-full font-bold"
+        style={{
+          width: '7.5rem',
+          height: '7.5rem',
+          fontSize: '2.1rem',
+          background: `radial-gradient(circle at 35% 35%, ${fg}50, ${bg}d0)`,
+          color: fg,
+          boxShadow: hovered
+            ? `0 10px 40px ${bg}99, 0 0 0 3px ${fg}60, 0 0 28px ${fg}18`
+            : `0 4px 22px ${bg}70`,
+          transform: hovered ? 'scale(1.08)' : 'scale(1)',
+          transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
+        }}
+      >
+        {initials(op.full_name)}
+      </div>
+
+      {/* Name */}
+      <span
+        className="max-w-full truncate text-center text-sm font-semibold sm:text-[0.9375rem]"
+        style={{
+          color: hovered ? fg : 'var(--color-app-fg, #e2e8f0)',
+          transition: 'color 0.15s ease',
+        }}
+      >
+        {firstName}
+      </span>
+    </button>
+  )
+}
+
 function AvatarGrid({
   operators,
   onSelect,
@@ -54,49 +110,36 @@ function AvatarGrid({
   onSelect: (op: SedeOperator) => void
   sedeNome: string | null
 }) {
+  const gridCols =
+    operators.length <= 2
+      ? 'grid-cols-2'
+      : operators.length === 3
+        ? 'grid-cols-3'
+        : operators.length <= 6
+          ? 'grid-cols-2 sm:grid-cols-3'
+          : 'grid-cols-2 sm:grid-cols-4'
+
   return (
-    <div className="flex w-full flex-col items-center gap-6 py-4">
+    <div className="flex w-full flex-col items-center gap-7 py-4">
+      {/* Sede badge */}
       {sedeNome && (
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)]" />
           <p className="text-xs font-semibold uppercase tracking-widest text-app-fg-muted">{sedeNome}</p>
         </div>
       )}
-      <h2 className="text-center text-xl font-bold text-app-fg sm:text-2xl">Chi è di turno?</h2>
-      <div
-        className={`grid w-full gap-3 ${
-          operators.length <= 2 ? 'grid-cols-2' :
-          operators.length <= 4 ? 'grid-cols-2 sm:grid-cols-4' :
-          'grid-cols-3 sm:grid-cols-4'
-        }`}
-      >
-        {operators.map((op) => {
-          const [fg, bg] = avatarColors(op.full_name)
-          const firstName = op.full_name.trim().split(/\s+/)[0] ?? op.full_name
-          return (
-            <button
-              key={op.id}
-              type="button"
-              onClick={() => onSelect(op)}
-              className="group flex flex-col items-center gap-2 rounded-2xl p-3 transition-all hover:bg-white/5 active:scale-95"
-            >
-              <div
-                className="flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold shadow-lg ring-2 ring-transparent transition-all group-hover:ring-4 sm:h-20 sm:w-20 sm:text-xl"
-                style={{
-                  background: `radial-gradient(circle at 35% 35%, ${fg}55, ${bg}cc)`,
-                  color: fg,
-                  boxShadow: `0 4px 20px ${bg}80, 0 0 0 2px transparent`,
-                  outline: `2px solid transparent`,
-                }}
-              >
-                {initials(op.full_name)}
-              </div>
-              <span className="max-w-full truncate text-center text-xs font-semibold text-app-fg sm:text-[13px]">
-                {firstName}
-              </span>
-            </button>
-          )
-        })}
+
+      {/* Title + subtitle */}
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <h2 className="text-2xl font-bold text-app-fg sm:text-3xl">Chi è di turno?</h2>
+        <p className="text-xs text-app-fg-muted/75">Tocca il tuo nome per accedere</p>
+      </div>
+
+      {/* Grid */}
+      <div className={`grid w-full gap-2 sm:gap-4 ${gridCols}`}>
+        {operators.map((op) => (
+          <AvatarCard key={op.id} op={op} onSelect={onSelect} />
+        ))}
       </div>
     </div>
   )
@@ -729,26 +772,36 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   if (netflixStep === 'grid') {
     return (
       <div className="w-full">
-        <AvatarGrid
-          operators={netflixOperators}
-          onSelect={handleNetflixSelect}
-          sedeNome={netflixSedeName}
-        />
-        <div className="mt-4 flex flex-col items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { setNetflixStep('manual'); setMode('name') }}
-            className="text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
-          >
-            Non trovi il tuo nome? Accedi manualmente →
-          </button>
-          <button
-            type="button"
-            onClick={() => { setNetflixStep('manual'); setMode('admin') }}
-            className="text-[11px] text-app-fg-muted/60 transition-colors hover:text-app-fg-muted"
-          >
-            {t.login.adminLink}
-          </button>
+        {/* Card wrapper: same dark glass look as the PIN card */}
+        <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
+          <div className="app-card-bar" aria-hidden />
+          <div className="px-4 pb-2 pt-4 sm:px-6">
+            <AvatarGrid
+              operators={netflixOperators}
+              onSelect={handleNetflixSelect}
+              sedeNome={netflixSedeName}
+            />
+          </div>
+          {/* Footer links */}
+          <div className="flex items-center justify-between gap-3 border-t border-white/[0.08] bg-white/[0.03] px-4 py-3">
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => { setNetflixStep('manual'); setMode('name') }}
+                className="text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
+              >
+                Non trovi il tuo nome? Accedi manualmente →
+              </button>
+              <button
+                type="button"
+                onClick={() => { setNetflixStep('manual'); setMode('admin') }}
+                className="text-left text-[11px] text-app-fg-muted/60 transition-colors hover:text-app-fg-muted"
+              >
+                {t.login.adminLink}
+              </button>
+            </div>
+            <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
+          </div>
         </div>
       </div>
     )
@@ -765,13 +818,16 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           <div className="flex flex-col items-center gap-5 p-6 text-center">
 
             {/* Avatar selezionato */}
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-3">
               <div
-                className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold ring-2"
+                className="flex items-center justify-center rounded-full font-bold"
                 style={{
-                  background: `radial-gradient(circle at 35% 35%, ${fg}55, ${bg}cc)`,
+                  width: '6.5rem',
+                  height: '6.5rem',
+                  fontSize: '2rem',
+                  background: `radial-gradient(circle at 35% 35%, ${fg}50, ${bg}d0)`,
                   color: fg,
-                  boxShadow: `0 4px 28px ${bg}80, 0 0 0 2px ${fg}55`,
+                  boxShadow: `0 8px 36px ${bg}90, 0 0 0 3px ${fg}55`,
                 }}
               >
                 {initials(netflixSelected.full_name)}
