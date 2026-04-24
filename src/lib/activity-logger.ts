@@ -17,6 +17,7 @@ export type ActivityAction =
   | 'operatore.created'
   | 'operatore.pin_changed'
   | 'email.synced'
+  | 'email.scan.prefiltro'
   | 'price_anomaly.resolved'
   | 'gemini.ocr'
 
@@ -67,6 +68,7 @@ export function activityLabel(action: ActivityAction): string {
     'operatore.created': 'Operatore creato',
     'operatore.pin_changed': 'PIN operatore cambiato',
     'email.synced': 'Email sincronizzata',
+    'email.scan.prefiltro': 'Scansione email — pre-filtro',
     'price_anomaly.resolved': 'Anomalia prezzo risolta',
     'gemini.ocr': 'Documento elaborato con Gemini',
   }

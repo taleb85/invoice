@@ -674,6 +674,35 @@ async function runOcrForEmail(
   }
 }
 
+// ── Pre-filtro oggetto email ──────────────────────────────────────────────────
+// Parole chiave che indicano un documento fiscale/commerciale nell'oggetto.
+// Le email da mittenti sconosciuti senza allegati che NON contengono queste
+// parole vengono scartate PRIMA di chiamare Gemini → risparmio token 60-80%.
+const FISCAL_SUBJECT_KEYWORDS = [
+  // Italiano
+  'fattura', 'fatt.', ' ft.', 'ft ', 'ddt', 'bolla', 'bolle', 'consegna',
+  'ordine', 'pagamento', 'nota credito', 'nota di credito', 'rimessa',
+  'acquisto', 'spedizione', 'documento fiscale', 'ricevuta', 'preventivo',
+  'pro forma', 'proforma', 'estratto conto', 'listino', 'fornitore',
+  // English
+  'invoice', 'inv.', ' inv ', 'delivery', 'receipt', 'order', 'payment',
+  'shipment', 'statement', 'credit note', 'purchase', 'quotation', 'p.o.',
+  'purchase order', 'remittance', 'dispatch',
+  // Francese / Tedesco / Spagnolo (fornitori internazionali comuni in Italia)
+  'facture', 'rechnung', 'factura', 'bon de livraison', 'lieferschein',
+  'aviso de pago', 'albarán',
+]
+
+/**
+ * Ritorna true se l'oggetto dell'email contiene almeno una parola chiave
+ * che suggerisce un documento fiscale/commerciale.
+ */
+function subjectLooksFiscal(subject: string | null | undefined): boolean {
+  if (!subject) return false
+  const low = subject.toLowerCase()
+  return FISCAL_SUBJECT_KEYWORDS.some(kw => low.includes(kw))
+}
+
 type ProcessEmailsOptions = {
   onAttachmentProgress?: (p: { attachmentsProcessed: number; attachmentsTotal: number }) => void
   /** Chiamato quando tutte le unità (allegati / corpo) di un messaggio IMAP sono state elaborate. */
@@ -698,10 +727,13 @@ async function processEmails(
   attachmentsProcessed: number
   /** Unità (allegato o corpo) già chiuse in `log_sincronizzazione` — nessun nuovo insert. */
   skippedAlreadyCompleted: number
+  /** Email scartate dal pre-filtro (mittente sconosciuto + oggetto non fiscale) prima di chiamare Gemini. */
+  preFiltered: number
 }> {
   let ricevuti = 0
   let ignorate = 0
   let skippedAlreadyCompleted = 0
+  let preFiltered = 0
   const rekkiPersistedUids = new Set<number>()
 
   if (!process.env.OPENAI_API_KEY?.trim()) {
@@ -798,6 +830,18 @@ async function processEmails(
       } else if (emailHasScannableBody(email)) {
         const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
         if (!fornitore) {
+          // ── PRE-FILTRO: mittente sconosciuto senza allegati ──────────────────
+          // Se l'oggetto non contiene parole chiave fiscali, scarta l'email
+          // senza chiamare Gemini. Risparmio stimato: 60-80% dei token su
+          // email corpo-testo (newsletter, promo, notifiche automatiche ecc.).
+          if (!subjectLooksFiscal(email.subject)) {
+            mailDebugLog(
+              `[PREFILTRO] ✂️  Scartata (mittente sconosciuto + oggetto non fiscale): da="${email.from}" oggetto="${(email.subject ?? '').slice(0, 80)}"`,
+            )
+            preFiltered++
+            bumpAttach(email.uid)
+            continue
+          }
           mailDebugLog(`[PROCESS] ⚠️  Solo testo, fornitore non trovato per "${email.from}" — estrazione+P.IVA`)
           noFornitoreBodyOnly.push(email)
           continue
@@ -1607,7 +1651,7 @@ async function processEmails(
   }
 
   mailDebugLog(
-    `[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate} skippedAlready=${skippedAlreadyCompleted}`,
+    `[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate} skippedAlready=${skippedAlreadyCompleted} preFiltered=${preFiltered}`,
   )
   return {
     ricevuti,
@@ -1616,6 +1660,7 @@ async function processEmails(
     attachmentsTotal,
     attachmentsProcessed,
     skippedAlreadyCompleted,
+    preFiltered,
   }
 }
 
@@ -1731,6 +1776,7 @@ export async function GET(req: Request) {
         ignorate: 0,
         bozzeCreate: 0,
         skippedAlreadyCompleted: result.skippedAlreadyCompleted,
+        preFiltered: result.preFiltered,
         avvisi: result.avvisi,
         messaggio: result.avvisi[0],
         mailsFound: result.mailsFound,
@@ -1744,6 +1790,7 @@ export async function GET(req: Request) {
       ignorate: result.ignorate,
       bozzeCreate: result.bozzeCreate,
       skippedAlreadyCompleted: result.skippedAlreadyCompleted,
+      preFiltered: result.preFiltered,
       messaggio: result.messaggio,
       ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
       mailsFound: result.mailsFound,
@@ -1798,6 +1845,8 @@ type EmailScanCoreResult = {
   attachmentsProcessed: number
   /** Allegati/corpi già registrati in log (sync precedente) — nessun nuovo documento in coda. */
   skippedAlreadyCompleted: number
+  /** Email scartate dal pre-filtro prima di chiamare Gemini (mittente sconosciuto + oggetto non fiscale). */
+  preFiltered: number
 }
 
 async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCoreResult> {
@@ -1836,6 +1885,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   let totalIgnorate = 0
   let totalBozzeCreate = 0
   let totalSkippedAlready = 0
+  let totalPreFiltered = 0
   const avvisi: string[] = []
   const imapErrorDetails: ClassifiedImapError[] = []
 
@@ -2095,6 +2145,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
             totalIgnorate += out.ignorate
             totalBozzeCreate += out.bozzaCreate
             totalSkippedAlready += out.skippedAlreadyCompleted
+            totalPreFiltered += out.preFiltered
           } finally {
             clearInterval(processHb)
           }
@@ -2250,6 +2301,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           totalIgnorate += out.ignorate
           totalBozzeCreate += out.bozzaCreate
           totalSkippedAlready += out.skippedAlreadyCompleted
+          totalPreFiltered += out.preFiltered
         } finally {
           clearInterval(processHbGlobal)
         }
@@ -2289,8 +2341,30 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   }
 
   mailDebugLog(
-    `\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} skippedAlready=${totalSkippedAlready} avvisi=${avvisi.length}`,
+    `\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} skippedAlready=${totalSkippedAlready} preFiltered=${totalPreFiltered} avvisi=${avvisi.length}`,
   )
+
+  // Log pre-filter metrics to activity_log for Gemini savings tracking (fire-and-forget)
+  if (totalPreFiltered > 0 || totalRicevuti > 0 || totalIgnorate > 0) {
+    const logSedeId = params.filterSedeId ?? params.userSedeId ?? null
+    const processed = totalRicevuti + totalIgnorate
+    const total = totalPreFiltered + processed
+    supabase.from('activity_log').insert([{
+      user_id: null,
+      sede_id: logSedeId,
+      action: 'email.scan.prefiltro',
+      entity_type: 'system',
+      entity_label: `Scansione email: ${processed} elaborate, ${totalPreFiltered} scartate`,
+      metadata: {
+        email_scartate_prefiltro: totalPreFiltered,
+        email_processate_gemini: processed,
+        email_gia_elaborate: totalSkippedAlready,
+        risparmio_stimato_pct: total > 0
+          ? Math.round((totalPreFiltered / total) * 100)
+          : 0,
+      },
+    }]).then(() => {}, () => {})
+  }
 
   // Fire push notification when new documents arrive (fire-and-forget)
   if (totalRicevuti > 0 && process.env.NEXT_PUBLIC_SITE_URL && process.env.CRON_SECRET) {
@@ -2336,6 +2410,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     attachmentsTotal: attTotalRun,
     attachmentsProcessed: attDoneRun,
     skippedAlreadyCompleted: totalSkippedAlready,
+    preFiltered: totalPreFiltered,
   }
 }
 
