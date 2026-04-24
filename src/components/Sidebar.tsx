@@ -402,14 +402,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </button>
 
               {branchesOpen && (
-                <div className="app-shell-rail-panel ml-3 mt-0.5 space-y-0.5 border-l border-app-line-22 pl-2">
-                  {/* Opzione "Portale Gestionale" per deselezionare la sede attiva */}
-                  <div className="flex items-center gap-1">
+                <div className="app-shell-rail-panel ml-3 mt-0.5 border-l border-app-line-22 pl-2">
+                  {/* Portale Gestionale (deseleziona sede) */}
+                  <div className="pb-1">
                     <button
                       type="button"
                       onClick={() => { clearSede(); onClose?.() }}
                       title={activeSede ? 'Torna alla vista Portale Gestionale' : 'Vista Portale Gestionale attiva'}
-                      className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
+                      className={`flex min-w-0 w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
                         !activeSede
                           ? 'border border-fuchsia-500/35 bg-fuchsia-500/10 text-fuchsia-200'
                           : 'bg-transparent text-white/45 hover:bg-app-line-10 hover:text-app-fg'
@@ -425,43 +425,53 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     </button>
                   </div>
 
+                  {/* Divisore */}
+                  <div className="mb-1 border-t border-app-line-18" />
+
                   {/* Sede items: click = attiva sede, gear = gestisci */}
-                  {allSedi.map((s) => {
-                    const isCurrent = s.id === activeSede
-                    return (
-                      <div key={s.id} className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => { switchSede(s.id); onClose?.() }}
-                          title={isCurrent ? t.ui.sidebarSedeActive.replace('{name}', s.nome) : t.ui.sidebarSedeSwitchTo.replace('{name}', s.nome)}
-                          className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
-                            isCurrent
-                              ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
-                              : 'bg-transparent text-white/55 hover:bg-app-line-10 hover:text-app-fg'
-                          }`}
-                        >
-                          <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isCurrent ? 'bg-cyan-400' : 'bg-current opacity-40'}`} aria-hidden />
-                          <span className="min-w-0 truncate">{s.nome}</span>
-                          {isCurrent && (
-                            <svg className="ml-auto h-3 w-3 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  <div className="space-y-0.5 pb-1">
+                    {allSedi.map((s) => {
+                      const isCurrent = s.id === activeSede
+                      return (
+                        <div key={s.id} className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => { switchSede(s.id); onClose?.() }}
+                            title={isCurrent ? t.ui.sidebarSedeActive.replace('{name}', s.nome) : t.ui.sidebarSedeSwitchTo.replace('{name}', s.nome)}
+                            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
+                              isCurrent
+                                ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
+                                : 'bg-transparent text-white/55 hover:bg-app-line-10 hover:text-app-fg'
+                            }`}
+                          >
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isCurrent ? 'bg-cyan-400' : 'bg-current opacity-40'}`} aria-hidden />
+                            <span className="min-w-0 truncate">{s.nome}</span>
+                            {isCurrent && (
+                              <svg className="ml-auto h-3 w-3 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                          <Link
+                            href={`/sedi/${s.id}`}
+                            onClick={onClose}
+                            title={t.ui.sidebarSedeSettings.replace('{name}', s.nome)}
+                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                          )}
-                        </button>
-                        <Link
-                          href={`/sedi/${s.id}`}
-                          onClick={onClose}
-                          title={t.ui.sidebarSedeSettings.replace('{name}', s.nome)}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
-                        >
-                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        </Link>
-                      </div>
-                    )
-                  })}
+                          </Link>
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* Divisore */}
+                  <div className="mb-1 border-t border-app-line-18" />
+
+                  {/* Gestisci sedi */}
                   <Link href="/sedi" onClick={onClose}
                     className={`flex items-center gap-2 px-2 py-1 rounded-md text-[11px] font-semibold transition-colors ${pathname === '/sedi' ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'}`}>
                     <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
