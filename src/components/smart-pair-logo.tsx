@@ -8,29 +8,22 @@ const iconSize = { sm: 28, md: 40, lg: 56 }
 const textSize = { sm: 'text-xl', md: 'text-2xl', lg: 'text-3xl' }
 const tagSize  = { sm: 'text-[7px]', md: 'text-[8px]', lg: 'text-[10px]' }
 
-/** Arrow-pair icon rendered as an inline SVG — no external font dependency. */
+/** Arrow-pair icon rendered as an inline SVG — original paths from smart-pair-icon.svg. */
 function ArrowIcon({ px }: { px: number }) {
-  const s = px / 28 // scale factor relative to base 28px
   return (
     <svg
       width={px}
       height={px}
-      viewBox="0 0 28 28"
+      viewBox="0 0 72 72"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
       className="shrink-0"
     >
-      {/* Up arrow (cyan) */}
-      <path
-        d="M6 19.5 L9 7 L12 19.5 L10.5 19.5 L10.5 22 L7.5 22 L7.5 19.5 Z"
-        fill="#22d3ee"
-      />
-      {/* Down arrow (indigo-violet) */}
-      <path
-        d="M12 8.5 L15 21 L18 8.5 L16.5 8.5 L16.5 6 L13.5 6 L13.5 8.5 Z"
-        fill="#7c9dfc"
-      />
+      {/* Up arrow (cyan) — original path */}
+      <path d="M24 50 L30 18 L36 50 L33 50 L33 56 L27 56 L27 50 Z" fill="#22d3ee"/>
+      {/* Down arrow (indigo-violet) — original path */}
+      <path d="M36 22 L42 54 L48 22 L45 22 L45 16 L39 16 L39 22 Z" fill="#7c9dfc"/>
     </svg>
   )
 }
