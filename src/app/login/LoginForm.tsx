@@ -125,6 +125,17 @@ function AvatarGrid({
 
   return (
     <div className="flex w-full flex-col items-center gap-7 py-4">
+      {/* App logo */}
+      <div className="flex flex-col items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/smart-pair-logo.svg"
+          alt="Smart Pair"
+          className="h-9 w-auto opacity-90"
+          draggable={false}
+        />
+      </div>
+
       {/* Sede badge */}
       {sedeNome && (
         <div className="flex items-center gap-2">
@@ -783,7 +794,6 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       <div className="w-full">
         {/* Card wrapper: same dark glass look as the PIN card */}
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
           <div className="px-4 pb-2 pt-4 sm:px-6">
             <AvatarGrid
               operators={netflixOperators}
@@ -826,7 +836,6 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     return (
       <div className="w-full">
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
           <div className="flex flex-col items-center gap-5 p-6 text-center">
 
             {/* Avatar selezionato */}
@@ -979,7 +988,6 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
       {/* Card: bordo leggero su canvas gradient (`LoginBrandedShell`); vetro pieno disattivato */}
       <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
 
         <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
 
