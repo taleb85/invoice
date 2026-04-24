@@ -895,7 +895,8 @@ body {
   background-position: center !important;
   background-attachment: fixed !important;
   background-repeat: no-repeat !important;
-  background-color: #0a192f;
+  /* Bottom matches the nav dock colour so the iPhone safe area strip is never visible */
+  background-color: rgb(15, 23, 42);
 }
 
 /* Testo bianco puro per massimo contrasto sullo sfondo scuro */

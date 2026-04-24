@@ -1,5 +1,6 @@
 'use client'
 
+import type React from 'react'
 import Link from 'next/link'
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
@@ -29,7 +30,13 @@ const QuickScanModal = dynamic(
  * Angoli arrotondati solo in alto. Altezza icone fissa — non cambia tra pagine.
  */
 const NAV_SHELL_BASE =
-  'app-glass-dock fixed bottom-0 left-0 right-0 z-[100] flex w-full items-stretch overflow-hidden rounded-t-2xl border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pt-2 pb-[env(safe-area-inset-bottom,0px)] ps-[max(0.75rem,env(safe-area-inset-left,0px))] pe-[max(0.75rem,env(safe-area-inset-right,0px))] md:hidden'
+  'app-glass-dock fixed bottom-0 left-0 right-0 z-[100] flex w-full items-stretch rounded-t-2xl border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pt-2 ps-[max(0.75rem,env(safe-area-inset-left,0px))] pe-[max(0.75rem,env(safe-area-inset-right,0px))] md:hidden'
+
+/** Solid background applied via inline style so iOS always covers the safe-area strip. */
+const NAV_SHELL_SAFE_AREA_STYLE: React.CSSProperties = {
+  paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+  backgroundColor: 'rgb(15, 23, 42)',
+}
 
 const NAV_SHELL_SATIN_GLASS =
   'app-glass-dock-opaque backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150'
@@ -138,7 +145,7 @@ function FornitoreProfileBottomNav({
   const navCls = glassDockNavShellClass('flex-col gap-2 px-2 sm:gap-3 sm:px-4')
 
   return (
-    <nav className={navCls} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
+    <nav className={navCls} style={NAV_SHELL_SAFE_AREA_STYLE} aria-label={BOTTOM_NAV_ARIA_FORNITORE}>
       {masterAdminNoOperator ? <BottomNavOperatorRow /> : null}
       <div className={fornitoreIconsRow}>
         <Link href="/" className={itemCls(dashboardActive)} prefetch={false}>
@@ -232,7 +239,7 @@ export default function DashboardMobileBottomNav() {
   }
 
   const adminHubNav = () => (
-    <nav className={navClsHub} aria-label={BOTTOM_NAV_ARIA_ADMIN}>
+    <nav className={navClsHub} style={NAV_SHELL_SAFE_AREA_STYLE} aria-label={BOTTOM_NAV_ARIA_ADMIN}>
       <DashboardHomeScannerDockCta />
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
@@ -264,7 +271,7 @@ export default function DashboardMobileBottomNav() {
 
   /** Mobile operatore: azioni urgenti (fornitori/bolle estesi restano su desktop / griglia KPI). */
   const operatorHubNav = () => (
-    <nav className={navClsHub} aria-label={BOTTOM_NAV_ARIA_MAIN}>
+    <nav className={navClsHub} style={NAV_SHELL_SAFE_AREA_STYLE} aria-label={BOTTOM_NAV_ARIA_MAIN}>
       <DashboardHomeScannerDockCta />
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
