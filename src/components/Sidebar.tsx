@@ -285,8 +285,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
     backupNavItem,
   ]
 
+  // Gestionale puro (nessuna sede selezionata): mostra solo Dashboard.
+  // Gestionale con sede attiva: mostra tutti gli item operativi della sede.
   const navItems = isMasterAdmin
-    ? adminNavItems
+    ? (activeSede ? adminNavItems : [adminNavItems[0]])
     : isAdminSede
       ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
