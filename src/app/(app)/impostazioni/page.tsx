@@ -408,7 +408,7 @@ export default function ImpostazioniPage() {
             </div>
           </div>
         )}
-        {canManageDuplicates && (
+        {masterPlane && (
           <div className="mt-4">
             <GeminiUsageDashboard />
           </div>
@@ -500,7 +500,7 @@ export default function ImpostazioniPage() {
               </div>
             </div>
           )}
-          {canManageDuplicates && (
+          {masterPlane && (
             <div className="mt-4">
               <GeminiUsageDashboard />
             </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole } from '@/lib/roles'
 import { GEMINI_MODEL, GEMINI_PRICING } from '@/lib/gemini-vision'
 
 export const dynamic = 'force-dynamic'
@@ -8,8 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
-  if (!isMaster && !isAdminSede) {
+  if (!isMaster) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 
