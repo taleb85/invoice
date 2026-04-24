@@ -108,7 +108,7 @@ function FornitoreInlineDocPreview({
   const frameFixed = 'h-[min(78vh,880px)]'
   const shell = fill
     ? 'flex min-h-0 flex-1 flex-col overflow-hidden app-workspace-surface-elevated'
-    : 'overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-surface-elevated'
+    : 'overflow-hidden rounded-lg border border-app-line-15 app-workspace-surface-elevated'
   const frameLoading = fill ? 'flex flex-1 items-center justify-center' : `flex ${frameFixed} items-center justify-center`
   const frameFallback = fill ? 'flex flex-1 items-center justify-center p-4' : `flex ${frameFixed} items-center justify-center p-4`
 
