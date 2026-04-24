@@ -23,11 +23,13 @@ const QuickScanModal = dynamic(
 )
 
 /**
- * Dock mobile “pill”: margini da bordo schermo, angoli pieni, ombra esterna.
- * Effetto satinato fisso: `app-glass-dock-opaque` + blur (`globals.css`).
+/**
+ * Dock mobile edge-to-edge: si attacca al bordo inferiore dello schermo e usa
+ * `padding-bottom: env(safe-area-inset-bottom)` per coprire la safe area iPhone.
+ * Angoli arrotondati solo in alto. Altezza icone fissa — non cambia tra pagine.
  */
 const NAV_SHELL_BASE =
-  'app-glass-dock fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[100] flex w-[min(calc(100vw-1.75rem),var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 items-stretch overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_14px_44px_-12px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pb-2 pt-2 ps-[max(0.375rem,env(safe-area-inset-left,0px))] pe-[max(0.375rem,env(safe-area-inset-right,0px))] md:hidden'
+  'app-glass-dock fixed bottom-0 left-0 right-0 z-[100] flex w-full items-stretch overflow-hidden rounded-t-2xl border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(34,211,238,0.12)] ring-1 ring-inset ring-app-a-35 pt-2 pb-[env(safe-area-inset-bottom,0px)] ps-[max(0.75rem,env(safe-area-inset-left,0px))] pe-[max(0.75rem,env(safe-area-inset-right,0px))] md:hidden'
 
 const NAV_SHELL_SATIN_GLASS =
   'app-glass-dock-opaque backdrop-blur-xl [-webkit-backdrop-filter:blur(24px)] backdrop-saturate-150'
@@ -37,8 +39,8 @@ function glassDockNavShellClass(layout: string) {
 }
 
 const hubIconsRow =
-  'flex w-full min-h-[44px] flex-1 items-stretch justify-between gap-0.5 sm:justify-around sm:gap-1'
-const fornitoreIconsRow = 'flex w-full min-h-[44px] flex-1 items-stretch justify-between gap-3 sm:gap-4'
+  'flex w-full min-h-[60px] flex-1 items-stretch justify-between gap-0.5 sm:justify-around sm:gap-1'
+const fornitoreIconsRow = 'flex w-full min-h-[60px] flex-1 items-stretch justify-between gap-3 sm:gap-4'
 
 /** Landmark `aria-label` fissi (allineati a `lang="it"`); evita mismatch SSR/client su `t.nav.*`. */
 const BOTTOM_NAV_ARIA_MAIN = 'Navigazione principale'
@@ -152,7 +154,7 @@ function FornitoreProfileBottomNav({
         <button
           type="button"
           onClick={() => setScanOpen(true)}
-          className="flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/15 px-2 py-2 text-[10px] font-bold touch-manipulation text-cyan-300 ring-1 ring-inset ring-cyan-400/20 transition-all active:scale-95 active:bg-cyan-500/25 sm:text-xs shadow-[0_0_16px_-4px_rgba(34,211,238,0.35)]"
+          className="flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/15 px-2 py-2 text-[10px] font-bold touch-manipulation text-cyan-300 ring-1 ring-inset ring-cyan-400/20 transition-all active:scale-95 active:bg-cyan-500/25 sm:text-xs shadow-[0_0_16px_-4px_rgba(34,211,238,0.35)]"
           aria-label="Scansiona documento"
         >
           <svg className="h-6 w-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -209,7 +211,7 @@ export default function DashboardMobileBottomNav() {
   }
 
   const itemCls = (active: boolean) =>
-    `flex min-h-[44px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-[11px] touch-manipulation transition-colors ${
+    `flex min-h-[60px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1.5 text-[10px] font-semibold leading-tight sm:gap-1 sm:px-1 sm:text-[11px] touch-manipulation transition-colors ${
       active
         ? 'text-app-fg-muted'
         : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15'
@@ -217,7 +219,7 @@ export default function DashboardMobileBottomNav() {
 
   /** Tre colonne uguali sulla scheda fornitore (niente max-w 25%). */
   const fornitoreItemCls = (active: boolean) =>
-    `flex min-h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] sm:text-[11px] font-medium touch-manipulation transition-colors ${
+    `flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] sm:text-[11px] font-medium touch-manipulation transition-colors ${
       active
         ? 'text-app-fg-muted'
         : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15'

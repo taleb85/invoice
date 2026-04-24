@@ -266,11 +266,11 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
    */
   const hubBottomPad = homeScannerDockCta
     ? tallMobileDock
-      ? 'pb-[calc(14rem+1.125rem+env(safe-area-inset-bottom,0px))]'
-      : 'pb-[calc(10.5rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      ? 'pb-[calc(14rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(10.5rem+env(safe-area-inset-bottom,0px))]'
     : tallMobileDock
-      ? 'pb-[calc(8.75rem+1.125rem+env(safe-area-inset-bottom,0px))]'
-      : 'pb-[calc(5.75rem+1.125rem+env(safe-area-inset-bottom,0px))]'
+      ? 'pb-[calc(8.75rem+env(safe-area-inset-bottom,0px))]'
+      : 'pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))]'
 
   // Show splash during initial auth check (only when SSR couldn't pre-load the session)
   if (loading && !me) {
