@@ -92,7 +92,6 @@ export default function DashboardKpiListSheet({
   const inner =
     layout === 'mobile' ? (
       <>
-        <div className="app-card-bar" aria-hidden />
         <div className="flex items-center gap-3 p-4">
           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${bgClass}`}>{icon}</div>
           <div className="min-w-0">
@@ -103,7 +102,6 @@ export default function DashboardKpiListSheet({
       </>
     ) : (
       <>
-        <div className="app-card-bar" aria-hidden />
         <div className="flex items-center gap-4 p-4">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${bgClass}`}>{icon}</div>
           <div className="min-w-0">
@@ -147,7 +145,6 @@ export default function DashboardKpiListSheet({
                 aria-labelledby={titleId}
                 className="app-card relative z-[211] mx-auto flex w-full max-w-lg max-h-[min(78vh,32rem)] flex-col overflow-hidden rounded-xl border-app-line-22 shadow-2xl shadow-black/50"
               >
-                <div className="app-card-bar" aria-hidden />
                 {recentCardChrome ? (
                   <div className="flex items-center justify-between gap-3 border-b border-app-line-22 px-5 py-3.5">
                     <h2 id={titleId} className="min-w-0 text-sm font-semibold text-app-fg">

@@ -58,6 +58,15 @@
   --app-cyan-300: #67e8f9;
   --app-cyan-400: #22d3ee;
   --app-cyan-500: #06b6d4;
+
+  /* ── Design-system spacing / sizing tokens ───────────────────────────── */
+  --app-radius-card:          0.75rem;   /* 12px — card border-radius */
+  --app-radius-btn:           0.5rem;    /* 8px  — button border-radius */
+  --app-font-size-title:      1.375rem;  /* 22px — desktop page titles */
+  --app-font-size-title-mob:  1.25rem;   /* 20px — mobile page titles */
+  --app-font-size-card:       0.8125rem; /* 13px — card body text */
+  --app-gap-mobile:           0.75rem;   /* 12px — mobile component gap */
+  --app-gap-desktop:          1rem;      /* 16px — desktop component gap */
 }
 
 /* `sm:` = sopra la fascia smartphone larga (480px); md/lg allineati a tablet. */
@@ -521,6 +530,36 @@
     background: rgba(255, 255, 255, 0.02);
     background-image: none;
   }
+  /* ── Standardised table ─────────────────────────────────────────────── */
+  /** Apply `.app-table` to any `<table>` for consistent header/row/hover styling. */
+  .app-table {
+    @apply w-full border-collapse;
+  }
+  .app-table thead th {
+    @apply border-b border-app-line-20 px-3 pb-2 text-left text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted;
+  }
+  .app-table tbody tr {
+    @apply border-b border-app-line-12 transition-colors hover:bg-app-line-5;
+  }
+  .app-table tbody td {
+    @apply px-3 py-2.5 text-[13px] text-app-fg;
+  }
+
+  /* ── Standardised empty state ───────────────────────────────────────── */
+  /** Wrap icon + title + subtitle inside `.app-empty-state` for consistent layout. */
+  .app-empty-state {
+    @apply flex flex-col items-center gap-2 px-6 py-14 text-center;
+  }
+  .app-empty-state-icon {
+    @apply mb-1 h-12 w-12 text-app-fg-muted;
+  }
+  .app-empty-state-title {
+    @apply text-sm font-medium text-app-fg-muted;
+  }
+  .app-empty-state-sub {
+    @apply text-xs text-app-fg-muted/65;
+  }
+
   /** Overlay fullscreen (fotocamera, gate): radici canvas → nero. */
   .app-workspace-overlay {
     @apply ring-1 ring-inset ring-app-line-25;

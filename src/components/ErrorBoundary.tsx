@@ -160,7 +160,6 @@ function ErrorCard({
       </div>
 
       <div className="app-card app-card-transparent overflow-hidden text-left">
-        <div className="app-card-bar" aria-hidden />
         <div className="space-y-4 px-8 py-7 text-center">
           <h2 className="text-base font-semibold text-app-fg">{title}</h2>
           <p className="text-sm leading-relaxed text-app-fg-muted">

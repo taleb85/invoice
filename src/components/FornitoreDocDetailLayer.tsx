@@ -392,7 +392,6 @@ function FatturaLayerBody({
       </div>
 
       <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-        <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
           <h4 className="mb-3 text-sm font-semibold text-app-fg">{t.fatture.dettaglio}</h4>
           <dl className="space-y-2 text-sm">
@@ -435,7 +434,6 @@ function FatturaLayerBody({
       </div>
 
       <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-        <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
           <h4 className="mb-3 text-sm font-semibold text-app-fg">{t.common.actions}</h4>
           <p className="mb-3 text-sm text-app-fg-muted">Nessun allegato</p>
@@ -565,7 +563,6 @@ function BollaLayerBody({
       </div>
 
       <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-        <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h4 className="text-sm font-semibold text-app-fg">{t.bolle.dettaglio}</h4>
@@ -598,7 +595,6 @@ function BollaLayerBody({
 
       {fornitoreRekkiId && (
         <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-5">
             <h4 className="mb-2 text-sm font-semibold text-app-fg">{t.bolle.listinoRekkiRefTitle}</h4>
             <p className="mb-3 text-[11px] text-app-fg-muted">{t.bolle.listinoRekkiRefHint}</p>
@@ -617,7 +613,6 @@ function BollaLayerBody({
       )}
 
       <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-        <div className="app-card-bar shrink-0" aria-hidden />
         <div className="p-5">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h4 className="text-sm font-semibold text-app-fg">{t.bolle.fattureCollegate}</h4>

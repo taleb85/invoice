@@ -18,7 +18,6 @@ export default async function DocumentUnavailable({ kind }: { kind: 'bolla' | 'f
     <div className="flex min-h-[50vh] items-center justify-center p-4 md:min-h-[60vh]">
       <div className="w-full max-w-md space-y-5 text-center">
         <div className="app-card-login flex flex-col overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="space-y-4 px-6 py-8">
           <h1 className="app-page-title text-xl font-bold">{title}</h1>
           <p className="text-sm leading-relaxed text-app-fg-muted">{desc}</p>

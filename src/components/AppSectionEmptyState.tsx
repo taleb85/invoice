@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 const defaultIcon = (
   <svg
-    className="mx-auto mb-3 h-12 w-12 text-app-fg-muted"
+    className="app-empty-state-icon mx-auto"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -19,6 +19,7 @@ const defaultIcon = (
 
 export default function AppSectionEmptyState({
   message,
+  subtitle,
   icon,
   children,
   density = 'default',
@@ -26,19 +27,22 @@ export default function AppSectionEmptyState({
   showIcon = true,
 }: {
   message: ReactNode
+  /** Optional second line rendered dimmer below the main message. */
+  subtitle?: ReactNode
   icon?: ReactNode
   children?: ReactNode
-  /** `comfortable` = più padding verticale (ex. `py-16`). */
+  /** `comfortable` = more vertical padding (ex. `py-16`). */
   density?: 'default' | 'comfortable'
-  /** Aggiunto al paragrafo del messaggio (es. tono loading). */
+  /** Applied to the message paragraph (e.g. loading tone). */
   messageClassName?: string
   showIcon?: boolean
 }) {
   const py = density === 'comfortable' ? 'py-16' : 'py-14'
   return (
-    <div className={`px-6 ${py} text-center`}>
+    <div className={`app-empty-state px-6 ${py}`}>
       {showIcon ? (icon ?? defaultIcon) : null}
-      <p className={['text-sm font-medium', messageClassName ?? 'text-app-fg-muted'].join(' ')}>{message}</p>
+      <p className={['app-empty-state-title', messageClassName ?? ''].join(' ').trim()}>{message}</p>
+      {subtitle && <p className="app-empty-state-sub">{subtitle}</p>}
       {children}
     </div>
   )

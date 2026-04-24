@@ -379,7 +379,7 @@ export default function DashboardOperatorKpiGrid({
             const inner = (
               <>
                                 <div className={kpiTileInnerGridClass}>
-                  <p className="col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[12px] font-semibold uppercase leading-[1.15] tracking-wide text-app-fg line-clamp-2 sm:min-h-[2rem] sm:text-sm">
+                  <p className="col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[12px] font-semibold leading-[1.15] tracking-wide text-app-fg line-clamp-2 sm:min-h-[2rem] sm:text-sm">
                     {item.label}
                   </p>
                   <span className={`${kpiTileIconWrapBase} ${item.iconWrapClass}`}>{item.icon}</span>

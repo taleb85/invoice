@@ -84,7 +84,6 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
 
       {fornitori.length === 0 && !loadErr ? (
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
           <div className="px-4 py-5 text-center">
             <p className="text-sm text-app-fg-muted">{t.fornitori.noSuppliers}</p>
             <Link
@@ -98,7 +97,6 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
       ) : (
         <>
           <div className="app-card overflow-hidden">
-            <div className="app-card-bar" aria-hidden />
             <div className="p-4">
               <label
                 htmlFor="dashboard-manual-fornitore"

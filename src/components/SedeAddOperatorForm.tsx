@@ -146,7 +146,6 @@ export default function SedeAddOperatorForm({
 
   return (
     <div className="app-card mb-8 flex flex-col overflow-hidden">
-      <div className="app-card-bar shrink-0" aria-hidden />
       <div className="p-5">
         <h2 className="text-sm font-semibold text-app-fg">{t.sedi.addOperatorSedeTitle}</h2>
         <p className="mb-4 mt-1 text-xs text-app-fg-muted">{t.sedi.addOperatorSedeDesc}</p>

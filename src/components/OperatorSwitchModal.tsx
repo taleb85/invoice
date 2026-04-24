@@ -235,7 +235,6 @@ export default function OperatorSwitchModal() {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="app-card-bar shrink-0" aria-hidden />
 
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-app-line-15 app-workspace-inset-bg-soft px-3 py-2.5 sm:px-4 sm:py-3">
@@ -252,7 +251,7 @@ export default function OperatorSwitchModal() {
               {activeOperator && (
                 <p className="text-[11px] text-app-fg-muted">
                   {t.ui.currentlyActive}{' '}
-                  <span className="font-medium text-app-fg-muted uppercase tracking-wide">
+                  <span className="font-medium text-app-fg-muted tracking-wide">
                     {activeOperator.full_name.toUpperCase()}
                   </span>
                 </p>
@@ -319,8 +318,8 @@ export default function OperatorSwitchModal() {
                           {(op.full_name.trim().toUpperCase() || '?').charAt(0)}
                         </div>
                         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                          <span className="text-sm font-semibold uppercase tracking-wide">
-                            {op.full_name.toUpperCase()}
+                          <span className="text-sm font-semibold tracking-wide">
+                            {op.full_name}
                           </span>
                         </div>
                         {activeOperator?.id === op.id && (
@@ -354,8 +353,8 @@ export default function OperatorSwitchModal() {
                   {(selected?.full_name.trim().toUpperCase() || '?').charAt(0)}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-wide text-app-fg">
-                    {selected?.full_name.toUpperCase()}
+                  <p className="text-sm font-semibold tracking-wide text-app-fg">
+                    {selected?.full_name}
                   </p>
                   <p className="text-[11px] text-app-fg-muted">{t.login.pinLabel}</p>
                 </div>

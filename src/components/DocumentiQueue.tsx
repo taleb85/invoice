@@ -58,7 +58,6 @@ export default function DocumentiQueue({ documenti, fornitori, formattedDates, l
   if (documenti.length === 0) {
     return (
       <div className="app-card overflow-hidden">
-        <div className="app-card-bar" aria-hidden />
         <div className="flex flex-col items-center justify-center gap-2 px-5 py-10 text-center">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-app-line-25 bg-app-line-10/50">
             <svg className="h-5 w-5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -100,7 +99,6 @@ export default function DocumentiQueue({ documenti, fornitori, formattedDates, l
 
   return (
     <div className="app-card overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3 border-b border-app-line-22 px-4 py-3">

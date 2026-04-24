@@ -126,7 +126,6 @@ export default function OperatorPinStepUpModal({
         className="app-card pointer-events-auto relative flex w-full max-w-sm flex-col overflow-hidden p-0 sm:max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="app-card-bar shrink-0" aria-hidden />
 
         <div className="max-h-[min(90vh,32rem)] overflow-y-auto overscroll-contain app-workspace-inset-bg-soft p-6">
           <h2 id="operator-pin-stepup-title" className="text-lg font-bold tracking-tight text-app-fg">

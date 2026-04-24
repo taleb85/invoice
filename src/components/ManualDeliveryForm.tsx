@@ -153,7 +153,6 @@ export default function ManualDeliveryForm({
 
   return (
     <form onSubmit={handleSubmit} className={`app-card overflow-hidden ${className}`}>
-      <div className="app-card-bar" aria-hidden />
       <div className="p-4 md:p-5">
         <label
           htmlFor="manual-delivery-text"
