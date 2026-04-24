@@ -68,9 +68,9 @@ function AvatarCard({
       className="flex flex-col items-center gap-3 rounded-2xl p-3 outline-none transition-colors duration-150 hover:bg-white/[0.06] active:scale-95 sm:p-4"
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
-      {/* Avatar circle — 120 px */}
+      {/* Avatar — 120 px rounded square */}
       <div
-        className="flex shrink-0 items-center justify-center rounded-full font-bold"
+        className="flex shrink-0 items-center justify-center rounded-2xl font-bold"
         style={{
           width: '7.5rem',
           height: '7.5rem',
@@ -832,7 +832,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             {/* Avatar selezionato */}
             <div className="flex flex-col items-center gap-3">
               <div
-                className="flex items-center justify-center rounded-full font-bold"
+                className="flex items-center justify-center rounded-2xl font-bold"
                 style={{
                   width: '6.5rem',
                   height: '6.5rem',
