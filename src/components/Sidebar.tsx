@@ -709,8 +709,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </div>
           )}
 
-          {/* Riga 2 — icone azioni in fila */}
-          <div className="flex items-center gap-0.5 pt-0.5">
+          {/* Riga 2 — icone azioni in fila (nascosta quando il pannello è espanso) */}
+          <div className={`flex items-center gap-0.5 pt-0.5 ${footerOpen ? 'hidden' : ''}`}>
             {/* Lingua */}
             <div className="relative z-10">
               <button
