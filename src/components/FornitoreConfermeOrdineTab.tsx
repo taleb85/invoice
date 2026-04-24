@@ -25,13 +25,13 @@ const CONFERME_TABLE_HEAD_ROW = 'border-b border-app-soft-border bg-transparent'
 
 /** Apri PDF: contorno rosa, fill trasparente. */
 const CONFERME_OPEN_PILL =
-  'inline-flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-rose-100/90 transition-colors hover:bg-rose-500/10'
+  'inline-flex items-center gap-1 rounded-lg border border-app-line-25 bg-transparent px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg'
 
 const RED_ACTION_PILL =
   'inline-flex items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
 
 const inputClass =
-  'w-full rounded-lg border border-[rgba(34,211,238,0.15)] bg-rose-500/[0.06] px-3 py-2 text-sm text-rose-50/[0.96] placeholder:text-rose-300/55 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-rose-400/25 [color-scheme:dark]'
+  'w-full rounded-lg border border-app-line-25 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-a-40 focus:outline-none focus:ring-1 focus:ring-app-a-25 [color-scheme:dark]'
 
 function pathFromDocumentiPublicUrl(url: string): string | null {
   try {
@@ -72,7 +72,7 @@ export default function FornitoreConfermeOrdineTab({
   const migrationTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti
   /** Allineato a `confermeTheme` (bordo/barra rosa): più leggibile di `text-app-fg-muted` su questo guscio. */
   const confermeFormLabelClass = `mb-1.5 block text-[10px] font-bold uppercase tracking-widest ${confermeTheme.label}`
-  const confermeSecondaryClass = 'text-rose-200/[0.88]'
+  const confermeSecondaryClass = 'text-app-fg-muted'
 
   const fmt = useCallback(
     (iso: string) => formatDateLib(iso, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -226,11 +226,11 @@ export default function FornitoreConfermeOrdineTab({
       <div className={`app-card-bar-accent ${confermeTheme.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
         <div className="border-b border-app-line-20 px-5 py-3.5">
-          <p className="text-sm leading-relaxed text-rose-100/[0.94]">{t.fornitori.confermeOrdineIntro}</p>
+          <p className="text-sm leading-relaxed text-app-fg">{t.fornitori.confermeOrdineIntro}</p>
         </div>
 
         {!readOnly ? (
-        <div className="border-b border-app-line-20 bg-rose-500/[0.04] px-5 py-4">
+        <div className="border-b border-app-line-20 px-5 py-4">
           <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2 lg:grid lg:grid-cols-[2fr_1.2fr_1.2fr_2fr_auto] lg:items-end">
             <div className="flex min-h-0 flex-col sm:col-span-2 lg:col-span-1">
               <label className={confermeFormLabelClass}>{t.common.document}</label>
@@ -239,7 +239,7 @@ export default function FornitoreConfermeOrdineTab({
                 type="file"
                 accept="application/pdf"
                 onChange={onPickFile}
-                className={`block w-full text-sm ${confermeSecondaryClass} file:mr-3 file:rounded-lg file:border file:border-[rgba(34,211,238,0.15)] file:bg-rose-500/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-rose-100/90 hover:file:bg-rose-500/20`}
+                className={`block w-full text-sm ${confermeSecondaryClass} file:mr-3 file:rounded-lg file:border file:border-[rgba(34,211,238,0.15)] file:bg-app-line-15 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-app-fg-muted hover:file:bg-app-line-20`}
               />
             </div>
             <div className="flex min-h-0 flex-col">
@@ -300,7 +300,7 @@ export default function FornitoreConfermeOrdineTab({
             messageClassName={confermeSecondaryClass}
             icon={
               <svg
-                className="mx-auto mb-3 h-11 w-11 text-rose-400/55"
+                className="app-empty-state-icon mx-auto"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -321,10 +321,10 @@ export default function FornitoreConfermeOrdineTab({
               {rows.map((r) => (
                 <div
                   key={r.id}
-                  className="flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-rose-500/[0.06]"
+                  className="flex flex-col gap-2 px-4 py-4 transition-colors hover:bg-app-line-5"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium text-rose-50/[0.96]">{r.titolo?.trim() || r.file_name || '—'}</p>
+                    <p className="font-medium text-app-fg">{r.titolo?.trim() || r.file_name || '—'}</p>
                     {r.data_ordine ? (
                       <p className={`mt-0.5 text-xs ${confermeSecondaryClass}`}>
                         {t.fornitori.confermeOrdineOptionalOrderDate}: {fmt(r.data_ordine)}
@@ -388,7 +388,7 @@ export default function FornitoreConfermeOrdineTab({
                   {rows.map((r) => (
                     <tr key={r.id} className={APP_SECTION_TABLE_TR}>
                       <td className="px-5 py-3">
-                        <p className="font-medium text-rose-50/[0.96]">{r.titolo?.trim() || r.file_name || '—'}</p>
+                        <p className="font-medium text-app-fg">{r.titolo?.trim() || r.file_name || '—'}</p>
                         {r.note?.trim() ? <p className={`mt-1 text-xs ${confermeSecondaryClass}`}>{r.note}</p> : null}
                         <PublicPdfOpenMenu
                           fileUrl={r.file_url}

@@ -58,14 +58,14 @@ export const SUPPLIER_DETAIL_TAB_TABLE_ACCENT: Record<
     periodNavIconBtn: 'text-app-fg-muted hover:bg-app-line-20 hover:text-white',
   },
   conferme: {
-    selectionRow: 'bg-rose-500/10',
-    monthSelected: 'text-rose-200',
-    cellHover: 'hover:text-rose-200',
-    focusRing: 'focus-visible:ring-rose-500/40',
-    resetNav: 'text-rose-400 hover:bg-rose-500/20 hover:text-rose-300',
+    selectionRow: 'bg-app-line-10',
+    monthSelected: 'text-app-fg-muted',
+    cellHover: 'hover:text-app-fg',
+    focusRing: 'focus-visible:ring-app-line-40',
+    resetNav: 'text-app-cyan-500 hover:bg-app-line-20 hover:text-app-fg-muted',
     periodNavWrap:
-      'border-[rgba(34,211,238,0.15)] bg-rose-500/[0.09] shadow-none',
-    periodNavIconBtn: 'text-rose-100/90 hover:bg-rose-500/20 hover:text-white',
+      'border-app-line-40 bg-app-line-10 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.08)]',
+    periodNavIconBtn: 'text-app-fg-muted hover:bg-app-line-20 hover:text-white',
   },
   bolle: {
     selectionRow: 'bg-indigo-500/10',
