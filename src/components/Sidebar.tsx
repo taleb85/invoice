@@ -306,8 +306,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   // Gestionale puro (nessuna sede selezionata): Dashboard + Consumi AI.
   // Gestionale con sede attiva: tutti gli item operativi + Consumi AI sempre visibile.
-  const masterOnlyItems = [adminNavItems[0], consumiAiNavItem]
-  const masterWithSedeItems = [...adminNavItems, consumiAiNavItem]
+  // consumiAiNavItem è renderizzato direttamente subito dopo Dashboard, non entra in navItems.
+  const masterOnlyItems = [adminNavItems[0]]
+  const masterWithSedeItems = [...adminNavItems]
   const navItems = isMasterAdmin
     ? (activeSede ? masterWithSedeItems : masterOnlyItems)
     : isAdminSede
@@ -355,6 +356,25 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </Link>
             )
           })}
+
+          {/* Consumi AI — solo gestionale, subito dopo Dashboard */}
+          {isMasterAdmin && (() => {
+            const item = consumiAiNavItem
+            const isActive = pathname.startsWith(item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => { onClose?.(); router.push(item.href) }}
+                className={`${navLink(isActive)} relative min-w-0`}
+              >
+                <span className={`shrink-0 ${isActive ? (item.iconColor ?? 'text-app-cyan-300') : `${item.iconColor}/75`}`}>
+                  {item.icon}
+                </span>
+                <span className="truncate">{item.label}</span>
+              </Link>
+            )
+          })()}
 
           {/* ── Admin: Sede Switcher ── */}
           {isMasterAdmin && (
