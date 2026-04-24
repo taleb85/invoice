@@ -34,7 +34,8 @@ function OperatorDesktopWorkspaceHeaderInner() {
     refreshInterval:   60_000,
   })
 
-  if (hideStrip || !data) return null
+  // Gestionale senza sede selezionata (operatorScoped=false): nessun menu da mostrare.
+  if (hideStrip || !data || !data.operatorScoped) return null
 
   return (
     <div
