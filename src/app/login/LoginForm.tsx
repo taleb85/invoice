@@ -131,7 +131,7 @@ function AvatarGrid({
         <img
           src="/smart-pair-logo.svg"
           alt="Smart Pair"
-          className="h-9 w-auto opacity-90"
+          className="h-11 w-auto opacity-95"
           draggable={false}
         />
       </div>
