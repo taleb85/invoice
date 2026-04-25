@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Trash2 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -83,6 +83,14 @@ function useSignedDocumentUrl(openKind: 'bolla' | 'fattura' | null, docId: strin
   return { signedUrl, loading }
 }
 
+const VIEWER_Z_MIN = 0.5
+const VIEWER_Z_MAX = 3
+const VIEWER_Z_STEP = 0.25
+
+function clampViewerZoom(n: number): number {
+  return Math.min(VIEWER_Z_MAX, Math.max(VIEWER_Z_MIN, Math.round(n * 100) / 100))
+}
+
 /** Anteprima PDF/immagine nel layer fornitore (solo contenuto, senza chrome Allegato / nuova scheda). */
 function FornitoreInlineDocPreview({
   fileUrl,
@@ -97,60 +105,149 @@ function FornitoreInlineDocPreview({
   fill?: boolean
 }) {
   const t = useT()
+  const [zoom, setZoom] = useState(1)
+  const z = clampViewerZoom(zoom)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const { signedUrl, loading } = useSignedDocumentUrl(fileUrl?.trim() ? openKind : null, fileUrl?.trim() ? docId : null)
   const kind = attachmentKindFromFileUrl(fileUrl)
   const hrefTab =
     openKind === 'bolla' ? openDocumentUrl({ bollaId: docId }) : openDocumentUrl({ fatturaId: docId })
   const previewTitle = t.common.attachment
 
+  useEffect(() => {
+    setZoom(1)
+  }, [docId, openKind, fileUrl])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      setZoom((prev) =>
+        clampViewerZoom(prev + (e.deltaY < 0 ? 0.12 : -0.12)),
+      )
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [signedUrl, loading])
+
   if (!fileUrl?.trim()) return null
 
   const frameFixed = 'h-[min(78vh,880px)]'
   const shell = fill
     ? 'flex min-h-0 flex-1 flex-col overflow-hidden app-workspace-surface-elevated'
-    : 'overflow-hidden rounded-lg border border-app-line-15 app-workspace-surface-elevated'
+    : 'flex min-h-0 flex-col overflow-hidden rounded-lg border border-app-line-15 app-workspace-surface-elevated'
   const frameLoading = fill ? 'flex flex-1 items-center justify-center' : `flex ${frameFixed} items-center justify-center`
-  const frameFallback = fill ? 'flex flex-1 items-center justify-center p-4' : `flex ${frameFixed} items-center justify-center p-4`
+  const zoomBtn =
+    'inline-flex h-8 min-w-[2rem] shrink-0 items-center justify-center rounded-lg border border-app-line-28 bg-black/25 px-2 text-sm font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-black/35 disabled:cursor-not-allowed disabled:opacity-40'
+
+  const showZoomUi = !loading
+
+  const zoomBar = showZoomUi ? (
+    <div
+      className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-b border-app-line-22/80 bg-[#0a1420]/95 px-2 py-1.5"
+      role="toolbar"
+      aria-label="Zoom"
+    >
+      <button
+        type="button"
+        className={zoomBtn}
+        aria-label={t.common.viewerZoomOut}
+        title={t.common.viewerZoomOut}
+        disabled={z <= VIEWER_Z_MIN}
+        onClick={() => setZoom((x) => clampViewerZoom(x - VIEWER_Z_STEP))}
+      >
+        −
+      </button>
+      <span className="min-w-[3.25rem] text-center text-xs tabular-nums text-app-fg-muted">{Math.round(z * 100)}%</span>
+      <button
+        type="button"
+        className={zoomBtn}
+        aria-label={t.common.viewerZoomIn}
+        title={t.common.viewerZoomIn}
+        disabled={z >= VIEWER_Z_MAX}
+        onClick={() => setZoom((x) => clampViewerZoom(x + VIEWER_Z_STEP))}
+      >
+        +
+      </button>
+      <button
+        type="button"
+        className={`${zoomBtn} text-xs font-medium`}
+        aria-label={t.common.viewerZoomReset}
+        title={t.common.viewerZoomReset}
+        onClick={() => setZoom(1)}
+      >
+        100%
+      </button>
+      <span className="hidden w-full text-center text-[10px] text-app-fg-muted/80 sm:ml-1 sm:inline sm:w-auto">
+        {t.common.viewerZoomHint}
+      </span>
+    </div>
+  ) : null
 
   return (
     <div className={shell}>
+      {zoomBar}
       {loading && (
         <div className={frameLoading}>
           <p className="text-xs text-app-fg-muted">{t.common.loading}</p>
         </div>
       )}
       {!loading && signedUrl && kind === 'image' && (
-        // eslint-disable-next-line @next/next/no-img-element -- URL firmato esterno / storage
-        <img
-          src={signedUrl}
-          alt=""
-          className={
-            fill
-              ? 'mx-auto max-h-full min-h-0 w-auto max-w-full flex-1 object-contain'
-              : 'mx-auto max-h-[min(72vh,820px)] w-auto max-w-full object-contain'
-          }
-        />
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-auto overscroll-contain touch-pan-x touch-pan-y"
+        >
+          <div className="flex w-full min-w-full justify-center p-1 sm:p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element -- URL firmato esterno / storage */}
+            <img
+              src={signedUrl}
+              alt=""
+              style={{ width: `${z * 100}%`, maxWidth: 'none', height: 'auto' }}
+              className={
+                fill
+                  ? 'mx-auto h-auto min-h-0'
+                  : 'mx-auto h-auto max-h-[min(72vh,820px)] object-contain'
+              }
+            />
+          </div>
+        </div>
       )}
       {!loading && signedUrl && kind !== 'image' && (
-        <iframe
-          title={previewTitle}
-          src={embedSrcForInlineViewer(signedUrl, kind)}
-          className={
-            fill
-              ? 'min-h-0 w-full flex-1 border-0 app-workspace-surface-elevated'
-              : `${frameFixed} w-full border-0 app-workspace-surface-elevated`
-          }
-        />
+        <div
+          ref={scrollRef}
+          className="min-h-0 flex-1 overflow-auto overscroll-contain"
+        >
+          <iframe
+            title={previewTitle}
+            src={embedSrcForInlineViewer(signedUrl, kind)}
+            style={{
+              display: 'block',
+              minHeight: fill
+                ? `min(${Math.min(96, 38 + 42 * z)}dvh, ${Math.min(1200, 520 + 260 * (z - VIEWER_Z_MIN))}px)`
+                : undefined,
+              width: `${z * 100}%`,
+              maxWidth: 'none',
+            }}
+            className={
+              fill
+                ? 'min-h-0 w-full min-w-0 border-0 app-workspace-surface-elevated'
+                : `${frameFixed} w-full min-w-0 border-0 app-workspace-surface-elevated`
+            }
+          />
+        </div>
       )}
       {!loading && !signedUrl && (
-        <div className={frameFallback}>
+        <div className="min-h-0 flex-1 overflow-auto overscroll-contain" ref={scrollRef}>
           <iframe
             title={previewTitle}
             src={hrefTab}
+            style={fill ? { width: `${z * 100}%`, minHeight: 'min(70dvh, 820px)' } : undefined}
             className={
               fill
-                ? 'min-h-0 w-full flex-1 border-0 app-workspace-surface-elevated'
-                : `${frameFixed} w-full border-0 app-workspace-surface-elevated`
+                ? 'min-h-0 w-full min-w-0 border-0 app-workspace-surface-elevated'
+                : `${frameFixed} w-full min-w-0 border-0 app-workspace-surface-elevated`
             }
           />
         </div>
