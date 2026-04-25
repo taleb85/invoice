@@ -3,6 +3,7 @@ import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getFatturaForViewer } from '@/lib/supabase-detail-for-viewer'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
+import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import ReplaceFileButton from './ReplaceFileButton'
 export default async function FatturaDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,7 +31,7 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="app-page-title text-2xl font-bold">
-              {t.fatture.invoice} – {fattura.fornitore?.nome}
+              {t.fatture.invoice} – {fornitoreNomeMaiuscolo(fattura.fornitore?.nome)}
             </h1>
             <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(fattura.data)}</p>
           </div>
@@ -45,7 +46,7 @@ export default async function FatturaDetailPage({ params }: { params: Promise<{ 
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
               <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.supplier}</dt>
-              <dd className="font-medium text-app-fg">{fattura.fornitore?.nome}</dd>
+              <dd className="font-medium text-app-fg">{fornitoreNomeMaiuscolo(fattura.fornitore?.nome)}</dd>
             </div>
             {fattura.fornitore?.email && (
               <div className="flex gap-2">

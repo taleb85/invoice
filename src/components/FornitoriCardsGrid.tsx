@@ -14,7 +14,7 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsFornitoreGridAdmin } from '@/lib/effective-operator-ui'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
-import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
+import { fornitoreDisplayLabelUppercase, fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { cacheFornitoriList, readCachedFornitoriList } from '@/lib/app-data-cache'
 import { useNetworkStatusOptional } from '@/lib/network-context'
 import { SUMMARY_HIGHLIGHT_ACCENTS, SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
@@ -234,7 +234,7 @@ export default function FornitoriCardsGrid({
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-5 lg:grid-cols-4 lg:gap-6">
         {rows.map((f) => {
-          const display = fornitoreDisplayLabel(f)
+          const display = fornitoreDisplayLabelUppercase(f)
           const hasDisplayAlias = !!(f.display_name?.trim())
           const rekkiMapped = !!(f.rekki_supplier_id?.trim())
           const initials = display
@@ -264,7 +264,9 @@ export default function FornitoriCardsGrid({
                   ) : null}
                 </div>
                 {hasDisplayAlias ? (
-                  <p className="mt-0.5 truncate text-[10px] text-app-fg-muted sm:mt-1 sm:text-[11px]">{f.nome}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-app-fg-muted sm:mt-1 sm:text-[11px]">
+                    {fornitoreNomeMaiuscolo(f.nome)}
+                  </p>
                 ) : null}
                 {f.email ? (
                   <p className="mt-0.5 truncate text-[11px] text-app-fg-muted sm:mt-1 sm:text-xs">{f.email}</p>

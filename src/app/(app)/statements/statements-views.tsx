@@ -12,6 +12,7 @@ import { useLocale } from '@/lib/locale-context'
 import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
 import { parseAnyAmount } from '@/lib/ocr-amount'
+import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import {
@@ -3241,7 +3242,7 @@ export function VerificationStatusTab({
                       {r.status === 'bolle_mancanti' && <p className="text-orange-300 font-medium">{t.statements.noBolleDelivery}</p>}
                       {r.fornitore && (
                         <p className="text-app-fg-muted">
-                          {r.fornitore.nome}
+                          {fornitoreNomeMaiuscolo(r.fornitore.nome)}
                           {r.fornitore.email && <span> · {r.fornitore.email}</span>}
                         </p>
                       )}

@@ -21,6 +21,7 @@ import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attach
 import { useMe } from '@/lib/me-context'
 import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
 import { createClient } from '@/utils/supabase/client'
+import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 
 type BollaPayload = {
   id: string
@@ -483,7 +484,7 @@ function FatturaLayerBody({
     <div className={`${scrollPad} space-y-4`}>
       <div>
         <h3 className="text-lg font-bold text-app-fg">
-          {t.fatture.invoice} – {fattura.fornitore?.nome}
+          {t.fatture.invoice} – {fornitoreNomeMaiuscolo(fattura.fornitore?.nome)}
         </h3>
         <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(fattura.data)}</p>
       </div>
@@ -494,7 +495,7 @@ function FatturaLayerBody({
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
               <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.supplier}</dt>
-              <dd className="font-medium text-app-fg">{fattura.fornitore?.nome}</dd>
+              <dd className="font-medium text-app-fg">{fornitoreNomeMaiuscolo(fattura.fornitore?.nome)}</dd>
             </div>
             {fattura.fornitore?.email && (
               <div className="flex gap-2">
@@ -649,7 +650,7 @@ function BollaLayerBody({
     <div className={`${scrollPad} space-y-4`}>
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-lg font-bold text-app-fg">{bolla.fornitore?.nome}</h3>
+          <h3 className="text-lg font-bold text-app-fg">{fornitoreNomeMaiuscolo(bolla.fornitore?.nome)}</h3>
           {rekkiPrezzoFlag && (
             <span className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-950/50 px-2 py-1 text-[10px] font-semibold text-amber-50">
               {t.bolle.rekkiPrezzoIndicativoBadge}
@@ -668,7 +669,7 @@ function BollaLayerBody({
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
               <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.supplier}</dt>
-              <dd className="font-medium text-app-fg">{bolla.fornitore?.nome}</dd>
+              <dd className="font-medium text-app-fg">{fornitoreNomeMaiuscolo(bolla.fornitore?.nome)}</dd>
             </div>
             {bolla.numero_bolla && (
               <div className="flex gap-2">

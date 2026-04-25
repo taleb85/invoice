@@ -6,6 +6,7 @@ import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
 import ToggleStato from './ToggleStato'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
+import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
@@ -57,7 +58,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="app-page-title text-2xl font-bold">{bolla.fornitore?.nome}</h1>
+              <h1 className="app-page-title text-2xl font-bold">{fornitoreNomeMaiuscolo(bolla.fornitore?.nome)}</h1>
               {rekkiPrezzoFlag && (
                 <span
                   className="inline-flex max-w-full min-w-0 shrink items-center rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-950/50 px-2 py-1.5 text-[10px] font-semibold leading-snug text-amber-50 shadow-md shadow-amber-950/40 sm:px-2.5 sm:text-[11px]"
@@ -84,7 +85,7 @@ export default async function BollaDetailPage({ params }: { params: Promise<{ id
           <dl className="space-y-2 text-sm">
             <div className="flex gap-2">
               <dt className="w-28 shrink-0 text-app-fg-muted">{t.common.supplier}</dt>
-              <dd className="font-medium text-app-fg">{bolla.fornitore?.nome}</dd>
+              <dd className="font-medium text-app-fg">{fornitoreNomeMaiuscolo(bolla.fornitore?.nome)}</dd>
             </div>
             {bolla.numero_bolla && (
               <div className="flex gap-2">

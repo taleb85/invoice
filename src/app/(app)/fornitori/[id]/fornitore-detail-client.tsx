@@ -87,6 +87,7 @@ import {
   SUPPLIER_DETAIL_TAB_HIGHLIGHT,
   SUPPLIER_DETAIL_TAB_TABLE_ACCENT,
 } from '@/lib/supplier-detail-tab-theme'
+import { fornitoreDisplayLabel, fornitoreDisplayLabelUppercase } from '@/lib/fornitore-display'
 import {
   hexToRgbTuple,
   SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS,
@@ -1222,6 +1223,10 @@ function DashboardTab({
   const searchParams = useSearchParams()
   const t = useT()
   const { locale, timezone } = useLocale()
+  const fornitoreNomeVisual = useMemo(
+    () => fornitoreDisplayLabelUppercase(fornitore),
+    [fornitore],
+  )
 
   // Contacts state
   const [contatti, setContatti]           = useState<ContattoRow[]>([])
@@ -1572,7 +1577,7 @@ function DashboardTab({
       <ErrorBoundary sectionName="risultati sincronizzazione email">
         <StatoSincronizzazioneIntelligente
           fornitoreId={fornitoreId}
-          fornitoreNome={fornitore.nome}
+          fornitoreNome={fornitoreNomeVisual}
           sedeId={fornitore.sede_id ?? null}
         />
       </ErrorBoundary>
@@ -4500,6 +4505,11 @@ function FornitoreDetailClient({
 
   /** Sede attiva utente se il fornitore non ha ancora `sede_id` — necessario per API statement/bolle in Verifica. */
   const effectiveSedeId = fornitore.sede_id?.trim() || me?.sede_id?.trim() || undefined
+  const fornitoreNomeVisual = useMemo(
+    () => fornitoreDisplayLabelUppercase(fornitore),
+    [fornitore],
+  )
+  const fornitoreLabelAvatar = useMemo(() => fornitoreDisplayLabel(fornitore), [fornitore])
   // ── Periodo documenti / KPI (date inclusive Da / A, navigazione mese/anno) ──
   const now = new Date()
   const nowY = now.getFullYear()
@@ -4700,7 +4710,7 @@ function FornitoreDetailClient({
         ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
           <ListinoTab
             fornitoreId={fornitore.id}
-            fornitoreNome={fornitore.nome}
+            fornitoreNome={fornitoreNomeVisual}
             rekkiLinked={Boolean(
               String(fornitore.rekki_supplier_id ?? '').trim() || String(fornitore.rekki_link ?? '').trim()
             )}
@@ -4760,10 +4770,10 @@ function FornitoreDetailClient({
       {displayTab === 'audit' &&
         ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
           <>
-            <GmailAuditReadyBadge fornitoreNome={fornitore.nome} />
+            <GmailAuditReadyBadge fornitoreNome={fornitoreNomeVisual} />
             <RecuperoCreditiAudit
               fornitoreId={fornitore.id}
-              fornitoreNome={fornitore.nome}
+              fornitoreNome={fornitoreNomeVisual}
               currency={currency ?? 'GBP'}
             />
           </>
@@ -4786,9 +4796,9 @@ function FornitoreDetailClient({
         <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
           <div className="flex items-start gap-3 border-t border-app-line-10 bg-transparent px-3 py-2.5 text-app-fg">
-            <FornitoreAvatar nome={fornitore.nome} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
+            <FornitoreAvatar nome={fornitoreLabelAvatar} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitore.nome}</h1>
+              <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitoreNomeVisual}</h1>
               {!supplierReadOnlyMobile ? (
                 <ScanEmailButton
                   variant="supplier"
@@ -4810,7 +4820,7 @@ function FornitoreDetailClient({
             <div
               className="-mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               role="navigation"
-              aria-label={fornitore.nome}
+              aria-label={fornitoreNomeVisual}
             >
               {tabs.map((tb) => (
                 <button
@@ -4883,13 +4893,13 @@ function FornitoreDetailClient({
             {/* Identità fornitore */}
             <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
               <FornitoreAvatar
-                nome={fornitore.nome}
+                nome={fornitoreLabelAvatar}
                 logoUrl={fornitore.logo_url}
                 sizeClass="h-8 w-8 shrink-0 lg:h-7 lg:w-7"
               />
               <div className="min-w-0 flex-1">
                 <h1 className="app-page-title truncate text-[13px] font-bold leading-tight text-app-fg">
-                  {fornitore.nome}
+                  {fornitoreNomeVisual}
                 </h1>
                 {fornitore.email && (
                   <p className="truncate text-[11px] leading-snug text-app-fg-muted">

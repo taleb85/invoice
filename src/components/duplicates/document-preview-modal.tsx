@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 
 type Entity = 'fatture' | 'bolle' | 'fornitori'
 
@@ -133,7 +134,7 @@ function FatturaDetail({ doc }: { doc: FatturaDoc }) {
       <div className="border-t border-white/10 pt-4">
         <SectionTitle>Fornitore</SectionTitle>
         <div className="space-y-1.5">
-          <Field label="Nome">{doc.fornitore?.nome ?? '—'}</Field>
+          <Field label="Nome">{doc.fornitore?.nome ? fornitoreNomeMaiuscolo(doc.fornitore.nome) : '—'}</Field>
           <Field label="Email">{doc.fornitore?.email ?? '—'}</Field>
           <Field label="P.IVA">{doc.fornitore?.piva ?? '—'}</Field>
         </div>
@@ -202,7 +203,7 @@ function BollaDetail({ doc }: { doc: BollaDoc }) {
       <div className="border-t border-white/10 pt-4">
         <SectionTitle>Fornitore</SectionTitle>
         <div className="space-y-1.5">
-          <Field label="Nome">{doc.fornitore?.nome ?? '—'}</Field>
+          <Field label="Nome">{doc.fornitore?.nome ? fornitoreNomeMaiuscolo(doc.fornitore.nome) : '—'}</Field>
           <Field label="Email">{doc.fornitore?.email ?? '—'}</Field>
           <Field label="P.IVA">{doc.fornitore?.piva ?? '—'}</Field>
         </div>
@@ -256,7 +257,7 @@ function FornitoreDetail({ doc }: { doc: FornitoreDoc }) {
       <div>
         <SectionTitle>Anagrafica</SectionTitle>
         <div className="space-y-1.5">
-          <Field label="Nome">{doc.nome ?? '—'}</Field>
+          <Field label="Nome">{doc.nome ? fornitoreNomeMaiuscolo(doc.nome) : '—'}</Field>
           <Field label="Email">{doc.email ?? '—'}</Field>
           <Field label="P.IVA">{doc.piva ?? '—'}</Field>
         </div>
