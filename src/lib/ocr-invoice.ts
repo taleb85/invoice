@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parseAnyAmount } from '@/lib/ocr-amount'
+import { safeDate } from '@/lib/safe-date'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import {
   geminiGenerateText,
@@ -207,6 +208,7 @@ Rules:
 - tipo_documento: classify from headings/keywords (DDT, D.N., Lieferschein, Delivery note → bolla). When in doubt between invoice and delivery note, prefer bolla if the layout is line-items dispatch without full fiscal invoice wording.
 - totale_iva_inclusa: return the raw amount string EXACTLY as printed (including any currency symbol and separators). Do NOT convert to a number.
 ${estrazioneRule}- note_corpo_mail: never copy long generic email signatures or legal disclaimers; keep it concise.
+- data_fattura: on European (incl. Italian) documents, the printed order is day-first: 08/04/2026 is 8 April 2026, not 4 August. Always return YYYY-MM-DD for the document date actually printed, not a similar or shipment date.
 - If a field is absent, use null.`
 }
 
@@ -262,7 +264,12 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
       typeof parsed.indirizzo === 'string' && parsed.indirizzo.trim()
         ? String(parsed.indirizzo).trim()
         : null
-    const data_fattura = parsed.data_fattura ?? null
+    const dataRaw = parsed.data_fattura
+    const dataStr =
+      dataRaw == null || dataRaw === ''
+        ? ''
+        : (typeof dataRaw === 'string' ? dataRaw : String(dataRaw)).trim()
+    const data_fattura = dataStr ? safeDate(dataStr) : null
     const numero_fattura = parsed.numero_fattura ? String(parsed.numero_fattura) : null
     const tipo_documento = normalizeTipoDocumento(parsed.tipo_documento)
 

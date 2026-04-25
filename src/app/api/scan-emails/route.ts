@@ -25,6 +25,7 @@ import {
   resolveFornitoreByRekkiSupplierId,
   type FornitoreInferRow,
 } from '@/lib/fornitore-infer-from-document'
+import { safeDate } from '@/lib/safe-date'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 import type { EmailScanMailboxContext, EmailScanStreamEvent } from '@/lib/email-scan-stream'
 import {
@@ -125,32 +126,6 @@ function buildMetadata(
     formato_importo:    ocr.formato_importo ?? null,
     matched_by:         matchedBy,
   }
-}
-
-/**
- * Normalizza qualsiasi stringa data in formato YYYY-MM-DD accettato da PostgreSQL.
- * GPT può restituire "8 Apr 2026", "08/04/2026", "2026-04-08", ecc.
- * Restituisce null se la data non è parsabile.
- */
-function safeDate(raw: string | null | undefined): string | null {
-  if (!raw) return null
-  const trimmed = raw.trim()
-  // Già in formato YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
-  // Prova a parsare con Date (gestisce "8 Apr 2026", "08/04/2026", ecc.)
-  const d = new Date(trimmed)
-  if (isNaN(d.getTime())) {
-    // Formato italiano DD/MM/YYYY o DD-MM-YYYY
-    const itMatch = trimmed.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/)
-    if (itMatch) {
-      const [, dd, mm, yyyy] = itMatch
-      const d2 = new Date(`${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`)
-      if (!isNaN(d2.getTime())) return d2.toISOString().slice(0, 10)
-    }
-    console.warn(`[DATE] Data non parsabile: "${raw}" — impostata a null`)
-    return null
-  }
-  return d.toISOString().slice(0, 10)
 }
 
 /**

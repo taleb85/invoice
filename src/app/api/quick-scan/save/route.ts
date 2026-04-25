@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { safeDate } from '@/lib/safe-date'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -20,7 +21,9 @@ export async function POST(req: NextRequest) {
   const tipo = (formData.get('tipo') as string | null) ?? 'unknown'
   const fornitoreId = (formData.get('fornitore_id') as string | null) || null
   const importoRaw = formData.get('importo') as string | null
-  const dataDoc = (formData.get('data') as string | null) || null
+  const dataRaw = (formData.get('data') as string | null) || null
+  const oggi = new Date().toISOString().slice(0, 10)
+  const dataDoc = safeDate(dataRaw) ?? oggi
   const numero = (formData.get('numero') as string | null) || null
   const sedeId = (formData.get('sede_id') as string | null) || null
 

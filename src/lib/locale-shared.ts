@@ -16,7 +16,11 @@ export function formatDate(
   timezone = 'Europe/Rome',
   opts?: Intl.DateTimeFormatOptions
 ) {
-  const parsed = new Date(d)
+  // `YYYY-MM-DD` da DB: parse come data civile, non come mezzanotte UTC (evita shift al giorno prima/dopo in alcuni fusi)
+  const ymd = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  const parsed = ymd
+    ? new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]))
+    : new Date(d)
   if (!Number.isFinite(parsed.getTime())) return ''
   const intlLocale =
     locale === 'it' ? 'it-IT'
