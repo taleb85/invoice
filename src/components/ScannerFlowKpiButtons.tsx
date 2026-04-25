@@ -134,7 +134,7 @@ function DetailModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-[rgba(34,211,238,0.2)] sm:max-h-[80vh] sm:rounded-2xl"
+        className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-[rgba(34,211,238,0.2)] sm:max-h-[80vh] sm:max-w-4xl sm:rounded-2xl md:max-w-5xl lg:max-w-6xl"
         style={{ background: '#0f2a4a' }}
       >
         {/* Header */}
@@ -192,19 +192,36 @@ function DetailModal({
           )}
 
           {fetchState === 'done' && rows.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[420px] text-left text-xs">
+            <div className="overflow-x-auto md:overflow-x-hidden">
+              <table
+                className={
+                  isElaborate
+                    ? 'w-full min-w-0 text-left text-xs'
+                    : 'w-full min-w-0 table-fixed border-collapse text-left text-xs'
+                }
+              >
+                {isElaborate ? null : (
+                  <colgroup>
+                    <col className="w-[14%]" />
+                    <col className="w-[7%]" />
+                    <col className="w-[24%]" />
+                    <col className="w-[11%]" />
+                    <col className="w-[9%]" />
+                    <col className="w-[9%]" />
+                    <col className="w-[26%]" />
+                  </colgroup>
+                )}
                 <thead>
                   <tr className="border-b text-[10px] font-semibold uppercase tracking-wider text-app-fg-muted"
                     style={{ borderColor: 'rgba(34,211,238,0.12)' }}>
-                    <th className="px-4 py-2.5 sm:px-5">Orario</th>
-                    {!isElaborate && <th className="px-2 py-2.5">Tipo</th>}
-                    {!isElaborate && <th className="px-2 py-2.5">Fornitore</th>}
-                    {!isElaborate && <th className="px-2 py-2.5">Numero</th>}
-                    {!isElaborate && <th className="px-2 py-2.5">Data doc.</th>}
-                    {!isElaborate && <th className="px-2 py-2.5">Stato</th>}
+                    <th className="px-2 py-2.5 pl-3 sm:px-2.5 sm:pl-4">Orario</th>
+                    {!isElaborate && <th className="px-1 py-2.5">Tipo</th>}
+                    {!isElaborate && <th className="px-1 py-2.5">Fornitore</th>}
+                    {!isElaborate && <th className="px-1 py-2.5">Numero</th>}
+                    {!isElaborate && <th className="px-1 py-2.5">Data doc.</th>}
+                    {!isElaborate && <th className="px-1 py-2.5">Stato</th>}
                     {isElaborate && <th className="px-2 py-2.5 sm:px-5">Azione</th>}
-                    {!isElaborate && <th className="px-2 py-2.5 sm:px-5">File</th>}
+                    {!isElaborate && <th className="px-1 py-2.5 pr-3 sm:pr-4">File</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: 'rgba(34,211,238,0.08)' }}>
@@ -216,8 +233,13 @@ function DetailModal({
                       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(34,211,238,0.04)' }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '' }}
                     >
-                      <td className="whitespace-nowrap px-4 py-2.5 tabular-nums text-app-fg-muted sm:px-5">
-                        {formatTime(row.created_at)}
+                      <td className="min-w-0 px-2 py-2 pl-3 sm:pl-4">
+                        <span
+                          className="block max-w-full truncate tabular-nums text-app-fg-muted"
+                          title={row.created_at}
+                        >
+                          {formatTime(row.created_at)}
+                        </span>
                       </td>
                       {isElaborate ? (
                         <td className="px-2 py-2.5 text-app-fg-muted sm:px-5">
@@ -225,29 +247,37 @@ function DetailModal({
                         </td>
                       ) : (
                         <>
-                          <td className="px-2 py-2.5">
-                            <span className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${tipoBadgeCls(row.tipo)}`}>
+                          <td className="min-w-0 px-1 py-2 align-top">
+                            <span className={`inline-flex max-w-full items-center rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${tipoBadgeCls(row.tipo)}`}>
                               {tipoLabel(row.tipo)}
                             </span>
                           </td>
-                          <td className="max-w-[140px] truncate px-2 py-2.5 text-app-fg sm:max-w-none">
+                          <td
+                            className="min-w-0 truncate px-1 py-2 align-top text-app-fg"
+                            title={row.fornitore_nome?.trim() || undefined}
+                          >
                             {row.fornitore_nome ?? <span className="text-app-fg-muted">—</span>}
                           </td>
-                          <td className="whitespace-nowrap px-2 py-2.5 tabular-nums text-app-fg-muted">
+                          <td
+                            className="min-w-0 truncate px-1 py-2 tabular-nums text-app-fg-muted align-top"
+                            title={row.numero ?? undefined}
+                          >
                             {row.numero ?? <span className="text-app-fg-muted/60">—</span>}
                           </td>
-                          <td className="whitespace-nowrap px-2 py-2.5 tabular-nums text-app-fg-muted">
+                          <td className="min-w-0 whitespace-nowrap px-1 py-2 tabular-nums text-app-fg-muted align-top">
                             {row.data ? formatDate(row.data) : <span className="text-app-fg-muted/60">—</span>}
                           </td>
-                          <td className="px-2 py-2.5">
+                          <td className="min-w-0 px-1 py-2 align-top">
                             {row.stato ? (
-                              <span className="rounded bg-app-line-20 px-1.5 py-0.5 text-[10px] font-medium text-app-fg-muted">
+                              <span className="inline-block max-w-full truncate rounded bg-app-line-20 px-1.5 py-0.5 text-[10px] font-medium text-app-fg-muted" title={row.stato}>
                                 {row.stato}
                               </span>
                             ) : <span className="text-app-fg-muted/60">—</span>}
                           </td>
-                          <td className="max-w-[160px] truncate px-2 py-2.5 font-mono text-[10px] text-app-fg-muted sm:px-5"
-                            title={row.file_nome ?? undefined}>
+                          <td
+                            className="min-w-0 truncate px-1 py-2 pr-3 font-mono text-[10px] text-app-fg-muted sm:pr-4 align-top"
+                            title={row.file_nome ?? undefined}
+                          >
                             {row.file_nome ?? <span className="opacity-50">—</span>}
                           </td>
                         </>
