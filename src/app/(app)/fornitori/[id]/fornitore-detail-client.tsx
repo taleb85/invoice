@@ -77,6 +77,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
+import FatturaRefreshDateButton from '@/components/FatturaRefreshDateButton'
 const FornitoreConfermeOrdineTab = dynamic(
   () => import('@/components/FornitoreConfermeOrdineTab'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
@@ -2014,6 +2015,19 @@ function FattureTab({
     [onLedgerMutated],
   )
 
+  const onFatturaDataRefreshed = useCallback(
+    (fatturaId: string, newData: string) => {
+      setFatture((prev) => {
+        const inRange = newData >= dateFrom && newData < dateToExclusive
+        if (!inRange) {
+          return prev.filter((r) => r.id !== fatturaId)
+        }
+        return prev.map((r) => (r.id === fatturaId ? { ...r, data: newData } : r))
+      })
+    },
+    [dateFrom, dateToExclusive],
+  )
+
   if (loading) {
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
@@ -2120,6 +2134,15 @@ function FattureTab({
                         </span>
                       ) : null}
                     </div>
+                    {!readOnly && f.file_url?.trim() ? (
+                      <FatturaRefreshDateButton
+                        fatturaId={f.id}
+                        hasFile
+                        onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
+                        onLedgerMutated={onLedgerMutated}
+                        className="mt-1.5 w-fit"
+                      />
+                    ) : null}
                     {f.numero_fattura && <p className="mt-0.5 text-xs text-app-fg-muted">#{f.numero_fattura}</p>}
                     {f.importo != null && (
                       <p className="mt-0.5 font-mono text-xs font-semibold tabular-nums text-app-fg-muted">
@@ -2191,7 +2214,18 @@ function FattureTab({
                 const fileKind = attachmentKindFromFileUrl(f.file_url)
                 return (
                   <tr key={f.id} className={APP_SECTION_TABLE_TR}>
-                    <td className="px-5 py-3 font-medium text-app-fg-muted">{formatDate(f.data)}</td>
+                    <td className="px-5 py-3 font-medium text-app-fg-muted">
+                      <div className="flex min-w-0 flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+                        <span className="tabular-nums">{formatDate(f.data)}</span>
+                        <FatturaRefreshDateButton
+                          fatturaId={f.id}
+                          hasFile={Boolean(f.file_url?.trim())}
+                          readOnly={readOnly}
+                          onDataUpdated={(d) => onFatturaDataRefreshed(f.id, d)}
+                          onLedgerMutated={onLedgerMutated}
+                        />
+                      </div>
+                    </td>
                     <td className="px-5 py-3 font-mono text-xs text-app-fg-muted">
                       <span className="break-words">{f.numero_fattura ?? '—'}</span>
                       {!readOnly ? (
