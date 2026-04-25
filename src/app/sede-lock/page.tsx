@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect, type ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
 import { LocaleProvider, useLocale } from '@/lib/locale-context'
+import { markSessionOperatorGateOk } from '@/lib/session-operator-gate'
 
 const SEDE_ACCESS_PIN_LEN = 4
 
@@ -16,7 +16,6 @@ export default function SedeLockPage() {
 }
 
 function SedeLockPageInner() {
-  const router = useRouter()
   const { t } = useLocale()
   const a = t.appStrings
 
@@ -33,7 +32,15 @@ function SedeLockPageInner() {
       .then((r) => r.json())
       .then((data) => {
         if (!active) return
-        if (data.redirect) { router.replace(data.redirect); return }
+        if (data.redirect) {
+          setChecking(false)
+          /* Navigazione completa: stesso trucco del login — evita spinner se il client router non smonta. */
+          if (typeof window !== 'undefined') {
+            const target = typeof data.redirect === 'string' && data.redirect.startsWith('/') ? data.redirect : '/'
+            window.location.replace(target)
+          }
+          return
+        }
         if (data.error) {
           setFatalError(data.error)
           setChecking(false)
@@ -41,14 +48,18 @@ function SedeLockPageInner() {
         }
 
         const verified = document.cookie.includes(`sede-verified=${data.sede_id}`)
-        if (verified) { router.replace('/'); return }
+        if (verified) {
+          setChecking(false)
+          if (typeof window !== 'undefined') window.location.replace('/')
+          return
+        }
 
         setSedeName(data.sede_nome ?? '')
         setChecking(false)
       })
       .catch(() => { if (active) { setFatalError(t.ui.networkError); setChecking(false) } })
     return () => { active = false }
-  }, [router, t.ui.networkError])
+  }, [t.ui.networkError])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,6 +86,8 @@ function SedeLockPageInner() {
       return
     }
 
+    /* Stesso “gate” del login PIN: sblocca la shell senza passare di nuovo da /accesso. */
+    markSessionOperatorGateOk()
     document.cookie = `sede-verified=${data.sede_id}; path=/; Max-Age=86400; SameSite=Lax`
     window.location.assign('/')
   }
