@@ -182,7 +182,7 @@ async function finalizePendingByTipo(
       }).catch(() => {})
     }
     if (userId) {
-      logActivity(supabase, {
+      logActivity(createServiceClient(), {
         userId,
         sedeId: sedeDefinitiva,
         action: 'fattura.created',
@@ -656,7 +656,7 @@ export async function POST(req: NextRequest) {
       pendingKind: 'fattura',
     })
 
-    logActivity(supabase, {
+    logActivity(createServiceClient(), {
       userId: user.id,
       sedeId: sedeDefinitiva,
       action: 'fattura.associated',

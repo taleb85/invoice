@@ -21,6 +21,11 @@ export type ActivityAction =
   | 'price_anomaly.resolved'
   | 'gemini.ocr'
 
+/**
+ * Inserisce in `activity_log`. Le policy RLS ammettono INSERT solo con **service role**
+ * (vedi `20260421100000_create_activity_log.sql`): passa `createServiceClient()` come primo
+ * argomento dalle API route, non il client con sessione utente.
+ */
 export async function logActivity(
   supabase: SupabaseClient,
   opts: {

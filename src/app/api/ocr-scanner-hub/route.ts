@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createClient, getProfile } from '@/utils/supabase/server'
+import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { geminiGenerateText, GEMINI_MODEL, type GeminiUsage } from '@/lib/gemini-vision'
 import { logActivity } from '@/lib/activity-logger'
@@ -109,7 +109,8 @@ export async function POST(req: NextRequest) {
 
     const fireLogUsage = (kind: ScannerDocumentKind) => {
       if (!user || !capturedUsage) return
-      logActivity(supabase, {
+      const service = createServiceClient()
+      logActivity(service, {
         userId: user.id,
         sedeId: logSedeId,
         action: 'gemini.ocr',
