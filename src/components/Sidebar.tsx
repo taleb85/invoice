@@ -11,7 +11,7 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { getAssociatedSedeNome, navGestisciSediLabel } from '@/lib/gestisci-sede-label'
 import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
 import { effectiveIsAdminSedeUi, profileCanAccessSediListPage } from '@/lib/effective-operator-ui'
-import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
+import { fornitoreDisplayLabel, fornitoreDisplayLabelUppercase } from '@/lib/fornitore-display'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 function getCookie(name: string): string {
   if (typeof document === 'undefined') return ''
@@ -577,7 +577,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       <Link key={f.id} href={`/fornitori/${f.id}`} onClick={onClose}
                         className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs font-semibold transition-colors ${isActive ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}>
                         <span className={`h-1 w-1 shrink-0 rounded-full ${isActive ? 'bg-app-cyan-400' : 'bg-current opacity-50'}`} />
-                        <span className="min-w-0 flex-1 truncate">{fornitoreDisplayLabel(f)}</span>
+                        <span className="min-w-0 flex-1 truncate">{fornitoreDisplayLabelUppercase(f)}</span>
                       </Link>
                     )
                   })}
