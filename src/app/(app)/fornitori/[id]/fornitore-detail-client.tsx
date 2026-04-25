@@ -1947,6 +1947,8 @@ function FattureTab({
   onLedgerMutated,
   currency,
   epoch,
+  /** Totale fatture fornitore (senza filtro data) — per messaggio se l’elenco periodo è vuoto ma il badge archivio >0 */
+  archivioFattureCount,
 }: {
   fornitoreId: string
   dateFrom: string
@@ -1957,6 +1959,7 @@ function FattureTab({
   onLedgerMutated?: () => void
   currency: string
   epoch?: number
+  archivioFattureCount: number
 }) {
   const t = useT()
   const { locale } = useLocale()
@@ -2020,10 +2023,17 @@ function FattureTab({
   }
 
   if (fatture.length === 0) {
+    const hasFattureFuoriPeriodo = archivioFattureCount > 0
+    const emptyTitle = hasFattureFuoriPeriodo
+      ? t.fatture.nessunaFatturaNelPeriodo
+      : t.fatture.nessunaFatturaRegistrata
+    const emptyHint = hasFattureFuoriPeriodo
+      ? t.fatture.fattureInArchivioAllargaFiltroData.replace('{n}', String(archivioFattureCount))
+      : undefined
     return (
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
-        <AppSectionEmptyState message={t.fatture.nessunaFatturaRegistrata}>
+        <AppSectionEmptyState message={emptyTitle} subtitle={emptyHint}>
           {!readOnly ? (
             <ActionLink
               href={`/fatture/new?fornitore_id=${encodeURIComponent(fornitoreId)}`}
@@ -4609,12 +4619,14 @@ function FornitoreDetailClient({
   )
 
   const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
+  /** Allineato a KPI e tabella: solo fatture con `data` nel periodo (il badge tab non è il totale archivio). */
+  const fattureNelPeriodo = periodStats?.fattureTotal ?? 0
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
     const all: { id: Tab; label: string; badge?: number }[] = [
       { id: 'dashboard', label: t.fornitori.tabRiepilogo },
       { id: 'conferme', label: t.fornitori.kpiOrdini, badge: ordiniCount > 0 ? ordiniCount : undefined },
       { id: 'bolle', label: t.nav.bolle, badge: bolleCount },
-      { id: 'fatture', label: t.nav.fatture, badge: fattureCount },
+      { id: 'fatture', label: t.nav.fatture, badge: fattureNelPeriodo > 0 ? fattureNelPeriodo : undefined },
       { id: 'verifica', label: t.statements.tabVerifica },
       { id: 'listino', label: t.fornitori.tabListino },
       { id: 'audit', label: t.fornitori.tabAuditPrezzi },
@@ -4624,7 +4636,7 @@ function FornitoreDetailClient({
       return all.filter((tb) => tb.id === 'dashboard' || tb.id === 'listino' || tb.id === 'documenti')
     }
     return all
-  }, [t, ordiniCount, bolleCount, fattureCount, pendingCount, supplierReadOnlyMobile])
+  }, [t, ordiniCount, bolleCount, fattureNelPeriodo, pendingCount, supplierReadOnlyMobile])
 
   const TabContent = ({ variant }: { variant: 'mobile' | 'desktop' }) => (
     <>
@@ -4662,6 +4674,7 @@ function FornitoreDetailClient({
             onLedgerMutated={bumpPeriodLedger}
             currency={currency ?? 'GBP'}
             epoch={periodLedgerEpoch}
+            archivioFattureCount={fattureCount}
           />
         ) : null)}
       {displayTab === 'listino' &&
