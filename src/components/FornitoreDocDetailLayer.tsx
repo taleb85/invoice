@@ -205,11 +205,11 @@ function FornitoreInlineDocPreview({
             <img
               src={signedUrl}
               alt=""
-              style={{ width: `${z * 100}%`, maxWidth: 'none', height: 'auto' }}
+              style={{ width: `${z * 100}%`, maxWidth: z > 1 ? 'none' : undefined, height: 'auto' }}
               className={
                 fill
-                  ? 'mx-auto h-auto min-h-0'
-                  : 'mx-auto h-auto max-h-[min(72vh,820px)] object-contain'
+                  ? 'mx-auto h-auto max-h-full min-h-0 w-full max-w-full object-contain'
+                  : 'mx-auto h-auto max-h-[min(72vh,820px)] w-full max-w-full object-contain'
               }
             />
           </div>
@@ -293,7 +293,7 @@ export default function FornitoreDocDetailLayer({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-stretch justify-center app-workspace-inset-bg p-0 backdrop-blur-sm md:p-6"
+      className="fixed inset-0 z-[200] flex min-h-0 items-stretch justify-center app-workspace-inset-bg p-0 backdrop-blur-sm md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fornitore-doc-detail-title"
@@ -304,7 +304,7 @@ export default function FornitoreDocDetailLayer({
         className="absolute inset-0 z-0 cursor-default md:hidden"
         onClick={close}
       />
-      <div className="relative z-10 flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none border border-app-line-22 bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] shadow-2xl md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:rounded-xl">
+      <div className="relative z-10 flex h-full min-h-0 max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none border border-app-line-22 bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] shadow-2xl pb-[env(safe-area-inset-bottom,0px)] md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:pb-0 md:rounded-xl">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-app-line-22 px-3 py-2.5 md:px-4">
           <h2 id="fornitore-doc-detail-title" className="min-w-0 truncate text-sm font-semibold text-app-fg">
             {showFattura ? t.fatture.invoice : t.bolle.dettaglio}
