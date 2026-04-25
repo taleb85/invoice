@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useLocale } from '@/lib/locale-context'
-import { useMe } from '@/lib/me-context'
+import { markClientSessionJustEstablished, useMe } from '@/lib/me-context'
 import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
 import { LOCALES, type Locale, getTranslations, localeFromCountryCode } from '@/lib/translations'
 import {
@@ -336,6 +336,12 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       setTimeout(() => pinRefs.current[0]?.focus(), 50)
       return
     }
+    const { data: { session: sess0 } } = await supabase.auth.getSession()
+    if (!sess0) {
+      setMessage({ type: 'error', text: t.login.pinIncorrect })
+      setLoading(false)
+      return
+    }
     try {
       localStorage.removeItem('fluxo-active-operator')
       localStorage.removeItem('fluxo-active-operator-user')
@@ -345,6 +351,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       /* ignore */
     }
     markSessionOperatorGateOk()
+    markClientSessionJustEstablished()
     if (sessionGateNext) {
       router.replace(sessionGateNext)
     } else {
@@ -725,6 +732,13 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     const { error } = await supabase.auth.signInWithPassword({ email, password: adminPw })
     if (error) { setMessage({ type: 'error', text: t.login.invalidCredentials }); setLoading(false); return }
 
+    const { data: { session: sess0 } } = await supabase.auth.getSession()
+    if (!sess0) {
+      setMessage({ type: 'error', text: t.login.invalidCredentials })
+      setLoading(false)
+      return
+    }
+
     const { data: { user: signedUser } } = await supabase.auth.getUser()
     if (!signedUser) {
       setMessage({ type: 'error', text: t.login.invalidCredentials })
@@ -750,7 +764,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       /* ignore */
     }
 
-    router.push('/'); router.refresh()
+    markClientSessionJustEstablished()
+    router.push('/')
+    router.refresh()
   }
 
   const inputCls =

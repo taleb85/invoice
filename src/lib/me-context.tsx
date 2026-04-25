@@ -45,6 +45,24 @@ export const ME_SWR_KEY = '/api/me'
 /** Evita schermata "Caricamento…" infinita se /api/me non risponde (rete mobile, tab in background). */
 const ME_FETCH_TIMEOUT_MS = 20_000
 
+/**
+ * Dopo `signInWithPassword` il client Supabase può non avere ancora scritto i cookie
+ * che la prossima richiesta verso `/api/me` invia. Il login imposta questa chiave; se la
+ * prima risposta fallisce (401, altro status, corpo vuoto, timeout), aspettiamo 1s e
+ * ritentiamo una sola volta.
+ */
+export const FLUXO_JUST_AUTHED_KEY = 'fluxo-just-authed'
+const FLUXO_JUST_AUTHED_MAX_AGE_MS = 25_000
+
+export function markClientSessionJustEstablished(): void {
+  try {
+    if (typeof sessionStorage === 'undefined') return
+    sessionStorage.setItem(FLUXO_JUST_AUTHED_KEY, String(Date.now()))
+  } catch {
+    /* private mode, quota */
+  }
+}
+
 const DEFAULT_ME: MeData = {
   user:         null,
   full_name:    null,
@@ -86,41 +104,94 @@ function parseMeResponse(data: Record<string, unknown>): MeData {
   }
 }
 
-const meFetcher = async (url: string): Promise<MeData | null> => {
+function clearJustAuthedFlag(): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(FLUXO_JUST_AUTHED_KEY)
+  } catch { /* ignore */ }
+}
+
+function shouldRetry401AfterSignIn(): boolean {
+  try {
+    if (typeof sessionStorage === 'undefined') return false
+    const raw = sessionStorage.getItem(FLUXO_JUST_AUTHED_KEY)
+    if (!raw) return false
+    const ts = Number(raw)
+    if (!Number.isFinite(ts) || Date.now() - ts > FLUXO_JUST_AUTHED_MAX_AGE_MS) {
+      clearJustAuthedFlag()
+      return false
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
+const meFetcher = async (url: string, isPostLoginRetry = false): Promise<MeData | null> => {
   const ac = new AbortController()
   const t = window.setTimeout(() => ac.abort(), ME_FETCH_TIMEOUT_MS)
+  let res: Response
   try {
-    const res = await fetch(url, {
+    res = await fetch(url, {
       cache: 'no-store',
       signal: ac.signal,
     })
-
-    if (res.status === 401) {
-      const body = await res.json().catch(() => ({})) as { error?: string; reason?: string }
-      if (body.error === 'session_expired') {
-        const reason =
-          body.reason === 'inactivity'
-            ? 'Sessione scaduta per inattività'
-            : 'Sessione scaduta'
-        // Hard redirect so the browser clears in-memory state completely.
-        window.location.href = `/login?expired=1&reason=${encodeURIComponent(reason)}`
-        return null
-      }
-      return null
-    }
-
-    if (!res.ok) return null
-    const raw = (await res.json().catch(() => null)) as Record<string, unknown> | null
-    return raw ? parseMeResponse(raw) : null
   } catch (e) {
     const name = e instanceof Error ? e.name : ''
     if (name === 'AbortError') {
       console.warn(`[me] /api/me timed out after ${ME_FETCH_TIMEOUT_MS}ms`)
     }
-    return null
-  } finally {
     window.clearTimeout(t)
+    if (!isPostLoginRetry && shouldRetry401AfterSignIn()) {
+      clearJustAuthedFlag()
+      console.info('[me] /api/me errore/rete subito dopo login — retry tra 1s (cookie sessione in volo)')
+      await new Promise((r) => setTimeout(r, 1_000))
+      return meFetcher(url, true)
+    }
+    return null
   }
+  window.clearTimeout(t)
+
+  if (res.status === 401) {
+    const body = await res.json().catch(() => ({})) as { error?: string; reason?: string }
+    if (body.error === 'session_expired') {
+      clearJustAuthedFlag()
+      const reason =
+        body.reason === 'inactivity'
+          ? 'Sessione scaduta per inattività'
+          : 'Sessione scaduta'
+      window.location.href = `/login?expired=1&reason=${encodeURIComponent(reason)}`
+      return null
+    }
+    if (!isPostLoginRetry && shouldRetry401AfterSignIn()) {
+      clearJustAuthedFlag()
+      console.info('[me] /api/me 401 subito dopo login — retry tra 1s (cookie sessione in volo)')
+      await new Promise((r) => setTimeout(r, 1_000))
+      return meFetcher(url, true)
+    }
+    return null
+  }
+
+  if (!res.ok) {
+    if (!isPostLoginRetry && shouldRetry401AfterSignIn()) {
+      clearJustAuthedFlag()
+      console.info(`[me] /api/me ${res.status} subito dopo login — retry tra 1s (cookie sessione in volo)`)
+      await new Promise((r) => setTimeout(r, 1_000))
+      return meFetcher(url, true)
+    }
+    return null
+  }
+  const raw = (await res.json().catch(() => null)) as Record<string, unknown> | null
+  if (raw) {
+    clearJustAuthedFlag()
+    return parseMeResponse(raw)
+  }
+  if (!isPostLoginRetry && shouldRetry401AfterSignIn()) {
+    clearJustAuthedFlag()
+    console.info('[me] /api/me risposta vuota subito dopo login — retry tra 1s (cookie sessione in volo)')
+    await new Promise((r) => setTimeout(r, 1_000))
+    return meFetcher(url, true)
+  }
+  return null
 }
 
 const MeContext = createContext<MeContextValue>({
