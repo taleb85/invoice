@@ -1949,6 +1949,7 @@ function FattureTab({
   epoch,
   /** Totale fatture fornitore (senza filtro data) — per messaggio se l’elenco periodo è vuoto ma il badge archivio >0 */
   archivioFattureCount,
+  onExpandDateRangeToShowAllFatture,
 }: {
   fornitoreId: string
   dateFrom: string
@@ -1960,6 +1961,8 @@ function FattureTab({
   currency: string
   epoch?: number
   archivioFattureCount: number
+  /** Allarga il periodo in header a 2000–oggi così l’elenco mostra ogni fattura con `data` in range. */
+  onExpandDateRangeToShowAllFatture?: () => void
 }) {
   const t = useT()
   const { locale } = useLocale()
@@ -2034,6 +2037,17 @@ function FattureTab({
       <div className={`supplier-detail-tab-shell overflow-hidden`}>
         <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.fatture.bar}`} aria-hidden />
         <AppSectionEmptyState message={emptyTitle} subtitle={emptyHint}>
+          {hasFattureFuoriPeriodo && onExpandDateRangeToShowAllFatture ? (
+            <div className="mt-2 flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={onExpandDateRangeToShowAllFatture}
+                className="rounded-full border border-app-cyan-500/50 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-200 transition-colors hover:border-app-cyan-400/70 hover:bg-cyan-500/20"
+              >
+                {t.fatture.fattureExpandDateRangeCta}
+              </button>
+            </div>
+          ) : null}
           {!readOnly ? (
             <ActionLink
               href={`/fatture/new?fornitore_id=${encodeURIComponent(fornitoreId)}`}
@@ -4619,14 +4633,18 @@ function FornitoreDetailClient({
   )
 
   const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
-  /** Allineato a KPI e tabella: solo fatture con `data` nel periodo (il badge tab non è il totale archivio). */
-  const fattureNelPeriodo = periodStats?.fattureTotal ?? 0
+
+  const expandLedgerToAllFatture = useCallback(() => {
+    setLedgerPeriod(clampLedgerPeriodToToday('2000-01-01', todayYmd, todayYmd))
+    setPeriodLedgerEpoch((e) => e + 1)
+  }, [todayYmd])
+
   const tabs: { id: Tab; label: string; badge?: number }[] = useMemo(() => {
     const all: { id: Tab; label: string; badge?: number }[] = [
       { id: 'dashboard', label: t.fornitori.tabRiepilogo },
       { id: 'conferme', label: t.fornitori.kpiOrdini, badge: ordiniCount > 0 ? ordiniCount : undefined },
       { id: 'bolle', label: t.nav.bolle, badge: bolleCount },
-      { id: 'fatture', label: t.nav.fatture, badge: fattureNelPeriodo > 0 ? fattureNelPeriodo : undefined },
+      { id: 'fatture', label: t.nav.fatture, badge: fattureCount > 0 ? fattureCount : undefined },
       { id: 'verifica', label: t.statements.tabVerifica },
       { id: 'listino', label: t.fornitori.tabListino },
       { id: 'audit', label: t.fornitori.tabAuditPrezzi },
@@ -4636,7 +4654,7 @@ function FornitoreDetailClient({
       return all.filter((tb) => tb.id === 'dashboard' || tb.id === 'listino' || tb.id === 'documenti')
     }
     return all
-  }, [t, ordiniCount, bolleCount, fattureNelPeriodo, pendingCount, supplierReadOnlyMobile])
+  }, [t, ordiniCount, bolleCount, fattureCount, pendingCount, supplierReadOnlyMobile])
 
   const TabContent = ({ variant }: { variant: 'mobile' | 'desktop' }) => (
     <>
@@ -4675,6 +4693,7 @@ function FornitoreDetailClient({
             currency={currency ?? 'GBP'}
             epoch={periodLedgerEpoch}
             archivioFattureCount={fattureCount}
+            onExpandDateRangeToShowAllFatture={expandLedgerToAllFatture}
           />
         ) : null)}
       {displayTab === 'listino' &&
