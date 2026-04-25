@@ -42,6 +42,9 @@ interface MeContextValue {
 
 export const ME_SWR_KEY = '/api/me'
 
+/** Evita schermata "Caricamento…" infinita se /api/me non risponde (rete mobile, tab in background). */
+const ME_FETCH_TIMEOUT_MS = 20_000
+
 const DEFAULT_ME: MeData = {
   user:         null,
   full_name:    null,
@@ -84,23 +87,40 @@ function parseMeResponse(data: Record<string, unknown>): MeData {
 }
 
 const meFetcher = async (url: string): Promise<MeData | null> => {
-  const res = await fetch(url)
+  const ac = new AbortController()
+  const t = window.setTimeout(() => ac.abort(), ME_FETCH_TIMEOUT_MS)
+  try {
+    const res = await fetch(url, {
+      cache: 'no-store',
+      signal: ac.signal,
+    })
 
-  if (res.status === 401) {
-    const body = await res.json().catch(() => ({})) as { error?: string; reason?: string }
-    if (body.error === 'session_expired') {
-      const reason =
-        body.reason === 'inactivity'
-          ? 'Sessione scaduta per inattività'
-          : 'Sessione scaduta'
-      // Hard redirect so the browser clears in-memory state completely.
-      window.location.href = `/login?expired=1&reason=${encodeURIComponent(reason)}`
+    if (res.status === 401) {
+      const body = await res.json().catch(() => ({})) as { error?: string; reason?: string }
+      if (body.error === 'session_expired') {
+        const reason =
+          body.reason === 'inactivity'
+            ? 'Sessione scaduta per inattività'
+            : 'Sessione scaduta'
+        // Hard redirect so the browser clears in-memory state completely.
+        window.location.href = `/login?expired=1&reason=${encodeURIComponent(reason)}`
+        return null
+      }
       return null
     }
-    return null
-  }
 
-  return res.ok ? res.json().then(parseMeResponse) : null
+    if (!res.ok) return null
+    const raw = (await res.json().catch(() => null)) as Record<string, unknown> | null
+    return raw ? parseMeResponse(raw) : null
+  } catch (e) {
+    const name = e instanceof Error ? e.name : ''
+    if (name === 'AbortError') {
+      console.warn(`[me] /api/me timed out after ${ME_FETCH_TIMEOUT_MS}ms`)
+    }
+    return null
+  } finally {
+    window.clearTimeout(t)
+  }
 }
 
 const MeContext = createContext<MeContextValue>({
@@ -121,11 +141,12 @@ export function UserProvider({
     ME_SWR_KEY,
     meFetcher,
     {
-      revalidateOnFocus:    false,
+      revalidateOnFocus:     false,
       revalidateOnReconnect: true,
-      dedupingInterval:     30_000,
+      dedupingInterval:      30_000,
+      errorRetryCount:       0,
       // Provide SSR data immediately; SWR revalidates in the background
-      fallbackData:         initialMe ?? undefined,
+      fallbackData:          initialMe ?? undefined,
     },
   )
 
