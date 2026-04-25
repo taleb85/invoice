@@ -4,11 +4,10 @@ import { useState, useEffect, useCallback, useId } from 'react'
 import { createPortal } from 'react-dom'
 import type { ScannerDetailRow } from '@/app/api/scansioni/detail/route'
 import type { Translations } from '@/lib/translations'
-
-type DetailTimeRange = { from: string; toExclusive: string }
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as fmtDate } from '@/lib/locale-shared'
 
+type DetailTimeRange = { from: string; toExclusive: string }
 type ModalType = 'elaborate' | 'archiviate'
 type FetchState = 'idle' | 'loading' | 'done' | 'error'
 
@@ -127,20 +126,16 @@ function DetailModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[95] flex items-end justify-center p-3 sm:items-center sm:p-5"
-      style={{ background: 'rgba(10,25,47,0.85)', backdropFilter: 'blur(8px)' }}
+      className="fixed inset-0 z-[120] flex items-end justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:items-center sm:p-5"
+      style={{ background: 'rgba(10,25,47,0.92)', backdropFilter: 'blur(10px)' }}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden"
-        style={{
-          background: '#0f2a4a',
-          border: '1px solid rgba(34,211,238,0.2)',
-          borderRadius: '16px',
-        }}
+        className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-[rgba(34,211,238,0.2)] sm:max-h-[80vh] sm:rounded-2xl"
+        style={{ background: '#0f2a4a' }}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-5"
@@ -149,7 +144,7 @@ function DetailModal({
             <h2 id={titleId} className="text-sm font-bold text-app-fg sm:text-base">
               {title}
             </h2>
-            {fetchState === 'done' && rows.length > 0 && (
+            {fetchState === 'done' && (
               <p className="mt-0.5 text-[11px] text-app-fg-muted">
                 {listPeriod === 'range'
                   ? t.dashboard.scannerFlowDetailListCountRange.replace(
