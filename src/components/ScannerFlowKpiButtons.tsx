@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useId } from 'react'
 import { createPortal } from 'react-dom'
 import type { ScannerDetailRow } from '@/app/api/scansioni/detail/route'
 import type { Translations } from '@/lib/translations'
+
+type DetailTimeRange = { from: string; toExclusive: string }
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as fmtDate } from '@/lib/locale-shared'
 
@@ -32,10 +34,16 @@ function DetailModal({
   modalType,
   tz,
   onClose,
+  t,
+  listPeriod,
+  timeRange,
 }: {
   modalType: ModalType
   tz: string
   onClose: () => void
+  t: Translations
+  listPeriod: 'today' | 'range'
+  timeRange?: DetailTimeRange
 }) {
   const { locale } = useLocale()
   const titleId = useId()
@@ -68,7 +76,14 @@ function DetailModal({
   useEffect(() => {
     if (fetchState !== 'idle') return
     setFetchState('loading')
-    fetch(`/api/scansioni/detail?type=${modalType}&tz=${encodeURIComponent(tz)}`, {
+    const q = new URLSearchParams()
+    q.set('type', modalType)
+    q.set('tz', tz)
+    if (timeRange?.from && timeRange?.toExclusive) {
+      q.set('from', timeRange.from)
+      q.set('toExclusive', timeRange.toExclusive)
+    }
+    fetch(`/api/scansioni/detail?${q.toString()}`, {
       cache: 'no-store',
     })
       .then((r) => r.json())
@@ -85,10 +100,10 @@ function DetailModal({
         setErrorMsg('Errore di rete')
         setFetchState('error')
       })
-  }, [fetchState, modalType, tz])
+  }, [fetchState, modalType, timeRange?.from, timeRange?.toExclusive, tz])
 
   const title =
-    modalType === 'elaborate' ? 'Documenti elaborati dall\'AI' : 'Documenti archiviati'
+    modalType === 'elaborate' ? t.dashboard.scannerFlowAiElaborate : t.dashboard.scannerFlowArchived
 
   const formatTime = (iso: string) => {
     try {
@@ -134,11 +149,14 @@ function DetailModal({
             <h2 id={titleId} className="text-sm font-bold text-app-fg sm:text-base">
               {title}
             </h2>
-            {fetchState === 'done' && (
+            {fetchState === 'done' && rows.length > 0 && (
               <p className="mt-0.5 text-[11px] text-app-fg-muted">
-                {rows.length === 0
-                  ? 'Nessun documento trovato'
-                  : `${rows.length} ${rows.length === 1 ? 'documento' : 'documenti'} oggi`}
+                {listPeriod === 'range'
+                  ? t.dashboard.scannerFlowDetailListCountRange.replace(
+                      '{n}',
+                      String(rows.length),
+                    )
+                  : t.dashboard.scannerFlowDetailListCountToday.replace('{n}', String(rows.length))}
               </p>
             )}
           </div>
@@ -172,7 +190,9 @@ function DetailModal({
 
           {fetchState === 'done' && rows.length === 0 && (
             <div className="px-5 py-12 text-center text-sm text-app-fg-muted">
-              Nessun documento trovato per oggi.
+              {listPeriod === 'range'
+                ? t.dashboard.scannerFlowDetailEmptyRange
+                : t.dashboard.scannerFlowNoEventsToday}
             </div>
           )}
 
@@ -206,7 +226,7 @@ function DetailModal({
                       </td>
                       {isElaborate ? (
                         <td className="px-2 py-2.5 text-app-fg-muted sm:px-5">
-                          PDF analizzato dall&apos;AI
+                          {t.dashboard.scannerFlowStepAiElaborata}
                         </td>
                       ) : (
                         <>
@@ -257,6 +277,7 @@ export default function ScannerFlowKpiButtons({
   archiviate,
   t,
   tz,
+  detailTimeRange,
   kpiBoxBorder,
   kpiBoxBg,
   kpiNumCls,
@@ -267,6 +288,7 @@ export default function ScannerFlowKpiButtons({
   t: Translations
   /** IANA timezone string from the server */
   tz: string
+  detailTimeRange?: DetailTimeRange
   kpiBoxBorder: string
   kpiBoxBg: string
   kpiNumCls: string
@@ -319,7 +341,14 @@ export default function ScannerFlowKpiButtons({
       </button>
 
       {openModal !== null && (
-        <DetailModal modalType={openModal} tz={tz} onClose={handleClose} />
+        <DetailModal
+          modalType={openModal}
+          tz={tz}
+          onClose={handleClose}
+          t={t}
+          listPeriod={detailTimeRange ? 'range' : 'today'}
+          timeRange={detailTimeRange}
+        />
       )}
     </>
   )

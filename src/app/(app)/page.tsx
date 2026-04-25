@@ -15,7 +15,7 @@ import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/compon
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
-import { parseFiscalYearQueryParam } from '@/lib/fiscal-year'
+import { getFiscalYearPgBounds, formatFiscalYearShort, parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
 import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
@@ -234,6 +234,7 @@ export default async function DashboardPage({
   const operatorScoped = !!sedeId
   const fiscalYear = operatorScoped ? parseFiscalYearQueryParam(searchParams.fy, sedeCountryCode) : 0
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
+  const scannerFiscalBounds = kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
   const [kpis, supplierHint, scannerFlowDetail] = await Promise.all([
     operatorScoped
       ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
@@ -260,7 +261,14 @@ export default async function DashboardPage({
         }),
     operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
     operatorScoped && sedeId
-      ? fetchTodayScannerFlowDetail(supabase, sedeId, tz)
+      ? fetchTodayScannerFlowDetail(
+          supabase,
+          sedeId,
+          tz,
+          scannerFiscalBounds
+            ? { summaryRange: { start: scannerFiscalBounds.tsFrom, endExclusive: scannerFiscalBounds.tsToExclusive } }
+            : undefined,
+        )
       : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
   ])
   const formatScannerEventTime = (iso: string) => fmtDate(iso, locale, tz, { hour: '2-digit', minute: '2-digit' })
@@ -405,6 +413,12 @@ export default async function DashboardPage({
               t={t}
               headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
               tz={tz}
+              fiscalYearLabel={kpiFiscal ? formatFiscalYearShort(kpiFiscal.countryCode, kpiFiscal.labelYear) : undefined}
+              detailTimeRange={
+                scannerFiscalBounds
+                  ? { from: scannerFiscalBounds.tsFrom, toExclusive: scannerFiscalBounds.tsToExclusive }
+                  : undefined
+              }
             />
           </div>
         </>

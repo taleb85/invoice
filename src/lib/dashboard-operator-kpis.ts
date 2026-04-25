@@ -711,28 +711,28 @@ function isScannerFlowEventStep(s: string): s is ScannerFlowEventStep {
   return s === 'ai_elaborata' || s === 'archiviata_bolla' || s === 'archiviata_fattura'
 }
 
-/** Conteggi `scanner_flow_events` per sede nella giornata (fuso `ianaTimeZone`). Tabella assente → zeri. */
-export async function fetchTodayScannerFlowSummary(
+/** Conteggi `scanner_flow_events` per sede in `[startIso, endExclusiveIso)` (UTC). */
+export async function fetchScannerFlowPeriodSummary(
   supabase: SupabaseClient,
   sedeId: string,
-  ianaTimeZone: string
+  startIso: string,
+  endExclusiveIso: string
 ): Promise<ScannerFlowDaySummary> {
-  const { start, endExclusive } = utcBoundsForZonedCalendarDay(ianaTimeZone)
   const [aiRes, archRes] = await Promise.all([
     supabase
       .from('scanner_flow_events')
       .select('*', { count: 'exact', head: true })
       .eq('sede_id', sedeId)
       .eq('step', 'ai_elaborata')
-      .gte('created_at', start)
-      .lt('created_at', endExclusive),
+      .gte('created_at', startIso)
+      .lt('created_at', endExclusiveIso),
     supabase
       .from('scanner_flow_events')
       .select('*', { count: 'exact', head: true })
       .eq('sede_id', sedeId)
       .in('step', ['archiviata_bolla', 'archiviata_fattura'])
-      .gte('created_at', start)
-      .lt('created_at', endExclusive),
+      .gte('created_at', startIso)
+      .lt('created_at', endExclusiveIso),
   ])
   if (aiRes.error || archRes.error) {
     return { aiElaborate: 0, archiviate: 0 }
@@ -740,21 +740,38 @@ export async function fetchTodayScannerFlowSummary(
   return { aiElaborate: aiRes.count ?? 0, archiviate: archRes.count ?? 0 }
 }
 
-/** Conteggi giornalieri + ultimi eventi (descrizione attività Scanner AI nella giornata). */
-export async function fetchTodayScannerFlowDetail(
+/** Conteggi `scanner_flow_events` per sede nella giornata (fuso `ianaTimeZone`). Tabella assente → zeri. */
+export async function fetchTodayScannerFlowSummary(
   supabase: SupabaseClient,
   sedeId: string,
   ianaTimeZone: string
-): Promise<ScannerFlowDayDetail> {
+): Promise<ScannerFlowDaySummary> {
   const { start, endExclusive } = utcBoundsForZonedCalendarDay(ianaTimeZone)
+  return fetchScannerFlowPeriodSummary(supabase, sedeId, start, endExclusive)
+}
+
+export type ScannerFlowDetailOptions = {
+  /** Conteggi KPI: default = giorno calendario in `ianaTimeZone`. Passa i bound dell’anno fiscale per allineare la card al selettore dashboard. */
+  summaryRange?: { start: string; endExclusive: string }
+}
+
+/** Conteggi periodo (giorno o anno fiscale) + ultimi eventi della giornata (timeline “oggi”). */
+export async function fetchTodayScannerFlowDetail(
+  supabase: SupabaseClient,
+  sedeId: string,
+  ianaTimeZone: string,
+  options?: ScannerFlowDetailOptions
+): Promise<ScannerFlowDayDetail> {
+  const day = utcBoundsForZonedCalendarDay(ianaTimeZone)
+  const summaryBounds = options?.summaryRange ?? day
   const [summary, eventsRes] = await Promise.all([
-    fetchTodayScannerFlowSummary(supabase, sedeId, ianaTimeZone),
+    fetchScannerFlowPeriodSummary(supabase, sedeId, summaryBounds.start, summaryBounds.endExclusive),
     supabase
       .from('scanner_flow_events')
       .select('id, created_at, step')
       .eq('sede_id', sedeId)
-      .gte('created_at', start)
-      .lt('created_at', endExclusive)
+      .gte('created_at', day.start)
+      .lt('created_at', day.endExclusive)
       .order('created_at', { ascending: false })
       .limit(SCANNER_FLOW_TODAY_EVENTS_LIMIT),
   ])

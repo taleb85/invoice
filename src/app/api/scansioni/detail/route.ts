@@ -43,6 +43,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const type = searchParams.get('type') as 'elaborate' | 'archiviate' | null
   const tzParam = searchParams.get('tz') ?? 'UTC'
+  const fromParam = searchParams.get('from')?.trim() || null
+  const toExParam = searchParams.get('toExclusive')?.trim() || null
 
   if (type !== 'elaborate' && type !== 'archiviate') {
     return NextResponse.json({ error: 'type deve essere elaborate o archiviate' }, { status: 400 })
@@ -58,7 +60,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Sede non selezionata' }, { status: 400 })
   }
 
-  const { start, endExclusive } = utcBoundsForZonedCalendarDay(tzParam)
+  const day = utcBoundsForZonedCalendarDay(tzParam)
+  let start = day.start
+  let endExclusive = day.endExclusive
+  if (fromParam && toExParam) {
+    const fromD = new Date(fromParam)
+    const toD = new Date(toExParam)
+    if (Number.isNaN(fromD.getTime()) || Number.isNaN(toD.getTime()) || fromD.getTime() >= toD.getTime()) {
+      return NextResponse.json({ error: 'Intervallo from / toExclusive non valido' }, { status: 400 })
+    }
+    const maxSpanMs = 800 * 24 * 60 * 60 * 1000
+    if (toD.getTime() - fromD.getTime() > maxSpanMs) {
+      return NextResponse.json({ error: 'Intervallo troppo ampio' }, { status: 400 })
+    }
+    start = fromD.toISOString()
+    endExclusive = toD.toISOString()
+  } else if (fromParam || toExParam) {
+    return NextResponse.json({ error: 'Specificare insieme from e toExclusive' }, { status: 400 })
+  }
   const svc = createServiceClient()
   const rows: ScannerDetailRow[] = []
 
@@ -71,7 +90,7 @@ export async function GET(req: NextRequest) {
       .gte('created_at', start)
       .lt('created_at', endExclusive)
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(200)
 
     if (!error && data) {
       for (const row of data) {
@@ -115,7 +134,7 @@ export async function GET(req: NextRequest) {
         .gte('created_at', start)
         .lt('created_at', endExclusive)
         .order('created_at', { ascending: false })
-        .limit(30),
+        .limit(200),
       svc
         .from('fatture')
         .select('id, created_at, data, numero_fattura, file_url, fornitori(nome)')
@@ -123,7 +142,7 @@ export async function GET(req: NextRequest) {
         .gte('created_at', start)
         .lt('created_at', endExclusive)
         .order('created_at', { ascending: false })
-        .limit(30),
+        .limit(200),
     ])
 
     if (!bolleRes.error && bolleRes.data) {

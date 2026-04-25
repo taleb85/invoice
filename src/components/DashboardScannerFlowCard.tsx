@@ -77,6 +77,8 @@ function ScannerFlowCardIntro({
   allEventsHref,
   headerLinks,
   tz,
+  fiscalYearLabel,
+  detailTimeRange,
 }: {
   summary: ScannerFlowDaySummary
   t: Translations
@@ -86,6 +88,10 @@ function ScannerFlowCardIntro({
   allEventsHref?: string
   headerLinks?: DashboardScannerFlowHeaderLinks
   tz: string
+  /** Etichetta anno fiscale (KPI usano stesso intervallo del selettore) */
+  fiscalYearLabel?: string
+  /** Quando presente, le liste nel modal e i conteggi usano lo stesso intervallo */
+  detailTimeRange?: { from: string; toExclusive: string }
 }) {
   const todayLine = t.dashboard.scannerFlowTodayCounts
     .replace('{ai}', String(summary.aiElaborate))
@@ -112,20 +118,32 @@ function ScannerFlowCardIntro({
           <p className="mt-2 text-xs font-medium text-app-fg-muted">{todayLine}</p>
         </>
       ) : (
-        <div className="flex w-full flex-col gap-3 border-b border-app-line-15 pb-3 md:flex-row md:items-center md:justify-between md:pb-4">
-          <div className="flex w-full justify-start">
-            <h2
-              className={`m-0 inline-flex max-w-full min-w-0 min-h-[40px] flex-row flex-nowrap items-center justify-start gap-1.5 px-3 py-1.5 text-left font-normal sm:min-h-[44px] sm:gap-2 sm:px-3.5 sm:py-2 md:min-h-0 md:gap-1.5 md:px-2.5 md:py-1.5 ${SCANNER_FLOW_MOBILE_TITLE_FRAME} md:shadow-[0_0_14px_-10px_rgba(6,182,212,0.38)]`}
-            >
-              <HubScannerIcon className="h-5 w-5 shrink-0 text-app-fg-muted drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] sm:h-6 sm:w-6 md:h-5 md:w-5 md:drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" aria-hidden />
-              <span className="min-w-0 shrink truncate text-left text-[11px] font-semibold leading-tight text-app-fg sm:text-xs md:flex-1 md:basis-auto md:text-[11px]">
-                {t.fornitori.tabRiepilogo}
-              </span>
-            </h2>
+        <div className="flex w-full flex-col gap-3 border-b border-app-line-15 pb-3 md:flex-row md:items-start md:justify-between md:pb-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="flex w-full justify-start">
+              <h2
+                className={`m-0 inline-flex max-w-full min-w-0 min-h-[40px] flex-row flex-nowrap items-center justify-start gap-1.5 px-3 py-1.5 text-left font-normal sm:min-h-[44px] sm:gap-2 sm:px-3.5 sm:py-2 md:min-h-0 md:gap-1.5 md:px-2.5 md:py-1.5 ${SCANNER_FLOW_MOBILE_TITLE_FRAME} md:shadow-[0_0_14px_-10px_rgba(6,182,212,0.38)]`}
+              >
+                <HubScannerIcon className="h-5 w-5 shrink-0 text-app-fg-muted drop-shadow-[0_0_10px_rgba(34,211,238,0.45)] sm:h-6 sm:w-6 md:h-5 md:w-5 md:drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" aria-hidden />
+                <span className="min-w-0 shrink truncate text-left text-[11px] font-semibold leading-tight text-app-fg sm:text-xs md:flex-1 md:basis-auto md:text-[11px]">
+                  {t.fornitori.tabRiepilogo}
+                </span>
+              </h2>
+            </div>
+            {fiscalYearLabel?.trim() ? (
+              <p className="px-3 text-xs font-medium text-cyan-200/90 md:px-2.5">
+                {t.dashboard.scannerFlowFiscalPeriodLine.replace(/\{year\}/g, fiscalYearLabel)}
+              </p>
+            ) : null}
+            {fiscalYearLabel?.trim() ? (
+              <p className="max-w-2xl px-3 text-[11px] leading-snug text-app-fg-muted/95 md:px-2.5">
+                {t.dashboard.scannerFlowCardHintFiscal}
+              </p>
+            ) : null}
           </div>
           {headerLinks &&
           (headerLinks.newScanHref?.trim() || headerLinks.eventsHref?.trim()) ? (
-            <div className="hidden shrink-0 flex-nowrap items-center justify-center gap-2 sm:gap-3 md:flex md:justify-end">
+            <div className="hidden shrink-0 flex-nowrap items-center justify-center gap-2 self-center sm:gap-3 md:flex md:justify-end">
               {headerLinks.newScanHref?.trim() ? (
                 <Link
                   href={headerLinks.newScanHref}
@@ -153,6 +171,7 @@ function ScannerFlowCardIntro({
           archiviate={summary.archiviate}
           t={t}
           tz={tz}
+          detailTimeRange={detailTimeRange}
           kpiBoxBorder={kpiBoxBorder}
           kpiBoxBg={kpiBoxBg}
           kpiNumCls={kpiNumCls}
@@ -199,6 +218,8 @@ export default function DashboardScannerFlowCard({
   allEventsHref,
   headerLinks,
   tz = 'UTC',
+  fiscalYearLabel,
+  detailTimeRange,
 }: {
   summary: ScannerFlowDaySummary
   events: ScannerFlowEventRow[]
@@ -211,6 +232,10 @@ export default function DashboardScannerFlowCard({
   headerLinks?: DashboardScannerFlowHeaderLinks
   /** IANA timezone for today-filtering in the detail modal. */
   tz?: string
+  /** Etichetta breve (es. 2025/26); i KPI e il modal rispettano l’intervallo fiscale. */
+  fiscalYearLabel?: string
+  /** Intervallo (timestamp ISO) condiviso con il modal /api/scansioni/detail. */
+  detailTimeRange?: { from: string; toExclusive: string }
 }) {
   const embedded = variant === 'embedded'
 
@@ -226,6 +251,8 @@ export default function DashboardScannerFlowCard({
           allEventsHref={allEventsHref}
           headerLinks={undefined}
           tz={tz}
+          fiscalYearLabel={undefined}
+          detailTimeRange={undefined}
         />
       </div>
     )
@@ -246,6 +273,8 @@ export default function DashboardScannerFlowCard({
           allEventsHref={allEventsHref}
           headerLinks={headerLinks}
           tz={tz}
+          fiscalYearLabel={fiscalYearLabel}
+          detailTimeRange={detailTimeRange}
         />
       </div>
     </section>
