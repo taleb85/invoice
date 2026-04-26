@@ -59,9 +59,11 @@ export async function GET(req: NextRequest) {
   if (dateFrom) q = q.gte('created_at', dateFrom) as typeof q
   if (dateTo) q = q.lte('created_at', dateTo + 'T23:59:59Z') as typeof q
 
-  // Filter by fornitore_id: either entity_id (when entity is fornitore) or metadata field
+  // Filter by fornitore: same id as entity (fornitore.*) OR metadata (fatture/doc flows).
+  // Avoid `metadata->>fornitore_id` inside `.or()` — some clients/PostgREST URLs misparsed; use @> (cs) on jsonb.
   if (fornitoreIdParam) {
-    q = q.or(`entity_id.eq.${fornitoreIdParam},metadata->>fornitore_id.eq.${fornitoreIdParam}`) as typeof q
+    const containsFornitore = JSON.stringify({ fornitore_id: fornitoreIdParam })
+    q = q.or(`entity_id.eq.${fornitoreIdParam},metadata.cs.${containsFornitore}`) as typeof q
   }
 
   const { data, count, error } = await q

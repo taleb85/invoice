@@ -151,12 +151,19 @@ export async function POST(req: NextRequest) {
   /** Proprietario per nuove righe in migrazione: diversi DB non espongono più `user_id` su bolle. */
   const ownerUserId = profile.id
 
-  let body: { limit?: number; sede_id?: string }
+  type FixBody = { limit?: number; sede_id?: string; bolla_id?: string; fattura_id?: string }
+  let body: FixBody
   try {
-    body = await req.json()
+    body = (await req.json()) as FixBody
   } catch {
     body = {}
   }
+  const bollaIdForce = typeof body.bolla_id === 'string' ? body.bolla_id.trim() : ''
+  const fatturaIdForce = typeof body.fattura_id === 'string' ? body.fattura_id.trim() : ''
+  if (bollaIdForce && fatturaIdForce) {
+    return NextResponse.json({ error: 'Specificare solo bolla_id oppure fattura_id' }, { status: 400 })
+  }
+
   const limit = Math.min(150, Math.max(1, Number(body?.limit) || 40))
   const sedeFromBody = typeof body.sede_id === 'string' ? body.sede_id.trim() : ''
 
@@ -179,38 +186,82 @@ export async function POST(req: NextRequest) {
   const todayIso = new Date().toISOString().slice(0, 10)
   const orFilter = `data.gt.${todayIso},data.lt.1990-01-01,data.gt.2035-12-31`
 
-  let bolleQ = service
-    .from('bolle')
-    .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
-    .not('file_url', 'is', null)
-  if (sedeFilter) bolleQ = bolleQ.eq('sede_id', sedeFilter)
-  const { data: bolleAll, error: bErr } = await bolleQ.or(orFilter)
-
-  if (bErr) {
-    console.error('[fix-ocr-dates] bolle query', bErr)
-    return NextResponse.json({ error: bErr.message }, { status: 500 })
-  }
-
-  const { data: fattureAll, error: fErr } = await loadSuspiciousFatture(service, sedeFilter, orFilter)
-  if (fErr) {
-    console.error('[fix-ocr-dates] fatture query', fErr)
-    return NextResponse.json(
-      {
-        error: `${fErr.message} — Esegui nel SQL Editor Supabase: ALTER TABLE public.fatture ADD COLUMN IF NOT EXISTS analizzata boolean NOT NULL DEFAULT false;`,
-      },
-      { status: 500 },
-    )
-  }
-
-  const bolle: BollaRow[] = (bolleAll as BollaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
-  const fatture: FatturaRow[] =
-    (fattureAll as FatturaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
-
   type QueueItem = { kind: 'bolla' | 'fattura'; row: BollaRow | FatturaRow }
-  const queue: QueueItem[] = [
-    ...bolle.map((row) => ({ kind: 'bolla' as const, row })),
-    ...fatture.map((row) => ({ kind: 'fattura' as const, row })),
-  ]
+  let queue: QueueItem[] = []
+
+  if (bollaIdForce) {
+    const { data: oneBolla, error: oErr } = await service
+      .from('bolle')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .eq('id', bollaIdForce)
+      .single()
+    if (oErr || !oneBolla) {
+      return NextResponse.json({ error: 'Bolla non trovata' }, { status: 404 })
+    }
+    const br = oneBolla as BollaRow
+    if (!br.file_url?.trim()) {
+      return NextResponse.json({ error: 'Bolla senza allegato' }, { status: 400 })
+    }
+    if (sedeFilter && br.sede_id !== sedeFilter) {
+      return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
+    }
+    if (!sedeFilter && isAdminSedeRole(profile.role) && br.sede_id !== profile.sede_id) {
+      return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
+    }
+    queue = [{ kind: 'bolla', row: br }]
+  } else if (fatturaIdForce) {
+    const { data: oneFa, error: fOneErr } = await service
+      .from('fatture')
+      .select('id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura')
+      .eq('id', fatturaIdForce)
+      .single()
+    if (fOneErr || !oneFa) {
+      return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
+    }
+    const fr = oneFa as FatturaRow
+    if (!fr.file_url?.trim()) {
+      return NextResponse.json({ error: 'Fattura senza allegato' }, { status: 400 })
+    }
+    if (sedeFilter && fr.sede_id !== sedeFilter) {
+      return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
+    }
+    if (!sedeFilter && isAdminSedeRole(profile.role) && fr.sede_id !== profile.sede_id) {
+      return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
+    }
+    queue = [{ kind: 'fattura', row: fr }]
+  } else {
+    let bolleQ = service
+      .from('bolle')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .not('file_url', 'is', null)
+    if (sedeFilter) bolleQ = bolleQ.eq('sede_id', sedeFilter)
+    const { data: bolleAll, error: bErr } = await bolleQ.or(orFilter)
+
+    if (bErr) {
+      console.error('[fix-ocr-dates] bolle query', bErr)
+      return NextResponse.json({ error: bErr.message }, { status: 500 })
+    }
+
+    const { data: fattureAll, error: fErr } = await loadSuspiciousFatture(service, sedeFilter, orFilter)
+    if (fErr) {
+      console.error('[fix-ocr-dates] fatture query', fErr)
+      return NextResponse.json(
+        {
+          error: `${fErr.message} — Esegui nel SQL Editor Supabase: ALTER TABLE public.fatture ADD COLUMN IF NOT EXISTS analizzata boolean NOT NULL DEFAULT false;`,
+        },
+        { status: 500 },
+      )
+    }
+
+    const bolle: BollaRow[] = (bolleAll as BollaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
+    const fatture: FatturaRow[] =
+      (fattureAll as FatturaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
+
+    queue = [
+      ...bolle.map((row) => ({ kind: 'bolla' as const, row })),
+      ...fatture.map((row) => ({ kind: 'fattura' as const, row })),
+    ]
+  }
 
   const report = {
     ok: true as const,
@@ -223,10 +274,19 @@ export async function POST(req: NextRequest) {
     tipoMigratedToBolla: 0,
     skipped: 0,
     errors: [] as { id: string; table: string; message: string }[],
+    bollaOcrEnriched: 0,
+    fatturaOcrEnriched: 0,
     details: [] as {
       id: string
       table: string
-      action: 'date_only' | 'migrated_to_fattura' | 'migrated_to_bolla' | 'unchanged' | 'error'
+      action:
+        | 'date_only'
+        | 'migrated_to_fattura'
+        | 'migrated_to_bolla'
+        | 'unchanged'
+        | 'error'
+        | 'bolla_enriched'
+        | 'fattura_enriched'
       previousData: string
       newData: string | null
       ocrTipo: string | null
@@ -313,18 +373,34 @@ export async function POST(req: NextRequest) {
             ocrTipo,
           })
         } else {
-          if (newData && newData !== b.data) {
-            const { error: u } = await service.from('bolle').update({ data: newData }).eq('id', b.id)
+          const numRaw = ocr.numero_fattura?.trim() ?? ''
+          const ocrNum = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
+          const hasNum = Boolean(b.numero_bolla?.trim())
+          const hasImp = b.importo != null && !Number.isNaN(Number(b.importo))
+          const ocrImporto = ocr.totale_iva_inclusa
+
+          const upd: Record<string, unknown> = {}
+          if (newData && newData !== b.data) upd.data = newData
+          if (!hasNum && ocrNum) upd.numero_bolla = ocrNum
+          if (!hasImp && ocrImporto != null) upd.importo = ocrImporto
+
+          if (Object.keys(upd).length) {
+            const { error: u } = await service.from('bolle').update(upd).eq('id', b.id)
             if (u) {
               report.errors.push({ id, table, message: u.message })
             } else {
-              report.dateOnlyFixes++
+              const hadData = 'data' in upd
+              const hadFields = 'numero_bolla' in upd || 'importo' in upd
+              if (hadFields) report.bollaOcrEnriched++
+              else if (hadData) report.dateOnlyFixes++
+              const action: (typeof report.details)[number]['action'] =
+                hadFields ? 'bolla_enriched' : 'date_only'
               report.details.push({
                 id,
                 table,
-                action: 'date_only',
+                action,
                 previousData: b.data,
-                newData,
+                newData: (upd.data as string | undefined) ?? b.data,
                 ocrTipo,
               })
             }
@@ -379,18 +455,34 @@ export async function POST(req: NextRequest) {
             ocrTipo,
           })
         } else {
-          if (newData && newData !== f.data) {
-            const { error: u } = await service.from('fatture').update({ data: newData }).eq('id', f.id)
+          const numRaw = ocr.numero_fattura?.trim() ?? ''
+          const ocrNum = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
+          const hasNum = Boolean(f.numero_fattura?.trim())
+          const hasImp = f.importo != null && !Number.isNaN(Number(f.importo))
+          const ocrImporto = ocr.totale_iva_inclusa
+
+          const upd: Record<string, unknown> = {}
+          if (newData && newData !== f.data) upd.data = newData
+          if (!hasNum && ocrNum) upd.numero_fattura = ocrNum
+          if (!hasImp && ocrImporto != null) upd.importo = ocrImporto
+
+          if (Object.keys(upd).length) {
+            const { error: u } = await service.from('fatture').update(upd).eq('id', f.id)
             if (u) {
               report.errors.push({ id, table, message: u.message })
             } else {
-              report.dateOnlyFixes++
+              const hadData = 'data' in upd
+              const hadFields = 'numero_fattura' in upd || 'importo' in upd
+              if (hadFields) report.fatturaOcrEnriched++
+              else if (hadData) report.dateOnlyFixes++
+              const action: (typeof report.details)[number]['action'] =
+                hadFields ? 'fattura_enriched' : 'date_only'
               report.details.push({
                 id,
                 table,
-                action: 'date_only',
+                action,
                 previousData: f.data,
-                newData,
+                newData: (upd.data as string | undefined) ?? f.data,
                 ocrTipo,
               })
             }
@@ -416,7 +508,11 @@ export async function POST(req: NextRequest) {
   }
 
   const corrected =
-    report.dateOnlyFixes + report.tipoMigratedToFattura + report.tipoMigratedToBolla
+    report.dateOnlyFixes +
+    report.tipoMigratedToFattura +
+    report.tipoMigratedToBolla +
+    report.bollaOcrEnriched +
+    report.fatturaOcrEnriched
 
   return NextResponse.json({
     ...report,

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   // Fetch the fattura to verify sede access
   const { data: fattura, error: fetchErr } = await service
     .from('fatture')
-    .select('id, sede_id, importo, approval_status, fornitori(nome)')
+    .select('id, sede_id, fornitore_id, importo, approval_status, fornitori(nome)')
     .eq('id', fattura_id)
     .single()
 
@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Fire-and-forget: log activity
+  const fFornitore = (fattura as { fornitore_id?: string | null }).fornitore_id
   logActivity(service, {
     userId: user.id,
     sedeId: profile?.sede_id ?? (fattura as { sede_id?: string }).sede_id ?? null,
@@ -81,7 +82,10 @@ export async function POST(req: NextRequest) {
     entityType: 'fattura',
     entityId: fattura_id,
     entityLabel: (fattura as { fornitori?: { nome?: string | null } | null }).fornitori?.nome ?? undefined,
-    metadata: action === 'reject' ? { reason } : undefined,
+    metadata: {
+      ...(fFornitore ? { fornitore_id: fFornitore } : {}),
+      ...(action === 'reject' && reason?.trim() ? { reason: reason.trim() } : {}),
+    },
   }).catch(() => {})
 
   // Fire-and-forget push notification

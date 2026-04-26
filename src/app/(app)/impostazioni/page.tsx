@@ -197,7 +197,14 @@ function NotificationSettings() {
 type FixOcrDetailRow = {
   id: string
   table: string
-  action: 'date_only' | 'migrated_to_fattura' | 'migrated_to_bolla' | 'unchanged' | 'error'
+  action:
+    | 'date_only'
+    | 'migrated_to_fattura'
+    | 'migrated_to_bolla'
+    | 'unchanged'
+    | 'error'
+    | 'bolla_enriched'
+    | 'fattura_enriched'
   previousData: string
   newData: string | null
   ocrTipo: string | null
@@ -215,6 +222,10 @@ function actionLabelIt(a: FixOcrDetailRow['action']): string {
       return 'Invariato'
     case 'error':
       return 'Errore'
+    case 'bolla_enriched':
+      return 'Bolla: dati da OCR'
+    case 'fattura_enriched':
+      return 'Fattura: dati da OCR'
     default:
       return a
   }
