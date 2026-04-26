@@ -10,7 +10,6 @@ import {
 
 type BollaRow = {
   id: string
-  user_id: string
   fornitore_id: string
   sede_id: string | null
   data: string
@@ -22,7 +21,6 @@ type BollaRow = {
 
 type FatturaRow = {
   id: string
-  user_id: string
   fornitore_id: string
   bolla_id: string | null
   sede_id: string | null
@@ -71,6 +69,12 @@ function pickDocDate(ocr: { data_fattura: string | null; data: string | null }, 
   return n ?? fallback
 }
 
+/** Alcuni database non hanno `user_id` su bolle/fatture: ritenta insert senza colonna. */
+function isMissingColumnError(err: { message?: string } | null, col: string): boolean {
+  const m = (err?.message ?? '').toLowerCase()
+  return m.includes(col.toLowerCase()) && m.includes('does not exist')
+}
+
 /**
  * Admin: rianalizza con Gemini (prompt aggiornato) i documenti con `data` sospetta
  * (futura, fuori intervallo plausibile, o non YYYY-MM-DD) e corregge data e tipo (tabella) dove possibile.
@@ -80,6 +84,8 @@ export async function POST(req: NextRequest) {
   if (profile?.role !== 'admin') {
     return NextResponse.json({ error: 'Solo amministratori' }, { status: 403 })
   }
+  /** Proprietario per nuove righe in migrazione: diversi DB non espongono più `user_id` su bolle. */
+  const ownerUserId = profile.id
 
   let body: { limit?: number }
   try {
@@ -95,9 +101,7 @@ export async function POST(req: NextRequest) {
 
   const { data: bolleAll, error: bErr } = await service
     .from('bolle')
-    .select(
-      'id, user_id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato',
-    )
+    .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
     .not('file_url', 'is', null)
     .or(orFilter)
 
@@ -109,7 +113,7 @@ export async function POST(req: NextRequest) {
   const { data: fattureAll, error: fErr } = await service
     .from('fatture')
     .select(
-      'id, user_id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura, verificata_estratto_conto, analizzata',
+      'id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura, verificata_estratto_conto, analizzata',
     )
     .not('file_url', 'is', null)
     .or(orFilter)
@@ -194,37 +198,37 @@ export async function POST(req: NextRequest) {
         const b = item.row as BollaRow
         const toFattura = ocrTipo === 'fattura' && (await canMigrateBollaToFattura(service, b.id))
         if (toFattura) {
-          const { data: ins, error: insErr } = await service
-            .from('fatture')
-            .insert([
-              {
-                user_id: b.user_id,
-                fornitore_id: b.fornitore_id,
-                bolla_id: null,
-                sede_id: b.sede_id,
-                data: newData,
-                file_url: b.file_url,
-                importo: b.importo,
-                numero_fattura: ocr.numero_fattura ?? b.numero_bolla,
-                verificata_estratto_conto: false,
-                analizzata: false,
-              },
-            ])
-            .select('id')
-            .single()
-          if (insErr) {
-            report.errors.push({ id, table: 'bolle', message: insErr.message })
+          const payload = {
+            user_id: ownerUserId,
+            fornitore_id: b.fornitore_id,
+            bolla_id: null as string | null,
+            sede_id: b.sede_id,
+            data: newData,
+            file_url: b.file_url,
+            importo: b.importo,
+            numero_fattura: ocr.numero_fattura ?? b.numero_bolla,
+            verificata_estratto_conto: false,
+            analizzata: false,
+          }
+          let insRes = await service.from('fatture').insert([payload]).select('id').single()
+          if (insRes.error && isMissingColumnError(insRes.error, 'user_id')) {
+            const { user_id: _u, ...rest } = payload
+            insRes = await service.from('fatture').insert([rest]).select('id').single()
+          }
+          if (insRes.error) {
+            report.errors.push({ id, table: 'bolle', message: insRes.error.message })
             continue
           }
+          const ins = insRes.data as { id: string }
           const { error: delErr } = await service.from('bolle').delete().eq('id', b.id)
           if (delErr) {
-            if (ins?.id) await service.from('fatture').delete().eq('id', (ins as { id: string }).id)
+            await service.from('fatture').delete().eq('id', ins.id)
             report.errors.push({ id, table: 'bolle', message: delErr.message })
             continue
           }
           report.tipoMigratedToFattura++
           report.details.push({
-            id: (ins as { id: string }).id,
+            id: ins.id,
             table: 'fatture',
             action: 'migrated_to_fattura',
             previousData: b.data,
@@ -262,35 +266,35 @@ export async function POST(req: NextRequest) {
         const f = item.row as FatturaRow
         const toBolla = ocrTipo === 'bolla' && (await canMigrateFatturaToBolla(service, f))
         if (toBolla) {
-          const { data: ins, error: insErr } = await service
-            .from('bolle')
-            .insert([
-              {
-                user_id: f.user_id,
-                fornitore_id: f.fornitore_id,
-                sede_id: f.sede_id,
-                data: newData,
-                file_url: f.file_url,
-                importo: f.importo,
-                numero_bolla: ocr.numero_fattura ?? f.numero_fattura,
-                stato: 'in attesa',
-              },
-            ])
-            .select('id')
-            .single()
-          if (insErr) {
-            report.errors.push({ id, table: 'fatture', message: insErr.message })
+          const bollaPayload = {
+            user_id: ownerUserId,
+            fornitore_id: f.fornitore_id,
+            sede_id: f.sede_id,
+            data: newData,
+            file_url: f.file_url,
+            importo: f.importo,
+            numero_bolla: ocr.numero_fattura ?? f.numero_fattura,
+            stato: 'in attesa' as const,
+          }
+          let bIns = await service.from('bolle').insert([bollaPayload]).select('id').single()
+          if (bIns.error && isMissingColumnError(bIns.error, 'user_id')) {
+            const { user_id: _u, ...rest } = bollaPayload
+            bIns = await service.from('bolle').insert([rest]).select('id').single()
+          }
+          if (bIns.error) {
+            report.errors.push({ id, table: 'fatture', message: bIns.error.message })
             continue
           }
+          const ins = bIns.data as { id: string }
           const { error: delErr } = await service.from('fatture').delete().eq('id', f.id)
           if (delErr) {
-            if (ins?.id) await service.from('bolle').delete().eq('id', (ins as { id: string }).id)
+            await service.from('bolle').delete().eq('id', ins.id)
             report.errors.push({ id, table: 'fatture', message: delErr.message })
             continue
           }
           report.tipoMigratedToBolla++
           report.details.push({
-            id: (ins as { id: string }).id,
+            id: ins.id,
             table: 'bolle',
             action: 'migrated_to_bolla',
             previousData: f.data,
