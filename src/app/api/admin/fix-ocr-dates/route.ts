@@ -132,8 +132,9 @@ function isMissingColumnError(err: { message?: string } | null, col: string): bo
 }
 
 /**
- * Rianalizza con Gemini (prompt aggiornato) i documenti con `data` sospetta
- * e corregge data e tipo (tabella) dove possibile.
+ * Rianalizza con Gemini (prompt aggiornato) i documenti in coda e corregge data / numero / importo.
+ * Con `allow_tipo_migrate: true` (solo p.es. da Impostazioni) può anche spostare la riga tra `bolle` e `fatture`.
+ * Senza quel flag, aggiorna solo i campi sulla riga corrente (niente bolla → fattura).
  *
  * - `role === admin'`: senza `sede_id` elabora tutto il database; con `sede_id` filtra.
  * - `admin_sede`: obbliga `sede_id` uguale al profilo.
@@ -162,6 +163,12 @@ export async function POST(req: NextRequest) {
     bolla_id?: string
     fattura_id?: string
     fornitore_id?: string
+    /**
+     * Se true, l’OCR può spostare una riga tra `bolle` e `fatture` in base a `tipo_documento`.
+     * Default false: su fornitore / riga bolla si aggiornano solo data, numero e importo sulla riga esistente
+     * (niente cancellazione bolla → fattura).
+     */
+    allow_tipo_migrate?: boolean
   }
   let body: FixBody
   try {
@@ -169,6 +176,7 @@ export async function POST(req: NextRequest) {
   } catch {
     body = {}
   }
+  const allowTipoMigrate = body.allow_tipo_migrate === true
   const bollaIdForce = typeof body.bolla_id === 'string' ? body.bolla_id.trim() : ''
   const fatturaIdForce = typeof body.fattura_id === 'string' ? body.fattura_id.trim() : ''
   const fornitoreIdBatch = typeof body.fornitore_id === 'string' ? body.fornitore_id.trim() : ''
@@ -444,7 +452,10 @@ export async function POST(req: NextRequest) {
 
       if (item.kind === 'bolla') {
         const b = item.row as BollaRow
-        const toFattura = ocrTipo === 'fattura' && (await canMigrateBollaToFattura(service, b.id))
+        const toFattura =
+          allowTipoMigrate &&
+          ocrTipo === 'fattura' &&
+          (await canMigrateBollaToFattura(service, b.id))
         if (toFattura) {
           const payload = {
             user_id: ownerUserId,
@@ -536,7 +547,8 @@ export async function POST(req: NextRequest) {
         }
       } else {
         const f = item.row as FatturaRow
-        const toBolla = ocrTipo === 'bolla' && (await canMigrateFatturaToBolla(service, f))
+        const toBolla =
+          allowTipoMigrate && ocrTipo === 'bolla' && (await canMigrateFatturaToBolla(service, f))
         if (toBolla) {
           const bollaPayload = {
             user_id: ownerUserId,

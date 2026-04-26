@@ -260,7 +260,7 @@ function FixOcrDatesCard() {
         method: 'POST',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 40, sede_id: sedeId }),
+        body: JSON.stringify({ limit: 40, sede_id: sedeId, allow_tipo_migrate: true }),
       })
       const data = (await res.json()) as {
         error?: string
