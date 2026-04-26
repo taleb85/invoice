@@ -13,9 +13,6 @@ export default function ConsumiAiPage() {
   const t = useT()
   const dashRef = useRef<GeminiUsageDashboardHandle>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [fixOcrLoading, setFixOcrLoading] = useState(false)
-  const [fixOcrResult, setFixOcrResult] = useState<string | null>(null)
-  const [fixOcrError, setFixOcrError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!loading && me?.role !== 'admin') {
@@ -27,47 +24,6 @@ export default function ConsumiAiPage() {
     setRefreshing(true)
     dashRef.current?.refresh()
     setTimeout(() => setRefreshing(false), 1200)
-  }
-
-  const handleFixOcrDates = async () => {
-    setFixOcrError(null)
-    setFixOcrResult(null)
-    setFixOcrLoading(true)
-    try {
-      const res = await fetch('/api/admin/fix-ocr-dates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 40 }),
-      })
-      const data = (await res.json()) as {
-        error?: string
-        corrected?: number
-        totalSuspicious?: number
-        scanned?: number
-        remaining?: number
-        dateOnlyFixes?: number
-        tipoMigratedToFattura?: number
-        tipoMigratedToBolla?: number
-        errors?: { message: string }[]
-      }
-      if (!res.ok) {
-        setFixOcrError(data.error ?? `HTTP ${res.status}`)
-        return
-      }
-      setFixOcrResult(
-        `Corretti: ${data.corrected ?? 0} (su ${data.scanned ?? 0} scansioni; sospetti totali: ${
-          data.totalSuspicious ?? 0
-        }${data.remaining ? `; ancora in coda: ${data.remaining}` : ''}) — ` +
-          `date in-place: ${data.dateOnlyFixes ?? 0}, → fattura: ${
-            data.tipoMigratedToFattura ?? 0
-          }, → bolla: ${data.tipoMigratedToBolla ?? 0}.` +
-          (data.errors?.length ? ` Errori: ${data.errors.length}.` : ''),
-      )
-    } catch (e) {
-      setFixOcrError(e instanceof Error ? e.message : 'Errore di rete')
-    } finally {
-      setFixOcrLoading(false)
-    }
   }
 
   if (loading || me?.role !== 'admin') {
@@ -108,15 +64,6 @@ export default function ConsumiAiPage() {
 
         <button
           type="button"
-          onClick={handleFixOcrDates}
-          disabled={fixOcrLoading}
-          className="hidden shrink-0 items-center justify-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-200 transition-colors hover:bg-amber-500/20 disabled:opacity-50 sm:inline-flex"
-        >
-          {fixOcrLoading ? 'Migrazione…' : 'Fix date OCR'}
-        </button>
-
-        <button
-          type="button"
           onClick={handleRefresh}
           disabled={refreshing}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors hover:bg-white/10 disabled:opacity-40"
@@ -137,28 +84,6 @@ export default function ConsumiAiPage() {
           </svg>
         </button>
       </AppPageHeaderStrip>
-
-      <div className="mb-4 sm:hidden">
-        <button
-          type="button"
-          onClick={handleFixOcrDates}
-          disabled={fixOcrLoading}
-          className="w-full rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-200 disabled:opacity-50"
-        >
-          {fixOcrLoading ? 'Migrazione date OCR in corso…' : 'Fix date OCR'}
-        </button>
-      </div>
-
-      {fixOcrError ? (
-        <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-          {fixOcrError}
-        </p>
-      ) : null}
-      {fixOcrResult ? (
-        <p className="mb-4 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-100">
-          {fixOcrResult}
-        </p>
-      ) : null}
 
       <GeminiUsageDashboard ref={dashRef} />
     </div>

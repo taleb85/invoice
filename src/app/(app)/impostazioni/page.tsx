@@ -194,6 +194,97 @@ function NotificationSettings() {
   )
 }
 
+function FixOcrDatesCard() {
+  const { me } = useMe()
+  const { activeOperator } = useActiveOperator()
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+
+  const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
+  const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
+  const sedeId = me?.sede_id ?? null
+  const show = !!(sedeId && (masterPlane || isAdminSede))
+
+  if (!show) return null
+
+  const run = async () => {
+    setErr(null)
+    setResult(null)
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/fix-ocr-dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 40, sede_id: sedeId }),
+      })
+      const data = (await res.json()) as {
+        error?: string
+        corrected?: number
+        totalSuspicious?: number
+        scanned?: number
+        remaining?: number
+        dateOnlyFixes?: number
+        tipoMigratedToFattura?: number
+        tipoMigratedToBolla?: number
+        errors?: { message: string }[]
+      }
+      if (!res.ok) {
+        setErr(data.error ?? `HTTP ${res.status}`)
+        return
+      }
+      setResult(
+        `Corretti: ${data.corrected ?? 0} (su ${data.scanned ?? 0} scansioni; sospetti in sede: ${
+          data.totalSuspicious ?? 0
+        }${data.remaining ? `; in coda: ${data.remaining}` : ''}) — ` +
+          `date: ${data.dateOnlyFixes ?? 0}, → fattura: ${
+            data.tipoMigratedToFattura ?? 0
+          }, → bolla: ${data.tipoMigratedToBolla ?? 0}.` +
+          (data.errors?.length ? ` Errori: ${data.errors.length}.` : ''),
+      )
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="app-card overflow-hidden">
+      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
+          <svg className="h-5 w-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">OCR & date</p>
+          <p className="mt-0.5 text-sm font-semibold text-app-fg">Correggi date (Gemini)</p>
+          <p className="mt-1 text-xs leading-snug text-app-fg-muted">
+            Rilegge l’allegato con l’OCR attuale e corregge date sospette e tipo documento, solo per questa sede.
+          </p>
+          {err ? (
+            <p className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">{err}</p>
+          ) : null}
+          {result ? (
+            <p className="mt-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+              {result}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={run}
+            disabled={loading}
+            className="mt-3 inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18 disabled:opacity-50 sm:w-auto"
+          >
+            {loading ? 'Elaborazione…' : 'Fix date OCR'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ImpostazioniPage() {
   const { locale, t, currency, setCurrency, timezone, setTimezone } = useLocale()
   const { me } = useMe()
@@ -373,6 +464,7 @@ export default function ImpostazioniPage() {
         </div>
         <ImapConfigCard />
         <NotificationSettings />
+        <FixOcrDatesCard />
         {canManageDuplicates && (
           <div className="app-card overflow-hidden">
             <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
@@ -457,6 +549,9 @@ export default function ImpostazioniPage() {
           </div>
           <div className="mt-4">
             <NotificationSettings />
+          </div>
+          <div className="mt-4">
+            <FixOcrDatesCard />
           </div>
           {canManageDuplicates && (
             <div className="mt-4 app-card overflow-hidden">

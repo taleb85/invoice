@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
+import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { safeDate } from '@/lib/safe-date'
 import {
@@ -76,47 +77,78 @@ function isMissingColumnError(err: { message?: string } | null, col: string): bo
 }
 
 /**
- * Admin: rianalizza con Gemini (prompt aggiornato) i documenti con `data` sospetta
- * (futura, fuori intervallo plausibile, o non YYYY-MM-DD) e corregge data e tipo (tabella) dove possibile.
+ * Rianalizza con Gemini (prompt aggiornato) i documenti con `data` sospetta
+ * e corregge data e tipo (tabella) dove possibile.
+ *
+ * - `role === admin'`: senza `sede_id` elabora tutto il database; con `sede_id` filtra.
+ * - `admin_sede`: obbliga `sede_id` uguale al profilo.
+ * - `operatore`: negato.
  */
 export async function POST(req: NextRequest) {
   const profile = await getProfile()
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Solo amministratori' }, { status: 403 })
+  if (!profile) {
+    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   }
+
+  const role = String(profile.role ?? '').toLowerCase()
+  if (role === 'operatore') {
+    return NextResponse.json({ error: 'Operatore: non autorizzato' }, { status: 403 })
+  }
+  if (!isMasterAdminRole(profile.role) && !isAdminSedeRole(profile.role)) {
+    return NextResponse.json({ error: 'Solo amministratore o responsabile sede' }, { status: 403 })
+  }
+
   /** Proprietario per nuove righe in migrazione: diversi DB non espongono più `user_id` su bolle. */
   const ownerUserId = profile.id
 
-  let body: { limit?: number }
+  let body: { limit?: number; sede_id?: string }
   try {
     body = await req.json()
   } catch {
     body = {}
   }
   const limit = Math.min(150, Math.max(1, Number(body?.limit) || 40))
+  const sedeFromBody = typeof body.sede_id === 'string' ? body.sede_id.trim() : ''
+
+  if (isAdminSedeRole(profile.role)) {
+    if (!sedeFromBody) {
+      return NextResponse.json({ error: 'sede_id obbligatorio' }, { status: 400 })
+    }
+    if (profile.sede_id !== sedeFromBody) {
+      return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
+    }
+  }
+
+  /** Filtro opzionale: solo per admin master passa o si omette per tutte le sedi. */
+  const sedeFilter = sedeFromBody || null
+  if (sedeFilter && !isMasterAdminRole(profile.role) && profile.sede_id !== sedeFilter) {
+    return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
+  }
 
   const service = createServiceClient()
   const todayIso = new Date().toISOString().slice(0, 10)
   const orFilter = `data.gt.${todayIso},data.lt.1990-01-01,data.gt.2035-12-31`
 
-  const { data: bolleAll, error: bErr } = await service
+  let bolleQ = service
     .from('bolle')
     .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
     .not('file_url', 'is', null)
-    .or(orFilter)
+  if (sedeFilter) bolleQ = bolleQ.eq('sede_id', sedeFilter)
+  const { data: bolleAll, error: bErr } = await bolleQ.or(orFilter)
 
   if (bErr) {
     console.error('[fix-ocr-dates] bolle query', bErr)
     return NextResponse.json({ error: bErr.message }, { status: 500 })
   }
 
-  const { data: fattureAll, error: fErr } = await service
+  let fattureQ = service
     .from('fatture')
     .select(
       'id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura, verificata_estratto_conto, analizzata',
     )
     .not('file_url', 'is', null)
-    .or(orFilter)
+  if (sedeFilter) fattureQ = fattureQ.eq('sede_id', sedeFilter)
+  const { data: fattureAll, error: fErr } = await fattureQ.or(orFilter)
 
   if (fErr) {
     console.error('[fix-ocr-dates] fatture query', fErr)
@@ -343,6 +375,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ...report,
+    sede_id: sedeFilter,
     /** Documenti per cui è stata applicata almeno una correzione (data e/o migrazione tabella) */
     corrected,
     remaining: Math.max(0, queue.length - report.scanned),
