@@ -12,7 +12,8 @@ export function isSuspiciousDocumentDate(data: string | null | undefined): boole
   if (m < 1 || m > 12) return true
   if (d < 1 || d > 31) return true
   if (y < 1990) return true
-  if (y > 2100) return true
+  /** In linea con la query in `/api/admin/fix-ocr-dates` (oltre 2035-12-31) */
+  if (t > '2035-12-31') return true
   const today = new Date().toISOString().slice(0, 10)
   if (t > today) return true
   return false
