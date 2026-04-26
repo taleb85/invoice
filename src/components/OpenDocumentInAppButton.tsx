@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import Image from 'next/image'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useT } from '@/lib/use-t'
@@ -67,6 +66,21 @@ function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'do
   return null
 }
 
+const VIEWER_Z_MIN = 0.5
+const VIEWER_Z_MAX = 3
+const VIEWER_Z_STEP = 0.25
+
+function clampViewerZoom(n: number): number {
+  return Math.min(VIEWER_Z_MAX, Math.max(VIEWER_Z_MIN, Math.round(n * 100) / 100))
+}
+
+function touchPairDistance(t: TouchList): number {
+  if (t.length < 2) return 0
+  const a = t[0]!
+  const b = t[1]!
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+}
+
 /**
  * Apre PDF/immagine in un modale in-app (URL firmato via `/api/open-document?json=1`);
  * l’overlay è montato con portal su `body` (z-215) così resta sopra la bottom bar mobile.
@@ -89,15 +103,79 @@ export function OpenDocumentInAppButton({
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [portalReady, setPortalReady] = useState(false)
+  const [imageZoom, setImageZoom] = useState(1)
+  const imageScrollRef = useRef<HTMLDivElement>(null)
+  const imageZoomRef = useRef(1)
 
   const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId })
   const jsonHref = hrefs?.jsonHref ?? ''
   const tabHref = hrefs?.tabHref ?? ''
   const canOpen = Boolean(hrefs && fileUrl?.trim())
+  const kind = fileUrl?.trim() ? attachmentKindFromFileUrl(fileUrl) : 'pdf'
 
   useLayoutEffect(() => {
     setPortalReady(true)
   }, [])
+
+  const z = clampViewerZoom(imageZoom)
+  useEffect(() => {
+    imageZoomRef.current = z
+  }, [z])
+
+  useEffect(() => {
+    setImageZoom(1)
+  }, [open, signedUrl])
+
+  useEffect(() => {
+    const el = imageScrollRef.current
+    if (!el || !open || kind !== 'image' || !signedUrl) return
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      setImageZoom((prev) => clampViewerZoom(prev + (e.deltaY < 0 ? 0.12 : -0.12)))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [open, signedUrl, kind, loading])
+
+  useEffect(() => {
+    const el = imageScrollRef.current
+    if (!el || !open || kind !== 'image' || !signedUrl) return
+    let startDist = 0
+    let startZ = 1
+
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        startDist = touchPairDistance(e.touches)
+        startZ = imageZoomRef.current
+      }
+    }
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && startDist > 4) {
+        e.preventDefault()
+        const d = touchPairDistance(e.touches)
+        if (d > 0) {
+          setImageZoom(clampViewerZoom(startZ * (d / startDist)))
+        }
+      }
+    }
+    const onEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        startDist = 0
+      }
+    }
+
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd)
+    el.addEventListener('touchcancel', onEnd)
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchcancel', onEnd)
+    }
+  }, [open, signedUrl, kind, loading])
 
   useEffect(() => {
     if (!open) {
@@ -148,8 +226,9 @@ export function OpenDocumentInAppButton({
 
   if (!canOpen) return null
 
-  const kind = attachmentKindFromFileUrl(fileUrl!)
   const triggerClass = className ?? CYAN_TABLE_PILL_LINK_CLASSNAME
+  const zoomBtn =
+    'inline-flex h-8 min-w-[2rem] shrink-0 items-center justify-center rounded-lg border border-app-line-28 bg-black/25 px-2 text-sm font-semibold text-app-fg transition-colors hover:border-app-cyan-500/35 hover:bg-black/35 disabled:cursor-not-allowed disabled:opacity-40'
 
   const overlayNode =
     open && portalReady ? (
@@ -183,16 +262,63 @@ export function OpenDocumentInAppButton({
               </div>
             ) : null}
             {!loading && signedUrl && kind === 'image' ? (
-              <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-1">
-                <Image
-                  src={signedUrl}
-                  alt=""
-                  width={1200}
-                  height={1600}
-                  unoptimized
-                  className="h-auto max-h-full w-full object-contain"
-                />
-              </div>
+              <>
+                <div
+                  className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-b border-app-line-22/80 bg-[#0a1420]/95 px-2 py-1.5"
+                  role="toolbar"
+                  aria-label="Zoom"
+                >
+                  <button
+                    type="button"
+                    className={zoomBtn}
+                    aria-label={t.common.viewerZoomOut}
+                    title={t.common.viewerZoomOut}
+                    disabled={z <= VIEWER_Z_MIN}
+                    onClick={() => setImageZoom((x) => clampViewerZoom(x - VIEWER_Z_STEP))}
+                  >
+                    −
+                  </button>
+                  <span className="min-w-[3.25rem] text-center text-xs tabular-nums text-app-fg-muted">
+                    {Math.round(z * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    className={zoomBtn}
+                    aria-label={t.common.viewerZoomIn}
+                    title={t.common.viewerZoomIn}
+                    disabled={z >= VIEWER_Z_MAX}
+                    onClick={() => setImageZoom((x) => clampViewerZoom(x + VIEWER_Z_STEP))}
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    className={`${zoomBtn} text-xs font-medium`}
+                    aria-label={t.common.viewerZoomReset}
+                    title={t.common.viewerZoomReset}
+                    onClick={() => setImageZoom(1)}
+                  >
+                    100%
+                  </button>
+                  <span className="w-full text-center text-[10px] text-app-fg-muted/90 sm:ml-1 sm:inline sm:w-auto">
+                    {t.common.viewerZoomHint}
+                  </span>
+                </div>
+                <div
+                  ref={imageScrollRef}
+                  className="min-h-0 flex-1 overflow-auto overscroll-contain touch-pan-x touch-pan-y"
+                >
+                  <div className="flex w-full min-w-full justify-center p-1 sm:p-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- URL firmato storage */}
+                    <img
+                      src={signedUrl}
+                      alt=""
+                      style={{ width: `${z * 100}%`, maxWidth: z > 1 ? 'none' : undefined, height: 'auto' }}
+                      className="mx-auto h-auto max-h-full w-full min-h-0 max-w-full object-contain"
+                    />
+                  </div>
+                </div>
+              </>
             ) : null}
             {!loading && signedUrl && kind !== 'image' ? (
               <iframe
