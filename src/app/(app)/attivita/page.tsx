@@ -166,6 +166,8 @@ export default function AttivitaPage() {
       <ActivityFeed
         sedeId={sedeId || (isMaster ? undefined : me?.sede_id)}
         userId={userId || undefined}
+        dateFrom={dateFrom || undefined}
+        dateTo={dateTo || undefined}
         limit={30}
         showFilters={true}
       />

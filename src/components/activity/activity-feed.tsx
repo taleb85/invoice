@@ -50,6 +50,8 @@ type Props = {
   sedeId?: string | null
   userId?: string | null
   fornitoreId?: string | null
+  dateFrom?: string
+  dateTo?: string
   limit?: number
   showFilters?: boolean
   compact?: boolean
@@ -63,7 +65,16 @@ type FeedResponse = {
 
 const fetcher = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error('error'))))
 
-export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilters = false, compact = false }: Props) {
+export function ActivityFeed({
+  sedeId,
+  userId,
+  fornitoreId,
+  dateFrom,
+  dateTo,
+  limit = 20,
+  showFilters = false,
+  compact = false,
+}: Props) {
   const t = useT()
   const [activeFilter, setActiveFilter] = useState<FilterChip>('all')
   const [page, setPage] = useState(1)
@@ -76,11 +87,13 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
       if (sedeId) params.set('sede_id', sedeId)
       if (userId) params.set('user_id', userId)
       if (fornitoreId) params.set('fornitore_id', fornitoreId)
+      if (dateFrom) params.set('date_from', dateFrom)
+      if (dateTo) params.set('date_to', dateTo)
       const chipActions = FILTER_CHIP_ACTIONS[activeFilter] ?? []
       if (chipActions.length === 1) params.set('action', chipActions[0]!)
       return `/api/activity-log?${params}`
     },
-    [sedeId, userId, fornitoreId, limit, activeFilter],
+    [sedeId, userId, fornitoreId, dateFrom, dateTo, limit, activeFilter],
   )
 
   const { data, isLoading, error } = useSWR<FeedResponse>(buildUrl(1), fetcher, {
@@ -88,15 +101,18 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
     revalidateOnFocus: false,
   })
 
-  // Reset rows when filter changes
+  // Reset page when filter changes (SWR key is same for e.g. Tutti vs Bolle — all multi-action filters skip ?action=…)
   const prevFilter = useRef(activeFilter)
   useEffect(() => {
     if (prevFilter.current !== activeFilter) {
       prevFilter.current = activeFilter
       setPage(1)
-      setAllRows([])
     }
   }, [activeFilter])
+
+  useEffect(() => {
+    setPage(1)
+  }, [sedeId, userId, fornitoreId, dateFrom, dateTo])
 
   useEffect(() => {
     if (!data) return
@@ -104,7 +120,7 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
       setAllRows(data.activities)
     }
     setHasMore(data.activities.length + (page - 1) * limit < data.total)
-  }, [data, page, limit])
+  }, [data, page, limit, activeFilter, dateFrom, dateTo, sedeId, userId, fornitoreId])
 
   const loadMore = useCallback(async () => {
     const nextPage = page + 1
@@ -112,13 +128,16 @@ export function ActivityFeed({ sedeId, userId, fornitoreId, limit = 20, showFilt
       const res = await fetch(buildUrl(nextPage))
       if (!res.ok) return
       const d = (await res.json()) as FeedResponse
-      setAllRows((prev) => [...prev, ...d.activities])
+      setAllRows((prev) => {
+        const next = [...prev, ...d.activities]
+        setHasMore(next.length < d.total)
+        return next
+      })
       setPage(nextPage)
-      setHasMore(allRows.length + d.activities.length < d.total)
     } catch {
       // ignore
     }
-  }, [page, buildUrl, allRows.length])
+  }, [page, buildUrl])
 
   // For compact mode: apply client-side action filter
   const filterLabels: Record<FilterChip, string> = {
