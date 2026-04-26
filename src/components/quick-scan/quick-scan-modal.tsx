@@ -25,6 +25,8 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
   const [capturedFile, setCapturedFile] = useState<File | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  /** Consente di correggere bolla↔fattura se l’OCR ha classificato male. */
+  const [selectedTipo, setSelectedTipo] = useState<QuickScanResult['tipo']>('bolla')
 
   useEffect(() => {
     startCamera()
@@ -93,6 +95,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
       if (!res.ok) throw new Error('OCR fallito')
       const data = (await res.json()) as QuickScanResult
       setResult(data)
+      setSelectedTipo(data.tipo === 'unknown' ? 'bolla' : data.tipo)
       setPhase('confirm')
     } catch {
       setErrorMsg('Errore nel riconoscimento. Riprova.')
@@ -104,7 +107,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
     if (!result || !capturedFile) return
     setSaving(true)
     try {
-      await onConfirm(result, capturedFile)
+      await onConfirm({ ...result, tipo: selectedTipo }, capturedFile)
       onClose()
     } finally {
       setSaving(false)
@@ -198,6 +201,33 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
               <span className="text-white/40 text-xs">riconosciuto automaticamente</span>
             </div>
             <h2 className="text-white text-xl font-medium mt-2">Dati estratti</h2>
+            <p className="mt-3 text-white/50 text-xs leading-snug">
+              Se l’automatismo ha sbagliato (es. fattura classificata come bolla), scegli il tipo corretto prima di salvare.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedTipo('bolla')}
+                className={`min-h-[44px] flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors touch-manipulation ${
+                  selectedTipo === 'bolla'
+                    ? 'border-[#22d3ee] bg-cyan-500/15 text-cyan-100'
+                    : 'border-white/15 bg-white/5 text-white/60 hover:border-white/25'
+                }`}
+              >
+                Bolla / DDT
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTipo('fattura')}
+                className={`min-h-[44px] flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors touch-manipulation ${
+                  selectedTipo === 'fattura'
+                    ? 'border-violet-400/50 bg-violet-500/20 text-violet-200'
+                    : 'border-white/15 bg-white/5 text-white/60 hover:border-white/25'
+                }`}
+              >
+                Fattura
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 px-6 space-y-3">
