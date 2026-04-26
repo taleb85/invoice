@@ -4742,6 +4742,52 @@ function FornitoreDetailClient({
     reloadFornitore?.()
   }, [reloadFornitore])
 
+  const canRunOcrFornitore = Boolean(me?.is_admin || me?.is_admin_sede) && !supplierReadOnlyMobile
+  const [ocrFornitoreBusy, setOcrFornitoreBusy] = useState(false)
+  const [ocrFornitoreFlash, setOcrFornitoreFlash] = useState<{ text: string; ok: boolean } | null>(null)
+
+  const runOcrFornitoreHeader = useCallback(async () => {
+    if (!canRunOcrFornitore) return
+    setOcrFornitoreBusy(true)
+    setOcrFornitoreFlash(null)
+    try {
+      const body: { fornitore_id: string; limit: number; sede_id?: string } = {
+        fornitore_id: fornitore.id,
+        limit: 80,
+      }
+      if (me?.is_admin_sede && me.sede_id) body.sede_id = me.sede_id
+      const res = await fetch('/api/admin/fix-ocr-dates', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string
+        corrected?: number
+        scanned?: number
+        totalSuspicious?: number
+      }
+      if (!res.ok) {
+        setOcrFornitoreFlash({ text: data.error ?? `HTTP ${res.status}`, ok: false })
+        return
+      }
+      bumpPeriodLedger()
+      setOcrFornitoreFlash({
+        ok: true,
+        text: t.fornitori.ocrControllaFornitoreResult
+          .replace(/\{corrected\}/g, String(data.corrected ?? 0))
+          .replace(/\{scanned\}/g, String(data.scanned ?? 0))
+          .replace(/\{total\}/g, String(data.totalSuspicious ?? 0)),
+      })
+      window.setTimeout(() => setOcrFornitoreFlash(null), 9000)
+    } catch (e) {
+      setOcrFornitoreFlash({ text: e instanceof Error ? e.message : 'Errore di rete', ok: false })
+    } finally {
+      setOcrFornitoreBusy(false)
+    }
+  }, [bumpPeriodLedger, canRunOcrFornitore, fornitore.id, me?.is_admin_sede, me?.sede_id, t.fornitori.ocrControllaFornitoreResult])
+
   const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(
     fornitore.id,
     ledgerPeriod.from,
@@ -5027,6 +5073,27 @@ function FornitoreDetailClient({
               />
             </div>
 
+            {canRunOcrFornitore ? (
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => void runOcrFornitoreHeader()}
+                  disabled={ocrFornitoreBusy}
+                  title={t.fornitori.ocrControllaFornitoreTitle}
+                  className="inline-flex h-7 max-w-[9.5rem] shrink-0 items-center justify-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 text-[10px] font-bold leading-tight text-amber-100 transition-colors hover:bg-amber-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:max-w-none sm:px-2.5 sm:text-[11px]"
+                >
+                  {ocrFornitoreBusy ? (
+                    <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-amber-200 border-t-transparent" />
+                  ) : (
+                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                  <span className="min-w-0 truncate">{t.fornitori.ocrControllaFornitore}</span>
+                </button>
+              </div>
+            ) : null}
+
             {/* CTA */}
             <div className="flex shrink-0 items-center gap-1">
               <Link
@@ -5050,6 +5117,16 @@ function FornitoreDetailClient({
               <AppPageHeaderDesktopTray className="ms-0.5" />
             </div>
           </div>
+          {ocrFornitoreFlash ? (
+            <p
+              className={`border-b border-app-soft-border px-2.5 py-1 text-center text-[10px] sm:px-3 ${
+                ocrFornitoreFlash.ok ? 'text-emerald-200/95' : 'text-rose-300'
+              }`}
+              role="status"
+            >
+              {ocrFornitoreFlash.text}
+            </p>
+          ) : null}
 
           {/* Tab bar + navigatore mese: tab e mese ancorati in basso (self-end sul mese, stessa h delle tab) */}
           <div className="flex w-full min-w-0 items-stretch gap-2 border-t border-app-soft-border pt-0.5 pb-0 xl:gap-2.5 xl:pt-0.5 xl:pb-0">

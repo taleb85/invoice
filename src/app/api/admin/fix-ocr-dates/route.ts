@@ -21,6 +21,7 @@ async function loadSuspiciousFatture(
   service: SupabaseClient,
   sedeFilter: string | null,
   orFilter: string,
+  fornitoreId: string | null = null,
 ): Promise<{ data: FatturaRow[] | null; error: { message: string } | null }> {
   const build = () => {
     let q = service
@@ -28,6 +29,7 @@ async function loadSuspiciousFatture(
       .select(FATTURE_LIST_COLUMNS)
       .not('file_url', 'is', null)
     if (sedeFilter) q = q.eq('sede_id', sedeFilter)
+    if (fornitoreId) q = q.eq('fornitore_id', fornitoreId) as typeof q
     return q.or(orFilter)
   }
 
@@ -42,6 +44,7 @@ async function loadSuspiciousFatture(
 
   let idQ = service.from('fatture').select('id').not('file_url', 'is', null)
   if (sedeFilter) idQ = idQ.eq('sede_id', sedeFilter)
+  if (fornitoreId) idQ = idQ.eq('fornitore_id', fornitoreId) as typeof idQ
   const idRes = await idQ.or(orFilter)
   if (idRes.error) return { data: null, error: idRes.error }
 
@@ -151,7 +154,13 @@ export async function POST(req: NextRequest) {
   /** Proprietario per nuove righe in migrazione: diversi DB non espongono più `user_id` su bolle. */
   const ownerUserId = profile.id
 
-  type FixBody = { limit?: number; sede_id?: string; bolla_id?: string; fattura_id?: string }
+  type FixBody = {
+    limit?: number
+    sede_id?: string
+    bolla_id?: string
+    fattura_id?: string
+    fornitore_id?: string
+  }
   let body: FixBody
   try {
     body = (await req.json()) as FixBody
@@ -160,8 +169,15 @@ export async function POST(req: NextRequest) {
   }
   const bollaIdForce = typeof body.bolla_id === 'string' ? body.bolla_id.trim() : ''
   const fatturaIdForce = typeof body.fattura_id === 'string' ? body.fattura_id.trim() : ''
+  const fornitoreIdBatch = typeof body.fornitore_id === 'string' ? body.fornitore_id.trim() : ''
   if (bollaIdForce && fatturaIdForce) {
     return NextResponse.json({ error: 'Specificare solo bolla_id oppure fattura_id' }, { status: 400 })
+  }
+  if (fornitoreIdBatch && (bollaIdForce || fatturaIdForce)) {
+    return NextResponse.json(
+      { error: 'Non combinare fornitore_id con bolla_id o fattura_id' },
+      { status: 400 },
+    )
   }
 
   const limit = Math.min(150, Math.max(1, Number(body?.limit) || 40))
@@ -189,7 +205,60 @@ export async function POST(req: NextRequest) {
   type QueueItem = { kind: 'bolla' | 'fattura'; row: BollaRow | FatturaRow }
   let queue: QueueItem[] = []
 
-  if (bollaIdForce) {
+  if (fornitoreIdBatch) {
+    const { data: fr, error: fErr0 } = await service
+      .from('fornitori')
+      .select('id, sede_id')
+      .eq('id', fornitoreIdBatch)
+      .single()
+    if (fErr0 || !fr) {
+      return NextResponse.json({ error: 'Fornitore non trovato' }, { status: 404 })
+    }
+    const fSede = (fr as { sede_id?: string | null }).sede_id
+    if (sedeFilter && fSede !== sedeFilter) {
+      return NextResponse.json({ error: 'Sede non consentita per questo fornitore' }, { status: 403 })
+    }
+    if (!sedeFilter && isAdminSedeRole(profile.role) && fSede !== profile.sede_id) {
+      return NextResponse.json({ error: 'Sede non consentita per questo fornitore' }, { status: 403 })
+    }
+
+    let bolleQ = service
+      .from('bolle')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .not('file_url', 'is', null)
+      .eq('fornitore_id', fornitoreIdBatch)
+    if (sedeFilter) bolleQ = bolleQ.eq('sede_id', sedeFilter) as typeof bolleQ
+    const { data: bolleAll, error: bErr } = await bolleQ.or(orFilter)
+    if (bErr) {
+      console.error('[fix-ocr-dates] bolle (fornitore) query', bErr)
+      return NextResponse.json({ error: bErr.message }, { status: 500 })
+    }
+
+    const { data: fattureAll, error: fErr } = await loadSuspiciousFatture(
+      service,
+      sedeFilter,
+      orFilter,
+      fornitoreIdBatch,
+    )
+    if (fErr) {
+      console.error('[fix-ocr-dates] fatture (fornitore) query', fErr)
+      return NextResponse.json(
+        {
+          error: `${fErr.message} — Esegui nel SQL Editor Supabase: ALTER TABLE public.fatture ADD COLUMN IF NOT EXISTS analizzata boolean NOT NULL DEFAULT false;`,
+        },
+        { status: 500 },
+      )
+    }
+
+    const bolle: BollaRow[] = (bolleAll as BollaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
+    const fatture: FatturaRow[] =
+      (fattureAll as FatturaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
+
+    queue = [
+      ...bolle.map((row) => ({ kind: 'bolla' as const, row })),
+      ...fatture.map((row) => ({ kind: 'fattura' as const, row })),
+    ]
+  } else if (bollaIdForce) {
     const { data: oneBolla, error: oErr } = await service
       .from('bolle')
       .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
@@ -242,7 +311,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: bErr.message }, { status: 500 })
     }
 
-    const { data: fattureAll, error: fErr } = await loadSuspiciousFatture(service, sedeFilter, orFilter)
+    const { data: fattureAll, error: fErr } = await loadSuspiciousFatture(
+      service,
+      sedeFilter,
+      orFilter,
+      null,
+    )
     if (fErr) {
       console.error('[fix-ocr-dates] fatture query', fErr)
       return NextResponse.json(
@@ -517,6 +591,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     ...report,
     sede_id: sedeFilter,
+    fornitore_id: fornitoreIdBatch || undefined,
     /** Documenti per cui è stata applicata almeno una correzione (data e/o migrazione tabella) */
     corrected,
     remaining: Math.max(0, queue.length - report.scanned),
