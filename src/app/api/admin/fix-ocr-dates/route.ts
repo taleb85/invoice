@@ -9,6 +9,58 @@ import {
   resolvedContentTypeFromFetch,
 } from '@/lib/fix-ocr-dates-helpers'
 
+export const dynamic = 'force-dynamic'
+
+const FATTURE_LIST_COLUMNS = 'id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura' as const
+
+/**
+ * Carica fatture “sospette” per data. Doppio passaggio se PostgREST segnala colonne
+ * assenti nello schema cache (raro) o in ambienti ibridi.
+ */
+async function loadSuspiciousFatture(
+  service: SupabaseClient,
+  sedeFilter: string | null,
+  orFilter: string,
+): Promise<{ data: FatturaRow[] | null; error: { message: string } | null }> {
+  const build = () => {
+    let q = service
+      .from('fatture')
+      .select(FATTURE_LIST_COLUMNS)
+      .not('file_url', 'is', null)
+    if (sedeFilter) q = q.eq('sede_id', sedeFilter)
+    return q.or(orFilter)
+  }
+
+  const first = await build()
+  if (!first.error) {
+    return { data: (first.data as FatturaRow[]) ?? [], error: null }
+  }
+  const msg = first.error.message ?? ''
+  if (!/analizzata|verificata|does not exist|42703|schema cache/i.test(msg)) {
+    return { data: null, error: first.error }
+  }
+
+  let idQ = service.from('fatture').select('id').not('file_url', 'is', null)
+  if (sedeFilter) idQ = idQ.eq('sede_id', sedeFilter)
+  const idRes = await idQ.or(orFilter)
+  if (idRes.error) return { data: null, error: idRes.error }
+
+  const idList = (idRes.data as { id: string }[] | null)?.map((r) => r.id) ?? []
+  if (idList.length === 0) return { data: [], error: null }
+
+  const out: FatturaRow[] = []
+  for (let i = 0; i < idList.length; i += 120) {
+    const chunk = idList.slice(i, i + 120)
+    const { data: rows, error: fullErr } = await service
+      .from('fatture')
+      .select(FATTURE_LIST_COLUMNS)
+      .in('id', chunk)
+    if (fullErr) return { data: null, error: fullErr }
+    for (const r of (rows as FatturaRow[]) ?? []) out.push(r)
+  }
+  return { data: out, error: null }
+}
+
 type BollaRow = {
   id: string
   fornitore_id: string
@@ -139,16 +191,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: bErr.message }, { status: 500 })
   }
 
-  let fattureQ = service
-    .from('fatture')
-    .select('id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura')
-    .not('file_url', 'is', null)
-  if (sedeFilter) fattureQ = fattureQ.eq('sede_id', sedeFilter)
-  const { data: fattureAll, error: fErr } = await fattureQ.or(orFilter)
-
+  const { data: fattureAll, error: fErr } = await loadSuspiciousFatture(service, sedeFilter, orFilter)
   if (fErr) {
     console.error('[fix-ocr-dates] fatture query', fErr)
-    return NextResponse.json({ error: fErr.message }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: `${fErr.message} — Esegui nel SQL Editor Supabase: ALTER TABLE public.fatture ADD COLUMN IF NOT EXISTS analizzata boolean NOT NULL DEFAULT false;`,
+      },
+      { status: 500 },
+    )
   }
 
   const bolle: BollaRow[] = (bolleAll as BollaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []

@@ -215,6 +215,7 @@ function FixOcrDatesCard() {
     try {
       const res = await fetch('/api/admin/fix-ocr-dates', {
         method: 'POST',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ limit: 40, sede_id: sedeId }),
       })
