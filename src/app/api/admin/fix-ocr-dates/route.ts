@@ -9,6 +9,7 @@ import {
   resolvedContentTypeFromFetch,
   bollaNeedsOcrPass,
   fatturaNeedsOcrPass,
+  shouldMigrateBollaRowToFattura,
 } from '@/lib/fix-ocr-dates-helpers'
 
 export const dynamic = 'force-dynamic'
@@ -452,10 +453,26 @@ export async function POST(req: NextRequest) {
 
       if (item.kind === 'bolla') {
         const b = item.row as BollaRow
-        const toFattura =
-          allowTipoMigrate &&
-          ocrTipo === 'fattura' &&
-          (await canMigrateBollaToFattura(service, b.id))
+        const wantsFattura = shouldMigrateBollaRowToFattura({
+          ocr: {
+            tipo_documento: ocr.tipo_documento,
+            numero_fattura: ocr.numero_fattura,
+            totale_iva_inclusa: ocr.totale_iva_inclusa,
+          },
+          fileUrl: url,
+          bollaIdForce: Boolean(bollaIdForce),
+          allowTipoMigrate,
+        })
+        const canMig = await canMigrateBollaToFattura(service, b.id)
+        if (wantsFattura && !canMig) {
+          report.errors.push({
+            id,
+            table: 'bolle',
+            message:
+              'Spostamento in Fatture non possibile: esiste già una fattura collegata a questa bolla o un collegamento in fattura_bolle. Scollega o elimina i collegamenti e riprova.',
+          })
+        }
+        const toFattura = wantsFattura && canMig
         if (toFattura) {
           const payload = {
             user_id: ownerUserId,
