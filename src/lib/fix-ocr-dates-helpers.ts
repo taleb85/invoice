@@ -19,6 +19,37 @@ export function isSuspiciousDocumentDate(data: string | null | undefined): boole
   return false
 }
 
+/**
+ * Coda fornitore / singolo: include documenti oltre alle date sospette, quando mancano
+ * numero o importo (allegato presente) — altrimenti "Controllo OCR" non tocca mai bolle
+ * con data plausibile ma campi ancora vuoti.
+ */
+export function bollaNeedsOcrPass(r: {
+  data: string
+  file_url: string | null
+  importo: number | null
+  numero_bolla: string | null
+}): boolean {
+  if (!r.file_url?.trim()) return false
+  if (isSuspiciousDocumentDate(r.data)) return true
+  if (!r.numero_bolla?.trim()) return true
+  if (r.importo == null || Number.isNaN(Number(r.importo))) return true
+  return false
+}
+
+export function fatturaNeedsOcrPass(r: {
+  data: string
+  file_url: string | null
+  importo: number | null
+  numero_fattura: string | null
+}): boolean {
+  if (!r.file_url?.trim()) return false
+  if (isSuspiciousDocumentDate(r.data)) return true
+  if (!r.numero_fattura?.trim()) return true
+  if (r.importo == null || Number.isNaN(Number(r.importo))) return true
+  return false
+}
+
 export function resolvedContentTypeFromFetch(url: string, header: string | null): string {
   const h = (header ?? '').toLowerCase()
   if (h.includes('pdf')) return 'application/pdf'

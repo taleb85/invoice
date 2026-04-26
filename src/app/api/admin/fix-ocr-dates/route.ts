@@ -7,6 +7,8 @@ import { safeDate } from '@/lib/safe-date'
 import {
   isSuspiciousDocumentDate,
   resolvedContentTypeFromFetch,
+  bollaNeedsOcrPass,
+  fatturaNeedsOcrPass,
 } from '@/lib/fix-ocr-dates-helpers'
 
 export const dynamic = 'force-dynamic'
@@ -222,19 +224,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sede non consentita per questo fornitore' }, { status: 403 })
     }
 
-    let bolleQ = service
+    let bolleSuspQ = service
       .from('bolle')
       .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
       .not('file_url', 'is', null)
       .eq('fornitore_id', fornitoreIdBatch)
-    if (sedeFilter) bolleQ = bolleQ.eq('sede_id', sedeFilter) as typeof bolleQ
-    const { data: bolleAll, error: bErr } = await bolleQ.or(orFilter)
-    if (bErr) {
-      console.error('[fix-ocr-dates] bolle (fornitore) query', bErr)
-      return NextResponse.json({ error: bErr.message }, { status: 500 })
+    if (sedeFilter) bolleSuspQ = bolleSuspQ.eq('sede_id', sedeFilter) as typeof bolleSuspQ
+    const { data: bolleByDate, error: bErr } = await bolleSuspQ.or(orFilter)
+
+    let bolleAllQ = service
+      .from('bolle')
+      .select('id, fornitore_id, sede_id, data, file_url, importo, numero_bolla, stato')
+      .not('file_url', 'is', null)
+      .eq('fornitore_id', fornitoreIdBatch)
+    if (sedeFilter) bolleAllQ = bolleAllQ.eq('sede_id', sedeFilter) as typeof bolleAllQ
+    const { data: bolleAllRows, error: bAllErr } = await bolleAllQ
+
+    if (bErr || bAllErr) {
+      console.error('[fix-ocr-dates] bolle (fornitore) query', bErr ?? bAllErr)
+      return NextResponse.json({ error: (bErr ?? bAllErr)!.message }, { status: 500 })
     }
 
-    const { data: fattureAll, error: fErr } = await loadSuspiciousFatture(
+    const bollaById = new Map<string, BollaRow>()
+    for (const r of (bolleByDate as BollaRow[] | null) ?? []) bollaById.set(r.id, r)
+    for (const r of (bolleAllRows as BollaRow[] | null) ?? []) bollaById.set(r.id, r)
+    const bolle: BollaRow[] = [...bollaById.values()].filter((r) => bollaNeedsOcrPass(r))
+
+    const { data: fattureByDate, error: fErr } = await loadSuspiciousFatture(
       service,
       sedeFilter,
       orFilter,
@@ -250,9 +266,28 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const bolle: BollaRow[] = (bolleAll as BollaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
-    const fatture: FatturaRow[] =
-      (fattureAll as FatturaRow[] | null)?.filter((r) => isSuspiciousDocumentDate(r.data)) ?? []
+    let fattureAllQ = service
+      .from('fatture')
+      .select(FATTURE_LIST_COLUMNS)
+      .not('file_url', 'is', null)
+      .eq('fornitore_id', fornitoreIdBatch)
+    if (sedeFilter) fattureAllQ = fattureAllQ.eq('sede_id', sedeFilter) as typeof fattureAllQ
+    const { data: fattureAllRows, error: fAllErr } = await fattureAllQ
+    if (fAllErr) {
+      console.error('[fix-ocr-dates] fatture all (fornitore) query', fAllErr)
+      return NextResponse.json({ error: fAllErr.message }, { status: 500 })
+    }
+
+    const fatturaById = new Map<string, FatturaRow>()
+    for (const r of (fattureByDate as FatturaRow[] | null) ?? []) fatturaById.set(r.id, r)
+    for (const r of (fattureAllRows as FatturaRow[] | null) ?? []) fatturaById.set(r.id, r)
+    const fatture: FatturaRow[] = [...fatturaById.values()].filter((r) => fatturaNeedsOcrPass(r))
+
+    /** Priorità: date sospette / incomplete gravi prima del limite */
+    const bollaPrio = (r: BollaRow) => (isSuspiciousDocumentDate(r.data) ? 0 : 1)
+    const fatturaPrio = (r: FatturaRow) => (isSuspiciousDocumentDate(r.data) ? 0 : 1)
+    bolle.sort((a, b) => bollaPrio(a) - bollaPrio(b) || a.data.localeCompare(b.data))
+    fatture.sort((a, b) => fatturaPrio(a) - fatturaPrio(b) || a.data.localeCompare(b.data))
 
     queue = [
       ...bolle.map((row) => ({ kind: 'bolla' as const, row })),
@@ -447,6 +482,8 @@ export async function POST(req: NextRequest) {
             ocrTipo,
           })
         } else {
+          /** Rianalizza su singola bolla: applica di nuovo numero/importo da OCR (non solo se vuoti). */
+          const isForcedBolla = Boolean(bollaIdForce && b.id === bollaIdForce)
           const numRaw = ocr.numero_fattura?.trim() ?? ''
           const ocrNum = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
           const hasNum = Boolean(b.numero_bolla?.trim())
@@ -455,8 +492,16 @@ export async function POST(req: NextRequest) {
 
           const upd: Record<string, unknown> = {}
           if (newData && newData !== b.data) upd.data = newData
-          if (!hasNum && ocrNum) upd.numero_bolla = ocrNum
-          if (!hasImp && ocrImporto != null) upd.importo = ocrImporto
+          if (isForcedBolla) {
+            if (ocrNum && ocrNum !== (b.numero_bolla?.trim() ?? '')) upd.numero_bolla = ocrNum
+            if (ocrImporto != null) {
+              const cur = b.importo != null ? Number(b.importo) : null
+              if (cur == null || Number.isNaN(cur) || ocrImporto !== cur) upd.importo = ocrImporto
+            }
+          } else {
+            if (!hasNum && ocrNum) upd.numero_bolla = ocrNum
+            if (!hasImp && ocrImporto != null) upd.importo = ocrImporto
+          }
 
           if (Object.keys(upd).length) {
             const { error: u } = await service.from('bolle').update(upd).eq('id', b.id)
@@ -529,6 +574,7 @@ export async function POST(req: NextRequest) {
             ocrTipo,
           })
         } else {
+          const isForcedFattura = Boolean(fatturaIdForce && f.id === fatturaIdForce)
           const numRaw = ocr.numero_fattura?.trim() ?? ''
           const ocrNum = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
           const hasNum = Boolean(f.numero_fattura?.trim())
@@ -537,8 +583,16 @@ export async function POST(req: NextRequest) {
 
           const upd: Record<string, unknown> = {}
           if (newData && newData !== f.data) upd.data = newData
-          if (!hasNum && ocrNum) upd.numero_fattura = ocrNum
-          if (!hasImp && ocrImporto != null) upd.importo = ocrImporto
+          if (isForcedFattura) {
+            if (ocrNum && ocrNum !== (f.numero_fattura?.trim() ?? '')) upd.numero_fattura = ocrNum
+            if (ocrImporto != null) {
+              const cur = f.importo != null ? Number(f.importo) : null
+              if (cur == null || Number.isNaN(cur) || ocrImporto !== cur) upd.importo = ocrImporto
+            }
+          } else {
+            if (!hasNum && ocrNum) upd.numero_fattura = ocrNum
+            if (!hasImp && ocrImporto != null) upd.importo = ocrImporto
+          }
 
           if (Object.keys(upd).length) {
             const { error: u } = await service.from('fatture').update(upd).eq('id', f.id)
