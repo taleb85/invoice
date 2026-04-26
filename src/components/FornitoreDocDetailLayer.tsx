@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { Loader2, Trash2 } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -288,12 +289,33 @@ export default function FornitoreDocDetailLayer({
 
   const showFattura = Boolean(fatturaId)
   const showBolla = Boolean(bollaId) && !showFattura
+  const layerOpen = showFattura || showBolla
 
-  if (!showFattura && !showBolla) return null
+  const [portalReady, setPortalReady] = useState(false)
+  useLayoutEffect(() => {
+    setPortalReady(true)
+  }, [])
 
-  return (
+  useEffect(() => {
+    if (!layerOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [layerOpen])
+
+  if (!layerOpen) return null
+  if (!portalReady) return null
+
+  /**
+   * `DashboardMobileBottomNav` è sibling di `AppShellMain` (z-100) ed è dopo il main nel DOM:
+   * un `fixed` dentro `#app-main` non può stare sopra al dock, qualunque z-index. Portal su
+   * `body` e z tra dock (100) e OperatorSwitchModal (220).
+   */
+  return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex min-h-0 items-stretch justify-center app-workspace-inset-bg p-0 backdrop-blur-sm md:p-6"
+      className="fixed inset-0 z-[215] flex min-h-0 items-stretch justify-center app-workspace-inset-bg p-0 backdrop-blur-sm md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fornitore-doc-detail-title"
@@ -342,7 +364,8 @@ export default function FornitoreDocDetailLayer({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
