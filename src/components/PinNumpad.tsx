@@ -21,7 +21,7 @@ interface PinNumpadProps {
 
 export function PinNumpad({ onDigit, onBackspace, onClear, disabled = false }: PinNumpadProps) {
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+    <div className="grid w-full grid-cols-3 gap-3.5 sm:gap-4">
       {KEYS.flat().map((key, i) => {
         const isDigit  = key >= '0' && key <= '9'
         const isDelete = key === '⌫'
@@ -38,10 +38,10 @@ export function PinNumpad({ onDigit, onBackspace, onClear, disabled = false }: P
               if (isClear)  onClear()
             }}
             className={[
-              'min-h-[52px] rounded-2xl border text-xl font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all select-none touch-manipulation active:scale-95 sm:h-16 sm:text-lg disabled:opacity-40 disabled:cursor-not-allowed',
+              'inline-flex min-h-[64px] items-center justify-center rounded-2xl border px-1 py-2 font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-all select-none touch-manipulation active:scale-[0.98] sm:min-h-[76px] disabled:opacity-40 disabled:cursor-not-allowed',
               isDigit
-                ? 'border-app-line-35 app-workspace-surface-elevated text-app-fg ring-1 ring-app-line-10 hover:border-app-a-50 hover:brightness-110'
-                : 'border-app-soft-border app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-35 hover:bg-black/18',
+                ? 'text-2xl sm:text-3xl border-app-line-35 app-workspace-surface-elevated text-app-fg ring-1 ring-app-line-10 hover:border-app-a-50 hover:brightness-110'
+                : 'text-xl sm:text-2xl border-app-soft-border app-workspace-inset-bg-soft text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-35 hover:bg-black/18',
             ].join(' ')}
           >
             {key}
