@@ -1662,6 +1662,7 @@ function BolleTab({
   const [ocrEpoch, setOcrEpoch] = useState(0)
   const [ocrBusyId, setOcrBusyId] = useState<string | null>(null)
   const [ocrError, setOcrError] = useState<string | null>(null)
+  const [ocrInfo, setOcrInfo] = useState<string | null>(null)
 
   const canRianalizzaOcr = Boolean(me?.is_admin || me?.is_admin_sede)
 
@@ -1669,9 +1670,15 @@ function BolleTab({
     async (bollaId: string) => {
       if (!bollaId) return
       setOcrError(null)
+      setOcrInfo(null)
       setOcrBusyId(bollaId)
       try {
-        const body: { bolla_id: string; limit: number; sede_id?: string } = { bolla_id: bollaId, limit: 1 }
+        const body: {
+          bolla_id: string
+          limit: number
+          sede_id?: string
+          allow_tipo_migrate: boolean
+        } = { bolla_id: bollaId, limit: 1, allow_tipo_migrate: true }
         if (me?.is_admin_sede && me.sede_id) body.sede_id = me.sede_id
         const res = await fetch('/api/admin/fix-ocr-dates', {
           method: 'POST',
@@ -1679,11 +1686,37 @@ function BolleTab({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         })
-        const data = (await res.json().catch(() => ({}))) as { error?: string; corrected?: number }
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string
+          details?: { action: string }[]
+          errors?: { message: string }[]
+        }
         if (!res.ok) {
           setOcrError(data.error ?? `HTTP ${res.status}`)
           return
         }
+        const reportErr = data.errors?.[0]?.message
+        if (reportErr) {
+          setOcrError(reportErr)
+          setOcrEpoch((e) => e + 1)
+          onLedgerMutated?.()
+          return
+        }
+        const details = data.details ?? []
+        const migrated = details.some((d) => d.action === 'migrated_to_fattura')
+        const first = details[0]
+        if (migrated) {
+          setOcrInfo(t.bolle.ocrRerunMovedToInvoices)
+        } else if (first?.action === 'unchanged') {
+          setOcrInfo(t.bolle.ocrRerunUnchangedStaysBolla)
+        } else if (first && (first.action === 'bolla_enriched' || first.action === 'date_only')) {
+          setOcrInfo(t.bolle.ocrRerunUpdatedStaysBolla)
+        } else if (first?.action === 'error') {
+          setOcrError(t.bolle.ocrRerunFailed)
+        } else {
+          setOcrInfo(t.bolle.ocrRerunUpdatedStaysBolla)
+        }
+        window.setTimeout(() => setOcrInfo(null), 12_000)
         setOcrEpoch((e) => e + 1)
         onLedgerMutated?.()
       } catch (e) {
@@ -1692,7 +1725,7 @@ function BolleTab({
         setOcrBusyId(null)
       }
     },
-    [me?.is_admin_sede, me?.sede_id, onLedgerMutated],
+    [me?.is_admin_sede, me?.sede_id, onLedgerMutated, t.bolle],
   )
 
   useEffect(() => {
@@ -1823,6 +1856,14 @@ function BolleTab({
       {ocrError ? (
         <p className="border-b border-rose-500/25 bg-rose-500/10 px-4 py-2 text-center text-xs text-rose-200" role="alert">
           {ocrError}
+        </p>
+      ) : null}
+      {ocrInfo ? (
+        <p
+          className="border-b border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-center text-xs text-emerald-100"
+          role="status"
+        >
+          {ocrInfo}
         </p>
       ) : null}
       <div className="min-w-0 flex-1">
