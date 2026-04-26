@@ -25,6 +25,13 @@ describe('normalizeTipoDocumento', () => {
     expect(normalizeTipoDocumento('Lieferschein')).toBe('bolla')
   })
 
+  it('mappa ordine e estratto conto a altro', () => {
+    expect(normalizeTipoDocumento('ordine')).toBe('altro')
+    expect(normalizeTipoDocumento('estratto_conto')).toBe('altro')
+    expect(normalizeTipoDocumento('purchase_order')).toBe('altro')
+    expect(normalizeTipoDocumento('statement')).toBe('altro')
+  })
+
   it('restituisce null per valori assenti o non riconosciuti', () => {
     expect(normalizeTipoDocumento(null)).toBeNull()
     expect(normalizeTipoDocumento(undefined)).toBeNull()

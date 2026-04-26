@@ -5,6 +5,7 @@ import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import {
   geminiGenerateText,
   geminiGenerateVision,
+  DOCUMENT_EXTRACTION_PROMPT,
   GeminiConfigurationError,
   GeminiTransientError,
   type GeminiUsage,
@@ -194,21 +195,22 @@ Return ONLY valid JSON — no markdown, no explanation:
   "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
   "numero_fattura": "Document reference: invoice number, DDT/bolla number, credit note number — or null if none visible",
-  "tipo_documento": "Exactly one of: fattura | bolla | altro | null — fattura=tax invoice or credit note; bolla=delivery note/DDT/Lieferschein/Albarán only; altro=quotes/proforma; null only if unreadable. Never use free-text sentences in this field.",
+  "tipo_documento": "Exactly one of: fattura | ddt | bolla | ordine | estratto_conto | altro | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
   "totale_iva_inclusa": "The gross total amount — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format",
   "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",
   "estrazione_utile": true
 }
 
 Rules:
+${DOCUMENT_EXTRACTION_PROMPT}
+
 - ragione_sociale: look for "Vendor", "Supplier", "Fornitore", "Mittente", "Absender", "Fournisseur", "Proveedor" — the SELLER, not the buyer.
 - p_iva: accept VAT No., P.IVA, NIF/CIF, N° TVA, USt-IdNr., SIRET — strip all non-digit characters.
 - indirizzo: only the supplier/seller address, not the customer.
 - numero_fattura: for ANY document type, extract the main document reference number if visible — not only "Invoice No.". For delivery notes / DDT / dispatch documents, map English labels such as "Note Number", "Notes Number", "Notes No.", "Delivery Note No.", "DN", "D.N.", "Document No.", "Your document number", "Shipment number", "Despatch note"; Italian "Numero DDT", "Numero documento di trasporto"; German "Lieferschein-Nr."; French "N° bon de livraison"; Spanish "Nº albarán". Return ONLY the alphanumeric reference (e.g. "11851464"), never the label text. If both an invoice number and a separate delivery-note number appear on the same page, prefer the one matching tipo_documento.
-- tipo_documento: classify from headings and legal role of the document. fattura if the page is clearly a tax/sales invoice or credit note (title or banner: Invoice, Tax invoice, VAT invoice, Sales invoice, Fattura, Rechnung as *invoice*, Credit note, Nota di credito — or VAT/tax breakdown typical of invoices). bolla only for delivery notes / DDT / dispatch / Lieferschein / Albarán / Delivery note *as the main document type* (no primary invoice heading). If the word "Invoice" or full VAT invoice layout appears, use fattura even with line-item tables. When still ambiguous, prefer fattura if any of: "Invoice", "VAT", "Amount due", "Tax", "Net", "Total" in an invoice-style summary; prefer bolla only for pure dispatch paperwork without invoice character.
+- For tipo_documento, also keep consistency with: Rechnung *as invoice*, Lieferschein, Albarán, Bon de livraison (map to ddt/bolla via the same keyword rules; never return fattura for a document whose primary title is only a transport/delivery docket, unless a full tax invoice is clearly the main document type).
 - totale_iva_inclusa: return the raw amount string EXACTLY as printed (including any currency symbol and separators). Do NOT convert to a number.
 ${estrazioneRule}- note_corpo_mail: never copy long generic email signatures or legal disclaimers; keep it concise.
-- data_fattura: on European (incl. Italian) documents, the printed order is day-first: 08/04/2026 is 8 April 2026, not 4 August. Always return YYYY-MM-DD for the document date actually printed, not a similar or shipment date.
 - If a field is absent, use null.`
 }
 

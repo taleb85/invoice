@@ -8,7 +8,19 @@ export function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'alt
 
   if (s === 'fattura' || s === 'invoice' || s === 'nota_credito' || s === 'credito' || s === 'credit_note') return 'fattura'
   if (s === 'bolla' || s === 'ddt' || s === 'delivery' || s === 'delivery_note' || s === 'lieferschein' || s === 'albaran') return 'bolla'
-  if (s === 'altro' || s === 'other') return 'altro'
+  if (
+    s === 'altro' ||
+    s === 'other' ||
+    s === 'ordine' ||
+    s === 'purchase_order' ||
+    s === 'po' ||
+    s === 'estratto_conto' ||
+    s === 'estratto' ||
+    s === 'statement' ||
+    s === 'account_statement'
+  ) {
+    return 'altro'
+  }
 
   if (
     /\bfattura\b/.test(s) ||

@@ -15,6 +15,30 @@ export const GEMINI_PRICING = {
   outputPerMillion: 0.30,  // $0.30  / 1M output tokens
 } as const
 
+/**
+ * Reusable rules for fiscal/document OCR: date parsing and document-type keywords.
+ * Concatenate this into the system instruction for any Gemini flow that must return
+ * normalised `data_fattura` and `tipo_documento` JSON (see `ocr-invoice` / `buildSystemPrompt`).
+ */
+export const DOCUMENT_EXTRACTION_PROMPT = `
+DATA (field data_fattura):
+- Accept dates in Italian: gg/mm/aaaa, gg-mm-aaaa, or month names (e.g. "25 aprile 2026", "15 marzo 2025").
+- Accept English/common formats: dd/mm/yyyy, dd-mm-yyyy, and long form such as "April 25, 2026", "25 April 2026" (Month dd, yyyy) or (dd Month yyyy).
+- On ambiguous numeric day/month (e.g. 01/11/2026), use the document locale implied by the language/labels: EU/Italian is usually day-first; if a label like "Data emissione", "Data fattura", "Invoice date" sits next to a value, use that value.
+- Always output a single value in data_fattura: ISO 8601 date only, YYYY-MM-DD (no time, no free text).
+- If the document shows several dates (emission/invoice, delivery, due date, tax point, etc.), you MUST use the document issue / emission / invoice date — the date that legally identifies when this document was issued. Do not use: due/payment date, "delivery" or "consegna" date, "DDT data", or a printed period range end date, when a clearer invoice/DDT issue date exists on the same page.
+
+TIPO DOCUMENTO (field tipo_documento):
+- Return exactly one of these lower-case tokens (or null if unreadable): fattura | ddt | bolla | ordine | estratto_conto | altro
+- fattura — if the title or prominent banner contains any of: Fattura, Invoice, Tax invoice, VAT invoice (or obvious equivalents like Sales invoice, Commercial invoice, Credit note, Nota di credito when it is a fiscal credit note).
+- ddt — if the main document is a transport/dispatch note: DDT, Documento di Trasporto, Delivery note, Dispatch note.
+- bolla — if the heading indicates a delivery docket: Bolla, Bolla di consegna, Delivery docket.
+- ordine — if the document is primarily an order, not a fiscal dispatch or invoice: Ordine, Purchase order, P.O. / PO.
+- estratto_conto — if the document is a supplier/customer account listing: Estratto conto, Statement, Account statement.
+- altro — quotes, pro-forma, packing lists, or commercial PDFs that are none of the above; use null if the type is completely unreadable.
+- If more than one label could apply, use the document’s primary title in the largest/most official header, not a small footer or secondary number line.
+`.trim()
+
 export interface GeminiUsage {
   inputTokens: number
   outputTokens: number
