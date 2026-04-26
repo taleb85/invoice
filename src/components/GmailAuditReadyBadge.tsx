@@ -153,16 +153,16 @@ export default function GmailAuditReadyBadge({ fornitoreNome }: GmailAuditReadyB
       )}
 
       {!gmailStatus.configured && (
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <div className="rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-2 py-1.5 text-center">
+        <div className="mt-3 grid grid-cols-1 gap-2 min-[400px]:grid-cols-3">
+          <div className="min-w-0 rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-2 py-1.5 text-center">
             <p className="text-[10px] font-bold text-cyan-200">Auto-Poll</p>
             <p className="text-[9px] text-cyan-300/60">Email/15min</p>
           </div>
-          <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-blue-500/5 px-2 py-1.5 text-center">
+          <div className="min-w-0 rounded-lg border border-[rgba(34,211,238,0.15)] bg-blue-500/5 px-2 py-1.5 text-center">
             <p className="text-[10px] font-bold text-blue-200">{t.appStrings.gmailBadgePriceCheck}</p>
             <p className="text-[9px] text-blue-300/60">{t.appStrings.gmailBadgePriceCheckSub}</p>
           </div>
-          <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-purple-500/5 px-2 py-1.5 text-center">
+          <div className="min-w-0 rounded-lg border border-[rgba(34,211,238,0.15)] bg-purple-500/5 px-2 py-1.5 text-center">
             <p className="text-[10px] font-bold text-purple-200">Recovery</p>
             <p className="text-[9px] text-purple-300/60">{t.appStrings.gmailBadgeRecoverySub}</p>
           </div>

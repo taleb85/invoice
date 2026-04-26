@@ -165,7 +165,7 @@ function ScannerFlowCardIntro({
           ) : null}
         </div>
       )}
-      <div className="mt-3 grid grid-cols-2 gap-2 md:gap-3">
+      <div className="mt-3 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 md:gap-3">
         <ScannerFlowKpiButtons
           aiElaborate={summary.aiElaborate}
           archiviate={summary.archiviate}
