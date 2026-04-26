@@ -29,8 +29,9 @@ export function numeroReferenceLooksLikeDdt(num: string | null | undefined): boo
 /**
  * Dopo OCR su una bolla: decidere se spostare in `fatture` oltre a `tipo_documento === 'fattura'`.
  * Per **batch** (senza bolla forzata) resta solo la classificazione esplicita.
- * Per **Rianalizza** (bollaId forzata + allow_tipo_migrate): se il modello lascia `null` o fraintende,
- * usa filename del file e (numero + importo) come segnali, senza sovrascrivere `bolla` / `altro` espliciti.
+ * Per **Rianalizza** (bollaId forzata + allow_tipo_migrate): Gemini spesso restituisce `bolla` anche per
+ * pagine fattura, o `null` senza motivo — usiamo filename, numero+importo e assenza di segnali DDT.
+ * `altro` non migriamo (ordini, estratti, ecc.).
  */
 export function shouldMigrateBollaRowToFattura(params: {
   ocr: {
@@ -43,24 +44,30 @@ export function shouldMigrateBollaRowToFattura(params: {
   allowTipoMigrate: boolean
 }): boolean {
   const { ocr, fileUrl, bollaIdForce, allowTipoMigrate } = params
-  if (!allowTipoMigrate) return ocr.tipo_documento === 'fattura'
-  if (ocr.tipo_documento === 'fattura') return true
-  if (ocr.tipo_documento === 'bolla' || ocr.tipo_documento === 'altro') return false
-  if (!bollaIdForce) return ocr.tipo_documento === 'fattura'
+  const t = ocr.tipo_documento
+  if (!allowTipoMigrate) return t === 'fattura'
+  if (t === 'fattura') return true
+  if (t === 'altro') return false
+  if (!bollaIdForce) return false
+
   const fname = fileNameFromStorageUrl(fileUrl)
   const ctxFat = scanContextSuggestsFattura('', fname)
   const ctxBol = scanContextSuggestsBolla('', fname)
-  if (ctxFat && !ctxBol) return true
-  if (ctxBol && !ctxFat) return false
-  if (ctxFat && ctxBol) return false
-  if (numeroReferenceLooksLikeDdt(ocr.numero_fattura)) return false
-  if (
+  const hasNumeroImporto =
     ocr.totale_iva_inclusa != null &&
     ocr.numero_fattura != null &&
     ocr.numero_fattura.trim().length > 0
-  ) {
+
+  if (numeroReferenceLooksLikeDdt(ocr.numero_fattura)) return false
+  if (ctxBol && !ctxFat) return false
+  if (ctxFat && !ctxBol) return true
+  if (ctxFat && ctxBol) return false
+
+  if (t === 'bolla') {
+    if (!hasNumeroImporto) return false
     return true
   }
+  if (t == null && hasNumeroImporto) return true
   return false
 }
 
