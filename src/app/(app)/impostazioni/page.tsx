@@ -194,12 +194,41 @@ function NotificationSettings() {
   )
 }
 
+type FixOcrDetailRow = {
+  id: string
+  table: string
+  action: 'date_only' | 'migrated_to_fattura' | 'migrated_to_bolla' | 'unchanged' | 'error'
+  previousData: string
+  newData: string | null
+  ocrTipo: string | null
+}
+
+function actionLabelIt(a: FixOcrDetailRow['action']): string {
+  switch (a) {
+    case 'date_only':
+      return 'Data aggiornata'
+    case 'migrated_to_fattura':
+      return 'Migrato → fattura'
+    case 'migrated_to_bolla':
+      return 'Migrato → bolla'
+    case 'unchanged':
+      return 'Invariato'
+    case 'error':
+      return 'Errore'
+    default:
+      return a
+  }
+}
+
 function FixOcrDatesCard() {
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [details, setDetails] = useState<FixOcrDetailRow[]>([])
+  const [detailsTruncated, setDetailsTruncated] = useState(false)
+  const [reportErrors, setReportErrors] = useState<{ id: string; table: string; message: string }[]>([])
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
@@ -211,6 +240,9 @@ function FixOcrDatesCard() {
   const run = async () => {
     setErr(null)
     setResult(null)
+    setDetails([])
+    setDetailsTruncated(false)
+    setReportErrors([])
     setLoading(true)
     try {
       const res = await fetch('/api/admin/fix-ocr-dates', {
@@ -228,7 +260,9 @@ function FixOcrDatesCard() {
         dateOnlyFixes?: number
         tipoMigratedToFattura?: number
         tipoMigratedToBolla?: number
-        errors?: { message: string }[]
+        errors?: { id: string; table: string; message: string }[]
+        details?: FixOcrDetailRow[]
+        detailsTruncated?: boolean
       }
       if (!res.ok) {
         setErr(data.error ?? `HTTP ${res.status}`)
@@ -243,6 +277,9 @@ function FixOcrDatesCard() {
           }, → bolla: ${data.tipoMigratedToBolla ?? 0}.` +
           (data.errors?.length ? ` Errori: ${data.errors.length}.` : ''),
       )
+      setDetails(Array.isArray(data.details) ? data.details : [])
+      setDetailsTruncated(Boolean(data.detailsTruncated))
+      setReportErrors(Array.isArray(data.errors) ? data.errors : [])
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Errore di rete')
     } finally {
@@ -271,6 +308,55 @@ function FixOcrDatesCard() {
             <p className="mt-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
               {result}
             </p>
+          ) : null}
+          {reportErrors.length > 0 ? (
+            <div className="mt-3 max-h-40 overflow-y-auto rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5">
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-200/90">Errori o avvisi</p>
+              <ul className="space-y-1.5 text-[11px] leading-snug text-amber-100/95">
+                {reportErrors.map((e, i) => (
+                  <li key={`${e.table}-${e.id}-${i}`} className="break-words">
+                    <span className="font-mono text-[10px] text-amber-200/70">{e.table}</span>
+                    <span className="mx-1 text-amber-200/50">·</span>
+                    <span className="font-mono text-[10px] text-amber-100/80" title={e.id}>
+                      {e.id.length > 10 ? `${e.id.slice(0, 8)}…` : e.id}
+                    </span>
+                    <span className="mt-0.5 block text-app-fg-muted/90 dark:text-amber-50/80">{e.message}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {details.length > 0 ? (
+            <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-app-line-25 bg-black/20 px-3 py-2.5">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">Dettaglio operazioni</p>
+              <ul className="space-y-2 text-[11px] leading-snug text-app-fg">
+                {details.map((d, i) => (
+                  <li key={`${d.table}-${d.id}-${i}`} className="border-b border-app-line-10 pb-2 last:border-0 last:pb-0">
+                    <span className="font-mono text-[10px] text-app-fg-muted">{d.table}</span>
+                    <span className="mx-1 text-app-fg-muted">·</span>
+                    <span className="font-mono text-[10px] text-cyan-300/90" title={d.id}>
+                      {d.id.length > 10 ? `${d.id.slice(0, 8)}…` : d.id}
+                    </span>
+                    <span className="ml-1.5 text-app-fg-muted">{actionLabelIt(d.action)}</span>
+                    {d.newData && d.newData !== d.previousData ? (
+                      <span className="mt-0.5 block pl-0 text-app-fg-muted">
+                        {d.previousData} → <span className="font-medium text-emerald-200/95">{d.newData}</span>
+                      </span>
+                    ) : d.action === 'unchanged' ? (
+                      <span className="mt-0.5 block text-app-fg-muted/90">Data: {d.previousData}</span>
+                    ) : d.action === 'error' ? (
+                      <span className="mt-0.5 block text-app-fg-muted/90">Data in DB: {d.previousData}</span>
+                    ) : null}
+                    {d.ocrTipo ? (
+                      <span className="mt-0.5 block text-[10px] text-violet-300/90">OCR: {d.ocrTipo}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              {detailsTruncated ? (
+                <p className="mt-2 text-[10px] text-amber-200/80">Elenco troncato: riesegui l’operazione se restano documenti in coda.</p>
+              ) : null}
+            </div>
           ) : null}
           <button
             type="button"
