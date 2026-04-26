@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { openDocumentUrl } from '@/lib/open-document-url'
@@ -21,15 +21,7 @@ type Props = {
   /** Es. righe tabella con `onClick` di navigazione. */
   stopTriggerPropagation?: boolean
   title?: string
-  /**
-   * `overlay`: pannello in-app (montato con portal su `body`, sopra la bottom bar mobile).
-   * `popupWindow`: nuova finestra del browser con l’URL firmato (fallback a overlay se bloccata).
-   */
-  openMode?: 'overlay' | 'popupWindow'
 }
-
-const DOC_POPUP_FEATURES =
-  'width=1200,height=800,left=80,top=40,scrollbars=yes,resizable=yes,menubar=no,toolbar=no'
 
 function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId'>): {
   jsonHref: string
@@ -76,7 +68,8 @@ function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'do
 }
 
 /**
- * Apre PDF/immagine in un overlay in-app (URL firmato via `/api/open-document?json=1`).
+ * Apre PDF/immagine in un modale in-app (URL firmato via `/api/open-document?json=1`);
+ * l’overlay è montato con portal su `body` (z-215) così resta sopra la bottom bar mobile.
  * Per tipi non PDF/immagine usa iframe come fallback (come nel layer fornitore).
  */
 export function OpenDocumentInAppButton({
@@ -90,7 +83,6 @@ export function OpenDocumentInAppButton({
   className,
   stopTriggerPropagation,
   title,
-  openMode = 'overlay',
 }: Props) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -106,36 +98,6 @@ export function OpenDocumentInAppButton({
   useLayoutEffect(() => {
     setPortalReady(true)
   }, [])
-
-  const openInNewWindow = useCallback(
-    (e: MouseEvent<HTMLButtonElement>) => {
-      if (stopTriggerPropagation) e.stopPropagation()
-      if (!hrefs) return
-      const w = window.open('about:blank', '_blank', DOC_POPUP_FEATURES)
-      if (!w) {
-        setOpen(true)
-        return
-      }
-      try {
-        w.opener = null
-      } catch {
-        /* ignore */
-      }
-      void (async () => {
-        try {
-          const r = await fetch(hrefs.jsonHref, { credentials: 'include' })
-          if (!r.ok) throw new Error(String(r.status))
-          const j = (await r.json()) as { url?: string }
-          const u = j.url?.trim()
-          w.location.replace(u || hrefs.tabHref)
-        } catch {
-          w.close()
-          setOpen(true)
-        }
-      })()
-    },
-    [hrefs, stopTriggerPropagation],
-  )
 
   useEffect(() => {
     if (!open) {
@@ -176,13 +138,13 @@ export function OpenDocumentInAppButton({
   }, [open, canOpen])
 
   useEffect(() => {
-    if (openMode !== 'overlay' || !open) return
+    if (!open) return
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = prev
     }
-  }, [open, openMode])
+  }, [open])
 
   if (!canOpen) return null
 
@@ -190,7 +152,7 @@ export function OpenDocumentInAppButton({
   const triggerClass = className ?? CYAN_TABLE_PILL_LINK_CLASSNAME
 
   const overlayNode =
-    open && portalReady && openMode === 'overlay' ? (
+    open && portalReady ? (
       <div
         className="fixed inset-0 z-[215] flex items-center justify-center app-workspace-inset-bg p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
         onClick={() => setOpen(false)}
@@ -259,14 +221,14 @@ export function OpenDocumentInAppButton({
         type="button"
         title={title}
         className={triggerClass}
-        onClick={openMode === 'popupWindow' ? openInNewWindow : (e) => {
+        onClick={(e) => {
           if (stopTriggerPropagation) e.stopPropagation()
           setOpen(true)
         }}
       >
         {children}
       </button>
-      {openMode === 'overlay' && overlayNode ? createPortal(overlayNode, document.body) : null}
+      {overlayNode ? createPortal(overlayNode, document.body) : null}
     </>
   )
 }

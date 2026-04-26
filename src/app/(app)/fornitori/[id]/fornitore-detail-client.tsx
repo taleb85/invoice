@@ -1828,7 +1828,6 @@ function BolleTab({
                 <OpenDocumentInAppButton
                   bollaId={b.id}
                   fileUrl={b.file_url}
-                  openMode="popupWindow"
                   stopTriggerPropagation
                   className="-mr-2 border-0 bg-transparent px-2 py-1.5 text-left text-xs text-app-cyan-500 touch-manipulation hover:text-app-fg-muted hover:underline"
                 >
@@ -1912,7 +1911,6 @@ function BolleTab({
                       <OpenDocumentInAppButton
                         bollaId={b.id}
                         fileUrl={b.file_url}
-                        openMode="popupWindow"
                         stopTriggerPropagation
                         className={FORNITORE_TABLE_CYAN_ACTION_PILL}
                         title={attachmentOpenFileLinkLabel(fileKind, t)}
