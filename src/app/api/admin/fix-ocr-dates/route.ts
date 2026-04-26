@@ -29,8 +29,6 @@ type FatturaRow = {
   file_url: string | null
   importo: number | null
   numero_fattura: string | null
-  verificata_estratto_conto: boolean | null
-  analizzata: boolean | null
 }
 
 async function countTable(
@@ -143,9 +141,7 @@ export async function POST(req: NextRequest) {
 
   let fattureQ = service
     .from('fatture')
-    .select(
-      'id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura, verificata_estratto_conto, analizzata',
-    )
+    .select('id, fornitore_id, bolla_id, sede_id, data, file_url, importo, numero_fattura')
     .not('file_url', 'is', null)
   if (sedeFilter) fattureQ = fattureQ.eq('sede_id', sedeFilter)
   const { data: fattureAll, error: fErr } = await fattureQ.or(orFilter)
@@ -239,8 +235,6 @@ export async function POST(req: NextRequest) {
             file_url: b.file_url,
             importo: b.importo,
             numero_fattura: ocr.numero_fattura ?? b.numero_bolla,
-            verificata_estratto_conto: false,
-            analizzata: false,
           }
           let insRes = await service.from('fatture').insert([payload]).select('id').single()
           if (insRes.error && isMissingColumnError(insRes.error, 'user_id')) {
