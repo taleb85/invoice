@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState, type MouseEvent } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
@@ -20,7 +21,15 @@ type Props = {
   /** Es. righe tabella con `onClick` di navigazione. */
   stopTriggerPropagation?: boolean
   title?: string
+  /**
+   * `overlay`: pannello in-app (montato con portal su `body`, sopra la bottom bar mobile).
+   * `popupWindow`: nuova finestra del browser con l’URL firmato (fallback a overlay se bloccata).
+   */
+  openMode?: 'overlay' | 'popupWindow'
 }
+
+const DOC_POPUP_FEATURES =
+  'width=1200,height=800,left=80,top=40,scrollbars=yes,resizable=yes,menubar=no,toolbar=no'
 
 function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId'>): {
   jsonHref: string
@@ -81,16 +90,52 @@ export function OpenDocumentInAppButton({
   className,
   stopTriggerPropagation,
   title,
+  openMode = 'overlay',
 }: Props) {
   const t = useT()
   const [open, setOpen] = useState(false)
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [portalReady, setPortalReady] = useState(false)
 
   const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId })
   const jsonHref = hrefs?.jsonHref ?? ''
   const tabHref = hrefs?.tabHref ?? ''
   const canOpen = Boolean(hrefs && fileUrl?.trim())
+
+  useLayoutEffect(() => {
+    setPortalReady(true)
+  }, [])
+
+  const openInNewWindow = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      if (stopTriggerPropagation) e.stopPropagation()
+      if (!hrefs) return
+      const w = window.open('about:blank', '_blank', DOC_POPUP_FEATURES)
+      if (!w) {
+        setOpen(true)
+        return
+      }
+      try {
+        w.opener = null
+      } catch {
+        /* ignore */
+      }
+      void (async () => {
+        try {
+          const r = await fetch(hrefs.jsonHref, { credentials: 'include' })
+          if (!r.ok) throw new Error(String(r.status))
+          const j = (await r.json()) as { url?: string }
+          const u = j.url?.trim()
+          w.location.replace(u || hrefs.tabHref)
+        } catch {
+          w.close()
+          setOpen(true)
+        }
+      })()
+    },
+    [hrefs, stopTriggerPropagation],
+  )
 
   useEffect(() => {
     if (!open) {
@@ -130,10 +175,83 @@ export function OpenDocumentInAppButton({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, canOpen])
 
+  useEffect(() => {
+    if (openMode !== 'overlay' || !open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open, openMode])
+
   if (!canOpen) return null
 
   const kind = attachmentKindFromFileUrl(fileUrl!)
   const triggerClass = className ?? CYAN_TABLE_PILL_LINK_CLASSNAME
+
+  const overlayNode =
+    open && portalReady && openMode === 'overlay' ? (
+      <div
+        className="fixed inset-0 z-[215] flex items-center justify-center app-workspace-inset-bg p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
+        onClick={() => setOpen(false)}
+        role="presentation"
+      >
+        <div
+          className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
+          style={{
+            background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 0.98), rgba(30, 27, 75, 0.95))',
+            boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t.common.attachment}
+        >
+          <button
+            type="button"
+            className="absolute right-2 top-2 z-20 rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
+            onClick={() => setOpen(false)}
+          >
+            {t.statements.btnClose}
+          </button>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-12" style={{ background: 'rgba(15, 23, 42, 0.95)' }}>
+            {loading ? (
+              <div className="flex min-h-0 flex-1 items-center justify-center">
+                <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
+              </div>
+            ) : null}
+            {!loading && signedUrl && kind === 'image' ? (
+              <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-1">
+                <Image
+                  src={signedUrl}
+                  alt=""
+                  width={1200}
+                  height={1600}
+                  unoptimized
+                  className="h-auto max-h-full w-full object-contain"
+                />
+              </div>
+            ) : null}
+            {!loading && signedUrl && kind !== 'image' ? (
+              <iframe
+                title={t.common.attachment}
+                src={embedSrcForInlineViewer(signedUrl, kind)}
+                className="min-h-0 w-full flex-1 border-0"
+                style={{ background: 'rgba(15, 23, 42, 0.95)' }}
+              />
+            ) : null}
+            {!loading && !signedUrl ? (
+              <iframe
+                title={t.common.attachment}
+                src={embedSrcForInlineViewer(tabHref, kind)}
+                className="min-h-0 w-full min-h-[50vh] flex-1 border-0"
+                style={{ background: 'rgba(15, 23, 42, 0.95)' }}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+    ) : null
 
   return (
     <>
@@ -141,75 +259,14 @@ export function OpenDocumentInAppButton({
         type="button"
         title={title}
         className={triggerClass}
-        onClick={(e) => {
+        onClick={openMode === 'popupWindow' ? openInNewWindow : (e) => {
           if (stopTriggerPropagation) e.stopPropagation()
           setOpen(true)
         }}
       >
         {children}
       </button>
-      {open ? (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center app-workspace-inset-bg p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-md sm:p-3"
-          onClick={() => setOpen(false)}
-          role="presentation"
-        >
-          <div
-            className="relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
-            style={{
-              background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 0.98), rgba(30, 27, 75, 0.95))',
-              boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)'
-            }}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label={t.common.attachment}
-          >
-            <button
-              type="button"
-              className="absolute right-2 top-2 z-20 rounded-lg border border-app-line-32 app-workspace-surface-elevated px-3 py-1.5 text-sm font-medium text-app-fg shadow-lg backdrop-blur-sm transition-colors hover:bg-app-line-15 hover:text-app-fg"
-              onClick={() => setOpen(false)}
-            >
-              {t.statements.btnClose}
-            </button>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-12" style={{ background: 'rgba(15, 23, 42, 0.95)' }}>
-              {loading ? (
-                <div className="flex min-h-0 flex-1 items-center justify-center">
-                  <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
-                </div>
-              ) : null}
-              {!loading && signedUrl && kind === 'image' ? (
-                <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-1">
-                  <Image
-                    src={signedUrl}
-                    alt=""
-                    width={1200}
-                    height={1600}
-                    unoptimized
-                    className="h-auto max-h-full w-full object-contain"
-                  />
-                </div>
-              ) : null}
-              {!loading && signedUrl && kind !== 'image' ? (
-                <iframe
-                  title={t.common.attachment}
-                  src={embedSrcForInlineViewer(signedUrl, kind)}
-                  className="min-h-0 w-full flex-1 border-0"
-                  style={{ background: 'rgba(15, 23, 42, 0.95)' }}
-                />
-              ) : null}
-              {!loading && !signedUrl ? (
-                <iframe
-                  title={t.common.attachment}
-                  src={embedSrcForInlineViewer(tabHref, kind)}
-                  className="min-h-0 w-full min-h-[50vh] flex-1 border-0"
-                  style={{ background: 'rgba(15, 23, 42, 0.95)' }}
-                />
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {openMode === 'overlay' && overlayNode ? createPortal(overlayNode, document.body) : null}
     </>
   )
 }
