@@ -18,14 +18,14 @@ export async function GET(req: NextRequest) {
   if (error) {
     const redirectUrl = new URL('/settings', req.nextUrl.origin)
     redirectUrl.searchParams.set('gmail_error', error)
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(redirectUrl, { status: 302 })
   }
-  
-  // Validate code
+
+  // Validate code (redirect HTTP 302 — evita 200 su richieste senza code, vedi QA Vercel)
   if (!code) {
     const redirectUrl = new URL('/settings', req.nextUrl.origin)
     redirectUrl.searchParams.set('gmail_error', 'no_code')
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(redirectUrl, { status: 302 })
   }
   
   try {
@@ -50,9 +50,9 @@ export async function GET(req: NextRequest) {
     if (!user) {
       const redirectUrl = new URL('/login', req.nextUrl.origin)
       redirectUrl.searchParams.set('error', 'not_authenticated')
-      return NextResponse.redirect(redirectUrl)
+      return NextResponse.redirect(redirectUrl, { status: 302 })
     }
-    
+
     userId = userId || user.id
     
     // Get user's sede_id if not provided
@@ -96,8 +96,8 @@ export async function GET(req: NextRequest) {
       redirectUrl.searchParams.set('gmail_email', emailAddress)
     }
     
-    return NextResponse.redirect(redirectUrl)
-    
+    return NextResponse.redirect(redirectUrl, { status: 302 })
+
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : 'Errore sconosciuto'
     console.error('[GMAIL-CALLBACK] Error:', err)
@@ -106,6 +106,6 @@ export async function GET(req: NextRequest) {
     redirectUrl.searchParams.set('gmail_error', 'token_exchange_failed')
     redirectUrl.searchParams.set('gmail_error_detail', errMsg)
     
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(redirectUrl, { status: 302 })
   }
 }
