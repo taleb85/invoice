@@ -1661,6 +1661,7 @@ function BolleTab({
   const [loading, setLoading] = useState(true)
   const [ocrEpoch, setOcrEpoch] = useState(0)
   const [ocrBusyId, setOcrBusyId] = useState<string | null>(null)
+  const [convertBusyId, setConvertBusyId] = useState<string | null>(null)
   const [ocrError, setOcrError] = useState<string | null>(null)
   const [ocrInfo, setOcrInfo] = useState<string | null>(null)
 
@@ -1726,6 +1727,42 @@ function BolleTab({
       }
     },
     [me?.is_admin_sede, me?.sede_id, onLedgerMutated, t.bolle],
+  )
+
+  const runConvertBollaToFattura = useCallback(
+    async (bollaId: string) => {
+      if (!bollaId) return
+      if (!window.confirm(t.bolle.convertiInFatturaConfirm)) return
+      setOcrError(null)
+      setOcrInfo(null)
+      setConvertBusyId(bollaId)
+      try {
+        const res = await fetch('/api/bolle/convert-to-fattura', {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bolla_id: bollaId }),
+        })
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        if (!res.ok) {
+          if (res.status === 409) {
+            setOcrError(t.bolle.convertiInFatturaErrLinked)
+          } else {
+            setOcrError(data.error?.trim() || t.bolle.convertiInFatturaErrGeneric)
+          }
+          return
+        }
+        setOcrInfo(t.bolle.convertiInFatturaOk)
+        window.setTimeout(() => setOcrInfo(null), 12_000)
+        setOcrEpoch((e) => e + 1)
+        onLedgerMutated?.()
+      } catch (e) {
+        setOcrError(e instanceof Error ? e.message : t.bolle.convertiInFatturaErrGeneric)
+      } finally {
+        setConvertBusyId(null)
+      }
+    },
+    [onLedgerMutated, t.bolle],
   )
 
   useEffect(() => {
@@ -1914,10 +1951,24 @@ function BolleTab({
                     e.stopPropagation()
                     void runBollaOcr(b.id)
                   }}
-                  disabled={ocrBusyId === b.id}
+                  disabled={ocrBusyId === b.id || convertBusyId === b.id}
                   className="shrink-0 touch-manipulation rounded-lg border border-amber-500/35 bg-amber-500/8 px-2 py-1 text-[11px] font-semibold text-amber-200/95 transition-colors hover:bg-amber-500/15 disabled:opacity-50"
                 >
                   {ocrBusyId === b.id ? '…' : t.bolle.riannalizzaOcr}
+                </button>
+              ) : null}
+              {!readOnly && canRianalizzaOcr && b.file_url ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void runConvertBollaToFattura(b.id)
+                  }}
+                  disabled={ocrBusyId === b.id || convertBusyId === b.id}
+                  title={t.bolle.convertiInFatturaTitle}
+                  className="shrink-0 touch-manipulation rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2 py-1 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 disabled:opacity-50"
+                >
+                  {convertBusyId === b.id ? '…' : t.bolle.convertiInFattura}
                 </button>
               ) : null}
               {b.file_url && (
@@ -2007,7 +2058,7 @@ function BolleTab({
                       <button
                         type="button"
                         onClick={() => void runBollaOcr(b.id)}
-                        disabled={ocrBusyId === b.id}
+                        disabled={ocrBusyId === b.id || convertBusyId === b.id}
                         title={t.bolle.riannalizzaOcr}
                         className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-500/35 bg-amber-500/8 px-2.5 text-[11px] font-semibold text-amber-200/95 transition-colors hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -2019,6 +2070,24 @@ function BolleTab({
                           </svg>
                         )}
                         <span className="hidden xl:inline">{t.bolle.riannalizzaOcr}</span>
+                      </button>
+                    ) : null}
+                    {!readOnly && canRianalizzaOcr && b.file_url ? (
+                      <button
+                        type="button"
+                        onClick={() => void runConvertBollaToFattura(b.id)}
+                        disabled={ocrBusyId === b.id || convertBusyId === b.id}
+                        title={t.bolle.convertiInFatturaTitle}
+                        className="inline-flex h-7 max-w-[8rem] shrink-0 items-center justify-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {convertBusyId === b.id ? (
+                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
+                        ) : (
+                          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                          </svg>
+                        )}
+                        <span className="hidden min-w-0 truncate xl:inline">{t.bolle.convertiInFattura}</span>
                       </button>
                     ) : null}
                     {b.file_url && (
