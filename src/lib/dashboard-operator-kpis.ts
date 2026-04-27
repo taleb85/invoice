@@ -241,6 +241,29 @@ export type OperatorDashboardKpis = {
   listinoAnomaliesCount: number
 }
 
+/** Fallback sicuro se le query Supabase in dashboard falliscono (evita 500 RSC su GET /). */
+export const DEFAULT_OPERATOR_DASHBOARD_KPIS: OperatorDashboardKpis = {
+  bolleTotal: 0,
+  bolleInAttesa: 0,
+  fattureCount: 0,
+  duplicatiCount: 0,
+  duplicatiBolleCount: 0,
+  duplicatiOrdiniCount: 0,
+  documentiDaRevisionare: 0,
+  documentiPending: 0,
+  documentiDaAssociare: 0,
+  totaleImporto: 0,
+  listinoRows: 0,
+  listinoProdottiDistinti: 0,
+  ordiniCount: 0,
+  statementsTotal: 0,
+  statementsWithIssues: 0,
+  erroriRecenti: 0,
+  anomaliePrezziCount: 0,
+  bolleRekkiSavingsHint: false,
+  listinoAnomaliesCount: 0,
+}
+
 /** Soglia data come in POST /api/solleciti (data bolla prima di domani). */
 function sollecitoSogliaDateISO(): string {
   const soglia = new Date()

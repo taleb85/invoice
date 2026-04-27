@@ -1,10 +1,10 @@
 /** Bump quando cambi strategia cache — activate pulisce le vecchie. */
-const CACHE_NAME = 'fluxo-v4'
+const CACHE_NAME = 'fluxo-v5'
 const OFFLINE_URL = '/offline'
 
 // API routes to cache with NetworkFirst strategy (fallback to cache when offline)
 // /api/me NON in lista: sessione/ruolo devono essere sempre freschi (evita UI «gestionale» con dati vecchi in PWA).
-const API_CACHE_NAME = 'fluxo-api-v2'
+const API_CACHE_NAME = 'fluxo-api-v3'
 const API_CACHE_ROUTES = {
   '/api/fornitori': 30 * 60,        // 30 minutes
   '/api/bolle-aperte': 5 * 60,      // 5 minutes
@@ -19,12 +19,13 @@ const PRECACHE_URLS = [
   '/icons/icon-512.png',
 ]
 
-// Install: pre-cacha le risorse essenziali
+// Install: pre-cacha le risorse essenziali, poi forza l’attivazione del nuovo SW così
+// `controllerchange` / UpdatePrompt possono portare l’utente all’ultima build senza restare su JS vecchio.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   )
-  // Do NOT call skipWaiting() here — let the UpdatePrompt control when to activate
+  self.skipWaiting()
 })
 
 // Message: handle SKIP_WAITING from UpdatePrompt

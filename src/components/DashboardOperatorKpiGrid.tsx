@@ -73,13 +73,18 @@ const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 6, 1, 2] as const
 function operatorKpiVisualAt(tileIndex: number) {
   const k = Math.max(0, Math.min(tileIndex, OPERATOR_KPI_VISUAL_INDEX.length - 1))
   const v = OPERATOR_KPI_VISUAL_INDEX[k]!
-  return operatorKpiVisual[v] ?? operatorKpiVisual[0]!
+  if (v >= 0 && v < operatorKpiVisual.length) {
+    return operatorKpiVisual[v]!
+  }
+  return operatorKpiVisual[0]!
 }
 
 function dashboardKpiIconSvgClass(index: number) {
-  const key = DASHBOARD_TILE_SUPPLIER_ICON_KEYS[index]!
+  const i = Math.max(0, Math.min(index, DASHBOARD_TILE_SUPPLIER_ICON_KEYS.length - 1))
+  const key = DASHBOARD_TILE_SUPPLIER_ICON_KEYS[i]!
   const p = supplierKpiPalette[key]
-  return `${p.iconClass} ${p.iconDropShadow}`
+  const q = p ?? supplierKpiPalette.conferme
+  return `${q.iconClass} ${q.iconDropShadow}`
 }
 
 export function DashboardOperatorKpiSkeleton() {

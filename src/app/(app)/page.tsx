@@ -7,7 +7,12 @@ import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getTimezone, getCurrency, getCookieStore, formatDate as fmtDate } from '@/lib/locale-server'
 import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
-import { fetchOperatorDashboardKpis, fetchTodayScannerFlowDetail, fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
+import {
+  DEFAULT_OPERATOR_DASHBOARD_KPIS,
+  fetchOperatorDashboardKpis,
+  fetchTodayScannerFlowDetail,
+  fornitoreIdsForSede,
+} from '@/lib/dashboard-operator-kpis'
 import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
@@ -235,42 +240,35 @@ export default async function DashboardPage({
   const fiscalYear = operatorScoped ? parseFiscalYearQueryParam(searchParams.fy, sedeCountryCode) : 0
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
   const scannerFiscalBounds = kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
-  const [kpis, supplierHint, scannerFlowDetail] = await Promise.all([
-    operatorScoped
-      ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
-        : Promise.resolve({
-          bolleTotal: 0,
-          bolleInAttesa: 0,
-          fattureCount: 0,
-          duplicatiCount: 0,
-          duplicatiBolleCount: 0,
-          duplicatiOrdiniCount: 0,
-          documentiDaRevisionare: 0,
-          documentiPending: 0,
-          documentiDaAssociare: 0,
-          totaleImporto: 0,
-          listinoRows: 0,
-          listinoProdottiDistinti: 0,
-          ordiniCount: 0,
-          statementsTotal: 0,
-          statementsWithIssues: 0,
-          erroriRecenti: 0,
-          anomaliePrezziCount: 0,
-          bolleRekkiSavingsHint: false,
-          listinoAnomaliesCount: 0,
-        }),
-    operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
-    operatorScoped && sedeId
-      ? fetchTodayScannerFlowDetail(
-          supabase,
-          sedeId,
-          tz,
-          scannerFiscalBounds
-            ? { summaryRange: { start: scannerFiscalBounds.tsFrom, endExclusive: scannerFiscalBounds.tsToExclusive } }
-            : undefined,
-        )
-      : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
-  ])
+  let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
+  let supplierHint: Awaited<ReturnType<typeof fetchSedeSupplierSuggestion>> = null
+  let scannerFlowDetail: Awaited<ReturnType<typeof fetchTodayScannerFlowDetail>> = {
+    summary: { aiElaborate: 0, archiviate: 0 },
+    events: [],
+  }
+  try {
+    const bundle = await Promise.all([
+      operatorScoped
+        ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
+        : Promise.resolve({ ...DEFAULT_OPERATOR_DASHBOARD_KPIS }),
+      operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
+      operatorScoped && sedeId
+        ? fetchTodayScannerFlowDetail(
+            supabase,
+            sedeId,
+            tz,
+            scannerFiscalBounds
+              ? { summaryRange: { start: scannerFiscalBounds.tsFrom, endExclusive: scannerFiscalBounds.tsToExclusive } }
+              : undefined,
+          )
+        : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
+    ])
+    kpis = bundle[0]
+    supplierHint = bundle[1]
+    scannerFlowDetail = bundle[2]
+  } catch (err) {
+    console.error('[DashboardPage] KPI/fetch', err)
+  }
   const formatScannerEventTime = (iso: string) => fmtDate(iso, locale, tz, { hour: '2-digit', minute: '2-digit' })
 
   return (

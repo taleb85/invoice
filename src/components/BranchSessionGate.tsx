@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import {
@@ -25,12 +25,10 @@ function isAccessoPath(pathname: string | null | undefined): boolean {
  * Per operatore / admin_sede: finché non c’è conferma nella sessione browser (sessionStorage),
  * reindirizza a /accesso (nome + PIN). Il login iniziale imposta il flag per evitare doppio passaggio.
  *
- * `canRender` è calcolato in render così, dopo codice sede o PIN, non restiamo con `allowed=false`
- * per un frame o per sempre.
- *
- * `isSessionOperatorGateOk()` legge `sessionStorage`: in SSR non esiste → ogni prima passata
- * diverge dal client. Fino a `clientGateReady` renderizziamo `children` come SSR e al primo
- * client (stessa forma); poi applichiamo il gate. Il redirect a /accesso resta in useLayoutEffect.
+ * Fino a `clientGateReady` serviamo `children` com’in SSR (nessun sessionStorage lato server),
+ * per non divergere dall’HTML idratato. Poi, se serve il passaggio su /accesso, usiamo
+ * `window.location.replace` (affidabile in PWA) invece di `router.replace`, che a volte
+ * non completa e lascia l’utente su `GateLoading` all’infinito.
  */
 function GateLoading({ label }: { label: string }) {
   return (
@@ -47,15 +45,10 @@ function GateLoading({ label }: { label: string }) {
 
 export default function BranchSessionGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
   const { me } = useMe()
   const { t } = useLocale()
   const gateStuckRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [clientGateReady, setClientGateReady] = useState(false)
-
-  useLayoutEffect(() => {
-    setClientGateReady(true)
-  }, [])
 
   const onAccesso = isAccessoPath(pathname)
 
@@ -72,17 +65,24 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
     !isSessionOperatorGateOk()
 
   useLayoutEffect(() => {
-    if (!needsOperatoreAccesso) return
     if (typeof window === 'undefined') return
+    if (onAccesso) {
+      setClientGateReady(true)
+      return
+    }
+    if (!me?.user || !branchSessionGateRequiredRole(me.role) || isSessionOperatorGateOk()) {
+      setClientGateReady(true)
+      return
+    }
     const next = safeNextPath(pathname)
     const url = `${ACCESSO_PATH}?next=${encodeURIComponent(next)}`
-    if (window.location.pathname === ACCESSO_PATH) return
-    try {
-      router.replace(url)
-    } catch {
-      window.location.replace(url)
+    if (window.location.pathname === ACCESSO_PATH) {
+      setClientGateReady(true)
+      return
     }
-  }, [needsOperatoreAccesso, pathname, router])
+    window.location.replace(url)
+    setClientGateReady(true)
+  }, [onAccesso, pathname, me?.user, me?.role])
 
   useEffect(() => {
     if (!needsOperatoreAccesso) {
