@@ -32,6 +32,10 @@ export function numeroReferenceLooksLikeDdt(num: string | null | undefined): boo
  * Per **Rianalizza** (bollaId forzata + allow_tipo_migrate): Gemini spesso restituisce `bolla` anche per
  * pagine fattura, o `null` senza motivo — usiamo filename, numero+importo e assenza di segnali DDT.
  * `altro` non migriamo (ordini, estratti, ecc.).
+ *
+ * Se l’OCR non restituisce numero+totale (tipico su foto) ma la bolla ha già numero e importo
+ * salvati (OCR o manuale precedente), usiamo quei valori per `hasNumeroImporto` — altrimenti
+ * la rianalisi non sposta mai in fatture pur con dati in tabella.
  */
 export function shouldMigrateBollaRowToFattura(params: {
   ocr: {
@@ -42,8 +46,11 @@ export function shouldMigrateBollaRowToFattura(params: {
   fileUrl: string
   bollaIdForce: boolean
   allowTipoMigrate: boolean
+  /** Riga bolla attuale: se l’OCR non estrae nulla, si può usare per le euristiche bolla→fattura. */
+  existingNumeroBolla?: string | null
+  existingImporto?: number | null
 }): boolean {
-  const { ocr, fileUrl, bollaIdForce, allowTipoMigrate } = params
+  const { ocr, fileUrl, bollaIdForce, allowTipoMigrate, existingNumeroBolla, existingImporto } = params
   const t = ocr.tipo_documento
   if (!allowTipoMigrate) return t === 'fattura'
   if (t === 'fattura') return true
@@ -53,12 +60,21 @@ export function shouldMigrateBollaRowToFattura(params: {
   const fname = fileNameFromStorageUrl(fileUrl)
   const ctxFat = scanContextSuggestsFattura('', fname)
   const ctxBol = scanContextSuggestsBolla('', fname)
-  const hasNumeroImporto =
+  const ocrPair =
     ocr.totale_iva_inclusa != null &&
     ocr.numero_fattura != null &&
     ocr.numero_fattura.trim().length > 0
+  const rowHasPair =
+    bollaIdForce &&
+    existingImporto != null &&
+    !Number.isNaN(Number(existingImporto)) &&
+    (existingNumeroBolla?.trim()?.length ?? 0) > 0
+  /** Solo se l’OCR non ha dato coppia: evita doppi conteggi; la riga deve essere già valorizzata. */
+  const rowPairForMigration = rowHasPair && !ocrPair && (t === 'bolla' || t == null)
+  const hasNumeroImporto = ocrPair || rowPairForMigration
 
-  if (numeroReferenceLooksLikeDdt(ocr.numero_fattura)) return false
+  const numForDdt = ocr.numero_fattura?.trim() ? ocr.numero_fattura : existingNumeroBolla
+  if (numeroReferenceLooksLikeDdt(numForDdt)) return false
   if (ctxBol && !ctxFat) return false
   if (ctxFat && !ctxBol) return true
   if (ctxFat && ctxBol) return false

@@ -473,6 +473,8 @@ export async function POST(req: NextRequest) {
           fileUrl: url,
           bollaIdForce: bollaIdForMigration,
           allowTipoMigrate,
+          existingNumeroBolla: b.numero_bolla,
+          existingImporto: b.importo,
         })
         const canMig = await canMigrateBollaToFattura(service, b.id)
         if (wantsFattura && !canMig) {
