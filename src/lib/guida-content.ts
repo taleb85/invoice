@@ -54,7 +54,7 @@ const IT: GuidaContent = {
     {
       id: 'fatture', color: 'purple', title: 'Fatture',
       items: [
-        { title: 'Dati estratti dall\'AI', desc: 'Quando arriva una fattura PDF via email, GPT-4 estrae automaticamente: numero fattura, ragione sociale, P.IVA, data e importo totale IVA inclusa.' },
+        { title: 'Dati estratti dall\'AI', desc: 'Quando arriva una fattura PDF via email, Gemini (Google AI) estrae automaticamente: numero fattura, ragione sociale, P.IVA, data e importo totale IVA inclusa.' },
         { title: 'Associazione a bolle', desc: 'Collega la fattura alle bolle che copre selezionando le checkbox, oppure usa "✦ Suggerisci auto" che trova la combinazione esatta.', tip: 'Se la somma non coincide esattamente, appare "Mancano £X" o "Eccedenza £X" — puoi comunque procedere.' },
         { title: 'Scarto documento', desc: 'Se un documento non è rilevante (spam, conferme d\'ordine), clicca "Scarta" per rimuoverlo dalla coda. Resterà nel log con stato "Scartato".' },
       ],
@@ -130,7 +130,7 @@ const EN: GuidaContent = {
     {
       id: 'fatture', color: 'purple', title: 'Invoices',
       items: [
-        { title: 'AI-extracted data', desc: 'When an invoice PDF arrives by email, GPT-4 automatically extracts: invoice number, supplier name, VAT number, date and total amount including VAT.' },
+        { title: 'AI-extracted data', desc: 'When an invoice PDF arrives by email, Gemini (Google AI) automatically extracts: invoice number, supplier name, VAT number, date and total amount including VAT.' },
         { title: 'Linking to delivery notes', desc: 'Link the invoice to the delivery notes it covers by selecting the checkboxes, or use "✦ Auto-suggest" which finds the exact matching combination.', tip: 'If the sum doesn\'t match exactly, "Missing £X" or "Excess £X" is shown — you can still proceed.' },
         { title: 'Discard document', desc: 'If a document is not relevant (spam, order confirmations), click "Discard" to remove it from the queue. It remains in the log with status "Discarded".' },
       ],
@@ -206,7 +206,7 @@ const ES: GuidaContent = {
     {
       id: 'fatture', color: 'purple', title: 'Facturas',
       items: [
-        { title: 'Datos extraídos por IA', desc: 'Cuando llega una factura PDF por email, GPT-4 extrae automáticamente: número de factura, razón social, NIF, fecha e importe total con IVA.' },
+        { title: 'Datos extraídos por IA', desc: 'Cuando llega una factura PDF por email, Gemini (Google AI) extrae automáticamente: número de factura, razón social, NIF, fecha e importe total con IVA.' },
         { title: 'Asociación a albaranes', desc: 'Vincula la factura a los albaranes que cubre seleccionando las casillas, o usa "✦ Auto-sugerir" que encuentra la combinación exacta.', tip: 'Si la suma no coincide exactamente, se muestra "Faltan X€" o "Excedente X€" — puedes continuar de todas formas.' },
         { title: 'Descartar documento', desc: 'Si un documento no es relevante, haz clic en "Descartar" para retirarlo de la cola. Permanece en el registro con estado "Descartado".' },
       ],
@@ -282,7 +282,7 @@ const FR: GuidaContent = {
     {
       id: 'fatture', color: 'purple', title: 'Factures',
       items: [
-        { title: 'Données extraites par l\'IA', desc: 'Quand une facture PDF arrive par email, GPT-4 extrait automatiquement : numéro de facture, raison sociale, TVA, date et montant total TTC.' },
+        { title: 'Données extraites par l\'IA', desc: 'Quand une facture PDF arrive par email, Gemini (Google AI) extrait automatiquement : numéro de facture, raison sociale, TVA, date et montant total TTC.' },
         { title: 'Association aux bons', desc: 'Liez la facture aux bons qu\'elle couvre en sélectionnant les cases à cocher, ou utilisez "✦ Auto-suggérer" qui trouve la combinaison exacte.', tip: 'Si la somme ne correspond pas exactement, "Manque X€" ou "Excédent X€" est affiché — vous pouvez quand même continuer.' },
         { title: 'Rejeter le document', desc: 'Si un document n\'est pas pertinent, cliquez "Rejeter" pour le retirer de la file. Il reste dans le journal avec le statut "Rejeté".' },
       ],
@@ -358,7 +358,7 @@ const DE: GuidaContent = {
     {
       id: 'fatture', color: 'purple', title: 'Rechnungen',
       items: [
-        { title: 'KI-extrahierte Daten', desc: 'Wenn eine Rechnungs-PDF per E-Mail eintrifft, extrahiert GPT-4 automatisch: Rechnungsnummer, Firmenname, USt-IdNr., Datum und Gesamtbetrag inkl. MwSt.' },
+        { title: 'KI-extrahierte Daten', desc: 'Wenn eine Rechnungs-PDF per E-Mail eintrifft, extrahiert Gemini (Google AI) automatisch: Rechnungsnummer, Firmenname, USt-IdNr., Datum und Gesamtbetrag inkl. MwSt.' },
         { title: 'Verknüpfung mit Lieferscheinen', desc: 'Verknüpfen Sie die Rechnung mit den abgedeckten Lieferscheinen durch Auswahl der Checkboxen, oder nutzen Sie "✦ Auto-Vorschlag" für die exakte Kombination.', tip: 'Stimmt die Summe nicht genau, wird "Fehlend X€" oder "Überschuss X€" angezeigt — Sie können trotzdem fortfahren.' },
         { title: 'Dokument verwerfen', desc: 'Wenn ein Dokument nicht relevant ist, klicken Sie "Verwerfen". Es verschwindet aus der Warteschlange bleibt aber im Log mit Status "Verworfen".' },
       ],
