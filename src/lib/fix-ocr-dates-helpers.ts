@@ -31,11 +31,9 @@ export function numeroReferenceLooksLikeDdt(num: string | null | undefined): boo
  * Per **batch** (senza bolla forzata) resta solo la classificazione esplicita.
  * Per **Rianalizza** (bollaId forzata + allow_tipo_migrate): Gemini spesso restituisce `bolla` anche per
  * pagine fattura, o `null` senza motivo — usiamo filename, numero+importo e assenza di segnali DDT.
- * `altro` non migriamo (ordini, estratti, ecc.).
- *
- * Se l’OCR non restituisce numero+totale (tipico su foto) ma la bolla ha già numero e importo
- * salvati (OCR o manuale precedente), usiamo quei valori per `hasNumeroImporto` — altrimenti
- * la rianalisi non sposta mai in fatture pur con dati in tabella.
+ * `altro` da OCR (ordine, dubbio, “tax invoice” non normalizzato) spesso **blocca** se trattato
+ * come categoria fissa: in rianalizza su riga bolla, con numero/importo (da OCR o da tabella) si
+ * applica la stessa logica di `bolla` / `null` dopo i controlli DDT e nome file.
  */
 export function shouldMigrateBollaRowToFattura(params: {
   ocr: {
@@ -54,7 +52,6 @@ export function shouldMigrateBollaRowToFattura(params: {
   const t = ocr.tipo_documento
   if (!allowTipoMigrate) return t === 'fattura'
   if (t === 'fattura') return true
-  if (t === 'altro') return false
   if (!bollaIdForce) return false
 
   const fname = fileNameFromStorageUrl(fileUrl)
@@ -64,13 +61,13 @@ export function shouldMigrateBollaRowToFattura(params: {
     ocr.totale_iva_inclusa != null &&
     ocr.numero_fattura != null &&
     ocr.numero_fattura.trim().length > 0
+  const importoStr = existingImporto == null ? '' : String(existingImporto).trim()
+  const importoN = importoStr === '' ? NaN : Number(importoStr)
   const rowHasPair =
-    bollaIdForce &&
-    existingImporto != null &&
-    !Number.isNaN(Number(existingImporto)) &&
-    (existingNumeroBolla?.trim()?.length ?? 0) > 0
+    bollaIdForce && importoStr !== '' && !Number.isNaN(importoN) && (existingNumeroBolla?.trim()?.length ?? 0) > 0
   /** Solo se l’OCR non ha dato coppia: evita doppi conteggi; la riga deve essere già valorizzata. */
-  const rowPairForMigration = rowHasPair && !ocrPair && (t === 'bolla' || t == null)
+  const rowPairForMigration =
+    rowHasPair && !ocrPair && (t === 'bolla' || t == null || t === 'altro')
   const hasNumeroImporto = ocrPair || rowPairForMigration
 
   const numForDdt = ocr.numero_fattura?.trim() ? ocr.numero_fattura : existingNumeroBolla
@@ -79,7 +76,7 @@ export function shouldMigrateBollaRowToFattura(params: {
   if (ctxFat && !ctxBol) return true
   if (ctxFat && ctxBol) return false
 
-  if (t === 'bolla') {
+  if (t === 'bolla' || t === 'altro') {
     if (!hasNumeroImporto) return false
     return true
   }

@@ -412,6 +412,16 @@ export async function POST(req: NextRequest) {
     }[],
   }
 
+  /** In dev, ultima riga bolla elaborata: perché non è migrata (localhost / Network tab). */
+  let lastBollaMigrationDebug: {
+    bollaId: string
+    wantsFattura: boolean
+    canMigrate: boolean
+    ocrTipo: string | null
+    numero_bolla: string | null
+    importo: number | null
+  } | null = null
+
   for (const item of queue) {
     if (report.scanned >= limit) break
     report.scanned++
@@ -477,6 +487,16 @@ export async function POST(req: NextRequest) {
           existingImporto: b.importo,
         })
         const canMig = await canMigrateBollaToFattura(service, b.id)
+        if (process.env.NODE_ENV === 'development') {
+          lastBollaMigrationDebug = {
+            bollaId: b.id,
+            wantsFattura,
+            canMigrate: canMig,
+            ocrTipo,
+            numero_bolla: b.numero_bolla,
+            importo: b.importo,
+          }
+        }
         if (wantsFattura && !canMig) {
           report.errors.push({
             id,
@@ -693,5 +713,8 @@ export async function POST(req: NextRequest) {
     remaining: Math.max(0, queue.length - report.scanned),
     details: report.details.slice(0, 80),
     detailsTruncated: report.details.length > 80,
+    ...(process.env.NODE_ENV === 'development' && lastBollaMigrationDebug
+      ? { migrationDebug: lastBollaMigrationDebug }
+      : {}),
   })
 }

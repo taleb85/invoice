@@ -54,4 +54,21 @@ describe('shouldMigrateBollaRowToFattura', () => {
       }),
     ).toBe(false)
   })
+
+  it('migrates when OCR says altro but row has numero+importo (no OCR pair)', () => {
+    expect(
+      shouldMigrateBollaRowToFattura({
+        ocr: {
+          tipo_documento: 'altro',
+          numero_fattura: null,
+          totale_iva_inclusa: null,
+        },
+        fileUrl: baseUrl,
+        bollaIdForce: true,
+        allowTipoMigrate: true,
+        existingNumeroBolla: '206338',
+        existingImporto: 305.39,
+      }),
+    ).toBe(true)
+  })
 })
