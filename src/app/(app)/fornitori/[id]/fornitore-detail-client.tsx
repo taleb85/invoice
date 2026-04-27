@@ -4792,9 +4792,10 @@ function FornitoreDetailClient({
     setOcrFornitoreBusy(true)
     setOcrFornitoreFlash(null)
     try {
-      const body: { fornitore_id: string; limit: number; sede_id?: string } = {
+      const body: { fornitore_id: string; limit: number; sede_id?: string; allow_tipo_migrate: boolean } = {
         fornitore_id: fornitore.id,
         limit: 80,
+        allow_tipo_migrate: true,
       }
       if (me?.is_admin_sede && me.sede_id) body.sede_id = me.sede_id
       const res = await fetch('/api/admin/fix-ocr-dates', {

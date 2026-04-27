@@ -11,6 +11,7 @@ import {
   fatturaNeedsOcrPass,
   shouldMigrateBollaRowToFattura,
 } from '@/lib/fix-ocr-dates-helpers'
+import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -419,26 +420,34 @@ export async function POST(req: NextRequest) {
     const id = item.row.id
 
     try {
-      const url = item.row.file_url
-      if (!url?.trim()) {
+      const url = (item.row.file_url ?? '').trim()
+      if (!url) {
         report.skipped++
         continue
       }
-      const res = await fetch(url)
-      if (!res.ok) {
-        report.errors.push({ id, table, message: `Download HTTP ${res.status}` })
-        report.details.push({
-          id,
-          table,
-          action: 'error',
-          previousData: item.row.data,
-          newData: null,
-          ocrTipo: null,
-        })
-        continue
+      let buf: Buffer
+      let contentType: string
+      const dl = await downloadStorageObjectByFileUrl(service, url)
+      if ('error' in dl) {
+        const res = await fetch(url)
+        if (!res.ok) {
+          report.errors.push({ id, table, message: `Download: ${dl.error}` })
+          report.details.push({
+            id,
+            table,
+            action: 'error',
+            previousData: item.row.data,
+            newData: null,
+            ocrTipo: null,
+          })
+          continue
+        }
+        buf = Buffer.from(await res.arrayBuffer())
+        contentType = resolvedContentTypeFromFetch(url, res.headers.get('content-type'))
+      } else {
+        buf = dl.data
+        contentType = resolvedContentTypeFromFetch(url, dl.contentType)
       }
-      const buf = Buffer.from(await res.arrayBuffer())
-      let contentType = resolvedContentTypeFromFetch(url, res.headers.get('content-type'))
       if (contentType === 'application/octet-stream' && url.toLowerCase().includes('.pdf')) {
         contentType = 'application/pdf'
       }
@@ -453,6 +462,8 @@ export async function POST(req: NextRequest) {
 
       if (item.kind === 'bolla') {
         const b = item.row as BollaRow
+        /** Come «Rianalizza» su riga: con batch fornitore le euristiche bolla→fattura sono abilitate su ogni bolla. */
+        const bollaIdForMigration = Boolean(bollaIdForce) || Boolean(fornitoreIdBatch)
         const wantsFattura = shouldMigrateBollaRowToFattura({
           ocr: {
             tipo_documento: ocr.tipo_documento,
@@ -460,7 +471,7 @@ export async function POST(req: NextRequest) {
             totale_iva_inclusa: ocr.totale_iva_inclusa,
           },
           fileUrl: url,
-          bollaIdForce: Boolean(bollaIdForce),
+          bollaIdForce: bollaIdForMigration,
           allowTipoMigrate,
         })
         const canMig = await canMigrateBollaToFattura(service, b.id)
