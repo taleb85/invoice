@@ -1,7 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+/** Payload allineato a `/fornitori/new` — usato anche per conferma rapida sulla dashboard */
+export type SedeSupplierPrefill = {
+  nome: string
+  piva: string | null
+  indirizzo: string | null
+  email: string | null
+}
+
 export type SedeSupplierSuggestion = {
   displayName: string
+  prefill: SedeSupplierPrefill
   newFornitoreHref: string
 } | null
 
@@ -73,19 +82,32 @@ function existingFornitoreMatchesDoc(
 
 function buildSuggestionFromRow(row: { metadata: unknown; mittente: string | null }): SedeSupplierSuggestion {
   const m = row.metadata as DocMeta
-  const nome = m?.ragione_sociale?.trim() || m?.p_iva?.trim() || 'Fornitore'
-  const displayName = nome.length > 72 ? `${nome.slice(0, 72)}…` : nome
+  const rs = m?.ragione_sociale?.trim() ?? ''
+  const pivaRaw = m?.p_iva?.trim() ?? ''
+  const nomeSupplier = rs || pivaRaw
+  const nome = nomeSupplier.length > 72 ? `${nomeSupplier.slice(0, 72)}…` : nomeSupplier
+  const displayName = nome
+
+  const mitt = row.mittente?.trim()
+  const email = mitt?.includes('@') ? mitt.toLowerCase() : null
+
+  const prefill: SedeSupplierPrefill = {
+    nome: nomeSupplier.trim(),
+    piva: pivaRaw || null,
+    indirizzo: m?.indirizzo?.trim() || null,
+    email,
+  }
 
   const q = new URLSearchParams()
-  if (m?.ragione_sociale?.trim()) q.set('prefill_nome', m.ragione_sociale.trim())
-  if (m?.p_iva?.trim()) q.set('prefill_piva', m.p_iva.trim())
-  if (m?.indirizzo?.trim()) q.set('prefill_indirizzo', m.indirizzo.trim())
-  const mitt = row.mittente?.trim()
-  if (mitt?.includes('@')) q.set('prefill_email', mitt.toLowerCase())
+  if (rs) q.set('prefill_nome', rs)
+  if (pivaRaw) q.set('prefill_piva', pivaRaw)
+  if (prefill.indirizzo) q.set('prefill_indirizzo', prefill.indirizzo)
+  if (email) q.set('prefill_email', email)
   const qs = q.toString()
 
   return {
     displayName,
+    prefill,
     newFornitoreHref: `/fornitori/new?${qs}`,
   }
 }

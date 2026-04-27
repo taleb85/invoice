@@ -29,6 +29,7 @@ import {
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
 } from '@/lib/summary-highlight-accent'
+import DashboardSedeSupplierSuggestion from '@/components/DashboardSedeSupplierSuggestion'
 
 export const dynamic = 'force-dynamic'
 
@@ -301,7 +302,7 @@ export default async function DashboardPage({
           <DuplicateDashboardBanner />
         </Suspense>
       )}
-      {supplierHint && (
+      {supplierHint && sedeId && (
         <div
           className={`hidden md:block ${SUMMARY_HIGHLIGHT_SURFACE_CLASS}`}
         >
@@ -311,20 +312,11 @@ export default async function DashboardPage({
               <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-app-fg">
                 {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
               </p>
-              <div className="flex w-fit max-w-full shrink-0 flex-wrap justify-end gap-2">
-                <Link
-                  href={supplierHint.newFornitoreHref}
-                  className="inline-flex items-center rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-violet-950/40 ring-1 ring-violet-300/35 transition-colors hover:bg-violet-400 hover:ring-violet-200/40"
-                >
-                  {t.dashboard.suggestedSupplierAdd}
-                </Link>
-                <Link
-                  href="/statements/da-processare"
-                  className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-violet-300 underline decoration-violet-400/60 underline-offset-2 transition-colors hover:text-violet-100 hover:decoration-violet-200"
-                >
-                  {t.statements.tabDocumenti} →
-                </Link>
-              </div>
+              <DashboardSedeSupplierSuggestion
+                sedeId={sedeId}
+                prefill={supplierHint.prefill}
+                newFornitoreHref={supplierHint.newFornitoreHref}
+              />
             </div>
           </div>
         </div>
