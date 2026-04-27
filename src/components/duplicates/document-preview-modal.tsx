@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
+import { openDocumentUrl } from '@/lib/open-document-url'
 
 type Entity = 'fatture' | 'bolle' | 'fornitori'
 
@@ -164,7 +165,7 @@ function FatturaDetail({ doc }: { doc: FatturaDoc }) {
         <div className="border-t border-white/10 pt-4">
           <SectionTitle>Allegato</SectionTitle>
           <a
-            href={doc.file_url}
+            href={openDocumentUrl({ fatturaId: doc.id })}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] px-3 py-1.5 text-[11px] font-semibold text-[#22d3ee] transition-colors hover:bg-[rgba(34,211,238,0.12)]"
@@ -232,7 +233,7 @@ function BollaDetail({ doc }: { doc: BollaDoc }) {
         <div className="border-t border-white/10 pt-4">
           <SectionTitle>Allegato</SectionTitle>
           <a
-            href={doc.file_url}
+            href={openDocumentUrl({ bollaId: doc.id })}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] px-3 py-1.5 text-[11px] font-semibold text-[#22d3ee] transition-colors hover:bg-[rgba(34,211,238,0.12)]"

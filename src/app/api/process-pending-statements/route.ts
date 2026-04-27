@@ -17,6 +17,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 
@@ -89,11 +90,10 @@ export async function POST(req: NextRequest) {
     let contentType: string
 
     try {
-      const resp = await fetch(doc.file_url, { signal: AbortSignal.timeout(20_000) })
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-      const arr = await resp.arrayBuffer()
-      buffer = Buffer.from(arr)
-      contentType = doc.content_type ?? resp.headers.get('content-type') ?? 'application/pdf'
+      const dl = await downloadStorageObjectByFileUrl(supabase, doc.file_url)
+      if ('error' in dl) throw new Error(dl.error)
+      buffer = dl.data
+      contentType = doc.content_type ?? dl.contentType ?? 'application/pdf'
     } catch (err) {
       const msg = `Download fallito per doc ${doc.id}: ${(err as Error).message}`
       console.error(`[PENDING-STMT] ${msg}`)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import JSZip from 'jszip'
 
 export async function GET(req: NextRequest) {
@@ -37,12 +38,12 @@ export async function GET(req: NextRequest) {
 
   const sanitize = (s: string) => s.replace(/[/\\?%*:|"<>]/g, '-').trim()
 
+  const storageService = createServiceClient()
   const downloadFile = async (url: string): Promise<Uint8Array | null> => {
     try {
-      const res = await fetch(url)
-      if (!res.ok) return null
-      const ab = await res.arrayBuffer()
-      return new Uint8Array(ab)
+      const dl = await downloadStorageObjectByFileUrl(storageService, url)
+      if ('error' in dl) return null
+      return new Uint8Array(dl.data)
     } catch {
       return null
     }

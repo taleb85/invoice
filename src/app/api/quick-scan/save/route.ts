@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { safeDate } from '@/lib/safe-date'
+import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -51,8 +52,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { data: urlData } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
-  const fileUrl = urlData.publicUrl
+  const fileUrl = documentiPublicRefUrl(uniqueName)
 
   // Insert into the correct table based on tipo
   if (tipo === 'fattura') {

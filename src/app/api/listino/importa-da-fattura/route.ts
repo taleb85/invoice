@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { geminiGenerateText, geminiGenerateVision } from '@/lib/gemini-vision'
 
 export interface LineItem {
@@ -108,10 +109,10 @@ export async function POST(req: NextRequest) {
   let contentType: string
 
   try {
-    const response = await fetch(fattura.file_url)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    contentType = response.headers.get('content-type') ?? 'application/octet-stream'
-    fileBuffer = Buffer.from(await response.arrayBuffer())
+    const dl = await downloadStorageObjectByFileUrl(service, fattura.file_url)
+    if ('error' in dl) throw new Error(dl.error)
+    contentType = dl.contentType || 'application/octet-stream'
+    fileBuffer = dl.data
   } catch (err) {
     return NextResponse.json({ error: `Impossibile scaricare il file: ${String(err)}` }, { status: 502 })
   }

@@ -46,6 +46,7 @@ import {
   findDuplicateFatturaSansNumeroByImporto,
   normalizeNumeroFattura,
 } from '@/lib/fattura-duplicate-check'
+import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 /**
  * Limite durata funzione su Vercel/hosting (secondi).
@@ -446,8 +447,7 @@ async function uploadSyntheticEmailBodyDoc(
     .from('documenti')
     .upload(uniqueName, buf, { contentType: 'text/plain; charset=utf-8', upsert: false })
   if (uploadError) return { error: uploadError.message }
-  const { data: pub } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
-  return { publicUrl: pub.publicUrl }
+  return { publicUrl: documentiPublicRefUrl(uniqueName) }
 }
 
 async function resolveFornitore(
@@ -1018,7 +1018,7 @@ async function processEmails(
         continue
       }
 
-      const { data: pub } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
+      const publicRef = documentiPublicRefUrl(uniqueName)
       // sede_id: usa sempre sedeFilter (scansione corrente) come priorità massima
       const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
       const bodySnipAtt = email.bodyText?.slice(0, 12_000) ?? null
@@ -1034,7 +1034,7 @@ async function processEmails(
         sede_id:        unknownDocSedeId,
         mittente:       email.from || 'sconosciuto',
         oggetto_mail:   email.subject ?? null,
-        file_url:       pub.publicUrl,
+        file_url:       publicRef,
         file_name:      attachment.filename ?? null,
         content_type:   attachment.contentType ?? null,
         data_documento: safeDate(ocr.data_fattura),
@@ -1066,7 +1066,7 @@ async function processEmails(
           !!(ocr.ragione_sociale?.trim() || (ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7))
         const sugLabel = ocr.ragione_sociale?.trim() || ocr.p_iva || '—'
         await insertLog(supabase, email, hinted ? 'fornitore_suggerito' : 'successo', {
-          file_url: pub.publicUrl,
+          file_url: publicRef,
           sede_id: unknownDocSedeId,
           allegato_nome: attachment.filename ?? null,
           scan_attachment_fingerprint: fp,
@@ -1342,8 +1342,7 @@ async function processEmails(
           continue
         }
 
-        const { data: publicUrlData } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
-        file_url = publicUrlData.publicUrl
+        file_url = documentiPublicRefUrl(uniqueName)
         storedFileName = attachment.filename ?? null
         storedContentType = attachment.contentType ?? null
         mailDebugLog(`[PROCESS] Upload OK → ${file_url}`)

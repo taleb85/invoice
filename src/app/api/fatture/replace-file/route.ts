@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 /** Estrae il percorso del file nel bucket da un URL pubblico di Supabase Storage */
 function storagePathFromUrl(url: string): string | null {
@@ -54,8 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Errore upload: ${uploadError.message}` }, { status: 500 })
   }
 
-  const { data: urlData } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
-  const file_url = urlData.publicUrl
+  const file_url = documentiPublicRefUrl(uniqueName)
 
   // Aggiorna la fattura
   const updatePayload: Record<string, string> = { file_url }

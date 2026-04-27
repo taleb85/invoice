@@ -9,6 +9,8 @@ import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
 import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR } from '@/lib/app-shell-layout'
+import { openDocumentUrl } from '@/lib/open-document-url'
+import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 export type ConfermaOrdineRow = {
   id: string
@@ -167,8 +169,7 @@ export default function FornitoreConfermeOrdineTab({
       setError(`${t.fornitori.confermeOrdineErrUpload}: ${upErr.message}`)
       return
     }
-    const { data: pub } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
-    const file_url = pub.publicUrl
+    const file_url = documentiPublicRefUrl(uniqueName)
 
     const payload = {
       fornitore_id: fornitoreId,
@@ -337,7 +338,7 @@ export default function FornitoreConfermeOrdineTab({
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <PublicPdfOpenMenu
-                      fileUrl={r.file_url}
+                      fileUrl={openDocumentUrl({ confermaOrdineId: r.id })}
                       triggerClassName={CONFERME_OPEN_PILL}
                       labels={pdfOpenMenuLabels}
                     >
@@ -391,7 +392,7 @@ export default function FornitoreConfermeOrdineTab({
                         <p className="font-medium text-app-fg">{r.titolo?.trim() || r.file_name || '—'}</p>
                         {r.note?.trim() ? <p className={`mt-1 text-xs ${confermeSecondaryClass}`}>{r.note}</p> : null}
                         <PublicPdfOpenMenu
-                          fileUrl={r.file_url}
+                          fileUrl={openDocumentUrl({ confermaOrdineId: r.id })}
                           triggerClassName={`${CONFERME_OPEN_PILL} mt-2 inline-flex`}
                           labels={pdfOpenMenuLabels}
                         >

@@ -74,10 +74,14 @@ export async function GET(req: NextRequest) {
   const logId = req.nextUrl.searchParams.get('log_id')
   const documentoId = req.nextUrl.searchParams.get('documento_id')
   const statementId = req.nextUrl.searchParams.get('statement_id')
-  const set = [bollaId, fatturaId, logId, documentoId, statementId].filter(Boolean)
+  const confermaOrdineId = req.nextUrl.searchParams.get('conferma_ordine_id')
+  const set = [bollaId, fatturaId, logId, documentoId, statementId, confermaOrdineId].filter(Boolean)
   if (set.length !== 1) {
     return NextResponse.json(
-      { error: 'Specify exactly one of bolla_id, fattura_id, log_id, documento_id, statement_id' },
+      {
+        error:
+          'Specify exactly one of bolla_id, fattura_id, log_id, documento_id, statement_id, conferma_ordine_id',
+      },
       { status: 400 }
     )
   }
@@ -187,6 +191,36 @@ export async function GET(req: NextRequest) {
           .eq('id', statementId)
           .maybeSingle()
         if (row?.file_url?.trim() && (await operatoreCanAccessStatement(service, row, userSedeId))) {
+          file_url = row.file_url
+        }
+      }
+    }
+  } else if (confermaOrdineId) {
+    if (admin) {
+      const { data } = await service
+        .from('conferme_ordine')
+        .select('file_url')
+        .eq('id', confermaOrdineId)
+        .maybeSingle()
+      file_url = data?.file_url ?? null
+    } else {
+      const { data } = await supabase
+        .from('conferme_ordine')
+        .select('file_url')
+        .eq('id', confermaOrdineId)
+        .maybeSingle()
+      file_url = data?.file_url ?? null
+      if (!file_url?.trim() && userSedeId) {
+        const { data: row } = await service
+          .from('conferme_ordine')
+          .select('file_url, fornitore_id')
+          .eq('id', confermaOrdineId)
+          .maybeSingle()
+        if (
+          row?.file_url?.trim() &&
+          row.fornitore_id &&
+          (await fornitoreBelongsToSede(service, row.fornitore_id, userSedeId))
+        ) {
           file_url = row.file_url
         }
       }

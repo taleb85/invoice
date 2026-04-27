@@ -11,6 +11,7 @@ import {
 } from '@/lib/fattura-duplicate-check'
 import { useT } from '@/lib/use-t'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 
 type OcrStatus = 'idle' | 'scanning' | 'done' | 'error'
@@ -210,8 +211,7 @@ export default function NuovaFatturaForm() {
       return
     }
 
-    const { data: publicUrlData } = supabase.storage.from('documenti').getPublicUrl(uniqueName)
-    const file_url = publicUrlData.publicUrl
+    const file_url = documentiPublicRefUrl(uniqueName)
 
     // Determina bolla_id: se singola bolla selezionata, mantieni per compatibilità
     const bolleIds = [...bolleSelezionate]

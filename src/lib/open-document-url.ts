@@ -6,6 +6,7 @@ export function openDocumentUrl(params: {
   logId?: string
   documentoId?: string
   statementId?: string
+  confermaOrdineId?: string
   /** Risposta JSON `{ url }` invece del redirect (es. anteprima in iframe). */
   json?: boolean
 }): string {
@@ -15,6 +16,7 @@ export function openDocumentUrl(params: {
   else if (params.logId) q.set('log_id', params.logId)
   else if (params.documentoId) q.set('documento_id', params.documentoId)
   else if (params.statementId) q.set('statement_id', params.statementId)
+  else if (params.confermaOrdineId) q.set('conferma_ordine_id', params.confermaOrdineId)
   else return '#'
   if (params.json) q.set('json', '1')
   return `/api/open-document?${q.toString()}`

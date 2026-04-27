@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 /**
  * POST /api/bolle
@@ -45,8 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Upload error: ${uploadError.message}` }, { status: 500 })
   }
 
-  const { data: publicUrlData } = svc.storage.from('documenti').getPublicUrl(uniqueName)
-  const file_url = publicUrlData.publicUrl
+  const file_url = documentiPublicRefUrl(uniqueName)
 
   const { data: bolla, error: insertError } = await svc
     .from('bolle')

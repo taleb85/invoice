@@ -24,6 +24,7 @@ import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate } from '@/lib/locale-shared'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
@@ -512,11 +513,7 @@ export default function NuovaBollaForm() {
       return
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from('documenti')
-      .getPublicUrl(uniqueName)
-
-    const file_url = publicUrlData.publicUrl
+    const file_url = documentiPublicRefUrl(uniqueName)
 
     if (registrationTarget === 'fattura') {
       const importoFinale = importo ? parseFloat(importo) : null

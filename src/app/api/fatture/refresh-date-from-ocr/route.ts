@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { safeDate } from '@/lib/safe-date'
 
@@ -55,21 +56,22 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const service = createServiceClient()
   let buffer: Buffer
   let contentType: string
   try {
-    const response = await fetch(fattura.file_url)
-    if (!response.ok) {
+    const dl = await downloadStorageObjectByFileUrl(service, fattura.file_url)
+    if ('error' in dl) {
       return NextResponse.json(
-        { error: `Download allegato non riuscito (HTTP ${response.status}).` },
+        { error: `Download allegato non riuscito: ${dl.error}` },
         { status: 502 },
       )
     }
-    contentType = resolvedContentType(fattura.file_url, response.headers.get('content-type'))
+    contentType = resolvedContentType(fattura.file_url, dl.contentType)
     if (contentType === 'application/octet-stream' && fattura.file_url.toLowerCase().includes('.pdf')) {
       contentType = 'application/pdf'
     }
-    buffer = Buffer.from(await response.arrayBuffer())
+    buffer = dl.data
   } catch (e) {
     return NextResponse.json(
       { error: `Impossibile scaricare il file: ${e instanceof Error ? e.message : 'errore'}` },
