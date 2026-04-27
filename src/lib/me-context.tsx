@@ -11,6 +11,8 @@
 
 import { createContext, useContext, useCallback, useEffect, type ReactNode } from 'react'
 import useSWR, { mutate as globalMutate } from 'swr'
+import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
+import { createClient } from '@/utils/supabase/client'
 
 export interface MeData {
   user:         { id: string; email: string } | null
@@ -230,6 +232,22 @@ export function UserProvider({
   // data === null means a non-ok response (401/404) — fall back to initialMe
   const me = data === null ? (initialMe ?? null) : (data ?? null)
   const loading = isLoading && me === null
+
+  useEffect(() => {
+    const supabase = createClient()
+    void (async () => {
+      const { error } = await supabase.auth.getSession()
+      if (!error || !isInvalidRefreshTokenError(error)) return
+      await supabase.auth.signOut({ scope: 'local' })
+      const path = window.location.pathname
+      if (path === '/login' || path.startsWith('/login/')) return
+      try {
+        window.location.replace('/login?session=invalid')
+      } catch {
+        window.location.replace('/login')
+      }
+    })()
+  }, [])
 
   useEffect(() => {
     if (me) return

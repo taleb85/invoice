@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /** Rotte accessibili senza autenticazione */
@@ -62,9 +63,12 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data, error: getUserError } = await supabase.auth.getUser()
+  if (getUserError && isInvalidRefreshTokenError(getUserError)) {
+    await supabase.auth.signOut()
+  }
+  const user =
+    getUserError && isInvalidRefreshTokenError(getUserError) ? null : (data.user ?? null)
 
   if (!user) {
     if (isApi) return supabaseResponse

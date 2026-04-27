@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import type { User } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
 import type { Profile } from '@/types'
 
 export type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -16,8 +17,13 @@ export const getRequestAuth = cache(
     const supabase = await createClient()
     const {
       data: { user },
+      error,
     } = await supabase.auth.getUser()
-    return { supabase, user }
+    if (error && isInvalidRefreshTokenError(error)) {
+      await supabase.auth.signOut()
+      return { supabase, user: null }
+    }
+    return { supabase, user: user ?? null }
   }
 )
 
