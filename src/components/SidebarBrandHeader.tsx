@@ -71,7 +71,7 @@ export function SidebarRailBrand() {
           </span>
         </div>
       </div>
-      <div className="shrink-0 self-center">
+      <div className="flex h-full min-h-[52px] shrink-0 items-center">
         <AppBuildInfo variant="rail" />
       </div>
     </div>

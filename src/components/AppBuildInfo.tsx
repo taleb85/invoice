@@ -20,7 +20,7 @@ export default function AppBuildInfo({ className = '', compact, variant = 'defau
       className={[
         'select-text font-mono tabular-nums tracking-tight',
         variant === 'rail'
-          ? 'text-right text-[7px] leading-tight text-white sm:text-[8px]'
+          ? 'm-0 text-right text-[7px] leading-none text-white sm:text-[8px]'
           : compact
             ? 'text-[9px] leading-snug text-white/22'
             : 'text-[11px] text-app-fg-muted/90',
