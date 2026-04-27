@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
@@ -28,9 +28,9 @@ function isAccessoPath(pathname: string | null | undefined): boolean {
  * `canRender` è calcolato in render così, dopo codice sede o PIN, non restiamo con `allowed=false`
  * per un frame o per sempre.
  *
- * Niente stato “hasMounted + spinner unico per tutti”: lasciava l’app su “Caricamento” se
- * l’idratazione o gli effetti non completa­vano, e l’HTML cliente non combaciava con i ruoli
- * che passano al gate (admin vs operatore) nel primo frame.
+ * `isSessionOperatorGateOk()` legge `sessionStorage`: in SSR non esiste → ogni prima passata
+ * diverge dal client. Fino a `clientGateReady` renderizziamo `children` come SSR e al primo
+ * client (stessa forma); poi applichiamo il gate. Il redirect a /accesso resta in useLayoutEffect.
  */
 function GateLoading({ label }: { label: string }) {
   return (
@@ -51,6 +51,11 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
   const { me } = useMe()
   const { t } = useLocale()
   const gateStuckRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [clientGateReady, setClientGateReady] = useState(false)
+
+  useLayoutEffect(() => {
+    setClientGateReady(true)
+  }, [])
 
   const onAccesso = isAccessoPath(pathname)
 
@@ -102,6 +107,10 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
       }
     }
   }, [needsOperatoreAccesso, pathname])
+
+  if (!clientGateReady) {
+    return <>{children}</>
+  }
 
   if (!canRender) {
     return <GateLoading label={t.common.loading} />
