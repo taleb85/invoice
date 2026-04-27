@@ -1664,15 +1664,26 @@ function BolleTab({
   const [convertBusyId, setConvertBusyId] = useState<string | null>(null)
   const [ocrError, setOcrError] = useState<string | null>(null)
   const [ocrInfo, setOcrInfo] = useState<string | null>(null)
+  /** 1…3: passi mostrati durante Rianalizza (OCR) — allineati al lavoro lato server */
+  const [ocrProgressStep, setOcrProgressStep] = useState(0)
+  const ocrStepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const canRianalizzaOcr = Boolean(me?.is_admin || me?.is_admin_sede)
 
   const runBollaOcr = useCallback(
     async (bollaId: string) => {
       if (!bollaId) return
+      if (ocrStepTimerRef.current) {
+        clearInterval(ocrStepTimerRef.current)
+        ocrStepTimerRef.current = null
+      }
       setOcrError(null)
       setOcrInfo(null)
+      setOcrProgressStep(1)
       setOcrBusyId(bollaId)
+      ocrStepTimerRef.current = setInterval(() => {
+        setOcrProgressStep((s) => (s < 3 ? s + 1 : 3))
+      }, 2000)
       try {
         const body: {
           bolla_id: string
@@ -1723,6 +1734,11 @@ function BolleTab({
       } catch (e) {
         setOcrError(e instanceof Error ? e.message : 'Errore di rete')
       } finally {
+        if (ocrStepTimerRef.current) {
+          clearInterval(ocrStepTimerRef.current)
+          ocrStepTimerRef.current = null
+        }
+        setOcrProgressStep(0)
         setOcrBusyId(null)
       }
     },
@@ -1764,6 +1780,15 @@ function BolleTab({
     },
     [onLedgerMutated, t.bolle],
   )
+
+  useEffect(() => {
+    return () => {
+      if (ocrStepTimerRef.current) {
+        clearInterval(ocrStepTimerRef.current)
+        ocrStepTimerRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -1890,6 +1915,44 @@ function BolleTab({
   return (
     <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}>
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
+      {ocrBusyId && ocrProgressStep > 0 ? (
+        <div
+          className="border-b border-amber-500/30 bg-amber-950/50 px-3 py-2.5 sm:px-4"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <p className="text-center text-[10px] font-bold uppercase tracking-wider text-amber-200/95 sm:text-xs">
+            {t.bolle.ocrRerunProgressTitle}
+          </p>
+          <ol className="mx-auto mt-2 max-w-xl list-none space-y-1 text-[11px] sm:text-xs">
+            {(
+              [
+                [1, t.bolle.ocrRerunStep1],
+                [2, t.bolle.ocrRerunStep2],
+                [3, t.bolle.ocrRerunStep3],
+              ] as const
+            ).map(([n, label]) => {
+              const done = ocrProgressStep > n
+              const active = ocrProgressStep === n
+              return (
+                <li
+                  key={n}
+                  className={`rounded-md border border-transparent px-1.5 py-1 transition-colors sm:px-2 ${
+                    active
+                      ? 'border-amber-500/30 bg-amber-500/15 font-semibold text-amber-50'
+                      : done
+                        ? 'text-amber-200/70'
+                        : 'text-amber-200/35'
+                  }`}
+                >
+                  {label}
+                </li>
+              )
+            })}
+          </ol>
+        </div>
+      ) : null}
       {ocrError ? (
         <p className="border-b border-rose-500/25 bg-rose-500/10 px-4 py-2 text-center text-xs text-rose-200" role="alert">
           {ocrError}
@@ -1952,9 +2015,19 @@ function BolleTab({
                     void runBollaOcr(b.id)
                   }}
                   disabled={ocrBusyId === b.id || convertBusyId === b.id}
+                  title={
+                    ocrBusyId === b.id
+                      ? `${t.bolle.ocrRerunProgressTitle} (${ocrProgressStep}/3)`
+                      : t.bolle.riannalizzaOcr
+                  }
+                  aria-label={
+                    ocrBusyId === b.id && ocrProgressStep >= 1 && ocrProgressStep <= 3
+                      ? `${t.bolle.ocrRerunProgressTitle} — ${[t.bolle.ocrRerunStep1, t.bolle.ocrRerunStep2, t.bolle.ocrRerunStep3][ocrProgressStep - 1]}`
+                      : t.bolle.riannalizzaOcr
+                  }
                   className="shrink-0 touch-manipulation rounded-lg border border-amber-500/35 bg-amber-500/8 px-2 py-1 text-[11px] font-semibold text-amber-200/95 transition-colors hover:bg-amber-500/15 disabled:opacity-50"
                 >
-                  {ocrBusyId === b.id ? '…' : t.bolle.riannalizzaOcr}
+                  {ocrBusyId === b.id ? `${ocrProgressStep}/3` : t.bolle.riannalizzaOcr}
                 </button>
               ) : null}
               {!readOnly && canRianalizzaOcr && b.file_url ? (
@@ -2059,17 +2132,29 @@ function BolleTab({
                         type="button"
                         onClick={() => void runBollaOcr(b.id)}
                         disabled={ocrBusyId === b.id || convertBusyId === b.id}
-                        title={t.bolle.riannalizzaOcr}
+                        title={
+                          ocrBusyId === b.id
+                            ? `${t.bolle.ocrRerunProgressTitle} (${ocrProgressStep}/3)`
+                            : t.bolle.riannalizzaOcr
+                        }
                         className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-500/35 bg-amber-500/8 px-2.5 text-[11px] font-semibold text-amber-200/95 transition-colors hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label={
+                          ocrBusyId === b.id && ocrProgressStep >= 1 && ocrProgressStep <= 3
+                            ? `${t.bolle.ocrRerunProgressTitle} — ${[t.bolle.ocrRerunStep1, t.bolle.ocrRerunStep2, t.bolle.ocrRerunStep3][ocrProgressStep - 1]}`
+                            : t.bolle.riannalizzaOcr
+                        }
                       >
                         {ocrBusyId === b.id ? (
-                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-amber-300 border-t-transparent" />
+                          <>
+                            <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-amber-300 border-t-transparent" />
+                            <span className="font-mono text-[10px] font-bold tabular-nums">{ocrProgressStep}/3</span>
+                          </>
                         ) : (
                           <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
                         )}
-                        <span className="hidden xl:inline">{t.bolle.riannalizzaOcr}</span>
+                        {ocrBusyId === b.id ? null : <span className="hidden xl:inline">{t.bolle.riannalizzaOcr}</span>}
                       </button>
                     ) : null}
                     {!readOnly && canRianalizzaOcr && b.file_url ? (
