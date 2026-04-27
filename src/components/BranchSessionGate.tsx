@@ -1,7 +1,7 @@
 'use client'
 
-import { useLayoutEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import {
@@ -47,8 +47,10 @@ function GateLoading({ label }: { label: string }) {
 
 export default function BranchSessionGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const { me, loading } = useMe()
+  const router = useRouter()
+  const { me } = useMe()
   const { t } = useLocale()
+  const gateStuckRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const onAccesso = isAccessoPath(pathname)
 
@@ -58,16 +60,48 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
     !branchSessionGateRequiredRole(me.role) ||
     isSessionOperatorGateOk()
 
+  const needsOperatoreAccesso =
+    !onAccesso &&
+    !!me?.user &&
+    branchSessionGateRequiredRole(me.role) &&
+    !isSessionOperatorGateOk()
+
   useLayoutEffect(() => {
-    if (loading) return
-    if (onAccesso || !me?.user || !branchSessionGateRequiredRole(me.role)) return
-    if (isSessionOperatorGateOk()) return
+    if (!needsOperatoreAccesso) return
     if (typeof window === 'undefined') return
     const next = safeNextPath(pathname)
     const url = `${ACCESSO_PATH}?next=${encodeURIComponent(next)}`
     if (window.location.pathname === ACCESSO_PATH) return
-    window.location.replace(url)
-  }, [loading, me?.user, me?.role, pathname, onAccesso])
+    try {
+      router.replace(url)
+    } catch {
+      window.location.replace(url)
+    }
+  }, [needsOperatoreAccesso, pathname, router])
+
+  useEffect(() => {
+    if (!needsOperatoreAccesso) {
+      if (gateStuckRef.current) {
+        clearTimeout(gateStuckRef.current)
+        gateStuckRef.current = null
+      }
+      return
+    }
+    if (gateStuckRef.current) return
+    gateStuckRef.current = setTimeout(() => {
+      gateStuckRef.current = null
+      if (typeof window === 'undefined') return
+      if (window.location.pathname === ACCESSO_PATH) return
+      const next = safeNextPath(pathname)
+      window.location.assign(`${ACCESSO_PATH}?next=${encodeURIComponent(next)}`)
+    }, 3_000)
+    return () => {
+      if (gateStuckRef.current) {
+        clearTimeout(gateStuckRef.current)
+        gateStuckRef.current = null
+      }
+    }
+  }, [needsOperatoreAccesso, pathname])
 
   if (!canRender) {
     return <GateLoading label={t.common.loading} />
