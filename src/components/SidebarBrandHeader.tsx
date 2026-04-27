@@ -6,6 +6,7 @@ import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspac
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
 import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
+import AppBuildInfo from '@/components/AppBuildInfo'
 
 /** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop sopra il main. */
 export const DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID = 'desktop-header-page-actions'
@@ -18,7 +19,7 @@ export function SidebarRailBrand() {
   const router = useRouter()
 
   return (
-    <div className="app-shell-rail-panel flex h-full min-h-[52px] w-full shrink-0 flex-row items-center px-3 text-app-fg lg:px-3.5">
+    <div className="app-shell-rail-panel flex h-full min-h-[52px] w-full min-w-0 shrink-0 flex-row items-center gap-1.5 px-2 text-app-fg sm:gap-2 sm:px-3 lg:px-3.5">
       <div
         className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5"
         onClick={() => {
@@ -55,7 +56,7 @@ export function SidebarRailBrand() {
         </div>
 
         {/* Wordmark */}
-        <div className="flex items-baseline gap-1 leading-none">
+        <div className="min-w-0 flex items-baseline gap-1 leading-none">
           <span
             className="font-outfit text-[15px] tracking-tight"
             style={{ fontWeight: 600, color: '#22d3ee' }}
@@ -69,6 +70,9 @@ export function SidebarRailBrand() {
             Pair
           </span>
         </div>
+      </div>
+      <div className="shrink-0 self-center">
+        <AppBuildInfo variant="rail" />
       </div>
     </div>
   )

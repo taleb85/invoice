@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import fs from "fs";
+import path from "path";
+
+const pkg = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "package.json"), "utf8"),
+) as { version: string };
 
 const securityHeaders = [
   // Disabilita il rilevamento automatico del MIME type (es. eseguire HTML camuffato da immagine)
@@ -19,6 +25,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  /** Espone su client versione (`package.json`) e metadati deploy Vercel al build. */
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+    NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+    NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV ?? "",
+  },
+
   // Rimuove l'header X-Powered-By: Next.js per non esporre il framework in produzione
   poweredByHeader: false,
 

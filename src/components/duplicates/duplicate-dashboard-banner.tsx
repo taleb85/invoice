@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
+import { useLocale } from '@/lib/locale-context'
 
 type FetchState = 'idle' | 'loading' | 'done' | 'error'
 
 export default function DuplicateDashboardBanner() {
+  const { t } = useLocale()
   const [fetchState, setFetchState] = useState<FetchState>('idle')
   const [total, setTotal] = useState(0)
   const [open, setOpen] = useState(false)
@@ -38,6 +40,10 @@ export default function DuplicateDashboardBanner() {
 
   if (!mounted || fetchState !== 'done' || total === 0) return null
 
+  const bannerText = (
+    total === 1 ? t.dashboard.duplicateDashboardBanner_one : t.dashboard.duplicateDashboardBanner_other
+  ).replace(/\{n\}/g, String(total))
+
   return (
     <>
       <button
@@ -51,9 +57,7 @@ export default function DuplicateDashboardBanner() {
         className="flex w-full touch-manipulation items-center gap-3 rounded-xl px-4 py-3 text-left transition-opacity hover:opacity-90 active:opacity-80"
       >
         <span className="shrink-0 text-base leading-none" aria-hidden>⚠️</span>
-        <span className="flex-1 text-sm font-semibold">
-          Rilevati {total} {total === 1 ? 'duplicato' : 'duplicati'} — Clicca per gestirli
-        </span>
+        <span className="flex-1 text-sm font-semibold">{bannerText}</span>
         <svg className="h-4 w-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
