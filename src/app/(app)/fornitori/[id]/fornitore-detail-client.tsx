@@ -5533,7 +5533,7 @@ function FornitoreDetailClient({
                       <svg className="h-4 w-4 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      <p className="text-sm font-semibold text-app-fg">Attività recente</p>
+                      <p className="text-sm font-semibold text-app-fg">{t.appStrings.attivitaRecentTitle}</p>
                     </div>
                     <ActivityFeed fornitoreId={fornitore.id} limit={5} compact={true} />
                   </div>

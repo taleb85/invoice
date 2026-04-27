@@ -1549,6 +1549,7 @@ type Translations = {
     attivitaFilterOperatori: string
     attivitaError: string
     attivitaNoRecent: string
+    attivitaRecentTitle: string
     // StatoSincronizzazioneIntelligente
     rekkiSyncTitle: string
     rekkiSyncDesc: string
@@ -2924,6 +2925,7 @@ const it: Translations = {
     attivitaFilterOperatori: 'Operatori',
     attivitaError: 'Impossibile caricare le attività.',
     attivitaNoRecent: 'Nessuna attività recente',
+    attivitaRecentTitle: 'Attività recente',
     rekkiSyncTitle: 'Sincronizzazione Email Rekki',
     rekkiSyncDesc: 'Scansiona la casella email della sede e abbina automaticamente gli ordini Rekki',
     rekkiSyncMobileTap: 'Sincronizza Email Rekki',
@@ -3612,6 +3614,7 @@ const en: Translations = {
     attivitaFilterOperatori: 'Operators',
     attivitaError: 'Unable to load activity.',
     attivitaNoRecent: 'No recent activity',
+    attivitaRecentTitle: 'Recent activity',
     rekkiSyncTitle: 'Rekki Email Sync',
     rekkiSyncDesc: 'Scan the venue email inbox and automatically match Rekki orders',
     rekkiSyncMobileTap: 'Sync Rekki Emails',
@@ -4247,6 +4250,7 @@ const es: Translations = {
     attivitaFilterOperatori: 'Operadores',
     attivitaError: 'No se pueden cargar las actividades.',
     attivitaNoRecent: 'Sin actividad reciente',
+    attivitaRecentTitle: 'Actividad reciente',
     rekkiSyncTitle: 'Sincronización Email Rekki',
     rekkiSyncDesc: 'Escanea el correo de la sede y asocia automáticamente los pedidos Rekki',
     rekkiSyncMobileTap: 'Sincronizar Emails Rekki',
@@ -4882,6 +4886,7 @@ const fr: Translations = {
     attivitaFilterOperatori: 'Opérateurs',
     attivitaError: 'Impossible de charger les activités.',
     attivitaNoRecent: 'Aucune activité récente',
+    attivitaRecentTitle: 'Activité récente',
     rekkiSyncTitle: 'Synchronisation Email Rekki',
     rekkiSyncDesc: 'Scanne la boîte mail du site et associe automatiquement les commandes Rekki',
     rekkiSyncMobileTap: 'Synchroniser Emails Rekki',
@@ -5516,6 +5521,7 @@ const de: Translations = {
     attivitaFilterOperatori: 'Operatoren',
     attivitaError: 'Aktivitäten konnten nicht geladen werden.',
     attivitaNoRecent: 'Keine neueren Aktivitäten',
+    attivitaRecentTitle: 'Letzte Aktivität',
     rekkiSyncTitle: 'Rekki E-Mail-Synchronisation',
     rekkiSyncDesc: 'Durchsucht das E-Mail-Postfach des Standorts und ordnet Rekki-Bestellungen automatisch zu',
     rekkiSyncMobileTap: 'Rekki-E-Mails synchronisieren',

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef, useMemo, useId } from 'react'
 import { createPortal } from 'react-dom'
+import { mutate as swrMutate } from 'swr'
 import { useT } from '@/lib/use-t'
 import { useRouter } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
@@ -18,6 +19,14 @@ import { defaultFiscalYearLabel } from '@/lib/fiscal-year'
 
 /** Giorni predefiniti per l’override lookback (oltre al default sede). */
 const LOOKBACK_DAY_PRESETS = [3, 7, 14, 30, 60, 90] as const
+
+function revalidateActivityLogSwr() {
+  void swrMutate(
+    (key) => typeof key === 'string' && key.startsWith('/api/activity-log'),
+    undefined,
+    { revalidate: true },
+  )
+}
 
 interface Props {
   /**
@@ -138,6 +147,7 @@ export default function ScanEmailButton({
           setTimeout(() => setToast(null), 7000)
           return false
         }
+        revalidateActivityLogSwr()
       } else {
         const body = JSON.stringify(payload)
         const res = await fetch('/api/scan-emails', {
@@ -153,6 +163,7 @@ export default function ScanEmailButton({
         } else {
           const tipo = json.avvisi?.length ? 'warn' : 'ok'
           setToast({ type: tipo, text: json.messaggio ?? t.ui.syncSuccess })
+          revalidateActivityLogSwr()
           router.refresh()
         }
       }

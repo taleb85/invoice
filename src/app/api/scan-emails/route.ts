@@ -2320,23 +2320,26 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
 
   // Log pre-filter metrics to activity_log for Gemini savings tracking (fire-and-forget)
   if (totalPreFiltered > 0 || totalRicevuti > 0 || totalIgnorate > 0) {
-    const logSedeId = params.filterSedeId ?? params.userSedeId ?? null
+    const logSedeId = filterSedeId ?? params.filterSedeId ?? params.userSedeId ?? null
     const processed = totalRicevuti + totalIgnorate
     const total = totalPreFiltered + processed
+    const scanFornitoreId = params.fornitoreId
+    const summaryLabel = `Scansione email: ${processed} elaborate, ${totalPreFiltered} scartate`
+    const metadata: Record<string, unknown> = {
+      email_scartate_prefiltro: totalPreFiltered,
+      email_processate_gemini: processed,
+      email_gia_elaborate: totalSkippedAlready,
+      risparmio_stimato_pct: total > 0 ? Math.round((totalPreFiltered / total) * 100) : 0,
+    }
+    if (scanFornitoreId) metadata.fornitore_id = scanFornitoreId
     supabase.from('activity_log').insert([{
       user_id: null,
       sede_id: logSedeId,
       action: 'email.scan.prefiltro',
-      entity_type: 'system',
-      entity_label: `Scansione email: ${processed} elaborate, ${totalPreFiltered} scartate`,
-      metadata: {
-        email_scartate_prefiltro: totalPreFiltered,
-        email_processate_gemini: processed,
-        email_gia_elaborate: totalSkippedAlready,
-        risparmio_stimato_pct: total > 0
-          ? Math.round((totalPreFiltered / total) * 100)
-          : 0,
-      },
+      entity_type: scanFornitoreId ? 'fornitore' : 'system',
+      entity_id: scanFornitoreId ?? null,
+      entity_label: summaryLabel,
+      metadata,
     }]).then(() => {}, () => {})
   }
 
