@@ -63,21 +63,24 @@ export default function DashboardSedeSupplierSuggestion({ sedeId, prefill, newFo
     router.refresh()
   }
 
+  const actionDims =
+    'inline-flex h-9 min-h-9 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-semibold leading-none'
+
   return (
     <div className="flex w-fit max-w-full shrink-0 flex-col items-end gap-1">
-      <div className="flex w-fit max-w-full flex-wrap justify-end gap-2">
+      <div className="flex w-fit max-w-full flex-wrap items-center justify-end gap-2">
         <button
           type="button"
           onClick={() => void confirmAdd()}
           disabled={saving}
           aria-busy={saving}
-          className="inline-flex items-center rounded-lg bg-violet-500 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-violet-950/40 ring-1 ring-violet-300/35 transition-colors hover:bg-violet-400 hover:ring-violet-200/40 disabled:pointer-events-none disabled:opacity-60"
+          className={`${actionDims} border border-violet-300/35 bg-violet-500 text-white shadow-md shadow-violet-950/40 transition-colors hover:bg-violet-400 hover:border-violet-200/45 disabled:pointer-events-none disabled:opacity-60`}
         >
           {saving ? t.fornitori.saving : t.dashboard.suggestedSupplierConfirm}
         </button>
         <Link
           href={newFornitoreHref}
-          className="inline-flex items-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-950/30 px-3 py-2 text-xs font-semibold text-violet-200 transition-colors hover:border-[rgba(34,211,238,0.2)] hover:bg-violet-900/35 hover:text-white"
+          className={`${actionDims} border border-[rgba(34,211,238,0.15)] bg-violet-950/30 text-violet-200 transition-colors hover:border-[rgba(34,211,238,0.2)] hover:bg-violet-900/35 hover:text-white`}
         >
           {t.dashboard.suggestedSupplierOpenForm}
         </Link>
