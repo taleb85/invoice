@@ -19,9 +19,9 @@ export function SidebarRailBrand() {
   const router = useRouter()
 
   return (
-    <div className="app-shell-rail-panel flex h-full min-h-[52px] w-full min-w-0 shrink-0 flex-row items-center gap-1.5 px-2 text-app-fg sm:gap-2 sm:px-3 lg:px-3.5">
+    <div className="app-shell-rail-panel flex h-full min-h-[52px] w-full min-w-0 shrink-0 flex-row items-baseline gap-x-1.5 px-2 py-2 text-app-fg sm:gap-2 sm:px-3 sm:py-2.5 lg:px-3.5">
       <div
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5"
+        className="flex min-w-0 flex-1 cursor-pointer items-baseline gap-2.5"
         onClick={() => {
           if (typeof window === 'undefined' || window.innerWidth < 768) return
           router.push('/')
@@ -35,9 +35,9 @@ export function SidebarRailBrand() {
           router.push('/')
         }}
       >
-        {/* Icon container — 28×28 */}
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#0f2a4a] ring-1 ring-[#22d3ee]/30">
-          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden>
+        {/* Icon: ancorato in basso rispetto al testo (items-baseline sulla riga) */}
+        <div className="flex h-7 w-7 shrink-0 items-end justify-center rounded-lg bg-[#0f2a4a] pb-0.5 ring-1 ring-[#22d3ee]/30">
+          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden className="shrink-0">
             <path
               d="M4 20 L16 8 L16 15 L28 15 L28 20"
               stroke="#22d3ee"
@@ -71,7 +71,7 @@ export function SidebarRailBrand() {
           </span>
         </div>
       </div>
-      <div className="flex h-full min-h-[52px] shrink-0 items-center">
+      <div className="shrink-0 self-baseline">
         <AppBuildInfo variant="rail" />
       </div>
     </div>
