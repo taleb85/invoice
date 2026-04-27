@@ -81,12 +81,6 @@ export default function DashboardSedeSupplierSuggestion({ sedeId, prefill, newFo
         >
           {t.dashboard.suggestedSupplierOpenForm}
         </Link>
-        <Link
-          href="/statements/da-processare"
-          className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-violet-300 underline decoration-violet-400/60 underline-offset-2 transition-colors hover:text-violet-100 hover:decoration-violet-200"
-        >
-          {t.statements.tabDocumenti} →
-        </Link>
       </div>
       {error && (
         <p className="max-w-[min(22rem,calc(100vw-6rem))] text-right text-[11px] text-red-300/95" role="alert">
