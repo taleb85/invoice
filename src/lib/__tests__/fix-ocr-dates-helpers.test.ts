@@ -75,6 +75,40 @@ describe('shouldMigrateBollaRowToFattura', () => {
     ).toBe(true)
   })
 
+  it('migrates on Rianalizza when filename looks like delivery note (storage path is unreliable)', () => {
+    expect(
+      shouldMigrateBollaRowToFattura({
+        ocr: {
+          tipo_documento: 'bolla',
+          numero_fattura: null,
+          totale_iva_inclusa: null,
+        },
+        fileUrl: 'https://x.supabase.co/storage/.../delivery-note-ocr.jpg',
+        bollaIdForce: true,
+        allowTipoMigrate: true,
+        existingNumeroBolla: '206338',
+        existingImporto: 305.39,
+      }),
+    ).toBe(true)
+  })
+
+  it('migrates when filename mixes invoice+delivery words but row is complete (Rianalizza)', () => {
+    expect(
+      shouldMigrateBollaRowToFattura({
+        ocr: {
+          tipo_documento: 'bolla',
+          numero_fattura: null,
+          totale_iva_inclusa: null,
+        },
+        fileUrl: 'https://x.supabase.co/storage/.../invoice-delivery-note-scan.pdf',
+        bollaIdForce: true,
+        allowTipoMigrate: true,
+        existingNumeroBolla: '1',
+        existingImporto: 100,
+      }),
+    ).toBe(true)
+  })
+
   it('migrates when OCR returns only importo and row has only numero (cross pair)', () => {
     expect(
       shouldMigrateBollaRowToFattura({

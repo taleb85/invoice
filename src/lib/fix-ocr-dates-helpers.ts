@@ -72,9 +72,14 @@ export function shouldMigrateBollaRowToFattura(params: {
 
   const numForDdt = ocr.numero_fattura?.trim() ? ocr.numero_fattura : existingNumeroBolla
   if (numeroReferenceLooksLikeDdt(numForDdt)) return false
-  if (ctxBol && !ctxFat) return false
+
+  /**
+   * Da qui `bollaIdForce` è sempre true (altrimenti riga sopra: niente bolla→fattura euristica).
+   * Nome file storage o email non deve **bloccare** (prima: `ctxBol && !ctxFat` = false) — i path
+   * `quick-scan/…/t-id.jpg` o stringhe casuali danno falsi positivi. Resta un solo segnale positivo
+   * forte: nome file chiaramente fattura.
+   */
   if (ctxFat && !ctxBol) return true
-  if (ctxFat && ctxBol) return false
 
   if (t === 'bolla' || t === 'altro') {
     if (!hasNumeroImporto) return false
