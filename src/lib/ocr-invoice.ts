@@ -122,6 +122,12 @@ export type OcrInvoiceOptions = {
   emailBodyText?: string | null
   /** Called with token-usage stats after each successful Gemini call. */
   onUsage?: (usage: GeminiUsage) => void
+  /**
+   * PDFs with extractable text use a fast text-only Gemini pass by default.
+   * Set true to always send the PDF to vision (layout + headers) — better `tipo_documento` (invoice vs DDT).
+   * Use for admin “Rianalizza” / re-classify on a single row.
+   */
+  preferVisionForPdf?: boolean
 }
 
 /** @deprecated Use OcrResult */
@@ -377,8 +383,8 @@ async function extractPdfText(buffer: Buffer): Promise<string | null> {
 
 /* ─────────────────────────────────────────────────────────────
    Main OCR function
-   - PDF con testo → Gemini text
-   - PDF solo immagine → Gemini vision (PDF inline — nativo)
+   - PDF con testo → Gemini text (veloce), salvo options.preferVisionForPdf → sempre vision
+   - PDF solo immagine / preferVisionForPdf → Gemini vision (PDF nativo)
    - Immagine → Gemini vision
 ───────────────────────────────────────────────────────────── */
 export async function ocrInvoice(
@@ -405,13 +411,22 @@ export async function ocrInvoice(
     return msg
   }
 
+  const rianalizzaVisionSuffix = options?.preferVisionForPdf
+    ? `
+
+[Re-analysis: PDF shown as pages in vision] Classify from the VISIBLE layout — largest header, title block, and fiscal cues on page 1. If the main title is Tax / VAT / Commercial / Sales invoice, Fattura, Factura, Rechnung in a fiscal context, set tipo_documento to "fattura". Use "ddt" or "bolla" only when the dominant title is clearly a transport / delivery / despatch docket with no full tax-invoice form. Do not guess from file name.`
+    : ''
+
   const visionTextPrompt =
-    SYSTEM_PROMPT + (emailBody?.trim() ? `\n${buildEmailBodyInstructionBlock(emailBody)}` : '')
+    SYSTEM_PROMPT +
+    (emailBody?.trim() ? `\n${buildEmailBodyInstructionBlock(emailBody)}` : '') +
+    rianalizzaVisionSuffix
 
   if (contentType === 'application/pdf') {
     const text = await extractPdfText(buf)
+    const mustUseVision = !text?.trim() || options?.preferVisionForPdf === true
 
-    if (text) {
+    if (!mustUseVision && text) {
       try {
         const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 900)
         onUsage?.(res.usage)
@@ -426,8 +441,11 @@ export async function ocrInvoice(
       }
     }
 
-    // Scanned PDF — send directly to Gemini vision (handles PDF natively)
-    console.info('[OCR] PDF senza testo estraibile — invio diretto a Gemini vision')
+    if (text?.trim() && options?.preferVisionForPdf) {
+      console.info('[OCR] preferVisionForPdf: skip text-only pass — use Gemini vision on full PDF (layout + tipo_documento)')
+    } else {
+      console.info('[OCR] PDF senza testo estraibile — invio diretto a Gemini vision')
+    }
     try {
       const base64 = buf.toString('base64')
       const res = await geminiGenerateVision(

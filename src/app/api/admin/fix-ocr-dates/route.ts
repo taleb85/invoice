@@ -466,7 +466,14 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      const ocr = await ocrInvoice(new Uint8Array(buf), contentType)
+      /** Singola riga da «Rianalizza» (bolla_id / fattura_id): vision su PDF per layout e tipo, non solo testo estratto. */
+      const preferVisionForPdf =
+        (Boolean(bollaIdForce) && item.kind === 'bolla') ||
+        (Boolean(fatturaIdForce) && item.kind === 'fattura')
+
+      const ocr = await ocrInvoice(new Uint8Array(buf), contentType, undefined, {
+        preferVisionForPdf,
+      })
       const ocrTipo = ocr.tipo_documento
       const newData = pickDocDate(ocr, item.row.data)
 
