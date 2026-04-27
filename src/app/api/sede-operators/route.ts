@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
 
 function serviceDb() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -8,25 +9,11 @@ function serviceDb() {
   return createServiceClient(url, key)
 }
 
-/**
- * GET /api/sede-operators
- *
- * Returns the list of operatori/admin_sede for the current branch.
- * Reads the `sede-verified` cookie set by the sede-lock screen — no auth required.
- * Returns only { id, full_name } — no email or sensitive data.
- */
-export async function GET(req: NextRequest) {
-  const sedeId = req.cookies.get('sede-verified')?.value?.trim()
-
-  if (!sedeId) {
-    return NextResponse.json({ operators: [] })
-  }
-
+async function jsonForSedeId(sedeId: string) {
   const svc = serviceDb()
   if (!svc) {
     return NextResponse.json({ operators: [] })
   }
-
   const [profilesRes, sedeRes] = await Promise.all([
     svc
       .from('profiles')
@@ -53,4 +40,39 @@ export async function GET(req: NextRequest) {
       full_name: (p.full_name ?? '') as string,
     })),
   })
+}
+
+/**
+ * GET /api/sede-operators
+ *
+ * - `?sedeScope=session`: elenco dalla sede del profilo autenticato (operatore / admin_sede) — usato su `/accesso` PWA.
+ * - altrimenti: cookie `sede-verified` (kiosk / sede-lock).
+ * Returns only { id, full_name } — no email or sensitive data.
+ */
+export async function GET(req: NextRequest) {
+  if (req.nextUrl.searchParams.get('sedeScope') === 'session') {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
+    }
+    const { data: p } = await supabase
+      .from('profiles')
+      .select('sede_id, role')
+      .eq('id', user.id)
+      .maybeSingle()
+    const r = String(p?.role ?? '').toLowerCase()
+    if (!p?.sede_id || (r !== 'operatore' && r !== 'admin_sede')) {
+      return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
+    }
+    return jsonForSedeId(p.sede_id)
+  }
+
+  const sedeId = req.cookies.get('sede-verified')?.value?.trim()
+  if (!sedeId) {
+    return NextResponse.json({ operators: [] })
+  }
+  return jsonForSedeId(sedeId)
 }

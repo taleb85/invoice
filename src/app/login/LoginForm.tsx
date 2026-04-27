@@ -4,11 +4,13 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useLocale } from '@/lib/locale-context'
-import { markClientSessionJustEstablished, useMe } from '@/lib/me-context'
+import { markClientSessionJustEstablished, revalidateMe, useMe } from '@/lib/me-context'
+import { clearSpDeviceId, getOrCreateSpDeviceId, readSpDeviceId } from '@/lib/sp-device-id'
 import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
 import { LOCALES, type Locale, getTranslations, localeFromCountryCode } from '@/lib/translations'
 import {
   branchSessionGateRequiredRole,
+  clearSessionOperatorGate,
   isSessionOperatorGateOk,
   markSessionOperatorGateOk,
 } from '@/lib/session-operator-gate'
@@ -172,6 +174,15 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const { me, loading: meLoading } = useMe()
   const [langOpen, setLangOpen] = useState(false)
   const [gateUiReady, setGateUiReady] = useState(() => !sessionGateNext)
+  /** Dopo check restore dispositivo su /accesso: sblocca griglia o form manuale. */
+  const [accessoContentReady, setAccessoContentReady] = useState(() => !sessionGateNext)
+  const [accessoDevicePhase, setAccessoDevicePhase] = useState<'idle' | 'checking' | 'welcome' | 'restoring'>('idle')
+  const [accessoWelcomeName, setAccessoWelcomeName] = useState<string>('')
+  const deviceAutoDoneRef = useRef(false)
+  const [hasRegisteredDeviceOnServer, setHasRegisteredDeviceOnServer] = useState(false)
+  const [showDeviceTrustSheet, setShowDeviceTrustSheet] = useState(false)
+  const [pendingAfterPinNav, setPendingAfterPinNav] = useState<string | null>(null)
+  const [deviceTrustRegistering, setDeviceTrustRegistering] = useState(false)
 
   // Populated when the user is redirected here after a server-side session expiry.
   const expiredReason = searchParams?.get('reason') ?? null
@@ -239,6 +250,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     if (!sessionGateNext) return
     if (meLoading) return
     if (!me?.user) {
+      if (readSpDeviceId() && !deviceAutoDoneRef.current) {
+        setGateUiReady(true)
+        return
+      }
       router.replace('/login')
       return
     }
@@ -253,6 +268,237 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     }
     setGateUiReady(true)
   }, [sessionGateNext, meLoading, me?.user, me?.role, router])
+
+  /**
+   * /accesso: tentativo login automatico da `sp_device_id` + device_sessions prima della griglia.
+   */
+  useEffect(() => {
+    if (!sessionGateNext) return
+    if (!gateUiReady || meLoading) return
+    if (deviceAutoDoneRef.current) {
+      setAccessoContentReady(true)
+      return
+    }
+    if (me?.user && !branchSessionGateRequiredRole(me.role)) {
+      setAccessoContentReady(true)
+      return
+    }
+    if (me?.user && isSessionOperatorGateOk()) {
+      setAccessoContentReady(true)
+      return
+    }
+    const devId = readSpDeviceId()
+    if (!devId) {
+      setAccessoContentReady(true)
+      return
+    }
+
+    let cancelled = false
+    void (async () => {
+      setAccessoDevicePhase('checking')
+      try {
+        const r = await fetch(`/api/device-sessions?deviceId=${encodeURIComponent(devId)}`, { cache: 'no-store' })
+        const j = (await r.json().catch(() => ({ notFound: true }))) as {
+          notFound?: boolean
+          profile?: { id: string; full_name: string | null }
+        }
+        if (cancelled) return
+        if (j.notFound) {
+          deviceAutoDoneRef.current = true
+          setAccessoDevicePhase('idle')
+          setAccessoContentReady(true)
+          return
+        }
+        const fn = String(j.profile?.full_name ?? '').trim().split(/\s+/)[0] ?? '—'
+        setAccessoWelcomeName(fn)
+        setAccessoDevicePhase('welcome')
+        await new Promise((res) => setTimeout(res, 1200))
+        if (cancelled) return
+        setAccessoDevicePhase('restoring')
+        const rs = await fetch('/api/auth/device-restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: devId }),
+          credentials: 'same-origin',
+        })
+        if (cancelled) return
+        if (!rs.ok) {
+          deviceAutoDoneRef.current = true
+          setAccessoDevicePhase('idle')
+          setAccessoContentReady(true)
+          return
+        }
+        markClientSessionJustEstablished()
+        revalidateMe()
+        markSessionOperatorGateOk()
+        deviceAutoDoneRef.current = true
+        setAccessoDevicePhase('idle')
+        setAccessoContentReady(true)
+        router.replace(sessionGateNext)
+        router.refresh()
+      } catch {
+        if (!cancelled) {
+          deviceAutoDoneRef.current = true
+          setAccessoDevicePhase('idle')
+          setAccessoContentReady(true)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [sessionGateNext, gateUiReady, meLoading, me?.user, me?.role, router])
+
+  const loadAccessoOperatorGrid = useCallback(async () => {
+    if (!sessionGateNext) return
+    if (!me?.user || !branchSessionGateRequiredRole(me.role)) {
+      setNetflixStep('manual')
+      return
+    }
+    if (isSessionOperatorGateOk()) return
+    if (!me.sede_id) {
+      setNetflixStep('manual')
+      return
+    }
+    setNetflixStep('loading')
+    try {
+      const r = await fetch('/api/sede-operators?sedeScope=session')
+      const data = (r.ok ? await r.json() : { operators: [] }) as {
+        operators?: SedeOperator[]
+        country_code?: string | null
+      }
+      const ops = data.operators ?? []
+      if (ops.length === 0) {
+        setNetflixStep('manual')
+        return
+      }
+      setNetflixOperators(ops)
+      setSedeLocale(localeFromCountryCode(data.country_code))
+      setNetflixSedeName(me.sede_nome ?? null)
+      setNetflixStep('grid')
+    } catch {
+      setNetflixStep('manual')
+    }
+  }, [sessionGateNext, me?.user, me?.role, me?.sede_id, me?.sede_nome])
+
+  /* ─── sede /accesso: griglia «chi è di turno» via sessione — */
+  useEffect(() => {
+    if (!sessionGateNext || !accessoContentReady) return
+    if (!me?.user || !branchSessionGateRequiredRole(me.role)) return
+    if (isSessionOperatorGateOk()) return
+    void loadAccessoOperatorGrid()
+  }, [sessionGateNext, accessoContentReady, me?.user, me?.role, loadAccessoOperatorGrid])
+
+  const handleAccessoSwitchOperator = useCallback(() => {
+    const id = readSpDeviceId()
+    if (id) {
+      void fetch(`/api/device-sessions?deviceId=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    }
+    clearSpDeviceId()
+    clearSessionOperatorGate()
+    setHasRegisteredDeviceOnServer(false)
+    setNetflixSelected(null)
+    setPin(Array(PIN_LENGTH).fill(''))
+    setNameReady(false)
+    resolvedEmail.current = null
+    setMessage(null)
+    setShowDeviceTrustSheet(false)
+    setPendingAfterPinNav(null)
+    void loadAccessoOperatorGrid()
+  }, [loadAccessoOperatorGrid])
+
+  const completePendingAccessoNav = useCallback(() => {
+    setShowDeviceTrustSheet(false)
+    setPendingAfterPinNav(null)
+    if (sessionGateNext) {
+      markSessionOperatorGateOk()
+      router.replace(sessionGateNext)
+    } else {
+      router.push('/')
+    }
+    router.refresh()
+  }, [sessionGateNext, router])
+
+  const handleDeviceTrustDecline = useCallback(() => {
+    setDeviceTrustRegistering(false)
+    completePendingAccessoNav()
+  }, [completePendingAccessoNav])
+
+  const deviceTrustInFlightRef = useRef(false)
+  const handleDeviceTrustAccept = useCallback(async () => {
+    if (deviceTrustInFlightRef.current) return
+    if (!pendingAfterPinNav) return
+    deviceTrustInFlightRef.current = true
+    setDeviceTrustRegistering(true)
+    try {
+      const { data: u } = await supabase.auth.getUser()
+      if (!u.user) {
+        deviceTrustInFlightRef.current = false
+        setDeviceTrustRegistering(false)
+        completePendingAccessoNav()
+        return
+      }
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('sede_id')
+        .eq('id', u.user.id)
+        .maybeSingle()
+      const sedeId = String(prof?.sede_id ?? '')
+      if (!sedeId) {
+        deviceTrustInFlightRef.current = false
+        setDeviceTrustRegistering(false)
+        completePendingAccessoNav()
+        return
+      }
+      const devId = getOrCreateSpDeviceId()
+      let deviceName: string | null = null
+      if (typeof navigator !== 'undefined' && typeof navigator.userAgent === 'string') {
+        deviceName = navigator.userAgent.slice(0, 200) || null
+      }
+      const r = await fetch('/api/device-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deviceId: devId,
+          profileId: u.user.id,
+          sedeId,
+          deviceName,
+        }),
+        credentials: 'same-origin',
+      })
+      if (r.ok) {
+        setHasRegisteredDeviceOnServer(true)
+      }
+    } catch {
+      /* continua la navigazione anche se l’API fallisce */
+    } finally {
+      deviceTrustInFlightRef.current = false
+      setDeviceTrustRegistering(false)
+    }
+    completePendingAccessoNav()
+  }, [completePendingAccessoNav, pendingAfterPinNav, supabase])
+
+  /* ─── dispositivo registrato: badge «cambia operatore» (polling leggero) — */
+  useEffect(() => {
+    if (!sessionGateNext || !accessoContentReady) return
+    const id = readSpDeviceId()
+    if (!id) {
+      setHasRegisteredDeviceOnServer(false)
+      return
+    }
+    let cancelled = false
+    void fetch(`/api/device-sessions?deviceId=${encodeURIComponent(id)}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j: { notFound?: boolean }) => {
+        if (!cancelled) setHasRegisteredDeviceOnServer(!j.notFound)
+      })
+      .catch(() => {
+        if (!cancelled) setHasRegisteredDeviceOnServer(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [sessionGateNext, accessoContentReady, netflixStep])
 
   /* ─── ripristina ultima sede da localStorage ─────── */
   useEffect(() => {
@@ -322,7 +568,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     } finally {
       setLookingUp(false)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   /* ─── login operatore ─────────────────────────────── */
   const doLoginByName = useCallback(async (internalEmail: string, pinStr: string) => {
@@ -351,8 +597,40 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     } catch {
       /* ignore */
     }
-    markSessionOperatorGateOk()
     markClientSessionJustEstablished()
+    revalidateMe()
+
+    if (sessionGateNext) {
+      const uid = (await supabase.auth.getUser()).data.user?.id
+      if (uid) {
+        const devId = readSpDeviceId()
+        if (!devId) {
+          markSessionOperatorGateOk()
+          setLoading(false)
+          setPendingAfterPinNav(sessionGateNext)
+          setShowDeviceTrustSheet(true)
+          return
+        }
+        const chk = await fetch(`/api/device-sessions?deviceId=${encodeURIComponent(devId)}`, {
+          cache: 'no-store',
+        })
+        const j = (await chk.json().catch(() => ({ notFound: true }))) as {
+          notFound?: boolean
+          profile?: { id: string }
+        }
+        const needTrust =
+          Boolean(j.notFound) || (j.profile && String(j.profile.id) !== String(uid))
+        if (needTrust) {
+          markSessionOperatorGateOk()
+          setLoading(false)
+          setPendingAfterPinNav(sessionGateNext)
+          setShowDeviceTrustSheet(true)
+          return
+        }
+      }
+    }
+
+    markSessionOperatorGateOk()
     if (sessionGateNext) {
       router.replace(sessionGateNext)
     } else {
@@ -775,6 +1053,58 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
+  const accessoTopBar =
+    sessionGateNext && hasRegisteredDeviceOnServer ? (
+      <div className="mb-3 flex w-full justify-end">
+        <button
+          type="button"
+          onClick={handleAccessoSwitchOperator}
+          className="text-[11px] font-medium text-app-fg-muted underline-offset-2 transition-colors hover:text-app-cyan-400 hover:underline"
+        >
+          {t.login.accessoSwitchOperator}
+        </button>
+      </div>
+    ) : null
+
+  const deviceTrustUi = showDeviceTrustSheet ? (
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/55 p-4 pb-8 sm:items-center sm:pb-4"
+      role="dialog"
+      aria-modal
+      aria-labelledby="device-trust-title"
+    >
+      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-slate-900/95 p-5 shadow-2xl ring-1 ring-white/5 backdrop-blur-sm">
+        <p id="device-trust-title" className="text-center text-sm leading-relaxed text-app-fg sm:text-base">
+          {t.login.deviceTrustTitle}
+        </p>
+        <div className="mt-5 flex flex-col gap-2.5 sm:flex-row-reverse sm:justify-stretch sm:gap-3">
+          <button
+            type="button"
+            onClick={handleDeviceTrustAccept}
+            disabled={deviceTrustRegistering}
+            className="app-glow-cyan flex w-full items-center justify-center gap-2 rounded-full bg-app-cyan-500 py-2.5 text-sm font-bold uppercase tracking-wide text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 disabled:opacity-50"
+          >
+            {deviceTrustRegistering ? (
+              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : null}
+            {t.login.deviceTrustYes}
+          </button>
+          <button
+            type="button"
+            onClick={handleDeviceTrustDecline}
+            disabled={deviceTrustRegistering}
+            className="w-full rounded-full border border-white/10 bg-white/[0.04] py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-app-fg disabled:opacity-50"
+          >
+            {t.login.deviceTrustNo}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null
+
   if (sessionGateNext && (!gateUiReady || meLoading)) {
     return (
       <div className="mx-auto flex min-h-[50vh] w-full max-w-sm flex-col items-center justify-center gap-3 px-1">
@@ -784,13 +1114,38 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     )
   }
 
+  if (sessionGateNext && !accessoContentReady) {
+    const welcomeText = t.login.deviceWelcomeBack.replace(
+      '{name}',
+      accessoWelcomeName && accessoWelcomeName.length > 0 ? accessoWelcomeName : '—',
+    )
+    return (
+      <div className="mx-auto flex min-h-[50vh] w-full max-w-sm flex-col items-center justify-center gap-4 px-4 text-center">
+        {accessoDevicePhase === 'welcome' ? (
+          <p className="text-balance text-xl font-semibold text-app-fg sm:text-2xl">{welcomeText}</p>
+        ) : (
+          <>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
+            <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
+          </>
+        )}
+      </div>
+    )
+  }
+
   // ── Netflix loading spinner ──
   if (netflixStep === 'loading' || netflixStep === 'idle') {
     return (
-      <div className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
-        <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
-      </div>
+      <>
+        {deviceTrustUi}
+        <div className={sessionGateNext ? 'mx-auto w-full max-w-sm' : 'w-full'}>
+          {accessoTopBar}
+          <div className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
+            <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
+          </div>
+        </div>
+      </>
     )
   }
 
@@ -798,7 +1153,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   if (netflixStep === 'grid') {
     const sedeT = getTranslations(sedeLocale).login
     return (
-      <div className="w-full">
+      <>
+        {deviceTrustUi}
+        <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
+        {accessoTopBar}
         {/* Logo above the card */}
         <div className="mb-6 flex justify-center">
           <SmartPairLogo variant="full" size="md" />
@@ -835,7 +1193,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
         </div>
-      </div>
+        </div>
+      </>
     )
   }
 
@@ -845,7 +1204,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     const [fg, bg] = avatarColors(netflixSelected.full_name)
     const firstName = netflixSelected.full_name.trim().split(/\s+/)[0] ?? netflixSelected.full_name
     return (
-      <div className="w-full">
+      <>
+        {deviceTrustUi}
+        <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
+        {accessoTopBar}
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
           <div className="flex flex-col items-center gap-5 p-6 text-center">
 
@@ -975,12 +1337,16 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
         </div>
-      </div>
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="w-full">
+  <>
+  {deviceTrustUi}
+  <div className={sessionGateNext ? 'mx-auto w-full max-w-sm' : 'w-full'}>
+  {accessoTopBar}
 
       {(expiredReason || sessionBootStuck) && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
@@ -1394,6 +1760,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }
 

@@ -165,6 +165,14 @@ type Translations = {
     netflixSubtitle: string
     netflixManualLogin: string
     netflixChangeOperator: string
+    /** PWA /accesso: fiducia dispositivo */
+    deviceTrustTitle: string
+    deviceTrustYes: string
+    deviceTrustNo: string
+    /** Saluto dopo restore sessione dispositivo; sostituire {name} */
+    deviceWelcomeBack: string
+    /** Link in alto: nuova selezione operatore (reset device locale) */
+    accessoSwitchOperator: string
   }
   nav: {
     dashboard: string
@@ -1785,6 +1793,11 @@ const it: Translations = {
     netflixSubtitle: 'Tocca il tuo nome per accedere',
     netflixManualLogin: 'Non trovi il tuo nome? Accedi manualmente →',
     netflixChangeOperator: '← Cambia operatore',
+    deviceTrustTitle: 'Accedere automaticamente su questo dispositivo la prossima volta?',
+    deviceTrustYes: 'Sì, ricordami',
+    deviceTrustNo: 'No grazie',
+    deviceWelcomeBack: 'Bentornato, {name}!',
+    accessoSwitchOperator: 'Cambia operatore',
   },
   nav: {
     dashboard: 'Riepilogo',
@@ -3149,6 +3162,11 @@ const en: Translations = {
     netflixSubtitle: 'Tap your name to sign in',
     netflixManualLogin: "Can't find your name? Sign in manually →",
     netflixChangeOperator: '← Change operator',
+    deviceTrustTitle: 'Sign in automatically on this device next time?',
+    deviceTrustYes: 'Yes, remember me',
+    deviceTrustNo: 'No thanks',
+    deviceWelcomeBack: 'Welcome back, {name}!',
+    accessoSwitchOperator: 'Switch operator',
   },
   nav: {
     dashboard: 'Dashboard',
@@ -3838,6 +3856,11 @@ const es: Translations = {
     netflixSubtitle: 'Toca tu nombre para entrar',
     netflixManualLogin: '¿No encuentras tu nombre? Accede manualmente →',
     netflixChangeOperator: '← Cambiar operador',
+    deviceTrustTitle: '¿Acceder automáticamente en este dispositivo la próxima vez?',
+    deviceTrustYes: 'Sí, recordarme',
+    deviceTrustNo: 'No, gracias',
+    deviceWelcomeBack: '¡Bienvenido/a, {name}!',
+    accessoSwitchOperator: 'Cambiar operador',
   },
   nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Registro de email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)', analytics: 'Analytics', approvazioni: 'Aprobaciones', attivita: 'Actividad', backup: 'Copia de seguridad', consumiAi: 'Consumo IA' },
   common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', phone: 'Teléfono', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: 'Añadir', rename: 'Renombrar', role: 'Rol', aiExtracted: 'Datos extraídos por IA', matched: 'Asociado', notMatched: 'No asociado', recordSupplierLinked: 'Vinculado', company: 'Empresa', invoiceNum: 'N.º Factura', total: 'Total', duplicateBadge: 'DUPLICADO', viewerZoomIn: 'Aumentar zoom', viewerZoomOut: 'Reducir zoom', viewerZoomReset: '100 %', viewerZoomHint: 'Ctrl + rueda o botones' },
@@ -4474,6 +4497,11 @@ const fr: Translations = {
     netflixSubtitle: 'Appuyez sur votre nom pour vous connecter',
     netflixManualLogin: 'Nom introuvable ? Connexion manuelle →',
     netflixChangeOperator: '← Changer d’opérateur',
+    deviceTrustTitle: 'Se connecter automatiquement sur cet appareil la prochaine fois ?',
+    deviceTrustYes: 'Oui, se souvenir de moi',
+    deviceTrustNo: 'Non merci',
+    deviceWelcomeBack: 'Bon retour, {name} !',
+    accessoSwitchOperator: 'Changer d’opérateur',
   },
   nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Journal email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)', analytics: 'Analytics', approvazioni: 'Approbations', attivita: 'Activité', backup: 'Sauvegarde', consumiAi: 'Consommation IA' },
   common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', phone: 'Téléphone', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: 'Ajouter', rename: 'Renommer', role: 'Rôle', aiExtracted: 'Données extraites par IA', matched: 'Associé', notMatched: 'Non associé', recordSupplierLinked: 'Lié', company: 'Société', invoiceNum: 'N° Facture', total: 'Total', duplicateBadge: 'DOUBLON', viewerZoomIn: 'Zoom +', viewerZoomOut: 'Zoom −', viewerZoomReset: '100 %', viewerZoomHint: 'Ctrl + molette ou boutons' },
@@ -5110,6 +5138,11 @@ const de: Translations = {
     netflixSubtitle: 'Tippe deinen Namen zum Einloggen',
     netflixManualLogin: 'Namen nicht gefunden? Manuell einloggen →',
     netflixChangeOperator: '← Operator wechseln',
+    deviceTrustTitle: 'Beim nächsten Mal automatisch auf diesem Gerät anmelden?',
+    deviceTrustYes: 'Ja, merken',
+    deviceTrustNo: 'Nein danke',
+    deviceWelcomeBack: 'Willkommen zurück, {name}!',
+    accessoSwitchOperator: 'Benutzer wechseln',
   },
   nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', ordini: 'Bestellungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standort & Nutzer', sediTitle: 'Standort', sediNavGroupMaster: 'Standorte', gestisciSedeNamed: '{name} verwalten', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)', analytics: 'Analytics', approvazioni: 'Genehmigungen', attivita: 'Aktivität', backup: 'Sicherung', consumiAi: 'KI-Verbrauch' },
   common: { save: 'Speichern', cancel: 'Abbrechen', delete: 'Löschen', edit: 'Bearbeiten', new: 'Neu', loading: 'Laden...', error: 'Fehler', success: 'Erfolg', noData: 'Keine Daten', document: 'Dokument', actions: 'Aktionen', date: 'Datum', status: 'Status', supplier: 'Lieferant', notes: 'Notizen', phone: 'Telefon', saving: 'Speichern...', attachment: 'Anhang', openAttachment: 'Anhang öffnen', detail: 'Detail', add: 'Hinzufügen', rename: 'Umbenennen', role: 'Rolle', aiExtracted: 'KI-extrahierte Daten', matched: 'Zugeordnet', notMatched: 'Nicht zugeordnet', recordSupplierLinked: 'Verknüpft', company: 'Unternehmen', invoiceNum: 'Rechnungs-Nr.', total: 'Gesamt', duplicateBadge: 'DUPLIKAT', viewerZoomIn: 'Vergrößern', viewerZoomOut: 'Verkleinern', viewerZoomReset: '100 %', viewerZoomHint: 'Strg+Mausrad oder Tasten' },
