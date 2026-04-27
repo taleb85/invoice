@@ -30,13 +30,14 @@ DATA (field data_fattura):
 
 TIPO DOCUMENTO (field tipo_documento):
 - Return exactly one of these lower-case tokens (or null if unreadable): fattura | ddt | bolla | ordine | estratto_conto | altro
-- fattura — if the title or prominent banner contains any of: Fattura, Invoice, Tax invoice, VAT invoice (or obvious equivalents like Sales invoice, Commercial invoice, Credit note, Nota di credito when it is a fiscal credit note).
-- ddt — if the main document is a transport/dispatch note: DDT, Documento di Trasporto, Delivery note, Dispatch note.
-- bolla — if the heading indicates a delivery docket: Bolla, Bolla di consegna, Delivery docket.
+- fattura — **Default for any tax/commercial bill with a fiscal total, VAT, payment terms, or invoice/rechnung number**, when the main visible title is any of: Fattura, Fattura elettronica, Invoice, Tax Invoice, VAT Invoice, Commercial Invoice, Sales Invoice, Pro-forma invoice (fiscal), Factura, Factura fiscal, Rechnung (Steuer/Mehrwertsteuer context), Avoir, Gutschrift, Nota di credito (fiscal), Credit note (fiscal). **Never choose ddt/bolla** for these. UK “Self-billing” or “Remittance” blocks still mean fattura if a VAT/invoice number and total are present.
+- ddt — only if the **dominant** document title is a transport/dispatch document: DDT, Documento di Trasporto, Delivery note, Dispatch note, Despatch, Proof of delivery **without** a full tax-invoice header on the same first page. If a page mixes DDT and an invoice, prefer the invoice section’s title.
+- bolla — same as ddt (transport): Bolla, Bolla di consegna. A document titled as a **sales invoice / fattura** (VAT lines) is **fattura**, not bolla.
 - ordine — if the document is primarily an order, not a fiscal dispatch or invoice: Ordine, Purchase order, P.O. / PO.
 - estratto_conto — if the document is a supplier/customer account listing: Estratto conto, Statement, Account statement.
-- altro — quotes, pro-forma, packing lists, or commercial PDFs that are none of the above; use null if the type is completely unreadable.
-- If more than one label could apply, use the document’s primary title in the largest/most official header, not a small footer or secondary number line.
+- altro — quotes, packing lists, or **non-fiscal** commercial PDFs; use null if the type is completely unreadable.
+- If more than one label could apply, use the document’s **largest, topmost official title** (first page, main header), not a small line item or shipping box footer.
+- **Critical:** “Tax invoice”, “VAT invoice”, “TAX INVOICE”, “FATTURA” on the first page → **always fattura**, never bolla, unless the only visible text is a pure delivery note (no tax lines).
 `.trim()
 
 export interface GeminiUsage {

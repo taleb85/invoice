@@ -71,4 +71,21 @@ describe('shouldMigrateBollaRowToFattura', () => {
       }),
     ).toBe(true)
   })
+
+  it('migrates when OCR returns only importo and row has only numero (cross pair)', () => {
+    expect(
+      shouldMigrateBollaRowToFattura({
+        ocr: {
+          tipo_documento: 'bolla',
+          numero_fattura: null,
+          totale_iva_inclusa: 120.5,
+        },
+        fileUrl: baseUrl,
+        bollaIdForce: true,
+        allowTipoMigrate: true,
+        existingNumeroBolla: 'INV-9001',
+        existingImporto: null,
+      }),
+    ).toBe(true)
+  })
 })

@@ -6,7 +6,24 @@ export function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'alt
   if (raw == null || raw === '') return null
   const s = String(raw).toLowerCase().replace(/\s+/g, ' ').trim()
 
-  if (s === 'fattura' || s === 'invoice' || s === 'nota_credito' || s === 'credito' || s === 'credit_note') return 'fattura'
+  if (
+    s === 'fattura' ||
+    s === 'invoice' ||
+    s === 'tax_invoice' ||
+    s === 'taxinvoice' ||
+    s === 'vat_invoice' ||
+    s === 'vatinvoice' ||
+    s === 'commercial_invoice' ||
+    s === 'sales_invoice' ||
+    s === 'e_invoice' ||
+    s === 'e-invoice' ||
+    s === 'einvoice' ||
+    s === 'nota_credito' ||
+    s === 'credito' ||
+    s === 'credit_note'
+  ) {
+    return 'fattura'
+  }
   if (s === 'bolla' || s === 'ddt' || s === 'delivery' || s === 'delivery_note' || s === 'lieferschein' || s === 'albaran') return 'bolla'
   if (
     s === 'altro' ||
@@ -25,6 +42,7 @@ export function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'alt
   if (
     /\bfattura\b/.test(s) ||
     /\binvoice\b/.test(s) ||
+    /\b(tax|vat|sales|commercial)[\s._-]*invoice\b/i.test(s) ||
     /\bfacture\b/.test(s) ||
     /\bfactura\b/.test(s) ||
     /\brechnung\b/.test(s) ||
@@ -32,9 +50,8 @@ export function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'alt
     /credit[\s_-]?note/.test(s) ||
     /\bavoir\b/.test(s) ||
     /\bgutschrift\b/.test(s) ||
-    /\btax[\s_-]?invoice\b/.test(s) ||
-    /\bvat[\s_-]?invoice\b/.test(s) ||
-    /\bsales[\s_-]?invoice\b/.test(s)
+    /\bself[\s-]?billed\b/.test(s) ||
+    /\bself[\s-]?billing\b/.test(s)
   ) {
     return 'fattura'
   }

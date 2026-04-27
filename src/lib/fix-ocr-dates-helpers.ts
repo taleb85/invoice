@@ -57,18 +57,18 @@ export function shouldMigrateBollaRowToFattura(params: {
   const fname = fileNameFromStorageUrl(fileUrl)
   const ctxFat = scanContextSuggestsFattura('', fname)
   const ctxBol = scanContextSuggestsBolla('', fname)
-  const ocrPair =
-    ocr.totale_iva_inclusa != null &&
-    ocr.numero_fattura != null &&
-    ocr.numero_fattura.trim().length > 0
+  const ocrNumOk = Boolean(ocr.numero_fattura?.trim())
+  const ocrImpOk = ocr.totale_iva_inclusa != null && !Number.isNaN(Number(ocr.totale_iva_inclusa))
   const importoStr = existingImporto == null ? '' : String(existingImporto).trim()
   const importoN = importoStr === '' ? NaN : Number(importoStr)
-  const rowHasPair =
-    bollaIdForce && importoStr !== '' && !Number.isNaN(importoN) && (existingNumeroBolla?.trim()?.length ?? 0) > 0
-  /** Solo se l’OCR non ha dato coppia: evita doppi conteggi; la riga deve essere già valorizzata. */
-  const rowPairForMigration =
-    rowHasPair && !ocrPair && (t === 'bolla' || t == null || t === 'altro')
-  const hasNumeroImporto = ocrPair || rowPairForMigration
+  const rowNumOk = (existingNumeroBolla?.trim()?.length ?? 0) > 0
+  const rowImpOk = importoStr !== '' && !Number.isNaN(importoN)
+  /**
+   * Coppia numero+totale per la migrazione: accetta incroci OCR↔riga (es. importo solo da OCR,
+   * numero solo su bolla) così la Rianalizza funziona anche quando l’OCR è parziale.
+   */
+  const hasNumeroImporto =
+    (ocrNumOk && ocrImpOk) || (rowNumOk && rowImpOk) || (ocrNumOk && rowImpOk) || (rowNumOk && ocrImpOk)
 
   const numForDdt = ocr.numero_fattura?.trim() ? ocr.numero_fattura : existingNumeroBolla
   if (numeroReferenceLooksLikeDdt(numForDdt)) return false

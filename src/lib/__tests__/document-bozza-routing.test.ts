@@ -14,6 +14,8 @@ describe('normalizeTipoDocumento', () => {
     expect(normalizeTipoDocumento('invoice')).toBe('fattura')
     expect(normalizeTipoDocumento('Tax Invoice')).toBe('fattura')
     expect(normalizeTipoDocumento('VAT invoice')).toBe('fattura')
+    expect(normalizeTipoDocumento('tax_invoice')).toBe('fattura')
+    expect(normalizeTipoDocumento('e-invoice')).toBe('fattura')
     expect(normalizeTipoDocumento('credit_note')).toBe('fattura')
   })
 

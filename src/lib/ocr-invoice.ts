@@ -400,7 +400,7 @@ export async function ocrInvoice(
   const onUsage = options?.onUsage
 
   const textUserMsg = (text: string) => {
-    let msg = `Document text (extracted from PDF):\n${text.slice(0, 4000)}`
+    let msg = `Document text (extracted from PDF; if truncated, infer tipo_documento from headers and fiscal cues in this excerpt):\n${text.slice(0, 8000)}`
     if (emailBody?.trim()) msg += `\n\n${buildEmailBodyInstructionBlock(emailBody)}`
     return msg
   }
@@ -413,7 +413,7 @@ export async function ocrInvoice(
 
     if (text) {
       try {
-        const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 550)
+        const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 900)
         onUsage?.(res.usage)
         const outcome = parseOcrJson(res.text)
         return finalizeParseOutcome(outcome, logContext)
@@ -435,7 +435,7 @@ export async function ocrInvoice(
         'application/pdf',
         base64,
         visionTextPrompt,
-        550,
+        900,
       )
       onUsage?.(res.usage)
       const outcome = parseOcrJson(res.text)
@@ -462,7 +462,7 @@ export async function ocrInvoice(
       contentType,
       base64,
       visionTextPrompt,
-      550,
+      900,
     )
     onUsage?.(res.usage)
     const outcome = parseOcrJson(res.text)
