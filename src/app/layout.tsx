@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Outfit } from "next/font/google";
+import Script from "next/script";
 import PWARegister from "@/components/PWARegister";
 import "./globals.css";
 
@@ -87,12 +88,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" className={`${geistSans.variable} ${outfit.variable} h-full antialiased`}>
-      <head>
-        <script
-          id="fluxo-app-locale-bootstrap"
-          dangerouslySetInnerHTML={{ __html: APP_LOCALE_BOOTSTRAP }}
-        />
-      </head>
       <body
         className="h-dvh min-h-dvh text-app-fg-muted antialiased"
         style={{
@@ -100,6 +95,11 @@ export default function RootLayout({
           color: "#ffffff"
         }}
       >
+        <Script
+          id="fluxo-app-locale-bootstrap"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: APP_LOCALE_BOOTSTRAP }}
+        />
         <PWARegister />
         {children}
       </body>
