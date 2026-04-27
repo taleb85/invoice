@@ -87,6 +87,7 @@ function buildSuggestionFromRow(row: { metadata: unknown; mittente: string | nul
   const qImp = new URLSearchParams()
   if (m?.ragione_sociale?.trim()) qImp.set('prefill_nome', m.ragione_sociale.trim())
   if (m?.p_iva?.trim()) qImp.set('prefill_piva', m.p_iva.trim())
+  if (m?.indirizzo?.trim()) qImp.set('prefill_indirizzo', m.indirizzo.trim())
   if (mitt?.includes('@')) qImp.set('prefill_email', mitt.toLowerCase())
 
   return {
