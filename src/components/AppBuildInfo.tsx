@@ -1,7 +1,7 @@
 'use client'
 
 import { useLocale } from '@/lib/locale-context'
-import { formatAppBuildLine } from '@/lib/app-build-info'
+import { formatAppBuildLine, formatAppVersionLabel } from '@/lib/app-build-info'
 
 type Props = {
   className?: string
@@ -13,14 +13,14 @@ type Props = {
 
 export default function AppBuildInfo({ className = '', compact, variant = 'default' }: Props) {
   const { t } = useLocale()
-  const line = formatAppBuildLine(t.ui)
+  const line = variant === 'rail' ? formatAppVersionLabel() : formatAppBuildLine(t.ui)
 
   return (
     <p
       className={[
         'select-text font-mono tabular-nums tracking-tight',
         variant === 'rail'
-          ? 'max-w-[6.5rem] text-right text-[7px] leading-tight text-white/28 sm:max-w-[7.25rem] sm:text-[8px]'
+          ? 'text-right text-[7px] leading-tight text-white sm:text-[8px]'
           : compact
             ? 'text-[9px] leading-snug text-white/22'
             : 'text-[11px] text-app-fg-muted/90',
@@ -28,7 +28,7 @@ export default function AppBuildInfo({ className = '', compact, variant = 'defau
       ]
         .filter(Boolean)
         .join(' ')}
-      title={t.ui.appBuildAria}
+      title={variant === 'rail' ? line : t.ui.appBuildAria}
     >
       {line}
     </p>

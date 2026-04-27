@@ -5,6 +5,11 @@
 
 export const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? '0.0.0'
 
+/** Solo etichetta versione (es. `v0.1.0`) per la rail sidebar — niente commit/env. */
+export function formatAppVersionLabel(): string {
+  return `v${APP_VERSION}`
+}
+
 export const VERCEL_GIT_COMMIT_SHA = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ?? ''
 
 export const VERCEL_ENV = process.env.NEXT_PUBLIC_VERCEL_ENV ?? ''
