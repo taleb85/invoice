@@ -51,7 +51,7 @@ const OPERATOR_KPI_CARD_MIN_H = 'min-h-[7.25rem] sm:min-h-[7.5rem] lg:min-h-[7.7
 
 /**
  * Stessi colori/drop-shadow della scheda fornitore (`supplierKpiPalette` + `buildSupplierKpiItems`).
- * Ordine tile: Ordini → Bolle → Fatturato → Verifica → Listino → Documenti.
+ * Ordine tile: … → Listino → Documenti (coda) → Documenti da revisionare.
  */
 const DASHBOARD_TILE_SUPPLIER_ICON_KEYS: (keyof typeof supplierKpiPalette)[] = [
   'conferme',
@@ -60,13 +60,20 @@ const DASHBOARD_TILE_SUPPLIER_ICON_KEYS: (keyof typeof supplierKpiPalette)[] = [
   'verifica',
   'listino',
   'documenti',
+  'verifica',
 ]
 
-/** Allinea accenti `operatorKpiVisual` all’ordine tile (Documenti in coda come in scheda). */
-const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 6, 1] as const
+/**
+ * Allinea accenti `operatorKpiVisual` all’ordine tile (7 card: 6 + «Documenti da revisionare»).
+ * L’ultima card in JSX usa `operatorKpiVisual[2]`; lo skeleton usa `operatorKpiVisualAt(6)` — serve il 7° indice
+ * o `operatorKpiVisualAt(6)` è `undefined` e il render va in TypeError (GET / in produzione).
+ */
+const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 6, 1, 2] as const
 
 function operatorKpiVisualAt(tileIndex: number) {
-  return operatorKpiVisual[OPERATOR_KPI_VISUAL_INDEX[tileIndex]!]
+  const k = Math.max(0, Math.min(tileIndex, OPERATOR_KPI_VISUAL_INDEX.length - 1))
+  const v = OPERATOR_KPI_VISUAL_INDEX[k]!
+  return operatorKpiVisual[v] ?? operatorKpiVisual[0]!
 }
 
 function dashboardKpiIconSvgClass(index: number) {

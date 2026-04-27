@@ -1,17 +1,17 @@
-const CACHE_NAME = 'fluxo-v3'
+/** Bump quando cambi strategia cache — activate pulisce le vecchie. */
+const CACHE_NAME = 'fluxo-v4'
 const OFFLINE_URL = '/offline'
 
 // API routes to cache with NetworkFirst strategy (fallback to cache when offline)
-const API_CACHE_NAME = 'fluxo-api-v1'
+// /api/me NON in lista: sessione/ruolo devono essere sempre freschi (evita UI «gestionale» con dati vecchi in PWA).
+const API_CACHE_NAME = 'fluxo-api-v2'
 const API_CACHE_ROUTES = {
-  '/api/me': 60 * 60,              // 1 hour
   '/api/fornitori': 30 * 60,        // 30 minutes
   '/api/bolle-aperte': 5 * 60,      // 5 minutes
 }
 
-// Asset statici da pre-cachare all'installazione
+// Asset statici da pre-cachare all'installazione (no `/` — la shell app è auth e cambia spesso; la navigazione usa solo rete)
 const PRECACHE_URLS = [
-  '/',
   '/offline',
   '/manifest.json',
   '/favicon.svg',

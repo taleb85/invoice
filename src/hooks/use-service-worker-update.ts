@@ -9,15 +9,14 @@ export function useServiceWorkerUpdate() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
-    navigator.serviceWorker.getRegistration().then(reg => {
-      if (!reg) return
+    const syncWaitingState = (reg: ServiceWorkerRegistration) => {
       setRegistration(reg)
-
-      // Already a waiting worker (page was kept open during a background update)
       if (reg.waiting) {
         setUpdateAvailable(true)
       }
+    }
 
+    const attachUpdateFound = (reg: ServiceWorkerRegistration) => {
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing
         if (!newWorker) return
@@ -27,7 +26,31 @@ export function useServiceWorkerUpdate() {
           }
         })
       })
+    }
+
+    void navigator.serviceWorker.getRegistration().then((reg) => {
+      if (!reg) return
+      syncWaitingState(reg)
+      attachUpdateFound(reg)
     })
+
+    // Controlla nuova versione del SW: all’avvio, ogni ora, quando il tab torna in primo piano
+    const checkForNewWorker = () => {
+      void navigator.serviceWorker.getRegistration().then((reg) => {
+        if (!reg) return
+        void reg.update().then(() => {
+          syncWaitingState(reg)
+        })
+      })
+    }
+    void checkForNewWorker()
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void checkForNewWorker()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    const interval = window.setInterval(() => {
+      void checkForNewWorker()
+    }, 60 * 60 * 1000)
 
     // When the new SW takes control, reload the page to get the fresh assets
     let refreshing = false
@@ -37,6 +60,11 @@ export function useServiceWorkerUpdate() {
         window.location.reload()
       }
     })
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.clearInterval(interval)
+    }
   }, [])
 
   function applyUpdate() {
