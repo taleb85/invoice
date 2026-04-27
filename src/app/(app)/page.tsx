@@ -323,28 +323,6 @@ export default async function DashboardPage({
       )}
       {operatorScoped ? (
         <>
-          {isAdminSede && sedeId ? (
-            <div className="hidden flex-wrap gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-950/20 px-3 py-3 md:flex md:items-center">
-              <Link
-                href={`/fornitori/new?prefill_sede_id=${encodeURIComponent(sedeId)}`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-violet-500"
-              >
-                {t.fornitori.new}
-              </Link>
-              <Link
-                href={`/sedi/${sedeId}#sede-operatori`}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] px-3 py-2 text-xs font-semibold text-violet-200 transition-colors hover:bg-violet-950/40"
-              >
-                {t.sedi.addOperatorSedeTitle}
-              </Link>
-              <Link
-                href="/log"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-28 px-3 py-2 text-xs font-medium text-app-fg-muted transition-colors hover:bg-black/12"
-              >
-                {t.nav.logEmail}
-              </Link>
-            </div>
-          ) : null}
           {dashboardAdminSedeUi && sedeId ? (
             <DashboardAdminMobileActions
               sedeId={sedeId}
