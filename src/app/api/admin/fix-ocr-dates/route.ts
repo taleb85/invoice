@@ -308,8 +308,8 @@ export async function POST(req: NextRequest) {
       return 2
     }
     const fatturaPrio = (r: FatturaRow) => (isSuspiciousDocumentDate(r.data) ? 0 : 1)
-    bolle.sort((a, b) => bollaPrio(a) - bollaPrio(b) || a.data.localeCompare(b.data))
-    fatture.sort((a, b) => fatturaPrio(a) - fatturaPrio(b) || a.data.localeCompare(b.data))
+    bolle.sort((a, b) => bollaPrio(a) - bollaPrio(b) || b.data.localeCompare(a.data))
+    fatture.sort((a, b) => fatturaPrio(a) - fatturaPrio(b) || b.data.localeCompare(a.data))
 
     queue = [
       ...bolle.map((row) => ({ kind: 'bolla' as const, row })),
