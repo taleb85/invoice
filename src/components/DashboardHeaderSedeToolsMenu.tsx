@@ -127,6 +127,8 @@ export default function DashboardHeaderSedeToolsMenu({ fornitoriInScadenza = 0 }
     const onDoc = (e: MouseEvent) => {
       const node = e.target as Node
       if (triggerRef.current?.contains(node) || panelRef.current?.contains(node)) return
+      const el = node instanceof Element ? node : node.parentElement
+      if (el?.closest('[data-fluxo-email-sync-popover]')) return
       setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {

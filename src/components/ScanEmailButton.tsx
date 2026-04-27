@@ -452,6 +452,7 @@ export default function ScanEmailButton({
                 id={headerMenuId}
                 role="dialog"
                 aria-label={t.dashboard.syncEmail}
+                data-fluxo-email-sync-popover
                 style={{
                   position: 'fixed',
                   top: headerMenuRect.top,
