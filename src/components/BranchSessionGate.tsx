@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useLayoutEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
@@ -25,11 +25,12 @@ function isAccessoPath(pathname: string | null | undefined): boolean {
  * Per operatore / admin_sede: finché non c’è conferma nella sessione browser (sessionStorage),
  * reindirizza a /accesso (nome + PIN). Il login iniziale imposta il flag per evitare doppio passaggio.
  *
- * `canRender` è calcolato in render (non solo in useEffect) così, dopo codice sede o PIN,
- * non restiamo con `allowed=false` per un frame / per sempre se l’effetto non aggiorna lo stato.
+ * `canRender` è calcolato in render così, dopo codice sede o PIN, non restiamo con `allowed=false`
+ * per un frame o per sempre.
  *
- * Primo pass (SSR + prima pittura client): nessun uso di `sessionStorage` nel branch visivo;
- * dopo `useLayoutEffect` si applica `canRender` così server e client coincidono.
+ * Niente stato “hasMounted + spinner unico per tutti”: lasciava l’app su “Caricamento” se
+ * l’idratazione o gli effetti non completa­vano, e l’HTML cliente non combaciava con i ruoli
+ * che passano al gate (admin vs operatore) nel primo frame.
  */
 function GateLoading({ label }: { label: string }) {
   return (
@@ -48,7 +49,6 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
   const pathname = usePathname()
   const { me, loading } = useMe()
   const { t } = useLocale()
-  const [hasMounted, setHasMounted] = useState(false)
 
   const onAccesso = isAccessoPath(pathname)
 
@@ -59,26 +59,15 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
     isSessionOperatorGateOk()
 
   useLayoutEffect(() => {
-    setHasMounted(true)
-  }, [])
-
-  useEffect(() => {
     if (loading) return
     if (onAccesso || !me?.user || !branchSessionGateRequiredRole(me.role)) return
     if (isSessionOperatorGateOk()) return
-
+    if (typeof window === 'undefined') return
     const next = safeNextPath(pathname)
-    if (typeof window !== 'undefined') {
-      const url = `${ACCESSO_PATH}?next=${encodeURIComponent(next)}`
-      if (window.location.pathname !== ACCESSO_PATH) {
-        window.location.assign(url)
-      }
-    }
+    const url = `${ACCESSO_PATH}?next=${encodeURIComponent(next)}`
+    if (window.location.pathname === ACCESSO_PATH) return
+    window.location.replace(url)
   }, [loading, me?.user, me?.role, pathname, onAccesso])
-
-  if (!hasMounted) {
-    return <GateLoading label={t.common.loading} />
-  }
 
   if (!canRender) {
     return <GateLoading label={t.common.loading} />
