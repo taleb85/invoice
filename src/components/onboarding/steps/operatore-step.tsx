@@ -102,7 +102,7 @@ export function OperatoreStep({ sedeId, onComplete, onSkip }: Props) {
             />
           ))}
         </div>
-        <p className="mt-2 text-center text-[11px] text-white/30">L'operatore userà questo PIN per accedere</p>
+        <p className="mt-2 text-center text-[11px] text-white/30">{"L'operatore userà questo PIN per accedere"}</p>
       </div>
 
       {error && (

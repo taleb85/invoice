@@ -105,7 +105,7 @@ export async function GET() {
   // ── Per-sede breakdown ─────────────────────────────────────────────────────
   const knownSedeIds = Object.keys(sedeMap).filter((id) => id !== '__unknown__')
 
-  let sedeNomi: Record<string, string> = {}
+  const sedeNomi: Record<string, string> = {}
   if (knownSedeIds.length > 0) {
     const { data: sedi } = await service
       .from('sedi')

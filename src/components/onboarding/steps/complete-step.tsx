@@ -28,7 +28,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
       </div>
 
       <h2 className="text-2xl font-bold text-white">Tutto pronto!</h2>
-      <p className="mt-1 text-sm text-white/50">Smart Pair è configurato e pronto all'uso</p>
+      <p className="mt-1 text-sm text-white/50">{"Smart Pair è configurato e pronto all'uso"}</p>
 
       {/* Summary */}
       {(sedeNome || fornitoreNome || operatoreNome) && (
