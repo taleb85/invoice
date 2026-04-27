@@ -9,7 +9,7 @@
  * hydration from the SSR payload so there is no loading flash.
  */
 
-import { createContext, useContext, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useCallback, useEffect, type ReactNode } from 'react'
 import useSWR, { mutate as globalMutate } from 'swr'
 
 export interface MeData {
@@ -44,6 +44,12 @@ export const ME_SWR_KEY = '/api/me'
 
 /** Evita schermata "Caricamento…" infinita se /api/me non risponde (rete mobile, tab in background). */
 const ME_FETCH_TIMEOUT_MS = 20_000
+
+/**
+ * Dopo `ME_FETCH_TIMEOUT_MS` SWR potrebbe ancora segnalare isLoading in casi rari; se restiamo
+ * senza `me` oltre questo margine, reindirizza al login invece della splash fissa.
+ */
+const ME_SESSION_BOOT_SAFETY_MS = ME_FETCH_TIMEOUT_MS + 6_000
 
 /**
  * Dopo `signInWithPassword` il client Supabase può non avere ancora scritto i cookie
@@ -224,6 +230,19 @@ export function UserProvider({
   // data === null means a non-ok response (401/404) — fall back to initialMe
   const me = data === null ? (initialMe ?? null) : (data ?? null)
   const loading = isLoading && me === null
+
+  useEffect(() => {
+    if (me) return
+    if (!isLoading) return
+    const id = window.setTimeout(() => {
+      try {
+        window.location.replace('/login?session=me_stuck')
+      } catch {
+        window.location.replace('/login')
+      }
+    }, ME_SESSION_BOOT_SAFETY_MS)
+    return () => window.clearTimeout(id)
+  }, [me, isLoading])
 
   const refresh = useCallback(() => { mutate() }, [mutate])
 

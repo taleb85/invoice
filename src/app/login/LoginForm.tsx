@@ -175,6 +175,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   // Populated when the user is redirected here after a server-side session expiry.
   const expiredReason = searchParams?.get('reason') ?? null
+  const sessionBootStuck = searchParams?.get('session') === 'me_stuck'
 
   const [mode, setMode]     = useState<'name' | 'admin'>('name')
   const [loading, setLoading] = useState(false)
@@ -981,12 +982,16 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   return (
     <div className="w-full">
 
-      {expiredReason && (
+      {(expiredReason || sessionBootStuck) && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-200">
           <svg className="h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           </svg>
-          <span>{decodeURIComponent(expiredReason)}</span>
+          <span>
+            {sessionBootStuck
+              ? t.login.sessionBootStuck
+              : decodeURIComponent(String(expiredReason))}
+          </span>
         </div>
       )}
 

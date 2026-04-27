@@ -146,6 +146,8 @@ type Translations = {
     sessionGateTitle: string
     sessionGateSubtitle: string
     sessionGateWrongUser: string
+    /** Redirect da UserProvider se /api/me resta in caricamento oltre il limite (splash infinita). */
+    sessionBootStuck: string
     /** Griglia operatori stile Netflix (pagina login sede) */
     netflixTitle: string
     netflixSubtitle: string
@@ -1742,6 +1744,7 @@ const it: Translations = {
     sessionGateSubtitle:
       'Nuova sessione: inserisci di nuovo il tuo nome e il PIN a 4 cifre per continuare.',
     sessionGateWrongUser: 'Questo nome non corrisponde all’account con cui hai effettuato l’accesso.',
+    sessionBootStuck: 'Il profilo non si è caricato in tempo. Accedi di nuovo.',
     netflixTitle: 'Chi è di turno?',
     netflixSubtitle: 'Tocca il tuo nome per accedere',
     netflixManualLogin: 'Non trovi il tuo nome? Accedi manualmente →',
@@ -3082,6 +3085,7 @@ const en: Translations = {
     sessionGateTitle: 'Confirm Access',
     sessionGateSubtitle: 'New browser session — re-enter your name and 4-digit PIN to continue.',
     sessionGateWrongUser: 'This name does not match the signed-in account.',
+    sessionBootStuck: 'The session did not load in time. Please sign in again.',
     netflixTitle: "Who's on shift?",
     netflixSubtitle: 'Tap your name to sign in',
     netflixManualLogin: "Can't find your name? Sign in manually →",
@@ -3761,6 +3765,7 @@ const es: Translations = {
     sessionGateTitle: 'Confirmar acceso',
     sessionGateSubtitle: 'Nueva sesión: introduce de nuevo tu nombre y el PIN de 4 dígitos para continuar.',
     sessionGateWrongUser: 'Este nombre no coincide con la cuenta con la que iniciaste sesión.',
+    sessionBootStuck: 'El perfil no cargó a tiempo. Vuelve a iniciar sesión.',
     netflixTitle: '¿Quién está de turno?',
     netflixSubtitle: 'Toca tu nombre para entrar',
     netflixManualLogin: '¿No encuentras tu nombre? Accede manualmente →',
@@ -4387,6 +4392,7 @@ const fr: Translations = {
     sessionGateTitle: 'Confirmer l’accès',
     sessionGateSubtitle: 'Nouvelle session : saisissez à nouveau votre nom et le PIN à 4 chiffres pour continuer.',
     sessionGateWrongUser: 'Ce nom ne correspond pas au compte avec lequel vous êtes connecté.',
+    sessionBootStuck: 'Le profil n’a pas chargé à temps. Veuillez vous reconnecter.',
     netflixTitle: 'Qui est de service ?',
     netflixSubtitle: 'Appuyez sur votre nom pour vous connecter',
     netflixManualLogin: 'Nom introuvable ? Connexion manuelle →',
@@ -5013,6 +5019,7 @@ const de: Translations = {
     sessionGateTitle: 'Zugang bestätigen',
     sessionGateSubtitle: 'Neue Sitzung: geben Sie erneut Ihren Namen und die 4-stellige PIN ein.',
     sessionGateWrongUser: 'Dieser Name passt nicht zum angemeldeten Konto.',
+    sessionBootStuck: 'Profil hat nicht rechtzeitig geladen. Bitte erneut anmelden.',
     netflixTitle: 'Wer hat Dienst?',
     netflixSubtitle: 'Tippe deinen Namen zum Einloggen',
     netflixManualLogin: 'Namen nicht gefunden? Manuell einloggen →',
