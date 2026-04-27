@@ -3,7 +3,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 export type SedeSupplierSuggestion = {
   displayName: string
   newFornitoreHref: string
-  importHref: string
 } | null
 
 type DocMeta = {
@@ -88,7 +87,6 @@ function buildSuggestionFromRow(row: { metadata: unknown; mittente: string | nul
   return {
     displayName,
     newFornitoreHref: `/fornitori/new?${qs}`,
-    importHref: `/fornitori/import?${qs}`,
   }
 }
 

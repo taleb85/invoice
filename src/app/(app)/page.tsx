@@ -319,12 +319,6 @@ export default async function DashboardPage({
                   {t.dashboard.suggestedSupplierAdd}
                 </Link>
                 <Link
-                  href={supplierHint.importHref}
-                  className="inline-flex items-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-800/45 px-3 py-2 text-xs font-semibold text-violet-100 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-violet-700/50 hover:text-white"
-                >
-                  {t.dashboard.suggestedSupplierImport}
-                </Link>
-                <Link
                   href="/statements/da-processare"
                   className="inline-flex items-center rounded-lg px-3 py-2 text-xs font-semibold text-violet-300 underline decoration-violet-400/60 underline-offset-2 transition-colors hover:text-violet-100 hover:decoration-violet-200"
                 >
