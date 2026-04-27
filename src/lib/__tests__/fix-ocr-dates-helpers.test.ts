@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { shouldMigrateBollaRowToFattura } from '@/lib/fix-ocr-dates-helpers'
+import {
+  shouldMigrateBollaRowToFattura,
+  inferContentTypeFromBuffer,
+} from '@/lib/fix-ocr-dates-helpers'
 
 describe('shouldMigrateBollaRowToFattura', () => {
   const baseUrl = 'https://xxx.supabase.co/storage/v1/object/public/documenti/ab/cd/uuid.jpg'
@@ -87,5 +90,23 @@ describe('shouldMigrateBollaRowToFattura', () => {
         existingImporto: null,
       }),
     ).toBe(true)
+  })
+})
+
+describe('inferContentTypeFromBuffer', () => {
+  it('detects JPEG', () => {
+    const b = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0])
+    expect(inferContentTypeFromBuffer(b)).toBe('image/jpeg')
+  })
+  it('detects PNG', () => {
+    const b = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xd, 0xa, 0x1a, 0xa, 0, 0, 0, 0])
+    expect(inferContentTypeFromBuffer(b)).toBe('image/png')
+  })
+  it('detects PDF', () => {
+    const b = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0, 0, 0, 0, 0, 0])
+    expect(inferContentTypeFromBuffer(b)).toBe('application/pdf')
+  })
+  it('returns null for empty buffer', () => {
+    expect(inferContentTypeFromBuffer(Buffer.alloc(0))).toBeNull()
   })
 })

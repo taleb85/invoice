@@ -151,3 +151,18 @@ export function resolvedContentTypeFromFetch(url: string, header: string | null)
   if (u.endsWith('.gif')) return 'image/gif'
   return h || 'application/octet-stream'
 }
+
+/**
+ * Quando lo storage restituisce `application/octet-stream` o header vuoto, ricava
+ * il MIME dai magic bytes (scan AI / upload senza estensione nell’URL).
+ */
+export function inferContentTypeFromBuffer(buf: ArrayBuffer | Buffer): string | null {
+  const b = Buffer.isBuffer(buf) ? buf : Buffer.from(new Uint8Array(buf as ArrayBuffer))
+  if (b.length < 12) return null
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg'
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png'
+  if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return 'application/pdf'
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'image/gif'
+  if (b.toString('ascii', 0, 4) === 'RIFF' && b.length >= 12 && b.toString('ascii', 8, 12) === 'WEBP') return 'image/webp'
+  return null
+}

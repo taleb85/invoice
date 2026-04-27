@@ -7,6 +7,7 @@ import { safeDate } from '@/lib/safe-date'
 import {
   isSuspiciousDocumentDate,
   resolvedContentTypeFromFetch,
+  inferContentTypeFromBuffer,
   bollaNeedsOcrPass,
   fatturaNeedsOcrPass,
   shouldMigrateBollaRowToFattura,
@@ -458,8 +459,9 @@ export async function POST(req: NextRequest) {
         buf = dl.data
         contentType = resolvedContentTypeFromFetch(url, dl.contentType)
       }
-      if (contentType === 'application/octet-stream' && url.toLowerCase().includes('.pdf')) {
-        contentType = 'application/pdf'
+      if (contentType !== 'application/pdf' && !contentType.startsWith('image/')) {
+        const sniffed = inferContentTypeFromBuffer(buf)
+        if (sniffed) contentType = sniffed
       }
       if (contentType !== 'application/pdf' && !contentType.startsWith('image/')) {
         report.errors.push({ id, table, message: `Tipo non supportato: ${contentType}` })

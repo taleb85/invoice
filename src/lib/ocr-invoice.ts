@@ -123,9 +123,9 @@ export type OcrInvoiceOptions = {
   /** Called with token-usage stats after each successful Gemini call. */
   onUsage?: (usage: GeminiUsage) => void
   /**
-   * PDFs with extractable text use a fast text-only Gemini pass by default.
-   * Set true to always send the PDF to vision (layout + headers) — better `tipo_documento` (invoice vs DDT).
-   * Use for admin “Rianalizza” / re-classify on a single row.
+   * Singola riga “Rianalizza” in admin: (1) PDF → salta testo e usa vision; (2) immagini/scan
+   * da telefono → suffisso prompt dedicato (titolo, foto, perspective). Sempre usato con `bolla_id`/`fattura_id`.
+   * Nome legacy: in passato serviva soprattutto per i PDF; vale anche per JPEG/PNG di scanner AI.
    */
   preferVisionForPdf?: boolean
 }
@@ -414,7 +414,7 @@ export async function ocrInvoice(
   const rianalizzaVisionSuffix = options?.preferVisionForPdf
     ? `
 
-[Re-analysis: PDF shown as pages in vision] Classify from the VISIBLE layout — largest header, title block, and fiscal cues on page 1. If the main title is Tax / VAT / Commercial / Sales invoice, Fattura, Factura, Rechnung in a fiscal context, set tipo_documento to "fattura". Use "ddt" or "bolla" only when the dominant title is clearly a transport / delivery / despatch docket with no full tax-invoice form. Do not guess from file name.`
+[Re-analysis: full document in vision] The file may be a **multi-page PDF** or a **phone photograph / camera scan** (not typed text on screen). For **photos and scans**: ignore desk background and fingers if visible; allow for perspective skew, shadows, and moiré; read the **largest printed title** on the paper. Classify tipo_documento from the **visible document header and layout** (tax lines, VAT, invoice number fields vs delivery/DDT wording), not from filename. If the main visible title is Tax / VAT / Commercial / Sales invoice, Fattura, Factura, Rechnung in a **fiscal** context, set tipo_documento to "fattura". Use "ddt" or "bolla" only when the dominant title is clearly a **transport / delivery docket** without a full tax-invoice form.`
     : ''
 
   const visionTextPrompt =
