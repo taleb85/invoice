@@ -136,8 +136,9 @@ function isMissingColumnError(err: { message?: string } | null, col: string): bo
 
 /**
  * Rianalizza con Gemini (prompt aggiornato) i documenti in coda e corregge data / numero / importo.
- * Con `allow_tipo_migrate: true` (solo p.es. da Impostazioni) può anche spostare la riga tra `bolle` e `fatture`.
- * Senza quel flag, aggiorna solo i campi sulla riga corrente (niente bolla → fattura).
+ * Con `allow_tipo_migrate: true` (fornitore / Rianalizza / Impostazioni) può spostare la riga tra `bolle` e `fatture`.
+ * Con `fornitore_id` + flag: in coda entrano **anche** bolle con numero/importo già presenti (riclassifica), non solo quelle in `bollaNeedsOcrPass`.
+ * Senza flag, si aggiornano solo i campi sulla riga corrente (niente bolla → fattura).
  *
  * - `role === admin'`: senza `sede_id` elabora tutto il database; con `sede_id` filtra.
  * - `admin_sede`: obbliga `sede_id` uguale al profilo.
@@ -259,7 +260,11 @@ export async function POST(req: NextRequest) {
     const bollaById = new Map<string, BollaRow>()
     for (const r of (bolleByDate as BollaRow[] | null) ?? []) bollaById.set(r.id, r)
     for (const r of (bolleAllRows as BollaRow[] | null) ?? []) bollaById.set(r.id, r)
-    const bolle: BollaRow[] = [...bollaById.values()].filter((r) => bollaNeedsOcrPass(r))
+    /** Con `allow_tipo_migrate` servono anche righe con numero/importo già piene (riclassifica bolla→fattura). */
+    const bolle: BollaRow[] = [...bollaById.values()].filter(
+      (r) =>
+        bollaNeedsOcrPass(r) || (allowTipoMigrate && Boolean(r.file_url?.trim())),
+    )
 
     const { data: fattureByDate, error: fErr } = await loadSuspiciousFatture(
       service,
@@ -294,8 +299,14 @@ export async function POST(req: NextRequest) {
     for (const r of (fattureAllRows as FatturaRow[] | null) ?? []) fatturaById.set(r.id, r)
     const fatture: FatturaRow[] = [...fatturaById.values()].filter((r) => fatturaNeedsOcrPass(r))
 
-    /** Priorità: date sospette / incomplete gravi prima del limite */
-    const bollaPrio = (r: BollaRow) => (isSuspiciousDocumentDate(r.data) ? 0 : 1)
+    /**
+     * Priorità coda: 0 date sospette, 1 campi mancanti (numero/importo), 2 righe “piene” (solo bolla→fattura con allow_tipo_migrate).
+     */
+    const bollaPrio = (r: BollaRow) => {
+      if (isSuspiciousDocumentDate(r.data)) return 0
+      if (bollaNeedsOcrPass(r)) return 1
+      return 2
+    }
     const fatturaPrio = (r: FatturaRow) => (isSuspiciousDocumentDate(r.data) ? 0 : 1)
     bolle.sort((a, b) => bollaPrio(a) - bollaPrio(b) || a.data.localeCompare(b.data))
     fatture.sort((a, b) => fatturaPrio(a) - fatturaPrio(b) || a.data.localeCompare(b.data))
@@ -468,10 +479,14 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      /** Singola riga da «Rianalizza» (bolla_id / fattura_id): vision su PDF per layout e tipo, non solo testo estratto. */
+      /**
+       * • bolla_id / fattura_id: rianalizza riga
+       * • fornitore + allow_tipo_migrate + bolla: stessa qualità (PDF in vision) per bolla→fattura
+       */
       const preferVisionForPdf =
         (Boolean(bollaIdForce) && item.kind === 'bolla') ||
-        (Boolean(fatturaIdForce) && item.kind === 'fattura')
+        (Boolean(fatturaIdForce) && item.kind === 'fattura') ||
+        (allowTipoMigrate && Boolean(fornitoreIdBatch) && item.kind === 'bolla')
 
       const ocr = await ocrInvoice(new Uint8Array(buf), contentType, undefined, {
         preferVisionForPdf,
