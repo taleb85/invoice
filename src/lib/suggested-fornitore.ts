@@ -77,23 +77,18 @@ function buildSuggestionFromRow(row: { metadata: unknown; mittente: string | nul
   const nome = m?.ragione_sociale?.trim() || m?.p_iva?.trim() || 'Fornitore'
   const displayName = nome.length > 72 ? `${nome.slice(0, 72)}…` : nome
 
-  const qNew = new URLSearchParams()
-  if (m?.ragione_sociale?.trim()) qNew.set('prefill_nome', m.ragione_sociale.trim())
-  if (m?.p_iva?.trim()) qNew.set('prefill_piva', m.p_iva.trim())
-  if (m?.indirizzo?.trim()) qNew.set('prefill_indirizzo', m.indirizzo.trim())
+  const q = new URLSearchParams()
+  if (m?.ragione_sociale?.trim()) q.set('prefill_nome', m.ragione_sociale.trim())
+  if (m?.p_iva?.trim()) q.set('prefill_piva', m.p_iva.trim())
+  if (m?.indirizzo?.trim()) q.set('prefill_indirizzo', m.indirizzo.trim())
   const mitt = row.mittente?.trim()
-  if (mitt?.includes('@')) qNew.set('prefill_email', mitt.toLowerCase())
-
-  const qImp = new URLSearchParams()
-  if (m?.ragione_sociale?.trim()) qImp.set('prefill_nome', m.ragione_sociale.trim())
-  if (m?.p_iva?.trim()) qImp.set('prefill_piva', m.p_iva.trim())
-  if (m?.indirizzo?.trim()) qImp.set('prefill_indirizzo', m.indirizzo.trim())
-  if (mitt?.includes('@')) qImp.set('prefill_email', mitt.toLowerCase())
+  if (mitt?.includes('@')) q.set('prefill_email', mitt.toLowerCase())
+  const qs = q.toString()
 
   return {
     displayName,
-    newFornitoreHref: `/fornitori/new?${qNew.toString()}`,
-    importHref: `/fornitori/import?${qImp.toString()}`,
+    newFornitoreHref: `/fornitori/new?${qs}`,
+    importHref: `/fornitori/import?${qs}`,
   }
 }
 
