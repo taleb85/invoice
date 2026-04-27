@@ -80,6 +80,8 @@ type Translations = {
     emailSyncResumed: string
     /** Stream NDJSON chiuso senza evento `done` (timeout proxy, errore server, ecc.). */
     emailSyncStreamIncomplete: string
+    /** Secondo avvio sync mentre è già in corso (blocco heartbeat). */
+    emailSyncAlreadyRunning: string
     /** Toast dopo stop manuale sincronizzazione email. */
     emailSyncCancelled: string
     reminderError:    string
@@ -1727,6 +1729,8 @@ const it: Translations = {
     emailSyncResumed: 'Connessione ripristinata: sincronizzazione email ripresa.',
     emailSyncStreamIncomplete:
       'La sincronizzazione non è stata completata (risposta interrotta). Riprova.',
+    emailSyncAlreadyRunning:
+      'Sincronizzazione già in corso. Aspetta il completamento o interrompi dalla barra in alto.',
     emailSyncCancelled: 'Sincronizzazione email interrotta.',
     reminderError:    'Errore durante l\'invio.',
     noReminders:      'Nessun sollecito da inviare (fornitori senza email?).',
@@ -3098,6 +3102,8 @@ const en: Translations = {
     emailSyncResumed: 'Back online — email sync restarted.',
     emailSyncStreamIncomplete:
       'Sync did not finish (connection closed early). Please try again.',
+    emailSyncAlreadyRunning:
+      'Sync is already running. Wait for it to finish or cancel it from the bar at the top.',
     emailSyncCancelled: 'Email sync stopped.',
     reminderError:    'Error sending reminders.',
     noReminders:      'No reminders to send (suppliers without email?).',
@@ -3792,6 +3798,8 @@ const es: Translations = {
     emailSyncResumed: 'Conexión restablecida: reanudando sincronización de correo.',
     emailSyncStreamIncomplete:
       'La sincronización no terminó (conexión cerrada antes de tiempo). Inténtalo de nuevo.',
+    emailSyncAlreadyRunning:
+      'La sincronización ya está en curso. Espera a que termine o cancélala en la barra superior.',
     emailSyncCancelled: 'Sincronización de correo detenida.',
     reminderError:    'Error al enviar recordatorios.',
     noReminders:      'No hay recordatorios que enviar (¿proveedores sin email?).',
@@ -4433,6 +4441,8 @@ const fr: Translations = {
     emailSyncResumed: 'Connexion rétablie — reprise de la synchronisation e-mail.',
     emailSyncStreamIncomplete:
       'La synchronisation n’a pas abouti (connexion interrompue). Réessayez.',
+    emailSyncAlreadyRunning:
+      'Une synchronisation est déjà en cours. Attendez la fin ou annulez-la depuis la barre en haut.',
     emailSyncCancelled: 'Synchronisation e-mail interrompue.',
     reminderError:    'Erreur lors de l\'envoi des rappels.',
     noReminders:      'Aucun rappel à envoyer (fournisseurs sans email ?).',
@@ -5074,6 +5084,8 @@ const de: Translations = {
     emailSyncResumed: 'Verbindung wiederhergestellt — E-Mail-Sync wird fortgesetzt.',
     emailSyncStreamIncomplete:
       'Synchronisation unvollständig (Verbindung vorzeitig beendet). Bitte erneut versuchen.',
+    emailSyncAlreadyRunning:
+      'Synchronisation läuft bereits. Warten Sie auf Abschluss oder brechen Sie oben ab.',
     emailSyncCancelled: 'E-Mail-Synchronisation abgebrochen.',
     reminderError:    'Fehler beim Senden der Mahnungen.',
     noReminders:      'Keine Mahnungen zu senden (Lieferanten ohne E-Mail?).',

@@ -81,11 +81,18 @@ export function EmailSyncProgressProvider({ children }: { children: ReactNode })
           emailSyncResumed: t.ui.emailSyncResumed,
           networkError: t.ui.networkError,
           emailSyncStreamIncomplete: t.ui.emailSyncStreamIncomplete,
+          emailSyncAlreadyRunning: t.ui.emailSyncAlreadyRunning,
         },
         () => router.refresh(),
       )
     },
-    [router, t.ui.emailSyncResumed, t.ui.networkError, t.ui.emailSyncStreamIncomplete],
+    [
+      router,
+      t.ui.emailSyncResumed,
+      t.ui.networkError,
+      t.ui.emailSyncStreamIncomplete,
+      t.ui.emailSyncAlreadyRunning,
+    ],
   )
 
   const cancelEmailSync = useCallback(() => {

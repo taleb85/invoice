@@ -139,12 +139,17 @@ export default function ScanEmailButton({
 
       if (emailSync) {
         await emailSync.runEmailSync(payload)
-        // Mirror any error from the global store into the local toast so the
-        // inline popup can show it (the global progress bar may not be visible).
+        // Mirror error/warn from the global store into the local toast (header popover
+        // may hide the global progress bar while the menu is open).
         const snap = getEmailSyncProgressSnapshot()
         if (snap.toast?.type === 'error') {
           setToast({ type: 'error', text: snap.toast.text })
           setTimeout(() => setToast(null), 7000)
+          return false
+        }
+        if (snap.toast?.type === 'warn') {
+          setToast({ type: 'warn', text: snap.toast.text })
+          setTimeout(() => setToast(null), 8000)
           return false
         }
         revalidateActivityLogSwr()

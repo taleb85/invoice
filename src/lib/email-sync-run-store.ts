@@ -208,6 +208,7 @@ type RunMessages = {
   emailSyncResumed: string
   networkError: string
   emailSyncStreamIncomplete: string
+  emailSyncAlreadyRunning: string
 }
 
 /**
@@ -224,7 +225,17 @@ export async function runEmailSyncJob(
   if (progressStore.active) {
     const tick = getLastEmailSyncStreamTick()
     const heartbeatFresh = tick > 0 && Date.now() - tick < SYNC_STALE_LOCK_MS
-    if (heartbeatFresh) return
+    if (heartbeatFresh) {
+      applyEmailSyncProgress((p) => ({
+        ...p,
+        toast: { type: 'warn', text: messages.emailSyncAlreadyRunning },
+      }))
+      window.setTimeout(
+        () => applyEmailSyncProgress((p) => (p.toast?.text === messages.emailSyncAlreadyRunning ? { ...p, toast: null } : p)),
+        8000,
+      )
+      return
+    }
     applyEmailSyncProgress(() => ({ ...initialProgress }))
   }
 
