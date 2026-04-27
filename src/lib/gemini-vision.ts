@@ -1,6 +1,5 @@
 /**
- * Gemini 2.5 Flash-Lite vision service — replacement for OpenAI Vision.
- * Used for OCR of invoices, delivery notes, statements, and price lists.
+ * Gemini 2.5 Flash-Lite vision / text: OCR fatture, DDT, estratti, listini.
  *
  * Supports both text-only and multimodal (image + PDF) calls.
  * Gemini handles PDFs natively — no rasterization or Files API needed.

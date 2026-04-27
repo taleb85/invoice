@@ -7,7 +7,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
 
   const missing: string[] = []
-  if (!process.env.OPENAI_API_KEY?.trim()) missing.push('OPENAI_API_KEY')
+  if (!process.env.GEMINI_API_KEY?.trim()) missing.push('GEMINI_API_KEY')
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) missing.push('NEXT_PUBLIC_SUPABASE_URL')
   if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY')
 

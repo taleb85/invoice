@@ -15,7 +15,7 @@ Questa guida descrive i passaggi per portare **FLUXO** in produzione su Vercel i
 |---|---|
 | Account Vercel | [vercel.com](https://vercel.com) |
 | Progetto Supabase attivo | [supabase.com](https://supabase.com) |
-| Chiave OpenAI (OCR) | [platform.openai.com](https://platform.openai.com) |
+| Chiave Google AI / Gemini (OCR) | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | Chiave Resend (email) | [resend.com](https://resend.com) |
 | Node.js ≥ 18 installato | [nodejs.org](https://nodejs.org) |
 | Vercel CLI installata | `npm i -g vercel` |
@@ -46,8 +46,8 @@ vercel env add NEXT_PUBLIC_SUPABASE_URL
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
 vercel env add SUPABASE_SERVICE_ROLE_KEY
 
-# OpenAI (OCR fatture)
-vercel env add OPENAI_API_KEY
+# Google AI — Gemini (OCR fatture)
+vercel env add GEMINI_API_KEY
 
 # Resend (invio solleciti)
 vercel env add RESEND_API_KEY

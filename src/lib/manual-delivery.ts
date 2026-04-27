@@ -1,7 +1,7 @@
 /**
  * Digitalizzazione del ricevuto — consegne senza bolla cartacea.
  *
- * - Parsing AI (gpt-4o-mini) → JSON rigoroso: prodotto, quantità, unità.
+ * - Parsing AI (Gemini) → JSON rigoroso: prodotto, quantità, unità.
  * - Persistenza su `statements` + `statement_rows` + `runTripleCheck` (invariato).
  * - Flag `is_manual_entry: true` nel payload `bolle_json` (array sintetico compatibile con la UI
  *   che si aspetta `bolle_json` come lista di oggetti con id/importo/data/numero_bolla).
@@ -126,7 +126,7 @@ const VISION_SYSTEM_SUFFIX = `
 When the user message includes an image: read handwriting, printed receipts, or delivery lists in the photo and return the same JSON "rows" format. If plain text is also provided, combine it with the image (merge items; skip obvious duplicates).`
 
 /**
- * Testo libero e/o foto → JSON strutturato (prodotto, quantità, unità) via OpenAI.
+ * Testo libero e/o foto → JSON strutturato (prodotto, quantità, unità) via Gemini.
  */
 export async function extractManualDeliveryLines(
   userText: string | undefined | null,

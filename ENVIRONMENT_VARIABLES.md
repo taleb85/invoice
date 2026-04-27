@@ -11,7 +11,7 @@ This document lists all environment variables required to run and deploy the Sma
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (public) | `https://xxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key (public) | `eyJ...` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key (secret — never expose client-side) | `eyJ...` |
-| `OPENAI_API_KEY` | OpenAI API key for OCR/GPT-4o invoice scanning | `sk-...` |
+| `GEMINI_API_KEY` | Google AI (Gemini) key for document OCR and extraction — [AI Studio](https://aistudio.google.com/apikey) | `AI...` |
 
 ---
 
@@ -47,7 +47,7 @@ node -e "const wp=require('web-push'); const k=wp.generateVAPIDKeys(); console.l
 | `COMPANIES_HOUSE_API_KEY` | Companies House (UK) API key for UK VAT number lookups in `/api/vat-lookup`. Leave empty to skip UK lookups. | _(empty)_ |
 | `REKKI_API_KEY` | Rekki marketplace API key for order sync and price list import | _(empty)_ |
 | `REKKI_SUPPLIERS_SEARCH_URL` | Rekki suppliers search endpoint URL | _(empty)_ |
-| `OCR_VISION_CONCURRENCY` | Max parallel GPT-4o OCR calls during email scan (default: 3) | `3` |
+| `OCR_VISION_CONCURRENCY` | Max parallel Gemini OCR calls during email scan (default: 3) | `3` |
 
 ---
 
@@ -103,8 +103,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
-# OpenAI
-OPENAI_API_KEY=sk-...
+# Google AI — Gemini (OCR)
+GEMINI_API_KEY=
 
 # Site URL
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
@@ -132,7 +132,7 @@ Make sure these are set in **Settings → Environment Variables** on Vercel:
 - [x] `NEXT_PUBLIC_SUPABASE_URL`
 - [x] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - [x] `SUPABASE_SERVICE_ROLE_KEY`
-- [x] `OPENAI_API_KEY`
+- [x] `GEMINI_API_KEY`
 - [x] `NEXT_PUBLIC_SITE_URL`
 - [x] `CRON_SECRET`
 - [x] `RESEND_API_KEY`

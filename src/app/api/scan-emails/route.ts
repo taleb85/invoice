@@ -711,9 +711,9 @@ async function processEmails(
   let preFiltered = 0
   const rekkiPersistedUids = new Set<number>()
 
-  if (!process.env.OPENAI_API_KEY?.trim()) {
+  if (!process.env.GEMINI_API_KEY?.trim()) {
     console.error(
-      '[PROCESS] OPENAI_API_KEY assente o vuota: l\'estrazione OCR produrrà campi vuoti per tutti i documenti finché non viene configurata.'
+      "[PROCESS] GEMINI_API_KEY assente o vuota: l'estrazione OCR produrrà campi vuoti per tutti i documenti finché non è configurata.",
     )
   }
 

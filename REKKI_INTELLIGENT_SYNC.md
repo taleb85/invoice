@@ -223,8 +223,8 @@ GMAIL_REFRESH_TOKEN=your_refresh_token
 # Cron Security
 CRON_SECRET=your_secret_key
 
-# OpenAI (per parsing avanzato se necessario)
-OPENAI_API_KEY=your_api_key
+# Google AI — Gemini (OCR / estrazione)
+GEMINI_API_KEY=your_api_key
 ```
 
 ### Configurazione Cron in `vercel.json`

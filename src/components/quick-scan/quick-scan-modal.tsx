@@ -175,7 +175,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
           <div className="w-16 h-16 rounded-full border-4 border-[#22d3ee] border-t-transparent animate-spin" />
           <p className="text-white/70">Analisi documento in corso...</p>
-          <p className="text-white/40 text-xs">GPT-4o sta leggendo il documento</p>
+          <p className="text-white/40 text-xs">L&apos;estrazione AI sta analizzando il documento</p>
         </div>
       )}
 
