@@ -16,8 +16,15 @@ type UsageRow = {
   created_at: string
 }
 
+function parseFlexibleInstant(raw: string | null): Date | null {
+  const s = raw?.trim()
+  if (!s) return null
+  const d = new Date(s)
+  return Number.isFinite(d.getTime()) ? d : null
+}
+
 /** Inclusive UTC day bounds from YYYY-MM-DD strings. */
-function boundsFromDates(fromRaw: string | null, toRaw: string | null): { fromTs: string; toTsInclusive: string } {
+function boundsFromDates(fromRaw: string | null, toRaw: string | null): { fromTs: string; toInclusive: string } {
   const now = new Date()
   const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
   const from =
@@ -33,9 +40,9 @@ function boundsFromDates(fromRaw: string | null, toRaw: string | null): { fromTs
   let fromTs = `${from}T00:00:00.000Z`
   let toDay = to
   if (toDay < from) toDay = from
-  let toTsInclusive = `${toDay}T23:59:59.999Z`
+  const toInclusive = `${toDay}T23:59:59.999Z`
 
-  return { fromTs, toTsInclusive }
+  return { fromTs, toInclusive }
 }
 
 export async function GET(req: NextRequest) {
@@ -46,7 +53,24 @@ export async function GET(req: NextRequest) {
 
   const sp = req.nextUrl.searchParams
   const sedeRequested = sp.get('sede_id')?.trim() || ''
-  const { fromTs, toTsInclusive } = boundsFromDates(sp.get('from'), sp.get('to'))
+
+  /** Preciso (es. "Oggi" = inizio giornata locale → ora) */
+  const afterInst = parseFlexibleInstant(sp.get('after'))
+  const beforeInst = parseFlexibleInstant(sp.get('before'))
+
+  let fromTs: string
+  let toUpper: string /** upper bound inclusivo per lte */
+  let rangeMode: 'instant' | 'day' = 'day'
+
+  if (afterInst && beforeInst && beforeInst.getTime() >= afterInst.getTime()) {
+    fromTs = afterInst.toISOString()
+    toUpper = beforeInst.toISOString()
+    rangeMode = 'instant'
+  } else {
+    const b = boundsFromDates(sp.get('from'), sp.get('to'))
+    fromTs = b.fromTs
+    toUpper = b.toInclusive
+  }
 
   const service = createServiceClient()
   let query = service
@@ -55,7 +79,7 @@ export async function GET(req: NextRequest) {
       'id, sede_id, documento_id, model, tokens_input, tokens_output, costo_usd, tipo, created_at',
     )
     .gte('created_at', fromTs)
-    .lte('created_at', toTsInclusive)
+    .lte('created_at', toUpper)
     .order('created_at', { ascending: false })
     .limit(8000)
 
@@ -181,7 +205,13 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    period: { from: fromTs.slice(0, 10), to: toTsInclusive.slice(0, 10) },
+    period: {
+      start: fromTs,
+      end: toUpper,
+      range_mode: rangeMode,
+      label_from_date: fromTs.slice(0, 10),
+      label_to_date: toUpper.slice(0, 10),
+    },
     model: GEMINI_MODEL,
     pricing: GEMINI_PRICING,
     scansioni_totali,

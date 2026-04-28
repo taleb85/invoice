@@ -1,28 +1,77 @@
 'use client'
 
 import { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
-import { defaultFiscalYearLabel, fiscalYearRangeUtc } from '@/lib/fiscal-year'
 
-type PeriodPreset = 'week' | 'month' | 'fy'
+/** ── Date helpers (calendar locale browser, anno fiscale UK = 6 aprile) ── */
 
-function periodPresetRange(countryCode: string, preset: PeriodPreset): { from: string; to: string } {
-  const iso = (d: Date) => d.toISOString().slice(0, 10)
+function localYmd(d: Date): string {
+  const y = d.getFullYear()
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
+}
+
+export type PeriodPreset =
+  | 'today'
+  | 'week'
+  | 'month'
+  | 'last90'
+  | 'fy_curr_uk'
+  | 'fy_prev_uk'
+  | 'custom'
+
+/** Inizio anno fiscale UK corrente (6 apr locale). */
+function ukCurrentFiscalYearStartAnchor(today = new Date()): Date {
+  const cy = today.getFullYear()
+  const fyStartThisYear = new Date(cy, 3, 6) // aprile = 3
+  return today >= fyStartThisYear ? fyStartThisYear : new Date(cy - 1, 3, 6)
+}
+
+function presetDateRangeUk(
+  preset: Exclude<PeriodPreset, 'today' | 'custom'>,
+): { mode: 'day'; from: string; to: string } {
   const now = new Date()
-  const todayIso = iso(now)
+  const today0 = startOfLocalDay(now)
+  const todayIso = localYmd(today0)
 
   if (preset === 'week') {
-    const start = new Date(now)
-    start.setUTCDate(start.getUTCDate() - 6)
-    return { from: iso(start), to: todayIso }
+    const weekStart = new Date(today0)
+    weekStart.setDate(weekStart.getDate() - 6)
+    return { mode: 'day', from: localYmd(weekStart), to: todayIso }
   }
   if (preset === 'month') {
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0))
-    return { from: iso(start), to: todayIso }
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    return { mode: 'day', from: localYmd(monthStart), to: todayIso }
   }
-  const fyLabel = defaultFiscalYearLabel(countryCode || 'UK', now)
-  const { start, endExclusive } = fiscalYearRangeUtc(countryCode || 'UK', fyLabel)
-  const endInclusiveMs = Math.min(now.getTime(), endExclusive.getTime() - 1)
-  return { from: iso(start), to: iso(new Date(endInclusiveMs)) }
+  if (preset === 'last90') {
+    const d = new Date(today0)
+    d.setDate(d.getDate() - 89)
+    return { mode: 'day', from: localYmd(d), to: todayIso }
+  }
+  if (preset === 'fy_curr_uk') {
+    const fyFrom = ukCurrentFiscalYearStartAnchor(now)
+    return { mode: 'day', from: localYmd(fyFrom), to: todayIso }
+  }
+  if (preset === 'fy_prev_uk') {
+    const currentStar = ukCurrentFiscalYearStartAnchor(now)
+    const prevFrom = new Date(currentStar.getFullYear() - 1, 3, 6)
+    const prevTo = new Date(currentStar.getFullYear(), 3, 5)
+    return { mode: 'day', from: localYmd(prevFrom), to: localYmd(prevTo) }
+  }
+  const _exhaustive: never = preset
+  return _exhaustive
+}
+
+function defaultCustomRange(): { from: string; to: string } {
+  const now = new Date()
+  const t0 = startOfLocalDay(now)
+  const past = new Date(t0)
+  past.setDate(past.getDate() - 30)
+  return { from: localYmd(past), to: localYmd(t0) }
 }
 
 interface DailyUsage {
@@ -64,8 +113,33 @@ interface UsageData {
   daily: DailyUsage[]
   recent: RecentCall[]
   perSede: PerSedeUsage[]
-  /** ISO date range echoed from API when using /api/admin/ai-usage */
-  period?: { from: string; to: string }
+  /** Intervallo dalla risposta /api/admin/ai-usage */
+  period?: {
+    start: string
+    end: string
+    range_mode?: 'instant' | 'day'
+    label_from_date?: string
+    label_to_date?: string
+  }
+}
+
+function fmtPeriodSummary(period: UsageData['period']): string {
+  if (!period?.start || !period?.end) return ''
+  try {
+    if (period.range_mode === 'instant') {
+      const a = new Date(period.start)
+      const b = new Date(period.end)
+      return `${a.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'medium' })} → ${b.toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'medium' })}`
+    }
+    if (period.label_from_date && period.label_to_date) {
+      return `${period.label_from_date} → ${period.label_to_date}`
+    }
+    const a = new Date(period.start)
+    const b = new Date(period.end)
+    return `${localYmd(a)} → ${localYmd(b)}`
+  } catch {
+    return ''
+  }
 }
 
 function fmt(n: number, decimals = 0): string {
@@ -171,44 +245,73 @@ export interface GeminiUsageDashboardHandle {
 }
 
 export interface GeminiUsageDashboardProps {
-  /** Paese sede utente (boundary anno fiscale). Default IT. */
+  /** Obsoleto — l'anno fiscale UK è nei preset. */
   countryCode?: string
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
 const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageDashboardProps>(
   function GeminiUsageDashboard(props, ref) {
-  const countryCode = (props.countryCode ?? 'IT').trim() || 'IT'
+    void props.countryCode
 
-  const [preset, setPreset] = useState<PeriodPreset>('month')
-  const [data, setData] = useState<UsageData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+    const [preset, setPreset] = useState<PeriodPreset>('month')
+    const dr = defaultCustomRange()
+    const [customFrom, setCustomFrom] = useState(dr.from)
+    const [customTo, setCustomTo] = useState(dr.to)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const { from, to } = periodPresetRange(countryCode, preset)
-      const qs = new URLSearchParams({ from, to }).toString()
-      const res = await fetch(`/api/admin/ai-usage?${qs}`)
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error ?? 'Errore caricamento')
-      setData(json as UsageData)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Errore sconosciuto')
-    } finally {
-      setLoading(false)
-    }
-  }, [preset, countryCode])
+    const [data, setData] = useState<UsageData | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    const load = useCallback(async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const qs = new URLSearchParams()
+
+        if (preset === 'today') {
+          const now = new Date()
+          qs.set('after', startOfLocalDay(now).toISOString())
+          qs.set('before', now.toISOString())
+        } else if (preset === 'custom') {
+          const f = customFrom.trim().slice(0, 10)
+          const t = customTo.trim().slice(0, 10)
+          if (
+            !/^\d{4}-\d{2}-\d{2}$/.test(f) ||
+            !/^\d{4}-\d{2}-\d{2}$/.test(t) ||
+            f > t
+          ) {
+            setError('Intervallo non valido: controlla le date Da / A.')
+            setLoading(false)
+            return
+          }
+          qs.set('from', f)
+          qs.set('to', t)
+        } else {
+          const range = presetDateRangeUk(preset)
+          qs.set('from', range.from)
+          qs.set('to', range.to)
+        }
+
+        const res = await fetch(`/api/admin/ai-usage?${qs.toString()}`)
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error ?? 'Errore caricamento')
+        setData(json as UsageData)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Errore sconosciuto')
+      } finally {
+        setLoading(false)
+      }
+    }, [preset, customFrom, customTo])
 
   useImperativeHandle(ref, () => ({ refresh: load }), [load])
 
-  useEffect(() => {
-    load()
-  }, [load])
+    useEffect(() => {
+      load()
+    }, [load])
 
-  return (
+    return (
     <div className="app-card overflow-hidden">
       <div className="app-workspace-inset-bg-soft px-5 pb-5 pt-5">
         {loading && !data && (
@@ -251,39 +354,77 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
         {data && (
           <div className="flex flex-col gap-4">
             {/* Period filter */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-                Periodo
-              </span>
-              {(
-                [
-                  ['week', 'Settimana'],
-                  ['month', 'Mese'],
-                  ['fy', 'Anno fiscale'],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setPreset(key)}
-                  className="rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
-                  style={{
-                    background:
-                      preset === key ? 'rgba(34, 211, 238, 0.18)' : 'rgba(15, 42, 74, 0.5)',
-                    border:
-                      preset === key
-                        ? '1px solid rgba(34, 211, 238, 0.45)'
-                        : '1px solid rgba(34, 211, 238, 0.12)',
-                    color: preset === key ? '#e0f9ff' : 'rgba(148, 163, 184, 0.95)',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-              {data.period && (
-                <span className="ml-auto font-mono text-[11px] text-app-fg-muted">
-                  {data.period.from} → {data.period.to}
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
+                  Periodo
                 </span>
+                {(
+                  [
+                    ['today', 'Oggi'],
+                    ['week', 'Settimana'],
+                    ['month', 'Mese'],
+                    ['last90', 'Ultimi 3 mesi'],
+                    ['fy_curr_uk', 'Anno fiscale UK (corrente)'],
+                    ['fy_prev_uk', 'Anno fiscale UK (precedente)'],
+                    ['custom', 'Personalizzato'],
+                  ] as const satisfies ReadonlyArray<readonly [PeriodPreset, string]>
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setPreset(key)}
+                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium leading-tight transition-colors sm:px-3 sm:text-[12px]"
+                    style={{
+                      background:
+                        preset === key ? 'rgba(34, 211, 238, 0.18)' : 'rgba(15, 42, 74, 0.5)',
+                      border:
+                        preset === key
+                          ? '1px solid rgba(34, 211, 238, 0.45)'
+                          : '1px solid rgba(34, 211, 238, 0.12)',
+                      color: preset === key ? '#e0f9ff' : 'rgba(148, 163, 184, 0.95)',
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {preset === 'custom' && (
+                <div className="flex flex-wrap items-end gap-3 rounded-lg px-1 py-2">
+                  <label className="flex flex-col gap-1 text-[11px] text-app-fg-muted">
+                    Da (inclusivo)
+                    <input
+                      type="date"
+                      value={customFrom}
+                      className="min-w-[10.5rem] rounded-md px-2 py-1 font-mono text-[12px] text-app-fg"
+                      style={{
+                        background: 'rgba(15, 42, 74, 0.85)',
+                        border: '1px solid rgba(34, 211, 238, 0.25)',
+                      }}
+                      onChange={(ev) => setCustomFrom(ev.target.value)}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[11px] text-app-fg-muted">
+                    A (inclusivo)
+                    <input
+                      type="date"
+                      value={customTo}
+                      className="min-w-[10.5rem] rounded-md px-2 py-1 font-mono text-[12px] text-app-fg"
+                      style={{
+                        background: 'rgba(15, 42, 74, 0.85)',
+                        border: '1px solid rgba(34, 211, 238, 0.25)',
+                      }}
+                      onChange={(ev) => setCustomTo(ev.target.value)}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {data.period && (
+                <p className="text-right font-mono text-[11px] text-app-fg-muted">
+                  {fmtPeriodSummary(data.period)}
+                </p>
               )}
             </div>
 
