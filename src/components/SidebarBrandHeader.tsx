@@ -1,12 +1,33 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
+import useSWR from 'swr'
 import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
-const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
+import EmailSyncToolbarStatus from '@/components/EmailSyncToolbarStatus'
+import type { OperatorWorkspaceHeaderPayload } from '@/types/operator-workspace-header'
 import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
 import AppBuildInfo from '@/components/AppBuildInfo'
+
+const operatorHeaderFetcher = (url: string): Promise<OperatorWorkspaceHeaderPayload | null> =>
+  fetch(url).then((r) => (r.ok ? r.json() : null))
+
+/**
+ * Su `/fornitori/...` la strip operatore desktop è nascosta: mostra solo stato sync IMAP (cron).
+ */
+function FornitoreStripEmailSyncStatus() {
+  const { data } = useSWR<OperatorWorkspaceHeaderPayload | null>('/api/operator-workspace-header', operatorHeaderFetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 20_000,
+    refreshInterval: 60_000,
+  })
+  if (!data?.operatorScoped) return null
+  return (
+    <span className="inline-flex max-w-[min(100%,300px)] items-center rounded-md border border-app-line-35 app-workspace-inset-bg px-2 py-1 shadow-sm">
+      <EmailSyncToolbarStatus lastImapSyncAt={data.lastImapSyncAt ?? null} lastImapSyncError={data.lastImapSyncError ?? null} />
+    </span>
+  )
+}
 
 /** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop sopra il main. */
 export const DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID = 'desktop-header-page-actions'
@@ -79,7 +100,7 @@ export function SidebarRailBrand() {
 }
 
 /**
- * Fascia desktop sopra il main: portal azioni pagina + Sincronizza email.
+ * Fascia desktop sopra il main: portal azioni pagina + stato sync email (cron).
  * Host per `NavigationTopProgress` (`desktopHost` in AppShell).
  */
 export function DesktopHeaderActionsStrip() {
@@ -87,7 +108,7 @@ export function DesktopHeaderActionsStrip() {
   const pathname = usePathname()
   /**
    * Host flex-1 per eventuali azioni di pagina (portal); duplicati / solleciti / sync email sono sulla strip come sibling fuori dall’host.
-   * Solo sotto `/fornitori` la strip operatore è nascosta: qui serve il pulsante dedicato in barra.
+   * Solo sotto `/fornitori` la strip operatore è nascosta: qui si mostra lo stato IMAP.
    */
   const showHeaderScanEmail = normalizeAppPath(pathname ?? '').startsWith('/fornitori')
 
@@ -100,7 +121,7 @@ export function DesktopHeaderActionsStrip() {
         className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-1.5 bg-transparent sm:gap-2"
       />
       <OperatorDesktopWorkspaceHeader />
-      {showHeaderScanEmail ? <ScanEmailButton placement="desktopHeader" /> : null}
+      {showHeaderScanEmail ? <FornitoreStripEmailSyncStatus /> : null}
     </div>
   )
 }

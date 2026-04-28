@@ -36,7 +36,11 @@ function OperatorDesktopWorkspaceHeaderInner() {
 
   return (
     <div className="relative flex min-w-0 shrink-0 items-center justify-end">
-      <DashboardHeaderSedeToolsMenu fornitoriInScadenza={data.sollecitiFornitori} />
+      <DashboardHeaderSedeToolsMenu
+        fornitoriInScadenza={data.sollecitiFornitori}
+        lastImapSyncAt={data.lastImapSyncAt ?? null}
+        lastImapSyncError={data.lastImapSyncError ?? null}
+      />
     </div>
   )
 }

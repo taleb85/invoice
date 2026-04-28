@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
   const [fornitoreIds, sedeMetaRow] = await Promise.all([
     fornitoreIdsForSede(supabase, sedeId),
-    supabase.from('sedi').select('country_code').eq('id', sedeId).maybeSingle(),
+    supabase.from('sedi').select('country_code, last_imap_sync_at, last_imap_sync_error').eq('id', sedeId).maybeSingle(),
   ])
   const sedeCountryCode = (sedeMetaRow.data?.country_code ?? 'IT').trim() || 'IT'
   const fiscalYear = parseFiscalYearQueryParam(fyRaw, sedeCountryCode)
@@ -62,6 +62,11 @@ export async function GET(req: NextRequest) {
     fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal),
     countFornitoriWithOverdueBolle(supabase, fornitoreIds),
   ])
+
+  const syncRow = sedeMetaRow.data as {
+    last_imap_sync_at?: string | null
+    last_imap_sync_error?: string | null
+  } | null
 
   const payload: OperatorWorkspaceHeaderPayload = {
     operatorScoped: true,
@@ -75,6 +80,8 @@ export async function GET(req: NextRequest) {
       listino: kpis.listinoProdottiDistinti,
       documenti: kpis.documentiPending,
     },
+    lastImapSyncAt: syncRow?.last_imap_sync_at ?? null,
+    lastImapSyncError: syncRow?.last_imap_sync_error ?? null,
   }
   return NextResponse.json(payload, {
     headers: { 'Cache-Control': 'private, max-age=20, stale-while-revalidate=40' },

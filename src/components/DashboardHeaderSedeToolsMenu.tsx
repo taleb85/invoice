@@ -1,6 +1,5 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
@@ -9,7 +8,7 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import SollecitiButton from '@/components/SollecitiButton'
 
-const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
+import EmailSyncToolbarStatus from '@/components/EmailSyncToolbarStatus'
 
 const TOOLBAR_ROW_CLS =
   'flex min-w-0 max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2 md:flex-nowrap'
@@ -187,14 +186,24 @@ function AdminSedeSwitcherToolbar() {
 /**
  * Barra operatore desktop: solleciti (se >0), sync email (dropdown). Opzionale: switch sede admin.
  */
-export default function DashboardHeaderSedeToolsMenu({ fornitoriInScadenza = 0 }: { fornitoriInScadenza?: number }) {
+export default function DashboardHeaderSedeToolsMenu({
+  fornitoriInScadenza = 0,
+  lastImapSyncAt,
+  lastImapSyncError,
+}: {
+  fornitoriInScadenza?: number
+  lastImapSyncAt?: string | null
+  lastImapSyncError?: string | null
+}) {
   return (
     <div className={TOOLBAR_ROW_CLS}>
       <AdminSedeSwitcherToolbar />
       {fornitoriInScadenza > 0 ? (
         <SollecitiButton fornitoriInScadenza={fornitoriInScadenza} toolbarStrip />
       ) : null}
-      <ScanEmailButton placement="desktopHeader" stackedHeaderTrigger={false} />
+      <span className={`${TOOLBAR_ICON_BTN_CLS} max-w-[min(100%,280px)] cursor-default hover:brightness-100`}>
+        <EmailSyncToolbarStatus lastImapSyncAt={lastImapSyncAt ?? null} lastImapSyncError={lastImapSyncError ?? null} />
+      </span>
     </div>
   )
 }

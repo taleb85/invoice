@@ -130,23 +130,13 @@ Non usare questo file `.md` come query: servono i file `.sql` del progetto. Chec
 
 ## Passo 4 — Configurare il Cron Job
 
-Il file `vercel.json` configura già la scansione email automatica:
+Il file `vercel.json` avvia **`GET /api/cron/sync-emails`** (es. ogni **15 minuti**) con header `Authorization: Bearer {CRON_SECRET}`. Questa route invoca internamente la stessa logica di **`GET /api/scan-emails`** (tutte le sedi con IMAP configurato).
 
-```json
-{
-  "crons": [
-    {
-      "path": "/api/scan-emails",
-      "schedule": "0 8 * * *"
-    }
-  ]
-}
-```
+Imposta **`CRON_SECRET`** in **Vercel → Settings → Environment Variables** e in `.env.local` per i test manuali sulla route cron.
 
-La scansione avviene ogni giorno alle **08:00 UTC**. Modifica `schedule` se necessario (formato cron standard).
+La scansione pianificata richiede il piano **Vercel** con **Cron Jobs** abilitati (dipende dall’offerta; controlla la dashboard).
 
-> **Requisito**: Il cron job richiede il piano **Vercel Pro** (o superiore).  
-> In alternativa, puoi usare un cron esterno (es. cron-job.org) che chiama `POST /api/scan-emails` con header `Authorization: Bearer {CRON_SECRET}`.
+In alternativa, un cron esterno può chiamare `GET /api/scan-emails` o `GET /api/cron/sync-emails` con lo stesso header Bearer.
 
 ---
 
@@ -171,7 +161,7 @@ Dopo il deploy, controlla i seguenti punti:
 - [ ] **Login**: Accedi con le credenziali admin su `/login`
 - [ ] **Dashboard**: Verifica che le bolle aperte vengano caricate
 - [ ] **Sidebar**: Sfondo `#0f172a` (Deep Ocean) e logo con gradiente blu-ciano
-- [ ] **Scansione email**: Triggera manualmente `POST /api/scan-emails` dalla Dashboard
+- [ ] **Scansione email**: dopo il deploy attendi il cron oppure chiama manualmente `GET /api/scan-emails` con `Authorization: Bearer {CRON_SECRET}` per prova
 - [ ] **Log**: Verifica `/log` per eventuali errori di elaborazione
 - [ ] **Mobile**: Apri su smartphone — verifica l'hamburger menu e il layout responsive
 
