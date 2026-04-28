@@ -4,6 +4,7 @@ import { useMe } from '@/lib/me-context'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/lib/use-t'
+import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import GeminiUsageDashboard, { type GeminiUsageDashboardHandle } from '@/components/GeminiUsageDashboard'
 
@@ -36,6 +37,7 @@ export default function ConsumiAiPage() {
 
   return (
     <div className="app-shell-page-padding">
+      <BackButton href="/" label={t.nav.dashboard} />
       <AppPageHeaderStrip
         icon={
           <svg

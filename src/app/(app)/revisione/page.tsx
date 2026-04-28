@@ -12,6 +12,7 @@ import {
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import { APP_SHELL_SECTION_PAGE_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
+import { BackButton } from '@/components/BackButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,7 @@ export default async function RevisioneInboxPage(props: {
 
   const theme = SUMMARY_HIGHLIGHT_ACCENTS.rose
   const nav = [
+    { href: '/inbox-ai', label: t.dashboard.inboxUrgenteNavAiInbox },
     { href: '/statements/da-processare', label: t.dashboard.inboxUrgenteNavDocQueue },
     { href: withFiscalYearQuery('/statements/verifica', fy, { stato: 'anomalia' }), label: t.dashboard.inboxUrgenteNavPriceAnomalies },
     { href: withFiscalYearQuery('/fatture', fy), label: t.dashboard.inboxUrgenteNavInvoices },
@@ -50,6 +52,9 @@ export default async function RevisioneInboxPage(props: {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
+      <div className="app-shell-page-padding pb-2">
+        <BackButton href="/" label={t.nav.dashboard} />
+      </div>
       <AppPageHeaderStrip accent="rose" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}>
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.dashboard.inboxUrgentePageTitle}</h1>

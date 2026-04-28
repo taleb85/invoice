@@ -8,6 +8,7 @@ import {
 } from '@/lib/dashboard-operator-kpis'
 import { scannerFlowStepLabel } from '@/components/DashboardScannerFlowCard'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
+import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
@@ -65,6 +66,7 @@ export default async function ScannerEventiPage(props: {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+      <BackButton href="/" label={t.nav.dashboard} />
       <AppPageHeaderStrip accent="cyan" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 3.5V20m-4-12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>}>
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.dashboard.scannerFlowEventsPageTitle}</h1>

@@ -27,6 +27,7 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { BackButton } from '@/components/BackButton'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
 import { navigateAfterDetailAction } from '@/lib/return-navigation-client'
 function ymdTodayInTimezone(tz: string): string {
@@ -593,6 +594,9 @@ export default function NuovaBollaForm() {
 
   return (
     <div className="flex flex-col">
+      <div className="app-shell-page-padding-x pt-2 md:pt-3">
+        <BackButton href="/bolle" label={t.nav.bolle} className="mb-2 md:mb-3" />
+      </div>
       {/*
         Su `/bolle/new` il main non ha più offset top (evita doppio offset con sticky). Sotto il topbar
         mobile serve spazio in flow solo quando la barra sync non è visibile (la sync bar ha già margin-top sotto topbar).

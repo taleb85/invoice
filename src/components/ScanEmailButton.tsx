@@ -16,6 +16,7 @@ import {
   type EmailSyncScopePrefs,
 } from '@/lib/email-sync-scope-prefs'
 import { defaultFiscalYearLabel } from '@/lib/fiscal-year'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 /** Giorni predefiniti per l’override lookback (oltre al default sede). */
 const LOOKBACK_DAY_PRESETS = [3, 7, 14, 30, 60, 90] as const
@@ -402,7 +403,7 @@ export default function ScanEmailButton({
         >
           {loading ? (
             <>
-              <svg className="h-4 w-4 shrink-0 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-4 w-4 shrink-0 animate-spin ${icon.emailSync}`} fill="none" viewBox="0 0 24 24" aria-hidden>
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
@@ -410,7 +411,7 @@ export default function ScanEmailButton({
             </>
           ) : (
             <>
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-4 w-4 shrink-0 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
               {t.dashboard.syncEmail}
@@ -436,7 +437,7 @@ export default function ScanEmailButton({
           aria-controls={headerMenuId}
           onClick={() => setHeaderMenuOpen((o) => !o)}
         >
-          <svg className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg className={`h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <span className="hidden md:inline">{t.dashboard.syncEmail}</span>
@@ -736,7 +737,7 @@ export default function ScanEmailButton({
         {loading ? (
           <>
             <svg
-              className={`shrink-0 animate-spin ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5 xl:h-4 xl:w-4' : 'h-4 w-4'}`}
+              className={`shrink-0 animate-spin ${icon.emailSync} ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5 xl:h-4 xl:w-4' : 'h-4 w-4'}`}
               fill="none"
               viewBox="0 0 24 24"
             >
@@ -748,7 +749,7 @@ export default function ScanEmailButton({
         ) : (
           <>
             <svg
-              className={`shrink-0 ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5 xl:h-4 xl:w-4' : 'h-4 w-4'}`}
+              className={`shrink-0 ${icon.emailSync} ${isSupplierVariant ? 'h-4 w-4 md:h-3.5 md:w-3.5 xl:h-4 xl:w-4' : 'h-4 w-4'}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

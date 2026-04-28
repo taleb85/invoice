@@ -13,6 +13,7 @@ import { useT } from '@/lib/use-t'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
+import { BackButton } from '@/components/BackButton'
 import { navigateAfterDetailAction } from '@/lib/return-navigation-client'
 
 type OcrStatus = 'idle' | 'scanning' | 'done' | 'error'
@@ -262,14 +263,10 @@ export default function NuovaFatturaForm() {
 
       {/* Header */}
       <div
-        className="app-desktop-header-glass sticky top-0 z-10 flex items-center gap-3 px-4 py-4"
+        className="app-desktop-header-glass sticky top-0 z-10 flex flex-col gap-1 px-4 pt-4 pb-3"
       >
-        <button type="button" onClick={() => navigateAfterDetailAction(router, searchParams)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg">
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </button>
+        <BackButton href="/fatture" label={t.nav.fatture} className="mb-0 w-fit" />
+        <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="app-page-title text-lg font-bold">{t.fatture.caricaFatturaTitle}</h1>
           {bolleSelezionate.size > 0 && (
@@ -279,6 +276,7 @@ export default function NuovaFatturaForm() {
           )}
         </div>
         <AppPageHeaderDesktopTray />
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-4 p-4 max-w-lg mx-auto w-full">

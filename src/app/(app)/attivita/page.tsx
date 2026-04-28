@@ -5,6 +5,7 @@ import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 import { ActivityFeed } from '@/components/activity/activity-feed'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
+import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 
 type Operatore = { id: string; full_name: string | null }
@@ -92,6 +93,7 @@ export default function AttivitaPage() {
 
   return (
     <div className="app-shell-page-padding">
+      <BackButton href="/" label={t.nav.dashboard} />
       <AppPageHeaderStrip accent="indigo" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>}>
         <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
           <div className="min-w-0">

@@ -6,6 +6,7 @@ import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { VatLookupField } from '@/components/vat-lookup-field'
+import { BackButton } from '@/components/BackButton'
 
 interface DiscoveredSender {
   email: string
@@ -241,7 +242,13 @@ function ScannerRow({
 }
 
 /** Named export so sede-specific wrapper pages can render with a fixed sedeId. */
-export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
+export function DiscoveryContent({
+  sedeId,
+  backNav,
+}: {
+  sedeId?: string
+  backNav?: { href: string; label: string }
+}) {
   const t = useT()
   const helpIconGradIdRaw = useId()
   const helpIconGradId = `disc-fluxo-help-${helpIconGradIdRaw.replace(/[^a-zA-Z0-9_-]/g, '') || 'g'}`
@@ -281,9 +288,11 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
 
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
+      {backNav ? <BackButton href={backNav.href} label={backNav.label} /> : null}
       <AppPageHeaderStrip accent="amber" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}>
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
-          <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+          <div className={`mb-2 flex min-w-0 items-center justify-between gap-2 ${backNav ? 'justify-end' : ''}`}>
+            {!backNav ? (
             <div className="flex min-w-0 items-center gap-2 text-sm text-app-fg-muted">
               <Link href="/impostazioni" className="shrink-0 transition-colors hover:text-app-fg">
                 Impostazioni
@@ -293,6 +302,7 @@ export function DiscoveryContent({ sedeId }: { sedeId?: string }) {
               </svg>
               <span className="truncate">Scoperta Fornitori</span>
             </div>
+            ) : null}
             <Link
               href="/guida"
               className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-xl border border-white/20 bg-gradient-to-br from-[#1e3a5f] to-[#172554] shadow-md shadow-black/25 transition-all hover:border-app-a-35 hover:brightness-110 active:scale-[0.98] md:hidden"

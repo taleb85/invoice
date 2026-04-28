@@ -6,6 +6,7 @@ import {
   type LegacyPendingDocRow,
 } from '@/lib/reprocess-pending-docs-ocr'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
+import { classifyDocumentWithGemini, type GeminiInboxClassification } from '@/lib/gemini-inbox-classify'
 
 export const dynamic = 'force-dynamic'
 /** Riduce timeout su Vercel; batch massimo 5 documenti per richiesta. */
@@ -13,6 +14,13 @@ export const maxDuration = 60
 
 const BATCH = 5
 const FETCH_CAP = 120
+
+type GeminiClassifyBody = {
+  sede_id?: string
+  mode?: 'ocr_legacy' | 'gemini_classify'
+  /** Non riprocessare questi ID (batch successivi dalla UI). */
+  exclude_doc_ids?: string[]
+}
 
 function metadataMissingOcrTipo(metadata: unknown): boolean {
   if (metadata == null) return true
@@ -39,9 +47,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Solo amministratore o responsabile sede' }, { status: 403 })
   }
 
-  let body: { sede_id?: string }
+  let body: GeminiClassifyBody
   try {
-    body = (await req.json()) as { sede_id?: string }
+    body = (await req.json()) as GeminiClassifyBody
   } catch {
     body = {}
   }
@@ -69,6 +77,47 @@ export async function POST(req: NextRequest) {
   }
 
   const service = createServiceClient()
+
+  // ── Gemini: solo classificazione suggerita (senza modificare DB), batch da 5 ──
+  if (body.mode === 'gemini_classify') {
+    const exclude = new Set(
+      Array.isArray(body.exclude_doc_ids)
+        ? body.exclude_doc_ids.map((x) => String(x).trim()).filter(Boolean)
+        : [],
+    )
+    let q = service
+      .from('documenti_da_processare')
+      .select('id, file_url, file_name, content_type, stato, created_at')
+      .in('stato', ['da_associare', 'da_revisionare'])
+      .order('created_at', { ascending: true })
+      .limit(120)
+
+    if (sedeFilterOrNull) {
+      q = q.or(`sede_id.eq.${sedeFilterOrNull},sede_id.is.null`) as typeof q
+    }
+
+    const { data: rawRows, error: fetchGeminiErr } = await q
+    if (fetchGeminiErr) {
+      console.error('[reprocess-pending-docs] gemini fetch:', fetchGeminiErr.message)
+      return NextResponse.json({ error: fetchGeminiErr.message }, { status: 500 })
+    }
+
+    const rows = ((rawRows ?? []) as { id: string; file_url: string | null; file_name: string | null; content_type: string | null }[])
+      .filter((r) => !exclude.has(r.id))
+      .slice(0, BATCH)
+
+    const suggestions: GeminiInboxClassification[] = []
+    for (const row of rows) {
+      const one = await classifyDocumentWithGemini(service, row)
+      suggestions.push(one)
+    }
+
+    return NextResponse.json({
+      mode: 'gemini_classify' as const,
+      suggestions,
+      batch_size: suggestions.length,
+    })
+  }
 
   let q = service
     .from('documenti_da_processare')

@@ -4,6 +4,7 @@ import { useMe } from '@/lib/me-context'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { BackupManager } from '@/components/backup/backup-manager'
+import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { useT } from '@/lib/use-t'
 
@@ -28,6 +29,7 @@ export default function BackupPage() {
 
   return (
     <div className="app-shell-page-padding">
+      <BackButton href="/" label={t.nav.dashboard} />
       <AppPageHeaderStrip accent="amber" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>}>
         <div className="min-w-0">
           <h1 className="text-base font-bold text-app-fg sm:text-lg">{t.appStrings.backupPageTitle}</h1>

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getFatturaForViewer } from '@/lib/supabase-detail-for-viewer'
 import DocumentUnavailable from '@/components/DocumentUnavailable'
@@ -7,7 +6,7 @@ import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/local
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import ReplaceFileButton from './ReplaceFileButton'
-import DetailBackButton from '@/components/DetailBackButton'
+import { BackButton } from '@/components/BackButton'
 import { hrefWithReturnTo } from '@/lib/return-navigation'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 export default async function FatturaDetailPage(props: { params: Promise<{ id: string }> }) {
@@ -23,36 +22,14 @@ export default async function FatturaDetailPage(props: { params: Promise<{ id: s
 
   return (
     <div className="max-w-2xl app-shell-page-padding">
+      <BackButton href="/fatture" label="Fatture" />
       <AppPageHeaderStrip accent="emerald" icon={<svg className={`w-5 h-5 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}>
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <Suspense
-            fallback={
-              <Link
-                href="/fatture"
-                className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
-              >
-                <svg className={`h-5 w-5 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-            }
-          >
-            <DetailBackButton
-              className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
-              aria-label="Indietro"
-            >
-              <svg className={`h-5 w-5 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </DetailBackButton>
-          </Suspense>
-          <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1">
             <h1 className="app-page-title text-2xl font-bold">
               {t.fatture.invoice} – {fornitoreNomeMaiuscolo(fattura.fornitore?.nome)}
             </h1>
             <p className="mt-0.5 text-sm text-app-fg-muted">{formatDate(fattura.data)}</p>
           </div>
-        </div>
       </AppPageHeaderStrip>
 
       <div className="space-y-4">

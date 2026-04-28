@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import { useToast } from '@/lib/toast-context'
 import type { AllDuplicatesReport, DuplicateGroup, DuplicateItem } from '@/lib/duplicate-detector'
 import DocumentPreviewModal from './document-preview-modal'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 type Entity = 'fatture' | 'bolle' | 'fornitori'
 
@@ -120,7 +121,7 @@ function GroupSection({
                   }}
                   aria-label={`Visualizza documento ${item.id.slice(0, 8)}`}
                 >
-                  <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg className={`h-3 w-3 shrink-0 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
@@ -197,7 +198,7 @@ function EntityPanel({
               onClick={() => onSelectMostRecent(entity)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-30 app-workspace-inset-bg-soft px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-line-45 hover:text-app-fg"
             >
-              <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Seleziona più recente
@@ -287,7 +288,7 @@ function ConfirmModal({
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-[0_0_16px_-4px_rgba(239,68,68,0.5)] transition-colors hover:bg-red-700 active:bg-red-800 disabled:opacity-60 sm:w-auto"
           >
             {deleting && (
-              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-4 w-4 animate-spin ${icon.destructive}`} fill="none" viewBox="0 0 24 24" aria-hidden>
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
@@ -553,7 +554,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                 disabled={fetchState.status === 'loading'}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-30 app-workspace-inset-bg-soft px-2.5 py-1 text-[11px] font-semibold text-app-fg-muted transition-colors hover:border-app-line-45 hover:text-app-fg disabled:opacity-50"
               >
-                <svg className={`h-3 w-3 ${fetchState.status === 'loading' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`h-3 w-3 ${icon.duplicateAlert} ${fetchState.status === 'loading' ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 {fetchState.status === 'loading' ? 'Scansione…' : 'Riscan'}
@@ -631,7 +632,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                 disabled={selected.size === 0 || deleting}
                 className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-[0_0_16px_-6px_rgba(239,68,68,0.5)] transition-colors hover:bg-red-700 active:bg-red-800 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`h-4 w-4 shrink-0 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
                 Elimina selezionati ({selected.size})

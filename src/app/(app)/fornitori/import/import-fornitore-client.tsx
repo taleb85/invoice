@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useSedeId } from '@/lib/use-sede'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { BackButton } from '@/components/BackButton'
 
 interface ExtractedData {
   nome: string | null
@@ -133,16 +134,9 @@ export default function ImportFornitoreInner() {
 
   return (
     <div className="app-shell-page-padding max-w-lg">
+      <BackButton href="/fornitori" label={t.nav.fornitori} />
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <button
-            onClick={() => router.back()}
-            className="mt-0.5 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </button>
           <div className="min-w-0 flex-1">
             <h1 className="app-page-title text-2xl font-bold">{t.fornitori.importaDaFattura}</h1>
             <p className="mt-0.5 text-sm text-app-fg-muted">{t.bolle.ocrHint}</p>

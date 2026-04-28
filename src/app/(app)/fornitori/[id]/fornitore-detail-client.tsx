@@ -34,6 +34,7 @@ import {
   isDocumentDateAtLeastLatestListino,
   maxListinoDateForExactProduct,
 } from '@/lib/listino-document-date'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import FornitoreDocDetailLayer from '@/components/FornitoreDocDetailLayer'
 import { createClient } from '@/utils/supabase/client'
 import {
@@ -75,6 +76,7 @@ const RecuperoCreditiAudit = dynamic(
   () => import('@/components/RecuperoCreditiAudit'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
+import { BackButton } from '@/components/BackButton'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
@@ -1021,7 +1023,7 @@ function SupplierDesktopMonthlyDocSummary({
                     aria-label={t.appStrings.monthNavPrevYearTitle}
                     className={`flex h-5 w-5 items-center justify-center rounded transition-colors ${tabTable.periodNavIconBtn}`}
                   >
-                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
                     </svg>
                   </button>
@@ -1038,7 +1040,7 @@ function SupplierDesktopMonthlyDocSummary({
                     aria-label={t.appStrings.monthNavNextYearTitle}
                     className={`flex h-5 w-5 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${tabTable.periodNavIconBtn}`}
                   >
-                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
                     </svg>
                   </button>
@@ -1050,7 +1052,7 @@ function SupplierDesktopMonthlyDocSummary({
                       aria-label={t.appStrings.monthNavResetTitle}
                       className={`flex h-5 w-5 items-center justify-center rounded transition-colors ${tabTable.resetNav}`}
                     >
-                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <svg className={`h-3 w-3 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -1312,7 +1314,7 @@ function DashboardTab({
           }`}
           aria-current={nuovaBollaActive ? 'page' : undefined}
         >
-          <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg className={`h-5 w-5 shrink-0 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           <span className="truncate">{t.nav.nuovaBolla}</span>
@@ -1357,7 +1359,7 @@ function DashboardTab({
               <button
                 onClick={(e) => { e.stopPropagation(); openAdd() }}
                 className="flex items-center gap-1 px-2.5 py-1 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                <svg className={`w-3 h-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                 {t.common.add}
               </button>
               ) : null}
@@ -1440,27 +1442,27 @@ function DashboardTab({
                     {c.telefono && (
                       <a href={`tel:${c.telefono}`} title={c.telefono}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-emerald-400 transition-colors hover:bg-emerald-500/15">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                        <svg className={`w-4 h-4 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                       </a>
                     )}
                     {c.email && (
                       <a href={`mailto:${c.email}`} title={c.email}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-app-cyan-500 transition-colors hover:bg-app-line-15">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        <svg className={`w-4 h-4 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                       </a>
                     )}
                     {!readOnly ? (
                     <button onClick={() => openEdit(c)} title={t.common.edit}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-app-fg-muted opacity-0 transition-colors hover:bg-app-line-12 hover:text-app-fg group-hover:opacity-100">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      <svg className={`w-3.5 h-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
                     ) : null}
                     {!readOnly ? (
                     <button onClick={() => handleDeleteContatto(c.id)} disabled={deletingId === c.id} title={t.appStrings.contactRemove}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-app-fg-muted opacity-0 transition-colors hover:bg-red-950/50 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40">
                       {deletingId === c.id
-                        ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                        : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        ? <svg className={`w-3.5 h-3.5 animate-spin ${icon.destructive}`} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        : <svg className={`w-3.5 h-3.5 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       }
                     </button>
                     ) : null}
@@ -1528,7 +1530,7 @@ function DashboardTab({
                   onClick={() => saveScrollForListPath(supplierReturnPath)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/35 px-2.5 py-1.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/20"
                 >
-                  <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`h-3 w-3 shrink-0 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                   </svg>
                   {t.appStrings.noEmailSyncWarning}
@@ -2168,7 +2170,7 @@ function BolleTab({
                             <span className="font-mono text-[10px] font-bold tabular-nums">{ocrProgressStep}/3</span>
                           </>
                         ) : (
-                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <svg className={`h-3.5 w-3.5 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
                         )}
@@ -2186,7 +2188,7 @@ function BolleTab({
                         {convertBusyId === b.id ? (
                           <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
                         ) : (
-                          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <svg className={`h-3.5 w-3.5 shrink-0 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                           </svg>
                         )}
@@ -2201,7 +2203,7 @@ function BolleTab({
                         className={FORNITORE_TABLE_CYAN_ACTION_PILL}
                         title={attachmentOpenFileLinkLabel(fileKind, t)}
                       >
-                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                        <svg className={`h-3 w-3 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                         {attachmentOpenFileLinkLabel(fileKind, t)}
                       </OpenDocumentInAppButton>
                     )}
@@ -2565,7 +2567,7 @@ function FattureTab({
                         scroll={false}
                         className={FORNITORE_TABLE_CYAN_ACTION_PILL}
                       >
-                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`h-3 w-3 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                         {t.fatture.dettaglio}
@@ -3530,7 +3532,7 @@ function ListinoTab({
                 </div>
                 {anomaly.resolved ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-300">
-                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`h-3 w-3 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                     Verificato
@@ -3587,9 +3589,9 @@ function ListinoTab({
               }`}
             >
               {copied ? (
-                <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>{t.fornitori.listinoCopied}</>
+                <><svg className={`w-3.5 h-3.5 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>{t.fornitori.listinoCopied}</>
               ) : (
-                <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>{t.fornitori.listinoCopySQL}</>
+                <><svg className={`w-3.5 h-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>{t.fornitori.listinoCopySQL}</>
               )}
             </button>
             ) : null}
@@ -3630,7 +3632,7 @@ function ListinoTab({
                 {autoImporting ? (
                   <div className="h-3 w-3 animate-spin rounded-full border border-[rgba(34,211,238,0.15)] border-t-transparent" />
                 ) : (
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-3 h-3 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 )}
@@ -3640,7 +3642,7 @@ function ListinoTab({
                 onClick={openImport}
                 className="hidden md:flex items-center gap-1 rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-bold text-white transition-colors hover:bg-violet-500"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <svg className={`w-3 h-3 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                 {t.appStrings.fromInvoiceBtn}
               </button>
               <button
@@ -3652,7 +3654,7 @@ function ListinoTab({
                 }}
                 className="flex items-center gap-1 px-2.5 py-1 bg-app-cyan-500 hover:bg-app-cyan-400 text-white text-[11px] font-bold rounded-lg transition-colors"
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                <svg className={`w-3 h-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                 {t.common.add}
               </button>
               </>
@@ -3679,7 +3681,7 @@ function ListinoTab({
                   onClick={() => { setAutoImportResult(null); setAutoImportError(null) }}
                   className="shrink-0 opacity-60 hover:opacity-100"
                 >
-                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -3693,7 +3695,7 @@ function ListinoTab({
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-xs font-semibold text-violet-200">{t.appStrings.listinoImportPanelTitle}</p>
                 <button type="button" onClick={() => setShowImport(false)} className="text-violet-400/80 transition-colors hover:text-violet-200">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                  <svg className={`h-4 w-4 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
               </div>
 
@@ -3744,16 +3746,16 @@ function ListinoTab({
                       className="flex items-center gap-1.5 px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-colors whitespace-nowrap"
                     >
                       {importLoading ? (
-                        <><svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>{t.appStrings.listinoAnalyzing}</>
+                        <><svg className={`w-3.5 h-3.5 animate-spin ${icon.analytics}`} fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>{t.appStrings.listinoAnalyzing}</>
                       ) : (
-                        <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>{t.appStrings.listinoAnalyze}</>
+                        <><svg className={`w-3.5 h-3.5 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>{t.appStrings.listinoAnalyze}</>
                       )}
                     </button>
                   </div>
 
                   {importError && (
                     <div className="mb-3 flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2 text-xs text-red-200">
-                      <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      <svg className={`h-3.5 w-3.5 shrink-0 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                       {importError}
                     </div>
                   )}
@@ -3787,19 +3789,19 @@ function ListinoTab({
                           <div className="mb-3 flex flex-wrap items-center gap-2">
                             {rincari.length > 0 && (
                               <span className="flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-1 text-[10px] font-bold text-red-300">
-                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7"/></svg>
+                                <svg className={`h-3 w-3 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7"/></svg>
                                 {rincari.length} rincaro{rincari.length > 1 ? 'i' : ''}
                               </span>
                             )}
                             {ribassi.length > 0 && (
                               <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-bold text-emerald-300">
-                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/></svg>
+                                <svg className={`h-3 w-3 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/></svg>
                                 {ribassi.length} ribasso{ribassi.length > 1 ? 'i' : ''}
                               </span>
                             )}
                             {nuovi.length > 0 && (
                               <span className="flex items-center gap-1 rounded-full bg-app-line-15 px-2.5 py-1 text-[10px] font-bold text-app-fg-muted">
-                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                                <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
                                 {nuovi.length} nuovo{nuovi.length > 1 ? 'i' : ''}
                               </span>
                             )}
@@ -3969,7 +3971,7 @@ function ListinoTab({
                                                 className="ml-0.5 text-violet-400 transition-colors hover:text-violet-300"
                                                 title="Modifica"
                                               >
-                                                <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg className={`h-2.5 w-2.5 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                 </svg>
                                               </button>
@@ -3984,7 +3986,7 @@ function ListinoTab({
                                               className="flex items-center gap-0.5 text-[9px] font-semibold text-violet-400 transition-colors hover:text-violet-300"
                                               title="Aggiungi Rekki ID"
                                             >
-                                              <svg className="h-2.5 w-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <svg className={`h-2.5 w-2.5 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                               </svg>
                                               <span>Rekki ID</span>
@@ -4477,7 +4479,7 @@ function ListinoTab({
                                   className="shrink-0 text-violet-400 transition-colors hover:text-violet-300"
                                   title="Modifica"
                                 >
-                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                   </svg>
                                 </button>
@@ -4488,7 +4490,7 @@ function ListinoTab({
                                   className="shrink-0 text-violet-400 transition-colors hover:text-violet-300"
                                   title="Aggiorna da Rekki"
                                 >
-                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className={`h-3.5 w-3.5 ${icon.orders}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                   </svg>
                                 </a>
@@ -4502,7 +4504,7 @@ function ListinoTab({
                                 }}
                                 className="flex flex-1 items-center justify-center gap-1 text-xs text-app-fg-muted transition-colors hover:text-violet-300"
                               >
-                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
                                 <span>{t.common.add}</span>
@@ -4521,7 +4523,7 @@ function ListinoTab({
                               className="flex items-center justify-center gap-1.5 rounded-md bg-cyan-600/20 px-3 py-1.5 text-xs font-semibold text-cyan-200 transition-colors hover:bg-cyan-600/30"
                               title={t.fornitori.listinoVerifyAnomaliesTitle}
                             >
-                              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className={`h-3.5 w-3.5 ${icon.reviewWarning}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                               </svg>
                               {t.fornitori.listinoVerifyAnomalies}
@@ -4535,12 +4537,12 @@ function ListinoTab({
                                 className="flex h-7 w-7 items-center justify-center rounded-lg border border-app-line-25 bg-app-line-10/80 text-app-fg-muted transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/40 hover:text-red-300 disabled:opacity-40"
                               >
                                 {deletingId === ultimo.id ? (
-                                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                                  <svg className={`h-3.5 w-3.5 animate-spin ${icon.destructive}`} fill="none" viewBox="0 0 24 24" aria-hidden>
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                   </svg>
                                 ) : (
-                                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <svg className={`h-3.5 w-3.5 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
                                 )}
@@ -5161,6 +5163,9 @@ function FornitoreDetailClient({
 
   return (
     <>
+      <div className="fornitore-desktop-main-x mx-auto w-full max-w-7xl px-4 pt-2 md:pt-3">
+        <BackButton href="/fornitori" label="Fornitori" className="mb-0" />
+      </div>
       <FornitoreDocDetailLayer
         fornitoreId={fornitore.id}
         bollaId={searchParams.get('bolla')}
@@ -5308,7 +5313,7 @@ function FornitoreDetailClient({
                   {ocrFornitoreBusy ? (
                     <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-amber-200 border-t-transparent" />
                   ) : (
-                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   )}
@@ -5324,7 +5329,7 @@ function FornitoreDetailClient({
                 onClick={() => saveScrollForListPath(supplierReturnPath)}
                 className="app-glow-cyan inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-app-cyan-500 px-2.5 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 sm:h-8 sm:gap-1.5 sm:px-3"
               >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`h-3.5 w-3.5 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 {t.nav.nuovaBolla}
@@ -5335,7 +5340,7 @@ function FornitoreDetailClient({
                 title={t.fornitori.editTitle}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg sm:h-8 sm:w-8"
               >
-                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </Link>
@@ -5396,7 +5401,7 @@ function FornitoreDetailClient({
                 aria-label={t.appStrings.monthNavPrevYearTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 xl:h-6 xl:w-6"
               >
-                <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
                 </svg>
               </button>
@@ -5407,7 +5412,7 @@ function FornitoreDetailClient({
                 aria-label={t.appStrings.monthNavPrevMonthTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 xl:h-6 xl:w-6"
               >
-                <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -5492,7 +5497,7 @@ function FornitoreDetailClient({
                 aria-label={t.appStrings.monthNavNextMonthTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
               >
-                <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -5504,7 +5509,7 @@ function FornitoreDetailClient({
                 aria-label={t.appStrings.monthNavNextYearTitle}
                 className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
               >
-                <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
                 </svg>
               </button>
@@ -5516,7 +5521,7 @@ function FornitoreDetailClient({
                   aria-label={t.appStrings.monthNavResetTitle}
                   className="flex h-5 w-5 items-center justify-center rounded-sm text-app-cyan-500 transition-colors hover:bg-app-line-15 hover:text-app-fg xl:h-6 xl:w-6"
                 >
-                  <svg className="h-3 w-3 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg className="h-3 w-3 text-app-cyan-500 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
                   </svg>
                 </button>

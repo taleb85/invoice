@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { getLocale } from '@/lib/localization'
 import { segmentParam } from '@/lib/segment-param'
+import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
@@ -283,18 +284,7 @@ export default function SedeFornitoriPage() {
       )}
 
       <div className="app-shell-page-padding max-w-5xl">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-xs text-slate-400 mb-6">
-          <Link href="/sedi" className="hover:text-slate-200 transition-colors">Sedi</Link>
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <Link href={`/sedi/${sede_id}`} className="hover:text-slate-200 transition-colors">{sedeName}</Link>
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-slate-300 font-medium">Fornitori</span>
-        </nav>
+        <BackButton href={`/sedi/${sede_id}`} label={sedeName} />
 
         <AppPageHeaderStrip accent="sky" mergedSummary={{ label: t.common.total, primary: fornitori.length, secondary: t.fornitori.countLabel }} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}>
           <AppPageHeaderTitleWithDashboardShortcut>

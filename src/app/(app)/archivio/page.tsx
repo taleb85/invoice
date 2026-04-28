@@ -11,6 +11,7 @@ import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SECTION_TABLE_HEAD_ROW } from
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import DocumentiQueue, { type DocumentoInCoda as DocumentoInCodaProps } from '@/components/DocumentiQueue'
 import { ReturnToLink } from '@/components/ReturnToLink'
+import { BackButton } from '@/components/BackButton'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 const ARCHIVIO_LIST_PATH = '/archivio'
@@ -107,15 +108,7 @@ export default async function ArchivioPage() {
 
   return (
     <div className="app-shell-page-padding">
-      <Link
-        href="/"
-        className="mb-5 inline-flex min-h-[44px] items-center gap-2 rounded-lg text-sm font-medium text-app-fg-muted transition-colors hover:bg-black/12 hover:text-app-fg-muted touch-manipulation md:min-h-0 md:py-0"
-      >
-        <svg className={`h-5 w-5 shrink-0 ${icon.home}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        {t.appStrings.backToHome}
-      </Link>
+      <BackButton href="/" label={t.nav.dashboard} />
 
       <AppPageHeaderStrip accent="amber" mergedSummary={{ label: t.common.total, primary: archivio.length, secondary: <>{totBolle} {t.archivio.bollaP}<span className="mx-1.5 text-app-fg-muted" aria-hidden>·</span>{totFatture} {t.archivio.fatturaP}</> }} icon={<svg className={`w-5 h-5 ${icon.statements}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>}>
         <div className="flex w-full min-w-0 flex-col gap-3">
