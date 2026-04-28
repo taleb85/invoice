@@ -325,7 +325,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           </aside>
           <div
             data-app-desktop-canvas
-            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-2 md:h-full md:min-h-0 md:overflow-hidden"
+            className={`flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-2 md:h-full md:min-h-0 ${
+              hasDesktopHeaderToast ? 'md:overflow-visible' : 'md:overflow-hidden'
+            }`}
           >
             <div
               ref={bindDesktopNavHost}
@@ -333,12 +335,12 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               className="relative isolate z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[52px] md:w-full md:items-stretch"
             >
               {headerToastBanner ? (
-                <div className="pointer-events-none absolute inset-x-0 top-2 z-[45] hidden justify-center px-3 md:flex">
+                <div className="pointer-events-none absolute inset-x-0 bottom-full z-[45] mb-1.5 hidden justify-center px-3 md:flex">
                   <div
                     aria-live="polite"
                     role="status"
                     className={[
-                      'pointer-events-auto max-h-[5.75rem] w-full max-w-2xl translate-y-[2px] rounded-2xl border border-white/[0.14] px-4 py-2 text-center shadow-[0_14px_40px_-4px_rgba(0,0,0,0.45)] backdrop-blur-md',
+                      'pointer-events-auto max-h-[5.75rem] w-full max-w-2xl rounded-2xl border border-white/[0.14] px-4 py-2 text-center shadow-[0_14px_40px_-4px_rgba(0,0,0,0.45)] backdrop-blur-md',
                       headerToastBanner.type === 'info'
                         ? 'app-workspace-inset-bg-soft ring-1 ring-app-line-28/70'
                         : `${headerNavBarSurface} ring-1 ring-white/10`,
@@ -353,7 +355,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 </div>
               ) : null}
               <div
-                className={`relative z-30 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible md:w-full ${desktopToolbarOnlySurface} ${hasDesktopHeaderToast ? 'md:pt-14' : ''}`}
+                className={`relative z-30 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible md:w-full ${desktopToolbarOnlySurface}`}
               >
                 {/* Hamburger: visible on md (tablet), hidden on lg (desktop with sidebar) */}
                 <button
