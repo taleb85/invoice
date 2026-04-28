@@ -13,7 +13,8 @@ export function AppPageHeaderTitleWithDashboardShortcut({
 }) {
   return (
     <div className={`flex ${className}`}>
-      <div className="min-w-0 flex-1">{children}</div>
+      {/* Colonna sempre verticale (h1 + sottotitoli) dentro lo strip — evita “affiancamento” casuali */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1 sm:gap-1.5">{children}</div>
     </div>
   )
 }

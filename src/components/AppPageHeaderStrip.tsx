@@ -18,9 +18,12 @@ const innerClsBase =
 const innerClsDenseBase =
   `flex w-full min-w-0 flex-col gap-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:flex-row sm:flex-nowrap sm:gap-x-3`
 
-const innerRightClsBase = 'flex min-w-0 shrink-0 flex-nowrap justify-end gap-3 sm:gap-x-4 md:gap-5'
+/** Destra strip: permette shrink e wrap quando FY + tray stretti così il titolo a sinistra recupera larghezza (`min-w-0` sulla colonna sinistra). */
+const innerRightClsBase =
+  'flex min-h-0 min-w-0 max-w-[min(30rem,calc(100%-1rem))] shrink flex-row flex-wrap content-end justify-end gap-x-3 gap-y-2 sm:items-center sm:gap-x-4 md:flex-nowrap md:gap-x-5'
 
-const innerRightClsDenseBase = 'flex min-w-0 shrink-0 flex-wrap justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
+const innerRightClsDenseBase =
+  'flex min-h-0 min-w-0 max-w-[min(28rem,calc(100%-1rem))] shrink flex-wrap content-end justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` (vetro, ring cyan, ombre neon) + barra (`.app-card-bar-accent` se tema).
@@ -88,7 +91,7 @@ export default function AppPageHeaderStrip({
   const leftClusterCls = `flex min-w-0 min-h-0 flex-1 gap-3 lg:gap-4 ${alignStart ? 'items-start' : 'items-center'}`
   const titleCls = `min-w-0 flex-1 ${alignStart ? 'self-start' : 'self-center'}`
   const rightCls = `${dense ? innerRightClsDenseBase : innerRightClsBase} ${
-    alignStart ? 'items-start pt-0.5' : 'items-center'
+    alignStart ? 'items-start sm:justify-end sm:pt-0.5' : 'items-center'
   }`
 
   const headerRow = (

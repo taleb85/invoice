@@ -65,7 +65,7 @@ export default async function AnalyticsPage(props: { searchParams: SearchParams 
       >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.nav.analytics}</h1>
-          <p className={`mt-0.5 max-w-xl ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS}`}>{t.appStrings.analyticsPageSub}</p>
+          <p className={`mt-0.5 ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS} lg:max-w-4xl`}>{t.appStrings.analyticsPageSub}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
