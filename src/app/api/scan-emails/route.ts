@@ -49,12 +49,11 @@ import {
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 /**
- * Limite durata funzione su Vercel/hosting (secondi).
- * Scansioni grandi + Vision: 300s per piano Pro; su Hobby Vercel può limitare a 60 (deploy fallirà prima — usare batch più piccoli o Pro).
- * Modifica questo valore se il piano lo consente (max 800 Enterprise).
+ * Limite durata funzione serverless su Vercel (secondi). Piano Hobby: massimo **300**.
+ * Piano Pro consente più di 300 secondi ma il deploy viene rifiutato se questo valore supera il tetto del piano.
+ * Per scansioni molto lunghe: batch più piccoli oppure piano superiore.
  */
-/** Vercel Pro: fino a ~800s; su piano inferiore viene limitato. Finestre grandi (es. 90 gg) possono superare 5 min. */
-export const maxDuration = 800
+export const maxDuration = 300
 
 type EmailSyncDocumentKind = 'all' | 'fornitore' | 'bolla' | 'fattura' | 'estratto_conto'
 
