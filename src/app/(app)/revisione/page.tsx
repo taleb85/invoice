@@ -11,7 +11,7 @@ import {
 } from '@/lib/summary-highlight-accent'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
-import { APP_SHELL_SECTION_PAGE_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SHELL_SECTION_PAGE_CLASS } from '@/lib/app-shell-layout'
 import { BackButton } from '@/components/BackButton'
 
 export const dynamic = 'force-dynamic'
@@ -62,7 +62,7 @@ export default async function RevisioneInboxPage(props: {
         }
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.dashboard.inboxUrgentePageTitle}</h1>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.dashboard.inboxUrgentePageTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>

@@ -16,7 +16,7 @@ import DashboardFiscalYearHeaderSelectMe from '@/components/DashboardFiscalYearH
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 import {
   APP_SHELL_SECTION_PAGE_CLASS,
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
 } from '@/lib/app-shell-layout'
 
 export default function StatementsLayout({ children }: { children: React.ReactNode }) {
@@ -57,7 +57,7 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={`min-w-0 flex-1 truncate ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>
+          <h1 className={`min-w-0 flex-1 truncate ${APP_PAGE_HEADER_STRIP_H1_CLASS}`}>
             {isVerifica ? t.statements.heading : t.statements.tabDocumenti}
           </h1>
         </AppPageHeaderTitleWithDashboardShortcut>

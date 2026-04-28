@@ -21,7 +21,7 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { ActionLink } from '@/components/ui/ActionButton'
 import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
   APP_SECTION_TABLE_CELL_LINK,
@@ -209,7 +209,7 @@ export default async function BollePage(props: {
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.bolle.title}</h1>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.bolle.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
           <ExportButton rows={exportRows} type="bolle" period={exportPeriod} />

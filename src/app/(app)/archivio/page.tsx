@@ -9,7 +9,7 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
   APP_SECTION_EMPTY_LINK_CLASS_COMPACT,
   APP_SECTION_TABLE_HEAD_ROW,
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
 } from '@/lib/app-shell-layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import DocumentiQueue, { type DocumentoInCoda as DocumentoInCodaProps } from '@/components/DocumentiQueue'
@@ -112,7 +112,6 @@ export default async function ArchivioPage() {
   return (
     <div className="app-shell-page-padding">
       <AppPageHeaderStrip
-        rowAlign="start"
         accent="amber"
         mergedSummary={{
           label: t.common.total,
@@ -132,7 +131,7 @@ export default async function ArchivioPage() {
       >
         <div className="flex w-full min-w-0 flex-col gap-3">
           <AppPageHeaderTitleWithDashboardShortcut>
-            <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{t.archivio.title}</h1>
+            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.archivio.title}</h1>
           </AppPageHeaderTitleWithDashboardShortcut>
           <ExportZipButton />
         </div>

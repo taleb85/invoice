@@ -16,7 +16,7 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import { usePushNotifications } from '@/hooks/use-push-notifications'
 import { BackButton } from '@/components/BackButton'
 import {
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
@@ -327,7 +327,6 @@ export default function ImpostazioniPage() {
       {/* ══ MOBILE layout (Help /guida: solo qui, non in MobileTopbar) ══ */}
       <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-4 text-app-fg md:hidden">
         <AppPageHeaderStrip
-          rowAlign="start"
           dense
           flushBottom
           accent="slate"
@@ -338,7 +337,7 @@ export default function ImpostazioniPage() {
             <div className="flex w-full min-w-0 items-center justify-between gap-2">
               <div className="min-w-0 flex-1 pr-1.5">
                 <h1
-                  className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} truncate font-bold`}
+                  className={`${APP_PAGE_HEADER_STRIP_H1_CLASS} truncate`}
                   suppressHydrationWarning
                 >
                   {mounted ? t.impostazioni.title : ''}
@@ -423,7 +422,6 @@ export default function ImpostazioniPage() {
       <div className={`hidden min-h-0 w-full flex-1 flex-col md:flex ${APP_SHELL_SECTION_PAGE_STACK_CLASS}`}>
         <div className="mx-auto w-full max-w-2xl flex-1">
           <AppPageHeaderStrip
-            rowAlign="start"
             dense
             flushBottom
             accent="slate"
@@ -436,7 +434,7 @@ export default function ImpostazioniPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
                     {mounted ? t.impostazioni.sectionLocalisation : ''}
                   </p>
-                  <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} mt-0.5 font-bold`} suppressHydrationWarning>
+                  <h1 className={`${APP_PAGE_HEADER_STRIP_H1_CLASS} mt-0.5`} suppressHydrationWarning>
                     {mounted ? t.impostazioni.title : ''}
                   </h1>
                 </div>

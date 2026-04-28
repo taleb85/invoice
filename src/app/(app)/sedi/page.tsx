@@ -11,7 +11,11 @@ import { CURRENCIES, TIMEZONES } from '@/lib/translations'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import { APP_SECTION_DIVIDE_ROWS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
+import {
+  APP_SECTION_DIVIDE_ROWS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
+} from '@/lib/app-shell-layout'
 
 /* ─── IP geo-detection ─────────────────────────────────────────────────────
    Maps the ISO-2 country code returned by ipapi.co to our internal codes.
@@ -470,13 +474,10 @@ export default function SediPage() {
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 id="page-sedi-title" className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`} aria-describedby="page-sedi-desc">
+          <h1 id="page-sedi-title" className={APP_PAGE_HEADER_STRIP_H1_CLASS} aria-describedby="page-sedi-desc">
             {t.sedi.titleGlobalAdmin}
           </h1>
-          <p
-            id="page-sedi-desc"
-            className="max-w-[min(100%,40rem)] text-[11px] leading-snug text-app-fg-muted sm:text-sm sm:leading-tight"
-          >
+          <p id="page-sedi-desc" className={APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}>
             {t.sedi.subtitleGlobalAdmin}
           </p>
         </AppPageHeaderTitleWithDashboardShortcut>

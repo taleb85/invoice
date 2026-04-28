@@ -7,7 +7,7 @@ import { ActivityFeed } from '@/components/activity/activity-feed'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_SHELL_SECTION_PAGE_H1_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 type Operatore = { id: string; full_name: string | null }
 
@@ -95,13 +95,12 @@ export default function AttivitaPage() {
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
-        rowAlign="start"
         accent="teal"
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>}
       >
         <div className="min-w-0">
-          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.appStrings.attivitaPageTitle}</h1>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.appStrings.attivitaPageTitle}</h1>
           <p className="mt-0.5 text-xs text-app-fg-muted truncate sm:text-sm">{t.appStrings.attivitaPageSub}</p>
         </div>
         <button

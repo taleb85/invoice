@@ -27,7 +27,7 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
 import { getFiscalYearPgBounds, formatFiscalYearShort, parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
-import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import {
@@ -84,10 +84,7 @@ export default async function DashboardPage(props: {
             <h1 id="page-dashboard-strip-title" className="app-page-title text-xl font-bold leading-tight md:text-2xl" aria-describedby="page-dashboard-strip-desc">
               {t.dashboard.title}
             </h1>
-            <p
-              id="page-dashboard-strip-desc"
-              className="max-w-[min(100%,40rem)] text-[11px] leading-snug text-app-fg-muted sm:text-sm sm:leading-tight"
-            >
+            <p id="page-dashboard-strip-desc" className={APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}>
               {t.sedi.subtitleGlobalAdmin}
             </p>
           </AppPageHeaderTitleWithDashboardShortcut>

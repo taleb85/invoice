@@ -6,7 +6,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/lib/use-t'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import {
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
+} from '@/lib/app-shell-layout'
 import GeminiUsageDashboard, { type GeminiUsageDashboardHandle } from '@/components/GeminiUsageDashboard'
 
 export default function ConsumiAiPage() {
@@ -39,7 +44,6 @@ export default function ConsumiAiPage() {
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
-        rowAlign="start"
         accent="teal"
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         icon={
@@ -58,14 +62,12 @@ export default function ConsumiAiPage() {
           </svg>
         }
       >
-        <div className="min-w-0 flex-1">
-          <h1 className="text-base font-bold text-app-fg sm:text-lg">
-            {t.nav.consumiAi}
-          </h1>
-          <p className="text-xs text-app-fg-muted">
+        <AppPageHeaderTitleWithDashboardShortcut>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.nav.consumiAi}</h1>
+          <p className={APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}>
             Gemini 2.5 Flash-Lite — token usati, costo per scan, totale stimato
           </p>
-        </div>
+        </AppPageHeaderTitleWithDashboardShortcut>
 
         <button
           type="button"

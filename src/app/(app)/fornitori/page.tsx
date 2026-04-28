@@ -9,7 +9,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
 import {
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 
@@ -65,9 +65,9 @@ export default async function FornitoriPage() {
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}
       >
-        <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 items-center gap-3 sm:flex-1 sm:flex-initial">
+        <AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex w-full min-w-0 items-center justify-between gap-2 sm:gap-3">
-            <h1 className={`min-w-0 flex-1 truncate pr-2 ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>{t.fornitori.title}</h1>
+            <h1 className={`min-w-0 flex-1 truncate pr-2 ${APP_PAGE_HEADER_STRIP_H1_CLASS}`}>{t.fornitori.title}</h1>
             {sedeNome ? (
               <span className="inline-flex max-w-[min(100%,11rem)] shrink-0 items-center gap-1 rounded-full border border-app-line-35 bg-app-line-15 px-2 py-0.5 text-[11px] font-medium text-app-fg-muted sm:max-w-[min(100%,14rem)]">
                 <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

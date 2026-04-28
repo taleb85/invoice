@@ -11,7 +11,7 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import { BackButton } from '@/components/BackButton'
 import {
   APP_SHELL_SECTION_PAGE_CLASS,
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
 } from '@/lib/app-shell-layout'
@@ -204,7 +204,6 @@ export default function CentroOperazioniPage() {
     <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
       <div className="mx-auto w-full max-w-2xl">
         <AppPageHeaderStrip
-          rowAlign="start"
           accent="teal"
           leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         >
@@ -219,7 +218,7 @@ export default function CentroOperazioniPage() {
               <span className="mx-2 text-app-fg-muted/40">&rsaquo;</span>
               <span>{s.pageTitle}</span>
             </nav>
-            <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{s.pageTitle}</h1>
+            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
             <p className={`max-w-xl ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS} leading-snug`}>{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>

@@ -5,7 +5,7 @@ import { useLocale } from '@/lib/locale-context'
 import { getGuidaContent } from '@/lib/guida-content'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import {
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
 } from '@/lib/app-shell-layout'
 import { BackButton } from '@/components/BackButton'
@@ -71,13 +71,12 @@ export default function GuidaPage() {
   return (
     <div className="app-shell-page-padding max-w-6xl">
       <AppPageHeaderStrip
-        rowAlign="start"
         accent="slate"
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{content.pageTitle}</h1>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{content.pageTitle}</h1>
           <p className={APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS}>{content.pageSubtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>

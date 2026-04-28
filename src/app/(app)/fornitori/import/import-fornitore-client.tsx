@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useSedeId } from '@/lib/use-sede'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
 import { BackButton } from '@/components/BackButton'
 
 interface ExtractedData {
@@ -139,7 +139,7 @@ export default function ImportFornitoreInner() {
       <AppPageHeaderStrip>
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{t.fornitori.importaDaFattura}</h1>
+            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.fornitori.importaDaFattura}</h1>
             <p className="mt-0.5 text-sm text-app-fg-muted">{t.bolle.ocrHint}</p>
           </div>
         </div>

@@ -7,9 +7,9 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import {
-  APP_SHELL_SECTION_PAGE_H1_COMPACT_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
-  APP_SHELL_SECTION_PAGE_SUBTITLE_COMPACT_CLASS,
 } from '@/lib/app-shell-layout'
 import { parseFiscalYearQueryParam, formatFiscalYearShort } from '@/lib/fiscal-year'
 
@@ -58,7 +58,6 @@ export default async function AnalyticsPage(props: { searchParams: SearchParams 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
-        rowAlign="start"
         accent="teal"
         leadingAccessory={
           <BackButton
@@ -71,8 +70,8 @@ export default async function AnalyticsPage(props: { searchParams: SearchParams 
         icon={<svg className="h-11 w-11 sm:h-12 sm:w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={APP_SHELL_SECTION_PAGE_H1_COMPACT_CLASS}>{t.nav.analytics}</h1>
-          <p className={`${APP_SHELL_SECTION_PAGE_SUBTITLE_COMPACT_CLASS} lg:max-w-4xl`}>{t.appStrings.analyticsPageSub}</p>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.nav.analytics}</h1>
+          <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} lg:max-w-4xl`}>{t.appStrings.analyticsPageSub}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>

@@ -19,7 +19,7 @@ import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { ActionLink } from '@/components/ui/ActionButton'
 import {
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
   APP_SECTION_TABLE_CELL_LINK,
@@ -112,7 +112,7 @@ export default async function OrdiniOverviewPage(props: {
         }
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.nav.ordini}</h1>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.nav.ordini}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <DashboardFiscalYearHeaderForSede fyRaw={searchParams.fy} />
       </AppPageHeaderStrip>

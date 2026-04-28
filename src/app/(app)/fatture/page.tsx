@@ -20,7 +20,7 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { StandardCard } from '@/components/ui/StandardCard'
 import {
   APP_SECTION_AMOUNT_POSITIVE_CLASS,
-  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 import {
@@ -167,7 +167,7 @@ export default async function FatturePage(props: {
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.fatture.title}</h1>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.fatture.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2 md:gap-3">
           <DashboardDuplicateFattureButton alwaysShowLabel />

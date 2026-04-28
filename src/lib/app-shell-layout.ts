@@ -39,6 +39,17 @@ export const APP_SHELL_SECTION_PAGE_SUBTITLE_COMPACT_CLASS =
   'text-[11px] leading-snug text-app-fg-muted sm:text-xs'
 
 /**
+ * Titolo h1 dentro `AppPageHeaderStrip` (modello `/sedi`: stessa scala `APP_SHELL_SECTION_PAGE_H1_CLASS` + grassetto).
+ */
+export const APP_PAGE_HEADER_STRIP_H1_CLASS = `${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`
+
+/**
+ * Sottotitolo opzionale sotto l’h1 nello strip (stesso ritmo responsive di `/sedi`).
+ */
+export const APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS =
+  'max-w-[min(100%,40rem)] text-[11px] leading-snug text-app-fg-muted sm:text-sm sm:leading-tight'
+
+/**
  * Barra filtri sotto header (allineata al padding interno tabelle `SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS`).
  */
 export const APP_SECTION_FILTERS_STRIP_CLASS =
