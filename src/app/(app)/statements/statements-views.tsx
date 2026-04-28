@@ -863,6 +863,8 @@ export function PendingMatchesTab({
     fornitoreId: string
     email: string
   } | null>(null)
+  /** In abbinamento fattura–bolla: mostra anche bolle di altri fornitori (stessa sede) o tutta la sede se il doc non ha ancora `fornitore_id`. */
+  const [matchIncludeAllSuppliersBolles, setMatchIncludeAllSuppliersBolles] = useState<Record<string, boolean>>({})
 
   const autoLinkTriedRef = useRef(new Set<string>())
   const autoAssocTriedRef = useRef(new Set<string>())
@@ -1672,8 +1674,29 @@ export function PendingMatchesTab({
             const nomeFornitore  = (doc.fornitore as { nome: string } | null)?.nome ?? null
             const isUnknown      = !nomeFornitore
             const isStmt         = statementDocs.has(doc.id) || doc.is_statement
-            const bolleSameSupplier = bolleAperte.filter(b => b.fornitore_id === doc.fornitore_id)
-            const bolleOther        = bolleAperte.filter(b => b.fornitore_id !== doc.fornitore_id)
+            const fornitoreDocId = doc.fornitore_id ?? null
+            const matchExpandedAllSuppliers =
+              matchIncludeAllSuppliersBolles[doc.id] ?? false
+            /** Default: solo bolle dello stesso fornitore della fattura; opzionale elenco sede completo. */
+            const bolleListaPrincipale: BollaAperta[] =
+              fornitoreDocId !== null
+                ? bolleAperte.filter((b) => b.fornitore_id === fornitoreDocId)
+                : matchExpandedAllSuppliers
+                  ? bolleAperte
+                  : []
+            /** Solo con doc già associato a fornitore + toggle "tutti i fornitore". */
+            const bolleAltriFornitoriEspansi: BollaAperta[] =
+              fornitoreDocId !== null && matchExpandedAllSuppliers
+                ? bolleAperte.filter((b) => b.fornitore_id !== fornitoreDocId)
+                : []
+            const bolleAbbinamentoPool: BollaAperta[] = [
+              ...bolleListaPrincipale,
+              ...bolleAltriFornitoriEspansi,
+            ]
+            const canSearchMoreBolles =
+              fornitoreDocId !== null
+                ? bolleAperte.some((b) => b.fornitore_id !== fornitoreDocId)
+                : bolleAperte.length > 0
             const rowTheme = pendingDocRowTheme(doc.stato)
             const officialDocDateIso = officialDateIsoForPendingDoc(doc)
 
@@ -2014,7 +2037,7 @@ export function PendingMatchesTab({
                           }`}
                         >
                           {/* Auto-suggest button */}
-                          {ocrTotal !== null && (bolleSameSupplier.length > 0 || bolleOther.length > 0) && (
+                          {ocrTotal !== null && bolleAbbinamentoPool.length > 0 && (
                             <div
                               className={`flex items-center justify-between gap-2 px-3 py-2 ${
                                 supplierDocShell ? 'bg-slate-900/40' : 'border-b border-app-line-15 bg-transparent'
@@ -2031,7 +2054,10 @@ export function PendingMatchesTab({
                                 </span>
                               </span>
                               <button
-                                onClick={() => autoSuggest(doc.id, [...bolleSameSupplier, ...bolleOther], ocrTotal)}
+                                type="button"
+                                onClick={() =>
+                                  autoSuggest(doc.id, bolleAbbinamentoPool, ocrTotal)
+                                }
                                 className="whitespace-nowrap rounded-md border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/25"
                               >
                                 ✦ Suggerisci auto
@@ -2039,21 +2065,34 @@ export function PendingMatchesTab({
                             </div>
                           )}
 
-                          {/* Same supplier bolle */}
-                          {bolleSameSupplier.length > 0 && (
+                          {/* Bolle in sospeso (stesso fornitore della fattura) | tutta la sede se doc senza fornitore + ricerca */}
+                          {bolleListaPrincipale.length > 0 ? (
                             <>
                               <div
-                                className={`px-3 py-1.5 ${supplierDocShell ? 'bg-slate-900/55' : 'border-b border-app-line-15 bg-transparent'}`}
+                                className={`px-3 py-2 ${supplierDocShell ? 'bg-slate-900/55' : 'border-b border-app-line-15 bg-transparent'}`}
                               >
                                 <span
-                                  className={`text-[10px] font-semibold uppercase tracking-wide ${
+                                  className={`block text-[10px] font-semibold uppercase tracking-wide ${
                                     supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'
                                   }`}
                                 >
-                                  {nomeFornitore ?? 'Stesso fornitore'} · {bolleSameSupplier.length} bolla{bolleSameSupplier.length !== 1 ? 'e' : ''}
+                                  {t.statements.bolleDaCollegamentiSectionTitle}
+                                </span>
+                                <span className={`mt-1 block text-[11px] ${supplierDocShell ? 'text-slate-200' : 'text-app-fg-muted'}`}>
+                                  {fornitoreDocId != null ? (
+                                    <>
+                                      {nomeFornitore ?? '—'} · {bolleListaPrincipale.length} bolla
+                                      {bolleListaPrincipale.length !== 1 ? 'e' : ''}
+                                    </>
+                                  ) : (
+                                    <>
+                                      {t.statements.bollesFullSiteListSubtitle} · {bolleListaPrincipale.length} bolla
+                                      {bolleListaPrincipale.length !== 1 ? 'e' : ''}
+                                    </>
+                                  )}
                                 </span>
                               </div>
-                              {bolleSameSupplier.map(b => {
+                              {bolleListaPrincipale.map((b) => {
                                 const checked = selIds.includes(b.id)
                                 return (
                                   <label
@@ -2069,7 +2108,16 @@ export function PendingMatchesTab({
                                     <span
                                       className={`flex-1 text-sm ${supplierDocShell ? 'text-slate-200' : 'text-app-fg'}`}
                                     >
-                                      {b.numero_bolla ? <span className="font-mono font-medium">#{b.numero_bolla}</span> : '—'}{' '}
+                                      {!fornitoreDocId ? (
+                                        <span className={`text-[11px] ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}>
+                                          {b.fornitore_nome} ·{' '}
+                                        </span>
+                                      ) : null}
+                                      {b.numero_bolla ? (
+                                        <span className="font-mono font-medium">#{b.numero_bolla}</span>
+                                      ) : (
+                                        '—'
+                                      )}{' '}
                                       <span
                                         className={`text-xs ${supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'}`}
                                       >
@@ -2093,23 +2141,63 @@ export function PendingMatchesTab({
                                 )
                               })}
                             </>
+                          ) : (
+                            <p
+                              className={`px-3 py-2.5 text-xs leading-snug ${
+                                supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'
+                              }`}
+                            >
+                              {!fornitoreDocId && !matchExpandedAllSuppliers && bolleAperte.length > 0
+                                ? t.statements.bollesMatchAssociateSupplierHint
+                                : fornitoreDocId
+                                  ? t.statements.bollePendingNoneForThisSupplier
+                                  : t.statements.noBolleAttesa}
+                            </p>
                           )}
 
-                          {/* Other supplier bolle */}
-                          {bolleOther.length > 0 && (
+                          {canSearchMoreBolles ? (
+                            <div
+                              className={`px-3 py-2 ${
+                                supplierDocShell ? 'border-t border-slate-700/55 bg-slate-900/35' : 'border-t border-app-line-15 bg-app-line-06/50'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setMatchIncludeAllSuppliersBolles((prev) => ({
+                                    ...prev,
+                                    [doc.id]: !matchExpandedAllSuppliers,
+                                  }))
+                                }
+                                className={`text-[11px] font-semibold underline decoration-dotted underline-offset-2 transition-colors ${
+                                  supplierDocShell
+                                    ? 'text-cyan-200/95 hover:text-cyan-50'
+                                    : 'text-cyan-500/95 hover:text-cyan-300'
+                                }`}
+                              >
+                                {matchExpandedAllSuppliers
+                                  ? t.statements.bollesShowOnlyThisSupplier
+                                  : t.statements.bollesSearchAcrossAllSuppliers}
+                              </button>
+                            </div>
+                          ) : null}
+
+                          {/* Lista estesa (altri fornitori) — solo dopo "Cerca tra tutti..." con doc già associato */}
+                          {bolleAltriFornitoriEspansi.length > 0 && (
                             <>
                               <div
-                                className={`px-3 py-1.5 ${supplierDocShell ? 'bg-slate-900/55' : 'border-b border-app-line-15 bg-transparent'}`}
+                                className={`px-3 py-1.5 ${supplierDocShell ? 'bg-slate-900/55' : 'border-t border-app-line-15 bg-transparent'}`}
                               >
                                 <span
                                   className={`text-[10px] font-semibold uppercase tracking-wide ${
                                     supplierDocShell ? 'text-slate-400' : 'text-app-fg-muted'
                                   }`}
                                 >
-                                  Altri fornitori · {bolleOther.length}
+                                  {t.statements.bollesExtendedOtherSuppliersSubtitle} ·{' '}
+                                  {bolleAltriFornitoriEspansi.length}
                                 </span>
                               </div>
-                              {bolleOther.map(b => {
+                              {bolleAltriFornitoriEspansi.map((b) => {
                                 const checked = selIds.includes(b.id)
                                 return (
                                   <label

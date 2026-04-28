@@ -1246,6 +1246,20 @@ type Translations = {
     noPendingDocs: string
     noDocsFound: string
     noBolleAttesa: string
+    /** Coda abbina bolle-fattura: titolo lista stesso fornitore */
+    bolleDaCollegamentiSectionTitle: string
+    /** Nessuna bolla aperta sul fornitore collegato al documento */
+    bollePendingNoneForThisSupplier: string
+    /** Pulsante: mostra anche bolle degli altri fornitori (stessa sede) */
+    bollesSearchAcrossAllSuppliers: string
+    /** Pulsante: torna alla lista solo fornitore del documento */
+    bollesShowOnlyThisSupplier: string
+    /** Sotto-lista quando si espande la ricerca: bolle di altri fornitori */
+    bollesExtendedOtherSuppliersSubtitle: string
+    /** Nessun fornitore sul doc: suggerisce di scegliere fornitore o espandere */
+    bollesMatchAssociateSupplierHint: string
+    /** Lista bolle da tutti i fornitore quando non c'è fornitore sul doc e lista espansa */
+    bollesFullSiteListSubtitle: string
     unknownSender: string
     /** Pending queue: same normalized address as other docs, different OCR company names; `{names}` = joined labels */
     sameAddressClusterHint: string
@@ -2659,6 +2673,15 @@ const it: Translations = {
     noPendingDocs: 'Nessun documento da esaminare',
     noDocsFound: 'Nessun documento trovato',
     noBolleAttesa: 'Nessuna bolla in attesa disponibile',
+    bolleDaCollegamentiSectionTitle: 'Bolle da collegare',
+    bollePendingNoneForThisSupplier: 'Nessuna bolla in sospeso per questo fornitore.',
+    bollesSearchAcrossAllSuppliers: 'Cerca tra tutti i fornitori',
+    bollesShowOnlyThisSupplier: 'Solo questo fornitore',
+    bollesExtendedOtherSuppliersSubtitle: 'Altre bolle aperte (altri fornitori)',
+    bollesMatchAssociateSupplierHint:
+      'Associa un fornitore al documento per vedere qui le sue bolle in sospeso, oppure cerca nell’intera sede.',
+    /** Lista bolle espansa senza fornitore sul documento: ricerca globale sede */
+    bollesFullSiteListSubtitle: 'Tutta la sede',
     unknownSender: 'Mittente sconosciuto',
     sameAddressClusterHint:
       'Stesso indirizzo su altri documenti in coda. Nomi azienda letti dall’IA sulle altre righe: {names}. Probabile stesso fornitore (ragioni sociali diverse sul documento): associa la stessa anagrafica.',
@@ -3355,6 +3378,14 @@ const en: Translations = {
     noPendingDocs: 'No documents to review',
     noDocsFound: 'No documents found',
     noBolleAttesa: 'No pending delivery notes available',
+    bolleDaCollegamentiSectionTitle: 'Delivery notes to link',
+    bollePendingNoneForThisSupplier: 'No pending delivery notes for this supplier.',
+    bollesSearchAcrossAllSuppliers: 'Search across all suppliers',
+    bollesShowOnlyThisSupplier: 'This supplier only',
+    bollesExtendedOtherSuppliersSubtitle: 'Other open delivery notes (other suppliers)',
+    bollesMatchAssociateSupplierHint:
+      'Link a supplier to see their pending notes here, or search the whole warehouse.',
+    bollesFullSiteListSubtitle: 'Entire warehouse',
     unknownSender: 'Unknown sender',
     sameAddressClusterHint:
       'Same address as other queued documents. OCR company names on those rows: {names}. Likely the same supplier — link the same contact.',
@@ -4001,6 +4032,14 @@ const es: Translations = {
     noPendingDocs: 'No hay documentos para revisar',
     noDocsFound: 'No se encontraron documentos',
     noBolleAttesa: 'No hay albaranes pendientes disponibles',
+    bolleDaCollegamentiSectionTitle: 'Albaranes por vincular',
+    bollePendingNoneForThisSupplier: 'No hay albaranes pendientes para este proveedor.',
+    bollesSearchAcrossAllSuppliers: 'Buscar en todos los proveedores',
+    bollesShowOnlyThisSupplier: 'Solo este proveedor',
+    bollesExtendedOtherSuppliersSubtitle: 'Otros albaranes (otros proveedores)',
+    bollesMatchAssociateSupplierHint:
+      'Vincula un proveedor para ver aquí sus albaranes pendientes, o busca en todo el sitio.',
+    bollesFullSiteListSubtitle: 'Toda la sede',
     unknownSender: 'Remitente desconocido',
     sameAddressClusterHint:
       'Misma dirección que otros documentos en cola. Nombres de empresa (IA) en esas filas: {names}. Probablemente el mismo proveedor: vincula el mismo contacto.',
@@ -4644,6 +4683,14 @@ const fr: Translations = {
     noPendingDocs: 'Aucun document à examiner',
     noDocsFound: 'Aucun document trouvé',
     noBolleAttesa: 'Aucun bon de livraison en attente disponible',
+    bolleDaCollegamentiSectionTitle: 'BL à associer',
+    bollePendingNoneForThisSupplier: 'Aucun BL en attente pour ce fournisseur.',
+    bollesSearchAcrossAllSuppliers: 'Rechercher tous les fournisseurs',
+    bollesShowOnlyThisSupplier: 'Ce fournisseur seulement',
+    bollesExtendedOtherSuppliersSubtitle: 'Autres BL ouverts (autres fournisseurs)',
+    bollesMatchAssociateSupplierHint:
+      'Associez un fournisseur pour voir ici ses BL en attente, ou recherche sur tout le site.',
+    bollesFullSiteListSubtitle: 'Tout le site',
     unknownSender: 'Expéditeur inconnu',
     sameAddressClusterHint:
       'Même adresse que d’autres documents en file. Noms d’entreprise (IA) sur ces lignes : {names}. Probablement le même fournisseur : associez le même contact.',
@@ -5286,6 +5333,14 @@ const de: Translations = {
     noPendingDocs: 'Keine Dokumente zu prüfen',
     noDocsFound: 'Keine Dokumente gefunden',
     noBolleAttesa: 'Keine ausstehenden Lieferscheine verfügbar',
+    bolleDaCollegamentiSectionTitle: 'Zu verknüpfende Lieferscheine',
+    bollePendingNoneForThisSupplier: 'Keine offenen Lieferscheine für diesen Lieferanten.',
+    bollesSearchAcrossAllSuppliers: 'Alle Lieferanten durchsuchen',
+    bollesShowOnlyThisSupplier: 'Nur diesen Lieferanten',
+    bollesExtendedOtherSuppliersSubtitle: 'Weitere offene Lieferscheine (andere Lieferanten)',
+    bollesMatchAssociateSupplierHint:
+      'Verknüpfen Sie einen Lieferanten, um hier seine offenen Lieferscheine zu sehen, oder suchen Sie standortweit.',
+    bollesFullSiteListSubtitle: 'Gesamter Standort',
     unknownSender: 'Unbekannter Absender',
     sameAddressClusterHint:
       'Gleiche Adresse wie bei anderen Dokumenten in der Warteschlange. Von der KI erkannte Firmennamen in den anderen Zeilen: {names}. Vermutlich derselbe Lieferant — verknüpfen Sie denselben Kontakt.',
