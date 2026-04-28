@@ -26,16 +26,17 @@ export const APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS =
 
 /** h1 standard nelle strip di quelle pagine (stessa scala su tutti i breakpoint). */
 export const APP_SHELL_SECTION_PAGE_H1_CLASS =
-  'app-page-title app-page-title-glow text-[18px] font-medium leading-snug sm:text-[20px] md:text-[22px]'
+  'app-page-title app-page-title-glow text-[16px] font-medium leading-snug sm:text-[18px] md:text-[20px]'
 
 /** Sottotitoli / metadati sotto il titolo o in card riepilogo. */
-export const APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS = 'text-sm leading-snug text-app-fg-muted'
+export const APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS = 'text-xs leading-snug text-app-fg-muted'
 
 /** Variante compatta per strip affollate (es. Analitiche con FY + tray). */
 export const APP_SHELL_SECTION_PAGE_H1_COMPACT_CLASS =
-  'app-page-title app-page-title-glow text-[15px] font-medium leading-snug sm:text-[16px] md:text-[18px]'
+  'app-page-title app-page-title-glow text-[14px] font-medium leading-snug sm:text-[15px] md:text-[16px]'
 
-export const APP_SHELL_SECTION_PAGE_SUBTITLE_COMPACT_CLASS = 'text-xs leading-snug text-app-fg-muted'
+export const APP_SHELL_SECTION_PAGE_SUBTITLE_COMPACT_CLASS =
+  'text-[11px] leading-snug text-app-fg-muted sm:text-xs'
 
 /**
  * Barra filtri sotto header (allineata al padding interno tabelle `SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS`).

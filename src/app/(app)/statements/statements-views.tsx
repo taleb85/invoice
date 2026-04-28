@@ -38,6 +38,7 @@ import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attach
 import { checkResultMatchesVerificaProdotto } from '@/lib/listino-display'
 import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fattura'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import { APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
@@ -338,7 +339,7 @@ export function StatementsContent({
             }
           >
             <AppPageHeaderTitleWithDashboardShortcut>
-              <h1 className="app-page-title text-2xl font-bold">{t.statements.heading}</h1>
+              <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{t.statements.heading}</h1>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
           <StatementsSummaryHighlight

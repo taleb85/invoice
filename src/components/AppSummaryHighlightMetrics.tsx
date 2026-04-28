@@ -45,8 +45,8 @@ export default function AppSummaryHighlightMetrics({
           }
         >
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
-            <p className="text-2xl font-bold tabular-nums text-app-fg sm:text-3xl">{primary}</p>
-            <p className="min-w-0 text-sm leading-snug text-app-fg-muted">{secondary}</p>
+            <p className="text-xl font-bold tabular-nums text-app-fg sm:text-2xl">{primary}</p>
+            <p className="min-w-0 text-xs leading-snug text-app-fg-muted sm:text-sm">{secondary}</p>
           </div>
           {hasTrailing && !trailingWithLabel ? (
             <div className="flex min-w-0 w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold sm:w-auto sm:justify-end">
@@ -56,7 +56,7 @@ export default function AppSummaryHighlightMetrics({
         </div>
       ) : (
         <>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg sm:text-3xl">{primary}</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-app-fg sm:text-2xl">{primary}</p>
           {hasTrailing && !trailingWithLabel ? (
             <div className="mt-1 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs font-semibold">
               {trailing}

@@ -12,6 +12,7 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import {
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_TABLE_HEAD_ROW,
@@ -158,7 +159,7 @@ export default async function LogPage() {
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
-          <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
+          <h1 className={`pr-1 ${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{t.log.title}</h1>
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.subtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
@@ -169,7 +170,7 @@ export default async function LogPage() {
           <div className="h-0.5 shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-700" />
           <div className="p-4 md:p-5">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <p className="text-2xl font-bold tabular-nums text-app-fg md:text-3xl">{entries.length}</p>
+              <p className="text-xl font-bold tabular-nums text-app-fg md:text-2xl">{entries.length}</p>
               <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-app-fg-muted md:text-xs">{t.log.totalLogs}</p>
             </div>
           </div>
@@ -179,7 +180,7 @@ export default async function LogPage() {
           <div className="h-0.5 shrink-0 bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-700" />
           <div className="p-4 md:p-5">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <p className="text-2xl font-bold tabular-nums text-emerald-300 md:text-3xl">{totaleSuccessi}</p>
+              <p className="text-xl font-bold tabular-nums text-emerald-300 md:text-2xl">{totaleSuccessi}</p>
               <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-emerald-400/90 md:text-xs">{t.log.linkedInvoices}</p>
             </div>
           </div>
@@ -189,7 +190,7 @@ export default async function LogPage() {
           <div className="h-0.5 shrink-0 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700" />
           <div className="p-4 md:p-5">
             <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <p className="text-2xl font-bold tabular-nums text-red-300 md:text-3xl">{totaleErrori}</p>
+              <p className="text-xl font-bold tabular-nums text-red-300 md:text-2xl">{totaleErrori}</p>
               <p className="text-[10px] font-medium uppercase leading-tight tracking-wide text-red-400/90 md:text-xs">{t.log.withErrors}</p>
             </div>
           </div>

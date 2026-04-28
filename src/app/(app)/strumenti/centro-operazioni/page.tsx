@@ -13,6 +13,7 @@ import {
   APP_SHELL_SECTION_PAGE_CLASS,
   APP_SHELL_SECTION_PAGE_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
+  APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
 } from '@/lib/app-shell-layout'
 
 type DashboardPayload = {
@@ -219,7 +220,7 @@ export default function CentroOperazioniPage() {
               <span>{s.pageTitle}</span>
             </nav>
             <h1 className={`mt-2 ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>{s.pageTitle}</h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-app-fg-muted">{s.pageSubtitle}</p>
+            <p className={`mt-2 max-w-xl ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS} leading-relaxed`}>{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-8">

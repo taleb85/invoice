@@ -7,6 +7,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { VatLookupField } from '@/components/vat-lookup-field'
 import { BackButton } from '@/components/BackButton'
+import { APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 
 interface DiscoveredSender {
   email: string
@@ -332,7 +333,7 @@ export function DiscoveryContent({
               </svg>
             </Link>
           </div>
-          <h1 className="app-page-title text-2xl font-bold">Esplora Email</h1>
+          <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>Esplora Email</h1>
           <p className="mt-1 text-sm text-app-fg-muted">
             Analizza le caselle email collegate (ultimi 30 giorni) e mostra i mittenti con allegati
             non ancora registrati come fornitori.

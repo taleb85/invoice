@@ -11,6 +11,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
   APP_SECTION_DIVIDE_ROWS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
@@ -287,7 +288,7 @@ export default function SedeFornitoriPage() {
 
         <AppPageHeaderStrip accent="sky" mergedSummary={{ label: t.common.total, primary: fornitori.length, secondary: t.fornitori.countLabel }} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}>
           <AppPageHeaderTitleWithDashboardShortcut>
-            <h1 className="app-page-title text-2xl font-bold">Fornitori</h1>
+            <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>Fornitori</h1>
           </AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
             <button

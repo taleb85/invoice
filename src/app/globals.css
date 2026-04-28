@@ -920,7 +920,7 @@ body,
     transition: border-color 120ms, box-shadow 120ms;
   }
 
-  /* Input / select desktop: altezza 36px, testo 13px (FY header: escluso — v.s. `.app-fiscal-year-header-select`) */
+  /* Input / select desktop: altezza 36px, testo 13px (FY nell’header: escluso — regole dedicate sotto `.app-fiscal-year-header-select`) */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
   select:not(.app-fiscal-year-header-select) {
     min-height: 36px;
@@ -1010,11 +1010,11 @@ body,
  */
 select.app-fiscal-year-header-select {
   box-sizing: border-box !important;
-  min-height: 1.625rem !important;
-  max-height: 1.875rem !important;
+  min-height: 1.5rem !important;
+  max-height: 1.75rem !important;
   height: auto !important;
-  padding-top: 0.125rem !important;
-  padding-bottom: 0.125rem !important;
-  font-size: 0.75rem !important;
+  padding-top: 0.0625rem !important;
+  padding-bottom: 0.0625rem !important;
+  font-size: 0.6875rem !important;
   line-height: 1.1 !important;
 }
