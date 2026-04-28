@@ -20,9 +20,9 @@ export function BackButton({ label = 'Indietro', href, className, iconOnly }: Ba
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  /** `iconOnly`: compatto nello strip ma ≥44px tap; icona sezione resta più grande accanto. */
+  /** `iconOnly`: variante compatta nello strip (icona sezione resta più grande). */
   const baseClass = iconOnly
-    ? 'mb-0 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg sm:h-12 sm:w-12'
+    ? 'mb-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg sm:h-10 sm:w-10'
     : 'mb-3 flex w-fit items-center gap-1 text-sm text-app-fg-muted transition-colors hover:text-app-fg'
 
   return (
@@ -43,11 +43,7 @@ export function BackButton({ label = 'Indietro', href, className, iconOnly }: Ba
       }}
       className={`${baseClass} ${className ?? ''}`}
     >
-      <ChevronLeft
-        className={`shrink-0 ${iconOnly ? 'h-5 w-5 sm:h-5 sm:w-5' : 'h-4 w-4'}`}
-        strokeWidth={iconOnly ? 2.25 : 2}
-        aria-hidden
-      />
+      <ChevronLeft className="h-4 w-4 shrink-0" strokeWidth={iconOnly ? 2.25 : 2} aria-hidden />
       {!iconOnly ? label : null}
     </button>
   )
