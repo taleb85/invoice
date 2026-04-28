@@ -160,7 +160,7 @@ export default async function LogPage() {
       >
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <h1 className={`pr-1 ${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{t.log.title}</h1>
-          <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.subtitle}</p>
+          <p className="text-xs leading-tight text-app-fg-muted">{t.log.subtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 

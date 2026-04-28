@@ -471,7 +471,7 @@ export default function SediPage() {
       >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{t.sedi.titleGlobalAdmin}</h1>
-          <p className="mt-1 hidden text-sm text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
+          <p className="hidden text-sm leading-tight text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
         {!isSedeScopedAdmin ? (
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">

@@ -78,7 +78,7 @@ export default function GuidaPage() {
       >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{content.pageTitle}</h1>
-          <p className={`mt-1 ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS}`}>{content.pageSubtitle}</p>
+          <p className={APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS}>{content.pageSubtitle}</p>
         </AppPageHeaderTitleWithDashboardShortcut>
       </AppPageHeaderStrip>
 

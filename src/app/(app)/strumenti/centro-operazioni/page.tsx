@@ -209,7 +209,7 @@ export default function CentroOperazioniPage() {
           leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         >
           <AppPageHeaderTitleWithDashboardShortcut>
-            <nav className="text-[11px] text-app-fg-muted" aria-label="Breadcrumb">
+            <nav className="text-[10px] leading-tight text-app-fg-muted" aria-label="Breadcrumb">
               <Link
                 href="/strumenti"
                 className="text-app-fg-muted underline-offset-4 hover:text-cyan-200 hover:underline"
@@ -219,8 +219,8 @@ export default function CentroOperazioniPage() {
               <span className="mx-2 text-app-fg-muted/40">&rsaquo;</span>
               <span>{s.pageTitle}</span>
             </nav>
-            <h1 className={`mt-2 ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>{s.pageTitle}</h1>
-            <p className={`mt-2 max-w-xl ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS} leading-relaxed`}>{s.pageSubtitle}</p>
+            <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{s.pageTitle}</h1>
+            <p className={`max-w-xl ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS} leading-snug`}>{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-8">
