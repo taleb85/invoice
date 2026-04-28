@@ -2,33 +2,42 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { AppSheet } from '@/components/ui/AppSheet'
 import { createClient } from '@/utils/supabase/client'
-import type { SedeSupplierSuggestion } from '@/lib/suggested-fornitore'
+import type { SedeSupplierSuggestionItem } from '@/lib/suggested-fornitore'
+import { formatDate } from '@/lib/locale'
+import { useLocale } from '@/lib/locale-context'
 import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 
 type Props = {
   sedeId: string
-} & NonNullable<SedeSupplierSuggestion>
+  items: SedeSupplierSuggestionItem[]
+}
 
-export default function DashboardSedeSupplierSuggestion({
-  sedeId,
-  documentoId,
-  prefill,
-  newFornitoreHref,
-}: Props) {
+export default function DashboardSedeSupplierSuggestion({ sedeId, items }: Props) {
   const router = useRouter()
   const t = useT()
+  const { locale, timezone } = useLocale()
   const { showToast } = useToast()
   const supabase = createClient()
 
-  const [saving, setSaving] = useState(false)
-  const [skipLoading, setSkipLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [ignoringId, setIgnoringId] = useState<string | null>(null)
+  const [errorByDoc, setErrorByDoc] = useState<Record<string, string | undefined>>({})
 
-  const dismissToNext = async () => {
-    setSkipLoading(true)
+  const count = items.length
+
+  const bannerLine = useMemo(() => {
+    return count === 1
+      ? t.dashboard.suggestedSupplierBannerTeaser_one
+      : t.dashboard.suggestedSupplierBannerTeaser_many.replace(/\{n\}/g, String(count))
+  }, [count, t.dashboard])
+
+  const dismissDocument = async (documentoId: string) => {
+    setIgnoringId(documentoId)
     try {
       const res = await fetch('/api/sede/supplier-suggestion', {
         method: 'POST',
@@ -44,13 +53,16 @@ export default function DashboardSedeSupplierSuggestion({
     } catch {
       showToast(t.ui.networkError, 'error')
     } finally {
-      setSkipLoading(false)
+      setIgnoringId(null)
     }
   }
 
-  const confirmAdd = async () => {
-    setSaving(true)
-    setError(null)
+  const confirmAdd = async (item: SedeSupplierSuggestionItem) => {
+    const docId = item.documentoId
+    const prefill = item.prefill
+
+    setSavingId(docId)
+    setErrorByDoc((prev) => ({ ...prev, [docId]: undefined }))
 
     const { data: row, error: insertErr } = await supabase
       .from('fornitori')
@@ -68,9 +80,9 @@ export default function DashboardSedeSupplierSuggestion({
       .single()
 
     if (insertErr || !row?.id) {
-      setSaving(false)
+      setSavingId(null)
       const msg = insertErr?.message ?? t.ui.networkError
-      setError(msg)
+      setErrorByDoc((prev) => ({ ...prev, [docId]: msg }))
       showToast(msg, 'error')
       return
     }
@@ -84,7 +96,7 @@ export default function DashboardSedeSupplierSuggestion({
       })
     }
 
-    setSaving(false)
+    setSavingId(null)
     showToast(t.dashboard.suggestedSupplierSavedToast, 'success')
     router.refresh()
   }
@@ -92,39 +104,91 @@ export default function DashboardSedeSupplierSuggestion({
   const actionDims =
     'inline-flex h-9 min-h-9 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-semibold leading-none'
 
+  const formatContact = (iso: string | null) => {
+    if (!iso) return '—'
+    return formatDate(iso, locale, timezone, { dateStyle: 'medium' })
+  }
+
   return (
-    <div className="flex w-fit max-w-full shrink-0 flex-col items-end gap-1">
-      <div className="flex w-fit max-w-full flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => void confirmAdd()}
-          disabled={saving}
-          aria-busy={saving}
-          className={`${actionDims} border border-violet-300/35 bg-violet-500 text-white shadow-md shadow-violet-950/40 transition-colors hover:bg-violet-400 hover:border-violet-200/45 disabled:pointer-events-none disabled:opacity-60`}
-        >
-          {saving ? t.fornitori.saving : t.dashboard.suggestedSupplierConfirm}
-        </button>
-        <Link
-          href={newFornitoreHref}
-          className={`${actionDims} border border-[rgba(34,211,238,0.15)] bg-violet-950/30 text-violet-200 transition-colors hover:border-[rgba(34,211,238,0.2)] hover:bg-violet-900/35 hover:text-white`}
-        >
-          {t.dashboard.suggestedSupplierOpenForm}
-        </Link>
-        <button
-          type="button"
-          onClick={() => void dismissToNext()}
-          disabled={skipLoading}
-          aria-busy={skipLoading}
-          className={`${actionDims} border border-transparent px-3 text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg disabled:pointer-events-none disabled:opacity-50`}
-        >
-          {skipLoading ? t.fornitori.saving : t.dashboard.suggestedSupplierSkip}
-        </button>
-      </div>
-      {error && (
-        <p className="max-w-[min(22rem,calc(100vw-6rem))] text-right text-[11px] text-red-300/95" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setSheetOpen(true)}
+        className="w-full text-left transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(15,23,42,0.95)] rounded-sm"
+      >
+        <p className="min-w-0 text-sm font-semibold leading-snug text-app-fg">{bannerLine}</p>
+      </button>
+
+      <AppSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        title={t.dashboard.suggestedSupplierDrawerTitle}
+        closeLabel={t.dashboard.emailSyncDismiss}
+        scrimCloseLabel={t.dashboard.suggestedSupplierDrawerCloseScrimAria}
+        size="wide"
+      >
+        <div className="space-y-3 p-4 sm:p-5">
+          {items.map((item) => {
+            const sender = item.mittente?.trim() || '—'
+            const err = errorByDoc[item.documentoId]
+            const saving = savingId === item.documentoId
+            const ignoring = ignoringId === item.documentoId
+
+            return (
+              <div
+                key={item.documentoId}
+                className="rounded-xl border border-app-line-32 bg-white/[0.04] p-4 shadow-sm shadow-black/20"
+              >
+                <p className="text-sm font-semibold leading-snug text-app-fg">{item.displayName}</p>
+                <dl className="mt-2 space-y-1 text-xs text-app-fg-muted">
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                    <dt className="font-medium text-app-fg-muted/90">{t.dashboard.suggestedSupplierSenderLabel}</dt>
+                    <dd className="min-w-0 break-all font-mono text-[11px] text-app-fg-muted">{sender}</dd>
+                  </div>
+                  <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                    <dt className="font-medium text-app-fg-muted/90">{t.dashboard.suggestedSupplierFirstContactLabel}</dt>
+                    <dd className="tabular-nums">{formatContact(item.createdAt)}</dd>
+                  </div>
+                </dl>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void confirmAdd(item)}
+                    disabled={saving}
+                    aria-busy={saving}
+                    className={`${actionDims} border border-violet-300/35 bg-violet-500 text-white shadow-md shadow-violet-950/40 transition-colors hover:border-violet-200/45 hover:bg-violet-400 disabled:pointer-events-none disabled:opacity-60`}
+                  >
+                    {saving ? t.fornitori.saving : t.dashboard.suggestedSupplierConfirm}
+                  </button>
+                  <Link
+                    href={item.newFornitoreHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${actionDims} border border-[rgba(34,211,238,0.15)] bg-violet-950/30 text-violet-200 transition-colors hover:border-[rgba(34,211,238,0.2)] hover:bg-violet-900/35 hover:text-white`}
+                  >
+                    {t.dashboard.suggestedSupplierOpenForm}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void dismissDocument(item.documentoId)}
+                    disabled={ignoring}
+                    aria-busy={ignoring}
+                    className={`${actionDims} border border-transparent text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg disabled:pointer-events-none disabled:opacity-50`}
+                  >
+                    {ignoring ? t.fornitori.saving : t.dashboard.suggestedSupplierIgnore}
+                  </button>
+                </div>
+                {err ? (
+                  <p className="mt-2 text-[11px] text-red-300/95" role="alert">
+                    {err}
+                  </p>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      </AppSheet>
+    </>
   )
 }

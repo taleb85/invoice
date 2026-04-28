@@ -13,7 +13,7 @@ import {
   fetchTodayScannerFlowDetail,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
-import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
+import { fetchAllSedeSupplierSuggestions } from '@/lib/suggested-fornitore'
 import {
   SUPPLIER_HINT_SKIP_COOKIE,
   parseSupplierHintSkipCookie,
@@ -251,7 +251,7 @@ export default async function DashboardPage(props: {
   const excludeDocIdsForSupplierHint = sedeId ? skipsForSede(supplierDismissSkips, sedeId) : []
 
   let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
-  let supplierHint: Awaited<ReturnType<typeof fetchSedeSupplierSuggestion>> = null
+  let supplierHints: Awaited<ReturnType<typeof fetchAllSedeSupplierSuggestions>> = []
   let scannerFlowDetail: Awaited<ReturnType<typeof fetchTodayScannerFlowDetail>> = {
     summary: { aiElaborate: 0, archiviate: 0 },
     events: [],
@@ -262,8 +262,8 @@ export default async function DashboardPage(props: {
         ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
         : Promise.resolve({ ...DEFAULT_OPERATOR_DASHBOARD_KPIS }),
       operatorScoped && sedeId
-        ? fetchSedeSupplierSuggestion(supabase, sedeId, { excludeDocumentIds: excludeDocIdsForSupplierHint })
-        : Promise.resolve(null),
+        ? fetchAllSedeSupplierSuggestions(supabase, sedeId, { excludeDocumentIds: excludeDocIdsForSupplierHint })
+        : Promise.resolve([]),
       operatorScoped && sedeId
         ? fetchTodayScannerFlowDetail(
             supabase,
@@ -276,7 +276,7 @@ export default async function DashboardPage(props: {
         : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
     ])
     kpis = bundle[0]
-    supplierHint = bundle[1]
+    supplierHints = bundle[1]
     scannerFlowDetail = bundle[2]
   } catch (err) {
     console.error('[DashboardPage] KPI/fetch', err)
@@ -313,18 +313,11 @@ export default async function DashboardPage(props: {
           <DuplicateDashboardBanner />
         </Suspense>
       )}
-      {supplierHint && sedeId && (
-        <div
-          className={`hidden md:block ${SUMMARY_HIGHLIGHT_SURFACE_CLASS}`}
-        >
+      {supplierHints.length > 0 && sedeId && (
+        <div className={`hidden md:block ${SUMMARY_HIGHLIGHT_SURFACE_CLASS}`}>
           <div className={`app-card-bar-accent ${SUMMARY_HIGHLIGHT_ACCENTS.violet.bar}`} aria-hidden />
           <div className={`app-workspace-surface-elevated ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
-              <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-app-fg">
-                {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
-              </p>
-              <DashboardSedeSupplierSuggestion sedeId={sedeId} {...supplierHint} />
-            </div>
+            <DashboardSedeSupplierSuggestion sedeId={sedeId} items={supplierHints} />
           </div>
         </div>
       )}

@@ -8,13 +8,19 @@ export type SedeSupplierPrefill = {
   email: string | null
 }
 
-export type SedeSupplierSuggestion = {
-  /** Riga `documenti_da_processare` — per Salt / prossimo suggerimento */
+/** Una riga in coda documenti con suggerimento OCR — usata dal banner / drawer dashboard */
+export type SedeSupplierSuggestionItem = {
+  /** Riga `documenti_da_processare` — per Ignora / refresh */
   documentoId: string
   displayName: string
   prefill: SedeSupplierPrefill
   newFornitoreHref: string
-} | null
+  /** `documenti_da_processare.created_at` (primo ingresso in coda) */
+  createdAt: string | null
+  mittente: string | null
+}
+
+export type SedeSupplierSuggestion = SedeSupplierSuggestionItem | null
 
 type DocMeta = {
   ragione_sociale?: string | null
@@ -86,7 +92,8 @@ function buildSuggestionFromRow(row: {
   id: string
   metadata: unknown
   mittente: string | null
-}): SedeSupplierSuggestion {
+  created_at?: string | null
+}): SedeSupplierSuggestionItem {
   const m = row.metadata as DocMeta
   const rs = m?.ragione_sociale?.trim() ?? ''
   const pivaRaw = m?.p_iva?.trim() ?? ''
@@ -116,35 +123,36 @@ function buildSuggestionFromRow(row: {
     displayName,
     prefill,
     newFornitoreHref: `/fornitori/new?${qs}`,
+    createdAt: row.created_at ?? null,
+    mittente: row.mittente ?? null,
   }
 }
 
 /**
- * Primo documento in coda (sede) senza fornitore ma con hint OCR — per banner dashboard operatore.
- * Non propone il fornitore se ne esiste già uno in sede con stessa P.IVA, ragione sociale (normalizzata)
- * o email mittente (profilo o alias).
+ * Tutti i documenti in coda (sede) senza fornitore ma con hint OCR — per drawer dashboard.
+ * Ordine: dal più vecchio al più recente (`created_at` ASC).
  */
-export async function fetchSedeSupplierSuggestion(
+export async function fetchAllSedeSupplierSuggestions(
   supabase: SupabaseClient,
   sedeId: string,
   opts?: { excludeDocumentIds?: string[] },
-): Promise<SedeSupplierSuggestion> {
+): Promise<SedeSupplierSuggestionItem[]> {
   const exclude = new Set((opts?.excludeDocumentIds ?? []).filter(Boolean))
 
   const [{ data, error }, { data: fornitoriRows, error: fornErr }] = await Promise.all([
     supabase
       .from('documenti_da_processare')
-      .select('id, metadata, mittente')
+      .select('id, metadata, mittente, created_at')
       .eq('sede_id', sedeId)
       .is('fornitore_id', null)
       .in('stato', ['da_associare', 'in_attesa'])
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
       .limit(60),
     supabase.from('fornitori').select('id, nome, piva, email, display_name').eq('sede_id', sedeId),
   ])
 
-  if (error || !data?.length) return null
-  if (fornErr) return null
+  if (error || !data?.length) return []
+  if (fornErr) return []
 
   const fornitori = (fornitoriRows ?? []) as FornitoreRow[]
   const fornitoreIds = fornitori.map((f) => f.id)
@@ -158,14 +166,30 @@ export async function fetchSedeSupplierSuggestion(
     )
   }
 
+  const out: SedeSupplierSuggestionItem[] = []
   for (const raw of data) {
-    const d = raw as { id: string; metadata: unknown; mittente: string | null }
+    const d = raw as { id: string; metadata: unknown; mittente: string | null; created_at?: string | null }
     if (exclude.has(d.id)) continue
     const m = d.metadata as DocMeta
     if (!(m?.ragione_sociale?.trim() || m?.p_iva?.trim())) continue
     if (existingFornitoreMatchesDoc(fornitori, aliasEmailsLower, m, d.mittente)) continue
-    return buildSuggestionFromRow(d)
+    out.push(buildSuggestionFromRow(d))
   }
 
-  return null
+  return out
+}
+
+/**
+ * Primo documento in coda (sede) senza fornitore ma con hint OCR — per banner dashboard operatore.
+ * Non propone il fornitore se ne esiste già uno in sede con stessa P.IVA, ragione sociale (normalizzata)
+ * o email mittente (profilo o alias).
+ */
+/** Primo elemento della lista FIFO (GET API / compat). */
+export async function fetchSedeSupplierSuggestion(
+  supabase: SupabaseClient,
+  sedeId: string,
+  opts?: { excludeDocumentIds?: string[] },
+): Promise<SedeSupplierSuggestion> {
+  const all = await fetchAllSedeSupplierSuggestions(supabase, sedeId, opts)
+  return all[0] ?? null
 }
