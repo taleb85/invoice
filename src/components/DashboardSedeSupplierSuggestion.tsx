@@ -5,9 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { AppSheet } from '@/components/ui/AppSheet'
 import { createClient } from '@/utils/supabase/client'
-import type { Locale } from '@/lib/translations'
 import type { SedeSupplierSuggestionItem } from '@/lib/suggested-fornitore'
-import { useLocale } from '@/lib/locale-context'
 import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 
@@ -16,18 +14,9 @@ type Props = {
   items: SedeSupplierSuggestionItem[]
 }
 
-function intlLocaleForApp(locale: Locale): string {
-  if (locale === 'it') return 'it-IT'
-  if (locale === 'en') return 'en-GB'
-  if (locale === 'es') return 'es-ES'
-  if (locale === 'fr') return 'fr-FR'
-  return 'de-DE'
-}
-
 export default function DashboardSedeSupplierSuggestion({ sedeId, items }: Props) {
   const router = useRouter()
   const t = useT()
-  const { locale, timezone } = useLocale()
   const { showToast } = useToast()
   const supabase = createClient()
 
@@ -112,16 +101,15 @@ export default function DashboardSedeSupplierSuggestion({ sedeId, items }: Props
   const actionDims =
     'inline-flex h-9 min-h-9 shrink-0 items-center justify-center rounded-lg px-3 text-xs font-semibold leading-none'
 
-  const formatContact = (iso: string | null) => {
-    if (!iso) return '—'
-    const parsed = new Date(iso)
-    if (!Number.isFinite(parsed.getTime())) return '—'
-    return new Intl.DateTimeFormat(intlLocaleForApp(locale), {
-      timeZone: timezone,
+  const formatContact = (dateString: string | null) => {
+    if (!dateString) return '—'
+    const d = new Date(dateString)
+    if (!Number.isFinite(d.getTime())) return '—'
+    return new Intl.DateTimeFormat('it-IT', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-    }).format(parsed)
+    }).format(d)
   }
 
   return (
