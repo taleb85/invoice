@@ -9,7 +9,6 @@ import { segmentParam } from '@/lib/segment-param'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
   APP_SECTION_DIVIDE_ROWS,

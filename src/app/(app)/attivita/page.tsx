@@ -34,7 +34,7 @@ function downloadCsv(rows: ActivityLogRow[]) {
 export default function AttivitaPage() {
   const { me, loading } = useMe()
   const t = useT()
-  const [sedeId, setSedeId] = useState<string>('')
+  const [sedeId] = useState<string>('')
   const [userId, setUserId] = useState<string>('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')

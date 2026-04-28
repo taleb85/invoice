@@ -669,7 +669,7 @@ function SupplierDesktopKpiGrid({
           onClick={() => onTabChange(k.tab)}
           className="supplier-desktop-kpi-card group relative flex h-full min-h-[68px] flex-col cursor-pointer overflow-hidden text-left transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)] active:scale-[0.98] md:min-h-[148px]"
           style={{
-            boxShadow: supplierDesktopKpiOuterShadow(k.accentHex),
+            boxShadow: supplierDesktopKpiOuterShadow(),
             ['--supplier-kpi-rgb' as string]: hexToRgbTuple(k.accentHex),
           }}
         >

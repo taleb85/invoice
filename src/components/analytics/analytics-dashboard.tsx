@@ -18,7 +18,6 @@ import {
 import { KpiCard } from './kpi-card'
 import type { AnalyticsOverview } from '@/app/api/analytics/overview/route'
 
-const CHART_BG = '#0f172b'
 const AXIS_COLOR = 'rgba(255,255,255,0.35)'
 const GRID_COLOR = 'rgba(255,255,255,0.06)'
 const CYAN = '#22d3ee'
@@ -68,7 +67,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
       .then((d: AnalyticsOverview) => setData(d))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [sedeId, fiscalYear, months])
+  }, [sedeId, fiscalYear, months, t.appStrings.analyticsErrorLoading])
 
   if (loading) {
     return (

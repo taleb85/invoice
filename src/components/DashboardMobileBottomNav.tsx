@@ -115,13 +115,7 @@ function OperatorHubNavItem({ itemCls }: { itemCls: (active: boolean) => string 
   )
 }
 
-function FornitoreProfileBottomNav({
-  normalized,
-  itemCls,
-}: {
-  normalized: string
-  itemCls: (active: boolean) => string
-}) {
+function FornitoreProfileBottomNav({ itemCls }: { itemCls: (active: boolean) => string }) {
   const pathname = usePathname() ?? ''
   const t = useT()
   const { me } = useMe()
@@ -234,7 +228,7 @@ export default function DashboardMobileBottomNav() {
 
   if (isFornitoreProfileRoute(normalized)) {
     return (
-      <FornitoreProfileBottomNav normalized={normalized} itemCls={fornitoreItemCls} />
+      <FornitoreProfileBottomNav itemCls={fornitoreItemCls} />
     )
   }
 

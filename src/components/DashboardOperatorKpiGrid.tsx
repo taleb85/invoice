@@ -19,7 +19,7 @@ const kpiTileSubLine =
   'w-full min-w-0 text-[11px] font-medium leading-snug text-app-fg-muted sm:text-[12px] sm:leading-snug'
 
 /** Alone KPI: neutro, senza anello colorato. */
-function operatorKpiCardShadow(_glowRgb: string) {
+function operatorKpiCardShadow() {
   return [
     '0 0 0 1px rgba(34,211,238,0.12)',
     '0 0 44px -12px rgba(0,0,0,0.4)',
@@ -87,7 +87,7 @@ export function DashboardOperatorKpiSkeleton() {
               <div
                 key={i}
                 className={`operator-kpi-card relative flex h-full min-h-0 min-w-0 w-full animate-pulse flex-col overflow-hidden rounded-2xl ${OPERATOR_KPI_CARD_MIN_H} ${ov.borderClass} ${ov.ringClass}`}
-                style={{ boxShadow: operatorKpiCardShadow(ov.glowRgb) }}
+                style={{ boxShadow: operatorKpiCardShadow() }}
               >
                                 <div className={kpiTileInnerGridClass}>
                   <div className="col-start-1 row-start-1 flex min-h-[1.875rem] items-start sm:min-h-[2rem]">
@@ -380,7 +380,7 @@ export default function DashboardOperatorKpiGrid({
 
             const shellClass = `operator-kpi-card relative z-[1] flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${OPERATOR_KPI_CARD_MIN_H} ${item.borderClass} ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 ${online ? 'hover:bg-white/[0.07]' : ''} ${item.hoverClass} ${cardInteractive}`
             const shellStyle: CSSProperties = {
-              boxShadow: operatorKpiCardShadow(item.glowRgb),
+              boxShadow: operatorKpiCardShadow(),
             }
 
             if (online) {

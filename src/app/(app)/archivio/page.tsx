@@ -5,7 +5,6 @@ import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/local
 import ExportZipButton from './ExportZipButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SECTION_TABLE_HEAD_ROW } from '@/lib/app-shell-layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'

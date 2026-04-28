@@ -31,7 +31,6 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
   useEffect(() => {
     startCamera()
     return () => stopCamera()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function startCamera() {

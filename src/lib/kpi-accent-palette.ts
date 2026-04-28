@@ -102,7 +102,7 @@ export function hexToRgbTuple(hex: string): string {
 }
 
 /** Ombra tile KPI scheda fornitore: neutrale. */
-export function supplierDesktopKpiOuterShadow(_hex: string): string {
+export function supplierDesktopKpiOuterShadow(): string {
   return [
     '0 0 0 1px rgba(34,211,238,0.12)',
     '0 0 44px -12px rgba(0,0,0,0.4)',

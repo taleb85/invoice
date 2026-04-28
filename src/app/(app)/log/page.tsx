@@ -11,7 +11,6 @@ import { getT, getLocale, getTimezone } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SECTION_MOBILE_LIST,

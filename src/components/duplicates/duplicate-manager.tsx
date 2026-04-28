@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useToast } from '@/lib/toast-context'
-import type { AllDuplicatesReport, DuplicateGroup, DuplicateItem } from '@/lib/duplicate-detector'
+import type { AllDuplicatesReport, DuplicateGroup } from '@/lib/duplicate-detector'
 import DocumentPreviewModal from './document-preview-modal'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
@@ -35,19 +35,16 @@ function entityAccent(e: Entity): string {
 
 function GroupSection({
   group,
-  entity,
   selected,
   onToggle,
   onPreview,
 }: {
   group: DuplicateGroup
-  entity: Entity
   selected: Set<string>
   onToggle: (id: string) => void
   onPreview: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(true)
-  const accentCls = entityAccent(entity)
 
   const allSelectedInGroup = group.items.every((i) => selected.has(i.id))
   const someSelectedInGroup = group.items.some((i) => selected.has(i.id))
@@ -218,7 +215,6 @@ function EntityPanel({
               <GroupSection
                 key={i}
                 group={g}
-                entity={entity}
                 selected={selected}
                 onToggle={onToggle}
                 onPreview={(id) => onPreview(id, entity)}

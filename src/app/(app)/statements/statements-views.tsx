@@ -1638,9 +1638,6 @@ export function PendingMatchesTab({
   /** In scheda fornitore: stesso guscio/tab «Documenti» del resto della pagina. */
   const supplierDocShell = Boolean(fornitoreId)
   const queueShellClass = supplierDocShell ? 'supplier-detail-tab-shell' : SUMMARY_HIGHLIGHT_SURFACE_CLASS
-  const queueShellBorder = supplierDocShell
-    ? SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti.border
-    : listShellTheme.border
   const queueShellBar = supplierDocShell
     ? SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti.bar
     : listShellTheme.bar

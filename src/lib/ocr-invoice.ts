@@ -6,7 +6,6 @@ import {
   geminiGenerateText,
   geminiGenerateVision,
   DOCUMENT_EXTRACTION_PROMPT,
-  GeminiConfigurationError,
   GeminiTransientError,
   type GeminiUsage,
 } from '@/lib/gemini-vision'

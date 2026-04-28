@@ -9,23 +9,6 @@ const NEUTRAL_BAR = ''
 const NEUTRAL_LABEL = 'text-app-fg-muted'
 const NEUTRAL_BORDER = 'border-[rgba(34,211,238,0.15)]'
 
-const SUMMARY_HIGHLIGHT_KEYS = {
-  indigo: true,
-  blue: true,
-  emerald: true,
-  purple: true,
-  pink: true,
-  fuchsia: true,
-  rose: true,
-  lime: true,
-  teal: true,
-  cyan: true,
-  sky: true,
-  amber: true,
-  violet: true,
-  slate: true,
-} as const
-
 /** Allineamento icone strip alle voci correlati nella sidebar (`Sidebar.tsx`). */
 const HEADER_ICON = {
   indigo: iconAccentClass.fornitori,
@@ -42,7 +25,7 @@ const HEADER_ICON = {
   amber: iconAccentClass.statements,
   violet: iconAccentClass.bolle,
   slate: iconAccentClass.settingsTools,
-} as const satisfies Record<keyof typeof SUMMARY_HIGHLIGHT_KEYS, string>
+} as const
 
 export const SUMMARY_HIGHLIGHT_ACCENTS = {
   indigo: {
@@ -130,7 +113,7 @@ export const SUMMARY_HIGHLIGHT_ACCENTS = {
     headerIcon: HEADER_ICON.slate,
   },
 } as const satisfies Record<
-  keyof typeof SUMMARY_HIGHLIGHT_KEYS,
+  keyof typeof HEADER_ICON,
   { border: string; bar: string; label: string; headerIcon: string }
 >
 

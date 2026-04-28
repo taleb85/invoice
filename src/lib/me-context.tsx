@@ -71,21 +71,6 @@ export function markClientSessionJustEstablished(): void {
   }
 }
 
-const DEFAULT_ME: MeData = {
-  user:         null,
-  full_name:    null,
-  role:         null,
-  sede_id:      null,
-  sede_nome:    null,
-  country_code: 'UK',
-  currency:     'GBP',
-  timezone:     'Europe/London',
-  is_admin:     false,
-  is_admin_sede: false,
-  all_sedi:     [],
-  onboarding_complete: true,
-}
-
 function parseMeResponse(data: Record<string, unknown>): MeData {
   const raw = String(data.role ?? '').toLowerCase()
   const role: MeData['role'] =

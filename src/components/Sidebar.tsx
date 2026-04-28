@@ -218,7 +218,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
       cancelled = true
       clearInterval(interval)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMasterAdmin, isAdminSede])
 
   const analyticsNavItem = {

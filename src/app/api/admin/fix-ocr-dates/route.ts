@@ -543,7 +543,8 @@ export async function POST(req: NextRequest) {
           }
           let insRes = await service.from('fatture').insert([payload]).select('id').single()
           if (insRes.error && isMissingColumnError(insRes.error, 'user_id')) {
-            const { user_id: _u, ...rest } = payload
+            const rest = { ...payload }
+            delete (rest as { user_id?: unknown }).user_id
             insRes = await service.from('fatture').insert([rest]).select('id').single()
           }
           if (insRes.error) {
@@ -636,7 +637,8 @@ export async function POST(req: NextRequest) {
           }
           let bIns = await service.from('bolle').insert([bollaPayload]).select('id').single()
           if (bIns.error && isMissingColumnError(bIns.error, 'user_id')) {
-            const { user_id: _u, ...rest } = bollaPayload
+            const rest = { ...bollaPayload }
+            delete (rest as { user_id?: unknown }).user_id
             bIns = await service.from('bolle').insert([rest]).select('id').single()
           }
           if (bIns.error) {

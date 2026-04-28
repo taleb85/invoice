@@ -1,5 +1,3 @@
-import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
-
 function LogRowSkeleton() {
   return (
     <div className="flex items-start gap-3 border-b border-app-line-10 px-4 py-3.5">
