@@ -60,6 +60,9 @@ export function desktopHeaderBarSurfaceClass(banner: DesktopHeaderToastBanner): 
 
 const MD_MIN_WIDTH = 768
 
+/** Durata toast (barra desktop + pallino mobile prima della chiusura automatica). */
+const TOAST_VISIBILITY_MS = 8_000
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [headerBanner, setHeaderBanner] = useState<DesktopHeaderToastBanner>(null)
@@ -100,11 +103,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           headerBannerToastIdRef.current = null
           setHeaderBanner(null)
         }
-      }, 4500)
+      }, TOAST_VISIBILITY_MS)
 
       setTimeout(() => {
         setToasts((prev) => prev.filter((toast) => toast.id !== id))
-      }, 4500)
+      }, TOAST_VISIBILITY_MS)
     },
     [clearHeaderBannerTimer, useFloatingToast]
   )
