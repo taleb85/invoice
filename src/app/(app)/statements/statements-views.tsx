@@ -62,6 +62,8 @@ type OcrMetadata = {
   note_corpo_mail?:   string | null
   /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
   pending_kind?:      'statement' | 'bolla' | 'fattura' | 'ordine' | null
+  /** Scansione email: fattura già presente in archivio */
+  duplicate_skipped_fattura_id?: string | null
   bozza_id?:          string | null
   bozza_tipo?:        'bolla' | 'fattura' | null
   rekki_link?:        string | null
@@ -78,10 +80,25 @@ type Documento = {
   file_name: string | null
   content_type: string | null
   data_documento: string | null
-  stato: 'in_attesa' | 'da_associare' | 'associato' | 'scartato' | 'bozza_creata'
+  stato: 'in_attesa' | 'da_associare' | 'da_revisionare' | 'associato' | 'scartato' | 'bozza_creata'
   is_statement: boolean
   metadata?: OcrMetadata | null
   fornitore?: { nome: string; email?: string } | null
+}
+
+/** Coda manuale (incl. varianti legacy ancora in DB). */
+function docNeedsManualProcessing(stato: Documento['stato']): boolean {
+  return (
+    stato === 'da_revisionare' ||
+    stato === 'in_attesa' ||
+    stato === 'da_associare' ||
+    stato === 'bozza_creata'
+  )
+}
+
+/** Abbinamento bolle / finalizza tipo (esclude ancora righe legacy «bozza creata»). */
+function docAllowsAssociationFlow(stato: Documento['stato']): boolean {
+  return stato === 'da_revisionare' || stato === 'in_attesa' || stato === 'da_associare'
 }
 
 type BollaAperta = { id: string; data: string; importo: number | null; numero_bolla: string | null; fornitore_id: string; fornitore_nome: string }
@@ -866,6 +883,7 @@ export function PendingMatchesTab({
   cardAccent?: SummaryHighlightAccent
 }) {
   const t = useT()
+  const { timezone } = useLocale()
   const router = useRouter()
   const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
   const { me } = useMe()
@@ -894,12 +912,10 @@ export function PendingMatchesTab({
   const autoPendingKindTriedRef = useRef(new Set<string>())
   const autoRegisterFatturaTriedRef = useRef(new Set<string>())
   const [autoRegisterSetting, setAutoRegisterSetting] = useState(false)
+  const [emailAutoSavedToday, setEmailAutoSavedToday] = useState<number | null>(null)
 
   const addressClusterPeersByDocId = useMemo(() => {
-    const pendingLike = docs.filter(
-      (d) =>
-        d.stato === 'in_attesa' || d.stato === 'da_associare' || d.stato === 'bozza_creata',
-    )
+    const pendingLike = docs.filter((d) => docNeedsManualProcessing(d.stato))
     const byKey = new Map<string, Documento[]>()
     for (const d of pendingLike) {
       const k = normalizeAddressKey(d.metadata?.indirizzo)
@@ -938,7 +954,11 @@ export function PendingMatchesTab({
     // Use the server-side API (service client) to bypass RLS so that documents
     // with sede_id = NULL (global IMAP / unknown sender) are visible to all users.
     const params = new URLSearchParams()
-    if (filter === 'in_attesa') params.set('stati', 'in_attesa,da_associare,bozza_creata')
+    if (filter === 'in_attesa') {
+      params.set('stati', 'da_revisionare')
+    } else {
+      params.set('stati', 'in_attesa,da_associare,bozza_creata,da_revisionare')
+    }
     if (sedeId) params.set('sede_id', sedeId)
     if (fornitoreId) params.set('fornitore_id', fornitoreId)
     if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
@@ -984,6 +1004,28 @@ export function PendingMatchesTab({
     setFornitori(data ?? [])
   }, [sedeId, fornitoreId])
 
+  useEffect(() => {
+    if (!sedeId) {
+      setEmailAutoSavedToday(null)
+      return
+    }
+    let cancelled = false
+    void (async () => {
+      try {
+        const r = await fetch(
+          `/api/email-sync-auto-saved-count?timezone=${encodeURIComponent(timezone ?? 'Europe/Rome')}`,
+        )
+        const j = r.ok ? ((await r.json()) as { count?: number }) : { count: 0 }
+        if (!cancelled) setEmailAutoSavedToday(typeof j.count === 'number' ? j.count : 0)
+      } catch {
+        if (!cancelled) setEmailAutoSavedToday(0)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [sedeId, timezone])
+
   /**
    * Ricarica documenti e bolle, poi per ogni voce in elenco:
    * collega il fornitore se l’abbinamento è univoco (P.IVA / email / indirizzo / ragione sociale),
@@ -996,7 +1038,11 @@ export function PendingMatchesTab({
     autoPendingKindTriedRef.current = new Set()
     try {
       const params = new URLSearchParams()
-      if (filter === 'in_attesa') params.set('stati', 'in_attesa,da_associare,bozza_creata')
+      if (filter === 'in_attesa') {
+        params.set('stati', 'da_revisionare')
+      } else {
+        params.set('stati', 'in_attesa,da_associare,bozza_creata,da_revisionare')
+      }
       if (sedeId) params.set('sede_id', sedeId)
       if (fornitoreId) params.set('fornitore_id', fornitoreId)
       if (year && month) {
@@ -1037,8 +1083,7 @@ export function PendingMatchesTab({
         }),
       )
 
-      const processable = (d: Documento) =>
-        d.stato === 'in_attesa' || d.stato === 'da_associare' || d.stato === 'bozza_creata'
+      const processable = (d: Documento) => docNeedsManualProcessing(d.stato)
       const working = freshDocs.filter(processable).map((d: Documento) => ({ ...d }))
 
       const supabase = createClient()
@@ -1070,7 +1115,7 @@ export function PendingMatchesTab({
 
       const usedBollaIds = new Set<string>()
       for (const doc of working) {
-        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        if (!docAllowsAssociationFlow(doc.stato)) continue
         if (!doc.fornitore_id) continue
         if (doc.is_statement || doc.metadata?.pending_kind === 'statement') continue
         if (doc.metadata?.pending_kind === 'ordine') continue
@@ -1174,13 +1219,7 @@ export function PendingMatchesTab({
       const supabase = createClient()
       const linkedSupplierNames: string[] = []
       for (const doc of docs) {
-        if (
-          doc.stato !== 'in_attesa' &&
-          doc.stato !== 'da_associare' &&
-          doc.stato !== 'bozza_creata'
-        ) {
-          continue
-        }
+        if (!docNeedsManualProcessing(doc.stato)) continue
         if (doc.fornitore_id) continue
         if (autoLinkTriedRef.current.has(doc.id)) continue
 
@@ -1227,13 +1266,7 @@ export function PendingMatchesTab({
     if (loading || !docs.length) return
     void (async () => {
       for (const doc of docs) {
-        if (
-          doc.stato !== 'in_attesa' &&
-          doc.stato !== 'da_associare' &&
-          doc.stato !== 'bozza_creata'
-        ) {
-          continue
-        }
+        if (!docNeedsManualProcessing(doc.stato)) continue
         if (autoPendingKindTriedRef.current.has(doc.id)) continue
         if (!docLacksPersistedPendingKind(doc, statementDocs)) {
           autoPendingKindTriedRef.current.add(doc.id)
@@ -1287,7 +1320,7 @@ export function PendingMatchesTab({
     void (async () => {
       let didAssoc = false
       for (const doc of docs) {
-        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        if (!docAllowsAssociationFlow(doc.stato)) continue
         if (!doc.fornitore_id) continue
         if (doc.is_statement || doc.metadata?.pending_kind === 'statement') continue
         if (doc.metadata?.pending_kind === 'ordine') continue
@@ -1340,7 +1373,7 @@ export function PendingMatchesTab({
     void (async () => {
       let anyDone = false
       for (const doc of docs) {
-        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        if (!docAllowsAssociationFlow(doc.stato)) continue
         if (doc.metadata?.pending_kind !== 'ordine') continue
         if (!doc.fornitore_id) continue
         if (autoFinalizeOrdineTriedRef.current.has(doc.id)) continue
@@ -1369,7 +1402,7 @@ export function PendingMatchesTab({
     void (async () => {
       let anyDone = false
       for (const doc of docs) {
-        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        if (!docAllowsAssociationFlow(doc.stato)) continue
         const pk = pendingKindForDoc(doc, statementDocs)
         const openSame = bolleAperte.filter((b) => b.fornitore_id === doc.fornitore_id).length
         if (
@@ -1579,8 +1612,7 @@ export function PendingMatchesTab({
   }
 
   const isPdf = (url: string) => url.toLowerCase().includes('.pdf')
-  const inAttesa = docs.filter(d => d.stato === 'in_attesa' || d.stato === 'da_associare').length
-  const bozzeCreate = docs.filter(d => d.stato === 'bozza_creata').length
+  const inAttesa = docs.filter(d => docNeedsManualProcessing(d.stato)).length
 
   const listShellTheme = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
   /** In scheda fornitore: stesso guscio/tab «Documenti» del resto della pagina. */
@@ -1606,18 +1638,6 @@ export function PendingMatchesTab({
 
   return (
     <>
-      {/* Header banner: bozze create automaticamente */}
-      {bozzeCreate > 0 && (
-        <div className="mb-4 flex items-start gap-3 rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-sm text-emerald-100/95">
-            <strong>{bozzeCreate} {bozzeCreate === 1 ? t.statements.bozzaCreataOne : t.statements.bozzeCreatePlural}</strong> {t.statements.bozzaBannerSuffix}
-          </p>
-        </div>
-      )}
-
       {/* Filter bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -1645,6 +1665,13 @@ export function PendingMatchesTab({
           </button>
         </div>
         <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-x-2 gap-y-1 md:min-h-0 md:py-1">
+          {emailAutoSavedToday != null && emailAutoSavedToday > 0 && (
+            <p
+              className={`text-[11px] font-medium tabular-nums ${supplierDocShell ? 'text-emerald-200/95' : 'text-emerald-300/90'}`}
+            >
+              {t.statements.emailSyncAutoSavedToday.replace(/\{n\}/g, String(emailAutoSavedToday))}
+            </p>
+          )}
           <p className={`text-xs font-medium ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>
             {bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}
           </p>
@@ -1854,7 +1881,7 @@ export function PendingMatchesTab({
                         >
                           {nomeFornitore ?? `⚠ ${t.statements.unknownSender}`}
                         </p>
-                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (
+                        {docAllowsAssociationFlow(doc.stato) && (
                           <button onClick={() => setEditSupplier(editSupplier === doc.id ? null : doc.id)}
                             title={t.statements.editSupplierTitle}
                             className={`shrink-0 rounded-md p-1 transition-colors hover:text-cyan-200 ${
@@ -1879,7 +1906,7 @@ export function PendingMatchesTab({
 
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1.5">
                         {/* Tipo documento: ordine / bolla / fattura / estratto (mutua esclusione, persistito su DB) */}
-                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (() => {
+                        {docAllowsAssociationFlow(doc.stato) && (() => {
                           const pk = pendingKindForDoc(doc, statementDocs)
                           const busy = markingStatement === doc.id
                           const chips: {
@@ -1937,7 +1964,7 @@ export function PendingMatchesTab({
                             </div>
                           )
                         })()}
-                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc, statementDocs) !== null && (
+                        {docAllowsAssociationFlow(doc.stato) && pendingKindForDoc(doc, statementDocs) !== null && (
                           !doc.fornitore_id ? (
                             <p className="max-w-[11rem] text-right text-[11px] leading-snug text-orange-200/95 sm:max-w-none sm:text-left">
                               {t.statements.finalizeNeedsSupplier}
@@ -1968,18 +1995,18 @@ export function PendingMatchesTab({
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                           doc.stato === 'bozza_creata'
                             ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/35'
-                            : (doc.stato === 'in_attesa' || doc.stato === 'da_associare')
+                            : docAllowsAssociationFlow(doc.stato)
                               ? 'bg-orange-500/20 text-orange-100 ring-orange-500/40'
                               : doc.stato === 'associato'
                                 ? 'bg-emerald-500/25 text-emerald-100 ring-emerald-500/40'
                                 : 'bg-slate-800/90 text-slate-200 ring-slate-600/60'
                         }`}>
                           {doc.stato === 'bozza_creata' ? t.statements.tagBozzaCreata
-                            : (doc.stato === 'in_attesa' || doc.stato === 'da_associare') ? t.statements.tagPending
+                            : docAllowsAssociationFlow(doc.stato) ? t.statements.tagPending
                             : doc.stato === 'associato' ? t.statements.tagAssociated
                             : t.statements.tagDiscarded}
                         </span>
-                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare' || doc.stato === 'bozza_creata') && (
+                        {docNeedsManualProcessing(doc.stato) && (
                           doc.fornitore_id ? (
                             <span className="rounded-full bg-emerald-600/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-100 ring-1 ring-emerald-500/40" title={t.statements.badgeAiRecognized}>
                               {t.statements.badgeAiRecognized}
@@ -2042,7 +2069,7 @@ export function PendingMatchesTab({
                 </div>
 
                 {addressClusterPeersByDocId.has(doc.id) &&
-                  (doc.stato === 'in_attesa' || doc.stato === 'da_associare' || doc.stato === 'bozza_creata') && (
+                  docNeedsManualProcessing(doc.stato) && (
                   <div
                     className={`mx-3 mb-2 rounded-lg border border-cyan-500/35 px-3 py-2 ring-1 ring-inset ring-cyan-400/10 ${
                       supplierDocShell ? 'bg-cyan-950/40' : 'bg-transparent'
@@ -2072,7 +2099,7 @@ export function PendingMatchesTab({
                       newFornitoreSedeId={doc.sede_id?.trim() || sedeId || null}
                       mittenteForRemember={doc.mittente}
                       onAssociateSupplier={
-                        (doc.stato === 'in_attesa' || doc.stato === 'da_associare')
+                        docAllowsAssociationFlow(doc.stato)
                           ? () => setEditSupplier(doc.id)
                           : undefined
                       }
@@ -2081,14 +2108,14 @@ export function PendingMatchesTab({
                 )}
 
                 {/* Statement Panel: solo con fornitore (altrimenti la verifica mensile non ha senso) */}
-                {isStmt && (doc.stato === 'in_attesa' || doc.stato === 'da_associare') && doc.fornitore_id && (
+                {isStmt && docAllowsAssociationFlow(doc.stato) && doc.fornitore_id && (
                   <div className="px-3 pb-3">
                     <StatementPanel doc={doc} onRequestMissing={() => {}} countryCode={countryCode} />
                   </div>
                 )}
 
                 {/* Match actions — multi-select. Se è «estratto» ma fornitore mancante, mostra comunque le bolle per poter associare e fissare il fornitore. Ordine: solo finalizza in header, niente bolle. */}
-                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') &&
+                {docAllowsAssociationFlow(doc.stato) &&
                   pendingKindForDoc(doc, statementDocs) !== 'ordine' &&
                   (!isStmt || !doc.fornitore_id) &&
                   (() => {
@@ -2389,7 +2416,7 @@ export function PendingMatchesTab({
                   )
                 })()}
 
-                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc, statementDocs) === 'ordine' && (
+                {docAllowsAssociationFlow(doc.stato) && pendingKindForDoc(doc, statementDocs) === 'ordine' && (
                   <div className="flex justify-end px-3 pb-3">
                     <button
                       onClick={() => scarta(doc.id)}
@@ -2402,7 +2429,7 @@ export function PendingMatchesTab({
                 )}
 
                 {/* Statement actions (separate from match actions) */}
-                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && isStmt && (
+                {docAllowsAssociationFlow(doc.stato) && isStmt && (
                   <div className="flex items-center gap-2 px-3 pb-3">
                     <button
                       onClick={() => scarta(doc.id)}

@@ -31,7 +31,7 @@ interface DocumentoInCoda {
   created_at: string
   data_documento: string | null
   file_url: string | null
-  stato: 'in_attesa' | 'da_associare'
+  stato: 'in_attesa' | 'da_associare' | 'da_revisionare'
   fornitore_id: string | null
 }
 
@@ -62,7 +62,7 @@ export default async function ArchivioPage() {
     service
       .from('documenti_da_processare')
       .select('id, created_at, data_documento, file_url, stato, fornitore_id')
-      .in('stato', ['in_attesa', 'da_associare'])
+      .in('stato', ['in_attesa', 'da_associare', 'da_revisionare'])
       .order('created_at', { ascending: false }),
   ])
 

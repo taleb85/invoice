@@ -43,6 +43,7 @@ type FatturaListRow = {
   fornitore: { nome: string } | null
   approval_status: string | null
   rejection_reason: string | null
+  email_sync_auto_saved_at: string | null
 }
 
 async function getFatture(
@@ -52,7 +53,7 @@ async function getFatture(
 ): Promise<FatturaListRow[]> {
   let q = supabase
     .from('fatture')
-    .select('id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome), approval_status, rejection_reason')
+    .select('id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome), approval_status, rejection_reason, email_sync_auto_saved_at')
     .order('data', { ascending: false })
   if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
   if (fiscalBounds) {
@@ -154,6 +155,7 @@ export default async function FatturePage(props: {
         : null,
     approval_status: showApprovalBadge ? (f.approval_status ?? null) : null,
     rejection_reason: showApprovalBadge ? (f.rejection_reason ?? null) : null,
+    email_sync_auto_saved_at: f.email_sync_auto_saved_at ?? null,
   }))
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>

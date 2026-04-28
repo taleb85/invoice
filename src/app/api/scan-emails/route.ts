@@ -36,16 +36,12 @@ import { defaultFiscalYearLabel, fiscalYearRangeUtc, isValidFiscalYear } from '@
 import {
   emailSubjectLooksLikeStatement,
   inferAutoPendingKindFromEmailScan,
-  scanContextSuggestsBolla,
-  scanContextSuggestsFattura,
+  inferPendingDocumentKindForQueueRow,
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
-import {
-  findDuplicateFatturaId,
-  findDuplicateFatturaSansNumeroByImporto,
-  normalizeNumeroFattura,
-} from '@/lib/fattura-duplicate-check'
+import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 /**
@@ -957,7 +953,7 @@ async function processEmails(
           file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
           content_type:   'text/plain',
           data_documento: safeDate(ocr.data_fattura),
-          stato:          'da_associare',
+          stato:          'da_revisionare',
           metadata:       {
             ...buildMetadata(ocr, 'unknown'),
             origine_testo_email: true,
@@ -1039,7 +1035,7 @@ async function processEmails(
         file_name:      attachment.filename ?? null,
         content_type:   attachment.contentType ?? null,
         data_documento: safeDate(ocr.data_fattura),
-        stato:          'da_associare',
+        stato:          'da_revisionare',
         metadata:       {
           ...buildMetadata(ocr, 'unknown'),
           ...(autoKindAtt ? { pending_kind: autoKindAtt } : {}),
@@ -1189,7 +1185,7 @@ async function processEmails(
       file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
       content_type:   'text/plain',
       data_documento: safeDate(ocr.data_fattura),
-      stato:          'da_associare',
+      stato:          'da_revisionare',
       metadata:       {
         ...buildMetadata(ocr, 'unknown'),
         origine_testo_email: true,
@@ -1388,132 +1384,91 @@ async function processEmails(
 
       const treatAsStatement = effectivePendingKind === 'statement'
 
-      // ── AUTO-CREAZIONE BOZZA ───────────────────────────────────────────────
-      // Tenta di creare automaticamente una Bolla o Fattura in stato 'bozza'
-      // basandosi sui dati OCR estratti. Il documento rimane in "Documenti da
-      // Elaborare" per la conferma finale dell'utente.
-      let bozzaId: string | null = null
-      let bozzaTipo: 'bolla' | 'fattura' | null = null
+      const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
+      const isStatementDoc = effectivePendingKind === 'statement'
+
+      let registratoAutoFatturaId: string | null = null
+      let registratoAutoBollaId: string | null = null
+      let duplicateSkippedFatturaId: string | null = null
+      let needsDocRevision = false
 
       const skipAutoBozza = treatAsStatement || effectivePendingKind === 'ordine'
 
+      const ocrMetaForInfer = {
+        ragione_sociale: ocr.ragione_sociale,
+        note_corpo_mail: ocr.note_corpo_mail,
+        tipo_documento: ocr.tipo_documento ?? null,
+        numero_fattura: ocr.numero_fattura,
+        totale_iva_inclusa: ocr.totale_iva_inclusa ?? null,
+      }
+
+      const suggestedPendingKind: 'fattura' | 'bolla' =
+        effectivePendingKind === 'fattura' || effectivePendingKind === 'bolla'
+          ? effectivePendingKind
+          : normalizeTipoDocumento(ocr.tipo_documento) === 'bolla'
+            ? 'bolla'
+            : 'fattura'
+
       if (fornitore.id && documentSedeId && !skipAutoBozza) {
-        const dataDoc = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
-        const numRef = ocr.numero_fattura?.trim() || null
-        const tipo = ocr.tipo_documento ?? null
-        const isFatturaTipo = tipo === 'fattura'
-        const ctxFattura = scanContextSuggestsFattura(email.subject, storedFileName)
-        const ctxBolla = scanContextSuggestsBolla(email.subject, storedFileName)
+        const dataDocLocal = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
+        const inferredKind = inferPendingDocumentKindForQueueRow({
+          oggetto_mail: email.subject,
+          file_name: storedFileName,
+          metadata: ocrMetaForInfer,
+        })
 
-        let createFatturaBozza = isFatturaTipo
+        let targetKind: 'fattura' | 'bolla' | null = null
+        if (docKind === 'fattura') targetKind = 'fattura'
+        else if (docKind === 'bolla') targetKind = 'bolla'
+        else if (inferredKind === 'fattura') targetKind = 'fattura'
+        else if (inferredKind === 'bolla') targetKind = 'bolla'
+        else targetKind = null
 
-        // OCR tipo "bolla" / "altro" / assente ma oggetto o nome file da chiaramente fattura.
-        if (!createFatturaBozza && ctxFattura && !ctxBolla) {
-          createFatturaBozza = true
-        }
-
-        if (docKind === 'fattura') {
-          createFatturaBozza = true
-        } else if (docKind === 'bolla') {
-          createFatturaBozza = false
-        }
-
-        if (learnedPendingKind === 'fattura' && docKind !== 'bolla') {
-          createFatturaBozza = true
-        } else if (learnedPendingKind === 'bolla' && docKind !== 'fattura') {
-          createFatturaBozza = false
-        }
-
-        if (createFatturaBozza) {
-          const numNorm = normalizeNumeroFattura(numRef ?? '')
-          let skipFatturaBozza = false
-          if (numNorm && fornitore.id && documentSedeId) {
-            const dupId = await findDuplicateFatturaId(supabase, {
-              sedeId: documentSedeId,
-              fornitoreId: fornitore.id,
-              data: dataDoc,
-              numeroFattura: numNorm,
-            })
-            if (dupId) {
-              skipFatturaBozza = true
-              mailDebugLog(
-                `[BOZZA] Fattura bozza saltata: già registrata id=${dupId} n.fattura=${numNorm} fornitore="${fornitore.nome}"`,
-              )
-            }
+        if (targetKind === 'fattura') {
+          const res = await insertEmailAutoFattura(supabase, {
+            fornitoreId: fornitore.id,
+            sedeId: documentSedeId,
+            dataDoc: dataDocLocal,
+            fileUrl: file_url,
+            meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+          })
+          if ('id' in res) {
+            registratoAutoFatturaId = res.id
+            bozzaCreate++
+            mailDebugLog(`[AUTO] ✅ Fattura registrata: id=${res.id}`)
+            const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+            fetch(`${baseUrl}/api/price-anomalies/check`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+              },
+              body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+            }).catch(() => {})
+          } else if ('duplicateId' in res) {
+            duplicateSkippedFatturaId = res.duplicateId
+            needsDocRevision = true
+            mailDebugLog(`[AUTO] ⚠️ Fattura già esistente (id=${res.duplicateId}) — in coda revisione`)
+          } else if ('error' in res) {
+            console.warn(`[AUTO] Fattura non registrata: ${res.error}`)
           }
-          if (
-            !skipFatturaBozza &&
-            !numNorm &&
-            fornitore.id &&
-            documentSedeId &&
-            ocr.totale_iva_inclusa != null
-          ) {
-            const imp = Number(ocr.totale_iva_inclusa)
-            if (Number.isFinite(imp)) {
-              const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {
-                sedeId: documentSedeId,
-                fornitoreId: fornitore.id,
-                data: dataDoc,
-                importo: imp,
-              })
-              if (dupSans) {
-                skipFatturaBozza = true
-                mailDebugLog(
-                  `[BOZZA] Fattura bozza saltata (senza n.): già registrata id=${dupSans} importo=${imp} fornitore="${fornitore.nome}"`,
-                )
-              }
-            }
-          }
-          if (!skipFatturaBozza) {
-            const { data: newFattura, error: fatturaErr } = await supabase
-              .from('fatture')
-              .insert([{
-                fornitore_id:             fornitore.id,
-                sede_id:                  documentSedeId,
-                data:                     dataDoc,
-                numero_fattura:           numNorm || null,
-                importo:                  ocr.totale_iva_inclusa ?? null,
-                verificata_estratto_conto: false,
-                file_url,
-              }])
-              .select('id')
-              .single()
-
-            if (fatturaErr) {
-              console.warn(`[BOZZA] Fattura bozza non creata per "${fornitore.nome}": ${fatturaErr.message}`)
-            } else if (newFattura) {
-              bozzaId = newFattura.id
-              bozzaTipo = 'fattura'
-              bozzaCreate++
-              mailDebugLog(`[BOZZA] ✅ Fattura bozza creata: id=${bozzaId} n.fattura=${numNorm || numRef || '—'}`)
-            }
+        } else if (targetKind === 'bolla') {
+          const numRef = ocr.numero_fattura?.trim() || null
+          const rb = await insertEmailAutoBolla(supabase, {
+            fornitoreId: fornitore.id,
+            sedeId: documentSedeId,
+            dataDoc: dataDocLocal,
+            fileUrl: file_url,
+            numeroBolla: numRef,
+            importo: ocr.totale_iva_inclusa ?? null,
+          })
+          if ('id' in rb) {
+            registratoAutoBollaId = rb.id
+            bozzaCreate++
+            mailDebugLog(`[AUTO] ✅ Bolla registrata (in attesa fattura): id=${rb.id}`)
           }
         } else {
-          const { data: newBolla, error: bollaErr } = await supabase
-            .from('bolle')
-            .insert([{
-              fornitore_id:  fornitore.id,
-              sede_id:       documentSedeId,
-              data:          dataDoc,
-              /** Qualsiasi riferimento estratto (anche da etichette tipo "Note Number") va sul DDT. */
-              numero_bolla:  numRef,
-              importo:       ocr.totale_iva_inclusa ?? null,
-              stato:         'bozza',
-              file_url,
-            }])
-            .select('id')
-            .single()
-
-          if (bollaErr) {
-            console.warn(`[BOZZA] Bolla bozza non creata per "${fornitore.nome}": ${bollaErr.message}`)
-          } else if (newBolla) {
-            bozzaId = newBolla.id
-            bozzaTipo = 'bolla'
-            bozzaCreate++
-            mailDebugLog(
-              `[BOZZA] ✅ Bolla bozza creata: id=${bozzaId} n.bolla=${numRef ?? '—'} importo=${ocr.totale_iva_inclusa ?? '—'}`,
-            )
-          }
+          needsDocRevision = true
         }
       }
 
@@ -1527,25 +1482,41 @@ async function processEmails(
         earlyRekkiLines = parseRekkiFromEmailParts({ subject: email.subject, text: email.bodyText })
       }
 
+      const pendingKindStored =
+        needsDocRevision && duplicateSkippedFatturaId
+          ? ('fattura' as const)
+          : needsDocRevision
+            ? suggestedPendingKind
+            : effectivePendingKind
+
       const metadata = {
         ...buildMetadata(ocr, matchedBy),
         ...(isSyntheticBodyDoc ? { origine_testo_email: true } : {}),
-        ...(effectivePendingKind ? { pending_kind: effectivePendingKind } : {}),
-        // Riferimento alla bozza creata automaticamente
-        ...(bozzaId ? { bozza_id: bozzaId, bozza_tipo: bozzaTipo } : {}),
+        ...(pendingKindStored ? { pending_kind: pendingKindStored } : {}),
+        ...(duplicateSkippedFatturaId ? { duplicate_skipped_fattura_id: duplicateSkippedFatturaId } : {}),
+        ...(registratoAutoFatturaId || registratoAutoBollaId ? { salvato_automaticamente: true as const } : {}),
         ...(fornitore.rekki_link?.trim()
           ? { rekki_link: fornitore.rekki_link.trim() }
           : {}),
         ...(fornitore.rekki_supplier_id?.trim()
           ? { rekki_supplier_id: fornitore.rekki_supplier_id.trim() }
           : {}),
-        // Righe prodotto Rekki — usate da finalizePendingByTipo per popolare conferme_ordine.righe
         ...(earlyRekkiLines.length ? { rekki_lines: earlyRekkiLines } : {}),
       }
 
-      // Estratto classico (oggetto): marca associato + parsing; altri “statement-like” restano in coda con tipo Estratto.
-      const isStatementEmail = emailSubjectLooksLikeStatement(email.subject)
-      const isStatementDoc = effectivePendingKind === 'statement'
+      const rowStato:
+        | 'associato'
+        | 'da_associare'
+        | 'da_revisionare' =
+        isStatementEmail
+          ? 'associato'
+          : skipAutoBozza
+            ? 'da_associare'
+            : registratoAutoFatturaId || registratoAutoBollaId
+              ? 'associato'
+              : needsDocRevision
+                ? 'da_revisionare'
+                : 'da_associare'
 
       const knownPayload = {
         fornitore_id:   fornitore.id,
@@ -1556,10 +1527,12 @@ async function processEmails(
         file_name:      storedFileName,
         content_type:   storedContentType,
         data_documento: safeDate(ocr.data_fattura),
-        stato:          isStatementEmail ? 'associato' : (bozzaId ? 'bozza_creata' : 'da_associare'),
+        stato:          rowStato,
         is_statement:   isStatementDoc,
         metadata,
         note:           noteFromEmailBody,
+        ...(registratoAutoFatturaId ? { fattura_id: registratoAutoFatturaId } : {}),
+        ...(registratoAutoBollaId ? { bolla_id: registratoAutoBollaId } : {}),
       }
 
       const insertError = await insertDocumento(supabase, knownPayload)
@@ -1597,7 +1570,9 @@ async function processEmails(
           contentType: attachment.contentType,
         }).catch(err => console.error('[STMT] Errore background processing:', err))
       } else {
-        mailDebugLog(`[PROCESS] ✅ Documento salvato per "${fornitore.nome}" | stato=${bozzaId ? 'bozza_creata' : 'da_associare'} | bozza_tipo=${bozzaTipo ?? 'nessuna'} | sede=${documentSedeId ?? 'NULL'}`)
+        mailDebugLog(
+          `[PROCESS] ✅ Documento salvato per "${fornitore.nome}" | stato=${rowStato} | autoFatt=${registratoAutoFatturaId ?? '—'} autoBolla=${registratoAutoBollaId ?? '—'} | sede=${documentSedeId ?? 'NULL'}`,
+        )
       }
 
       await insertLog(supabase, email, 'successo', {
@@ -2371,7 +2346,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
       messaggio = 'Nessuna nuova email con allegati o testo da elaborare.'
     }
   } else if (totalBozzeCreate > 0) {
-    messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — ${totalBozzeCreate} ${totalBozzeCreate === 1 ? 'bozza creata automaticamente' : 'bozze create automaticamente'}. Controlla in Statements → Documenti da Elaborare.`
+    messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — ${totalBozzeCreate} ${totalBozzeCreate === 1 ? 'documento registrato automaticamente dall’OCR email' : 'documenti registrati automaticamente dall’OCR email'}. Solo i documenti in «Da confermare» richiedono un passaggio manuale.`
   } else {
     messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — salvati in Documenti da Elaborare per la revisione.`
   }

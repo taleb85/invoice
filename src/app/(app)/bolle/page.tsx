@@ -46,6 +46,7 @@ type BollaListRow = {
   fornitore_id: string
   numero_bolla?: string | null
   fornitori?: { nome: string; display_name?: string | null } | null
+  email_sync_auto_saved_at?: string | null
 }
 
 /** YYYY-MM-DD for the user's calendar day in IANA timezone (matches Impostazioni fuso). */
@@ -310,6 +311,11 @@ export default async function BollePage(props: {
                               {t.status.inAttesa}
                             </StandardBadge>
                           )}
+                          {b.email_sync_auto_saved_at ? (
+                            <span className="rounded-full bg-teal-500/22 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-100 ring-1 ring-teal-400/35">
+                              {t.common.emailSyncAutoSavedBadge}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                     </Link>
@@ -404,6 +410,11 @@ export default async function BollePage(props: {
                               {t.status.inAttesa}
                             </StandardBadge>
                           )}
+                          {b.email_sync_auto_saved_at ? (
+                            <span className="rounded-full bg-teal-500/22 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-100 ring-1 ring-teal-400/35">
+                              {t.common.emailSyncAutoSavedBadge}
+                            </span>
+                          ) : null}
                         </div>
                       </td>
                       <td className={APP_SECTION_TABLE_TD}>

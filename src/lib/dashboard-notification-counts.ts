@@ -1,8 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
+import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 
-/** Stati “in coda” su `documenti_da_processare` (allineato a Statements / KPI). */
-export const PENDING_DOCUMENTI_STATI = ['in_attesa', 'da_associare', 'bozza_creata'] as const
+/** Stati “in coda” su `documenti_da_processare` (tab Documenti pendenti / KPI). */
+export const PENDING_DOCUMENTI_STATI = ['da_revisionare'] as const
 
 const LOG_ERROR_STATI = ['fornitore_non_trovato', 'bolla_non_trovata'] as const
 
@@ -84,4 +85,36 @@ export async function countPendingDocumentiForSede(
   }
   const { count } = await q
   return count ?? 0
+}
+
+/** Fatture + bolle create da scansione email OCR nel giorno solare della sede (colonna opzionale post-migration). */
+export async function countEmailAutoSavedTodayForSede(
+  supabase: SupabaseClient,
+  sedeId: string,
+  timeZone: string,
+): Promise<number> {
+  const { start, endExclusive } = utcBoundsForZonedCalendarDay(timeZone.trim() || 'UTC')
+  const { count: fc, error: ef } = await supabase
+    .from('fatture')
+    .select('*', { count: 'exact', head: true })
+    .eq('sede_id', sedeId)
+    .gte('email_sync_auto_saved_at', start)
+    .lt('email_sync_auto_saved_at', endExclusive)
+
+  const { count: bc, error: eb } = await supabase
+    .from('bolle')
+    .select('*', { count: 'exact', head: true })
+    .eq('sede_id', sedeId)
+    .gte('email_sync_auto_saved_at', start)
+    .lt('email_sync_auto_saved_at', endExclusive)
+
+  if (
+    ef?.message?.includes('email_sync_auto_saved_at') ||
+    ef?.code === '42703' ||
+    eb?.message?.includes('email_sync_auto_saved_at') ||
+    eb?.code === '42703'
+  ) {
+    return 0
+  }
+  return (fc ?? 0) + (bc ?? 0)
 }

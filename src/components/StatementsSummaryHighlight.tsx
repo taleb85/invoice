@@ -47,7 +47,7 @@ export default function StatementsSummaryHighlight({
 
   const load = useCallback(async () => {
     const p = new URLSearchParams()
-    p.set('stati', 'in_attesa,da_associare,bozza_creata')
+    p.set('stati', 'da_revisionare')
     if (sedeId) p.set('sede_id', sedeId)
     try {
       const r1 = await fetch(`/api/documenti-da-processare?${p.toString()}`)

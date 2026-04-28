@@ -297,7 +297,7 @@ async function finalizePendingByTipo(
 // unknown sender), which is invisible via user-level RLS:  NULL ≠ sede_id.
 //
 // Query params:
-//   stati        comma-separated stato values  (default: in_attesa,da_associare)
+//   stati        comma-separated stato values  (default: see below)
 //   sede_id      restrict to a specific sede   (optional)
 //   fornitore_id restrict to a specific supplier (optional)
 
@@ -315,7 +315,7 @@ export async function GET(req: NextRequest) {
 
   const stati: string[] = statiParam
     ? statiParam.split(',').map(s => s.trim()).filter(Boolean)
-    : ['in_attesa', 'da_associare']
+    : ['in_attesa', 'da_associare', 'da_revisionare', 'bozza_creata']
 
   const service = createServiceClient()
 
@@ -521,8 +521,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (docError || !doc) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
-  // Allow 'in_attesa' and 'da_associare' — both mean "awaiting manual association"
-  const processableStates = ['in_attesa', 'da_associare']
+  const processableStates = ['in_attesa', 'da_associare', 'da_revisionare', 'bozza_creata']
   if (!processableStates.includes(doc.stato)) {
     return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
   }

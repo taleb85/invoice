@@ -38,6 +38,8 @@ export type FattureDuplicateListRow = {
   importoLabel: string | null
   approval_status?: string | null
   rejection_reason?: string | null
+  /** Impostato se la riga viene dalla scansione email OCR automatica */
+  email_sync_auto_saved_at?: string | null
 }
 
 const dupBadgeInteractiveCls = standardBadgeClassName(
@@ -140,6 +142,11 @@ export default function FattureListWithDuplicates({
                       size="sm"
                     />
                   )}
+                  {f.email_sync_auto_saved_at ? (
+                    <span className="rounded-full bg-teal-500/22 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-100 ring-1 ring-teal-400/35">
+                      {t.common.emailSyncAutoSavedBadge}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               <p className="mb-2 text-xs text-app-fg-muted">
@@ -289,6 +296,11 @@ export default function FattureListWithDuplicates({
                       size="sm"
                     />
                   )}
+                  {f.email_sync_auto_saved_at ? (
+                    <span className="rounded-full bg-teal-500/22 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-teal-100 ring-1 ring-teal-400/35">
+                      {t.common.emailSyncAutoSavedBadge}
+                    </span>
+                  ) : null}
                 </div>
               </td>
               <td className="px-6 py-4 text-right">
