@@ -227,11 +227,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const { visible: homeScannerDockCtaVisible } = useManualDeliverySede()
   const headerToastBanner = useDesktopHeaderToastBanner()
   const headerNavBarSurface = desktopHeaderBarSurfaceClass(headerToastBanner)
-  /** Toast success/error: superficie opaca. Altrimenti trasparente su md (gradiente sul contenitore griglia). */
-  const desktopHeaderCanvas =
-    headerToastBanner && headerToastBanner.type !== 'info'
-      ? headerNavBarSurface
-      : 'md:bg-transparent md:shadow-none [color:var(--app-fg-body)]'
+  const hasDesktopHeaderToast = Boolean(headerToastBanner)
+  /** Sfondo barra quando non è attiva la fascia toast (solo riga toolbar). */
+  const desktopToolbarOnlySurface =
+    'md:bg-transparent md:shadow-none [color:var(--app-fg-body)]'
   const headerBannerTextCls = desktopToastBannerTextClass(headerToastBanner)
   const [desktopNavHost, setDesktopNavHost] = useState<HTMLDivElement | null>(null)
   const bindDesktopNavHost = useCallback((el: HTMLDivElement | null) => {
@@ -331,9 +330,30 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             <div
               ref={bindDesktopNavHost}
               id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-              className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[52px] md:w-full ${desktopHeaderCanvas}`}
+              className={`relative z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:w-full md:flex-col md:items-stretch ${
+                hasDesktopHeaderToast ? '' : 'md:min-h-[52px]'
+              }`}
             >
-              <div className="relative z-20 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible">
+              {headerToastBanner ? (
+                <div
+                  aria-live="polite"
+                  role="status"
+                  className={`flex w-full shrink-0 flex-col items-center justify-center border-b border-app-line-28 px-4 py-2 ${
+                    headerToastBanner.type === 'info'
+                      ? 'app-workspace-inset-bg-soft backdrop-blur-sm'
+                      : headerNavBarSurface
+                  }`}
+                >
+                  <span
+                    className={`max-w-full text-pretty text-center text-sm font-semibold leading-snug ${headerBannerTextCls} ${headerToastBanner.type === 'info' ? 'line-clamp-3 sm:line-clamp-4' : 'line-clamp-2 sm:line-clamp-3'}`}
+                  >
+                    {headerToastBanner.message}
+                  </span>
+                </div>
+              ) : null}
+              <div
+                className={`relative flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible md:w-full ${desktopToolbarOnlySurface}`}
+              >
                 {/* Hamburger: visible on md (tablet), hidden on lg (desktop with sidebar) */}
                 <button
                   type="button"
@@ -347,19 +367,6 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 </button>
                 <DesktopHeaderActionsStrip />
               </div>
-              {headerToastBanner ? (
-                <div
-                  className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center px-28 sm:px-36"
-                  aria-live="polite"
-                  role="status"
-                >
-                  <span
-                    className={`max-w-full truncate text-center text-sm font-semibold leading-tight ${headerBannerTextCls}`}
-                  >
-                    {headerToastBanner.message}
-                  </span>
-                </div>
-              ) : null}
             </div>
             <main
               id="app-main"
