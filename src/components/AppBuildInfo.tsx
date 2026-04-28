@@ -18,9 +18,9 @@ export default function AppBuildInfo({ className = '', compact, variant = 'defau
   return (
     <p
       className={[
-        'select-text font-mono tabular-nums tracking-tight',
+        'select-text font-outfit tracking-tight',
         variant === 'rail'
-          ? 'm-0 text-right text-[8px] leading-none text-white sm:text-[10px]'
+          ? 'm-0 text-right text-[8px] leading-none text-white tabular-nums sm:text-[10px]'
           : compact
             ? 'text-[9px] leading-snug text-white/22'
             : 'text-[11px] text-app-fg-muted/90',
