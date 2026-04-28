@@ -39,7 +39,7 @@ function OperatorDesktopWorkspaceHeaderInner() {
 
   return (
     <div
-      className={`flex min-w-0 w-full max-w-full shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 md:overflow-x-auto ${
+      className={`flex min-w-0 w-full max-w-full shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 ${
         data.operatorScoped ? 'justify-between' : 'justify-end'
       }`}
     >
