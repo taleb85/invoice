@@ -20,8 +20,9 @@ export function BackButton({ label = 'Indietro', href, className, iconOnly }: Ba
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  /** `iconOnly` senza margine verticale: viene usato in `AppPageHeaderStrip` e `items-center` allinea col resto della riga. */
   const baseClass = iconOnly
-    ? 'mb-3 inline-flex shrink-0 items-center justify-center rounded-lg p-1.5 text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg'
+    ? 'mb-0 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg'
     : 'mb-3 flex w-fit items-center gap-1 text-sm text-app-fg-muted transition-colors hover:text-app-fg'
 
   return (

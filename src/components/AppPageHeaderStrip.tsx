@@ -82,11 +82,14 @@ export default function AppPageHeaderStrip({
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {leadingAccessory}
         {icon && (
-          <span className={`shrink-0 opacity-90 ${theme ? theme.label : 'text-app-fg-muted'}`} aria-hidden>
+          <span
+            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center opacity-90 ${theme ? theme.label : 'text-app-fg-muted'}`}
+            aria-hidden
+          >
             {icon}
           </span>
         )}
-        <div className="min-w-0 flex-1">{first}</div>
+        <div className="min-w-0 flex-1 self-center">{first}</div>
       </div>
       <div className={dense ? innerRightClsDense : innerRightCls}>
         {rest}
