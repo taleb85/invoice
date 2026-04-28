@@ -1,4 +1,8 @@
-/** Bump quando cambi strategia cache — activate pulisce le vecchie. */
+/**
+ * Service worker PWA (solo produzione). In sviluppo non va registrato: vedi `PWARegister` + `use-service-worker-update.ts`.
+ *
+ * Bump quando cambi strategia cache — activate pulisce le vecchie.
+ */
 const CACHE_NAME = 'fluxo-v5'
 const OFFLINE_URL = '/offline'
 

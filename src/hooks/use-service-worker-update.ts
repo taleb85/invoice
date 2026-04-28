@@ -1,6 +1,15 @@
 'use client'
 import { useState, useEffect } from 'react'
 
+function isLocalDevHostname(hostname: string): boolean {
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname.endsWith('.localhost')
+  )
+}
+
 export function useServiceWorkerUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -8,6 +17,10 @@ export function useServiceWorkerUpdate() {
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
+    // In dev / host locali il SW non va registrato (PWARegister) — qui evitiamo listener che
+    // interferiscono con Fast Refresh (`controllerchange` → reload pagina).
+    if (process.env.NODE_ENV === 'development') return
+    if (typeof window !== 'undefined' && isLocalDevHostname(window.location.hostname)) return
 
     const syncWaitingState = (reg: ServiceWorkerRegistration) => {
       setRegistration(reg)

@@ -3,7 +3,7 @@
   "version": "0.1.6",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev --turbo",
+    "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev --turbopack",
     "dev:webpack": "NODE_OPTIONS='--max-old-space-size=8192' next dev --webpack",
     "dev:restart": "node scripts/kill-port.mjs 3000 && npm run dev",
     "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
