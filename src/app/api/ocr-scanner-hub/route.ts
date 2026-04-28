@@ -4,6 +4,7 @@ import { createClient, createServiceClient, getProfile } from '@/utils/supabase/
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { geminiGenerateText, GEMINI_MODEL, type GeminiUsage } from '@/lib/gemini-vision'
 import { logActivity } from '@/lib/activity-logger'
+import { recordAiUsage } from '@/lib/ai-usage-log'
 
 export type ScannerDocumentKind = 'ddt' | 'fattura' | 'supplier_card' | 'unknown'
 
@@ -32,7 +33,10 @@ function mapKind(v: unknown): ScannerDocumentKind {
   return 'unknown'
 }
 
-async function classifyFromInvoiceText(textSnippet: string): Promise<ScannerDocumentKind> {
+async function classifyFromInvoiceText(textSnippet: string): Promise<{
+  kind: ScannerDocumentKind
+  usage?: GeminiUsage
+}> {
   const system = `You are a document classifier. Given extracted text from a business PDF, respond with ONE word: ddt, fattura, supplier_card, or unknown.
 - ddt = delivery note / bolla / DDT / transport document
 - fattura = tax invoice or credit note
@@ -43,9 +47,9 @@ Return ONLY valid JSON: {"document_kind":"ddt"|"fattura"|"supplier_card"|"unknow
   try {
     const res = await geminiGenerateText(system, textSnippet.slice(0, 6000), 80)
     const parsed = parseJsonContent(res.text)
-    return mapKind(parsed.document_kind)
+    return { kind: mapKind(parsed.document_kind), usage: res.usage }
   } catch {
-    return 'unknown'
+    return { kind: 'unknown' }
   }
 }
 
@@ -101,26 +105,31 @@ export async function POST(req: NextRequest) {
 
     const buffer = await file.arrayBuffer()
     const buf = new Uint8Array(buffer)
+    const serviceForLog = createServiceClient()
 
-    let capturedUsage: GeminiUsage | null = null
+    let capturedUsageAggregate: GeminiUsage | null = null
     const onUsage = (u: GeminiUsage) => {
-      capturedUsage = u
+      capturedUsageAggregate = u
+      void recordAiUsage(serviceForLog, {
+        sede_id: logSedeId,
+        tipo: 'ocr_manual',
+        usage: u,
+      })
     }
 
     const fireLogUsage = (kind: ScannerDocumentKind) => {
-      if (!user || !capturedUsage) return
-      const service = createServiceClient()
-      logActivity(service, {
+      if (!user || !capturedUsageAggregate) return
+      logActivity(serviceForLog, {
         userId: user.id,
         sedeId: logSedeId,
         action: 'gemini.ocr',
         entityType: 'document',
         entityLabel: `${file.type} → ${kind}`,
         metadata: {
-          inputTokens: capturedUsage.inputTokens,
-          outputTokens: capturedUsage.outputTokens,
-          totalTokens: capturedUsage.totalTokens,
-          estimatedCostUsd: capturedUsage.estimatedCostUsd,
+          inputTokens: capturedUsageAggregate.inputTokens,
+          outputTokens: capturedUsageAggregate.outputTokens,
+          totalTokens: capturedUsageAggregate.totalTokens,
+          estimatedCostUsd: capturedUsageAggregate.estimatedCostUsd,
           model: GEMINI_MODEL,
           operation: 'scanner_hub',
           intent,
@@ -164,8 +173,16 @@ export async function POST(req: NextRequest) {
     } else {
       textForKind = [inv.nome, inv.numero_fattura, inv.piva].filter(Boolean).join(' ')
     }
-    const kind =
-      textForKind.length > 40 ? await classifyFromInvoiceText(textForKind) : 'unknown'
+    const classResult =
+      textForKind.length > 40 ? await classifyFromInvoiceText(textForKind) : { kind: 'unknown' as const }
+    if (classResult.usage) {
+      void recordAiUsage(serviceForLog, {
+        sede_id: logSedeId,
+        tipo: 'scanner_classify',
+        usage: classResult.usage,
+      })
+    }
+    const kind = classResult.kind
     const resolvedKind: ScannerDocumentKind =
       kind === 'unknown' && (inv.numero_fattura || inv.totale_iva_inclusa != null)
         ? 'fattura'

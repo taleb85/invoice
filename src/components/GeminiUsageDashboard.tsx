@@ -1,6 +1,29 @@
 'use client'
 
 import { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { defaultFiscalYearLabel, fiscalYearRangeUtc } from '@/lib/fiscal-year'
+
+type PeriodPreset = 'week' | 'month' | 'fy'
+
+function periodPresetRange(countryCode: string, preset: PeriodPreset): { from: string; to: string } {
+  const iso = (d: Date) => d.toISOString().slice(0, 10)
+  const now = new Date()
+  const todayIso = iso(now)
+
+  if (preset === 'week') {
+    const start = new Date(now)
+    start.setUTCDate(start.getUTCDate() - 6)
+    return { from: iso(start), to: todayIso }
+  }
+  if (preset === 'month') {
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0))
+    return { from: iso(start), to: todayIso }
+  }
+  const fyLabel = defaultFiscalYearLabel(countryCode || 'UK', now)
+  const { start, endExclusive } = fiscalYearRangeUtc(countryCode || 'UK', fyLabel)
+  const endInclusiveMs = Math.min(now.getTime(), endExclusive.getTime() - 1)
+  return { from: iso(start), to: iso(new Date(endInclusiveMs)) }
+}
 
 interface DailyUsage {
   date: string
@@ -41,6 +64,8 @@ interface UsageData {
   daily: DailyUsage[]
   recent: RecentCall[]
   perSede: PerSedeUsage[]
+  /** ISO date range echoed from API when using /api/admin/ai-usage */
+  period?: { from: string; to: string }
 }
 
 function fmt(n: number, decimals = 0): string {
@@ -115,7 +140,7 @@ function MiniBarChart({ daily }: { daily: DailyUsage[] }) {
       }}
     >
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-        Ultimi 7 giorni — Scansioni
+        Nel periodo — ultimi giorni disponibili (finestra grafico max 7)
       </p>
       <div className="flex items-end gap-1.5" style={{ height: 56 }}>
         {last7.map((d) => (
@@ -145,9 +170,17 @@ export interface GeminiUsageDashboardHandle {
   refresh: () => void
 }
 
+export interface GeminiUsageDashboardProps {
+  /** Paese sede utente (boundary anno fiscale). Default IT. */
+  countryCode?: string
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
-const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle>(
-  function GeminiUsageDashboard(_props, ref) {
+const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageDashboardProps>(
+  function GeminiUsageDashboard(props, ref) {
+  const countryCode = (props.countryCode ?? 'IT').trim() || 'IT'
+
+  const [preset, setPreset] = useState<PeriodPreset>('month')
   const [data, setData] = useState<UsageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -156,7 +189,9 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle>(
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/gemini/usage')
+      const { from, to } = periodPresetRange(countryCode, preset)
+      const qs = new URLSearchParams({ from, to }).toString()
+      const res = await fetch(`/api/admin/ai-usage?${qs}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Errore caricamento')
       setData(json as UsageData)
@@ -165,7 +200,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle>(
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [preset, countryCode])
 
   useImperativeHandle(ref, () => ({ refresh: load }), [load])
 
@@ -215,6 +250,43 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle>(
 
         {data && (
           <div className="flex flex-col gap-4">
+            {/* Period filter */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
+                Periodo
+              </span>
+              {(
+                [
+                  ['week', 'Settimana'],
+                  ['month', 'Mese'],
+                  ['fy', 'Anno fiscale'],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setPreset(key)}
+                  className="rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors"
+                  style={{
+                    background:
+                      preset === key ? 'rgba(34, 211, 238, 0.18)' : 'rgba(15, 42, 74, 0.5)',
+                    border:
+                      preset === key
+                        ? '1px solid rgba(34, 211, 238, 0.45)'
+                        : '1px solid rgba(34, 211, 238, 0.12)',
+                    color: preset === key ? '#e0f9ff' : 'rgba(148, 163, 184, 0.95)',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+              {data.period && (
+                <span className="ml-auto font-mono text-[11px] text-app-fg-muted">
+                  {data.period.from} → {data.period.to}
+                </span>
+              )}
+            </div>
+
             {/* Stats grid */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatCard
@@ -273,7 +345,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle>(
                   Nessuna scansione registrata ancora.
                 </p>
                 <p className="mt-1 text-[11px] text-app-fg-muted opacity-60">
-                  I dati vengono raccolti dalle scansioni manuali nello scanner.
+                  I consumi Gemini vengono registrati dopo ogni OCR (scanner, sync email, estratti, ecc.).
                 </p>
               </div>
             )}

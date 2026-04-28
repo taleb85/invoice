@@ -1,0 +1,204 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createServiceClient, getProfile } from '@/utils/supabase/server'
+import { GEMINI_MODEL, GEMINI_PRICING } from '@/lib/gemini-vision'
+
+export const dynamic = 'force-dynamic'
+
+type UsageRow = {
+  id: string
+  sede_id: string | null
+  documento_id: string | null
+  model: string | null
+  tokens_input: number | null
+  tokens_output: number | null
+  costo_usd: number | string | null
+  tipo: string | null
+  created_at: string
+}
+
+/** Inclusive UTC day bounds from YYYY-MM-DD strings. */
+function boundsFromDates(fromRaw: string | null, toRaw: string | null): { fromTs: string; toTsInclusive: string } {
+  const now = new Date()
+  const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
+  const from =
+    fromRaw?.trim().slice(0, 10) && /^\d{4}-\d{2}-\d{2}$/.test(fromRaw!.trim())
+      ? fromRaw!.trim().slice(0, 10)
+      : `${ym}-01`
+  const toDefault = now.toISOString().slice(0, 10)
+  const to =
+    toRaw?.trim().slice(0, 10) && /^\d{4}-\d{2}-\d{2}$/.test(toRaw!.trim())
+      ? toRaw!.trim().slice(0, 10)
+      : toDefault
+
+  let fromTs = `${from}T00:00:00.000Z`
+  let toDay = to
+  if (toDay < from) toDay = from
+  let toTsInclusive = `${toDay}T23:59:59.999Z`
+
+  return { fromTs, toTsInclusive }
+}
+
+export async function GET(req: NextRequest) {
+  const profile = await getProfile()
+  if (!profile || String(profile.role ?? '').toLowerCase() !== 'admin') {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+  }
+
+  const sp = req.nextUrl.searchParams
+  const sedeRequested = sp.get('sede_id')?.trim() || ''
+  const { fromTs, toTsInclusive } = boundsFromDates(sp.get('from'), sp.get('to'))
+
+  const service = createServiceClient()
+  let query = service
+    .from('ai_usage_log')
+    .select(
+      'id, sede_id, documento_id, model, tokens_input, tokens_output, costo_usd, tipo, created_at',
+    )
+    .gte('created_at', fromTs)
+    .lte('created_at', toTsInclusive)
+    .order('created_at', { ascending: false })
+    .limit(8000)
+
+  if (sedeRequested) {
+    query = query.eq('sede_id', sedeRequested)
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('[ai-usage]', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  const rows = (data ?? []) as UsageRow[]
+  let tokensInput = 0
+  let tokensOutput = 0
+  let costoTotaleUsd = 0
+  const dailyMap: Record<
+    string,
+    { calls: number; tokens: number; tokensIn: number; tokensOut: number; costUsd: number }
+  > = {}
+  const sedeMap: Record<
+    string,
+    { calls: number; inputTokens: number; outputTokens: number; totalTokens: number; costUsd: number }
+  > = {}
+
+  for (const r of rows) {
+    const ti = Number(r.tokens_input ?? 0)
+    const to = Number(r.tokens_output ?? 0)
+    const rowCost = typeof r.costo_usd === 'number' ? r.costo_usd : Number(r.costo_usd ?? 0)
+    tokensInput += ti
+    tokensOutput += to
+    costoTotaleUsd += Number.isFinite(rowCost) ? rowCost : 0
+
+    const day = r.created_at.slice(0, 10)
+    if (!dailyMap[day]) {
+      dailyMap[day] = { calls: 0, tokens: 0, tokensIn: 0, tokensOut: 0, costUsd: 0 }
+    }
+    dailyMap[day].calls++
+    dailyMap[day].tokens += ti + to
+    dailyMap[day].tokensIn += ti
+    dailyMap[day].tokensOut += to
+    dailyMap[day].costUsd += Number.isFinite(rowCost) ? rowCost : 0
+
+    const sedeKey = r.sede_id ?? '__unknown__'
+    if (!sedeMap[sedeKey]) {
+      sedeMap[sedeKey] = {
+        calls: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        totalTokens: 0,
+        costUsd: 0,
+      }
+    }
+    sedeMap[sedeKey].calls++
+    sedeMap[sedeKey].inputTokens += ti
+    sedeMap[sedeKey].outputTokens += to
+    sedeMap[sedeKey].totalTokens += ti + to
+    sedeMap[sedeKey].costUsd += Number.isFinite(rowCost) ? rowCost : 0
+  }
+
+  const scansioni_totali = rows.length
+  const costo_totale_usd = Math.round(costoTotaleUsd * 1_000_000) / 1_000_000
+  const costo_per_scan = scansioni_totali > 0 ? Math.round((costoTotaleUsd / scansioni_totali) * 1_000_000) / 1_000_000 : 0
+
+  const chronological = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at))
+  const breakdown = chronological.map(r => ({
+    id: r.id,
+    data: r.created_at,
+    tipo: r.tipo,
+    sede_id: r.sede_id,
+    tokens_input: Number(r.tokens_input ?? 0),
+    tokens_output: Number(r.tokens_output ?? 0),
+    costo_usd:
+      typeof r.costo_usd === 'number'
+        ? Math.round(Number(r.costo_usd) * 100_000_000) / 100_000_000
+        : Number(r.costo_usd ?? 0),
+  }))
+
+  const daily = Object.entries(dailyMap)
+    .map(([date, v]) => ({
+      date,
+      calls: v.calls,
+      tokens: v.tokens,
+      tokensInput: v.tokensIn,
+      tokensOutput: v.tokensOut,
+      costUsd: Math.round(v.costUsd * 1_000_000) / 1_000_000,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const knownIds = Object.keys(sedeMap).filter(k => k !== '__unknown__')
+  const nomeById: Record<string, string> = {}
+  if (knownIds.length) {
+    const { data: sedi } = await service.from('sedi').select('id, nome').in('id', knownIds)
+    if (sedi) {
+      for (const s of sedi) nomeById[s.id as string] = String((s as { nome?: string }).nome ?? s.id)
+    }
+  }
+
+  const perSede = Object.entries(sedeMap)
+    .map(([sedeId, agg]) => ({
+      sedeId: sedeId === '__unknown__' ? null : sedeId,
+      nome: sedeId === '__unknown__' ? 'Sede non attribuita' : (nomeById[sedeId] ?? sedeId),
+      calls: agg.calls,
+      inputTokens: agg.inputTokens,
+      outputTokens: agg.outputTokens,
+      totalTokens: agg.totalTokens,
+      costUsd: Math.round(agg.costUsd * 1_000_000) / 1_000_000,
+    }))
+    .sort((a, b) => b.calls - a.calls)
+
+  const recent = rows.slice(0, 80).map(r => ({
+    created_at: r.created_at,
+    user_id: '',
+    operation: r.model ?? GEMINI_MODEL,
+    intent: r.tipo ?? '',
+    inputTokens: Number(r.tokens_input ?? 0),
+    outputTokens: Number(r.tokens_output ?? 0),
+    estimatedCostUsd:
+      typeof r.costo_usd === 'number' ? Number(r.costo_usd) : Number(r.costo_usd ?? 0),
+  }))
+
+  return NextResponse.json({
+    ok: true,
+    period: { from: fromTs.slice(0, 10), to: toTsInclusive.slice(0, 10) },
+    model: GEMINI_MODEL,
+    pricing: GEMINI_PRICING,
+    scansioni_totali,
+    tokens_input: tokensInput,
+    tokens_output: tokensOutput,
+    tokens_totali: tokensInput + tokensOutput,
+    costo_totale_usd,
+    costo_per_scan,
+    breakdown,
+    daily,
+    perSede,
+    recent,
+    totalCalls: scansioni_totali,
+    totalInputTokens: tokensInput,
+    totalOutputTokens: tokensOutput,
+    totalTokens: tokensInput + tokensOutput,
+    totalCostUsd: costo_totale_usd,
+    avgCostPerScan: costo_per_scan,
+  })
+}

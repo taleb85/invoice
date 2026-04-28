@@ -52,6 +52,8 @@ import {
   rollingLookbackSince,
   utcTomorrowStartUtc,
 } from '@/lib/historical-email-chunk'
+import { recordAiUsage } from '@/lib/ai-usage-log'
+import type { GeminiUsage } from '@/lib/gemini-vision'
 
 /**
  * Limite durata funzione serverless su Vercel (secondi). Piano Hobby: massimo **300**.
@@ -523,8 +525,15 @@ async function runOcrEmailBodyOnly(
     scanAttachmentFingerprint: scanFingerprint ?? null,
     imapUid:      email.uid,
   }
+  const logGeminiUsage = (usage: GeminiUsage) => {
+    void recordAiUsage(supabase, {
+      sede_id: logSedeId,
+      tipo: 'ocr_scan_email_body',
+      usage,
+    })
+  }
   try {
-    return await ocrInvoiceFromEmailBody(body, langHint, { logContext })
+    return await ocrInvoiceFromEmailBody(body, langHint, { logContext, onUsage: logGeminiUsage })
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) {
       console.error('[PROCESS]', e.message)
@@ -565,10 +574,18 @@ async function runOcrForEmail(
     scanAttachmentFingerprint: scanFingerprint ?? null,
     imapUid:      email.uid,
   }
+  const logGeminiUsage = (usage: GeminiUsage) => {
+    void recordAiUsage(supabase, {
+      sede_id: logSedeId,
+      tipo: 'ocr_scan_email',
+      usage,
+    })
+  }
   try {
     return await ocrInvoice(buf, contentType, langHint, {
       logContext,
       emailBodyText: email.bodyText ?? null,
+      onUsage: logGeminiUsage,
     })
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) {
@@ -1557,7 +1574,14 @@ async function processStatementInBackground(
   mailDebugLog(`[STMT] Statement record creato: ${statementId}`)
 
   // 2️⃣ OCR — parse statement rows + optional PDF header dates
-  const ocr = await ocrStatement(buffer, contentType)
+  const ocr = await ocrStatement(buffer, contentType, undefined, {
+    onUsage: usage =>
+      void recordAiUsage(supabase, {
+        sede_id: sedeId,
+        tipo: 'ocr_statement',
+        usage,
+      }),
+  })
   const rows = ocr.rows
   const extractedPdfDates = extractedPdfDatesToJson(ocr.extractedPdfDates)
 

@@ -7,7 +7,11 @@
  * The prompt is intentionally separate from ocrInvoice — a statement is a
  * tabular document listing multiple transactions, not a single invoice.
  */
-import { geminiGenerateText, geminiGenerateVision } from '@/lib/gemini-vision'
+import { geminiGenerateText, geminiGenerateVision, type GeminiUsage } from '@/lib/gemini-vision'
+
+export interface OcrStatementOptions {
+  onUsage?: (usage: GeminiUsage) => void
+}
 
 export interface StatementRow {
   numero: string // document / invoice reference number
@@ -241,6 +245,7 @@ export async function ocrStatement(
   buffer: Buffer | Uint8Array,
   contentType: string,
   languageHint?: string,
+  options?: OcrStatementOptions,
 ): Promise<StatementOcrResult> {
   if (!process.env.GEMINI_API_KEY) {
     console.warn('[OCR-STMT] GEMINI_API_KEY not configured — skipping statement parsing')
@@ -256,6 +261,7 @@ export async function ocrStatement(
     if (text) {
       try {
         const res = await geminiGenerateText(SYSTEM_PROMPT, text.slice(0, 8000), 2500)
+        options?.onUsage?.(res.usage)
         return mergeOcrParse(res.text)
       } catch (err) {
         console.error('[OCR-STMT] Errore Gemini su PDF testo:', err)
@@ -273,6 +279,7 @@ export async function ocrStatement(
         SYSTEM_PROMPT,
         2500,
       )
+      options?.onUsage?.(res.usage)
       return mergeOcrParse(res.text)
     } catch (err) {
       console.error('[OCR-STMT] Errore Gemini vision su PDF:', err)
@@ -291,6 +298,7 @@ export async function ocrStatement(
         SYSTEM_PROMPT,
         2500,
       )
+      options?.onUsage?.(res.usage)
       return mergeOcrParse(res.text)
     } catch (err) {
       console.error('[OCR-STMT] Errore Gemini su immagine:', err)

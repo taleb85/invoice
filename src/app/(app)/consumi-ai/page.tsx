@@ -92,7 +92,7 @@ export default function ConsumiAiPage() {
         </button>
       </AppPageHeaderStrip>
 
-      <GeminiUsageDashboard ref={dashRef} />
+      <GeminiUsageDashboard ref={dashRef} countryCode={me.country_code} />
     </div>
   )
 }
