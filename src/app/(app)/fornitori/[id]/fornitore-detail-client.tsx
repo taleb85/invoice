@@ -4966,51 +4966,61 @@ function FornitoreDetailClient({
   }, [reloadFornitore])
 
   const canRunOcrFornitore = Boolean(me?.is_admin || me?.is_admin_sede) && !supplierReadOnlyMobile
-  const [ocrFornitoreBusy, setOcrFornitoreBusy] = useState(false)
-  const [ocrFornitoreFlash, setOcrFornitoreFlash] = useState<{ text: string; ok: boolean } | null>(null)
+  const [analisiCompletaBusy, setAnalisiCompletaBusy] = useState(false)
+  const [analisiCompletaFlash, setAnalisiCompletaFlash] = useState<{ text: string; ok: boolean } | null>(null)
 
-  const runOcrFornitoreHeader = useCallback(async () => {
+  const runAnalisiCompletaFornitore = useCallback(async () => {
     if (!canRunOcrFornitore) return
-    setOcrFornitoreBusy(true)
-    setOcrFornitoreFlash(null)
+    setAnalisiCompletaBusy(true)
+    setAnalisiCompletaFlash(null)
     try {
-      const body: { fornitore_id: string; limit: number; sede_id?: string; allow_tipo_migrate: boolean } = {
-        fornitore_id: fornitore.id,
-        limit: 80,
-        allow_tipo_migrate: true,
-      }
-      if (me?.is_admin_sede && me.sede_id) body.sede_id = me.sede_id
-      const res = await fetch('/api/admin/fix-ocr-dates', {
+      const res = await fetch(`/api/fornitori/${fornitore.id}/analisi-completa`, {
         method: 'POST',
         cache: 'no-store',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({}),
       })
       const data = (await res.json().catch(() => ({}))) as {
         error?: string
-        corrected?: number
-        scanned?: number
-        totalSuspicious?: number
+        fixOcr?: { corrected?: number; scanned?: number; error?: string }
+        duplicates?: { itemsTouchingFornitore?: number; totalReported?: number }
+        listino?: { righeInserite?: number; fattureScanned?: number; skipped?: boolean; reason?: string }
+        errors?: string[]
       }
       if (!res.ok) {
-        setOcrFornitoreFlash({ text: data.error ?? `HTTP ${res.status}`, ok: false })
+        setAnalisiCompletaFlash({ text: data.error ?? `HTTP ${res.status}`, ok: false })
         return
       }
       bumpPeriodLedger()
-      setOcrFornitoreFlash({
-        ok: true,
-        text: t.fornitori.ocrControllaFornitoreResult
-          .replace(/\{corrected\}/g, String(data.corrected ?? 0))
-          .replace(/\{scanned\}/g, String(data.scanned ?? 0))
-          .replace(/\{total\}/g, String(data.totalSuspicious ?? 0)),
+      const errs = Array.isArray(data.errors) ? data.errors : []
+      const fx = data.fixOcr
+      const dupHit = data.duplicates?.itemsTouchingFornitore
+      const dupTot = data.duplicates?.totalReported
+      const li = data.listino
+      const lines = [
+        typeof fx?.corrected === 'number'
+          ? `OCR / date sospette: ${fx.corrected} documenti migliorati (${fx.scanned ?? '—'} in coda).`
+          : 'OCR / date sospette: elaborazione completata.',
+        dupHit != null
+          ? `Duplicati legati al fornitore: ${dupHit} documenti (su ${dupTot ?? '—'} totali sede).`
+          : 'Duplicati: —',
+        li?.skipped
+          ? `Listino: saltato (${li.reason ?? '—'}).`
+          : `Listino: +${li?.righeInserite ?? 0} righe, fatture elaborate: ${li?.fattureScanned ?? 0}.`,
+        errs.length ? `Avvisi: ${errs.slice(0, 5).join(' · ')}` : '',
+      ].filter(Boolean)
+      setAnalisiCompletaFlash({
+        ok: errs.length === 0,
+        text: lines.join('\n'),
       })
-      window.setTimeout(() => setOcrFornitoreFlash(null), 9000)
+      window.setTimeout(() => setAnalisiCompletaFlash(null), 14000)
     } catch (e) {
-      setOcrFornitoreFlash({ text: e instanceof Error ? e.message : 'Errore di rete', ok: false })
+      setAnalisiCompletaFlash({ text: e instanceof Error ? e.message : 'Errore di rete', ok: false })
     } finally {
-      setOcrFornitoreBusy(false)
+      setAnalisiCompletaBusy(false)
     }
-  }, [bumpPeriodLedger, canRunOcrFornitore, fornitore.id, me?.is_admin_sede, me?.sede_id, t.fornitori.ocrControllaFornitoreResult])
+  }, [bumpPeriodLedger, canRunOcrFornitore, fornitore.id])
 
   const { stats: periodStats, loading: periodStatsLoading } = useSupplierPeriodStats(
     fornitore.id,
@@ -5301,19 +5311,19 @@ function FornitoreDetailClient({
               <div className="shrink-0">
                 <button
                   type="button"
-                  onClick={() => void runOcrFornitoreHeader()}
-                  disabled={ocrFornitoreBusy}
-                  title={t.fornitori.ocrControllaFornitoreTitle}
-                  className="inline-flex h-7 max-w-[9.5rem] shrink-0 items-center justify-center gap-1 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 text-[10px] font-bold leading-tight text-amber-100 transition-colors hover:bg-amber-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:max-w-none sm:px-2.5 sm:text-[11px]"
+                  onClick={() => void runAnalisiCompletaFornitore()}
+                  disabled={analisiCompletaBusy}
+                  title="OCR documenti, controllo duplicati, correzione date, import listino da fatture"
+                  className="inline-flex h-7 max-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold leading-tight text-teal-100 transition-colors hover:bg-teal-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:max-w-none sm:px-2.5 sm:text-[11px]"
                 >
-                  {ocrFornitoreBusy ? (
-                    <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-amber-200 border-t-transparent" />
+                  {analisiCompletaBusy ? (
+                    <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
                   ) : (
-                    <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                    <span className="shrink-0" aria-hidden>
+                      🔄
+                    </span>
                   )}
-                  <span className="min-w-0 truncate">{t.fornitori.ocrControllaFornitore}</span>
+                  <span className="min-w-0 truncate">Analisi completa</span>
                 </button>
               </div>
             ) : null}
@@ -5343,14 +5353,14 @@ function FornitoreDetailClient({
               <AppPageHeaderDesktopTray className="ms-0.5" />
             </div>
           </div>
-          {ocrFornitoreFlash ? (
+          {analisiCompletaFlash ? (
             <p
-              className={`border-b border-app-soft-border px-2.5 py-1 text-center text-[10px] sm:px-3 ${
-                ocrFornitoreFlash.ok ? 'text-emerald-200/95' : 'text-rose-300'
+              className={`whitespace-pre-line border-b border-app-soft-border px-2.5 py-1 text-center text-[10px] sm:px-3 ${
+                analisiCompletaFlash.ok ? 'text-emerald-200/95' : 'text-rose-300'
               }`}
               role="status"
             >
-              {ocrFornitoreFlash.text}
+              {analisiCompletaFlash.text}
             </p>
           ) : null}
 

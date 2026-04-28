@@ -14,11 +14,6 @@ import {
   inferPendingDocumentKindForQueueRow,
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
-import {
-  resolveFornitoreByPartialName,
-  resolveFornitoreByRekkiSupplierId,
-  type FornitoreInferRow,
-} from '@/lib/fornitore-infer-from-document'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { inferContentTypeFromBuffer, resolvedContentTypeFromFetch } from '@/lib/fix-ocr-dates-helpers'
 
@@ -74,43 +69,6 @@ function buildMetadata(
   }
 }
 
-function inferRowToFornitore(r: FornitoreInferRow): Fornitore {
-  return {
-    id: r.id,
-    nome: r.nome,
-    sede_id: r.sede_id,
-    language: r.language,
-    rekki_link: r.rekki_link,
-    rekki_supplier_id: r.rekki_supplier_id,
-    email: r.email,
-  }
-}
-
-async function resolveFornitoreByPIVA(
-  supabase: SupabaseClient,
-  piva: string,
-  sedeFilter?: string | null,
-): Promise<{ fornitore: Fornitore; matchedBy: 'piva' } | null> {
-  const pivaNorm = piva.replace(/\D/g, '')
-  if (pivaNorm.length < 7) return null
-
-  let q = supabase
-    .from('fornitori')
-    .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id')
-    .or(`piva.ilike.%${pivaNorm}%,piva.eq.${pivaNorm}`)
-    .limit(1)
-  if (sedeFilter) q = q.eq('sede_id', sedeFilter)
-  const { data, error } = await q
-  if (error || !data?.length) return null
-  return { fornitore: data[0] as Fornitore, matchedBy: 'piva' }
-}
-
-function rekkiIdFromOcr(ocr: OcrResult): string | null {
-  const meta = ocr as unknown as { rekki_supplier_id?: string | null }
-  const id = meta.rekki_supplier_id?.trim()
-  return id && id.length >= 2 ? id : null
-}
-
 export type ProcessLegacyPendingDocResult =
   | { status: 'ok'; category: 'auto_saved' | 'da_revisionare' | 'other' }
   | { status: 'error'; message: string }
@@ -158,8 +116,6 @@ export async function processLegacyPendingDoc(
     matchedBy = 'unknown'
   }
 
-  const sedeFilterForInfer = row.sede_id ?? undefined
-
   let ocr: OcrResult
   try {
     ocr = await ocrInvoice(dl.data, contentType, fornitore?.language ?? undefined, {
@@ -181,31 +137,7 @@ export async function processLegacyPendingDoc(
     throw e
   }
 
-  // Risoluzione fornitore se ancora assente (come mittente sconosciuto su allegato)
-  if (!fornitore) {
-    const pivaHit = await resolveFornitoreByPIVA(service, ocr.p_iva ?? '', sedeFilterForInfer ?? null)
-    if (pivaHit) {
-      fornitore = pivaHit.fornitore
-      matchedBy = 'piva'
-    }
-    if (!fornitore) {
-      const rekId = rekkiIdFromOcr(ocr)
-      if (rekId) {
-        const rk = await resolveFornitoreByRekkiSupplierId(service, rekId, sedeFilterForInfer ?? null)
-        if (rk) {
-          fornitore = inferRowToFornitore(rk)
-          matchedBy = 'rekki_supplier'
-        }
-      }
-    }
-    if (!fornitore) {
-      const nm = await resolveFornitoreByPartialName(service, ocr.ragione_sociale, sedeFilterForInfer ?? null)
-      if (nm) {
-        fornitore = inferRowToFornitore(nm)
-        matchedBy = 'ragione_sociale'
-      }
-    }
-  }
+  /** Nessuna inferenza P.IV.A / Rekki / fuzzy: mittente deve essere in rubrica (retroattiva via `/api/documenti-revisione-auto`). */
 
   const existingMeta =
     row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)

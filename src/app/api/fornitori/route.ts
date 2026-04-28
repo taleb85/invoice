@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 
 // ── POST /api/fornitori ────────────────────────────────────────────────────────
 // Creates a new fornitore for a given sede and registers its email in
@@ -61,6 +62,7 @@ export async function POST(req: NextRequest) {
       fornitore_id: fornitore.id,
       email,
     })
+    void autoProcessAfterFornitoreEmailAdded(service, fornitore.id, email).catch(() => {})
   }
 
   return NextResponse.json({ fornitore }, { status: 201 })

@@ -20,11 +20,8 @@ import { MIN_EMAIL_BODY_CHARS_FOR_SCAN, emailHasScannableBody } from '@/lib/mail
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
-import {
-  resolveFornitoreByPartialName,
-  resolveFornitoreByRekkiSupplierId,
-  type FornitoreInferRow,
-} from '@/lib/fornitore-infer-from-document'
+import { resolveFornitoreFromScanEmail } from '@/lib/fornitore-resolve-scan-email'
+import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
 import { safeDate } from '@/lib/safe-date'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 import type { EmailScanMailboxContext, EmailScanStreamEvent } from '@/lib/email-scan-stream'
@@ -454,114 +451,16 @@ async function uploadSyntheticEmailBodyDoc(
 async function resolveFornitore(
   supabase: SupabaseClient,
   senderEmail: string,
-  sedeFilter?: string
+  sedeFilter?: string,
 ): Promise<Fornitore | null> {
-  mailDebugLog(`[RLS] resolveFornitore: mittente="${senderEmail}" sedeFilter=${sedeFilter ?? 'nessuno'}`)
-
-  // 1️⃣ Alias esatto
-  const aliasQuery = supabase
-    .from('fornitore_emails')
-    .select('fornitore_id, fornitori!inner(id, nome, sede_id, language, rekki_link, rekki_supplier_id)')
-    .ilike('email', senderEmail)
-    .limit(1)
-  if (sedeFilter) aliasQuery.eq('fornitori.sede_id', sedeFilter)
-  const { data: aliasRows, error: aliasErr } = await aliasQuery
-  mailDebugLog(`[RLS] alias query → righe=${aliasRows?.length ?? 0}${aliasErr ? ` errore="${aliasErr.message}"` : ''}`)
-  if (aliasRows?.length) {
-    const found = (aliasRows[0] as unknown as { fornitori: Fornitore }).fornitori
-    mailDebugLog(`[RLS] trovato via alias: ${found.nome} (id=${found.id})`)
-    return found
-  }
-
-  // 2️⃣ Email principale
-  const fornitoriQuery = supabase
-    .from('fornitori')
-    .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id')
-    .ilike('email', senderEmail)
-    .limit(1)
-  if (sedeFilter) fornitoriQuery.eq('sede_id', sedeFilter)
-  const { data: fornitori, error: fornErr } = await fornitoriQuery
-  mailDebugLog(`[RLS] email principale query → righe=${fornitori?.length ?? 0}${fornErr ? ` errore="${fornErr.message}"` : ''}`)
-  if (fornitori?.length) {
-    mailDebugLog(`[RLS] trovato via email principale: ${fornitori[0].nome}`)
-    return fornitori[0]
-  }
-
-  // 3️⃣ Dominio (evita domini generici)
-  const domain = senderEmail.split('@')[1]?.toLowerCase()
-  const genericDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'libero.it', 'pec.it', 'legalmail.it', 'aruba.it']
-  if (domain && !genericDomains.includes(domain)) {
-    const domainQuery = supabase
-      .from('fornitori')
-      .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id')
-      .ilike('email', `%@${domain}`)
-      .limit(1)
-    if (sedeFilter) domainQuery.eq('sede_id', sedeFilter)
-    const { data: byDomain, error: domErr } = await domainQuery
-    mailDebugLog(`[RLS] dominio "@${domain}" query → righe=${byDomain?.length ?? 0}${domErr ? ` errore="${domErr.message}"` : ''}`)
-    if (byDomain?.length) {
-      mailDebugLog(`[RLS] trovato via dominio: ${byDomain[0].nome}`)
-      return byDomain[0]
-    }
+  mailDebugLog(`[RLS] resolveFornitore: mittente="${senderEmail}" sedeFilter=${sedeFilter ?? 'nessuno'} (solo rubrica registrata)`)
+  const resolved = await resolveFornitoreFromScanEmail(supabase, senderEmail, sedeFilter ?? null)
+  if (resolved) {
+    mailDebugLog(`[RLS] trovato via rubrica registrata: ${resolved.nome} (${resolved.id})`)
   } else {
-    mailDebugLog(`[RLS] dominio "@${domain}" saltato (generico o mancante)`)
+    mailDebugLog(`[RLS] fornitore NON trovato per "${senderEmail}"`)
   }
-
-  mailDebugLog(`[RLS] fornitore NON trovato per "${senderEmail}"`)
-  return null
-}
-
-/**
- * Tentativo di matching per P.IVA (usato come fallback quando l'email è sconosciuta).
- * Normalizza la P.IVA rimuovendo prefisso paese e caratteri non numerici.
- */
-function inferRowToFornitore(r: FornitoreInferRow): Fornitore {
-  return {
-    id: r.id,
-    nome: r.nome,
-    sede_id: r.sede_id,
-    language: r.language,
-    rekki_link: r.rekki_link,
-    rekki_supplier_id: r.rekki_supplier_id,
-    email: r.email,
-  }
-}
-
-/** Cerca un ID fornitore Rekki nel corpo/oggetto (metadati testuali). */
-function extractRekkiSupplierIdFromEmailHint(email: ScannedEmail, ocr: OcrResult): string | null {
-  const blob = `${email.subject ?? ''}\n${email.bodyText ?? ''}`
-  const m =
-    blob.match(/rekki[_\s-]*supplier[_\s-]*id\s*[:=]\s*["']?([A-Za-z0-9_-]{2,64})/i) ??
-    blob.match(/supplier[_\s-]*id\s*[:=]\s*["']?([A-Za-z0-9_-]{2,64})/i)
-  if (m?.[1]) return m[1].trim()
-  const meta = ocr as unknown as { rekki_supplier_id?: string | null }
-  const fromOcr = meta.rekki_supplier_id?.trim()
-  return fromOcr && fromOcr.length >= 2 ? fromOcr : null
-}
-
-async function resolveFornitoreByPIVA(
-  supabase: SupabaseClient,
-  piva: string,
-  sedeFilter?: string
-): Promise<{ fornitore: Fornitore; matchedBy: 'piva' } | null> {
-  const pivaNorm = piva.replace(/\D/g, '')
-  if (pivaNorm.length < 7) return null   // troppo corto per essere una P.IVA
-
-  mailDebugLog(`[PIVA] Ricerca fornitore per P.IVA normalizzata: "${pivaNorm}"`)
-  const q = supabase
-    .from('fornitori')
-    .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id')
-    .or(`piva.ilike.%${pivaNorm}%,piva.eq.${pivaNorm}`)
-    .limit(1)
-  if (sedeFilter) q.eq('sede_id', sedeFilter)
-  const { data, error } = await q
-  if (error) console.warn(`[PIVA] Errore query: ${error.message}`)
-  if (data?.length) {
-    mailDebugLog(`[PIVA] ✅ Trovato via P.IVA: ${data[0].nome} (${data[0].id})`)
-    return { fornitore: data[0], matchedBy: 'piva' }
-  }
-  mailDebugLog(`[PIVA] Nessun fornitore per P.IVA "${pivaNorm}"`)
-  return null
+  return resolved
 }
 
 /**
@@ -829,7 +728,7 @@ async function processEmails(
             bumpAttach(email.uid)
             continue
           }
-          mailDebugLog(`[PROCESS] ⚠️  Solo testo, fornitore non trovato per "${email.from}" — estrazione+P.IVA`)
+          mailDebugLog(`[PROCESS] ⚠️  Solo testo, fornitore non trovato per "${email.from}" — estrazione corpo email`)
           noFornitoreBodyOnly.push(email)
           continue
         }
@@ -851,7 +750,7 @@ async function processEmails(
     `[PROCESS] Riepilogo fase 1: ${groups.size} fornitori via email, ${noFornitore.length} email con allegati senza fornitore, ${noFornitoreBodyOnly.length} email solo-testo senza fornitore`
   )
 
-  // ── Mittenti sconosciuti: OCR → tenta P.IVA match → salva in coda ─────
+  // ── Mittenti sconosciuti: OCR → salva da_revisionare (mittente_sconosciuto), niente match sul documento ─────
   for (const email of noFornitore) {
     for (const attachment of email.attachments) {
       const fp = buildScanAttachmentFingerprint({
@@ -867,7 +766,7 @@ async function processEmails(
         continue
       }
 
-      mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso per tentare matching P.IVA`)
+      mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso (nessun fallback fornitore sul documento)`)
 
       // 1. OCR allegato + corpo mail (runOcrForEmail passa già emailBodyText all'AI)
       const ocrOrNull = await runOcrForEmail(
@@ -903,41 +802,7 @@ async function processEmails(
       }
       mailDebugLog(`[PROCESS] OCR sconosciuto: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'} bodyFallback=${docFromBodyFallback}`)
 
-      // 2. Prova a trovare il fornitore via P.IVA estratta dal documento
-      let pivaMatchResult: Awaited<ReturnType<typeof resolveFornitoreByPIVA>> = null
-      if (ocr.p_iva) {
-        pivaMatchResult = await resolveFornitoreByPIVA(supabase, ocr.p_iva, sedeFilter)
-        if (pivaMatchResult) {
-          const { fornitore } = pivaMatchResult
-          if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'piva' })
-          groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
-          mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via P.IVA → "${fornitore.nome}"`)
-          continue
-        }
-      }
-
-      const rekkiIdHint = extractRekkiSupplierIdFromEmailHint(email, ocr)
-      if (rekkiIdHint) {
-        const rkRow = await resolveFornitoreByRekkiSupplierId(supabase, rekkiIdHint, sedeFilter)
-        if (rkRow) {
-          const fornitore = inferRowToFornitore(rkRow)
-          if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'rekki_supplier' })
-          groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
-          mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via rekki_supplier_id → "${fornitore.nome}"`)
-          continue
-        }
-      }
-
-      const nomeRow = await resolveFornitoreByPartialName(supabase, ocr.ragione_sociale, sedeFilter)
-      if (nomeRow) {
-        const fornitore = inferRowToFornitore(nomeRow)
-        if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'ragione_sociale' })
-        groups.get(fornitore.id)!.items.push({ email, attachment, ocr })
-        mailDebugLog(`[PROCESS] ✅ Documento sconosciuto risolto via ragione sociale parziale → "${fornitore.nome}"`)
-        continue
-      }
-
-      // 3a. Nessun match, dati solo da testo → documento sintetico [DA TESTO EMAIL]
+      // 3a. Dati solo da testo → documento sintetico [DA TESTO EMAIL]
       if (docFromBodyFallback) {
         const syn = await uploadSyntheticEmailBodyDoc(supabase, email)
         if ('error' in syn) {
@@ -971,6 +836,7 @@ async function processEmails(
           stato:          'da_revisionare',
           metadata:       {
             ...buildMetadata(ocr, 'unknown'),
+            mittente_sconosciuto: true,
             origine_testo_email: true,
             ...(autoKindU ? { pending_kind: autoKindU } : {}),
           },
@@ -1012,7 +878,7 @@ async function processEmails(
         continue
       }
 
-      // 3b. Nessun match → upload allegato + salva come sconosciuto
+      // 3b. Upload allegato + salva come sconosciuto (mittente_sconosciuto)
       const uniqueName = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
       const { error: uploadError } = await supabase.storage
         .from('documenti')
@@ -1053,6 +919,7 @@ async function processEmails(
         stato:          'da_revisionare',
         metadata:       {
           ...buildMetadata(ocr, 'unknown'),
+          mittente_sconosciuto: true,
           ...(autoKindAtt ? { pending_kind: autoKindAtt } : {}),
         },
         ...(autoKindAtt === 'statement' ? { is_statement: true } : {}),
@@ -1095,7 +962,7 @@ async function processEmails(
     }
   }
 
-  // ── Mittenti sconosciuti, solo corpo mail (nessun allegato) ───────────────
+  // ── Mittenti sconosciuti, solo corpo mail: salva da_revisionare, niente match sul testo OCR ───────────────
   for (const email of noFornitoreBodyOnly) {
     const fp = buildScanAttachmentFingerprint({
       sedeId: effectiveSede,
@@ -1137,39 +1004,6 @@ async function processEmails(
       continue
     }
 
-    let pivaMatchResult: Awaited<ReturnType<typeof resolveFornitoreByPIVA>> = null
-    if (ocr.p_iva) {
-      pivaMatchResult = await resolveFornitoreByPIVA(supabase, ocr.p_iva, sedeFilter)
-      if (pivaMatchResult) {
-        const { fornitore } = pivaMatchResult
-        if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'piva' })
-        groups.get(fornitore.id)!.items.push({ email, attachment: null, ocr })
-        mailDebugLog(`[PROCESS] ✅ Testo email risolto via P.IVA → "${fornitore.nome}"`)
-        continue
-      }
-    }
-
-    const rekBody = extractRekkiSupplierIdFromEmailHint(email, ocr)
-    if (rekBody) {
-      const rkRow = await resolveFornitoreByRekkiSupplierId(supabase, rekBody, sedeFilter)
-      if (rkRow) {
-        const fornitore = inferRowToFornitore(rkRow)
-        if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'rekki_supplier' })
-        groups.get(fornitore.id)!.items.push({ email, attachment: null, ocr })
-        mailDebugLog(`[PROCESS] ✅ Testo email risolto via rekki_supplier_id → "${fornitore.nome}"`)
-        continue
-      }
-    }
-
-    const nomeBody = await resolveFornitoreByPartialName(supabase, ocr.ragione_sociale, sedeFilter)
-    if (nomeBody) {
-      const fornitore = inferRowToFornitore(nomeBody)
-      if (!groups.has(fornitore.id)) groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'ragione_sociale' })
-      groups.get(fornitore.id)!.items.push({ email, attachment: null, ocr })
-      mailDebugLog(`[PROCESS] ✅ Testo email risolto via ragione sociale parziale → "${fornitore.nome}"`)
-      continue
-    }
-
     const syn = await uploadSyntheticEmailBodyDoc(supabase, email)
     if ('error' in syn) {
       console.error(`[PROCESS] Upload sintetico fallito (sconosciuto solo-testo): ${syn.error}`)
@@ -1203,6 +1037,7 @@ async function processEmails(
       stato:          'da_revisionare',
       metadata:       {
         ...buildMetadata(ocr, 'unknown'),
+        mittente_sconosciuto: true,
         origine_testo_email: true,
         ...(autoKindOnly ? { pending_kind: autoKindOnly } : {}),
       },
@@ -1920,6 +1755,35 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   const { data: sedi, error: sediErr } = await sediQuery
 
   mailDebugLog(`[DB] Sedi con IMAP: ${sedi?.length ?? 0}${sediErr ? ` errore="${sediErr.message}"` : ''}`)
+
+  /** Prima di IMAP: sblocca documenti da_revisionare se il mittente è stato aggiunto alla rubrica da ultimo ciclo. */
+  const retroSedeFilter = filterSedeId ?? null
+  try {
+    const cleanup = await retroactiveCleanupDaRevisionare(supabase, { sedeId: retroSedeFilter, maxRows: 120 })
+    mailDebugLog(
+      `[CLEANUP] da_revisionare retroattivo: scanned=${cleanup.scanned} processed=${cleanup.processed} errors=${cleanup.errors.length}`,
+    )
+    if (cleanup.processed > 0 || cleanup.scanned > 0 || cleanup.errors.length > 0) {
+      const logCleanupSede = retroSedeFilter ?? params.userSedeId ?? null
+      void supabase.from('activity_log').insert([
+        {
+          user_id: null,
+          sede_id: logCleanupSede,
+          action: 'email.scan.revisione_cleanup',
+          entity_type: 'system',
+          entity_id: null,
+          entity_label: `Cleanup coda revisione: ${cleanup.processed} processati / ${cleanup.scanned} esaminati`,
+          metadata: {
+            processed: cleanup.processed,
+            scanned: cleanup.scanned,
+            error_sample: cleanup.errors.slice(0, 12),
+          },
+        },
+      ]).then(() => {}, () => {})
+    }
+  } catch (e) {
+    console.warn('[CLEANUP] retroactiveCleanupDaRevisionare', e)
+  }
 
   const skipGlobalImap = !!params.fornitoreId || !!filterSedeId
 

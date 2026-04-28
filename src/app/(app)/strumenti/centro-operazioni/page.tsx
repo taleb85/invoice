@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
@@ -11,53 +10,191 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { BackButton } from '@/components/BackButton'
-import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
-import DuplicateManager from '@/components/duplicates/duplicate-manager'
-import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import { APP_SHELL_SECTION_PAGE_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 
-type CardProps = {
-  eyebrow: string
-  title: string
-  description: string
-  icon: ReactNode
-  accent: string
-  children: ReactNode
+type DashboardPayload = {
+  lastCleanupAt: string | null
+  lastCleanupProcessed: number | null
+  lastCleanupScanned: number | null
+  lastCycleErrors: string[]
+  documentsAutoProcessedToday: number
+  scopeSedeId: string | null
 }
 
-function ToolCard({ eyebrow, title, description, icon, accent, children }: CardProps) {
+function formatAgo(iso: string | null): string {
+  if (!iso) return '—'
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return '—'
+  const m = Math.max(0, Math.floor((Date.now() - t) / 60000))
+  if (m < 1) return 'meno di 1 minuto fa'
+  if (m === 1) return '1 minuto fa'
+  if (m < 60) return `${m} minuti fa`
+  const h = Math.floor(m / 60)
+  if (h === 1) return 'circa 1 ora fa'
+  if (h < 48) return `circa ${h} ore fa`
+  const d = Math.floor(h / 24)
+  return `circa ${d} giorni fa`
+}
+
+function CentroOperazioniDashboard(props: {
+  forceLoading: boolean
+  onForce: () => void
+  data: DashboardPayload | null
+  loadError: string | null
+  forceError: string | null
+}) {
+  const { data, loadError, forceLoading, onForce, forceError } = props
   return (
-    <div className="app-card overflow-hidden">
-      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ${accent}`}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{eyebrow}</p>
-          <p className="mt-0.5 text-sm font-semibold text-app-fg">{title}</p>
-          <p className="mt-1 text-xs leading-snug text-app-fg-muted">{description}</p>
-          <div className="mt-3 flex flex-wrap gap-2">{children}</div>
-        </div>
+    <div className="space-y-4">
+      <div className="app-card overflow-hidden p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Monitoraggio automatico</p>
+        <p className="mt-1 text-sm text-app-fg-muted">
+          Le operazioni su documenti e coda email sono eseguite in background; qui vedi solo lo stato.
+        </p>
+        {loadError ? (
+          <p className="mt-3 text-sm text-rose-300">{loadError}</p>
+        ) : data ? (
+          <ul className="mt-4 space-y-2 text-sm text-app-fg">
+            <li>
+              <span className="text-app-fg-muted">Ultimo cleanup coda revisione: </span>
+              <span className="font-semibold">{formatAgo(data.lastCleanupAt)}</span>
+              {data.lastCleanupAt ? (
+                <span className="text-app-fg-muted"> ({new Date(data.lastCleanupAt).toLocaleString()})</span>
+              ) : null}
+            </li>
+            <li>
+              <span className="text-app-fg-muted">Ultimo ciclo (record log): </span>
+              processati{' '}
+              <span className="font-semibold">{data.lastCleanupProcessed ?? '—'}</span>, esaminati{' '}
+              <span className="font-semibold">{data.lastCleanupScanned ?? '—'}</span>
+            </li>
+            <li>
+              <span className="text-app-fg-muted">Documenti sbloccati automaticamente oggi (cleanup): </span>
+              <span className="font-semibold">{data.documentsAutoProcessedToday}</span>
+            </li>
+            <li className="text-app-fg-muted text-xs">
+              Ambito sede: {data.scopeSedeId ? <span className="text-app-fg font-mono">{data.scopeSedeId}</span> : 'tutte (admin master)'}
+            </li>
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm text-app-fg-muted">Caricamento…</p>
+        )}
       </div>
+
+      <div className="app-card overflow-hidden p-5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Errori ultimo cleanup</p>
+        {data?.lastCycleErrors?.length ? (
+          <ul className="mt-3 max-h-40 list-disc space-y-1 overflow-auto pl-5 text-xs text-rose-200/95">
+            {data.lastCycleErrors.map((e, i) => (
+              <li key={i}>{e}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-emerald-200/90">Nessun errore registrato nell’ultimo ciclo registrato.</p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          disabled={forceLoading}
+          onClick={onForce}
+          className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {forceLoading ? (
+            <>
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-100 border-t-transparent" />
+              Esecuzione…
+            </>
+          ) : (
+            'Forza riesecuzione cleanup ora'
+          )}
+        </button>
+        {forceError ? <span className="text-xs text-rose-300">{forceError}</span> : null}
+      </div>
+
+      <p className="rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-app-fg-muted">
+        Per la posta in arrivo e la coda «Documenti da elaborare» usa la sincronizzazione email dalle sedi o dalla scheda
+        fornitore. Per un controllo completo su un fornitore usa <strong className="text-app-fg">Analisi completa</strong>{' '}
+        nella scheda fornitore.
+      </p>
     </div>
   )
 }
-
-const linkBtnCls =
-  'inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-app-line-35 bg-black/25 px-3.5 py-2 text-xs font-semibold text-app-fg transition-colors hover:border-app-a-45 hover:bg-app-line-10'
 
 export default function CentroOperazioniPage() {
   const { t } = useLocale()
   const s = t.strumentiCentroOperazioni
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
-  const [dupOpen, setDupOpen] = useState(false)
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
-  const canManageDuplicates = !!(me?.sede_id && (masterPlane || isAdminSede))
+  const canView = !!(masterPlane || isAdminSede)
+
+  const [data, setData] = useState<DashboardPayload | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [forceLoading, setForceLoading] = useState(false)
+  const [forceError, setForceError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoadError(null)
+    try {
+      const res = await fetch('/api/centro-operazioni/dashboard', { cache: 'no-store' })
+      const j = (await res.json().catch(() => ({}))) as DashboardPayload & { error?: string }
+      if (!res.ok) {
+        setLoadError(j.error ?? `HTTP ${res.status}`)
+        return
+      }
+      setData({
+        lastCleanupAt: j.lastCleanupAt,
+        lastCleanupProcessed: j.lastCleanupProcessed,
+        lastCleanupScanned: j.lastCleanupScanned,
+        lastCycleErrors: j.lastCycleErrors ?? [],
+        documentsAutoProcessedToday: j.documentsAutoProcessedToday ?? 0,
+        scopeSedeId: j.scopeSedeId ?? null,
+      })
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'Errore di rete')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (canView) void load()
+  }, [canView, load])
+
+  const onForce = useCallback(async () => {
+    setForceLoading(true)
+    setForceError(null)
+    try {
+      const res = await fetch('/api/centro-operazioni/force-cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setForceError(j.error ?? `HTTP ${res.status}`)
+        return
+      }
+      await load()
+    } catch (e) {
+      setForceError(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setForceLoading(false)
+    }
+  }, [load])
+
+  if (!canView) {
+    return (
+      <div className={`${APP_SHELL_SECTION_PAGE_CLASS} px-6 py-10`}>
+        <p className="text-sm text-app-fg-muted">Accesso riservato agli amministratori.</p>
+        <Link href="/" className="mt-4 inline-block text-sm text-cyan-300 underline">
+          Torna al dashboard
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -79,172 +216,14 @@ export default function CentroOperazioniPage() {
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-app-fg-muted">{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
-
         <div className="mt-6 space-y-8 px-6 pb-10">
-          <section className="space-y-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-teal-200/95">{s.sectionOcr}</h2>
-            <ToolCard
-              eyebrow="AI Inbox · OCR"
-              title={s.cardReanalyzeTitle}
-              description={s.cardReanalyzeDesc}
-              accent="bg-teal-500/12 ring-teal-400/25"
-              icon={
-                <svg className="h-5 w-5 text-teal-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              }
-            >
-              <Link href="/inbox-ai" className={linkBtnCls}>
-                {s.cardOpenInbox}
-              </Link>
-            </ToolCard>
-
-            <FixOcrDatesCard />
-
-            <ToolCard
-              eyebrow={t.fatture.title}
-              title={s.cardRefreshDateTitle}
-              description={s.cardRefreshDateDesc}
-              accent="bg-violet-500/12 ring-violet-400/25"
-              icon={
-                <svg className="h-5 w-5 text-violet-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              }
-            >
-              <Link href="/fatture" className={linkBtnCls}>
-                {s.cardOpenFatture}
-              </Link>
-            </ToolCard>
-
-            <ToolCard
-              eyebrow={t.fornitori.title}
-              title={s.cardOcrCheckTitle}
-              description={s.cardOcrCheckDesc}
-              accent="bg-amber-500/12 ring-amber-500/25"
-              icon={
-                <svg className="h-5 w-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              }
-            >
-              <Link href="/fornitori" className={linkBtnCls}>
-                {s.cardOpenFornitoreSheet}
-              </Link>
-            </ToolCard>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-rose-200/95">{s.sectionDup}</h2>
-
-            <ToolCard
-              eyebrow={t.nav.dashboard}
-              title={s.cardDupScanTitle}
-              description={s.cardDupScanDesc}
-              accent="bg-amber-950/40 ring-app-line-35"
-              icon={
-                <svg className="h-5 w-5 text-amber-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-2" />
-                </svg>
-              }
-            >
-              <DashboardDuplicateFattureButton alwaysShowLabel />
-            </ToolCard>
-
-            {canManageDuplicates ? (
-              <ToolCard
-                eyebrow={s.cardDupManageTitle}
-                title={s.cardDupManageTitle}
-                description={s.cardDupManageDesc}
-                accent="bg-amber-500/12 ring-amber-500/25"
-                icon={
-                  <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
-                }
-              >
-                <button
-                  type="button"
-                  onClick={() => setDupOpen(true)}
-                  className={`${linkBtnCls} border-amber-500/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/18`}
-                >
-                  {s.cardDupManageCta}
-                </button>
-              </ToolCard>
-            ) : null}
-
-            <ToolCard
-              eyebrow="AI Inbox"
-              title={s.cardAuditTitle}
-              description={s.cardAuditDesc}
-              accent="bg-cyan-500/12 ring-cyan-400/25"
-              icon={
-                <svg className="h-5 w-5 text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              }
-            >
-              <Link href="/inbox-ai?tab=audit" className={linkBtnCls}>
-                {s.cardOpenAudit}
-              </Link>
-            </ToolCard>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-fuchsia-200/95">{s.sectionListino}</h2>
-
-            <ToolCard
-              eyebrow="Listino"
-              title={s.cardListinoAutoTitle}
-              description={s.cardListinoAutoDesc}
-              accent="bg-violet-500/12 ring-violet-400/30"
-              icon={
-                <svg className="h-5 w-5 text-violet-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              }
-            >
-              <Link href="/fornitori" className={linkBtnCls}>
-                {s.cardListinoCta}
-              </Link>
-            </ToolCard>
-
-            <ToolCard
-              eyebrow="Listino"
-              title={s.cardListinoFromInvTitle}
-              description={s.cardListinoFromInvDesc}
-              accent="bg-violet-500/18 ring-violet-400/40"
-              icon={
-                <svg className="h-5 w-5 text-violet-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-              }
-            >
-              <Link href="/fornitori" className={linkBtnCls}>
-                {s.cardListinoCta}
-              </Link>
-            </ToolCard>
-
-            <ToolCard
-              eyebrow="Listino"
-              title={s.cardListinoAddTitle}
-              description={s.cardListinoAddDesc}
-              accent="bg-cyan-600/18 ring-app-a-35"
-              icon={
-                <svg className="h-5 w-5 text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                </svg>
-              }
-            >
-              <Link href="/fornitori" className={linkBtnCls}>
-                {s.cardListinoCta}
-              </Link>
-            </ToolCard>
-          </section>
-
-          <p className="rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-app-fg-muted">
-            {s.hintContextualShortcuts}
-          </p>
+          <CentroOperazioniDashboard
+            data={data}
+            loadError={loadError}
+            forceLoading={forceLoading}
+            forceError={forceError}
+            onForce={onForce}
+          />
         </div>
       </div>
 
@@ -265,186 +244,24 @@ export default function CentroOperazioniPage() {
                     <span className="mx-2 text-app-fg-muted/40">&rsaquo;</span>
                     <span>{s.pageTitle}</span>
                   </nav>
-                  <h1 className={`app-page-title mt-2 text-xl font-bold`}>{s.pageTitle}</h1>
+                  <h1 className="app-page-title mt-2 text-xl font-bold">{s.pageTitle}</h1>
                   <p className="mt-2 max-w-xl text-sm leading-relaxed text-app-fg-muted">{s.pageSubtitle}</p>
                 </div>
                 <AppPageHeaderDesktopTray className="pt-0.5" />
               </div>
             </div>
           </div>
-
           <div className="mt-6 space-y-8">
-            <section className="space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-teal-200/95">{s.sectionOcr}</h2>
-              <ToolCard
-                eyebrow="AI Inbox · OCR"
-                title={s.cardReanalyzeTitle}
-                description={s.cardReanalyzeDesc}
-                accent="bg-teal-500/12 ring-teal-400/25"
-                icon={
-                  <svg className="h-5 w-5 text-teal-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                }
-              >
-                <Link href="/inbox-ai" className={linkBtnCls}>
-                  {s.cardOpenInbox}
-                </Link>
-              </ToolCard>
-
-              <FixOcrDatesCard />
-
-              <ToolCard
-                eyebrow={t.fatture.title}
-                title={s.cardRefreshDateTitle}
-                description={s.cardRefreshDateDesc}
-                accent="bg-violet-500/12 ring-violet-400/25"
-                icon={
-                  <svg className="h-5 w-5 text-violet-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                }
-              >
-                <Link href="/fatture" className={linkBtnCls}>
-                  {s.cardOpenFatture}
-                </Link>
-              </ToolCard>
-
-              <ToolCard
-                eyebrow={t.fornitori.title}
-                title={s.cardOcrCheckTitle}
-                description={s.cardOcrCheckDesc}
-                accent="bg-amber-500/12 ring-amber-500/25"
-                icon={
-                  <svg className="h-5 w-5 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                }
-              >
-                <Link href="/fornitori" className={linkBtnCls}>
-                  {s.cardOpenFornitoreSheet}
-                </Link>
-              </ToolCard>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-rose-200/95">{s.sectionDup}</h2>
-
-              <ToolCard
-                eyebrow={t.nav.dashboard}
-                title={s.cardDupScanTitle}
-                description={s.cardDupScanDesc}
-                accent="bg-amber-950/40 ring-app-line-35"
-                icon={
-                  <svg className="h-5 w-5 text-amber-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-2" />
-                  </svg>
-                }
-              >
-                <DashboardDuplicateFattureButton alwaysShowLabel />
-              </ToolCard>
-
-              {canManageDuplicates ? (
-                <ToolCard
-                  eyebrow={s.cardDupManageTitle}
-                  title={s.cardDupManageTitle}
-                  description={s.cardDupManageDesc}
-                  accent="bg-amber-500/12 ring-amber-500/25"
-                  icon={
-                    <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                    </svg>
-                  }
-                >
-                  <button
-                    type="button"
-                    onClick={() => setDupOpen(true)}
-                    className={`${linkBtnCls} border-amber-500/35 bg-amber-500/10 text-amber-100 hover:bg-amber-500/18`}
-                  >
-                    {s.cardDupManageCta}
-                  </button>
-                </ToolCard>
-              ) : null}
-
-              <ToolCard
-                eyebrow="AI Inbox"
-                title={s.cardAuditTitle}
-                description={s.cardAuditDesc}
-                accent="bg-cyan-500/12 ring-cyan-400/25"
-                icon={
-                  <svg className="h-5 w-5 text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                }
-              >
-                <Link href="/inbox-ai?tab=audit" className={linkBtnCls}>
-                  {s.cardOpenAudit}
-                </Link>
-              </ToolCard>
-            </section>
-
-            <section className="space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-fuchsia-200/95">{s.sectionListino}</h2>
-
-              <ToolCard
-                eyebrow="Listino"
-                title={s.cardListinoAutoTitle}
-                description={s.cardListinoAutoDesc}
-                accent="bg-violet-500/12 ring-violet-400/30"
-                icon={
-                  <svg className="h-5 w-5 text-violet-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                }
-              >
-                <Link href="/fornitori" className={linkBtnCls}>
-                  {s.cardListinoCta}
-                </Link>
-              </ToolCard>
-
-              <ToolCard
-                eyebrow="Listino"
-                title={s.cardListinoFromInvTitle}
-                description={s.cardListinoFromInvDesc}
-                accent="bg-violet-500/18 ring-violet-400/40"
-                icon={
-                  <svg className="h-5 w-5 text-violet-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                }
-              >
-                <Link href="/fornitori" className={linkBtnCls}>
-                  {s.cardListinoCta}
-                </Link>
-              </ToolCard>
-
-              <ToolCard
-                eyebrow="Listino"
-                title={s.cardListinoAddTitle}
-                description={s.cardListinoAddDesc}
-                accent="bg-cyan-600/18 ring-app-a-35"
-                icon={
-                  <svg className="h-5 w-5 text-cyan-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                }
-              >
-                <Link href="/fornitori" className={linkBtnCls}>
-                  {s.cardListinoCta}
-                </Link>
-              </ToolCard>
-            </section>
-
-            <p className="rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-app-fg-muted">
-              {s.hintContextualShortcuts}
-            </p>
+            <CentroOperazioniDashboard
+              data={data}
+              loadError={loadError}
+              forceLoading={forceLoading}
+              forceError={forceError}
+              onForce={onForce}
+            />
           </div>
         </div>
       </div>
-
-      {canManageDuplicates ? (
-        <DuplicateManager open={dupOpen} onOpenChange={setDupOpen} />
-      ) : null}
     </>
   )
 }

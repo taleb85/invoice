@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
+import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 
 /** Estrae primo indirizzo email da stringa mittente (header o solo email). */
 function extractEmail(raw: string): string | null {
@@ -63,6 +64,8 @@ export async function POST(req: NextRequest) {
     if (error.code === '23505') return NextResponse.json({ ok: true, alreadyLinked: true })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  void autoProcessAfterFornitoreEmailAdded(service, fornitoreId, emailExtracted).catch(() => {})
 
   return NextResponse.json({ ok: true })
 }
