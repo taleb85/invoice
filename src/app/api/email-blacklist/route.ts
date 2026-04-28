@@ -29,9 +29,9 @@ export async function GET(req: NextRequest) {
   }
 
   const motivoFilter = req.nextUrl.searchParams.get('motivo')
-  let sedeParam = req.nextUrl.searchParams.get('sede_id')
+  const sedeParam = req.nextUrl.searchParams.get('sede_id')
 
-  let sedeId = sedeParam?.trim() || profile?.sede_id || null
+  const sedeId = sedeParam?.trim() || profile?.sede_id || null
   if (!master && sedeParam && sedeParam !== profile?.sede_id) {
     return NextResponse.json({ error: 'Puoi leggere solo la blacklist della tua sede' }, { status: 403 })
   }
@@ -149,7 +149,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   const sedeParam = req.nextUrl.searchParams.get('sede_id')?.trim()
-  let sedeId = sedeParam || profile?.sede_id || null
+  const sedeId = sedeParam || profile?.sede_id || null
   if (!sedeId) return NextResponse.json({ error: 'sede richiesta' }, { status: 400 })
   if (!master && sedeParam && sedeParam !== profile?.sede_id) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })

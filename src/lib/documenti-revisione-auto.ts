@@ -33,30 +33,6 @@ async function fetchRevisioneCandidates(
   return (data ?? []) as LegacyPendingDocRow[]
 }
 
-/** Quando ora esiste alias / email primaria → riprocessa con la stessa pipeline OCR degli scan. */
-async function attemptProcessRow(
-  service: SupabaseClient,
-  row: LegacyPendingDocRow,
-): Promise<boolean> {
-  const emailNorm = normalizeSenderEmailCanonical(row.mittente)
-  if (!emailNorm?.includes('@')) return false
-
-  const sedeFilter = row.sede_id ?? null
-  const fornitore = await resolveFornitoreFromScanEmail(service, emailNorm, sedeFilter)
-  if (!fornitore?.id) return false
-
-  const merged: LegacyPendingDocRow = {
-    ...row,
-    fornitore_id: fornitore.id,
-  }
-  const r = await processLegacyPendingDoc(service, merged)
-  if (r.status === 'error') {
-    console.warn('[revisione-auto] process doc', row.id, r.message)
-    return false
-  }
-  return r.category === 'auto_saved'
-}
-
 /** Passata prima di IMAP: documenti ora abbinabili perché è stato registrato mittente nell’anagrafica. */
 export async function retroactiveCleanupDaRevisionare(
   service: SupabaseClient,
