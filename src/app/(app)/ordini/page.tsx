@@ -36,12 +36,11 @@ import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 
 export const dynamic = 'force-dynamic'
 
-export default async function OrdiniOverviewPage({
-  searchParams: searchParamsPromise,
-}: {
+export default async function OrdiniOverviewPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
+  const searchParams =
+    props.searchParams != null ? await props.searchParams : {}
   const [t, locale, tz, cookieStore] = await Promise.all([
     getT(),
     getLocale(),

@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     const [{ data: { user } }, profile, cookieStore] = await Promise.all([
       supabase.auth.getUser(),
       getProfile(),
-      cookies(),
+      await cookies(),
     ])
 
     // Resolve the sede the scan belongs to (for usage tracking)

@@ -39,12 +39,11 @@ const dupBadgeCls =
 
 export const dynamic = 'force-dynamic'
 
-export default async function FattureRiepilogoPage({
-  searchParams: searchParamsPromise,
-}: {
+export default async function FattureRiepilogoPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
+  const searchParams =
+    props.searchParams != null ? await props.searchParams : {}
   const [t, locale, tz, currency, cookieStore] = await Promise.all([
     getT(),
     getLocale(),

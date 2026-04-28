@@ -29,15 +29,13 @@ async function getListSedeId(): Promise<string | null> {
   return profile.sede_id ?? null
 }
 
-export default async function ScannerEventiPage({
-  searchParams,
-}: {
+export default async function ScannerEventiPage(props: {
   searchParams?: Promise<{ page?: string }>
 }) {
   const sedeId = await getListSedeId()
   if (!sedeId) redirect('/')
 
-  const sp = searchParams ? await searchParams : {}
+  const sp = props.searchParams != null ? await props.searchParams : {}
   const raw = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1
   const requestedPage = Number.isFinite(raw) && raw >= 1 ? raw : 1
 

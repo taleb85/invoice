@@ -10,14 +10,14 @@ export const dynamic = 'force-dynamic'
 
 type SearchParams = Promise<{ fy?: string; months?: string }>
 
-export default async function AnalyticsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function AnalyticsPage(props: { searchParams: SearchParams }) {
   const profile = await getProfile()
   if (!profile || !['admin', 'admin_sede'].includes(profile.role ?? '')) {
     redirect('/')
   }
 
   const [sp, cookieStore, t, supabase] = await Promise.all([
-    searchParams,
+    props.searchParams,
     getCookieStore(),
     getT(),
     createClient(),

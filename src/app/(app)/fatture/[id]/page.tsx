@@ -6,8 +6,8 @@ import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/local
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import ReplaceFileButton from './ReplaceFileButton'
-export default async function FatturaDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function FatturaDetailPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params
   const [fattura, t, locale, tz] = await Promise.all([
     getFatturaForViewer(id),
     getT(),

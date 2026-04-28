@@ -63,12 +63,11 @@ async function getFatture(
   return (data ?? []) as unknown as FatturaListRow[]
 }
 
-export default async function FatturePage({
-  searchParams: searchParamsPromise,
-}: {
+export default async function FatturePage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
+  const searchParams =
+    props.searchParams != null ? await props.searchParams : {}
   const [t, locale, tz, currency, cookieStore, profile, { supabase }] = await Promise.all([
     getT(),
     getLocale(),

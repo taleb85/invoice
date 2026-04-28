@@ -17,8 +17,8 @@ async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
   return Boolean(data)
 }
 
-export default async function BollaDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function BollaDetailPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params
   const [bolla, t, locale, tz] = await Promise.all([getBollaForViewer(id), getT(), getLocale(), getTimezone()])
   if (!bolla) return <DocumentUnavailable kind="bolla" />
   const [fatture, rekkiPrezzoFlag, profile] = await Promise.all([

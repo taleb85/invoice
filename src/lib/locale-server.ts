@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { type Locale, getTranslations } from './translations'
 
 /** Evita letture ripetute di `cookies()` nella stessa richiesta RSC. */
-export const getCookieStore = cache(async () => cookies())
+export const getCookieStore = cache(async () => await cookies())
 import {
   LOCALE_COOKIE,
   CURRENCY_COOKIE,

@@ -51,18 +51,16 @@ async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
   }
 }
 
-export default async function SedeProfilePage({
-  params,
-  searchParams: searchParamsPromise,
-}: {
+export default async function SedeProfilePage(props: {
   params: Promise<{ sede_id: string }>
   searchParams?: Promise<{ fy?: string }>
 }) {
   const { supabase, user } = await getRequestAuth()
   if (!user) redirect('/login')
 
-  const { sede_id } = await params
-  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
+  const { sede_id } = await props.params
+  const searchParams =
+    props.searchParams != null ? await props.searchParams : {}
   const sede = await fetchSedeProfile(sede_id)
   if (!sede) redirect('/sedi')
 

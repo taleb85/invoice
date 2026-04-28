@@ -38,12 +38,11 @@ import DashboardSedeSupplierSuggestion from '@/components/DashboardSedeSupplierS
 
 export const dynamic = 'force-dynamic'
 
-export default async function DashboardPage({
-  searchParams: searchParamsPromise,
-}: {
+export default async function DashboardPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
+  const searchParams =
+    props.searchParams != null ? await props.searchParams : {}
   const cookieStore = await getCookieStore()
   const [t, locale, tz, profile, currency] = await Promise.all([
     getT(),

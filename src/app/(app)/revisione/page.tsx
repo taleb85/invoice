@@ -15,12 +15,11 @@ import { APP_SHELL_SECTION_PAGE_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@
 
 export const dynamic = 'force-dynamic'
 
-export default async function RevisioneInboxPage({
-  searchParams: searchParamsPromise,
-}: {
+export default async function RevisioneInboxPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams = searchParamsPromise != null ? await searchParamsPromise : {}
+  const searchParams =
+    props.searchParams != null ? await props.searchParams : {}
   const [t, cookieStore, profile, { supabase }] = await Promise.all([
     getT(),
     getCookieStore(),
