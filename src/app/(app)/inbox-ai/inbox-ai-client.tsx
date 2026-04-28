@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DupBollaGroup, DupFatturaGroup } from '@/lib/inbox-ai-duplicate-groups'
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
+import { createClient } from '@/utils/supabase/client'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -24,7 +25,20 @@ type PendingDocRow = {
   fornitore?: { nome?: string | null } | null
 }
 
-type TabId = 'docs' | 'fatture' | 'bolle' | 'rekki'
+type TabId = 'docs' | 'fatture' | 'bolle' | 'rekki' | 'audit'
+
+type AuditMatchRow = {
+  id: string
+  mittente: string | null
+  file_name: string | null
+  fattura_id: string | null
+  bolla_id: string | null
+  assigned_fornitore_id: string | null
+  fornitore_fattura: string | null
+  fornitore_bolla: string | null
+}
+
+type FornitoreOption = { id: string; nome: string | null }
 
 function todayYmd(): string {
   const d = new Date()
@@ -89,6 +103,12 @@ export default function InboxAiClient(props: {
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [dupBusy, setDupBusy] = useState<string | null>(null)
 
+  const [auditRows, setAuditRows] = useState<AuditMatchRow[]>([])
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [fornitori, setFornitori] = useState<FornitoreOption[]>([])
+  const [reassignSel, setReassignSel] = useState<Record<string, string>>({})
+  const [auditBusy, setAuditBusy] = useState<string | null>(null)
+
   useEffect(() => {
     setResolvedToday(readResolvedToday())
   }, [])
@@ -120,6 +140,47 @@ export default function InboxAiClient(props: {
       setDocsLoading(false)
     }
   }, [blockedNoSede, sedeId])
+
+  const loadAudit = useCallback(async () => {
+    if (!sedeId || blockedNoSede) return
+    setAuditLoading(true)
+    try {
+      const res = await fetch('/api/admin/audit-fornitore-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sede_id: sedeId }),
+      })
+      const j = (await res.json()) as { rows?: AuditMatchRow[]; error?: string }
+      if (!res.ok) {
+        setAuditRows([])
+        return
+      }
+      setAuditRows(j.rows ?? [])
+    } finally {
+      setAuditLoading(false)
+    }
+  }, [blockedNoSede, sedeId])
+
+  useEffect(() => {
+    if (!sedeId || blockedNoSede) {
+      setFornitori([])
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const sb = createClient()
+      const { data } = await sb.from('fornitori').select('id, nome').eq('sede_id', sedeId).order('nome')
+      if (!cancelled) setFornitori((data ?? []) as FornitoreOption[])
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [blockedNoSede, sedeId])
+
+  useEffect(() => {
+    void loadAudit()
+  }, [loadAudit])
 
   const loadDuplicates = useCallback(async () => {
     if (!sedeId || blockedNoSede) return
@@ -288,7 +349,71 @@ export default function InboxAiClient(props: {
     if (id === 'docs') return docs.length
     if (id === 'fatture') return dupFat.length
     if (id === 'bolle') return dupBol.length
+    if (id === 'audit') return auditRows.length
     return 0
+  }
+
+  const addEmailToFornitore = async (row: AuditMatchRow) => {
+    const fid = row.assigned_fornitore_id
+    if (!fid || !row.mittente?.trim()) return
+    setAuditBusy(row.id)
+    try {
+      const res = await fetch('/api/fornitore-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ fornitore_id: fid, email: row.mittente }),
+      })
+      const j = (await res.json()) as { error?: string }
+      if (!res.ok) throw new Error(j.error ?? 'Errore')
+      setAuditRows((r) => r.filter((x) => x.id !== row.id))
+      setResolvedToday(bumpResolved(1))
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : 'Operazione non riuscita')
+    } finally {
+      setAuditBusy(null)
+    }
+  }
+
+  const reassignFornitore = async (row: AuditMatchRow) => {
+    const nuovo = reassignSel[row.id]?.trim()
+    if (!nuovo) {
+      window.alert('Seleziona un fornitore')
+      return
+    }
+    setAuditBusy(row.id)
+    try {
+      const res = await fetch('/api/admin/audit-fornitore-match/reassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          sede_id: sedeId,
+          documento_id: row.id,
+          nuovo_fornitore_id: nuovo,
+        }),
+      })
+      const j = (await res.json()) as { error?: string }
+      if (!res.ok) throw new Error(j.error ?? 'Errore')
+      setAuditRows((r) => r.filter((x) => x.id !== row.id))
+      setResolvedToday(bumpResolved(1))
+      setReassignSel((s) => {
+        const next = { ...s }
+        delete next[row.id]
+        return next
+      })
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : 'Operazione non riuscita')
+    } finally {
+      setAuditBusy(null)
+    }
+  }
+
+  const assignedLabel = (row: AuditMatchRow) => {
+    const bits: string[] = []
+    if (row.fornitore_fattura?.trim()) bits.push(`Fattura: ${row.fornitore_fattura.trim()}`)
+    if (row.fornitore_bolla?.trim()) bits.push(`Bolla: ${row.fornitore_bolla.trim()}`)
+    return bits.length > 0 ? bits.join(' · ') : '—'
   }
 
   if (blockedNoSede) {
@@ -331,6 +456,7 @@ export default function InboxAiClient(props: {
           {(
             [
               ['docs', `Documenti (${tabBadge('docs')})`] as const,
+              ['audit', `Abbinamenti (${tabBadge('audit')})`] as const,
               ['fatture', `Fatture dup. (${tabBadge('fatture')})`] as const,
               ['bolle', `Bolle dup. (${tabBadge('bolle')})`] as const,
               ['rekki', 'Anomalie Rekki (0)'] as const,
@@ -432,6 +558,101 @@ export default function InboxAiClient(props: {
                           >
                             Ignora
                           </button>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+        ) : null}
+
+        {tab === 'audit' ? (
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
+              <p className="text-sm font-semibold text-teal-100/95">
+                {auditLoading ? 'Caricamento…' : `${auditRows.length} abbinamenti da verificare`}
+              </p>
+              <button
+                type="button"
+                disabled={auditLoading}
+                onClick={() => void loadAudit()}
+                className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-app-fg-muted hover:bg-white/10"
+              >
+                Aggiorna
+              </button>
+            </div>
+            <p className="text-xs text-app-fg-muted">
+              Documenti già salvati come <span className="font-mono">associato</span> dove l’email del mittente non è tra le email riconosciute del fornitore collegato alla fattura o alla bolla.
+            </p>
+            {auditLoading ? (
+              <ul className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <li key={i} className="h-24 animate-pulse rounded-lg bg-white/[0.06]" />
+                ))}
+              </ul>
+            ) : auditRows.length === 0 ? (
+              <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-4 py-6 text-center text-sm text-emerald-100/95">
+                Tutti gli abbinamenti sono corretti <span aria-hidden>✅</span>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {auditRows.map((row) => {
+                  const busy = auditBusy === row.id
+                  return (
+                    <li
+                      key={row.id}
+                      className="rounded-xl border border-amber-500/25 bg-amber-950/10 px-3 py-3 sm:px-4"
+                    >
+                      <div className="flex flex-col gap-2">
+                        <p className="text-sm font-semibold text-app-fg">
+                          {row.file_name?.trim() || 'Senza nome file'}
+                        </p>
+                        <p className="truncate font-mono text-[11px] text-app-fg-muted">
+                          Mittente: {row.mittente ?? '—'}
+                        </p>
+                        <p className="text-xs text-cyan-100/95">
+                          Fornitore assegnato:{' '}
+                          <span className="text-app-fg">{assignedLabel(row)}</span>
+                        </p>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                          <button
+                            type="button"
+                            disabled={busy || !row.assigned_fornitore_id || !row.mittente?.trim()}
+                            onClick={() => void addEmailToFornitore(row)}
+                            className="rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1.5 text-[11px] font-semibold text-teal-100 disabled:opacity-40"
+                          >
+                            Aggiungi email al fornitore
+                          </button>
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+                            <label className="flex items-center gap-2 text-[11px] text-app-fg-muted">
+                              Cambia fornitore
+                              <select
+                                className="max-w-[min(100%,220px)] rounded border border-white/15 bg-black/30 px-1 py-1 text-[11px] text-app-fg"
+                                value={reassignSel[row.id] ?? ''}
+                                disabled={busy}
+                                onChange={(e) =>
+                                  setReassignSel((s) => ({ ...s, [row.id]: e.target.value }))
+                                }
+                              >
+                                <option value="">— fornitore —</option>
+                                {fornitori.map((f) => (
+                                  <option key={f.id} value={f.id}>
+                                    {f.nome ?? f.id.slice(0, 8)}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <button
+                              type="button"
+                              disabled={busy || !reassignSel[row.id]}
+                              onClick={() => void reassignFornitore(row)}
+                              className="rounded-md border border-violet-500/40 bg-violet-500/15 px-2 py-1.5 text-[11px] font-semibold text-violet-100 disabled:opacity-40"
+                            >
+                              Applica nuovo fornitore
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </li>
