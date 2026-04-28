@@ -470,8 +470,15 @@ export default function SediPage() {
         icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`}>{t.sedi.titleGlobalAdmin}</h1>
-          <p className="hidden text-sm leading-tight text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
+          <h1 id="page-sedi-title" className={`${APP_SHELL_SECTION_PAGE_H1_CLASS} font-bold`} aria-describedby="page-sedi-desc">
+            {t.sedi.titleGlobalAdmin}
+          </h1>
+          <p
+            id="page-sedi-desc"
+            className="max-w-[min(100%,40rem)] text-[11px] leading-snug text-app-fg-muted sm:text-sm sm:leading-tight"
+          >
+            {t.sedi.subtitleGlobalAdmin}
+          </p>
         </AppPageHeaderTitleWithDashboardShortcut>
         {!isSedeScopedAdmin ? (
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">

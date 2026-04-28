@@ -81,8 +81,15 @@ export default async function DashboardPage(props: {
       <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
         <AppPageHeaderStrip embedded>
           <AppPageHeaderTitleWithDashboardShortcut>
-            <h1 className="app-page-title text-xl font-bold leading-tight md:text-2xl">{t.dashboard.title}</h1>
-            <p className="hidden text-sm leading-tight text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>
+            <h1 id="page-dashboard-strip-title" className="app-page-title text-xl font-bold leading-tight md:text-2xl" aria-describedby="page-dashboard-strip-desc">
+              {t.dashboard.title}
+            </h1>
+            <p
+              id="page-dashboard-strip-desc"
+              className="max-w-[min(100%,40rem)] text-[11px] leading-snug text-app-fg-muted sm:text-sm sm:leading-tight"
+            >
+              {t.sedi.subtitleGlobalAdmin}
+            </p>
           </AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-2 md:gap-3">
             <Link
