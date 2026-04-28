@@ -38,6 +38,8 @@ export type EmailSyncRequestBody = {
   email_sync_lookback_days?: number
   /** Filtro tipologia import (assente o `all` = comportamento completo). */
   email_sync_document_kind?: EmailSyncDocumentKind
+  /** Finestra IMAP server-side (`auto`=3h, `manual`=24h, `historical`=giorni sede/override). */
+  mode?: 'auto' | 'manual' | 'historical'
 }
 
 export type EmailSyncProgressState = {

@@ -1394,10 +1394,10 @@ export default function SediPage() {
                           </div>
                         </div>
                       </div>
-                      {/* Lookback days */}
+                      {/* Lookback days — usato per sync «storica» (mode historical); riduci dopo l’import iniziale */}
                       <div>
                         <label className="block text-xs font-medium text-app-fg-muted mb-1">
-                          Giorni di lookback email
+                          {t.appStrings.imapLookbackLabel}
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -1411,11 +1411,11 @@ export default function SediPage() {
                           />
                           <span className="text-xs text-app-fg-muted">
                             {imapForm.imap_lookback_days && parseInt(imapForm.imap_lookback_days) > 0
-                              ? `Legge email (lette e non lette) degli ultimi ${imapForm.imap_lookback_days} giorni`
-                              : 'Legge tutte le email in Posta in arrivo (lette e non lette, nessun limite di giorni)'}
+                              ? t.appStrings.imapLookbackLastDays.replace('{n}', String(parseInt(imapForm.imap_lookback_days, 10) || 0))
+                              : t.appStrings.imapLookbackUnlimited}
                           </span>
                         </div>
-                        <p className="text-[11px] text-app-fg-muted mt-1">Lascia vuoto per nessun limite. Consigliato: 30–90 giorni.</p>
+                        <p className="text-[11px] text-app-fg-muted mt-1">{t.appStrings.imapLookbackFootnote}</p>
                       </div>
 
                       {(imapForm.imap_host.includes('gmail') || imapForm.imap_host.includes('googlemail') || imapForm.imap_host.includes('outlook') || imapForm.imap_host.includes('office365')) && (

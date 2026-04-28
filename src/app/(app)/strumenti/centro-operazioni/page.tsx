@@ -15,6 +15,7 @@ import {
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 
 type DashboardPayload = {
   lastCleanupAt: string | null
@@ -129,8 +130,10 @@ function CentroOperazioniDashboard(props: {
 export default function CentroOperazioniPage() {
   const { t } = useLocale()
   const s = t.strumentiCentroOperazioni
+  const d = t.dashboard
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
+  const { effectiveSedeId } = useManualDeliverySede()
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
@@ -140,6 +143,8 @@ export default function CentroOperazioniPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [forceLoading, setForceLoading] = useState(false)
   const [forceError, setForceError] = useState<string | null>(null)
+  const [emailSyncLoading, setEmailSyncLoading] = useState(false)
+  const [emailSyncError, setEmailSyncError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoadError(null)
@@ -189,6 +194,30 @@ export default function CentroOperazioniPage() {
     }
   }, [load])
 
+  const onForceEmailSync = useCallback(async () => {
+    setEmailSyncLoading(true)
+    setEmailSyncError(null)
+    try {
+      const res = await fetch('/api/scan-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'manual',
+          ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
+        }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setEmailSyncError(j.error ?? `HTTP ${res.status}`)
+        return
+      }
+    } catch (e) {
+      setEmailSyncError(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setEmailSyncLoading(false)
+    }
+  }, [effectiveSedeId])
+
   if (!canView) {
     return (
       <div className={`${APP_SHELL_SECTION_PAGE_CLASS} px-6 py-10`}>
@@ -223,6 +252,28 @@ export default function CentroOperazioniPage() {
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-8">
+          <div className="app-card overflow-hidden p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.manualImapSyncTitle}</p>
+            <p className="mt-2 text-sm text-app-fg-muted">{s.manualImapSyncDesc}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={emailSyncLoading}
+                onClick={onForceEmailSync}
+                className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {emailSyncLoading ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-100 border-t-transparent" />
+                    {t.common.loading}
+                  </>
+                ) : (
+                  d.emailSyncForceSync
+                )}
+              </button>
+              {emailSyncError ? <span className="text-xs text-rose-300">{emailSyncError}</span> : null}
+            </div>
+          </div>
           <CentroOperazioniDashboard
             data={data}
             loadError={loadError}

@@ -1115,6 +1115,9 @@ type Translations = {
     cardListinoAddTitle: string
     cardListinoAddDesc: string
     cardListinoCta: string
+    /** Centro operazioni: titolo card sync email manuale (24 h) */
+    manualImapSyncTitle: string
+    manualImapSyncDesc: string
     hintContextualShortcuts: string
   }
   log: {
@@ -2022,6 +2025,9 @@ const it: Translations = {
     cardListinoAddDesc:
       'Sulla scheda Listino: pulsante Aggiungi per inserimento manuale (desktop).',
     cardListinoCta: 'Vai ai fornitori — scheda Listino',
+    manualImapSyncTitle: 'Sync email — finestra 24 ore',
+    manualImapSyncDesc:
+      'Cerca nella casella gli ultimi 24 ore di messaggi. Il cron automatico usa invece le ultime 3 ore per limitare il carico.',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
   },
@@ -3508,6 +3514,9 @@ const en: Translations = {
     cardListinoAddTitle: 'Add product to price list',
     cardListinoAddDesc: 'On the Price list tab: Add button for manual entry (desktop).',
     cardListinoCta: 'Go to suppliers — Price list tab',
+    manualImapSyncTitle: 'Email sync — 24 h window',
+    manualImapSyncDesc:
+      'Searches the inbox for roughly the last 24 hours of messages. The scheduled cron uses a 3-hour window instead.',
     hintContextualShortcuts:
       'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
   },
@@ -4210,6 +4219,9 @@ const es: Translations = {
     cardListinoAddTitle: 'Añadir producto al listín',
     cardListinoAddDesc: 'En la pestaña Listín: botón Añadir para alta manual (escritorio).',
     cardListinoCta: 'Ir a proveedores — pestaña Listín',
+    manualImapSyncTitle: 'Sincronizar email — ventana 24 h',
+    manualImapSyncDesc:
+      'Busca en la bandeja de entrada los últimos 24 horas. El cron automático usa solo 3 horas para aligerar la carga.',
     hintContextualShortcuts:
       'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
   },
@@ -4907,6 +4919,9 @@ const fr: Translations = {
     cardListinoAddTitle: 'Ajouter un produit au tarif',
     cardListinoAddDesc: 'Onglet Tarifs : bouton Ajouter pour saisie manuelle (bureau).',
     cardListinoCta: 'Aller aux fournisseurs — onglet Tarifs',
+    manualImapSyncTitle: 'Sync e-mail — fenêtre 24 h',
+    manualImapSyncDesc:
+      'Recherche les messages des dernières ~24 heures. Le cron planifié n’indexe que 3 heures pour limiter la charge.',
     hintContextualShortcuts:
       'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
   },
@@ -5604,6 +5619,9 @@ const de: Translations = {
     cardListinoAddTitle: 'Produkt zur Preisliste hinzufügen',
     cardListinoAddDesc: 'Preislisten-Tab: Schaltfläche Hinzufügen für manuelle Eingabe (Desktop).',
     cardListinoCta: 'Zu Lieferanten — Preislisten-Tab',
+    manualImapSyncTitle: 'E-Mail-Sync — 24 h-Fenster',
+    manualImapSyncDesc:
+      'Durchsucht das Postfach nach den letzten ca. 24 Stunden. Der geplante Cron nutzt 3 Stunden, um die Last zu begrenzen.',
     hintContextualShortcuts:
       'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',
   },

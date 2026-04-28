@@ -223,6 +223,8 @@ function scanEmailMessageDate(
 
 type FetchImapEmailOpts = {
   lookbackDays?: number | null
+  /** Finestra più stretta dei giorni (cron / Forza sync). Priorità su `lookbackDays` se > 0. */
+  lookbackHours?: number | null
   /** Se impostato, ha priorità sul lookback; filtra per data messaggio (internal/envelope/parsed). */
   fiscalRange?: { start: Date; endExclusive: Date } | null
 }
@@ -236,9 +238,9 @@ async function fetchFromImap(
   opts: FetchImapEmailOpts,
   hooks?: FetchImapHooks
 ): Promise<ScannedEmail[]> {
-  const { lookbackDays, fiscalRange } = opts
+  const { lookbackDays, lookbackHours, fiscalRange } = opts
   mailDebugLog(
-    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'}`
+    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackHours != null && lookbackHours > 0 ? `${lookbackHours}h` : lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'}`
   )
 
   let searchCriteria: { since?: Date; before?: Date; all?: boolean }
@@ -249,9 +251,11 @@ async function fetchFromImap(
     }
   } else {
     const sinceDate =
-      lookbackDays && lookbackDays > 0
-        ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
-        : undefined
+      lookbackHours != null && lookbackHours > 0
+        ? new Date(Date.now() - lookbackHours * 60 * 60 * 1000)
+        : lookbackDays && lookbackDays > 0
+          ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+          : undefined
     searchCriteria = sinceDate ? { since: sinceDate } : { all: true }
   }
 
@@ -1586,9 +1590,11 @@ async function processStatementInBackground(
   mailDebugLog(`[STMT] ✅ Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)
 }
 
-/** Stessa coda della GET `/api/scan-emails` (cron `sync-emails`, test). */
-export async function runEmailSyncForAllSedi() {
-  return queueEmailScan(() => runEmailScanCore({}))
+/** Stessa coda della GET `/api/scan-emails` (cron `sync-emails`, test). Default `imapSyncMode`: `auto` (finestra 3h). */
+export async function runEmailSyncForAllSedi(opts?: { imapSyncMode?: ImapSyncMode }) {
+  return queueEmailScan(() =>
+    runEmailScanCore({ imapSyncMode: opts?.imapSyncMode ?? 'auto' }),
+  )
 }
 
 export async function GET(req: Request) {
@@ -1601,7 +1607,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await runEmailSyncForAllSedi()
+    const result = await runEmailSyncForAllSedi({ imapSyncMode: 'auto' })
     if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {
       return NextResponse.json({
         ricevuti: 0,
@@ -1649,6 +1655,8 @@ function classifyImapErrorForSede(
   return { avviso, classified }
 }
 
+export type ImapSyncMode = 'auto' | 'manual' | 'historical'
+
 type RunEmailScanParams = {
   userSedeId?: string
   filterSedeId?: string
@@ -1662,6 +1670,51 @@ type RunEmailScanParams = {
   /** Filtro tipologia documenti (fornitore mirato: ignorato, si usa sempre all). */
   documentKind?: EmailSyncDocumentKind
   emit?: (e: EmailScanStreamEvent) => void | Promise<void>
+  /**
+   * Finestra ricerca IMAP in scope lookback: `auto`=3h (cron), `manual`=24h (Forza sync),
+   * `historical`=override giorni / `imap_lookback_days` sede.
+   */
+  imapSyncMode?: ImapSyncMode
+}
+
+function resolveSedeImapLookbackWindow(p: {
+  imapSyncMode: ImapSyncMode | undefined
+  emailSyncScope: 'lookback' | 'fiscal_year'
+  sedeFiscalRange: { start: Date; endExclusive: Date } | null
+  lookbackDaysOverride: number | undefined
+  sedeImapLookbackDays: number | null | undefined
+}): { lookbackDays: number | null; lookbackHours: number | null } {
+  if (p.sedeFiscalRange) return { lookbackDays: null, lookbackHours: null }
+  if (p.emailSyncScope !== 'lookback') return { lookbackDays: null, lookbackHours: null }
+  const mode = p.imapSyncMode ?? 'historical'
+  if (mode === 'auto') return { lookbackDays: null, lookbackHours: 3 }
+  if (mode === 'manual') return { lookbackDays: null, lookbackHours: 24 }
+  const days =
+    p.lookbackDaysOverride !== undefined
+      ? p.lookbackDaysOverride
+      : p.sedeImapLookbackDays != null && p.sedeImapLookbackDays > 0
+        ? p.sedeImapLookbackDays
+        : null
+  return { lookbackDays: days, lookbackHours: null }
+}
+
+function resolveGlobalImapLookbackWindow(p: {
+  imapSyncMode: ImapSyncMode | undefined
+  emailSyncScope: 'lookback' | 'fiscal_year'
+  globalFiscalRange: { start: Date; endExclusive: Date } | null
+  lookbackDaysOverride: number | undefined
+}): { lookbackDays: number | null; lookbackHours: number | null } {
+  if (p.globalFiscalRange) return { lookbackDays: null, lookbackHours: null }
+  if (p.emailSyncScope !== 'lookback') return { lookbackDays: null, lookbackHours: null }
+  const mode = p.imapSyncMode ?? 'historical'
+  if (mode === 'auto') return { lookbackDays: null, lookbackHours: 3 }
+  if (mode === 'manual') return { lookbackDays: null, lookbackHours: 24 }
+  const days = p.lookbackDaysOverride !== undefined ? p.lookbackDaysOverride : null
+  return { lookbackDays: days, lookbackHours: null }
+}
+
+function parseImapSyncMode(raw: unknown): ImapSyncMode | undefined {
+  return raw === 'auto' || raw === 'manual' || raw === 'historical' ? raw : undefined
 }
 
 type EmailScanCoreResult = {
@@ -1904,17 +1957,21 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
                 fiscalYearParam ?? defaultFiscalYearLabel(sedeCc, new Date())
               )
             : null
+        const sedeLb = resolveSedeImapLookbackWindow({
+          imapSyncMode: params.imapSyncMode,
+          emailSyncScope,
+          sedeFiscalRange,
+          lookbackDaysOverride: lookbackOverride,
+          sedeImapLookbackDays: sede.imap_lookback_days,
+        })
         const emails = await fetchFromImap(
           sede.imap_host,
           sede.imap_port ?? 993,
           sede.imap_user,
           sede.imap_password,
           {
-            lookbackDays: sedeFiscalRange
-              ? null
-              : lookbackOverride !== undefined
-                ? lookbackOverride
-                : sede.imap_lookback_days,
+            lookbackDays: sedeFiscalRange ? null : sedeLb.lookbackDays,
+            lookbackHours: sedeFiscalRange ? null : sedeLb.lookbackHours,
             fiscalRange: sedeFiscalRange,
           },
           {
@@ -2108,11 +2165,13 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           })
         },
       }
-      const globalLookbackDays =
-        !globalFiscalRange && emailSyncScope === 'lookback' && lookbackOverride !== undefined
-          ? lookbackOverride
-          : null
-      const emails = await fetchUnseenEmails(globalHooks, globalFiscalRange, globalLookbackDays)
+      const gLb = resolveGlobalImapLookbackWindow({
+        imapSyncMode: params.imapSyncMode,
+        emailSyncScope,
+        globalFiscalRange,
+        lookbackDaysOverride: lookbackOverride,
+      })
+      const emails = await fetchUnseenEmails(globalHooks, globalFiscalRange, gLb.lookbackDays, gLb.lookbackHours)
       const filtered = supplierScope
         ? emails.filter((e) => emailMatchesSupplierScope(e.from, supplierScope!))
         : emails
@@ -2304,6 +2363,8 @@ export async function POST(req: Request) {
   let fiscalYear: number | undefined
   let lookbackDaysOverride: number | undefined
   let documentKind: EmailSyncDocumentKind = 'all'
+  /** Default POST: `historical` (giorni sede / override). */
+  let imapSyncMode: ImapSyncMode = 'historical'
   try {
     const body = await req.json() as {
       user_sede_id?: string
@@ -2314,6 +2375,7 @@ export async function POST(req: Request) {
       fiscal_year?: number
       email_sync_lookback_days?: number
       email_sync_document_kind?: string
+      mode?: unknown
     }
     userSedeId = body?.user_sede_id ?? undefined
     filterSedeId = body?.filter_sede_id ?? undefined
@@ -2326,6 +2388,8 @@ export async function POST(req: Request) {
       if (n >= 1 && n <= 365) lookbackDaysOverride = n
     }
     documentKind = parseEmailSyncDocumentKind(body?.email_sync_document_kind)
+    const parsedMode = parseImapSyncMode(body?.mode)
+    if (parsedMode) imapSyncMode = parsedMode
   } catch { /* no body */ }
 
   if (wantStream) {
@@ -2348,6 +2412,7 @@ export async function POST(req: Request) {
             fiscalYear,
             lookbackDaysOverride,
             documentKind,
+            imapSyncMode,
             emit: write,
           })
           await write({
@@ -2398,6 +2463,7 @@ export async function POST(req: Request) {
         fiscalYear,
         lookbackDaysOverride,
         documentKind,
+        imapSyncMode,
       })
     )
     if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {

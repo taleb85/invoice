@@ -251,6 +251,7 @@ function WorkspaceEmailStrumentiMenu() {
       const scopeFields = emailSyncApiBodyFields(readEmailSyncScopePrefs())
       const payload = {
         ...scopeFields,
+        mode: 'manual' as const,
         ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
       }
       if (emailSync) {

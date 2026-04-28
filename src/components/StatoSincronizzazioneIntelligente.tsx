@@ -135,6 +135,7 @@ export default function StatoSincronizzazioneIntelligente({
         fornitore_id: fornitoreId,
         email_sync_scope: 'lookback',
         email_sync_lookback_days: lookbackDays,
+        mode: 'historical',
         stream: true,
       }
       if (sedeId) { payload.user_sede_id = sedeId; payload.filter_sede_id = sedeId }

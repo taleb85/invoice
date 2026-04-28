@@ -9,6 +9,6 @@ export async function GET(request: NextRequest) {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  const result = await runEmailSyncForAllSedi()
+  const result = await runEmailSyncForAllSedi({ imapSyncMode: 'auto' })
   return Response.json({ success: true, ...result })
 }

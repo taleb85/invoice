@@ -94,10 +94,12 @@ export function emailSyncApiBodyFields(prefs: EmailSyncScopePrefs): {
   fiscal_year?: number
   email_sync_lookback_days?: number
   email_sync_document_kind?: EmailSyncDocumentKind
+  /** Allinea alla finestra giorni sede / override (sync «storica» da UI). */
+  mode: 'historical'
 } {
   const base = emailSyncScopeBodyFields(prefs)
   if (prefs.documentKind && prefs.documentKind !== 'all') {
-    return { ...base, email_sync_document_kind: prefs.documentKind }
+    return { ...base, email_sync_document_kind: prefs.documentKind, mode: 'historical' }
   }
-  return base
+  return { ...base, mode: 'historical' }
 }

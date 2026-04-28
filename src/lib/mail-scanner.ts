@@ -80,8 +80,10 @@ export type FetchUnseenImapHooks = {
 export async function fetchUnseenEmails(
   hooks?: FetchUnseenImapHooks,
   fiscalRange?: { start: Date; endExclusive: Date } | null,
-  /** Solo senza fiscalRange: limita la ricerca IMAP `SINCE` (lette e non lette). */
-  lookbackDays?: number | null
+  /** Solo senza fiscalRange: limita la ricerca IMAP `SINCE` (lette e non lette). Ha priorità se entrambi valorizzati. */
+  lookbackDays?: number | null,
+  /** Alternativa ai giorni: finestra più stretta per sync cron (es. ultime 3 ore). */
+  lookbackHours?: number | null
 ): Promise<ScannedEmail[]> {
   if (!process.env.IMAP_HOST || !process.env.IMAP_USER) {
     throw new Error('Variabili IMAP_HOST e IMAP_USER non configurate.')
@@ -96,9 +98,11 @@ export async function fetchUnseenEmails(
     try {
       await hooks?.afterInboxOpen?.()
       const sinceLookback =
-        !fiscalRange && lookbackDays && lookbackDays > 0
-          ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
-          : undefined
+        !fiscalRange && lookbackHours != null && lookbackHours > 0
+          ? new Date(Date.now() - lookbackHours * 60 * 60 * 1000)
+          : !fiscalRange && lookbackDays && lookbackDays > 0
+            ? new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000)
+            : undefined
       const searchResult = await client.search(
         fiscalRange
           ? { since: fiscalRange.start, before: fiscalRange.endExclusive }
