@@ -32,6 +32,7 @@ export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?:
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
+        rowAlign="start"
         accent="cyan"
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
       >

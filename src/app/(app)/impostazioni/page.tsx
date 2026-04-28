@@ -322,6 +322,7 @@ export default function ImpostazioniPage() {
       {/* ══ MOBILE layout (Help /guida: solo qui, non in MobileTopbar) ══ */}
       <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-4 text-app-fg md:hidden">
         <AppPageHeaderStrip
+          rowAlign="start"
           dense
           flushBottom
           accent="slate"

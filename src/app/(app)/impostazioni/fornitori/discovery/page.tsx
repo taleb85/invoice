@@ -289,6 +289,7 @@ export function DiscoveryContent({
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip
+        rowAlign="start"
         accent="slate"
         leadingAccessory={
           backNav ? <BackButton href={backNav.href} label={backNav.label} iconOnly className="mb-0 shrink-0" /> : undefined

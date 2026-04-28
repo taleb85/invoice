@@ -140,6 +140,7 @@ export default async function LogPage() {
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
+        rowAlign="start"
         accent="sky"
         mergedSummary={{
           label: t.log.totalLogs,

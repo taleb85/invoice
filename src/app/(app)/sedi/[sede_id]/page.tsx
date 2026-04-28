@@ -87,6 +87,7 @@ export default async function SedeProfilePage(props: {
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <AppPageHeaderStrip
+        rowAlign="start"
         dense
         accent="teal"
         leadingAccessory={

@@ -109,6 +109,7 @@ export default async function ArchivioPage() {
   return (
     <div className="app-shell-page-padding">
       <AppPageHeaderStrip
+        rowAlign="start"
         accent="amber"
         mergedSummary={{
           label: t.common.total,

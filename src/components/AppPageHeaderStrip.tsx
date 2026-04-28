@@ -12,17 +12,15 @@ import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS } from '@/lib/app-shell-layout'
 
 /** Riga interna: titolo a sinistra; azioni a destra; padding e gap generosi così la barra non risulta “stretta”. */
-const innerCls =
-  'flex w-full min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-nowrap sm:items-center sm:gap-x-6 sm:px-5 sm:py-3.5 md:gap-x-8 md:px-6 md:py-4 lg:gap-x-10 lg:px-8 xl:px-10'
+const innerClsBase =
+  'flex w-full min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-nowrap sm:gap-x-6 sm:px-5 sm:py-3.5 md:gap-x-8 md:px-6 md:py-4 lg:gap-x-10 lg:px-8 xl:px-10'
 
-const innerClsDense =
-  `flex w-full min-w-0 flex-col gap-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:flex-row sm:flex-nowrap sm:items-center sm:gap-x-3 md:items-center`
+const innerClsDenseBase =
+  `flex w-full min-w-0 flex-col gap-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:flex-row sm:flex-nowrap sm:gap-x-3`
 
-const innerRightCls =
-  'flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-3 sm:gap-x-4 md:gap-5'
+const innerRightClsBase = 'flex min-w-0 shrink-0 flex-nowrap justify-end gap-3 sm:gap-x-4 md:gap-5'
 
-const innerRightClsDense =
-  'flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
+const innerRightClsDenseBase = 'flex min-w-0 shrink-0 flex-wrap justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` (vetro, ring cyan, ombre neon) + barra (`.app-card-bar-accent` se tema).
@@ -47,6 +45,11 @@ export default function AppPageHeaderStrip({
   leadingAccessory,
   /** Slot libero per contenuto arbitrario nella sezione merged (alternativo a `mergedSummary`). */
   mergedSlot,
+  /**
+   * Allineamento verticale sulla riga header (principalmente sm+ quando titolo+sottotitolo affiancati al Fiscal Year / tray).
+   * `start` allinea cuffie, icona strip e primo rigo titolo sulla stessa base (evita “centro” sulla colonna a due righe).
+   */
+  rowAlign = 'center',
 }: {
   children: ReactNode
   embedded?: boolean
@@ -60,6 +63,7 @@ export default function AppPageHeaderStrip({
   icon?: ReactNode
   leadingAccessory?: ReactNode
   mergedSlot?: ReactNode
+  rowAlign?: 'center' | 'start'
 }) {
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
@@ -77,21 +81,31 @@ export default function AppPageHeaderStrip({
   const showMerged = accent != null && mergedSummary != null
   const showMergedSlot = mergedSlot != null
 
+  const alignStart = rowAlign === 'start'
+  const innerRowCls = `${dense ? innerClsDenseBase : innerClsBase} ${
+    alignStart ? 'sm:items-start' : 'sm:items-center'
+  } ${dense && alignStart ? 'md:items-start' : dense ? 'md:items-center' : ''}`
+  const leftClusterCls = `flex min-w-0 min-h-0 flex-1 gap-3 lg:gap-4 ${alignStart ? 'items-start' : 'items-center'}`
+  const titleCls = `min-w-0 flex-1 ${alignStart ? 'self-start' : 'self-center'}`
+  const rightCls = `${dense ? innerRightClsDenseBase : innerRightClsBase} ${
+    alignStart ? 'items-start pt-0.5' : 'items-center'
+  }`
+
   const headerRow = (
-    <div className={dense ? innerClsDense : innerCls}>
-      <div className="flex min-w-0 min-h-0 flex-1 items-center gap-3 lg:gap-4">
+    <div className={innerRowCls.trim()}>
+      <div className={leftClusterCls}>
         {leadingAccessory}
         {icon && (
           <span
-            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center opacity-90 ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
+            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center opacity-90 ${alignStart ? 'mt-px' : ''} ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
             aria-hidden
           >
             {icon}
           </span>
         )}
-        <div className="min-w-0 flex-1 self-center">{first}</div>
+        <div className={titleCls}>{first}</div>
       </div>
-      <div className={dense ? innerRightClsDense : innerRightCls}>
+      <div className={rightCls}>
         {rest}
         <AppPageHeaderDesktopTray />
       </div>

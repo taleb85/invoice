@@ -39,6 +39,7 @@ export default function ConsumiAiPage() {
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
+        rowAlign="start"
         accent="teal"
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         icon={
