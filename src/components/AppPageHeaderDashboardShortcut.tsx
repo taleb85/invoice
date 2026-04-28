@@ -6,8 +6,8 @@ import type { ReactNode } from 'react'
 export function AppPageHeaderTitleWithDashboardShortcut({
   children,
   className = 'min-w-0 items-start gap-3 sm:flex-1 sm:flex-initial',
-  /** Gap verticale tra titolo e sottotitolo (default generoso). */
-  contentClassName = 'flex min-w-0 flex-1 flex-col gap-1 sm:gap-1.5',
+  /** Gap verticale tra titolo e sottotitolo. */
+  contentClassName = 'flex min-w-0 flex-1 flex-col gap-0.5 sm:gap-1',
 }: {
   children: ReactNode
   /** Classi del contenitore flex esterno (allineamento / flex nelle strip). */
