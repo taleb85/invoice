@@ -1,8 +1,12 @@
 import "@supabase/functions-js/edge-runtime.d.ts"
 
+/** Default pubblico dell’app (override con secret NEXT_PUBLIC_SITE_URL se serve). */
+const DEFAULT_SITE_URL = "https://smart-pair-psi-six.vercel.app"
+
 /**
- * Cron orario hostato da Supabase: invoca GET /api/cron/sync-emails sulla Vercel app.
- * Segreti progetto Supabase (Edge Function): NEXT_PUBLIC_SITE_URL, CRON_SECRET.
+ * Cron orario hostato da Supabase: GET /api/cron/sync-emails sulla Vercel app.
+ * Secrets progetto Supabase: CRON_SECRET (uguale a Vercel),
+ * NEXT_PUBLIC_SITE_URL opzionale (fallback sopra).
  */
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -18,24 +22,26 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  const siteUrl = Deno.env.get("NEXT_PUBLIC_SITE_URL")
-  const cronSecret = Deno.env.get("CRON_SECRET")
+  const cronSecret = Deno.env.get("CRON_SECRET")?.trim()
+  const rawSite =
+    Deno.env.get("NEXT_PUBLIC_SITE_URL")?.trim() || DEFAULT_SITE_URL
+  const siteUrl = rawSite.replace(/\/+$/, "")
 
-  if (!siteUrl?.trim() || !cronSecret) {
+  if (!cronSecret) {
     return new Response(
       JSON.stringify({
-        error: "Missing NEXT_PUBLIC_SITE_URL or CRON_SECRET in Edge Function secrets",
+        error: "Missing CRON_SECRET in Edge Function secrets (must match Vercel CRON_SECRET)",
       }),
       { status: 500, headers: { "Content-Type": "application/json" } },
     )
   }
 
-  const base = siteUrl.replace(/\/+$/, "")
-  const target = `${base}/api/cron/sync-emails`
-
-  const res = await fetch(target, {
+  const res = await fetch(`${siteUrl}/api/cron/sync-emails`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${cronSecret}` },
+    headers: {
+      Authorization: `Bearer ${cronSecret}`,
+      "Content-Type": "application/json",
+    },
   })
 
   const text = await res.text()
