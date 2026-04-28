@@ -273,21 +273,6 @@
   }
 
   /**
-   * FY in header: i `<select>` nativi ignorano spesso `min-h` da utility; compattiamo l’altezza in modo affidabile.
-   */
-  /** Compatto: deve vincere su `select { min-height }` desktop (non in @layer utilities). Usa anche `min-height` fisico. */
-  select.app-fiscal-year-header-select {
-    min-height: 1.75rem;
-    max-height: 2rem;
-    min-block-size: 1.75rem;
-    max-block-size: 2rem;
-    padding-block: 0.125rem;
-    line-height: 1.15;
-    font-size: 0.75rem;
-    box-sizing: border-box;
-  }
-
-  /**
    * Solo orizzontale: stesso allineamento tra header interni (es. scheda fornitore) e corpo pagina.
    */
   /**
@@ -1017,4 +1002,19 @@ body,
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/*
+ * Select FY nell’header: FUORI dai @layer perché altrimenti qualsiasi utility `min-h-*` sullo stesso elemento
+ * (es. `min-h-0`) vince sul layer `components`. Serve anche `!important` per battere utility e regole globali `select`.
+ */
+select.app-fiscal-year-header-select {
+  box-sizing: border-box !important;
+  min-height: 1.625rem !important;
+  max-height: 1.875rem !important;
+  height: auto !important;
+  padding-top: 0.125rem !important;
+  padding-bottom: 0.125rem !important;
+  font-size: 0.75rem !important;
+  line-height: 1.1 !important;
 }
