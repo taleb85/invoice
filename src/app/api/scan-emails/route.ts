@@ -45,6 +45,13 @@ import {
   senderMatchesEmailScanBlacklist,
 } from '@/lib/email-scan-blacklist'
 import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
+import {
+  computeNextHistoricalChunk,
+  historicalProgressLabel,
+  inclusiveEndDateFromSliceEndExclusive,
+  rollingLookbackSince,
+  utcTomorrowStartUtc,
+} from '@/lib/historical-email-chunk'
 
 /**
  * Limite durata funzione serverless su Vercel (secondi). Piano Hobby: massimo **300**.
@@ -227,6 +234,8 @@ type FetchImapEmailOpts = {
   lookbackHours?: number | null
   /** Se impostato, ha priorità sul lookback; filtra per data messaggio (internal/envelope/parsed). */
   fiscalRange?: { start: Date; endExclusive: Date } | null
+  /** Sync storica a chunk mensile: ricerca IMAP `since`/`before` (priorità su lookback fiscal). */
+  narrowDateRange?: { start: Date; endExclusive: Date } | null
 }
 
 /** Scansiona una casella IMAP e restituisce le email nella finestra scelta (lette e non lette, allegati e/o corpo testuale). */
@@ -238,13 +247,18 @@ async function fetchFromImap(
   opts: FetchImapEmailOpts,
   hooks?: FetchImapHooks
 ): Promise<ScannedEmail[]> {
-  const { lookbackDays, lookbackHours, fiscalRange } = opts
+  const { lookbackDays, lookbackHours, fiscalRange, narrowDateRange } = opts
   mailDebugLog(
-    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackHours != null && lookbackHours > 0 ? `${lookbackHours}h` : lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'}`
+    `[IMAP] Tentativo di connessione: host=${host} porta=${port} utente=${user} lookback=${lookbackHours != null && lookbackHours > 0 ? `${lookbackHours}h` : lookbackDays ?? 'illimitato'}gg fiscal=${fiscalRange ? 'sì' : 'no'} narrow=${narrowDateRange ? 'sì' : 'no'}`
   )
 
   let searchCriteria: { since?: Date; before?: Date; all?: boolean }
-  if (fiscalRange) {
+  if (narrowDateRange) {
+    searchCriteria = {
+      since: narrowDateRange.start,
+      before: narrowDateRange.endExclusive,
+    }
+  } else if (fiscalRange) {
     searchCriteria = {
       since: fiscalRange.start,
       before: fiscalRange.endExclusive,
@@ -290,7 +304,11 @@ async function fetchFromImap(
           msg.envelope?.date,
           parsed.date ?? undefined
         )
-        if (fiscalRange) {
+        if (narrowDateRange) {
+          if (!msgDate || msgDate < narrowDateRange.start || msgDate >= narrowDateRange.endExclusive) {
+            continue
+          }
+        } else if (fiscalRange) {
           if (!msgDate || msgDate < fiscalRange.start || msgDate >= fiscalRange.endExclusive) {
             continue
           }
@@ -1675,6 +1693,12 @@ type RunEmailScanParams = {
    * `historical`=override giorni / `imap_lookback_days` sede.
    */
   imapSyncMode?: ImapSyncMode
+  /** Un solo mese (o frazione) per una sede — sync storica a chunk (evita timeout Vercel). */
+  historicalNarrowChunk?: {
+    sedeId: string
+    rangeStartInclusive: Date
+    rangeEndExclusive: Date
+  }
 }
 
 function resolveSedeImapLookbackWindow(p: {
@@ -1826,12 +1850,16 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
 
   let sediQuery = supabase
     .from('sedi')
-    .select('id, nome, imap_host, imap_port, imap_user, imap_password, imap_lookback_days, country_code')
+    .select(
+      'id, nome, imap_host, imap_port, imap_user, imap_password, imap_lookback_days, country_code, imap_sync_checkpoint',
+    )
     .not('imap_host', 'is', null)
     .not('imap_user', 'is', null)
     .not('imap_password', 'is', null)
 
-  if (filterSedeId) {
+  if (params.historicalNarrowChunk?.sedeId) {
+    sediQuery = sediQuery.eq('id', params.historicalNarrowChunk.sedeId) as typeof sediQuery
+  } else if (filterSedeId) {
     sediQuery = sediQuery.eq('id', filterSedeId) as typeof sediQuery
     mailDebugLog(`[SCAN] filter_sede_id=${filterSedeId}`)
   }
@@ -1869,7 +1897,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     console.warn('[CLEANUP] retroactiveCleanupDaRevisionare', e)
   }
 
-  const skipGlobalImap = !!params.fornitoreId || !!filterSedeId
+  const skipGlobalImap = !!params.fornitoreId || !!filterSedeId || !!params.historicalNarrowChunk
 
   let globalFiscalRange: { start: Date; endExclusive: Date } | null = null
   if (emailSyncScope === 'fiscal_year' && !skipGlobalImap && hasGlobalImap) {
@@ -1964,16 +1992,27 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           lookbackDaysOverride: lookbackOverride,
           sedeImapLookbackDays: sede.imap_lookback_days,
         })
+        const hn = params.historicalNarrowChunk
         const emails = await fetchFromImap(
           sede.imap_host,
           sede.imap_port ?? 993,
           sede.imap_user,
           sede.imap_password,
-          {
-            lookbackDays: sedeFiscalRange ? null : sedeLb.lookbackDays,
-            lookbackHours: sedeFiscalRange ? null : sedeLb.lookbackHours,
-            fiscalRange: sedeFiscalRange,
-          },
+          hn?.sedeId === sede.id && hn
+            ? {
+                lookbackDays: null,
+                lookbackHours: null,
+                fiscalRange: null,
+                narrowDateRange: {
+                  start: hn.rangeStartInclusive,
+                  endExclusive: hn.rangeEndExclusive,
+                },
+              }
+            : {
+                lookbackDays: sedeFiscalRange ? null : sedeLb.lookbackDays,
+                lookbackHours: sedeFiscalRange ? null : sedeLb.lookbackHours,
+                fiscalRange: sedeFiscalRange,
+              },
           {
             ...imapStreamRetryHooks,
             beforeConnect: async () => {
@@ -2099,6 +2138,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           recordImapSuccess(supabase, sede.id),
         ])
       } catch (err) {
+        if (params.historicalNarrowChunk?.sedeId === sede.id) throw err
         const { avviso, classified } = classifyImapErrorForSede(err, sede.nome)
         console.error(`[SEDE] ❌ Errore sede "${sede.nome}" [${classified.kind}]:`, err)
         avvisi.push(avviso)
@@ -2354,6 +2394,159 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   }
 }
 
+function resolveHistoricalLookbackDaysForSede(
+  lookbackOverride: number | undefined,
+  sedeImapLookbackDays: number | null | undefined,
+): number {
+  if (lookbackOverride !== undefined) return lookbackOverride
+  if (sedeImapLookbackDays != null && sedeImapLookbackDays > 0) return sedeImapLookbackDays
+  return 365
+}
+
+type HistoricalIncrementalResult = {
+  done: boolean
+  checkpoint?: string
+  processed?: number
+  ricevuti: number
+  ignorate: number
+  bozzeCreate?: number
+  messaggio?: string
+  progressLabel?: string
+  sede_id?: string
+  sede_nome?: string | null
+  skippedAlreadyCompleted?: number
+  preFiltered?: number
+  blacklistSkipped?: number
+  mailsFound?: number
+  mailsProcessed?: number
+  attachmentsTotal?: number
+  attachmentsProcessed?: number
+  avvisi?: string[]
+}
+
+async function runHistoricalIncrementalScan(params: {
+  userSedeId?: string
+  filterSedeId?: string
+  lookbackDaysOverride?: number
+  documentKind: EmailSyncDocumentKind
+  /** es. Accept-Language / navigator.language per etichetta periodo nei JSON */
+  progressLocale?: string
+}): Promise<HistoricalIncrementalResult> {
+  const supabase = createServiceClient()
+
+  let q = supabase
+    .from('sedi')
+    .select('id, nome, imap_sync_checkpoint, imap_lookback_days, imap_host, imap_user, imap_password')
+    .not('imap_host', 'is', null)
+    .not('imap_user', 'is', null)
+    .not('imap_password', 'is', null)
+    .order('id')
+
+  if (params.filterSedeId) q = q.eq('id', params.filterSedeId) as typeof q
+  else if (params.userSedeId) q = q.eq('id', params.userSedeId) as typeof q
+
+  const { data: sediRows, error } = await q
+  if (error) throw new Error(error.message)
+  if (!sediRows?.length) {
+    return { done: true, ricevuti: 0, ignorate: 0, messaggio: 'Nessuna sede con IMAP configurato.' }
+  }
+
+  type SedeRow = {
+    id: string
+    nome: string | null
+    imap_sync_checkpoint?: string | null
+    imap_lookback_days?: number | null
+  }
+
+  const overallEndExclusive = utcTomorrowStartUtc()
+  const lbOverride = params.lookbackDaysOverride
+
+  for (const raw of sediRows) {
+    const sede = raw as SedeRow
+    const lookbackDays = resolveHistoricalLookbackDaysForSede(lbOverride, sede.imap_lookback_days)
+    const rollingStart = rollingLookbackSince(lookbackDays)
+    const cpRaw = sede.imap_sync_checkpoint
+    const cp =
+      typeof cpRaw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(cpRaw)
+        ? cpRaw
+        : typeof cpRaw === 'string' && cpRaw.length >= 10
+          ? cpRaw.slice(0, 10)
+          : null
+
+    const chunk = computeNextHistoricalChunk(cp, rollingStart, overallEndExclusive)
+    if (!chunk) continue
+
+    const result = await runEmailScanCore({
+      userSedeId: params.userSedeId,
+      filterSedeId: sede.id,
+      emailSyncScope: 'lookback',
+      lookbackDaysOverride: lbOverride,
+      documentKind: params.documentKind,
+      imapSyncMode: 'historical',
+      historicalNarrowChunk: {
+        sedeId: sede.id,
+        rangeStartInclusive: chunk.sliceStartInclusive,
+        rangeEndExclusive: chunk.sliceEndExclusive,
+      },
+    })
+
+    const checkpointIso = inclusiveEndDateFromSliceEndExclusive(chunk.sliceEndExclusive)
+    const { error: upErr } = await supabase
+      .from('sedi')
+      .update({ imap_sync_checkpoint: checkpointIso })
+      .eq('id', sede.id)
+    if (upErr) console.error('[historical] checkpoint update:', upErr.message)
+
+    const processed = result.ricevuti + result.ignorate
+    const progressLabel = historicalProgressLabel(
+      chunk.sliceStartInclusive,
+      params.progressLocale ?? 'it-IT',
+    )
+
+    const stillPending = sediRows.some((row) => {
+      const r = row as SedeRow
+      const effectiveCp =
+        r.id === sede.id
+          ? checkpointIso
+          : typeof r.imap_sync_checkpoint === 'string' && r.imap_sync_checkpoint.length >= 10
+            ? r.imap_sync_checkpoint.slice(0, 10)
+            : typeof r.imap_sync_checkpoint === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.imap_sync_checkpoint)
+              ? r.imap_sync_checkpoint
+              : null
+      const lb = resolveHistoricalLookbackDaysForSede(lbOverride, r.imap_lookback_days)
+      const rs = rollingLookbackSince(lb)
+      const normalizedCp =
+        effectiveCp && /^\d{4}-\d{2}-\d{2}$/.test(effectiveCp) ? effectiveCp : null
+      return computeNextHistoricalChunk(normalizedCp, rs, overallEndExclusive) !== null
+    })
+
+    const doneFlag = !stillPending
+
+    return {
+      done: doneFlag,
+      checkpoint: checkpointIso,
+      processed,
+      progressLabel,
+      sede_id: sede.id,
+      sede_nome: sede.nome ?? null,
+      ricevuti: result.ricevuti,
+      ignorate: result.ignorate,
+      bozzeCreate: result.bozzeCreate,
+      messaggio: doneFlag ? result.messaggio : undefined,
+      ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
+      skippedAlreadyCompleted: result.skippedAlreadyCompleted,
+      preFiltered: result.preFiltered,
+      blacklistSkipped: result.blacklistSkipped,
+      mailsFound: result.mailsFound,
+      mailsProcessed: result.mailsProcessed,
+      attachmentsTotal: result.attachmentsTotal,
+      attachmentsProcessed: result.attachmentsProcessed,
+    }
+  }
+
+  return { done: true, ricevuti: 0, ignorate: 0, messaggio: 'Cronologia già elaborata.' }
+}
+
 export async function POST(req: Request) {
   let userSedeId: string | undefined
   let filterSedeId: string | undefined
@@ -2362,6 +2555,7 @@ export async function POST(req: Request) {
   let emailSyncScope: 'lookback' | 'fiscal_year' | undefined
   let fiscalYear: number | undefined
   let lookbackDaysOverride: number | undefined
+  let clientLocale: string | undefined
   let documentKind: EmailSyncDocumentKind = 'all'
   /** Default POST: `historical` (giorni sede / override). */
   let imapSyncMode: ImapSyncMode = 'historical'
@@ -2375,6 +2569,7 @@ export async function POST(req: Request) {
       fiscal_year?: number
       email_sync_lookback_days?: number
       email_sync_document_kind?: string
+      client_locale?: string
       mode?: unknown
     }
     userSedeId = body?.user_sede_id ?? undefined
@@ -2390,6 +2585,9 @@ export async function POST(req: Request) {
     documentKind = parseEmailSyncDocumentKind(body?.email_sync_document_kind)
     const parsedMode = parseImapSyncMode(body?.mode)
     if (parsedMode) imapSyncMode = parsedMode
+    if (typeof body?.client_locale === 'string' && body.client_locale.trim().length > 0) {
+      clientLocale = body.client_locale.trim().slice(0, 32)
+    }
   } catch { /* no body */ }
 
   if (wantStream) {
@@ -2454,6 +2652,25 @@ export async function POST(req: Request) {
   }
 
   try {
+    const scopeEffective = emailSyncScope ?? 'lookback'
+    if (
+      !wantStream &&
+      imapSyncMode === 'historical' &&
+      !fornitoreId &&
+      scopeEffective === 'lookback'
+    ) {
+      const inc = await queueEmailScan(() =>
+        runHistoricalIncrementalScan({
+          userSedeId,
+          filterSedeId,
+          lookbackDaysOverride,
+          documentKind,
+          progressLocale: clientLocale ?? 'it-IT',
+        }),
+      )
+      return NextResponse.json(inc)
+    }
+
     const result = await queueEmailScan(() =>
       runEmailScanCore({
         userSedeId,
@@ -2464,7 +2681,7 @@ export async function POST(req: Request) {
         lookbackDaysOverride,
         documentKind,
         imapSyncMode,
-      })
+      }),
     )
     if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {
       return NextResponse.json({

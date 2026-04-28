@@ -1126,6 +1126,9 @@ type Translations = {
     historicSyncCta: string
     /** Segnaposto `{n}` = documenti ricevuti dall’API scan-emails */
     historicSyncResult: string
+    /** Segnaposto `{label}` = mese/anno UTC del batch storico corrente */
+    historicSyncProgress: string
+    historicSyncCompleted: string
     hintContextualShortcuts: string
   }
   log: {
@@ -2044,6 +2047,8 @@ const it: Translations = {
       '⚠️ Operazione lenta — può richiedere diversi minuti. Esegui solo una volta.',
     historicSyncCta: 'Avvia sync storica',
     historicSyncResult: '{n} documenti importati dall’anno precedente',
+    historicSyncProgress: 'Elaborazione: {label}…',
+    historicSyncCompleted: 'Completato!',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
   },
@@ -3540,6 +3545,8 @@ const en: Translations = {
     historicSyncWarning: '⚠️ Slow operation — may take several minutes. Run only once.',
     historicSyncCta: 'Start historic sync',
     historicSyncResult: '{n} documents imported from the previous year',
+    historicSyncProgress: 'Processing: {label}…',
+    historicSyncCompleted: 'Completed!',
     hintContextualShortcuts:
       'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
   },
@@ -4252,6 +4259,8 @@ const es: Translations = {
     historicSyncWarning: '⚠️ Operación lenta — puede tardar varios minutos. Ejecútala solo una vez.',
     historicSyncCta: 'Iniciar sync histórica',
     historicSyncResult: '{n} documentos importados del año anterior',
+    historicSyncProgress: 'Procesando: {label}…',
+    historicSyncCompleted: '¡Listo!',
     hintContextualShortcuts:
       'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
   },
@@ -4959,6 +4968,8 @@ const fr: Translations = {
     historicSyncWarning: '⚠️ Opération lente — peut prendre plusieurs minutes. À lancer une seule fois.',
     historicSyncCta: 'Démarrer la sync historique',
     historicSyncResult: '{n} documents importés pour l’année précédente',
+    historicSyncProgress: 'Traitement : {label}…',
+    historicSyncCompleted: 'Terminé !',
     hintContextualShortcuts:
       'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
   },
@@ -5666,6 +5677,8 @@ const de: Translations = {
     historicSyncWarning: '⚠️ Langsame Aktion — kann mehrere Minuten dauern. Nur einmal ausführen.',
     historicSyncCta: 'Historischen Sync starten',
     historicSyncResult: '{n} Dokumente aus dem Vorjahr importiert',
+    historicSyncProgress: 'Verarbeitung: {label}…',
+    historicSyncCompleted: 'Fertig!',
     hintContextualShortcuts:
       'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',
   },

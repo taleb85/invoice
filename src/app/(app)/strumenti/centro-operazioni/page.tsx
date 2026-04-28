@@ -148,6 +148,7 @@ export default function CentroOperazioniPage() {
   const [historicSyncLoading, setHistoricSyncLoading] = useState(false)
   const [historicSyncError, setHistoricSyncError] = useState<string | null>(null)
   const [historicSyncResult, setHistoricSyncResult] = useState<string | null>(null)
+  const [historicProgressLine, setHistoricProgressLine] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoadError(null)
@@ -225,28 +226,57 @@ export default function CentroOperazioniPage() {
     setHistoricSyncLoading(true)
     setHistoricSyncError(null)
     setHistoricSyncResult(null)
+    setHistoricProgressLine(null)
+    let cumulativeRicevuti = 0
     try {
-      const res = await fetch('/api/scan-emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'historical',
-          ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
-        }),
-      })
-      const j = (await res.json().catch(() => ({}))) as { error?: string; ricevuti?: number }
-      if (!res.ok) {
-        setHistoricSyncError(j.error ?? `HTTP ${res.status}`)
-        return
+      for (;;) {
+        const res = await fetch('/api/scan-emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'historical',
+            client_locale:
+              typeof navigator !== 'undefined' && typeof navigator.language === 'string'
+                ? navigator.language
+                : undefined,
+            ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
+          }),
+        })
+        const j = (await res.json().catch(() => ({}))) as {
+          error?: string
+          done?: boolean
+          ricevuti?: number
+          progressLabel?: string
+        }
+        if (!res.ok) {
+          setHistoricSyncError(j.error ?? `HTTP ${res.status}`)
+          return
+        }
+        if (typeof j.done !== 'boolean') {
+          setHistoricSyncError('Risposta sync storica non valida')
+          return
+        }
+        const r = typeof j.ricevuti === 'number' && Number.isFinite(j.ricevuti) ? j.ricevuti : 0
+        cumulativeRicevuti += r
+        const label = typeof j.progressLabel === 'string' ? j.progressLabel : ''
+        if (!j.done && label) {
+          setHistoricProgressLine(s.historicSyncProgress.replace('{label}', label))
+        } else {
+          setHistoricProgressLine(null)
+        }
+        if (j.done === true) break
+        await new Promise((resolve) => setTimeout(resolve, 2000))
       }
-      const n = typeof j.ricevuti === 'number' && Number.isFinite(j.ricevuti) ? j.ricevuti : 0
-      setHistoricSyncResult(s.historicSyncResult.replace('{n}', String(n)))
+      setHistoricProgressLine(null)
+      setHistoricSyncResult(
+        `${s.historicSyncCompleted}\n${s.historicSyncResult.replace('{n}', String(cumulativeRicevuti))}`,
+      )
     } catch (e) {
       setHistoricSyncError(e instanceof Error ? e.message : 'Errore di rete')
     } finally {
       setHistoricSyncLoading(false)
     }
-  }, [effectiveSedeId, s.historicSyncResult])
+  }, [effectiveSedeId, s.historicSyncCompleted, s.historicSyncProgress, s.historicSyncResult])
 
   if (!canView) {
     return (
@@ -330,8 +360,11 @@ export default function CentroOperazioniPage() {
               </button>
               {historicSyncError ? <span className="text-xs text-rose-300">{historicSyncError}</span> : null}
             </div>
+            {historicProgressLine ? (
+              <p className="mt-3 text-xs text-app-fg-muted">{historicProgressLine}</p>
+            ) : null}
             {historicSyncResult ? (
-              <p className="mt-3 text-sm text-emerald-200/95">{historicSyncResult}</p>
+              <p className="mt-3 whitespace-pre-line text-sm text-emerald-200/95">{historicSyncResult}</p>
             ) : null}
           </div>
 
