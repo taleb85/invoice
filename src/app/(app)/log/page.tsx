@@ -7,6 +7,7 @@ import EmailLogTabs from '@/components/EmailLogTabs'
 import EmailBlacklistPanel from '@/components/EmailBlacklistPanel'
 import LogBlacklistIgnoreButton from '@/components/LogBlacklistIgnoreButton'
 import LogSupplierAiSuggest from '@/components/LogSupplierAiSuggest'
+import { LogErroreDettaglioBlock } from '@/components/LogErroreDettaglioBlock'
 import { getT, getLocale, getTimezone } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -240,36 +241,64 @@ export default async function LogPage() {
                 const attach = logAttachmentLabel(log.file_url, log.allegato_nome)
                 const sedeNome = sedeNomeFromLog(log)
                 const unknownHighlight = log.stato === 'fornitore_non_trovato'
+                const isSuggestStato = log.stato === 'fornitore_suggerito'
                 return (
                   <div
                     key={log.id}
-                    className={`space-y-2 px-4 py-4 ${unknownHighlight ? 'bg-red-950/25 ring-1 ring-inset ring-red-500/20' : ''}`}
+                    className={`space-y-3 px-4 py-5 ${unknownHighlight ? 'bg-red-950/20 ring-1 ring-inset ring-red-500/15' : ''}`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="whitespace-nowrap text-[11px] text-app-fg-muted">{formatDate(log.data)}</span>
-                      <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${cfg.className}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-app-fg-muted">
+                          <span className="font-mono tabular-nums tracking-tight text-app-fg-muted/95" title={log.id}>
+                            {log.id.slice(0, 8)}
+                          </span>
+                          <span className="text-app-fg-muted/70" aria-hidden>
+                            ·
+                          </span>
+                          <span>
+                            <span className="font-medium text-app-fg-muted">{t.log.colRegistered}</span>{' '}
+                            {formatDate(log.data)}
+                          </span>
+                        </div>
+                        {isMasterAdmin && sedeNome ? (
+                          <p className="text-[10px] text-app-fg-muted">
+                            <span className="font-medium">{t.log.colSede}</span> {sedeNome}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium leading-tight ${cfg.className}`}>
                         {cfg.label}
                       </span>
                     </div>
-                    <p className="font-mono text-[10px] text-app-fg-muted">{t.log.colLogId}: {log.id.slice(0, 8)}…</p>
-                    <p className="truncate text-sm font-semibold text-app-fg">{log.mittente}</p>
-                    {log.oggetto_mail && <p className="truncate text-xs text-app-fg-muted">{log.oggetto_mail}</p>}
-                    {attach && <p className="truncate text-xs font-medium text-app-fg-muted">{t.log.colAttachment}: {attach}</p>}
-                    {isMasterAdmin && sedeNome && (
-                      <p className="text-[11px] text-app-fg-muted">
-                        {t.log.colSede}: {sedeNome}
-                      </p>
-                    )}
-                    {log.errore_dettaglio && (
-                      <p
-                        className={`line-clamp-3 text-[11px] leading-snug ${
-                          log.stato === 'fornitore_suggerito' ? 'text-violet-300' : 'text-red-400'
-                        }`}
-                      >
-                        {log.errore_dettaglio}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2 pt-0.5">
+
+                    <div className="space-y-3 border-t border-white/10 pt-3">
+                      <div>
+                        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-app-fg-muted">{t.log.sender}</p>
+                        <p className="break-words text-sm font-semibold leading-snug text-app-fg">{log.mittente}</p>
+                      </div>
+                      {log.oggetto_mail ? (
+                        <div>
+                          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-app-fg-muted">{t.log.subject}</p>
+                          <p className="line-clamp-4 text-xs leading-snug text-app-fg-muted">{log.oggetto_mail}</p>
+                        </div>
+                      ) : null}
+                      {attach ? (
+                        <div>
+                          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-app-fg-muted">{t.log.colAttachment}</p>
+                          <p className="break-all font-mono text-[11px] leading-snug text-app-fg">{attach}</p>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {log.errore_dettaglio ? (
+                      <div className="space-y-1.5 border-t border-white/10 pt-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-app-fg-muted">{t.common.detail}</p>
+                        <LogErroreDettaglioBlock text={log.errore_dettaglio} isSuggest={isSuggestStato} />
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
                       {log.file_url && (
                         <OpenDocumentInAppButton
                           logId={log.id}
@@ -341,6 +370,7 @@ export default async function LogPage() {
                     const attach = logAttachmentLabel(log.file_url, log.allegato_nome)
                     const sedeNome = sedeNomeFromLog(log)
                     const unknownHighlight = log.stato === 'fornitore_non_trovato'
+                    const isSuggestStato = log.stato === 'fornitore_suggerito'
                     return (
                       <tr
                         key={log.id}
@@ -348,7 +378,12 @@ export default async function LogPage() {
                           unknownHighlight ? 'bg-red-950/20' : ''
                         }`}
                       >
-                        <td className="min-w-0 whitespace-nowrap px-2 py-2 font-mono text-[10px] text-app-fg-muted sm:px-3">{log.id.slice(0, 8)}</td>
+                        <td
+                          className="min-w-0 whitespace-nowrap px-2 py-2 font-mono text-[10px] text-app-fg-muted sm:px-3"
+                          title={log.id}
+                        >
+                          {log.id.slice(0, 8)}
+                        </td>
                         <td className="min-w-0 whitespace-nowrap px-2 py-2 text-app-fg-muted sm:px-3">{formatDate(log.data)}</td>
                         {isMasterAdmin && (
                           <td className="min-w-0 truncate px-2 py-2 text-app-fg-muted sm:px-3" title={sedeNome ?? ''}>
@@ -369,11 +404,9 @@ export default async function LogPage() {
                             {cfg.label}
                           </span>
                         </td>
-                        <td className="min-w-0 overflow-hidden px-2 py-2 text-[11px] leading-snug text-app-fg-muted sm:px-3">
+                        <td className="min-w-0 px-2 py-2 align-top text-app-fg-muted sm:px-3">
                           {log.errore_dettaglio ? (
-                            <span className="line-clamp-4 break-words" title={log.errore_dettaglio}>
-                              {log.errore_dettaglio}
-                            </span>
+                            <LogErroreDettaglioBlock text={log.errore_dettaglio} isSuggest={isSuggestStato} />
                           ) : log.file_url ? (
                             <OpenDocumentInAppButton
                               logId={log.id}
