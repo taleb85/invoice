@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
       .from('documenti_da_processare')
       .select('id', { count: 'exact', head: true })
       .eq('fornitore_id', fornitoreId)
-      .in('stato', ['da_associare', 'in_attesa', 'bozza_creata', 'da_revisionare'])
+      .in('stato', ['da_associare', 'da_processare', 'in_attesa', 'bozza_creata', 'da_revisionare'])
 
     // ── Log recenti (ultimi 15) per questo fornitore ──────────────────────
     const { data: recentLogs } = await service

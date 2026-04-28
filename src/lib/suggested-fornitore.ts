@@ -145,7 +145,7 @@ export async function fetchAllSedeSupplierSuggestions(
       .select('id, metadata, mittente, created_at')
       .eq('sede_id', sedeId)
       .is('fornitore_id', null)
-      .in('stato', ['da_associare', 'in_attesa'])
+      .in('stato', ['da_associare', 'da_processare', 'in_attesa'])
       .order('created_at', { ascending: true })
       .limit(60),
     supabase.from('fornitori').select('id, nome, piva, email, display_name').eq('sede_id', sedeId),

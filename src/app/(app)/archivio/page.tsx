@@ -70,7 +70,7 @@ export default async function ArchivioPage() {
     service
       .from('documenti_da_processare')
       .select('id, created_at, data_documento, file_url, stato, fornitore_id')
-      .in('stato', ['in_attesa', 'da_associare', 'da_revisionare'])
+      .in('stato', ['in_attesa', 'da_processare', 'da_associare', 'da_revisionare'])
       .order('created_at', { ascending: false }),
   ])
 

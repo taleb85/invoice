@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
         let q = supabase
           .from('documenti_da_processare')
           .select('id', { count: 'exact', head: true })
-          .in('stato', ['in_attesa', 'da_associare'])
+          .in('stato', ['in_attesa', 'da_processare', 'da_associare'])
         if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
         return q
       })(),

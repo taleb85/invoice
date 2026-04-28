@@ -335,7 +335,7 @@ function useSupplierPeriodStats(
     const supabase = createClient()
 
     const pendingCountPromise = fetch(
-      `/api/documenti-da-processare?fornitore_id=${encodeURIComponent(fornitoreId)}&stati=in_attesa,da_associare&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      `/api/documenti-da-processare?fornitore_id=${encodeURIComponent(fornitoreId)}&stati=in_attesa,da_processare,da_associare&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
     )
       .then((r) => (r.ok ? r.json() : []))
       .then((d: unknown) => (Array.isArray(d) ? d.length : 0))
@@ -793,7 +793,7 @@ function useSupplierMonthlyDocSummary(
         .from('documenti_da_processare')
         .select('created_at, data_documento')
         .eq('fornitore_id', fornitoreId)
-        .in('stato', ['in_attesa', 'da_associare'])
+        .in('stato', ['in_attesa', 'da_processare', 'da_associare'])
         .limit(500),
     ])
       .then(([bolleRes, fattureRes, ordiniRes, stmtsRes, pendingRes]) => {
@@ -5703,7 +5703,7 @@ export default function FornitoreDetailPage() {
 
         const pendingForId = id
         void fetch(
-          `/api/documenti-da-processare?fornitore_id=${encodeURIComponent(pendingForId)}&stati=in_attesa,da_associare`
+          `/api/documenti-da-processare?fornitore_id=${encodeURIComponent(pendingForId)}&stati=in_attesa,da_processare,da_associare`
         )
           .then((r) => (r.ok ? r.json() : []))
           .then((pendingRes) => {

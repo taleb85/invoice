@@ -28,7 +28,7 @@ export async function fetchRecurringEmailBodySupplierHints(
     .from('documenti_da_processare')
     .select('sede_id, metadata')
     .is('fornitore_id', null)
-    .in('stato', ['da_associare', 'in_attesa'])
+    .in('stato', ['da_associare', 'da_processare', 'in_attesa'])
     .order('created_at', { ascending: false })
     .limit(fetchLimit)
 

@@ -9,7 +9,7 @@ export interface DocumentoInCoda {
   /** ISO date from the document itself — null when OCR couldn't read it. */
   data_documento: string | null
   file_url: string | null
-  stato: 'in_attesa' | 'da_associare'
+  stato: 'in_attesa' | 'da_processare' | 'da_associare'
   fornitore_id: string | null
 }
 

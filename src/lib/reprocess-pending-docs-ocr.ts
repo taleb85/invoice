@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 import {
   ocrInvoice,
   OcrInvoiceConfigurationError,
@@ -281,7 +282,7 @@ export async function processLegacyPendingDoc(
     .update({
       fornitore_id: fornitore?.id ?? row.fornitore_id,
       metadata,
-      stato: rowStato,
+      stato: normalizeDocumentoQueueStatoForDb(rowStato),
       data_documento: safeDate(ocr.data_fattura),
       note: noteFromEmailBody,
       is_statement: isStatementDoc || row.is_statement === true,

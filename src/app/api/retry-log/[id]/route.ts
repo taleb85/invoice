@@ -5,6 +5,7 @@ import {
   emailSubjectLooksLikeStatement,
   inferAutoPendingKindFromEmailScan,
 } from '@/lib/document-bozza-routing'
+import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 
 // States that can be retried (any error state, regardless of which version created the log)
 const RETRYABLE_STATES = ['bolla_non_trovata', 'fornitore_non_trovato'] as const
@@ -94,7 +95,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     file_name:      allegatoNome,
     content_type:   null,
     data_documento: null,
-    stato:          statoDoc,
+    stato:          normalizeDocumentoQueueStatoForDb(statoDoc),
     is_statement:   isStmtRow,
     metadata:       autoKind ? { pending_kind: autoKind } : null,
   }

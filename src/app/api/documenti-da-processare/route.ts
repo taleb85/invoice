@@ -13,6 +13,7 @@ import {
   numeroFatturaFromDocMetadata,
 } from '@/lib/fattura-duplicate-check'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -315,7 +316,7 @@ export async function GET(req: NextRequest) {
 
   const stati: string[] = statiParam
     ? statiParam.split(',').map(s => s.trim()).filter(Boolean)
-    : ['in_attesa', 'da_associare', 'da_revisionare', 'bozza_creata']
+    : [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa']
 
   const service = createServiceClient()
 
@@ -521,7 +522,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (docError || !doc) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
-  const processableStates = ['in_attesa', 'da_associare', 'da_revisionare', 'bozza_creata']
+  const processableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa']
   if (!processableStates.includes(doc.stato)) {
     return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
   }

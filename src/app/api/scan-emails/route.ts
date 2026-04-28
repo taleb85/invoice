@@ -44,6 +44,7 @@ import {
   loadEmailScanBlacklistSet,
   senderMatchesEmailScanBlacklist,
 } from '@/lib/email-scan-blacklist'
+import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 
 /**
  * Limite durata funzione serverless su Vercel (secondi). Piano Hobby: massimo **300**.
@@ -137,15 +138,26 @@ async function insertDocumento(
   supabase: SupabaseClient,
   payload: Record<string, unknown>
 ) {
-  const { error } = await supabase.from('documenti_da_processare').insert([payload])
+  const stato = normalizeDocumentoQueueStatoForDb(payload.stato)
+  const payloadNorm = { ...payload, stato }
+  const { error } = await supabase.from('documenti_da_processare').insert([payloadNorm])
 
   if (error) {
     // Fallback: colonna 'metadata' non ancora migrata
-    if (error.code === '42703' || error.message?.includes('metadata') || error.message?.includes('is_statement') || error.message?.includes('note')) {
+    if (
+      error.code === '42703' ||
+      error.message?.includes('metadata') ||
+      error.message?.includes('is_statement') ||
+      error.message?.includes('note')
+    ) {
       console.warn('[INSERT] Colonna extra non trovata — retry senza metadata/is_statement/note')
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { metadata: _m, is_statement: _is, note: _n, ...safePayload } = payload as Record<string, unknown>
-      const { error: e2 } = await supabase.from('documenti_da_processare').insert([safePayload])
+      const { metadata: _sm, is_statement: _sis, note: _sn, ...rest } = payloadNorm as Record<string, unknown>
+      const safePayload = { ...rest }
+      const statoSafe = normalizeDocumentoQueueStatoForDb(safePayload.stato)
+      const { error: e2 } = await supabase
+        .from('documenti_da_processare')
+        .insert([{ ...safePayload, stato: statoSafe }])
       if (e2) console.error('[INSERT] Fallback insert error:', e2.message)
       return e2
     }
@@ -768,6 +780,13 @@ async function processEmails(
 
       mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso (nessun fallback fornitore sul documento)`)
 
+      const baseMimeU = (attachment.contentType ?? '').split(';')[0].trim().toLowerCase()
+      if (baseMimeU === 'text/plain') {
+        mailDebugLog(`[PROCESS] Allegato solo text/plain ignorato (nessun OCR Vision): ${attachment.filename ?? '(file)'}`)
+        bumpAttach(email.uid)
+        continue
+      }
+
       // 1. OCR allegato + corpo mail (runOcrForEmail passa già emailBodyText all'AI)
       const ocrOrNull = await runOcrForEmail(
         supabase,
@@ -1154,6 +1173,13 @@ async function processEmails(
       if (skipped[i]) continue
       const { email, attachment } = items[i]
       const fp = fpList[i]
+
+      const baseMimeGrp = attachment ? (attachment.contentType ?? '').split(';')[0].trim().toLowerCase() : ''
+      if (attachment && baseMimeGrp === 'text/plain') {
+        mailDebugLog(`[PROCESS] Allegato text/plain ignorato per "${fornitore.nome}": ${attachment.filename ?? ''}`)
+        bumpAttach(email.uid)
+        continue
+      }
 
       // Transient OCR failure — do NOT fingerprint so the next scan cycle retries cleanly.
       if (ocrResults[i] === null) {
