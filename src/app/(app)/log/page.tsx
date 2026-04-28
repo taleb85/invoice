@@ -26,7 +26,8 @@ interface LogEntry {
   data: string
   mittente: string
   oggetto_mail: string | null
-  stato: LogStato
+  /** Valori storici/aggiunte lato DB possono non essere nell’insieme tipo. */
+  stato: LogStato | string
   errore_dettaglio: string | null
   fornitore_id: string | null
   file_url: string | null
@@ -80,6 +81,15 @@ export default async function LogPage() {
       label: t.log.supplierSuggested,
       className: 'bg-violet-500/15 text-violet-200 ring-1 ring-violet-500/35',
     },
+  }
+
+  const badgeForStato = (stato: string): { label: string; className: string } => {
+    const known = STATO_CONFIG[stato as LogStato]
+    if (known) return known
+    return {
+      label: stato?.trim() || '—',
+      className: 'bg-white/10 text-app-fg-muted ring-1 ring-white/15',
+    }
   }
 
   let logQuery = supabase
@@ -205,7 +215,7 @@ export default async function LogPage() {
           <div className="min-w-0 flex-1">
             <div className={APP_SECTION_MOBILE_LIST}>
               {entries.map((log) => {
-                const cfg = STATO_CONFIG[log.stato]
+                const cfg = badgeForStato(log.stato)
                 const attach = logAttachmentLabel(log.file_url, log.allegato_nome)
                 const unknownHighlight = log.stato === 'fornitore_non_trovato'
                 return (
@@ -289,7 +299,7 @@ export default async function LogPage() {
                 </thead>
                 <tbody className={APP_SECTION_TABLE_TBODY}>
                   {entries.map((log) => {
-                    const cfg = STATO_CONFIG[log.stato]
+                    const cfg = badgeForStato(log.stato)
                     const attach = logAttachmentLabel(log.file_url, log.allegato_nome)
                     const unknownHighlight = log.stato === 'fornitore_non_trovato'
                     return (

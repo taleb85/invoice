@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import type { Profile } from '@/types'
 import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
-function resolveSedeId(
-  profile: NonNullable<Awaited<ReturnType<typeof getProfile>>>,
-  bodySede: string | undefined,
-  cookieSede: string | null,
-): string | null {
-  const master = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
+function resolveSedeId(profile: Profile, bodySede: string | undefined, cookieSede: string | null): string | null {
+  const master = isMasterAdminRole(profile.role)
+  const isAdminSede = isAdminSedeRole(profile.role)
 
   if (isAdminSede && profile.sede_id) {
     const fromBody = bodySede?.trim()
@@ -47,7 +44,7 @@ export async function POST(req: NextRequest) {
   const cookieStore = await cookies()
   const adminPick = cookieStore.get('admin-sede-id')?.value ?? null
   const sedeId = resolveSedeId(
-    profile as NonNullable<Awaited<typeof getProfile>>,
+    profile,
     typeof body.sede_id === 'string' ? body.sede_id : undefined,
     adminPick,
   )
