@@ -86,7 +86,7 @@ export function DesktopHeaderActionsStrip() {
   const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
   const pathname = usePathname()
   /**
-   * Sync email nel menu «Strumenti» (`DashboardHeaderSedeToolsMenu`) su quasi tutte le pagine.
+   * Host flex-1 per eventuali azioni di pagina (portal); menu «Strumenti» e sync email sono sibling fuori dall’host.
    * Solo sotto `/fornitori` la strip operatore è nascosta: qui serve il pulsante dedicato in barra.
    */
   const showHeaderScanEmail = normalizeAppPath(pathname ?? '').startsWith('/fornitori')
@@ -98,9 +98,8 @@ export function DesktopHeaderActionsStrip() {
         id={DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID}
         data-fluxo-desktop-header-actions-host
         className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-1.5 bg-transparent sm:gap-2"
-      >
-        <OperatorDesktopWorkspaceHeader />
-      </div>
+      />
+      <OperatorDesktopWorkspaceHeader />
       {showHeaderScanEmail ? <ScanEmailButton placement="desktopHeader" /> : null}
     </div>
   )
