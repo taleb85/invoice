@@ -3,6 +3,9 @@ import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import RetryButton from '@/components/RetryButton'
 import DeleteButton from '@/components/DeleteButton'
+import EmailLogTabs from '@/components/EmailLogTabs'
+import EmailBlacklistPanel from '@/components/EmailBlacklistPanel'
+import LogBlacklistIgnoreButton from '@/components/LogBlacklistIgnoreButton'
 import LogSupplierAiSuggest from '@/components/LogSupplierAiSuggest'
 import { getT, getLocale, getTimezone } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
@@ -93,6 +96,12 @@ export default async function LogPage() {
 
   const entries: LogEntry[] = (logs ?? []) as LogEntry[]
 
+  let blacklistSedeId = profile?.sede_id ?? null
+  if (!blacklistSedeId && profile?.role === 'admin') {
+    const { data: firstSedeRow } = await supabase.from('sedi').select('id').limit(1).maybeSingle()
+    blacklistSedeId = firstSedeRow?.id ?? null
+  }
+
   const totaleErrori = entries.filter((l) => l.stato === 'fornitore_non_trovato').length
   const totaleSuccessi = entries.filter(
     (l) =>
@@ -113,6 +122,9 @@ export default async function LogPage() {
       minute: '2-digit',
       timeZone: tz,
     })
+
+  const sedeForBlacklistIgnore = (log: LogEntry) =>
+    log.sede_id ?? profile?.sede_id ?? blacklistSedeId
 
   return (
     <div className="app-shell-page-padding">
@@ -157,6 +169,25 @@ export default async function LogPage() {
         </div>
       </div>
 
+      <EmailLogTabs
+        labels={{ log: t.log.tabEmailLog, blacklist: t.log.tabBlacklist }}
+        blacklistPanel={
+          blacklistSedeId ? (
+            <div className="app-card overflow-hidden">
+              <div className="app-card-bar" aria-hidden />
+              <div className="min-w-0 flex-1 p-4 md:p-5">
+                <EmailBlacklistPanel sedeId={blacklistSedeId} />
+              </div>
+            </div>
+          ) : (
+            <div className="app-card overflow-hidden">
+              <div className="app-card-bar" aria-hidden />
+              <div className="p-8 text-center text-sm text-app-fg-muted">{t.log.blacklistError}</div>
+            </div>
+          )
+        }
+        logPanel={
+          <>
       {entries.length === 0 ? (
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
@@ -226,6 +257,9 @@ export default async function LogPage() {
                       )}
                       {(log.stato === 'bolla_non_trovata' || log.stato === 'fornitore_non_trovato') && log.file_url && (
                         <RetryButton logId={log.id} />
+                      )}
+                      {log.stato === 'fornitore_non_trovato' && (
+                        <LogBlacklistIgnoreButton mittente={log.mittente} sedeId={sedeForBlacklistIgnore(log)} />
                       )}
                       <DeleteButton
                         id={log.id}
@@ -312,6 +346,9 @@ export default async function LogPage() {
                             {(log.stato === 'bolla_non_trovata' || log.stato === 'fornitore_non_trovato') && log.file_url && (
                               <RetryButton logId={log.id} />
                             )}
+                            {log.stato === 'fornitore_non_trovato' && (
+                              <LogBlacklistIgnoreButton mittente={log.mittente} sedeId={sedeForBlacklistIgnore(log)} />
+                            )}
                             <DeleteButton
                               id={log.id}
                               table="log_sincronizzazione"
@@ -328,6 +365,9 @@ export default async function LogPage() {
           </div>
         </div>
       )}
+          </>
+        }
+      />
     </div>
   )
 }

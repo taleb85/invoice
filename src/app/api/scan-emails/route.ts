@@ -43,6 +43,10 @@ import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
+import {
+  loadEmailScanBlacklistSet,
+  senderMatchesEmailScanBlacklist,
+} from '@/lib/email-scan-blacklist'
 
 /**
  * Limite durata funzione serverless su Vercel (secondi). Piano Hobby: massimo **300**.
@@ -701,6 +705,8 @@ async function processEmails(
   skippedAlreadyCompleted: number
   /** Email scartate dal pre-filtro (mittente sconosciuto + oggetto non fiscale) prima di chiamare Gemini. */
   preFiltered: number
+  /** Mittenti in blacklist sede: nessun OCR / log / Gemini. */
+  blacklistSkipped: number
 }> {
   let ricevuti = 0
   let ignorate = 0
@@ -714,11 +720,25 @@ async function processEmails(
     )
   }
 
-  const attachmentsTotal = countScanEmailUnits(emails)
+  const docKind = options?.documentKind ?? 'all'
+  const onlyUnknownSenders = docKind === 'fornitore' && !options?.directFornitore
+
+  // La sede effettiva da usare: priorità sedeFilter (per-sede IMAP) → fallbackSedeId (global IMAP)
+  const effectiveSede = sedeFilter ?? fallbackSedeId ?? null
+
+  const blacklistSet =
+    effectiveSede ? await loadEmailScanBlacklistSet(supabase, effectiveSede) : new Set<string>()
+  const workEmails =
+    blacklistSet.size === 0
+      ? emails
+      : emails.filter((e) => !senderMatchesEmailScanBlacklist(blacklistSet, e.from))
+  const blacklistSkipped = emails.length - workEmails.length
+
+  const attachmentsTotal = countScanEmailUnits(workEmails)
   let attachmentsProcessed = 0
   const unitsPerUid = new Map<number, number>()
   const unitsDonePerUid = new Map<number, number>()
-  for (const e of emails) {
+  for (const e of workEmails) {
     const n = countUnitsForOneEmail(e)
     if (n > 0) unitsPerUid.set(e.uid, n)
   }
@@ -735,13 +755,8 @@ async function processEmails(
     options?.onAttachmentProgress?.({ attachmentsProcessed, attachmentsTotal })
   }
 
-  const docKind = options?.documentKind ?? 'all'
-  const onlyUnknownSenders = docKind === 'fornitore' && !options?.directFornitore
-
-  // La sede effettiva da usare: priorità sedeFilter (per-sede IMAP) → fallbackSedeId (global IMAP)
-  const effectiveSede = sedeFilter ?? fallbackSedeId ?? null
   mailDebugLog(
-    `[PROCESS] Inizio processEmails: ${emails.length} email, sedeFilter=${sedeFilter ?? 'nessuno'} fallback=${fallbackSedeId ?? 'nessuno'} effective=${effectiveSede ?? 'NULL'} documentKind=${docKind}`,
+    `[PROCESS] Inizio processEmails: ${emails.length} email (${blacklistSkipped} blacklist) → ${workEmails.length} da elaborare; sedeFilter=${sedeFilter ?? 'nessuno'} fallback=${fallbackSedeId ?? 'nessuno'} effective=${effectiveSede ?? 'NULL'} documentKind=${docKind}`,
   )
 
   // ── FASE 1: raggruppa allegati (e messaggi solo-testo) per fornitore ────
@@ -766,7 +781,7 @@ async function processEmails(
       groups.set(direct.id, { fornitore: direct, items: [], matchedBy: 'email' })
     }
     const g = groups.get(direct.id)!
-    for (const email of emails) {
+    for (const email of workEmails) {
       for (const attachment of email.attachments) {
         g.items.push({ email, attachment })
       }
@@ -774,9 +789,9 @@ async function processEmails(
         g.items.push({ email, attachment: null })
       }
     }
-    mailDebugLog(`[PROCESS] Fase 1 (fornitore mirato): ${emails.length} email → fornitore "${direct.nome}"`)
+    mailDebugLog(`[PROCESS] Fase 1 (fornitore mirato): ${workEmails.length} email → fornitore "${direct.nome}"`)
   } else {
-    for (const email of emails) {
+    for (const email of workEmails) {
       mailDebugLog(
         `[PROCESS] Analisi email da: ${email.from} | allegati: ${email.attachments.length} | corpo utilizzabile: ${emailHasScannableBody(email)}`
       )
@@ -1601,7 +1616,7 @@ async function processEmails(
   }
 
   mailDebugLog(
-    `[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate} skippedAlready=${skippedAlreadyCompleted} preFiltered=${preFiltered}`,
+    `[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate} skippedAlready=${skippedAlreadyCompleted} preFiltered=${preFiltered} blacklistSkipped=${blacklistSkipped}`,
   )
   return {
     ricevuti,
@@ -1611,6 +1626,7 @@ async function processEmails(
     attachmentsProcessed,
     skippedAlreadyCompleted,
     preFiltered,
+    blacklistSkipped,
   }
 }
 
@@ -1727,6 +1743,7 @@ export async function GET(req: Request) {
         bozzeCreate: 0,
         skippedAlreadyCompleted: result.skippedAlreadyCompleted,
         preFiltered: result.preFiltered,
+        blacklistSkipped: result.blacklistSkipped,
         avvisi: result.avvisi,
         messaggio: result.avvisi[0],
         mailsFound: result.mailsFound,
@@ -1741,6 +1758,7 @@ export async function GET(req: Request) {
       bozzeCreate: result.bozzeCreate,
       skippedAlreadyCompleted: result.skippedAlreadyCompleted,
       preFiltered: result.preFiltered,
+      blacklistSkipped: result.blacklistSkipped,
       messaggio: result.messaggio,
       ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
       mailsFound: result.mailsFound,
@@ -1797,6 +1815,8 @@ type EmailScanCoreResult = {
   skippedAlreadyCompleted: number
   /** Email scartate dal pre-filtro prima di chiamare Gemini (mittente sconosciuto + oggetto non fiscale). */
   preFiltered: number
+  /** Email saltate (mittente in blacklist sede) — nessun OCR né log. */
+  blacklistSkipped: number
 }
 
 async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCoreResult> {
@@ -1836,6 +1856,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   let totalBozzeCreate = 0
   let totalSkippedAlready = 0
   let totalPreFiltered = 0
+  let totalBlacklistSkipped = 0
   const avvisi: string[] = []
   const imapErrorDetails: ClassifiedImapError[] = []
 
@@ -1922,6 +1943,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     ignorate: totalIgnorate,
     bozzeCreate: totalBozzeCreate,
     skippedAlreadyCompleted: totalSkippedAlready,
+    blacklistSkipped: totalBlacklistSkipped,
     attachmentsTotal: attTotalRun,
     attachmentsProcessed: attDoneLive,
     mailboxContext: mailboxCtx(),
@@ -2039,9 +2061,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         const syncKindFiltered = filterEmailsForSyncDocumentKind(filtered, effectiveDocKind)
 
         const batchMails = syncKindFiltered.length
-        const batchAtt = countScanEmailUnits(syncKindFiltered)
         mailsFound += batchMails
-        attTotalRun += batchAtt
 
         await s({
           type: 'progress',
@@ -2081,7 +2101,9 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
             void emitProcessPulse()
           }, PROCESS_STREAM_HEARTBEAT_MS)
           let peDone = 0
+          let blacklistBatch = 0
           try {
+            const batchAtt = countScanEmailUnits(syncKindFiltered)
             const out = await processEmails(supabase, syncKindFiltered, sede.id, undefined, {
               directFornitore: directFornitore ?? undefined,
               onEmailFullyProcessed: () => {
@@ -2090,19 +2112,22 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
               onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
               documentKind: effectiveDocKind,
             })
+            blacklistBatch = out.blacklistSkipped
+            attTotalRun += out.attachmentsTotal
             peDone = out.attachmentsProcessed
             totalRicevuti += out.ricevuti
             totalIgnorate += out.ignorate
             totalBozzeCreate += out.bozzaCreate
             totalSkippedAlready += out.skippedAlreadyCompleted
             totalPreFiltered += out.preFiltered
+            totalBlacklistSkipped += out.blacklistSkipped
           } finally {
             clearInterval(processHb)
           }
 
           attDoneRun += peDone
           attDoneLive = Math.max(attDoneLive, attDoneRun)
-          mailsProcessed += batchMails
+          mailsProcessed += batchMails - blacklistBatch
           emailsDoneInBatch = 0
 
           await s({
@@ -2198,9 +2223,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
         : emails
       const syncKindFiltered = filterEmailsForSyncDocumentKind(filtered, effectiveDocKind)
       const batchMails = syncKindFiltered.length
-      const batchAtt = countScanEmailUnits(syncKindFiltered)
       mailsFound += batchMails
-      attTotalRun += batchAtt
 
       await s({
         type: 'progress',
@@ -2237,7 +2260,9 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
           void emitProcessPulse()
         }, PROCESS_STREAM_HEARTBEAT_MS)
         let peDoneGlobal = 0
+        let blacklistGlobal = 0
         try {
+          const batchAtt = countScanEmailUnits(syncKindFiltered)
           const out = await processEmails(supabase, syncKindFiltered, undefined, systemFallbackSedeId, {
             directFornitore: directFornitore ?? undefined,
             onEmailFullyProcessed: () => {
@@ -2246,19 +2271,22 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
             onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
             documentKind: effectiveDocKind,
           })
+          blacklistGlobal = out.blacklistSkipped
+          attTotalRun += out.attachmentsTotal
           peDoneGlobal = out.attachmentsProcessed
           totalRicevuti += out.ricevuti
           totalIgnorate += out.ignorate
           totalBozzeCreate += out.bozzaCreate
           totalSkippedAlready += out.skippedAlreadyCompleted
           totalPreFiltered += out.preFiltered
+          totalBlacklistSkipped += out.blacklistSkipped
         } finally {
           clearInterval(processHbGlobal)
         }
 
         attDoneRun += peDoneGlobal
         attDoneLive = Math.max(attDoneLive, attDoneRun)
-        mailsProcessed += batchMails
+        mailsProcessed += batchMails - blacklistGlobal
         emailsDoneInBatch = 0
 
         await s({
@@ -2291,7 +2319,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   }
 
   mailDebugLog(
-    `\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} skippedAlready=${totalSkippedAlready} preFiltered=${totalPreFiltered} avvisi=${avvisi.length}`,
+    `\n[FINE] totale ricevuti=${totalRicevuti} ignorate=${totalIgnorate} bozzeCreate=${totalBozzeCreate} skippedAlready=${totalSkippedAlready} preFiltered=${totalPreFiltered} blacklistSkipped=${totalBlacklistSkipped} avvisi=${avvisi.length}`,
   )
 
   // Log pre-filter metrics to activity_log for Gemini savings tracking (fire-and-forget)
@@ -2351,6 +2379,10 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     messaggio = `${totalRicevuti} ${totalRicevuti === 1 ? 'documento ricevuto' : 'documenti ricevuti'} — salvati in Documenti da Elaborare per la revisione.`
   }
 
+  if (totalBlacklistSkipped > 0) {
+    messaggio += ` ${totalBlacklistSkipped} email skippate (blacklist).`
+  }
+
   return {
     ricevuti: totalRicevuti,
     ignorate: totalIgnorate,
@@ -2364,6 +2396,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
     attachmentsProcessed: attDoneRun,
     skippedAlreadyCompleted: totalSkippedAlready,
     preFiltered: totalPreFiltered,
+    blacklistSkipped: totalBlacklistSkipped,
   }
 }
 
@@ -2428,6 +2461,8 @@ export async function POST(req: Request) {
             ignorate: result.ignorate,
             bozzeCreate: result.bozzeCreate,
             skippedAlreadyCompleted: result.skippedAlreadyCompleted,
+            preFiltered: result.preFiltered,
+            blacklistSkipped: result.blacklistSkipped,
             messaggio: result.messaggio,
             avvisi: result.avvisi,
             imapErrorDetails: result.imapErrorDetails,
@@ -2476,6 +2511,8 @@ export async function POST(req: Request) {
         ignorate: 0,
         bozzeCreate: 0,
         skippedAlreadyCompleted: result.skippedAlreadyCompleted,
+        preFiltered: result.preFiltered,
+        blacklistSkipped: result.blacklistSkipped,
         avvisi: result.avvisi,
         messaggio: result.avvisi[0],
         mailsFound: result.mailsFound,
@@ -2489,6 +2526,8 @@ export async function POST(req: Request) {
       ignorate: result.ignorate,
       bozzeCreate: result.bozzeCreate,
       skippedAlreadyCompleted: result.skippedAlreadyCompleted,
+      preFiltered: result.preFiltered,
+      blacklistSkipped: result.blacklistSkipped,
       messaggio: result.messaggio,
       ...(result.avvisi && result.avvisi.length > 0 && { avvisi: result.avvisi }),
       mailsFound: result.mailsFound,

@@ -24,6 +24,8 @@ export type EmailScanStreamEvent =
       bozzeCreate?: number
       /** Unità già in log da sync precedente (nessun nuovo documento). */
       skippedAlreadyCompleted?: number
+      /** Email saltate: mittente nella blacklist sede (nessun OCR). */
+      blacklistSkipped?: number
       attachmentsTotal?: number
       attachmentsProcessed?: number
       mailboxContext?: EmailScanMailboxContext
@@ -52,6 +54,7 @@ export type EmailScanStreamEvent =
       ignorate: number
       bozzeCreate: number
       skippedAlreadyCompleted?: number
+      preFiltered?: number
       messaggio: string
       avvisi?: string[]
       /** Structured per-sede errors — mirrors every `sede_error` event that was streamed. */
@@ -65,5 +68,7 @@ export type EmailScanStreamEvent =
       mailsProcessed?: number
       attachmentsTotal?: number
       attachmentsProcessed?: number
+      /** Email saltate in questa sync (blacklist). */
+      blacklistSkipped?: number
     }
   | { type: 'error'; error: string }
