@@ -20,8 +20,21 @@ function formatImapRelative(iso: string, t: DashboardT): string {
   }
 }
 
+type HealthTier = 'imap_issue' | 'stopped' | 'late' | 'ok'
+
+function imapHealthTier(lastImapSyncAt?: string | null): HealthTier {
+  const iso = lastImapSyncAt?.trim()
+  if (!iso) return 'stopped'
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return 'stopped'
+  const mins = Math.floor((Date.now() - t) / 60000)
+  if (mins > 60) return 'stopped'
+  if (mins > 30) return 'late'
+  return 'ok'
+}
+
 /**
- * Mostra stato sync email automatico (cron) e ultimo `last_imap_sync_at` sulla sede in scope.
+ * Stato sync email automatica + `last_imap_sync_at` sulla sede (soglie &gt;30 / &gt;60 min).
  */
 export default function EmailSyncToolbarStatus({
   lastImapSyncAt,
@@ -40,19 +53,28 @@ export default function EmailSyncToolbarStatus({
     return () => clearInterval(id)
   }, [])
 
-  const relative = useMemo(() => {
+  const { label, title } = useMemo(() => {
     void tick
     const iso = lastImapSyncAt?.trim()
-    if (!iso) return t.emailSyncCronNever
-    return formatImapRelative(iso, t)
-  }, [lastImapSyncAt, t, tick])
-
-  const label = lastImapSyncError?.trim()
-    ? t.emailSyncCronIssueLine.replace('{relative}', relative)
-    : t.emailSyncCronLine.replace('{relative}', relative)
+    const rel = !iso ? t.emailSyncCronNever : formatImapRelative(iso, t)
+    if (lastImapSyncError?.trim()) {
+      return {
+        label: t.emailSyncCronIssueLine.replace('{relative}', rel),
+        title: lastImapSyncError.trim(),
+      }
+    }
+    const tier = imapHealthTier(lastImapSyncAt ?? null)
+    const line =
+      tier === 'late'
+        ? t.emailSyncCronLateLine.replace('{relative}', rel)
+        : tier === 'stopped'
+          ? t.emailSyncCronStoppedLine.replace('{relative}', rel)
+          : t.emailSyncCronLine.replace('{relative}', rel)
+    return { label: line, title: undefined as string | undefined }
+  }, [lastImapSyncAt, lastImapSyncError, t, tick])
 
   return (
-    <span className={`whitespace-normal break-words text-left text-[10px] font-semibold leading-snug text-app-fg-muted sm:text-[11px] ${className ?? ''}`} title={lastImapSyncError?.trim() || undefined}>
+    <span className={`whitespace-normal break-words text-left text-[10px] font-semibold leading-snug text-app-fg-muted sm:text-[11px] ${className ?? ''}`} title={title}>
       {label}
     </span>
   )

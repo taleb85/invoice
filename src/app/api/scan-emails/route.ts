@@ -1586,6 +1586,11 @@ async function processStatementInBackground(
   mailDebugLog(`[STMT] ✅ Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)
 }
 
+/** Stessa coda della GET `/api/scan-emails` (cron `sync-emails`, test). */
+export async function runEmailSyncForAllSedi() {
+  return queueEmailScan(() => runEmailScanCore({}))
+}
+
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET
   if (!secret) return NextResponse.json({ error: 'CRON_SECRET non configurato' }, { status: 500 })
@@ -1596,7 +1601,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await queueEmailScan(() => runEmailScanCore({}))
+    const result = await runEmailSyncForAllSedi()
     if (result.avvisi && result.avvisi.length > 0 && result.ricevuti === 0 && result.ignorate === 0) {
       return NextResponse.json({
         ricevuti: 0,

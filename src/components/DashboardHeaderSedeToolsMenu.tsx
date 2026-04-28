@@ -3,9 +3,14 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
+import { mutate } from 'swr'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
+import { getEmailSyncProgressSnapshot } from '@/lib/email-sync-run-store'
+import { readEmailSyncScopePrefs, emailSyncApiBodyFields } from '@/lib/email-sync-scope-prefs'
 import SollecitiButton from '@/components/SollecitiButton'
 
 import EmailSyncToolbarStatus from '@/components/EmailSyncToolbarStatus'
@@ -183,6 +188,173 @@ function AdminSedeSwitcherToolbar() {
   )
 }
 
+/** Menu compatto «Strumenti»: solo «Forza sync» manuale (sync già gestita dal cron). */
+function WorkspaceEmailStrumentiMenu() {
+  const t = useT()
+  const { dashboard: td } = t
+  const router = useRouter()
+  const { effectiveSedeId } = useManualDeliverySede()
+  const emailSync = useEmailSyncProgressOptional()
+  const [open, setOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const [panelRect, setPanelRect] = useState<PanelRect | null>(null)
+  const panelId = useId()
+
+  const updatePanelRect = useCallback(() => {
+    const btn = triggerRef.current
+    if (!btn) return
+    const rect = btn.getBoundingClientRect()
+    const width = Math.min(280, Math.max(220, window.innerWidth - 16))
+    const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))
+    const top = rect.bottom + 6
+    setPanelRect({ top, left, width })
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelRect(null)
+      return
+    }
+    updatePanelRect()
+    const onWin = () => updatePanelRect()
+    window.addEventListener('resize', onWin)
+    window.addEventListener('scroll', onWin, true)
+    return () => {
+      window.removeEventListener('resize', onWin)
+      window.removeEventListener('scroll', onWin, true)
+    }
+  }, [open, updatePanelRect])
+
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: MouseEvent) => {
+      const node = e.target as Node
+      if (triggerRef.current?.contains(node) || panelRef.current?.contains(node)) return
+      setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const runForceSync = async () => {
+    setLoading(true)
+    try {
+      const scopeFields = emailSyncApiBodyFields(readEmailSyncScopePrefs())
+      const payload = {
+        ...scopeFields,
+        ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
+      }
+      if (emailSync) {
+        await emailSync.runEmailSync(payload)
+        const snap = getEmailSyncProgressSnapshot()
+        if (snap.toast?.type === 'error') {
+          return
+        }
+      } else {
+        const res = await fetch('/api/scan-emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const json = (await res.json()) as { error?: string }
+        if (!res.ok) {
+          return
+        }
+        if (json && typeof json === 'object' && 'error' in json && json.error) return
+      }
+      void mutate((key) => typeof key === 'string' && key.startsWith('/api/operator-workspace-header'))
+      router.refresh()
+      setOpen(false)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const panel =
+    open && panelRect != null ? (
+      <div
+        ref={panelRef}
+        id={panelId}
+        role="dialog"
+        aria-label={td.emailSyncEmergencyToolsAria}
+        style={{
+          position: 'fixed',
+          top: panelRect.top,
+          left: panelRect.left,
+          width: panelRect.width,
+          zIndex: 500,
+        }}
+        className="rounded-xl border border-app-line-25 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
+      >
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{td.desktopHeaderSedeToolsMenuTrigger}</p>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void runForceSync()}
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-app-a-55 bg-app-line-30 text-xs font-bold text-app-fg shadow-sm transition-colors hover:bg-app-line-40 disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {loading ? (
+            <>
+              <svg className="h-4 w-4 shrink-0 animate-spin text-cyan-300" fill="none" viewBox="0 0 24 24" aria-hidden>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              {t.common.loading}
+            </>
+          ) : (
+            <>
+              <svg className="h-3.5 w-3.5 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {td.emailSyncForceSync}
+            </>
+          )}
+        </button>
+      </div>
+    ) : null
+
+  return (
+    <>
+      <div className="relative flex shrink-0 items-center">
+        <button
+          ref={triggerRef}
+          type="button"
+          className={TOOLBAR_ICON_BTN_CLS}
+          aria-expanded={open}
+          aria-haspopup="dialog"
+          aria-controls={open ? panelId : undefined}
+          aria-label={td.emailSyncEmergencyToolsAria}
+          onClick={() => setOpen((o) => !o)}
+        >
+          <svg className="h-3 w-3 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+          <span className="hidden min-[360px]:inline">{td.desktopHeaderSedeToolsMenuTrigger}</span>
+          <svg
+            className={`h-3 w-3 shrink-0 text-app-fg-muted transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      {typeof document !== 'undefined' && panel ? createPortal(panel, document.body) : null}
+    </>
+  )
+}
+
 /**
  * Barra operatore desktop: solleciti (se >0), sync email (dropdown). Opzionale: switch sede admin.
  */
@@ -201,6 +373,7 @@ export default function DashboardHeaderSedeToolsMenu({
       {fornitoriInScadenza > 0 ? (
         <SollecitiButton fornitoriInScadenza={fornitoriInScadenza} toolbarStrip />
       ) : null}
+      <WorkspaceEmailStrumentiMenu />
       <span className={`${TOOLBAR_ICON_BTN_CLS} max-w-[min(100%,280px)] cursor-default hover:brightness-100`}>
         <EmailSyncToolbarStatus lastImapSyncAt={lastImapSyncAt ?? null} lastImapSyncError={lastImapSyncError ?? null} />
       </span>
