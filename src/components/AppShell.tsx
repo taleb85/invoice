@@ -1,6 +1,7 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import dynamic from 'next/dynamic'
 import { usePathname, useRouter } from 'next/navigation'
 import { SplashScreen } from './splash-screen'
@@ -17,6 +18,7 @@ import {
   ToastProvider,
   desktopHeaderBarSurfaceClass,
   useDesktopHeaderToastBanner,
+  type DesktopHeaderToastBanner,
 } from '@/lib/toast-context'
 import { localeFromCountryCode, type Locale } from '@/lib/translations'
 import DashboardMobileBottomNav from './DashboardMobileBottomNav'
@@ -218,6 +220,121 @@ function desktopToastBannerTextClass(
   return 'text-app-fg'
 }
 
+const HEADER_TOAST_ABOVE_GAP_PX = 10
+
+/**
+ * Toast sopra `#app-desktop-header-nav-progress`: `absolute`/`bottom-full` viene tagliato dai contenitori grid/flex
+ * (`min-h-0`). Portale `fixed` + misura dall’anchor: la toolbar non si sposta.
+ */
+function DesktopHeaderBannerPortal({
+  banner,
+  anchorEl,
+}: {
+  banner: DesktopHeaderToastBanner
+  anchorEl: HTMLElement | null
+}) {
+  const [mounted, setMounted] = useState(false)
+  const measureElRef = useRef<HTMLDivElement | null>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const headerNavBarSurface = desktopHeaderBarSurfaceClass(banner)
+  const headerBannerTextCls = desktopToastBannerTextClass(banner)
+
+  useLayoutEffect(() => {
+    if (!mounted || banner === null || !anchorEl) return
+
+    const sync = () => {
+      const r = anchorEl.getBoundingClientRect()
+      const h = measureElRef.current?.offsetHeight ?? 76
+      setPos({
+        top: r.top - h - HEADER_TOAST_ABOVE_GAP_PX,
+        left: r.left + r.width / 2,
+        width: Math.min(Math.max(r.width - 32, 220), 672),
+      })
+    }
+
+    const roAnchor = new ResizeObserver(sync)
+    roAnchor.observe(anchorEl)
+
+    let roInner: ResizeObserver | undefined
+
+    const attachInnerRo = () => {
+      const el = measureElRef.current
+      if (!el || roInner) return
+      roInner = new ResizeObserver(sync)
+      roInner.observe(el)
+    }
+
+    sync()
+    attachInnerRo()
+
+    const rafId =
+      typeof requestAnimationFrame !== 'undefined'
+        ? requestAnimationFrame(() => {
+            sync()
+            attachInnerRo()
+          })
+        : undefined
+
+    window.addEventListener('resize', sync)
+    window.addEventListener('scroll', sync, true)
+
+    return () => {
+      roAnchor.disconnect()
+      roInner?.disconnect()
+      if (rafId !== undefined) cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('scroll', sync, true)
+    }
+  }, [mounted, banner, anchorEl])
+
+  if (!mounted || banner === null || !anchorEl) {
+    return null
+  }
+
+  return createPortal(
+    <div
+      className={`pointer-events-none fixed z-[95] hidden max-md:hidden md:flex md:justify-center transition-opacity duration-150 ${
+        pos ? 'opacity-100' : 'opacity-0'
+      }`}
+      style={
+        pos
+          ? {
+              top: pos.top,
+              left: pos.left,
+              width: pos.width,
+              transform: 'translateX(-50%)',
+            }
+          : { top: 0, left: '50%', width: 672, transform: 'translateX(-50%)' }
+      }
+      role="presentation"
+    >
+      <div
+        ref={measureElRef}
+        role="status"
+        aria-live="polite"
+        className={[
+          'pointer-events-auto max-h-[5.75rem] w-full rounded-2xl border border-white/[0.14] px-4 py-2 text-center shadow-[0_14px_40px_-4px_rgba(0,0,0,0.45)] backdrop-blur-md',
+          banner.type === 'info'
+            ? 'app-workspace-inset-bg-soft ring-1 ring-app-line-28/70'
+            : `${headerNavBarSurface} ring-1 ring-white/10`,
+        ].join(' ')}
+      >
+        <span
+          className={`block max-w-full text-pretty text-sm font-semibold leading-snug ${headerBannerTextCls} ${banner.type === 'info' ? 'line-clamp-3 sm:line-clamp-4' : 'line-clamp-2 sm:line-clamp-3'}`}
+        >
+          {banner.message}
+        </span>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 function AppShellMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const normalized = normalizeAppPath(pathname ?? '')
@@ -226,12 +343,9 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const { activeOperator } = useActiveOperator()
   const { visible: homeScannerDockCtaVisible } = useManualDeliverySede()
   const headerToastBanner = useDesktopHeaderToastBanner()
-  const headerNavBarSurface = desktopHeaderBarSurfaceClass(headerToastBanner)
-  const hasDesktopHeaderToast = Boolean(headerToastBanner)
   /** Sfondo barra quando non è attiva la fascia toast (solo riga toolbar). */
   const desktopToolbarOnlySurface =
     'md:bg-transparent md:shadow-none [color:var(--app-fg-body)]'
-  const headerBannerTextCls = desktopToastBannerTextClass(headerToastBanner)
   const [desktopNavHost, setDesktopNavHost] = useState<HTMLDivElement | null>(null)
   const bindDesktopNavHost = useCallback((el: HTMLDivElement | null) => {
     setDesktopNavHost(el)
@@ -325,35 +439,14 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           </aside>
           <div
             data-app-desktop-canvas
-            className={`flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-2 md:h-full md:min-h-0 ${
-              hasDesktopHeaderToast ? 'md:overflow-visible' : 'md:overflow-hidden'
-            }`}
+            className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-2 md:h-full md:min-h-0 md:overflow-hidden"
           >
+            <DesktopHeaderBannerPortal banner={headerToastBanner} anchorEl={desktopNavHost} />
             <div
               ref={bindDesktopNavHost}
               id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
               className="relative isolate z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[52px] md:w-full md:items-stretch"
             >
-              {headerToastBanner ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-full z-[45] mb-1.5 hidden justify-center px-3 md:flex">
-                  <div
-                    aria-live="polite"
-                    role="status"
-                    className={[
-                      'pointer-events-auto max-h-[5.75rem] w-full max-w-2xl rounded-2xl border border-white/[0.14] px-4 py-2 text-center shadow-[0_14px_40px_-4px_rgba(0,0,0,0.45)] backdrop-blur-md',
-                      headerToastBanner.type === 'info'
-                        ? 'app-workspace-inset-bg-soft ring-1 ring-app-line-28/70'
-                        : `${headerNavBarSurface} ring-1 ring-white/10`,
-                    ].join(' ')}
-                  >
-                    <span
-                      className={`block max-w-full text-pretty text-sm font-semibold leading-snug ${headerBannerTextCls} ${headerToastBanner.type === 'info' ? 'line-clamp-3 sm:line-clamp-4' : 'line-clamp-2 sm:line-clamp-3'}`}
-                    >
-                      {headerToastBanner.message}
-                    </span>
-                  </div>
-                </div>
-              ) : null}
               <div
                 className={`relative z-30 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible md:w-full ${desktopToolbarOnlySurface}`}
               >
