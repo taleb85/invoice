@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { AppSheet } from '@/components/ui/AppSheet'
 import { createClient } from '@/utils/supabase/client'
+import type { Locale } from '@/lib/translations'
 import type { SedeSupplierSuggestionItem } from '@/lib/suggested-fornitore'
-import { formatDate } from '@/lib/locale'
 import { useLocale } from '@/lib/locale-context'
 import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
@@ -14,6 +14,14 @@ import { useToast } from '@/lib/toast-context'
 type Props = {
   sedeId: string
   items: SedeSupplierSuggestionItem[]
+}
+
+function intlLocaleForApp(locale: Locale): string {
+  if (locale === 'it') return 'it-IT'
+  if (locale === 'en') return 'en-GB'
+  if (locale === 'es') return 'es-ES'
+  if (locale === 'fr') return 'fr-FR'
+  return 'de-DE'
 }
 
 export default function DashboardSedeSupplierSuggestion({ sedeId, items }: Props) {
@@ -106,7 +114,14 @@ export default function DashboardSedeSupplierSuggestion({ sedeId, items }: Props
 
   const formatContact = (iso: string | null) => {
     if (!iso) return '—'
-    return formatDate(iso, locale, timezone, { dateStyle: 'medium' })
+    const parsed = new Date(iso)
+    if (!Number.isFinite(parsed.getTime())) return '—'
+    return new Intl.DateTimeFormat(intlLocaleForApp(locale), {
+      timeZone: timezone,
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(parsed)
   }
 
   return (
