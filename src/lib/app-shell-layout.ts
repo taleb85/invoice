@@ -31,6 +31,12 @@ export const APP_SHELL_SECTION_PAGE_H1_CLASS =
 /** Sottotitoli / metadati sotto il titolo o in card riepilogo. */
 export const APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS = 'text-sm leading-snug text-app-fg-muted'
 
+/** Variante compatta per strip affollate (es. Analitiche con FY + tray). */
+export const APP_SHELL_SECTION_PAGE_H1_COMPACT_CLASS =
+  'app-page-title app-page-title-glow text-[15px] font-medium leading-snug sm:text-[16px] md:text-[18px]'
+
+export const APP_SHELL_SECTION_PAGE_SUBTITLE_COMPACT_CLASS = 'text-xs leading-snug text-app-fg-muted'
+
 /**
  * Barra filtri sotto header (allineata al padding interno tabelle `SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS`).
  */
