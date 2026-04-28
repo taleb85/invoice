@@ -5,11 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
 import { type CSSProperties, type ReactNode } from 'react'
-import {
-  DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS,
-  operatorKpiVisual,
-  supplierKpiPalette,
-} from '@/lib/kpi-accent-palette'
+import { DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS, operatorKpiVisual } from '@/lib/kpi-accent-palette'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import { SUMMARY_HIGHLIGHT_ACCENTS, SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { formatCurrency } from '@/lib/locale-shared'
@@ -53,16 +49,17 @@ const OPERATOR_KPI_CARD_MIN_H = 'min-h-[7.25rem] sm:min-h-[7.5rem] lg:min-h-[7.7
  * Stessi colori/drop-shadow della scheda fornitore (`supplierKpiPalette` + `buildSupplierKpiItems`).
  * Ordine tile: Ordini → Bolle → Fatturato → Estratti → Documenti da revisionare.
  */
-const DASHBOARD_TILE_SUPPLIER_ICON_KEYS: (keyof typeof supplierKpiPalette)[] = [
-  'conferme',
-  'bolle',
-  'fatture',
-  'verifica',
-  'verifica',
-]
-
 /** Allinea accenti `operatorKpiVisual` all’ordine delle 5 tile dashboard. */
 const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 2] as const
+
+/** Colore solo sull’icona SVG — Ordini → Revisione (ordine tile `items`). */
+const DASHBOARD_OPERATOR_KPI_ICON_TEXT = [
+  'text-cyan-400',
+  'text-violet-400',
+  'text-emerald-400',
+  'text-amber-400',
+  'text-red-400',
+] as const
 
 function operatorKpiVisualAt(tileIndex: number) {
   const k = Math.max(0, Math.min(tileIndex, OPERATOR_KPI_VISUAL_INDEX.length - 1))
@@ -73,12 +70,9 @@ function operatorKpiVisualAt(tileIndex: number) {
   return operatorKpiVisual[0]!
 }
 
-function dashboardKpiIconSvgClass(index: number) {
-  const i = Math.max(0, Math.min(index, DASHBOARD_TILE_SUPPLIER_ICON_KEYS.length - 1))
-  const key = DASHBOARD_TILE_SUPPLIER_ICON_KEYS[i]!
-  const p = supplierKpiPalette[key]
-  const q = p ?? supplierKpiPalette.conferme
-  return `${q.iconClass} ${q.iconDropShadow}`
+function dashboardKpiIconTextClass(index: number) {
+  const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_ICON_TEXT.length - 1))
+  return DASHBOARD_OPERATOR_KPI_ICON_TEXT[i]!
 }
 
 export function DashboardOperatorKpiSkeleton() {
@@ -190,7 +184,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(0).hoverClass,
       iconWrapClass: operatorKpiVisualAt(0).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconSvgClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -225,7 +219,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(1).hoverClass,
       iconWrapClass: operatorKpiVisualAt(1).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconSvgClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -256,7 +250,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(2).hoverClass,
       iconWrapClass: operatorKpiVisualAt(2).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconSvgClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -278,7 +272,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(3).hoverClass,
       iconWrapClass: operatorKpiVisualAt(3).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconSvgClass(3)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(3)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -301,7 +295,7 @@ export default function DashboardOperatorKpiGrid({
       iconWrapClass: operatorKpiVisualAt(4).iconWrapClass,
       icon: (
         <svg
-          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconSvgClass(4)}`}
+          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4)}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

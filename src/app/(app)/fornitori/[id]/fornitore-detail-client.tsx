@@ -506,7 +506,7 @@ function buildSupplierKpiItems(
       chevronHoverClass: c.chevronHoverClass,
       headerRule: c.headerRule,
       icon: (
-        <svg className={`${c.iconClass} ${c.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
         </svg>
       ),
@@ -523,7 +523,7 @@ function buildSupplierKpiItems(
       chevronHoverClass: b.chevronHoverClass,
       headerRule: b.headerRule,
       icon: (
-        <svg className={`${b.iconClass} ${b.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
       ),
@@ -550,7 +550,7 @@ function buildSupplierKpiItems(
           ? t.fornitori.subFatturatoTotaleLordoMicro.replace('{amount}', formatMoney(stats?.totaleSpesaLordo ?? 0))
           : undefined,
       icon: (
-        <svg className={`${f.iconClass} ${f.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       ),
@@ -572,7 +572,7 @@ function buildSupplierKpiItems(
       chevronHoverClass: v.chevronHoverClass,
       headerRule: v.headerRule,
       icon: (
-        <svg className={`${v.iconClass} ${v.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
         </svg>
       ),
@@ -589,7 +589,7 @@ function buildSupplierKpiItems(
       chevronHoverClass: l.chevronHoverClass,
       headerRule: l.headerRule,
       icon: (
-        <svg className={`${l.iconClass} ${l.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
         </svg>
       ),
@@ -622,7 +622,7 @@ function buildSupplierKpiItems(
       chevronHoverClass: d.chevronHoverClass,
       headerRule: d.headerRule,
       icon: (
-        <svg className={`${d.iconClass} ${d.iconDropShadow}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       ),
@@ -678,7 +678,7 @@ function SupplierDesktopKpiGrid({
             {/* Mobile: layout orizzontale compatto icona+label a sinistra, valore a destra */}
             <div className="flex h-full items-center justify-between gap-1 md:hidden">
               <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center opacity-70 [&>svg]:h-3.5 [&>svg]:w-3.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center [&>svg]:h-3.5 [&>svg]:w-3.5">
                   {k.icon}
                 </span>
                 <p className="min-w-0 truncate text-[9px] font-semibold uppercase tracking-wide text-white/70">
