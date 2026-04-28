@@ -221,44 +221,75 @@ function desktopToastBannerTextClass(
 }
 
 const HEADER_TOAST_ABOVE_GAP_PX = 10
+/** Allineato a `toast-context` breakpoint desktop bar / toast floating. */
+const MD_MIN_PX = 768
+
+/** Host header desktop: cercato via id così il portale non dipende dallo state del ref (ordine JSX). */
+function getDesktopNavProgressHost(): HTMLElement | null {
+  if (typeof document === 'undefined') return null
+  return document.getElementById(APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID)
+}
 
 /**
- * Toast sopra `#app-desktop-header-nav-progress`: `absolute`/`bottom-full` viene tagliato dai contenitori grid/flex
- * (`min-h-0`). Portale `fixed` + misura dall’anchor: la toolbar non si sposta.
+ * Toast sopra `#app-desktop-header-nav-progress`: contenitori grid/flex tagliano gli overflow fuori dall’anchor.
+ * Portale `fixed` + `#app-desktop-header-nav-progress`; la toolbar non si sposta.
  */
-function DesktopHeaderBannerPortal({
-  banner,
-  anchorEl,
-}: {
-  banner: DesktopHeaderToastBanner
-  anchorEl: HTMLElement | null
-}) {
-  const [mounted, setMounted] = useState(false)
+function DesktopHeaderBannerPortal({ banner }: { banner: DesktopHeaderToastBanner }) {
   const measureElRef = useRef<HTMLDivElement | null>(null)
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const headerNavBarSurface = desktopHeaderBarSurfaceClass(banner)
+  const headerNavBarSurface = banner ? desktopHeaderBarSurfaceClass(banner) : ''
   const headerBannerTextCls = desktopToastBannerTextClass(banner)
 
   useLayoutEffect(() => {
-    if (!mounted || banner === null || !anchorEl) return
+    if (banner === null) {
+      setPos(null)
+      return
+    }
+
+    const mq = window.matchMedia(`(min-width: ${MD_MIN_PX}px)`)
 
     const sync = () => {
+      if (!mq.matches) {
+        setPos(null)
+        return
+      }
+
+      const anchorEl = getDesktopNavProgressHost()
+      if (!anchorEl) {
+        setPos(null)
+        return
+      }
+
       const r = anchorEl.getBoundingClientRect()
+      if (r.height < 1 && r.width < 1) {
+        setPos(null)
+        return
+      }
+
       const h = measureElRef.current?.offsetHeight ?? 76
+      const rawTop = r.top - h - HEADER_TOAST_ABOVE_GAP_PX
+      const padParsed = Number.parseFloat(getComputedStyle(document.documentElement).paddingTop) || 0
+      const minTop = Math.max(12, padParsed + 4)
+
+      const top = Math.max(minTop, rawTop)
+
       setPos({
-        top: r.top - h - HEADER_TOAST_ABOVE_GAP_PX,
+        top,
         left: r.left + r.width / 2,
         width: Math.min(Math.max(r.width - 32, 220), 672),
       })
     }
 
-    const roAnchor = new ResizeObserver(sync)
-    roAnchor.observe(anchorEl)
+    const onMq = () => sync()
+    mq.addEventListener('change', onMq)
+
+    let roAnchor: ResizeObserver | undefined
+    const host = getDesktopNavProgressHost()
+    if (host) {
+      roAnchor = new ResizeObserver(sync)
+      roAnchor.observe(host)
+    }
 
     let roInner: ResizeObserver | undefined
 
@@ -284,23 +315,22 @@ function DesktopHeaderBannerPortal({
     window.addEventListener('scroll', sync, true)
 
     return () => {
-      roAnchor.disconnect()
+      mq.removeEventListener('change', onMq)
+      roAnchor?.disconnect()
       roInner?.disconnect()
       if (rafId !== undefined) cancelAnimationFrame(rafId)
       window.removeEventListener('resize', sync)
       window.removeEventListener('scroll', sync, true)
     }
-  }, [mounted, banner, anchorEl])
+  }, [banner])
 
-  if (!mounted || banner === null || !anchorEl) {
+  if (banner === null) {
     return null
   }
 
   return createPortal(
     <div
-      className={`pointer-events-none fixed z-[95] hidden max-md:hidden md:flex md:justify-center transition-opacity duration-150 ${
-        pos ? 'opacity-100' : 'opacity-0'
-      }`}
+      className="pointer-events-none fixed z-[10050] flex justify-center transition-opacity duration-150"
       style={
         pos
           ? {
@@ -308,9 +338,17 @@ function DesktopHeaderBannerPortal({
               left: pos.left,
               width: pos.width,
               transform: 'translateX(-50%)',
+              opacity: 1,
             }
-          : { top: 0, left: '50%', width: 672, transform: 'translateX(-50%)' }
+          : {
+              top: 0,
+              left: '50%',
+              width: 672,
+              transform: 'translateX(-50%)',
+              opacity: 0,
+            }
       }
+      aria-hidden={!pos}
       role="presentation"
     >
       <div
@@ -441,7 +479,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             data-app-desktop-canvas
             className="flex min-h-0 min-w-0 flex-1 flex-col bg-transparent max-md:min-h-dvh md:col-start-1 md:row-start-1 lg:col-start-2 md:h-full md:min-h-0 md:overflow-hidden"
           >
-            <DesktopHeaderBannerPortal banner={headerToastBanner} anchorEl={desktopNavHost} />
+            <DesktopHeaderBannerPortal banner={headerToastBanner} />
             <div
               ref={bindDesktopNavHost}
               id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
