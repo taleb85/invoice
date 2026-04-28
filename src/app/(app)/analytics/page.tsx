@@ -5,6 +5,12 @@ import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHe
 import { AnalyticsDashboard } from '@/components/analytics/analytics-dashboard'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import {
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
+  APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
+} from '@/lib/app-shell-layout'
 import { parseFiscalYearQueryParam, formatFiscalYearShort } from '@/lib/fiscal-year'
 
 export const dynamic = 'force-dynamic'
@@ -50,36 +56,37 @@ export default async function AnalyticsPage(props: { searchParams: SearchParams 
   }
 
   return (
-    <div className="app-shell-page-padding">
-      <BackButton href="/" label={t.nav.dashboard} />
-      <AppPageHeaderStrip accent="sky" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}>
-        <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
-          <div className="min-w-0">
-            <h1 className="text-base font-bold text-app-fg truncate sm:text-lg">{t.nav.analytics}</h1>
-            <p className="text-xs text-app-fg-muted truncate">{t.appStrings.analyticsPageSub}</p>
-          </div>
-          <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
-        </div>
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+      <AppPageHeaderStrip
+        accent="teal"
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
+      >
+        <AppPageHeaderTitleWithDashboardShortcut>
+          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.nav.analytics}</h1>
+          <p className={`mt-0.5 max-w-xl ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS}`}>{t.appStrings.analyticsPageSub}</p>
+        </AppPageHeaderTitleWithDashboardShortcut>
+        <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
 
-      {/* Period selector — sky accent card, matches AppPageHeaderStrip accent="sky" */}
-      <div className="relative mb-5 overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
-        <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600 [box-shadow:0_0_16px_rgba(14,165,233,0.6),0_0_28px_rgba(2,132,199,0.35)]" />
-        <div className="flex items-center gap-1.5 px-4 py-3 sm:px-5">
+      {/* Period selector — stesso accento teal della strip Analitiche */}
+      <div className="relative mb-5 overflow-hidden rounded-2xl border border-teal-500/20 bg-transparent">
+        <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-600 [box-shadow:0_0_16px_rgba(20,184,166,0.55),0_0_28px_rgba(6,182,212,0.35)]" />
+        <div className="flex min-h-10 flex-wrap items-center gap-x-2 gap-y-2 px-4 py-2.5 sm:px-5 sm:py-3">
           {[3, 6, 12].map((value) => (
             <a
               key={value}
               href={`/analytics?months=${value}&fy=${fiscalYear}`}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              className={`inline-flex min-h-9 shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 months === value
-                  ? 'bg-sky-500/15 text-sky-300 ring-1 ring-sky-500/30'
-                  : 'text-sky-300/50 hover:bg-sky-500/10 hover:text-sky-300/80'
+                  ? 'bg-teal-500/15 text-teal-200 ring-1 ring-teal-500/35'
+                  : 'text-teal-300/55 hover:bg-teal-500/12 hover:text-teal-200/90'
               }`}
             >
               {periodLabels[value]}
             </a>
           ))}
-          <span className="ml-2 text-[10px] font-medium text-sky-400/40 uppercase tracking-wider">
+          <span className="ms-1 shrink-0 text-[10px] font-medium uppercase tracking-wider text-teal-400/50 sm:ms-2">
             {t.appStrings.analyticsSinceFY}
           </span>
         </div>

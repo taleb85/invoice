@@ -86,12 +86,19 @@ export default async function SedeProfilePage(props: {
 
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
-      <BackButton
-        href={isMasterAdmin ? '/sedi' : '/'}
-        label={isMasterAdmin ? tDashboard.nav.sediNavGroupMaster : tDashboard.nav.dashboard}
-      />
-
-      <AppPageHeaderStrip dense accent="teal" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}>
+      <AppPageHeaderStrip
+        dense
+        accent="teal"
+        leadingAccessory={
+          <BackButton
+            href={isMasterAdmin ? '/sedi' : '/'}
+            label={isMasterAdmin ? tDashboard.nav.sediNavGroupMaster : tDashboard.nav.dashboard}
+            iconOnly
+            className="mb-0 shrink-0"
+          />
+        }
+        icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
+      >
         <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent">

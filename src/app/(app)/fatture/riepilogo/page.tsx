@@ -23,8 +23,8 @@ import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { BackButton } from '@/components/BackButton'
 import {
-  APP_SHELL_SECTION_PAGE_CLASS,
   APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SECTION_EMPTY_LINK_CLASS,
   APP_SECTION_ROW_ACTION_PILL,
   APP_SECTION_TABLE_CELL_LINK,
@@ -103,11 +103,13 @@ export default async function FattureRiepilogoPage(props: {
   }
 
   return (
-    <div className={APP_SHELL_SECTION_PAGE_CLASS}>
-      <div className="app-shell-page-padding pb-2">
-        <BackButton href="/fatture" label={t.nav.fatture} />
-      </div>
-      <AppPageHeaderStrip accent="violet" mergedSummary={fattureRiepilogoMergedSummary} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}>
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+      <AppPageHeaderStrip
+        accent="emerald"
+        mergedSummary={fattureRiepilogoMergedSummary}
+        leadingAccessory={<BackButton href="/fatture" label={t.nav.fatture} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}
+      >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.dashboard.fattureRiepilogoTitle}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>
@@ -119,7 +121,7 @@ export default async function FattureRiepilogoPage(props: {
           {t.dashboard.operatorNoSede}
         </div>
       ) : summary.fattureCount === 0 ? (
-        <StandardCard accent="violet">
+        <StandardCard accent="emerald">
           <AppSectionEmptyState message={t.dashboard.fattureRiepilogoEmpty}>
             <Link href="/fatture" className={`${APP_SECTION_EMPTY_LINK_CLASS} hover:underline`}>
               {t.dashboard.fattureRiepilogoLinkAll}
@@ -140,11 +142,11 @@ export default async function FattureRiepilogoPage(props: {
           <p className="mb-3 text-xs leading-relaxed text-app-fg-muted">
             {t.dashboard.fattureRiepilogoLimitNote.replace(/\{n\}/g, String(rows.length))}
           </p>
-          <StandardCard accent="violet">
+          <StandardCard accent="emerald">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className={appSectionTableHeadRowAccentClass('violet')}>
+                  <tr className={appSectionTableHeadRowAccentClass('emerald')}>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.invoiceNum}</th>

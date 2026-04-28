@@ -7,6 +7,7 @@ import { ActivityFeed } from '@/components/activity/activity-feed'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { APP_SHELL_SECTION_PAGE_H1_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 type Operatore = { id: string; full_name: string | null }
 
@@ -92,30 +93,31 @@ export default function AttivitaPage() {
   }
 
   return (
-    <div className="app-shell-page-padding">
-      <BackButton href="/" label={t.nav.dashboard} />
-      <AppPageHeaderStrip accent="indigo" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>}>
-        <div className="flex flex-1 items-center justify-between gap-3 min-w-0">
-          <div className="min-w-0">
-            <h1 className="text-base font-bold text-app-fg truncate sm:text-lg">{t.appStrings.attivitaPageTitle}</h1>
-            <p className="text-xs text-app-fg-muted truncate">{t.appStrings.attivitaPageSub}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleExport()}
-            disabled={exporting}
-            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-app-line-25 px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:opacity-50"
-          >
-            {exporting ? (
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            ) : (
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            )}
-            {t.appStrings.attivitaExportCsv}
-          </button>
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+      <AppPageHeaderStrip
+        accent="teal"
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>}
+      >
+        <div className="min-w-0">
+          <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.appStrings.attivitaPageTitle}</h1>
+          <p className="mt-0.5 text-xs text-app-fg-muted truncate sm:text-sm">{t.appStrings.attivitaPageSub}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => void handleExport()}
+          disabled={exporting}
+          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-app-line-25 px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg disabled:opacity-50"
+        >
+          {exporting ? (
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          ) : (
+            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          )}
+          {t.appStrings.attivitaExportCsv}
+        </button>
       </AppPageHeaderStrip>
 
       {/* Filters */}

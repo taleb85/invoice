@@ -199,8 +199,10 @@ export default function CentroOperazioniPage() {
   return (
     <>
       <div className={`${APP_SHELL_SECTION_PAGE_CLASS} md:hidden`}>
-        <BackButton href="/" label={t.nav.dashboard} />
-        <AppPageHeaderStrip accent="cyan">
+        <AppPageHeaderStrip
+          accent="teal"
+          leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        >
           <AppPageHeaderTitleWithDashboardShortcut>
             <nav className="text-[11px] text-app-fg-muted" aria-label="Breadcrumb">
               <Link
@@ -229,7 +231,7 @@ export default function CentroOperazioniPage() {
 
       <div className="hidden min-h-0 w-full flex-1 flex-col md:flex">
         <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 lg:px-8">
-          <BackButton href="/" label={t.nav.dashboard} />
+          <BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-4 shrink-0" />
           <div className="app-card overflow-hidden">
             <div className="border-b border-app-line-30 px-6 py-5 sm:px-8">
               <div className="flex flex-wrap items-start justify-between gap-3">

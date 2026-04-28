@@ -102,7 +102,7 @@ export default async function OrdiniOverviewPage(props: {
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
-        accent="rose"
+        accent="cyan"
         mergedSummary={ordiniMergedSummary}
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         icon={
@@ -134,7 +134,7 @@ export default async function OrdiniOverviewPage(props: {
           {t.dashboard.operatorNoSede}
         </div>
       ) : rows.length === 0 ? (
-        <StandardCard accent="rose">
+        <StandardCard accent="cyan">
           <AppSectionEmptyState message={t.dashboard.ordiniOverviewEmpty}>
             <ActionLink href="/fornitori" intent="nav" size="sm" className="mt-4">
               {t.nav.fornitori} →
@@ -142,11 +142,11 @@ export default async function OrdiniOverviewPage(props: {
           </AppSectionEmptyState>
         </StandardCard>
       ) : (
-        <StandardCard accent="rose">
+        <StandardCard accent="cyan">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
-                <tr className={appSectionTableHeadRowAccentClass('rose')}>
+                <tr className={appSectionTableHeadRowAccentClass('cyan')}>
                   <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColSupplier}</th>
                   <th className={APP_SECTION_TABLE_TH}>{t.dashboard.ordiniColTitle}</th>
                   <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.dashboard.ordiniColOrderDate}</th>

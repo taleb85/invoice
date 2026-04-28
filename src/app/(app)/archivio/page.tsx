@@ -108,9 +108,24 @@ export default async function ArchivioPage() {
 
   return (
     <div className="app-shell-page-padding">
-      <BackButton href="/" label={t.nav.dashboard} />
-
-      <AppPageHeaderStrip accent="amber" mergedSummary={{ label: t.common.total, primary: archivio.length, secondary: <>{totBolle} {t.archivio.bollaP}<span className="mx-1.5 text-app-fg-muted" aria-hidden>·</span>{totFatture} {t.archivio.fatturaP}</> }} icon={<svg className={`w-5 h-5 ${icon.statements}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>}>
+      <AppPageHeaderStrip
+        accent="amber"
+        mergedSummary={{
+          label: t.common.total,
+          primary: archivio.length,
+          secondary: (
+            <>
+              {totBolle} {t.archivio.bollaP}
+              <span className="mx-1.5 text-app-fg-muted" aria-hidden>
+                ·
+              </span>
+              {totFatture} {t.archivio.fatturaP}
+            </>
+          ),
+        }}
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className={`w-5 h-5 ${icon.statements}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>}
+      >
         <div className="flex w-full min-w-0 flex-col gap-3">
           <AppPageHeaderTitleWithDashboardShortcut>
             <h1 className="app-page-title text-2xl font-bold">{t.archivio.title}</h1>

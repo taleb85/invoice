@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/lib/use-t'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import GeminiUsageDashboard, { type GeminiUsageDashboardHandle } from '@/components/GeminiUsageDashboard'
 
 export default function ConsumiAiPage() {
@@ -36,9 +37,10 @@ export default function ConsumiAiPage() {
   }
 
   return (
-    <div className="app-shell-page-padding">
-      <BackButton href="/" label={t.nav.dashboard} />
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
+        accent="teal"
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
         icon={
           <svg
             className="h-5 w-5"

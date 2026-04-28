@@ -13,6 +13,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSummaryHighlightCard from '@/components/AppSummaryHighlightCard'
 import {
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_TABLE_HEAD_ROW,
   APP_SECTION_TABLE_TBODY,
@@ -137,9 +138,25 @@ export default async function LogPage() {
     log.sede_id ?? profile?.sede_id ?? blacklistSedeId
 
   return (
-    <div className="app-shell-page-padding">
-      <BackButton href="/" label={t.nav.dashboard} />
-      <AppPageHeaderStrip accent="teal" mergedSummary={{ label: t.log.totalLogs, primary: entries.length, secondary: <>{t.log.linkedInvoices}: {totaleSuccessi}<span className="mx-1.5 text-app-fg-muted" aria-hidden>·</span>{t.log.withErrors}: {totaleErrori}</> }} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}>
+    <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+      <AppPageHeaderStrip
+        accent="sky"
+        mergedSummary={{
+          label: t.log.totalLogs,
+          primary: entries.length,
+          secondary: (
+            <>
+              {t.log.linkedInvoices}: {totaleSuccessi}
+              <span className="mx-1.5 text-app-fg-muted" aria-hidden>
+                ·
+              </span>
+              {t.log.withErrors}: {totaleErrori}
+            </>
+          ),
+        }}
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>}
+      >
         <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
           <h1 className="app-page-title pr-1 text-2xl font-bold">{t.log.title}</h1>
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.subtitle}</p>

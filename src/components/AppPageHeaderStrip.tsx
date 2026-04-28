@@ -83,7 +83,7 @@ export default function AppPageHeaderStrip({
         {leadingAccessory}
         {icon && (
           <span
-            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center opacity-90 ${theme ? theme.label : 'text-app-fg-muted'}`}
+            className={`inline-flex h-10 w-10 shrink-0 items-center justify-center opacity-90 ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
             aria-hidden
           >
             {icon}

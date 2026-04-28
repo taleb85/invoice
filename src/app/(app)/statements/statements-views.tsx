@@ -324,10 +324,19 @@ export function StatementsContent({
 
   return (
     <div className={wrapperClass}>
-      {backNav ? <BackButton href={backNav.href} label={backNav.label} /> : null}
+      {backNav && !showPageHeader ? (
+        <BackButton href={backNav.href} label={backNav.label} iconOnly className="mb-3" />
+      ) : null}
       {showPageHeader && (
         <>
-          <AppPageHeaderStrip accent={active === 'pending' ? 'amber' : 'cyan'}>
+          <AppPageHeaderStrip
+            accent={active === 'pending' ? 'amber' : 'cyan'}
+            leadingAccessory={
+              backNav ? (
+                <BackButton href={backNav.href} label={backNav.label} iconOnly className="mb-0 shrink-0" />
+              ) : undefined
+            }
+          >
             <AppPageHeaderTitleWithDashboardShortcut>
               <h1 className="app-page-title text-2xl font-bold">{t.statements.heading}</h1>
             </AppPageHeaderTitleWithDashboardShortcut>
