@@ -9,6 +9,8 @@ export type SedeSupplierPrefill = {
 }
 
 export type SedeSupplierSuggestion = {
+  /** Riga `documenti_da_processare` — per Salt / prossimo suggerimento */
+  documentoId: string
   displayName: string
   prefill: SedeSupplierPrefill
   newFornitoreHref: string
@@ -80,7 +82,11 @@ function existingFornitoreMatchesDoc(
   return false
 }
 
-function buildSuggestionFromRow(row: { metadata: unknown; mittente: string | null }): SedeSupplierSuggestion {
+function buildSuggestionFromRow(row: {
+  id: string
+  metadata: unknown
+  mittente: string | null
+}): SedeSupplierSuggestion {
   const m = row.metadata as DocMeta
   const rs = m?.ragione_sociale?.trim() ?? ''
   const pivaRaw = m?.p_iva?.trim() ?? ''
@@ -106,6 +112,7 @@ function buildSuggestionFromRow(row: { metadata: unknown; mittente: string | nul
   const qs = q.toString()
 
   return {
+    documentoId: row.id,
     displayName,
     prefill,
     newFornitoreHref: `/fornitori/new?${qs}`,
@@ -119,17 +126,20 @@ function buildSuggestionFromRow(row: { metadata: unknown; mittente: string | nul
  */
 export async function fetchSedeSupplierSuggestion(
   supabase: SupabaseClient,
-  sedeId: string
+  sedeId: string,
+  opts?: { excludeDocumentIds?: string[] },
 ): Promise<SedeSupplierSuggestion> {
+  const exclude = new Set((opts?.excludeDocumentIds ?? []).filter(Boolean))
+
   const [{ data, error }, { data: fornitoriRows, error: fornErr }] = await Promise.all([
     supabase
       .from('documenti_da_processare')
-      .select('metadata, mittente')
+      .select('id, metadata, mittente')
       .eq('sede_id', sedeId)
       .is('fornitore_id', null)
       .in('stato', ['da_associare', 'in_attesa'])
       .order('created_at', { ascending: false })
-      .limit(12),
+      .limit(60),
     supabase.from('fornitori').select('id, nome, piva, email, display_name').eq('sede_id', sedeId),
   ])
 
@@ -148,7 +158,9 @@ export async function fetchSedeSupplierSuggestion(
     )
   }
 
-  for (const d of data) {
+  for (const raw of data) {
+    const d = raw as { id: string; metadata: unknown; mittente: string | null }
+    if (exclude.has(d.id)) continue
     const m = d.metadata as DocMeta
     if (!(m?.ragione_sociale?.trim() || m?.p_iva?.trim())) continue
     if (existingFornitoreMatchesDoc(fornitori, aliasEmailsLower, m, d.mittente)) continue

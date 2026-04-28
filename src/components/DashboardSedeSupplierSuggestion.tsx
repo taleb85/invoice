@@ -4,23 +4,49 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import type { SedeSupplierPrefill } from '@/lib/suggested-fornitore'
+import type { SedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 
 type Props = {
   sedeId: string
-  prefill: SedeSupplierPrefill
-  newFornitoreHref: string
-}
+} & NonNullable<SedeSupplierSuggestion>
 
-export default function DashboardSedeSupplierSuggestion({ sedeId, prefill, newFornitoreHref }: Props) {
+export default function DashboardSedeSupplierSuggestion({
+  sedeId,
+  documentoId,
+  prefill,
+  newFornitoreHref,
+}: Props) {
   const router = useRouter()
   const t = useT()
   const { showToast } = useToast()
   const supabase = createClient()
+
   const [saving, setSaving] = useState(false)
+  const [skipLoading, setSkipLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const dismissToNext = async () => {
+    setSkipLoading(true)
+    try {
+      const res = await fetch('/api/sede/supplier-suggestion', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sede_id: sedeId, document_id: documentoId }),
+      })
+      if (!res.ok) {
+        showToast((await res.json().catch(() => ({}))).error ?? t.ui.networkError, 'error')
+        return
+      }
+      router.refresh()
+    } catch {
+      showToast(t.ui.networkError, 'error')
+    } finally {
+      setSkipLoading(false)
+    }
+  }
 
   const confirmAdd = async () => {
     setSaving(true)
@@ -34,7 +60,7 @@ export default function DashboardSedeSupplierSuggestion({ sedeId, prefill, newFo
           display_name: null,
           email: prefill.email,
           piva: prefill.piva,
-          indirizzo: prefill.indirizzo?.trim() || null,
+          indirizzo: prefill.indirizzo?.trim() ?? null,
           sede_id: sedeId,
         },
       ])
@@ -84,6 +110,15 @@ export default function DashboardSedeSupplierSuggestion({ sedeId, prefill, newFo
         >
           {t.dashboard.suggestedSupplierOpenForm}
         </Link>
+        <button
+          type="button"
+          onClick={() => void dismissToNext()}
+          disabled={skipLoading}
+          aria-busy={skipLoading}
+          className={`${actionDims} border border-transparent px-3 text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg disabled:pointer-events-none disabled:opacity-50`}
+        >
+          {skipLoading ? t.fornitori.saving : t.dashboard.suggestedSupplierSkip}
+        </button>
       </div>
       {error && (
         <p className="max-w-[min(22rem,calc(100vw-6rem))] text-right text-[11px] text-red-300/95" role="alert">

@@ -14,6 +14,11 @@ import {
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
 import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
+import {
+  SUPPLIER_HINT_SKIP_COOKIE,
+  parseSupplierHintSkipCookie,
+  skipsForSede,
+} from '@/lib/supplier-hint-dismiss-cookie'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
@@ -241,6 +246,11 @@ export default async function DashboardPage({
   const fiscalYear = operatorScoped ? parseFiscalYearQueryParam(searchParams.fy, sedeCountryCode) : 0
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
   const scannerFiscalBounds = kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
+
+  const cookieStoreForDismiss = await getCookieStore()
+  const supplierDismissSkips = parseSupplierHintSkipCookie(cookieStoreForDismiss.get(SUPPLIER_HINT_SKIP_COOKIE)?.value)
+  const excludeDocIdsForSupplierHint = sedeId ? skipsForSede(supplierDismissSkips, sedeId) : []
+
   let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
   let supplierHint: Awaited<ReturnType<typeof fetchSedeSupplierSuggestion>> = null
   let scannerFlowDetail: Awaited<ReturnType<typeof fetchTodayScannerFlowDetail>> = {
@@ -252,7 +262,9 @@ export default async function DashboardPage({
       operatorScoped
         ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
         : Promise.resolve({ ...DEFAULT_OPERATOR_DASHBOARD_KPIS }),
-      operatorScoped && sedeId ? fetchSedeSupplierSuggestion(supabase, sedeId) : Promise.resolve(null),
+      operatorScoped && sedeId
+        ? fetchSedeSupplierSuggestion(supabase, sedeId, { excludeDocumentIds: excludeDocIdsForSupplierHint })
+        : Promise.resolve(null),
       operatorScoped && sedeId
         ? fetchTodayScannerFlowDetail(
             supabase,
@@ -312,11 +324,7 @@ export default async function DashboardPage({
               <p className="min-w-0 flex-1 text-sm font-semibold leading-snug text-app-fg">
                 {t.dashboard.suggestedSupplierBanner.replace(/\{name\}/g, supplierHint.displayName)}
               </p>
-              <DashboardSedeSupplierSuggestion
-                sedeId={sedeId}
-                prefill={supplierHint.prefill}
-                newFornitoreHref={supplierHint.newFornitoreHref}
-              />
+              <DashboardSedeSupplierSuggestion sedeId={sedeId} {...supplierHint} />
             </div>
           </div>
         </div>
