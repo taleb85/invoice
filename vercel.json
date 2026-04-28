@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/sync-emails",
-      "schedule": "0 * * * *"
+      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/rekki-auto-poll",
