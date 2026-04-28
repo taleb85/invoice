@@ -7,10 +7,13 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { BackButton } from '@/components/BackButton'
-import { APP_SHELL_SECTION_PAGE_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
+import {
+  APP_SHELL_SECTION_PAGE_CLASS,
+  APP_SHELL_SECTION_PAGE_H1_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
+} from '@/lib/app-shell-layout'
 
 type DashboardPayload = {
   lastCleanupAt: string | null
@@ -197,8 +200,8 @@ export default function CentroOperazioniPage() {
   }
 
   return (
-    <>
-      <div className={`${APP_SHELL_SECTION_PAGE_CLASS} md:hidden`}>
+    <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
+      <div className="mx-auto w-full max-w-2xl">
         <AppPageHeaderStrip
           rowAlign="start"
           accent="teal"
@@ -219,7 +222,7 @@ export default function CentroOperazioniPage() {
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-app-fg-muted">{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
-        <div className="mt-6 space-y-8 px-6 pb-10">
+        <div className="mt-6 space-y-8">
           <CentroOperazioniDashboard
             data={data}
             loadError={loadError}
@@ -229,42 +232,6 @@ export default function CentroOperazioniPage() {
           />
         </div>
       </div>
-
-      <div className="hidden min-h-0 w-full flex-1 flex-col md:flex">
-        <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 lg:px-8">
-          <BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-4 shrink-0" />
-          <div className="app-card overflow-hidden">
-            <div className="border-b border-app-line-30 px-6 py-5 sm:px-8">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <nav className="text-[11px] text-app-fg-muted" aria-label="Breadcrumb">
-                    <Link
-                      href="/strumenti"
-                      className="text-app-fg-muted underline-offset-4 hover:text-cyan-200 hover:underline"
-                    >
-                      {s.breadcrumbTools}
-                    </Link>
-                    <span className="mx-2 text-app-fg-muted/40">&rsaquo;</span>
-                    <span>{s.pageTitle}</span>
-                  </nav>
-                  <h1 className="app-page-title mt-2 text-xl font-bold">{s.pageTitle}</h1>
-                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-app-fg-muted">{s.pageSubtitle}</p>
-                </div>
-                <AppPageHeaderDesktopTray className="pt-0.5" />
-              </div>
-            </div>
-          </div>
-          <div className="mt-6 space-y-8">
-            <CentroOperazioniDashboard
-              data={data}
-              loadError={loadError}
-              forceLoading={forceLoading}
-              forceError={forceError}
-              onForce={onForce}
-            />
-          </div>
-        </div>
-      </div>
-    </>
+    </div>
   )
 }

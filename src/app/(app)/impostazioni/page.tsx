@@ -12,10 +12,10 @@ import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { usePushNotifications } from '@/hooks/use-push-notifications'
 import { BackButton } from '@/components/BackButton'
+import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 function ProfileMobileHub() {
@@ -204,7 +204,9 @@ export default function ImpostazioniPage() {
   const [saved, setSaved] = useState(false)
   const [dupOpen, setDupOpen] = useState(false)
   const helpIconGradIdRaw = useId()
-  const helpIconGradId = `imp-fluxo-help-${helpIconGradIdRaw.replace(/[^a-zA-Z0-9_-]/g, '') || 'g'}`
+  const helpIconGradIdBase = `imp-fluxo-help-${helpIconGradIdRaw.replace(/[^a-zA-Z0-9_-]/g, '') || 'g'}`
+  const helpIconGradIdMobile = `${helpIconGradIdBase}-m`
+  const helpIconGradIdDesktop = `${helpIconGradIdBase}-d`
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
@@ -347,13 +349,13 @@ export default function ImpostazioniPage() {
               >
                 <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" aria-hidden>
                   <defs>
-                    <linearGradient id={helpIconGradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <linearGradient id={helpIconGradIdMobile} x1="0%" y1="0%" x2="100%" y2="0%">
                       <stop offset="0%" stopColor="#6b8ef5" />
                       <stop offset="100%" stopColor="#22d3ee" />
                     </linearGradient>
                   </defs>
                   <path
-                    stroke={`url(#${helpIconGradId})`}
+                    stroke={`url(#${helpIconGradIdMobile})`}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
@@ -414,31 +416,53 @@ export default function ImpostazioniPage() {
         <ProfileMobileHub />
       </div>
 
-      {/* ══ DESKTOP: un’unica colonna (niente seconda sidebar con un solo tab) ══ */}
-      <div className="hidden min-h-0 w-full flex-1 flex-col md:flex">
-        <div className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 lg:px-8">
-          <BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-4 shrink-0" />
-          <div className="app-card overflow-hidden">
-            <div className="border-b border-app-line-30 px-6 py-5 sm:px-8">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
-                    <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
-                      {mounted ? t.impostazioni.sectionLocalisation : ''}
-                    </p>
-                    <h1 className="app-page-title mt-0.5 text-xl font-bold" suppressHydrationWarning>
-                      {mounted ? t.impostazioni.title : ''}
-                    </h1>
-                  </div>
+      {/* ══ DESKTOP: stessa strip del mobile (back + icona + tray) senza header duplicato in card ══ */}
+      <div className={`hidden min-h-0 w-full flex-1 flex-col md:flex ${APP_SHELL_SECTION_PAGE_STACK_CLASS}`}>
+        <div className="mx-auto w-full max-w-2xl flex-1">
+          <AppPageHeaderStrip
+            rowAlign="start"
+            dense
+            flushBottom
+            accent="slate"
+            leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+            icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>}
+          >
+            <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 w-full flex-1 items-center gap-2 sm:gap-3">
+              <div className="flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
+                    {mounted ? t.impostazioni.sectionLocalisation : ''}
+                  </p>
+                  <h1 className="app-page-title mt-0.5 text-lg font-bold sm:text-xl" suppressHydrationWarning>
+                    {mounted ? t.impostazioni.title : ''}
+                  </h1>
                 </div>
-                <AppPageHeaderDesktopTray className="pt-0.5" />
+                <Link
+                  href="/guida"
+                  className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center self-start rounded-lg border border-app-line-35 bg-gradient-to-br from-[rgb(30_41_59/0.95)] via-cyan-950/40 to-indigo-950/90 shadow-md shadow-black/30 ring-1 ring-app-line-15 transition-all hover:border-app-a-55 hover:brightness-110 active:scale-[0.98] sm:h-10 sm:w-10 sm:rounded-xl sm:self-center"
+                  aria-label={t.nav.guida}
+                  title={t.nav.guida}
+                >
+                  <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" aria-hidden>
+                    <defs>
+                      <linearGradient id={helpIconGradIdDesktop} x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#6b8ef5" />
+                        <stop offset="100%" stopColor="#22d3ee" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      stroke={`url(#${helpIconGradIdDesktop})`}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </Link>
               </div>
-            </div>
+            </AppPageHeaderTitleWithDashboardShortcut>
+          </AppPageHeaderStrip>
+          <div className="app-card overflow-hidden mt-2 md:mt-3">
             <div className="space-y-6 px-6 py-6 sm:px-8">
               <FormBody />
               {saved && (
