@@ -8,6 +8,7 @@ import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { getLocale, COUNTRY_OPTIONS } from '@/lib/localization'
 import { CURRENCIES, TIMEZONES } from '@/lib/translations'
+import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { APP_SECTION_DIVIDE_ROWS } from '@/lib/app-shell-layout'
@@ -463,7 +464,11 @@ export default function SediPage() {
   return (
     <div className="w-full min-w-0 app-shell-page-padding space-y-6 md:space-y-8">
 
-      <AppPageHeaderStrip accent="teal" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}>
+      <AppPageHeaderStrip
+        accent="teal"
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
+      >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className="app-page-title text-xl font-bold md:text-2xl">{t.sedi.titleGlobalAdmin}</h1>
           <p className="mt-1 hidden text-sm text-app-fg-muted md:block">{t.sedi.subtitleGlobalAdmin}</p>

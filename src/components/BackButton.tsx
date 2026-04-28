@@ -20,9 +20,9 @@ export function BackButton({ label = 'Indietro', href, className, iconOnly }: Ba
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  /** `iconOnly`: target ~stessa scala dell’icona sezione nello strip (h-14 / sm:h-16 nel contenitore vicino). */
+  /** `iconOnly`: stesso box dell’icona sezione in `AppPageHeaderStrip` (h-14 w-14 sm:h-16). */
   const baseClass = iconOnly
-    ? 'mb-0 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg sm:h-12 sm:w-12'
+    ? 'mb-0 flex h-14 w-14 shrink-0 items-center justify-center rounded-xl text-app-fg-muted transition-colors hover:bg-white/[0.06] hover:text-app-fg sm:h-16 sm:w-16'
     : 'mb-3 flex w-fit items-center gap-1 text-sm text-app-fg-muted transition-colors hover:text-app-fg'
 
   return (
@@ -43,7 +43,11 @@ export function BackButton({ label = 'Indietro', href, className, iconOnly }: Ba
       }}
       className={`${baseClass} ${className ?? ''}`}
     >
-      <ChevronLeft className={`shrink-0 ${iconOnly ? 'h-5 w-5 sm:h-6 sm:w-6' : 'h-4 w-4'}`} aria-hidden />
+      <ChevronLeft
+        className={`shrink-0 ${iconOnly ? 'h-6 w-6 sm:h-7 sm:w-7' : 'h-4 w-4'}`}
+        strokeWidth={iconOnly ? 2.5 : 2}
+        aria-hidden
+      />
       {!iconOnly ? label : null}
     </button>
   )

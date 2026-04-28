@@ -96,7 +96,7 @@ export default function AppPageHeaderStrip({
   const innerRowCls = `${innerPad} ${
     alignStart ? 'sm:items-start' : 'sm:items-center'
   } ${dense && alignStart ? 'md:items-start' : dense ? 'md:items-center' : ''}`
-  const leftClusterCls = `flex min-w-0 min-h-0 flex-1 ${leadingAccessory ? 'gap-2 sm:gap-2.5 md:gap-3 lg:gap-3.5' : 'gap-3 lg:gap-4'} ${alignStart ? 'items-start' : 'items-center'}`
+  const leftClusterCls = `flex min-w-0 min-h-0 flex-1 ${leadingAccessory ? 'gap-1.5 sm:gap-2 md:gap-2.5 lg:gap-3' : 'gap-3 lg:gap-4'} ${alignStart ? 'items-start' : 'items-center'}`
   const titleCls = `min-w-0 flex-1 ${alignStart ? 'self-start' : 'self-center'}`
   const rightCls = `${dense ? innerRightClsDenseBase : innerRightClsBase} ${
     alignStart ? 'items-start sm:justify-end sm:pt-0' : 'items-center'
