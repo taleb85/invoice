@@ -145,6 +145,9 @@ export default function CentroOperazioniPage() {
   const [forceError, setForceError] = useState<string | null>(null)
   const [emailSyncLoading, setEmailSyncLoading] = useState(false)
   const [emailSyncError, setEmailSyncError] = useState<string | null>(null)
+  const [historicSyncLoading, setHistoricSyncLoading] = useState(false)
+  const [historicSyncError, setHistoricSyncError] = useState<string | null>(null)
+  const [historicSyncResult, setHistoricSyncResult] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoadError(null)
@@ -218,6 +221,33 @@ export default function CentroOperazioniPage() {
     }
   }, [effectiveSedeId])
 
+  const onHistoricEmailSync = useCallback(async () => {
+    setHistoricSyncLoading(true)
+    setHistoricSyncError(null)
+    setHistoricSyncResult(null)
+    try {
+      const res = await fetch('/api/scan-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'historical',
+          ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
+        }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string; ricevuti?: number }
+      if (!res.ok) {
+        setHistoricSyncError(j.error ?? `HTTP ${res.status}`)
+        return
+      }
+      const n = typeof j.ricevuti === 'number' && Number.isFinite(j.ricevuti) ? j.ricevuti : 0
+      setHistoricSyncResult(s.historicSyncResult.replace('{n}', String(n)))
+    } catch (e) {
+      setHistoricSyncError(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setHistoricSyncLoading(false)
+    }
+  }, [effectiveSedeId, s.historicSyncResult])
+
   if (!canView) {
     return (
       <div className={`${APP_SHELL_SECTION_PAGE_CLASS} px-6 py-10`}>
@@ -274,6 +304,37 @@ export default function CentroOperazioniPage() {
               {emailSyncError ? <span className="text-xs text-rose-300">{emailSyncError}</span> : null}
             </div>
           </div>
+
+          <div className="app-card overflow-hidden p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.historicSyncSectionLabel}</p>
+            <p className="mt-2 text-base font-semibold text-app-fg">{s.historicSyncTitle}</p>
+            <p className="mt-2 text-sm text-app-fg-muted">{s.historicSyncDesc}</p>
+            <p className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
+              {s.historicSyncWarning}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={historicSyncLoading}
+                onClick={onHistoricEmailSync}
+                className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-violet-500/45 bg-violet-500/12 px-4 py-2.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {historicSyncLoading ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-violet-100 border-t-transparent" />
+                    {t.common.loading}
+                  </>
+                ) : (
+                  s.historicSyncCta
+                )}
+              </button>
+              {historicSyncError ? <span className="text-xs text-rose-300">{historicSyncError}</span> : null}
+            </div>
+            {historicSyncResult ? (
+              <p className="mt-3 text-sm text-emerald-200/95">{historicSyncResult}</p>
+            ) : null}
+          </div>
+
           <CentroOperazioniDashboard
             data={data}
             loadError={loadError}

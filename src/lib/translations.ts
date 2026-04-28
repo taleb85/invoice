@@ -1118,6 +1118,14 @@ type Translations = {
     /** Centro operazioni: titolo card sync email manuale (24 h) */
     manualImapSyncTitle: string
     manualImapSyncDesc: string
+    /** Centro operazioni: sync IMAP storica (lookback sede, es. 365 gg) */
+    historicSyncSectionLabel: string
+    historicSyncTitle: string
+    historicSyncDesc: string
+    historicSyncWarning: string
+    historicSyncCta: string
+    /** Segnaposto `{n}` = documenti ricevuti dall’API scan-emails */
+    historicSyncResult: string
     hintContextualShortcuts: string
   }
   log: {
@@ -2028,6 +2036,14 @@ const it: Translations = {
     manualImapSyncTitle: 'Sync email — finestra 24 ore',
     manualImapSyncDesc:
       'Cerca nella casella gli ultimi 24 ore di messaggi. Il cron automatico usa invece le ultime 3 ore per limitare il carico.',
+    historicSyncSectionLabel: 'Sync storica (anno precedente)',
+    historicSyncTitle: 'Importa dati anno precedente',
+    historicSyncDesc:
+      'Scarica tutte le email degli ultimi 365 giorni per avere il confronto con l’anno fiscale 2025/26.',
+    historicSyncWarning:
+      '⚠️ Operazione lenta — può richiedere diversi minuti. Esegui solo una volta.',
+    historicSyncCta: 'Avvia sync storica',
+    historicSyncResult: '{n} documenti importati dall’anno precedente',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
   },
@@ -3517,6 +3533,13 @@ const en: Translations = {
     manualImapSyncTitle: 'Email sync — 24 h window',
     manualImapSyncDesc:
       'Searches the inbox for roughly the last 24 hours of messages. The scheduled cron uses a 3-hour window instead.',
+    historicSyncSectionLabel: 'Historic sync (previous year)',
+    historicSyncTitle: 'Import previous-year data',
+    historicSyncDesc:
+      'Downloads mail from roughly the last 365 days so you can compare with fiscal year 2025/26.',
+    historicSyncWarning: '⚠️ Slow operation — may take several minutes. Run only once.',
+    historicSyncCta: 'Start historic sync',
+    historicSyncResult: '{n} documents imported from the previous year',
     hintContextualShortcuts:
       'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
   },
@@ -4222,6 +4245,13 @@ const es: Translations = {
     manualImapSyncTitle: 'Sincronizar email — ventana 24 h',
     manualImapSyncDesc:
       'Busca en la bandeja de entrada los últimos 24 horas. El cron automático usa solo 3 horas para aligerar la carga.',
+    historicSyncSectionLabel: 'Sync histórica (año anterior)',
+    historicSyncTitle: 'Importar datos del año anterior',
+    historicSyncDesc:
+      'Descarga el correo de los últimos 365 días aproximadamente para comparar con el ejercicio fiscal 2025/26.',
+    historicSyncWarning: '⚠️ Operación lenta — puede tardar varios minutos. Ejecútala solo una vez.',
+    historicSyncCta: 'Iniciar sync histórica',
+    historicSyncResult: '{n} documentos importados del año anterior',
     hintContextualShortcuts:
       'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
   },
@@ -4922,6 +4952,13 @@ const fr: Translations = {
     manualImapSyncTitle: 'Sync e-mail — fenêtre 24 h',
     manualImapSyncDesc:
       'Recherche les messages des dernières ~24 heures. Le cron planifié n’indexe que 3 heures pour limiter la charge.',
+    historicSyncSectionLabel: 'Sync historique (année précédente)',
+    historicSyncTitle: 'Importer les données de l’année précédente',
+    historicSyncDesc:
+      'Télécharge les e-mails des derniers ~365 jours pour comparer avec l’exercice fiscal 2025/26.',
+    historicSyncWarning: '⚠️ Opération lente — peut prendre plusieurs minutes. À lancer une seule fois.',
+    historicSyncCta: 'Démarrer la sync historique',
+    historicSyncResult: '{n} documents importés pour l’année précédente',
     hintContextualShortcuts:
       'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
   },
@@ -5622,6 +5659,13 @@ const de: Translations = {
     manualImapSyncTitle: 'E-Mail-Sync — 24 h-Fenster',
     manualImapSyncDesc:
       'Durchsucht das Postfach nach den letzten ca. 24 Stunden. Der geplante Cron nutzt 3 Stunden, um die Last zu begrenzen.',
+    historicSyncSectionLabel: 'Historischer Sync (Vorjahr)',
+    historicSyncTitle: 'Daten des Vorjahrs importieren',
+    historicSyncDesc:
+      'Lädt E-Mails der letzten ~365 Tage herunter, um mit dem Geschäftsjahr 2025/26 zu vergleichen.',
+    historicSyncWarning: '⚠️ Langsame Aktion — kann mehrere Minuten dauern. Nur einmal ausführen.',
+    historicSyncCta: 'Historischen Sync starten',
+    historicSyncResult: '{n} Dokumente aus dem Vorjahr importiert',
     hintContextualShortcuts:
       'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',
   },
