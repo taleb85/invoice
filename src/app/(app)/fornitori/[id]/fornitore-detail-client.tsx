@@ -76,7 +76,6 @@ const RecuperoCreditiAudit = dynamic(
   () => import('@/components/RecuperoCreditiAudit'),
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
-import { BackButton } from '@/components/BackButton'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
@@ -5163,9 +5162,6 @@ function FornitoreDetailClient({
 
   return (
     <>
-      <div className="fornitore-desktop-main-x mx-auto w-full max-w-7xl px-4 pt-2 md:pt-3">
-        <BackButton href="/fornitori" label="Fornitori" className="mb-0" />
-      </div>
       <FornitoreDocDetailLayer
         fornitoreId={fornitore.id}
         bollaId={searchParams.get('bolla')}
