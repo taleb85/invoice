@@ -299,19 +299,19 @@ export default async function LogPage() {
               })}
             </div>
 
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full min-w-[960px] text-left text-xs">
+            <div className="hidden min-w-0 md:block">
+              <table className="w-full table-fixed border-collapse text-left text-xs">
                 <thead>
                   <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.log.colLogId}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.common.date}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.log.colSede}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.log.sender}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.log.subject}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.log.colAttachment}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.common.status}</th>
-                    <th className="min-w-[200px] px-3 py-2 font-semibold text-app-fg-muted">{t.common.detail}</th>
-                    <th className="whitespace-nowrap px-3 py-2 font-semibold text-app-fg-muted">{t.common.actions}</th>
+                    <th className="w-[6%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colLogId}</th>
+                    <th className="w-[10%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.date}</th>
+                    <th className="w-[9%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colSede}</th>
+                    <th className="w-[14%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.sender}</th>
+                    <th className="w-[16%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.subject}</th>
+                    <th className="w-[12%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colAttachment}</th>
+                    <th className="w-[9%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.status}</th>
+                    <th className="w-[16%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.detail}</th>
+                    <th className="w-[8%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.actions}</th>
                   </tr>
                 </thead>
                 <tbody className={APP_SECTION_TABLE_TBODY}>
@@ -326,26 +326,28 @@ export default async function LogPage() {
                           unknownHighlight ? 'bg-red-950/20' : ''
                         }`}
                       >
-                        <td className="whitespace-nowrap px-3 py-2 font-mono text-[10px] text-app-fg-muted">{log.id.slice(0, 8)}</td>
-                        <td className="whitespace-nowrap px-3 py-2 text-app-fg-muted">{formatDate(log.data)}</td>
-                        <td className="max-w-[100px] truncate px-3 py-2 text-app-fg-muted" title={sedeNomeFromLog(log) ?? ''}>
+                        <td className="min-w-0 whitespace-nowrap px-2 py-2 font-mono text-[10px] text-app-fg-muted sm:px-3">{log.id.slice(0, 8)}</td>
+                        <td className="min-w-0 whitespace-nowrap px-2 py-2 text-app-fg-muted sm:px-3">{formatDate(log.data)}</td>
+                        <td className="min-w-0 truncate px-2 py-2 text-app-fg-muted sm:px-3" title={sedeNomeFromLog(log) ?? ''}>
                           {sedeNomeFromLog(log) ?? '—'}
                         </td>
-                        <td className="max-w-[140px] truncate px-3 py-2 font-medium text-app-fg">{log.mittente}</td>
-                        <td className="max-w-[160px] truncate px-3 py-2 text-app-fg-muted">
+                        <td className="min-w-0 truncate px-2 py-2 font-medium text-app-fg sm:px-3" title={log.mittente}>
+                          {log.mittente}
+                        </td>
+                        <td className="min-w-0 truncate px-2 py-2 text-app-fg-muted sm:px-3" title={log.oggetto_mail ?? ''}>
                           {log.oggetto_mail ?? <span className="italic text-app-fg-muted">—</span>}
                         </td>
-                        <td className="max-w-[160px] truncate px-3 py-2 font-mono text-[11px] text-app-fg-muted" title={attach}>
+                        <td className="min-w-0 truncate px-2 py-2 font-mono text-[11px] text-app-fg-muted sm:px-3" title={attach}>
                           {attach || <span className="italic text-app-fg-muted">—</span>}
                         </td>
-                        <td className="px-3 py-2">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.className}`}>
+                        <td className="min-w-0 px-2 py-2 sm:px-3">
+                          <span className={`inline-flex max-w-full truncate items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.className}`}>
                             {cfg.label}
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-[11px] leading-snug text-app-fg-muted">
+                        <td className="min-w-0 overflow-hidden px-2 py-2 text-[11px] leading-snug text-app-fg-muted sm:px-3">
                           {log.errore_dettaglio ? (
-                            <span className="line-clamp-4" title={log.errore_dettaglio}>
+                            <span className="line-clamp-4 break-words" title={log.errore_dettaglio}>
                               {log.errore_dettaglio}
                             </span>
                           ) : log.file_url ? (
@@ -360,7 +362,7 @@ export default async function LogPage() {
                             <span className="italic text-app-fg-muted">—</span>
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="min-w-0 px-2 py-2 sm:px-3">
                           <div className="flex flex-wrap items-center gap-1.5">
                             {isMasterAdmin && log.stato === 'fornitore_non_trovato' && log.file_url && (
                               <LogSupplierAiSuggest
