@@ -15,6 +15,7 @@ import {
   isFornitoreProfileRoute,
   normalizeAppPath,
 } from '@/lib/mobile-hub-routes'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import DashboardHomeScannerDockCta from '@/components/DashboardHomeScannerDockCta'
 import type { QuickScanResult } from './quick-scan/quick-scan-modal'
 
@@ -23,7 +24,6 @@ const QuickScanModal = dynamic(
   { ssr: false },
 )
 
-/**
 /**
  * Dock mobile edge-to-edge: si attacca al bordo inferiore dello schermo e usa
  * `padding-bottom: env(safe-area-inset-bottom)` per coprire la safe area iPhone.
@@ -149,11 +149,11 @@ function FornitoreProfileBottomNav({
       {masterAdminNoOperator ? <BottomNavOperatorRow /> : null}
       <div className={fornitoreIconsRow}>
         <Link href="/" className={itemCls(dashboardActive)} prefetch={false}>
-          <Home className="h-6 w-6 shrink-0" aria-hidden />
+          <Home className={`h-6 w-6 shrink-0 ${icon.home}`} aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
         </Link>
         <Link href="/fornitori" className={itemCls(false)} prefetch={false}>
-          <Users className="h-6 w-6 shrink-0" aria-hidden />
+          <Users className={`h-6 w-6 shrink-0 ${icon.fornitori}`} aria-hidden />
           <span className="line-clamp-2 text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
 
@@ -164,7 +164,7 @@ function FornitoreProfileBottomNav({
           className="flex min-h-[60px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/15 px-2 py-2 text-[10px] font-bold touch-manipulation text-cyan-300 ring-1 ring-inset ring-cyan-400/20 transition-all active:scale-95 active:bg-cyan-500/25 sm:text-xs shadow-[0_0_16px_-4px_rgba(34,211,238,0.35)]"
           aria-label="Scansiona documento"
         >
-          <svg className="h-6 w-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg className={`h-6 w-6 shrink-0 ${icon.orders}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
@@ -244,7 +244,7 @@ export default function DashboardMobileBottomNav() {
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
           <span className="relative">
-            <Home className="h-6 w-6 shrink-0" aria-hidden />
+            <Home className={`h-6 w-6 shrink-0 ${icon.home}`} aria-hidden />
             {showOfflineBadge && (
               <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
                 {pendingCount > 9 ? '9+' : pendingCount}
@@ -254,15 +254,15 @@ export default function DashboardMobileBottomNav() {
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
         </Link>
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
-          <Users className="h-6 w-6 shrink-0" aria-hidden />
+          <Users className={`h-6 w-6 shrink-0 ${icon.fornitori}`} aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
         <Link href="/bolle" className={itemCls(isActive('/bolle'))} prefetch={false}>
-          <FileText className="h-6 w-6 shrink-0" aria-hidden />
+          <FileText className={`h-6 w-6 shrink-0 ${icon.bolle}`} aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bolle}</span>
         </Link>
         <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
-          <Settings className="h-6 w-6 shrink-0" aria-hidden />
+          <Settings className={`h-6 w-6 shrink-0 ${icon.settingsTools}`} aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.impostazioni}</span>
         </Link>
       </div>
@@ -276,7 +276,7 @@ export default function DashboardMobileBottomNav() {
       <div className={hubIconsRow}>
         <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
           <span className="relative">
-            <Home className="h-6 w-6 shrink-0" aria-hidden />
+            <Home className={`h-6 w-6 shrink-0 ${icon.home}`} aria-hidden />
             {showOfflineBadge && (
               <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
                 {pendingCount > 9 ? '9+' : pendingCount}
@@ -286,12 +286,12 @@ export default function DashboardMobileBottomNav() {
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
         </Link>
         <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
-          <Users className="h-6 w-6 shrink-0" aria-hidden />
+          <Users className={`h-6 w-6 shrink-0 ${icon.fornitori}`} aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
         <OperatorHubNavItem itemCls={itemCls} />
         <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
-          <Settings className="h-6 w-6 shrink-0" aria-hidden />
+          <Settings className={`h-6 w-6 shrink-0 ${icon.settingsTools}`} aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.impostazioni}</span>
         </Link>
       </div>

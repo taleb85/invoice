@@ -25,6 +25,7 @@ import { useMe } from '@/lib/me-context'
 import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
 import { createClient } from '@/utils/supabase/client'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 type BollaPayload = {
   id: string
@@ -458,7 +459,7 @@ function FatturaLayerBody({
       {deleting ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
       ) : (
-        <Trash2 className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
+        <Trash2 className={`h-3.5 w-3.5 ${icon.destructive}`} aria-hidden strokeWidth={2} />
       )}
       {t.common.delete}
     </button>

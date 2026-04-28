@@ -7,6 +7,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT } from '@/lib/app-shell-layout'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 export type AdminGlobalSedeCard = {
   id: string
@@ -61,7 +62,7 @@ export function AdminGlobalDashboard({
                   {erroriRecenti > 9 ? '9+' : erroriRecenti}
                 </span>
               )}
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-4 w-4 shrink-0 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

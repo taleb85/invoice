@@ -11,6 +11,7 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR } from '@/lib/app-shell-layout'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 export type ConfermaOrdineRow = {
   id: string
@@ -89,7 +90,7 @@ export default function FornitoreConfermeOrdineTab({
 
   const pdfOpenTrigger = (
     <>
-      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <svg className={`h-3 w-3 ${icon.orders}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path
           strokeLinecap="round"
           strokeLinejoin="round"

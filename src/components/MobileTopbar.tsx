@@ -15,6 +15,7 @@ import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import ConnectionStatusDot from '@/components/ConnectionStatusDot'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 const LANG_DIALOG_ID = 'mobile-topbar-lang-dialog'
 
@@ -180,7 +181,7 @@ export default function MobileTopbar() {
                         className="flex min-h-[44px] min-w-[44px] shrink-0 touch-manipulation items-center justify-center rounded-xl text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg"
                         aria-label={t.ui.closeMenu}
                       >
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <svg className={`h-5 w-5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
@@ -238,7 +239,7 @@ export default function MobileTopbar() {
             aria-label={t.nav.esci}
             title={t.nav.esci}
           >
-            <LogOut className="size-5 shrink-0" strokeWidth={2} aria-hidden />
+            <LogOut className={`size-5 shrink-0 ${icon.destructive}`} strokeWidth={2} aria-hidden />
           </button>
         </div>
       </div>

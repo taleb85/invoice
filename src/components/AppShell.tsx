@@ -22,6 +22,7 @@ import {
 } from '@/lib/toast-context'
 import { localeFromCountryCode, type Locale } from '@/lib/translations'
 import DashboardMobileBottomNav from './DashboardMobileBottomNav'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { AppActivitiesProvider } from '@/lib/app-activities-context'
 import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
 import EmailSyncProgressBar from './EmailSyncProgressBar'
@@ -496,7 +497,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                   className="flex lg:hidden h-full min-h-[52px] w-10 shrink-0 touch-manipulation items-center justify-center border-r border-app-line-25 text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
                   aria-label="Menu navigazione"
                 >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg className={`h-5 w-5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
                   </svg>
                 </button>

@@ -9,6 +9,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import ReplaceFileButton from './ReplaceFileButton'
 import DetailBackButton from '@/components/DetailBackButton'
 import { hrefWithReturnTo } from '@/lib/return-navigation'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 export default async function FatturaDetailPage(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params
   const [fattura, t, locale, tz] = await Promise.all([
@@ -22,7 +23,7 @@ export default async function FatturaDetailPage(props: { params: Promise<{ id: s
 
   return (
     <div className="max-w-2xl app-shell-page-padding">
-      <AppPageHeaderStrip accent="emerald" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}>
+      <AppPageHeaderStrip accent="emerald" icon={<svg className={`w-5 h-5 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}>
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <Suspense
             fallback={
@@ -30,7 +31,7 @@ export default async function FatturaDetailPage(props: { params: Promise<{ id: s
                 href="/fatture"
                 className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-5 w-5 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </Link>
@@ -40,7 +41,7 @@ export default async function FatturaDetailPage(props: { params: Promise<{ id: s
               className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
               aria-label="Indietro"
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`h-5 w-5 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </DetailBackButton>
@@ -107,7 +108,7 @@ export default async function FatturaDetailPage(props: { params: Promise<{ id: s
               fileUrl={fattura.file_url}
               className="flex items-center gap-2 text-sm font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`h-4 w-4 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
               {t.common.openAttachment}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { useLocale } from '@/lib/locale-context'
 
 type FetchState = 'idle' | 'loading' | 'done' | 'error'
@@ -58,7 +59,7 @@ export default function DuplicateDashboardBanner() {
       >
         <span className="shrink-0 text-base leading-none" aria-hidden>⚠️</span>
         <span className="flex-1 text-sm font-semibold">{bannerText}</span>
-        <svg className="h-4 w-4 shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-4 w-4 shrink-0 opacity-90 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>

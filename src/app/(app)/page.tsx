@@ -28,6 +28,7 @@ import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
 import { getFiscalYearPgBounds, formatFiscalYearShort, parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
 import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -98,7 +99,7 @@ export default async function DashboardPage(props: {
                 </span>
               )}
               <span className="hidden md:inline">{t.dashboard.viewLog}</span>
-              <svg className="h-4 w-4 md:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-4 w-4 md:hidden ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

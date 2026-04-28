@@ -11,6 +11,7 @@ import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DetailBackButton from '@/components/DetailBackButton'
 import { hrefWithReturnTo } from '@/lib/return-navigation'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
 async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
@@ -47,7 +48,7 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
 
   return (
     <div className="max-w-2xl app-shell-page-padding">
-      <AppPageHeaderStrip accent="indigo" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>}>
+      <AppPageHeaderStrip accent="indigo" icon={<svg className={`w-5 h-5 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>}>
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <Suspense
             fallback={
@@ -57,7 +58,7 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
                 aria-label={t.appStrings.infoSupplierCard}
                 title={t.appStrings.infoSupplierCard}
               >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className={`h-5 w-5 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </Link>
@@ -68,7 +69,7 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
               aria-label={t.appStrings.infoSupplierCard}
               title={t.appStrings.infoSupplierCard}
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-5 w-5 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </DetailBackButton>
@@ -161,7 +162,7 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
               fileUrl={bolla.file_url}
               className="flex items-center gap-2 text-sm font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`h-4 w-4 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
               {t.common.openAttachment}

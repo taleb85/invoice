@@ -5,6 +5,7 @@ import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
 import { useToast } from '@/lib/toast-context'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 type Props = {
   fatturaId: string
@@ -86,7 +87,7 @@ export default function FatturaRefreshDateButton({
       {loading ? (
         <span className="h-2.5 w-2.5 shrink-0 animate-spin rounded-full border border-current border-t-transparent" />
       ) : (
-        <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3 w-3 shrink-0 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"

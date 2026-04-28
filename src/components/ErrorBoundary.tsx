@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, useCallback, useState, type ErrorInfo, type ReactNode } from 'react'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 interface Props {
   children: ReactNode
@@ -184,7 +185,7 @@ function ErrorCard({
               onClick={onReset}
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 active:opacity-80"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-4 w-4 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
@@ -195,7 +196,7 @@ function ErrorCard({
               onClick={() => { window.location.href = '/' }}
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-app-line-32 app-workspace-inset-bg px-4 py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:bg-app-line-12 hover:text-app-fg"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-4 w-4 ${icon.home}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>

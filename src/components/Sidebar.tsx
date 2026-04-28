@@ -10,6 +10,7 @@ import { useLocale } from '@/lib/locale-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { getAssociatedSedeNome, navGestisciSediLabel } from '@/lib/gestisci-sede-label'
 import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { effectiveIsAdminSedeUi, profileCanAccessSediListPage } from '@/lib/effective-operator-ui'
 import { fornitoreDisplayLabel, fornitoreDisplayLabelUppercase } from '@/lib/fornitore-display'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
@@ -142,7 +143,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     {
       label: t.nav.dashboard,
       href: '/',
-      iconColor: 'text-fuchsia-400',
+      iconColor: icon.home,
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -152,7 +153,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     {
       label: t.nav.fornitori,
       href: '/fornitori',
-      iconColor: 'text-rose-400',
+      iconColor: icon.fornitori,
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -191,7 +192,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     label: t.nav.logEmail,
     href: '/log',
     badge: false,
-    iconColor: 'text-teal-400',
+    iconColor: icon.emailSync,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -223,7 +224,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const analyticsNavItem = {
     label: t.nav.analytics,
     href: '/analytics',
-    iconColor: 'text-sky-400',
+    iconColor: icon.analytics,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
@@ -235,7 +236,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     label: t.nav.approvazioni,
     href: '/approvazioni',
     count: pendingApprovalCount,
-    iconColor: 'text-emerald-400',
+    iconColor: icon.approvazioni,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
@@ -246,7 +247,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const attivitaNavItem = {
     label: t.nav.attivita,
     href: '/attivita',
-    iconColor: 'text-indigo-400',
+    iconColor: icon.analytics,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -257,7 +258,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const backupNavItem = {
     label: t.nav.backup,
     href: '/backup',
-    iconColor: 'text-amber-400',
+    iconColor: icon.settingsTools,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4-8 4s8 1.79 8 4"/>
@@ -268,7 +269,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const consumiAiNavItem = {
     label: t.nav.consumiAi,
     href: '/consumi-ai',
-    iconColor: 'text-cyan-400',
+    iconColor: icon.analytics,
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
@@ -280,7 +281,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     {
       label: t.nav.dashboard,
       href: '/',
-      iconColor: 'text-fuchsia-400',
+      iconColor: icon.home,
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -293,7 +294,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     {
       label: t.nav.fornitori,
       href: '/fornitori',
-      iconColor: 'text-rose-400',
+      iconColor: icon.fornitori,
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -394,7 +395,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] font-semibold text-white/65 transition-colors hover:bg-app-line-10 hover:text-app-fg"
               >
                 <span className="flex items-center gap-2 min-w-0">
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                   <span className="min-w-0 truncate">
@@ -406,7 +407,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
                   )}
                 </span>
-                <svg className={`w-3 h-3 shrink-0 transition-transform ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -443,7 +444,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                             title={t.ui.sidebarSedeSettings.replace('{name}', s.nome)}
                             className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
                           >
-                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
@@ -463,7 +464,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             onClick={onClose}
             className={navLink(pathname === '/sedi')}
           >
-            <span className={`shrink-0 ${pathname === '/sedi' ? 'text-amber-400' : 'text-amber-400/75'}`}>
+            <span className={`shrink-0 ${pathname === '/sedi' ? icon.settingsTools : 'text-slate-400/75'}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -480,7 +481,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             me?.sede_id &&
             sessionCanNavigateSediList && (
             <Link href="/sedi" onClick={onClose} className={navLink(pathname === '/sedi')}>
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
               <span className="truncate">{gestisciSediLinkLabel}</span>
@@ -530,7 +531,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${pathname.startsWith('/fornitori') ? 'border-l-2 border-app-cyan-400/85 bg-app-line-10 pl-[10px] text-app-fg shadow-[inset_0_0_16px_rgba(6,182,212,0.08)]' : 'border-l-2 border-transparent bg-transparent pl-[10px] text-white/65 hover:bg-app-line-10 hover:text-app-fg'}`}
               >
                 <span className="flex items-center gap-2 min-w-0">
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <span className="truncate">{t.nav.fornitori}</span>
@@ -540,7 +541,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     </span>
                   )}
                 </span>
-                <svg className={`w-3 h-3 shrink-0 transition-transform ${fornitoriOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${fornitoriOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -563,7 +564,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   {/* All suppliers */}
                   <Link href="/fornitori" onClick={onClose}
                     className={`flex items-center gap-2 px-2 py-1 rounded-md text-xs font-semibold transition-colors ${pathname === '/fornitori' ? 'bg-app-line-10 text-app-fg' : 'bg-transparent text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}>
-                    <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-3 h-3 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     </svg>
                     <span className="truncate">{t.nav.tuttiFornitori}</span>
@@ -621,7 +622,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 )}
                 {sedeNome && <span className="shrink-0 text-[11px] text-white/25">·</span>}
                 <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-white/70">{operatorDockName}</span>
-                <svg className="ml-1 h-3 w-3 shrink-0 text-white/25 transition-colors group-hover:text-white/55" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`ml-1 h-3 w-3 shrink-0 ${icon.settingsTools} transition-colors group-hover:opacity-80`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
               </button>
@@ -633,7 +634,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               title={footerOpen ? t.ui.collapseSidebar : t.ui.expandSidebar}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white/30 transition-colors hover:bg-app-line-10 hover:text-white/70"
             >
-              <svg className={`h-3 w-3 transition-transform ${footerOpen ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`h-3 w-3 transition-transform ${icon.settingsTools} ${footerOpen ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -667,7 +668,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 onClick={() => setFooterOpen(false)}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${pathname === '/impostazioni' ? 'text-app-fg bg-app-line-10' : 'text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}
               >
-                <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-3.5 w-3.5 shrink-0 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
@@ -679,7 +680,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 onClick={() => setFooterOpen(false)}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${pathname === '/guida' ? 'text-app-fg bg-app-line-10' : 'text-white/55 hover:bg-app-line-10 hover:text-app-fg'}`}
               >
-                <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-3.5 w-3.5 shrink-0 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span className="truncate">{t.nav.guida}</span>
@@ -690,7 +691,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold text-white/45 transition-colors hover:bg-red-500/8 hover:text-red-400"
               >
-                <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`h-3.5 w-3.5 shrink-0 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
                 <span className="truncate">{t.nav.esci}</span>
@@ -742,9 +743,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href="/impostazioni"
               title={t.nav.impostazioni}
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname === '/impostazioni' ? 'text-app-cyan-400' : 'text-white/40 hover:text-app-fg'}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 text-white/40 hover:text-app-fg"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`h-4 w-4 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -754,9 +755,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <Link
               href="/guida"
               title={t.nav.guida}
-              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname === '/guida' ? 'text-app-cyan-400' : 'text-white/40 hover:text-app-fg'}`}
+              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 text-white/40 hover:text-app-fg"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`h-4 w-4 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </Link>
@@ -768,7 +769,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               title={t.nav.esci}
               className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-white/40 transition-colors hover:bg-red-500/10 hover:text-red-400"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`h-4 w-4 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
             </button>

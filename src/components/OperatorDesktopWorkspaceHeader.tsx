@@ -35,7 +35,7 @@ function OperatorDesktopWorkspaceHeaderInner() {
   if (hideStrip || !data || !data.operatorScoped) return null
 
   return (
-    <div className="relative flex shrink-0 items-center">
+    <div className="relative flex min-w-0 shrink-0 items-center justify-end">
       <DashboardHeaderSedeToolsMenu fornitoriInScadenza={data.sollecitiFornitori} />
     </div>
   )

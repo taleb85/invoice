@@ -86,7 +86,7 @@ export function DesktopHeaderActionsStrip() {
   const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
   const pathname = usePathname()
   /**
-   * Host flex-1 per eventuali azioni di pagina (portal); menu «Strumenti» e sync email sono sibling fuori dall’host.
+   * Host flex-1 per eventuali azioni di pagina (portal); duplicati / solleciti / sync email sono sulla strip come sibling fuori dall’host.
    * Solo sotto `/fornitori` la strip operatore è nascosta: qui serve il pulsante dedicato in barra.
    */
   const showHeaderScanEmail = normalizeAppPath(pathname ?? '').startsWith('/fornitori')

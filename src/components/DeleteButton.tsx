@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Loader2, Trash2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 interface Props {
   id: string
@@ -28,7 +29,7 @@ export default function DeleteButton({
   confirmMessage,
   redirectTo,
   className,
-  iconClassName = 'w-3.5 h-3.5',
+  iconClassName = `w-3.5 h-3.5 ${icon.destructive}`,
   iconOnly = false,
 }: Props) {
   const t = useT()

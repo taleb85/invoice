@@ -20,6 +20,7 @@ import { useNetworkStatusOptional } from '@/lib/network-context'
 import { SUMMARY_HIGHLIGHT_ACCENTS, SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { buildListLocationPath, hrefWithReturnTo } from '@/lib/return-navigation'
 import { saveScrollForListPath } from '@/lib/return-navigation-client'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 /** Allineato al KPI «Fornitori» (`operatorKpiVisual` sky) e a `AppSummaryHighlightCard accent="sky"`. */
 const fornitoriCardTheme = SUMMARY_HIGHLIGHT_ACCENTS.sky
@@ -324,7 +325,7 @@ export default function FornitoriCardsGrid({
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>
                       {t.common.detail}
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className={`w-3 h-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                     </button>
@@ -336,7 +337,7 @@ export default function FornitoriCardsGrid({
                         title={t.common.edit}
                         onClick={() => request('edit', f.id, f.nome)}
                       >
-                        <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`h-3.5 w-3.5 shrink-0 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -351,7 +352,7 @@ export default function FornitoriCardsGrid({
                         onClick={() => request('delete', f.id, f.nome)}
                         className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-950/50 hover:text-red-300 sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-xs"
                       >
-                        <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`h-3.5 w-3.5 shrink-0 ${icon.destructive}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"

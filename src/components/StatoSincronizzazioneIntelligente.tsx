@@ -6,6 +6,7 @@ import type { Locale as DateFnsLocale } from 'date-fns'
 import { it as itLocale, enUS, es, fr, de } from 'date-fns/locale'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
+import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 interface EmailUpdate {
   prodotto: string
@@ -429,7 +430,7 @@ export default function StatoSincronizzazioneIntelligente({
         )}
         {error && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
-            <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`h-4 w-4 shrink-0 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {error}
