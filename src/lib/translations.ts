@@ -255,6 +255,8 @@ type Translations = {
     backup: string
     /** Sidebar — Gemini AI usage dashboard (master admin only) */
     consumiAi: string
+    /** Sidebar / breadcrumb — hub strumenti amministrativi */
+    strumenti: string
   }
   common: {
     save: string
@@ -1066,6 +1068,39 @@ type Translations = {
     addOperatorsPickSede: string
     /** Sezione IMAP nella pagina impostazioni */
     imapSection: string
+  }
+  strumentiCentroOperazioni: {
+    pageTitle: string
+    pageSubtitle: string
+    breadcrumbTools: string
+    sectionOcr: string
+    sectionDup: string
+    sectionListino: string
+    cardReanalyzeTitle: string
+    cardReanalyzeDesc: string
+    cardOpenInbox: string
+    cardRefreshDateTitle: string
+    cardRefreshDateDesc: string
+    cardOpenFatture: string
+    cardOcrCheckTitle: string
+    cardOcrCheckDesc: string
+    cardOpenFornitoreSheet: string
+    cardDupScanTitle: string
+    cardDupScanDesc: string
+    cardDupManageTitle: string
+    cardDupManageDesc: string
+    cardDupManageCta: string
+    cardAuditTitle: string
+    cardAuditDesc: string
+    cardOpenAudit: string
+    cardListinoAutoTitle: string
+    cardListinoAutoDesc: string
+    cardListinoFromInvTitle: string
+    cardListinoFromInvDesc: string
+    cardListinoAddTitle: string
+    cardListinoAddDesc: string
+    cardListinoCta: string
+    hintContextualShortcuts: string
   }
   log: {
     title: string
@@ -1916,6 +1951,46 @@ const it: Translations = {
     attivita: 'Attività',
     backup: 'Backup',
     consumiAi: 'Consumi AI',
+    strumenti: 'Strumenti',
+  },
+  strumentiCentroOperazioni: {
+    pageTitle: 'Centro operazioni',
+    pageSubtitle:
+      'Accesso rapido a OCR, duplicati, abbinamenti fornitore e listino. I pulsanti sulle singole schede documento restano disponibili.',
+    breadcrumbTools: 'Strumenti',
+    sectionOcr: 'OCR & documenti',
+    sectionDup: 'Duplicati & pulizia',
+    sectionListino: 'Listino & prezzi',
+    cardReanalyzeTitle: 'Rianalizza OCR (coda e AI)',
+    cardReanalyzeDesc:
+      'Documenti in attesa, classificazione AI e suggerimenti Gemini — come in AI Inbox. Sulle bolle/fatture continua l’azione «Rianalizza» sulla riga.',
+    cardOpenInbox: 'Apri AI Inbox',
+    cardRefreshDateTitle: 'Rileggi data da allegato',
+    cardRefreshDateDesc: 'Su una fattura aperta usa «Rileggi data» accanto alla data documento (serve un allegato).',
+    cardOpenFatture: 'Apri archivio fatture',
+    cardOcrCheckTitle: 'Controllo OCR fornitore',
+    cardOcrCheckDesc:
+      'Nella scheda fornitore (desktop) il pulsante «Controllo OCR» esegue la stessa verifica massiva sulle date sospette.',
+    cardOpenFornitoreSheet: 'Apri fornitori',
+    cardDupScanTitle: 'Cerca duplicati fatture',
+    cardDupScanDesc: 'Stessa scansione della toolbar del riepilogo: stesso fornitore, stessa data e stesso numero fattura.',
+    cardDupManageTitle: 'Gestione duplicati',
+    cardDupManageDesc: 'Bolle, fatture e fornitori: analizza gruppi e unifica o elimina copie.',
+    cardDupManageCta: 'Apri gestione duplicati',
+    cardAuditTitle: 'Audit abbinamenti fornitore',
+    cardAuditDesc: 'Allinea email mittente e fornitori assegnati — scheda Abbinamenti in AI Inbox.',
+    cardOpenAudit: 'Apri tab Abbinamenti',
+    cardListinoAutoTitle: 'Aggiornamento automatico listino (Auto)',
+    cardListinoAutoDesc: 'Sulla scheda Listino di un fornitore: analizza automaticamente le fatture non ancora elaborate.',
+    cardListinoFromInvTitle: 'Importa prezzi «Da fattura»',
+    cardListinoFromInvDesc:
+      'Sulla scheda Listino: scegli una fattura con PDF e conferma i prodotti da importare nel listino.',
+    cardListinoAddTitle: 'Aggiungi prodotto al listino',
+    cardListinoAddDesc:
+      'Sulla scheda Listino: pulsante Aggiungi per inserimento manuale (desktop).',
+    cardListinoCta: 'Vai ai fornitori — scheda Listino',
+    hintContextualShortcuts:
+      'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
   },
   common: {
     save: 'Salva',
@@ -3338,6 +3413,44 @@ const en: Translations = {
     attivita: 'Activity',
     backup: 'Backup',
     consumiAi: 'AI Usage',
+    strumenti: 'Tools',
+  },
+  strumentiCentroOperazioni: {
+    pageTitle: 'Operations hub',
+    pageSubtitle:
+      'Quick access to OCR, duplicates, supplier matching and price list tools. Buttons on individual document pages remain available.',
+    breadcrumbTools: 'Tools',
+    sectionOcr: 'OCR & documents',
+    sectionDup: 'Duplicates & cleanup',
+    sectionListino: 'Price list & prices',
+    cardReanalyzeTitle: 'Re-run OCR (queue & AI)',
+    cardReanalyzeDesc:
+      'Pending documents, AI classification and Gemini suggestions — same as AI Inbox. On a single delivery note or invoice, use “Re-run (OCR)” on the row.',
+    cardOpenInbox: 'Open AI Inbox',
+    cardRefreshDateTitle: 'Re-read date from attachment',
+    cardRefreshDateDesc: 'Open an invoice and use “Re-read date” next to the document date (needs an attachment).',
+    cardOpenFatture: 'Open invoices',
+    cardOcrCheckTitle: 'Supplier OCR check',
+    cardOcrCheckDesc:
+      'On a supplier profile (desktop) the “OCR check” button bulk re-checks OCR for suspicious-looking dates.',
+    cardOpenFornitoreSheet: 'Open suppliers',
+    cardDupScanTitle: 'Find duplicate invoices',
+    cardDupScanDesc: 'Same scan as the dashboard toolbar: same supplier, same date and same invoice number.',
+    cardDupManageTitle: 'Duplicate management',
+    cardDupManageDesc: 'Delivery notes, invoices and suppliers: scan groups and merge or delete copies.',
+    cardDupManageCta: 'Open duplicate manager',
+    cardAuditTitle: 'Supplier attachment audit',
+    cardAuditDesc: 'Align sender email with assigned suppliers — “Matching” tab in AI Inbox.',
+    cardOpenAudit: 'Open Matching tab',
+    cardListinoAutoTitle: 'Automatic list price refresh (Auto)',
+    cardListinoAutoDesc: 'On the supplier Price list tab: automatically analyse invoices not processed yet.',
+    cardListinoFromInvTitle: 'Import prices “From invoice”',
+    cardListinoFromInvDesc: 'On the Price list tab: pick an invoice with a PDF and confirm items to import.',
+    cardListinoAddTitle: 'Add product to price list',
+    cardListinoAddDesc: 'On the Price list tab: Add button for manual entry (desktop).',
+    cardListinoCta: 'Go to suppliers — Price list tab',
+    hintContextualShortcuts:
+      'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
   },
   common: { save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', new: 'New', loading: 'Loading...', error: 'Error', success: 'Success', noData: 'No data', document: 'Document', actions: 'Actions', date: 'Date', status: 'Status', supplier: 'Supplier', notes: 'Notes', phone: 'Phone', saving: 'Saving...', attachment: 'Attachment', openAttachment: 'Open attachment', detail: 'Detail', add: 'Add', rename: 'Rename', role: 'Role', aiExtracted: 'AI Extracted Data', matched: 'Matched', notMatched: 'Not matched', recordSupplierLinked: 'Linked', company: 'Company', invoiceNum: 'Invoice No.', total: 'Total', duplicateBadge: 'DUPLICATE', emailSyncAutoSavedBadge: 'Auto-saved', viewerZoomIn: 'Zoom in', viewerZoomOut: 'Zoom out', viewerZoomReset: '100%', viewerZoomHint: 'Ctrl+scroll or buttons' },
   status: { inAttesa: 'Pending', completato: 'Completed', completata: 'Completed' },
@@ -4002,7 +4115,45 @@ const es: Translations = {
     deviceWelcomeBack: '¡Bienvenido/a, {name}!',
     accessoSwitchOperator: 'Cambiar operador',
   },
-  nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Registro de email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)', analytics: 'Analytics', approvazioni: 'Aprobaciones', attivita: 'Actividad', backup: 'Copia de seguridad', consumiAi: 'Consumo IA' },
+  nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Registro de email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)', analytics: 'Analytics', approvazioni: 'Aprobaciones', attivita: 'Actividad', backup: 'Copia de seguridad', consumiAi: 'Consumo IA', strumenti: 'Herramientas' },
+  strumentiCentroOperazioni: {
+    pageTitle: 'Centro de operaciones',
+    pageSubtitle:
+      'Accesos rápidos a OCR, duplicados, conciliaciones de proveedor y listín. Los botones en cada documento siguen disponibles.',
+    breadcrumbTools: 'Herramientas',
+    sectionOcr: 'OCR y documentos',
+    sectionDup: 'Duplicados y limpieza',
+    sectionListino: 'Listín y precios',
+    cardReanalyzeTitle: 'Volver a analizar OCR (cola e IA)',
+    cardReanalyzeDesc:
+      'Documentos pendientes, clasificación IA y sugerencias Gemini — igual que en AI Inbox. En cada albarán o factura puedes usar «Volver a analizar» en la fila.',
+    cardOpenInbox: 'Abrir AI Inbox',
+    cardRefreshDateTitle: 'Releer fecha desde el adjunto',
+    cardRefreshDateDesc: 'Abre una factura y usa «Releer fecha» junto a la fecha (hace falta adjunto).',
+    cardOpenFatture: 'Abrir facturas',
+    cardOcrCheckTitle: 'Comprobación OCR del proveedor',
+    cardOcrCheckDesc:
+      'En la ficha del proveedor (escritorio) el botón «Comprobación OCR» vuelve a analizar masivamente las fechas dudosas.',
+    cardOpenFornitoreSheet: 'Abrir proveedores',
+    cardDupScanTitle: 'Buscar facturas duplicadas',
+    cardDupScanDesc: 'Mismo análisis que la barra del panel: mismo proveedor, misma fecha y mismo número.',
+    cardDupManageTitle: 'Gestión de duplicados',
+    cardDupManageDesc: 'Albaranes, facturas y proveedores: agrupa copias y unifica o borra.',
+    cardDupManageCta: 'Abrir gestión de duplicados',
+    cardAuditTitle: 'Auditoría de abonos de proveedor',
+    cardAuditDesc: 'Alinear email remitente y proveedor asignado — pestaña Abonaciones en AI Inbox.',
+    cardOpenAudit: 'Abrir pestaña Abonaciones',
+    cardListinoAutoTitle: 'Actualización automática del listín (Auto)',
+    cardListinoAutoDesc: 'En la pestaña Listín del proveedor: analiza automáticamente facturas pendientes.',
+    cardListinoFromInvTitle: 'Importar precios «Desde factura»',
+    cardListinoFromInvDesc:
+      'En la pestaña Listín: elige una factura con PDF y confirma productos.',
+    cardListinoAddTitle: 'Añadir producto al listín',
+    cardListinoAddDesc: 'En la pestaña Listín: botón Añadir para alta manual (escritorio).',
+    cardListinoCta: 'Ir a proveedores — pestaña Listín',
+    hintContextualShortcuts:
+      'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
+  },
   common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', phone: 'Teléfono', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: 'Añadir', rename: 'Renombrar', role: 'Rol', aiExtracted: 'Datos extraídos por IA', matched: 'Asociado', notMatched: 'No asociado', recordSupplierLinked: 'Vinculado', company: 'Empresa', invoiceNum: 'N.º Factura', total: 'Total', duplicateBadge: 'DUPLICADO', emailSyncAutoSavedBadge: 'Guardado automático', viewerZoomIn: 'Aumentar zoom', viewerZoomOut: 'Reducir zoom', viewerZoomReset: '100 %', viewerZoomHint: 'Ctrl + rueda o botones' },
   status: { inAttesa: 'Pendiente', completato: 'Completado', completata: 'Completada' },
   dashboard: { title: 'Panel', suppliers: 'Proveedores', totalBills: 'Total albaranes', pendingBills: 'Albaranes pendientes', invoices: 'Facturas', recentBills: 'Albaranes recientes', recentBillsMobileListDisabled: 'El listado detallado no se muestra en esta pantalla. Usa «Ver todos» para abrir el listado de albaranes o cambia a una pantalla más grande.', viewAll: 'Ver todos →', syncEmail: 'Sincronizar Email', emailSyncScopeLookback: 'Días recientes (sede)', emailSyncScopeFiscal: 'Año fiscal', emailSyncFiscalYearSelectAria: 'Periodo de sincronización de email', emailSyncScopeHint: 'IT, FR, DE, ES: año civil. UK: año fiscal que termina el 5 abr. Cada sede usa su país.', emailSyncLookbackSedeDefault: 'Predeterminado de sede (IMAP)', emailSyncLookbackDaysN: 'Últimos {n} días', emailSyncLookbackDaysAria: 'Cuántos días atrás buscar en el buzón', emailSyncLookbackDaysHint: 'Predeterminado de sede: usa los días configurados en la sede. Si no, limita la búsqueda IMAP a los últimos N días (leídos y no leídos).', emailSyncDocumentKindAria: 'Tipo de documentos a importar al sincronizar el correo', emailSyncDocumentKindHint: 'Todos: predeterminado. Nuevo proveedor: solo remitentes no dados de alta. Albarán / Factura: fuerza el tipo de borrador. Extracto: solo correos cuyo asunto parece un extracto (statement).', emailSyncDocumentKindAll: 'Todos los documentos', emailSyncDocumentKindFornitore: 'Nuevo proveedor', emailSyncDocumentKindBolla: 'Albarán (DDT)', emailSyncDocumentKindFattura: 'Factura', emailSyncDocumentKindEstratto: 'Extracto de cuenta', syncing: 'Sincronizando...', sendReminders: 'Enviar recordatorios', sending: 'Enviando...', viewLog: 'Ver Log', sedeOverview: 'Resumen por Sede', manageSedeNamed: 'Gestionar {name} →', manageSedi: 'Gestionar sedes →', sedeImapOn: 'Email activa', digitalizzaRicevuto: 'Digitalizar recibo', scannerFlowCardTitle: 'Escáner — hoy', scannerFlowCardHint: 'PDF analizados por IA y documentos guardados hoy en esta sede (tu zona horaria).', scannerFlowAiElaborate: 'Procesadas (IA)', scannerFlowArchived: 'Archivadas', scannerFlowOpenScanner: 'Nuevo escaneo', scannerFlowBolleHubTitle: 'Archivo de albaranes', scannerFlowRecentTitle: 'Actividad reciente del escáner IA', scannerFlowNoRecent: 'Sin eventos de escaneo recientes. Usa el escáner IA en la barra inferior o inicia un escaneo nuevo.', scannerFlowTodayCounts: 'Hoy: {ai} procesadas (IA) · {arch} archivadas', scannerFlowFiscalPeriodLine: 'Año fiscal {year}', scannerFlowCardHintFiscal: 'Los totales usan el año fiscal seleccionado (igual que el selector superior), no solo hoy.', scannerFlowDetailListCountRange: '{n} documentos en el periodo', scannerFlowDetailListCountToday: '{n} documentos hoy', scannerFlowDetailEmptyRange: 'Ningún documento en este periodo.', scannerFlowStepAiElaborata: 'PDF analizado por IA — texto y datos extraídos (OCR)', scannerFlowStepArchiviataBolla: 'Albarán registrado y guardado en el archivo', scannerFlowStepArchiviataFattura: 'Factura registrada y guardada en el archivo', scannerFlowTodayActivityTitle: 'Actividad de hoy', scannerFlowNoEventsToday: 'No hay actividad del escáner IA hoy en esta sede.', scannerFlowEventsAllLink: 'Registro completo de eventos →', scannerFlowEventsPageTitle: 'Escáner IA — eventos', scannerFlowEventsEmpty: 'No hay eventos del escáner registrados.', scannerFlowEventsPrev: 'Anterior', scannerFlowEventsNext: 'Siguiente', scannerFlowEventsPageOf: 'Página {current} de {pages}', scannerMobileTileTap: 'Toca para empezar', duplicateFattureScanButton: 'Buscar facturas duplicadas', duplicateFattureToolbarShort: 'Duplicados', sendRemindersToolbarShort: 'Recordatorios', syncEmailToolbarShort: 'Sync email', duplicateFattureModalTitle: 'Facturas duplicadas', duplicateFattureScanning: 'Analizando facturas…',
@@ -4661,7 +4812,45 @@ const fr: Translations = {
     deviceWelcomeBack: 'Bon retour, {name} !',
     accessoSwitchOperator: 'Changer d’opérateur',
   },
-  nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Journal email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)', analytics: 'Analytics', approvazioni: 'Approbations', attivita: 'Activité', backup: 'Sauvegarde', consumiAi: 'Consommation IA' },
+  nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Journal email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)', analytics: 'Analytics', approvazioni: 'Approbations', attivita: 'Activité', backup: 'Sauvegarde', consumiAi: 'Consommation IA', strumenti: 'Outils' },
+  strumentiCentroOperazioni: {
+    pageTitle: 'Centre des opérations',
+    pageSubtitle:
+      'Raccourcis OCR, doublons, rattachements fournisseur et tarifs. Les boutons sur chaque document restent disponibles.',
+    breadcrumbTools: 'Outils',
+    sectionOcr: 'OCR & documents',
+    sectionDup: 'Doublons & nettoyage',
+    sectionListino: 'Tarifs & prix',
+    cardReanalyzeTitle: 'Relancer l’OCR (file & IA)',
+    cardReanalyzeDesc:
+      'Documents en attente, classification IA et suggestions Gemini — comme AI Inbox. Sur un BL ou une facture utilisez aussi « Réanalyse (OCR) » sur la ligne.',
+    cardOpenInbox: 'Ouvrir AI Inbox',
+    cardRefreshDateTitle: 'Relire la date depuis la PJ',
+    cardRefreshDateDesc: 'Sur une facture utilisez « Relire la date » à côté de la date (PJ requise).',
+    cardOpenFatture: 'Ouvrir les factures',
+    cardOcrCheckTitle: 'Contrôle OCR fournisseur',
+    cardOcrCheckDesc:
+      'Sur la fiche fournisseur (bureau) le bouton « Contrôle OCR » relance massivement les dates suspectes.',
+    cardOpenFornitoreSheet: 'Ouvrir les fournisseurs',
+    cardDupScanTitle: 'Rechercher les factures en double',
+    cardDupScanDesc: 'Même analyse que la barre du tableau : même fournisseur, même date et même numéro.',
+    cardDupManageTitle: 'Gestion des doublons',
+    cardDupManageDesc: 'BL, factures et fournisseurs : analyser les groupes et fusionner ou supprimer les copies.',
+    cardDupManageCta: 'Ouvrir la gestion des doublons',
+    cardAuditTitle: 'Audit des rattachements fournisseur',
+    cardAuditDesc: 'Aligner les e-mails expéditeurs et les fournisseurs — onglet Rattachements dans AI Inbox.',
+    cardOpenAudit: 'Ouvrir l’onglet Rattachements',
+    cardListinoAutoTitle: 'Mise à jour auto du tarif (Auto)',
+    cardListinoAutoDesc: 'Onglet Tarifs du fournisseur : analyse automatiquement les factures non encore traitées.',
+    cardListinoFromInvTitle: 'Importer depuis une facture',
+    cardListinoFromInvDesc:
+      'Onglet Tarifs : choisir une facture avec PDF et valider les lignes à importer.',
+    cardListinoAddTitle: 'Ajouter un produit au tarif',
+    cardListinoAddDesc: 'Onglet Tarifs : bouton Ajouter pour saisie manuelle (bureau).',
+    cardListinoCta: 'Aller aux fournisseurs — onglet Tarifs',
+    hintContextualShortcuts:
+      'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
+  },
   common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', phone: 'Téléphone', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: 'Ajouter', rename: 'Renommer', role: 'Rôle', aiExtracted: 'Données extraites par IA', matched: 'Associé', notMatched: 'Non associé', recordSupplierLinked: 'Lié', company: 'Société', invoiceNum: 'N° Facture', total: 'Total', duplicateBadge: 'DOUBLON', emailSyncAutoSavedBadge: 'Enregistrement automatique', viewerZoomIn: 'Zoom +', viewerZoomOut: 'Zoom −', viewerZoomReset: '100 %', viewerZoomHint: 'Ctrl + molette ou boutons' },
   status: { inAttesa: 'En attente', completato: 'Complété', completata: 'Complétée' },
   dashboard: { title: 'Tableau de bord', suppliers: 'Fournisseurs', totalBills: 'Total BL', pendingBills: 'BL en attente', invoices: 'Factures', recentBills: 'BL récents', recentBillsMobileListDisabled: 'La liste détaillée n’est pas affichée sur cet écran. Utilisez « Voir tout » pour ouvrir l’archive ou passez à un affichage plus large.', viewAll: 'Voir tout →', syncEmail: 'Sync Email', emailSyncScopeLookback: 'Jours récents (site)', emailSyncScopeFiscal: 'Exercice fiscal', emailSyncFiscalYearSelectAria: 'Période de synchronisation e-mail', emailSyncScopeHint: 'IT, FR, DE, ES : année civile. UK : exercice se terminant le 5 avr. Chaque site utilise son pays.', emailSyncLookbackSedeDefault: 'Défaut du site (IMAP)', emailSyncLookbackDaysN: '{n} derniers jours', emailSyncLookbackDaysAria: 'Combien de jours en arrière chercher dans la boîte', emailSyncLookbackDaysHint: 'Défaut du site : utilise les jours définis sur la fiche site. Sinon limite la recherche IMAP aux N derniers jours (lus et non lus).', emailSyncDocumentKindAria: 'Type de documents à importer lors de la synchro e-mail', emailSyncDocumentKindHint: 'Tout : défaut. Nouveau fournisseur : expéditeurs absents de l’annuaire. BL / Facture : force le type de brouillon. Relevé : e-mails dont l’objet ressemble à un relevé (statement).', emailSyncDocumentKindAll: 'Tous les documents', emailSyncDocumentKindFornitore: 'Nouveau fournisseur', emailSyncDocumentKindBolla: 'Bon de livraison (BL)', emailSyncDocumentKindFattura: 'Facture', emailSyncDocumentKindEstratto: 'Relevé / extrait', syncing: 'Synchronisation...', sendReminders: 'Envoyer les relances', sending: 'Envoi en cours...', viewLog: 'Voir Log', sedeOverview: 'Vue par Site', manageSedeNamed: 'Gérer {name} →', manageSedi: 'Gérer les sites →', sedeImapOn: 'E-mail active', digitalizzaRicevuto: 'Numériser le reçu', scannerFlowCardTitle: 'Scanner — aujourd’hui', scannerFlowCardHint: 'PDF traités par l’IA et documents enregistrés aujourd’hui pour ce site (fuseau des réglages).', scannerFlowAiElaborate: 'Traitées (IA)', scannerFlowArchived: 'Archivées', scannerFlowOpenScanner: 'Nouveau scan', scannerFlowBolleHubTitle: 'Archive des BL', scannerFlowRecentTitle: 'Activité Scanner AI récente', scannerFlowNoRecent: 'Aucun scan récent. Utilisez Scanner AI (barre du bas) ou lancez un nouveau scan.', scannerFlowTodayCounts: 'Aujourd’hui : {ai} traitées (IA) · {arch} archivées', scannerFlowFiscalPeriodLine: 'Exercice {year}', scannerFlowCardHintFiscal: 'Les totaux suivent l’exercice sélectionné en tête de page (pas seulement aujourd’hui).', scannerFlowDetailListCountRange: '{n} documents sur la période', scannerFlowDetailListCountToday: '{n} documents aujourd’hui', scannerFlowDetailEmptyRange: 'Aucun document sur cette période.', scannerFlowStepAiElaborata: 'PDF analysé par l’IA — texte et données extraits (OCR)', scannerFlowStepArchiviataBolla: 'Bon de livraison enregistré et archivé', scannerFlowStepArchiviataFattura: 'Facture enregistrée et archivée', scannerFlowTodayActivityTitle: 'Activité du jour', scannerFlowNoEventsToday: 'Aucune activité Scanner IA enregistrée aujourd’hui pour ce site.', scannerFlowEventsAllLink: 'Journal complet des événements →', scannerFlowEventsPageTitle: 'Scanner IA — événements', scannerFlowEventsEmpty: 'Aucun événement Scanner enregistré.', scannerFlowEventsPrev: 'Précédent', scannerFlowEventsNext: 'Suivant', scannerFlowEventsPageOf: 'Page {current} sur {pages}', scannerMobileTileTap: 'Touchez pour commencer', duplicateFattureScanButton: 'Rechercher factures en double', duplicateFattureToolbarShort: 'Doublons', sendRemindersToolbarShort: 'Relances', syncEmailToolbarShort: 'Sync mail', duplicateFattureModalTitle: 'Factures en double', duplicateFattureScanning: 'Analyse des factures…',
@@ -5320,7 +5509,45 @@ const de: Translations = {
     deviceWelcomeBack: 'Willkommen zurück, {name}!',
     accessoSwitchOperator: 'Benutzer wechseln',
   },
-  nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', ordini: 'Bestellungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standort & Nutzer', sediTitle: 'Standort', sediNavGroupMaster: 'Standorte', gestisciSedeNamed: '{name} verwalten', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)', analytics: 'Analytics', approvazioni: 'Genehmigungen', attivita: 'Aktivität', backup: 'Sicherung', consumiAi: 'KI-Verbrauch' },
+  nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', ordini: 'Bestellungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standort & Nutzer', sediTitle: 'Standort', sediNavGroupMaster: 'Standorte', gestisciSedeNamed: '{name} verwalten', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)', analytics: 'Analytics', approvazioni: 'Genehmigungen', attivita: 'Aktivität', backup: 'Sicherung', consumiAi: 'KI-Verbrauch', strumenti: 'Werkzeuge' },
+  strumentiCentroOperazioni: {
+    pageTitle: 'Operationszentrale',
+    pageSubtitle:
+      'Schnellzugriff auf OCR, Dubletten, Lieferanten-Zuordnung und Preisliste. Buttons auf einzelnen Dokumenten bleiben erhalten.',
+    breadcrumbTools: 'Werkzeuge',
+    sectionOcr: 'OCR & Dokumente',
+    sectionDup: 'Duplikate & Bereinigung',
+    sectionListino: 'Preisliste',
+    cardReanalyzeTitle: 'OCR erneut ausführen (Warteschlange & KI)',
+    cardReanalyzeDesc:
+      'Ausstehende Dokumente, KI-Klassifizierung und Gemini-Vorschläge wie in AI Inbox — auf einem Lieferschein oder einer Rechnung gibt es weiter „OCR neu“.',
+    cardOpenInbox: 'AI Inbox öffnen',
+    cardRefreshDateTitle: 'Datum aus Anhang neu lesen',
+    cardRefreshDateDesc: 'In einer Rechnung auf „Datum neu lesen“ neben dem Datum klicken (Anhang erforderlich).',
+    cardOpenFatture: 'Rechnungen öffnen',
+    cardOcrCheckTitle: 'OCR-Prüfung Lieferant',
+    cardOcrCheckDesc:
+      'Am Lieferantenprofil (Desktop): „OCR prüfen“ wirft die Massenprüfung für verdächtige Daten an.',
+    cardOpenFornitoreSheet: 'Lieferanten öffnen',
+    cardDupScanTitle: 'Rechnungs-Duplikate finden',
+    cardDupScanDesc: 'Wie die Symbolleiste: gleicher Lieferant, gleiches Datum und gleiche Rechnungsnummer.',
+    cardDupManageTitle: 'Duplikatverwaltung',
+    cardDupManageDesc: 'Lieferscheine, Rechnungen und Lieferanten — Gruppen prüfen und zusammenführen oder löschen.',
+    cardDupManageCta: 'Duplikatverwaltung öffnen',
+    cardAuditTitle: 'Audit Lieferanten-Zuordnung',
+    cardAuditDesc: 'Absender-E-Mail und zugewiesenen Lieferanten abstimmen — Register „Zuordnungen“ in AI Inbox.',
+    cardOpenAudit: 'Register Zuordnungen öffnen',
+    cardListinoAutoTitle: 'Preisliste automatisch aktualisieren (Auto)',
+    cardListinoAutoDesc:
+      'Auf dem Preislisten-Tab: nicht verarbeitete Rechnungen automatisch auswerten.',
+    cardListinoFromInvTitle: 'Preise „Aus Rechnung“ importieren',
+    cardListinoFromInvDesc: 'Preislisten-Tab: Rechnung mit PDF wählen und Positionen bestätigen.',
+    cardListinoAddTitle: 'Produkt zur Preisliste hinzufügen',
+    cardListinoAddDesc: 'Preislisten-Tab: Schaltfläche Hinzufügen für manuelle Eingabe (Desktop).',
+    cardListinoCta: 'Zu Lieferanten — Preislisten-Tab',
+    hintContextualShortcuts:
+      'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',
+  },
   common: { save: 'Speichern', cancel: 'Abbrechen', delete: 'Löschen', edit: 'Bearbeiten', new: 'Neu', loading: 'Laden...', error: 'Fehler', success: 'Erfolg', noData: 'Keine Daten', document: 'Dokument', actions: 'Aktionen', date: 'Datum', status: 'Status', supplier: 'Lieferant', notes: 'Notizen', phone: 'Telefon', saving: 'Speichern...', attachment: 'Anhang', openAttachment: 'Anhang öffnen', detail: 'Detail', add: 'Hinzufügen', rename: 'Umbenennen', role: 'Rolle', aiExtracted: 'KI-extrahierte Daten', matched: 'Zugeordnet', notMatched: 'Nicht zugeordnet', recordSupplierLinked: 'Verknüpft', company: 'Unternehmen', invoiceNum: 'Rechnungs-Nr.', total: 'Gesamt', duplicateBadge: 'DUPLIKAT', emailSyncAutoSavedBadge: 'Automatisch gespeichert', viewerZoomIn: 'Vergrößern', viewerZoomOut: 'Verkleinern', viewerZoomReset: '100 %', viewerZoomHint: 'Strg+Mausrad oder Tasten' },
   status: { inAttesa: 'Ausstehend', completato: 'Abgeschlossen', completata: 'Abgeschlossen' },
   dashboard: { title: 'Dashboard', suppliers: 'Lieferanten', totalBills: 'Lieferscheine gesamt', pendingBills: 'Ausstehende Scheine', invoices: 'Rechnungen', recentBills: 'Aktuelle Lieferscheine', recentBillsMobileListDisabled: 'Die detaillierte Liste wird auf diesem Bildschirm nicht angezeigt. Nutzen Sie „Alle anzeigen“ für das Archiv oder wechseln Sie zu einem größeren Display.', viewAll: 'Alle anzeigen →', syncEmail: 'E-Mail synchronisieren', emailSyncScopeLookback: 'Letzte Tage (Standort)', emailSyncScopeFiscal: 'Geschäftsjahr', emailSyncFiscalYearSelectAria: 'Zeitraum für E-Mail-Sync', emailSyncScopeHint: 'IT, FR, DE, ES: Kalenderjahr. UK: Steuerjahr bis 5. Apr. Jeder Standort nutzt sein Land.', emailSyncLookbackSedeDefault: 'Standort-Standard (IMAP)', emailSyncLookbackDaysN: 'Letzte {n} Tage', emailSyncLookbackDaysAria: 'Wie weit zurück im Postfach suchen', emailSyncLookbackDaysHint: 'Standort-Standard: nutzt die auf dem Standort hinterlegten Tage. Sonst IMAP-Suche auf die letzten N Tage begrenzen (gelesen und ungelesen).', emailSyncDocumentKindAria: 'Dokumenttyp für den E-Mail-Import', emailSyncDocumentKindHint: 'Alle: Standard. Neuer Lieferant: nur Absender ohne Eintrag. Lieferschein / Rechnung: Entwurfstyp erzwingen. Kontoauszug: nur Mails mit Betreff wie Statement/Auszug.', emailSyncDocumentKindAll: 'Alle Dokumente', emailSyncDocumentKindFornitore: 'Neuer Lieferant', emailSyncDocumentKindBolla: 'Lieferschein (DDT)', emailSyncDocumentKindFattura: 'Rechnung', emailSyncDocumentKindEstratto: 'Kontoauszug', syncing: 'Synchronisierung...', sendReminders: 'Zahlungserinnerungen senden', sending: 'Senden...', viewLog: 'Log anzeigen', sedeOverview: 'Übersicht nach Standort', manageSedeNamed: '{name} verwalten →', manageSedi: 'Standorte verwalten →', sedeImapOn: 'E-Mail aktiv', digitalizzaRicevuto: 'Beleg digitalisieren', scannerFlowCardTitle: 'Scanner — heute', scannerFlowCardHint: 'PDF mit KI verarbeitet und heute an diesem Standort gespeichert (Zeitzone der Einstellungen).', scannerFlowAiElaborate: 'KI verarbeitet', scannerFlowArchived: 'Archiviert', scannerFlowOpenScanner: 'Neuer Scan', scannerFlowBolleHubTitle: 'Lieferschein-Archiv', scannerFlowRecentTitle: 'Aktuelle Scanner-KI-Aktivität', scannerFlowNoRecent: 'Keine kürzlichen Scan-Ereignisse. Nutzen Sie Scanner KI in der unteren Leiste oder starten Sie einen neuen Scan.', scannerFlowTodayCounts: 'Heute: {ai} KI-verarbeitet · {arch} archiviert', scannerFlowFiscalPeriodLine: 'Geschäftsjahr {year}', scannerFlowCardHintFiscal: 'Die Zahlen beziehen sich auf das im Kopf ausgewählte Geschäftsjahr, nicht nur auf heute.', scannerFlowDetailListCountRange: '{n} Dokumente im Zeitraum', scannerFlowDetailListCountToday: '{n} Dokumente heute', scannerFlowDetailEmptyRange: 'Keine Dokumente in diesem Zeitraum.', scannerFlowStepAiElaborata: 'PDF von KI verarbeitet — Text und Felder ausgelesen (OCR)', scannerFlowStepArchiviataBolla: 'Lieferschein gespeichert und archiviert', scannerFlowStepArchiviataFattura: 'Rechnung gespeichert und archiviert', scannerFlowTodayActivityTitle: 'Aktivität heute', scannerFlowNoEventsToday: 'Heute keine Scanner-KI-Aktivität für diesen Standort.', scannerFlowEventsAllLink: 'Vollständiges Ereignisprotokoll →', scannerFlowEventsPageTitle: 'Scanner KI — Ereignisse', scannerFlowEventsEmpty: 'Keine Scanner-Ereignisse erfasst.', scannerFlowEventsPrev: 'Zurück', scannerFlowEventsNext: 'Weiter', scannerFlowEventsPageOf: 'Seite {current} von {pages}', scannerMobileTileTap: 'Tippen zum Start', duplicateFattureScanButton: 'Doppelte Rechnungen finden', duplicateFattureToolbarShort: 'Duplikate', sendRemindersToolbarShort: 'Mahnungen', syncEmailToolbarShort: 'E-Mail', duplicateFattureModalTitle: 'Doppelte Rechnungen', duplicateFattureScanning: 'Rechnungen werden geprüft…',

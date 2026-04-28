@@ -9,7 +9,7 @@ import { BackButton } from '@/components/BackButton'
 
 export const dynamic = 'force-dynamic'
 
-export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?: string }> }) {
+export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?: string; tab?: string }> }) {
   const searchParams = props.searchParams != null ? await props.searchParams : {}
   const [cookieStore, profile, { supabase }, t] = await Promise.all([
     getCookieStore(),
@@ -56,7 +56,11 @@ export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?:
         </div>
       </AppPageHeaderStrip>
 
-      <InboxAiClient sedeId={sedeId} blockedNoSede={Boolean(blockedNoSede)} />
+      <InboxAiClient
+        sedeId={sedeId}
+        blockedNoSede={Boolean(blockedNoSede)}
+        initialTab={searchParams.tab ?? null}
+      />
     </div>
   )
 }

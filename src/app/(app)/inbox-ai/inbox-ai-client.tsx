@@ -85,13 +85,21 @@ function fmtDate(iso: string) {
   }
 }
 
+function parseInitialTab(raw: string | undefined): TabId {
+  const p = raw?.trim().toLowerCase()
+  if (p === 'audit' || p === 'docs' || p === 'fatture' || p === 'bolle' || p === 'rekki') return p
+  return 'docs'
+}
+
 export default function InboxAiClient(props: {
   sedeId: string | null
   /** Nessuna sede operativa per operatore — blocco totale */
   blockedNoSede: boolean
+  /** Deep-link dalla pagina Centro operazioni o bookmark (`?tab=audit`). */
+  initialTab?: string | null
 }) {
-  const { sedeId, blockedNoSede } = props
-  const [tab, setTab] = useState<TabId>('docs')
+  const { sedeId, blockedNoSede, initialTab } = props
+  const [tab, setTab] = useState<TabId>(() => parseInitialTab(initialTab ?? undefined))
   const [docs, setDocs] = useState<PendingDocRow[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
   const [dupFat, setDupFat] = useState<DupFatturaGroup[]>([])
