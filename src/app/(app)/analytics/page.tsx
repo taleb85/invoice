@@ -65,10 +65,10 @@ export default async function AnalyticsPage(props: { searchParams: SearchParams 
             href="/"
             label={t.nav.dashboard}
             iconOnly
-            className="mb-0 shrink-0 -ms-2 sm:-ms-3 md:-ms-3.5"
+            className="mb-0 shrink-0 -ms-px sm:-ms-1"
           />
         }
-        icon={<svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
+        icon={<svg className="h-9 w-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
       >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.nav.analytics}</h1>

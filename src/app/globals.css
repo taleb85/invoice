@@ -273,6 +273,17 @@
   }
 
   /**
+   * FY in header: i `<select>` nativi ignorano spesso `min-h` da utility; compattiamo l’altezza in modo affidabile.
+   */
+  select.app-fiscal-year-header-select {
+    min-block-size: 1.625rem;
+    max-block-size: 2rem;
+    padding-block: 0.125rem;
+    line-height: 1.2;
+    box-sizing: border-box;
+  }
+
+  /**
    * Solo orizzontale: stesso allineamento tra header interni (es. scheda fornitore) e corpo pagina.
    */
   /**

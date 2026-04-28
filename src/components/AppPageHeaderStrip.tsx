@@ -11,19 +11,25 @@ import {
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS } from '@/lib/app-shell-layout'
 
-/** Riga interna: titolo a sinistra; azioni a destra; `pr` leggermente inferiore a `pl` così FY + tray restano più vicini al bordo destro della card. */
+/** Riga interna standard: più respiro a sinistra dell’titolo che a destra (FY/tray quasi sul bordo card). */
 const innerClsBase =
-  'flex w-full min-w-0 flex-col gap-3 py-3 pl-4 pr-3 sm:flex-row sm:flex-nowrap sm:gap-x-6 sm:py-3.5 sm:pl-5 sm:pr-3.5 md:gap-x-8 md:py-4 md:pl-6 md:pr-4 lg:gap-x-10 lg:pl-8 lg:pr-6 xl:pl-10 xl:pr-7'
+  'flex w-full min-w-0 flex-col gap-3 py-3 pl-4 pr-2 sm:flex-row sm:flex-nowrap sm:gap-x-6 sm:py-3.5 sm:pl-5 sm:pr-2 md:gap-x-8 md:py-4 md:pl-6 md:pr-2.5 lg:gap-x-10 lg:pl-8 lg:pr-3 xl:pl-10 xl:pr-3'
+
+/**
+ * Con pulsante «indietro»: meno padding a sinistra così torna più vicino al bordo card (differenza **visibile**).
+ */
+const innerClsBaseLeading =
+  'flex w-full min-w-0 flex-col gap-3 py-3 pl-1.5 pr-2 sm:flex-row sm:flex-nowrap sm:gap-x-5 sm:py-3.5 sm:pl-2.5 sm:pr-2 md:gap-x-7 md:py-4 md:pl-4 md:pr-2.5 lg:gap-x-9 lg:pl-6 lg:pr-3 xl:pl-8 xl:pr-3'
 
 const innerClsDenseBase =
   `flex w-full min-w-0 flex-col gap-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:flex-row sm:flex-nowrap sm:gap-x-3`
 
-/** Destra strip: wrap + shrink; senza max-w eccessiva così il blocco resta agganciato al padding destro (`justify-end` + `ms-auto`). */
+/** Destra strip: wrap + shrink; `justify-end` allinea label + FY + tray verso il bordo destro (padding ridotto in `innerClsBase`). */
 const innerRightClsBase =
-  'flex min-h-0 min-w-0 max-w-full shrink flex-row flex-wrap content-end justify-end gap-x-3 gap-y-2 sm:ms-auto sm:items-center sm:gap-x-4 md:flex-nowrap md:gap-x-5'
+  'flex min-h-0 min-w-0 max-w-full shrink flex-row flex-wrap content-end justify-end gap-x-3 gap-y-2 sm:items-center sm:gap-x-4 md:flex-nowrap md:gap-x-5'
 
 const innerRightClsDenseBase =
-  'flex min-h-0 min-w-0 max-w-full shrink flex-wrap content-end justify-end gap-2 sm:ms-auto sm:flex-nowrap sm:gap-x-3 md:gap-3'
+  'flex min-h-0 min-w-0 max-w-full shrink flex-wrap content-end justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` (vetro, ring cyan, ombre neon) + barra (`.app-card-bar-accent` se tema).
@@ -85,7 +91,8 @@ export default function AppPageHeaderStrip({
   const showMergedSlot = mergedSlot != null
 
   const alignStart = rowAlign === 'start'
-  const innerRowCls = `${dense ? innerClsDenseBase : innerClsBase} ${
+  const innerPad = dense ? innerClsDenseBase : leadingAccessory != null ? innerClsBaseLeading : innerClsBase
+  const innerRowCls = `${innerPad} ${
     alignStart ? 'sm:items-start' : 'sm:items-center'
   } ${dense && alignStart ? 'md:items-start' : dense ? 'md:items-center' : ''}`
   const leftClusterCls = `flex min-w-0 min-h-0 flex-1 gap-3 lg:gap-4 ${alignStart ? 'items-start' : 'items-center'}`
@@ -100,7 +107,7 @@ export default function AppPageHeaderStrip({
         {leadingAccessory}
         {icon && (
           <span
-            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center opacity-90 sm:h-12 sm:w-12 [&_svg]:h-7 [&_svg]:w-7 [&_svg]:shrink-0 ${alignStart ? 'mt-px' : ''} ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
+            className={`inline-flex h-12 w-12 shrink-0 items-center justify-center opacity-90 sm:h-14 sm:w-14 [&_svg]:h-9 [&_svg]:w-9 [&_svg]:shrink-0 ${alignStart ? 'mt-px' : ''} ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
             aria-hidden
           >
             {icon}
