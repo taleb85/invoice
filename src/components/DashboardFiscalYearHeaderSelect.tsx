@@ -49,7 +49,7 @@ export default function DashboardFiscalYearHeaderSelect({
       <select
         value={selectedFiscalYear}
         onChange={(e) => onFyChange(Number(e.target.value))}
-        className="min-h-10 min-w-0 w-full max-w-[14rem] shrink-0 cursor-pointer rounded-lg border border-white/15 bg-white/[0.08] px-3 py-2 text-xs font-semibold leading-tight text-app-fg ring-0 transition-colors hover:border-white/25 hover:bg-white/[0.11] focus:border-white/30 focus:outline-none [color-scheme:dark] sm:w-auto sm:text-sm md:min-h-11 md:px-3.5"
+        className="min-h-8 min-w-0 w-full max-w-[14rem] shrink-0 cursor-pointer rounded-lg border border-white/15 bg-white/[0.08] px-2.5 py-1 text-xs font-semibold leading-none text-app-fg ring-0 transition-colors hover:border-white/25 hover:bg-white/[0.11] focus:border-white/30 focus:outline-none [color-scheme:dark] sm:w-auto sm:py-1.5 sm:text-sm md:min-h-9 md:px-3"
         aria-label={t.dashboard.kpiFiscalYearFilterAria}
         title={t.dashboard.kpiFiscalYearFilter}
       >
