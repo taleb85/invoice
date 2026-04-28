@@ -12,8 +12,8 @@ import { BackButton } from '@/components/BackButton'
 import {
   APP_SHELL_SECTION_PAGE_CLASS,
   APP_PAGE_HEADER_STRIP_H1_CLASS,
+  APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
-  APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS,
 } from '@/lib/app-shell-layout'
 
 type DashboardPayload = {
@@ -219,7 +219,7 @@ export default function CentroOperazioniPage() {
               <span>{s.pageTitle}</span>
             </nav>
             <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
-            <p className={`max-w-xl ${APP_SHELL_SECTION_PAGE_SUBTITLE_CLASS} leading-snug`}>{s.pageSubtitle}</p>
+            <p className={`max-w-xl ${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}`}>{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-8">
