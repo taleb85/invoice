@@ -11,18 +11,18 @@ import {
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS } from '@/lib/app-shell-layout'
 
-/** Riga interna: titolo a sinistra; azioni + campana/rete raggruppate a destra (padding X = `app-shell-page-padding-x`). */
+/** Riga interna: titolo a sinistra; azioni a destra; padding e gap generosi così la barra non risulta “stretta”. */
 const innerCls =
-  'flex w-full min-w-0 flex-col gap-3 px-4 py-2 sm:flex-row sm:flex-nowrap sm:items-center sm:gap-x-4 sm:px-4 sm:py-2.5 md:items-center md:gap-x-5 md:px-6 md:py-2.5 lg:gap-x-7 lg:px-8 xl:px-10'
+  'flex w-full min-w-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-nowrap sm:items-center sm:gap-x-6 sm:px-5 sm:py-3.5 md:gap-x-8 md:px-6 md:py-4 lg:gap-x-10 lg:px-8 xl:px-10'
 
 const innerClsDense =
   `flex w-full min-w-0 flex-col gap-2 ${APP_PAGE_HEADER_INNER_DENSE_PADDING_CLASS} sm:flex-row sm:flex-nowrap sm:items-center sm:gap-x-3 md:items-center`
 
 const innerRightCls =
-  'flex min-w-0 shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end sm:gap-x-2 md:gap-3'
+  'flex min-w-0 shrink-0 flex-nowrap items-center justify-end gap-3 sm:gap-x-4 md:gap-5'
 
 const innerRightClsDense =
-  'flex min-w-0 shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end sm:gap-x-2 md:gap-2'
+  'flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` (vetro, ring cyan, ombre neon) + barra (`.app-card-bar-accent` se tema).
@@ -79,7 +79,7 @@ export default function AppPageHeaderStrip({
 
   const headerRow = (
     <div className={dense ? innerClsDense : innerCls}>
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex min-w-0 min-h-0 flex-1 items-center gap-3 lg:gap-4">
         {leadingAccessory}
         {icon && (
           <span

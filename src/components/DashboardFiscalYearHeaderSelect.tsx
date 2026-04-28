@@ -42,14 +42,14 @@ export default function DashboardFiscalYearHeaderSelect({
   }
 
   return (
-    <label className="hidden min-w-0 shrink-0 flex-row flex-nowrap items-center gap-1.5 sm:gap-2 md:flex">
-      <span className="whitespace-nowrap text-[8px] font-semibold uppercase leading-tight tracking-wide text-white/95 sm:text-[9px]">
+    <label className="hidden min-w-0 shrink-0 flex-row flex-nowrap items-center gap-2 sm:gap-3 md:flex">
+      <span className="whitespace-nowrap text-[11px] font-semibold uppercase leading-snug tracking-wide text-app-fg-muted md:text-xs lg:text-[13px]">
         {t.dashboard.kpiFiscalYearFilter}
       </span>
       <select
         value={selectedFiscalYear}
         onChange={(e) => onFyChange(Number(e.target.value))}
-        className="min-h-8 w-auto min-w-0 max-w-[10.5rem] shrink-0 cursor-pointer truncate rounded-md border border-white/10 bg-white/[0.07] px-2 py-1 text-[11px] font-semibold leading-tight text-white/90 ring-0 transition-colors hover:border-white/20 hover:bg-white/[0.10] focus:border-white/25 focus:outline-none [color-scheme:dark] sm:min-h-9 sm:max-w-[11rem] sm:rounded-lg sm:py-1.5 sm:text-xs"
+        className="min-h-10 w-auto min-w-0 max-w-[12rem] shrink-0 cursor-pointer truncate rounded-lg border border-white/15 bg-white/[0.08] px-3 py-2 text-xs font-semibold leading-tight text-app-fg ring-0 transition-colors hover:border-white/25 hover:bg-white/[0.11] focus:border-white/30 focus:outline-none [color-scheme:dark] sm:max-w-[14rem] sm:text-sm md:min-h-11 md:px-3.5"
         aria-label={t.dashboard.kpiFiscalYearFilterAria}
         title={t.dashboard.kpiFiscalYearFilter}
       >
