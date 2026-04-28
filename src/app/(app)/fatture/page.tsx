@@ -12,6 +12,7 @@ import { fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
 import { resolveFiscalFilterForSede, type FiscalPgBounds } from '@/lib/fiscal-year-page'
 import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { BackButton } from '@/components/BackButton'
 import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
@@ -159,7 +160,12 @@ export default async function FatturePage(props: {
   }))
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <AppPageHeaderStrip accent="emerald" mergedSummary={fattureMergedSummary} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}>
+      <AppPageHeaderStrip
+        accent="emerald"
+        mergedSummary={fattureMergedSummary}
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}
+      >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={APP_SHELL_SECTION_PAGE_H1_CLASS}>{t.fatture.title}</h1>
         </AppPageHeaderTitleWithDashboardShortcut>

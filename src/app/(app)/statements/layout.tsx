@@ -10,6 +10,7 @@ import {
 } from '@/lib/summary-highlight-accent'
 import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { BackButton } from '@/components/BackButton'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardFiscalYearHeaderSelectMe from '@/components/DashboardFiscalYearHeaderSelectMe'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
@@ -49,7 +50,12 @@ export default function StatementsLayout({ children }: { children: React.ReactNo
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_CLASS}>
-      <AppPageHeaderStrip accent={statementsPageAccent} icon={statementsIcon} mergedSlot={<StatementsSummaryHighlight embedded />}>
+      <AppPageHeaderStrip
+        accent={statementsPageAccent}
+        icon={statementsIcon}
+        mergedSlot={<StatementsSummaryHighlight embedded />}
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+      >
         <AppPageHeaderTitleWithDashboardShortcut>
           <h1 className={`min-w-0 flex-1 truncate ${APP_SHELL_SECTION_PAGE_H1_CLASS}`}>
             {isVerifica ? t.statements.heading : t.statements.tabDocumenti}
