@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
-import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFattureButton'
 import SollecitiButton from '@/components/SollecitiButton'
 
 const ScanEmailButton = dynamic(() => import('@/components/ScanEmailButton'), { ssr: false, loading: () => null })
@@ -186,13 +185,12 @@ function AdminSedeSwitcherToolbar() {
 }
 
 /**
- * Barra operatore desktop: duplicati fatture, solleciti (se >0), sync email (dropdown). Opzionale: switch sede admin.
+ * Barra operatore desktop: solleciti (se >0), sync email (dropdown). Opzionale: switch sede admin.
  */
 export default function DashboardHeaderSedeToolsMenu({ fornitoriInScadenza = 0 }: { fornitoriInScadenza?: number }) {
   return (
     <div className={TOOLBAR_ROW_CLS}>
       <AdminSedeSwitcherToolbar />
-      <DashboardDuplicateFattureButton toolbarStrip alwaysShowLabel />
       {fornitoriInScadenza > 0 ? (
         <SollecitiButton fornitoriInScadenza={fornitoriInScadenza} toolbarStrip />
       ) : null}
