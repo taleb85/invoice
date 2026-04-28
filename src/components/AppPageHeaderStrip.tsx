@@ -108,7 +108,7 @@ export default function AppPageHeaderStrip({
         {leadingAccessory}
         {icon && (
           <span
-            className={`inline-flex h-12 w-12 shrink-0 items-center justify-center opacity-90 sm:h-14 sm:w-14 [&_svg]:h-9 [&_svg]:w-9 [&_svg]:shrink-0 ${alignStart ? 'mt-px' : ''} ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
+            className={`inline-flex h-14 w-14 shrink-0 items-center justify-center opacity-90 sm:h-16 sm:w-16 [&_svg]:h-11 [&_svg]:w-11 sm:[&_svg]:h-12 sm:[&_svg]:w-12 [&_svg]:shrink-0 ${alignStart ? 'mt-px' : ''} ${theme?.headerIcon ?? 'text-app-fg-muted'}`}
             aria-hidden
           >
             {icon}
