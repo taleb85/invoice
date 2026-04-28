@@ -1313,7 +1313,7 @@ function DashboardTab({
           }`}
           aria-current={nuovaBollaActive ? 'page' : undefined}
         >
-          <svg className={`h-5 w-5 shrink-0 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg className="h-5 w-5 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           <span className="truncate">{t.nav.nuovaBolla}</span>
@@ -5329,9 +5329,20 @@ function FornitoreDetailClient({
                   {analisiCompletaBusy ? (
                     <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
                   ) : (
-                    <span className="shrink-0" aria-hidden>
-                      🔄
-                    </span>
+                    <svg
+                      className="h-3.5 w-3.5 shrink-0 text-teal-200"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
                   )}
                   <span className="min-w-0 truncate">Analisi completa</span>
                 </button>
@@ -5345,7 +5356,7 @@ function FornitoreDetailClient({
                 onClick={() => saveScrollForListPath(supplierReturnPath)}
                 className="app-glow-cyan inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-app-cyan-500 px-2.5 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 sm:h-8 sm:gap-1.5 sm:px-3"
               >
-                <svg className={`h-3.5 w-3.5 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <svg className="h-3.5 w-3.5 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 {t.nav.nuovaBolla}
