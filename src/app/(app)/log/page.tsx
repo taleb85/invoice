@@ -34,6 +34,8 @@ interface LogEntry {
   file_url: string | null
   sede_id: string | null
   allegato_nome: string | null
+  /** Join solo per admin globale — nomi sedi per colonna Sede. */
+  sedi?: { nome: string } | { nome: string }[] | null
 }
 
 function logAttachmentLabel(fileUrl: string | null, allegatoNome: string | null): string {
@@ -46,6 +48,13 @@ function logAttachmentLabel(fileUrl: string | null, allegatoNome: string | null)
   } catch {
     return ''
   }
+}
+
+function sedeNomeFromLog(log: LogEntry): string | null {
+  const s = log.sedi
+  if (!s) return null
+  const row = Array.isArray(s) ? s[0] : s
+  return row?.nome?.trim() || null
 }
 
 const LOG_ACTION_DELETE_BUTTON_CLASS =
@@ -90,7 +99,7 @@ export default async function LogPage() {
 
   let logQuery = supabase
     .from('log_sincronizzazione')
-    .select('*')
+    .select('*, sedi ( nome )')
     .order('data', { ascending: false })
     .limit(200)
 
@@ -229,6 +238,7 @@ export default async function LogPage() {
               {entries.map((log) => {
                 const cfg = badgeForStato(log.stato)
                 const attach = logAttachmentLabel(log.file_url, log.allegato_nome)
+                const sedeNome = sedeNomeFromLog(log)
                 const unknownHighlight = log.stato === 'fornitore_non_trovato'
                 return (
                   <div
@@ -245,6 +255,11 @@ export default async function LogPage() {
                     <p className="truncate text-sm font-semibold text-app-fg">{log.mittente}</p>
                     {log.oggetto_mail && <p className="truncate text-xs text-app-fg-muted">{log.oggetto_mail}</p>}
                     {attach && <p className="truncate text-xs font-medium text-app-fg-muted">{t.log.colAttachment}: {attach}</p>}
+                    {isMasterAdmin && sedeNome && (
+                      <p className="text-[11px] text-app-fg-muted">
+                        {t.log.colSede}: {sedeNome}
+                      </p>
+                    )}
                     {log.errore_dettaglio && (
                       <p
                         className={`line-clamp-3 text-[11px] leading-snug ${
@@ -297,11 +312,26 @@ export default async function LogPage() {
                   <tr className={APP_SECTION_TABLE_HEAD_ROW}>
                     <th className="w-[6%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colLogId}</th>
                     <th className="w-[10%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.date}</th>
-                    <th className="w-[17%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.sender}</th>
-                    <th className="w-[19%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.subject}</th>
+                    {isMasterAdmin && (
+                      <th className="w-[9%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colSede}</th>
+                    )}
+                    <th
+                      className={`min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3 ${isMasterAdmin ? 'w-[14%]' : 'w-[17%]'}`}
+                    >
+                      {t.log.sender}
+                    </th>
+                    <th
+                      className={`min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3 ${isMasterAdmin ? 'w-[16%]' : 'w-[19%]'}`}
+                    >
+                      {t.log.subject}
+                    </th>
                     <th className="w-[12%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colAttachment}</th>
                     <th className="w-[9%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.status}</th>
-                    <th className="w-[19%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.detail}</th>
+                    <th
+                      className={`min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3 ${isMasterAdmin ? 'w-[16%]' : 'w-[19%]'}`}
+                    >
+                      {t.common.detail}
+                    </th>
                     <th className="w-[8%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.actions}</th>
                   </tr>
                 </thead>
@@ -309,6 +339,7 @@ export default async function LogPage() {
                   {entries.map((log) => {
                     const cfg = badgeForStato(log.stato)
                     const attach = logAttachmentLabel(log.file_url, log.allegato_nome)
+                    const sedeNome = sedeNomeFromLog(log)
                     const unknownHighlight = log.stato === 'fornitore_non_trovato'
                     return (
                       <tr
@@ -319,6 +350,11 @@ export default async function LogPage() {
                       >
                         <td className="min-w-0 whitespace-nowrap px-2 py-2 font-mono text-[10px] text-app-fg-muted sm:px-3">{log.id.slice(0, 8)}</td>
                         <td className="min-w-0 whitespace-nowrap px-2 py-2 text-app-fg-muted sm:px-3">{formatDate(log.data)}</td>
+                        {isMasterAdmin && (
+                          <td className="min-w-0 truncate px-2 py-2 text-app-fg-muted sm:px-3" title={sedeNome ?? ''}>
+                            {sedeNome ?? '—'}
+                          </td>
+                        )}
                         <td className="min-w-0 truncate px-2 py-2 font-medium text-app-fg sm:px-3" title={log.mittente}>
                           {log.mittente}
                         </td>
