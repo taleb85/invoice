@@ -4744,7 +4744,6 @@ function useMinMdViewport() {
 /* ─── Main client component ──────────────────────────────────────── */
 function FornitoreDetailClient({
   fornitore,
-  bolleCount,
   fattureCount,
   pendingCount,
   countryCode,
@@ -4752,7 +4751,7 @@ function FornitoreDetailClient({
   reloadFornitore,
 }: {
   fornitore: Fornitore
-  bolleCount: number
+  /** Totale storico fatture (es. archivio / tab lista); i badge tab usano il periodo KPI. */
   fattureCount: number
   pendingCount: number
   countryCode: string
@@ -5031,6 +5030,10 @@ function FornitoreDetailClient({
 
   const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
 
+  /** Allineati ai KPI sopra la griglia (stesso filtro `data` sul periodo), non ai totali storici da caricamento pagina. */
+  const bolleTabBadge = periodStatsLoading ? undefined : (periodStats?.bolleTotal ?? 0) > 0 ? periodStats!.bolleTotal : undefined
+  const fattureTabBadge = periodStatsLoading ? undefined : (periodStats?.fattureTotal ?? 0) > 0 ? periodStats!.fattureTotal : undefined
+
   const expandLedgerToAllFatture = useCallback(() => {
     setLedgerPeriod(clampLedgerPeriodToToday('2000-01-01', todayYmd, todayYmd))
     setPeriodLedgerEpoch((e) => e + 1)
@@ -5040,8 +5043,8 @@ function FornitoreDetailClient({
     const all: { id: Tab; label: string; badge?: number }[] = [
       { id: 'dashboard', label: t.fornitori.tabRiepilogo },
       { id: 'conferme', label: t.fornitori.kpiOrdini, badge: ordiniCount > 0 ? ordiniCount : undefined },
-      { id: 'bolle', label: t.nav.bolle, badge: bolleCount },
-      { id: 'fatture', label: t.nav.fatture, badge: fattureCount > 0 ? fattureCount : undefined },
+      { id: 'bolle', label: t.nav.bolle, badge: bolleTabBadge },
+      { id: 'fatture', label: t.nav.fatture, badge: fattureTabBadge },
       { id: 'verifica', label: t.statements.tabVerifica },
       { id: 'listino', label: t.fornitori.tabListino },
       { id: 'audit', label: t.fornitori.tabAuditPrezzi },
@@ -5051,7 +5054,14 @@ function FornitoreDetailClient({
       return all.filter((tb) => tb.id === 'dashboard' || tb.id === 'listino' || tb.id === 'documenti')
     }
     return all
-  }, [t, ordiniCount, bolleCount, fattureCount, pendingCount, supplierReadOnlyMobile])
+  }, [
+    t,
+    ordiniCount,
+    bolleTabBadge,
+    fattureTabBadge,
+    pendingCount,
+    supplierReadOnlyMobile,
+  ])
 
   const TabContent = ({ variant }: { variant: 'mobile' | 'desktop' }) => (
     <>
@@ -5266,7 +5276,7 @@ function FornitoreDetailClient({
           Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
         */}
         <div
-          className="fornitore-desktop-main-x mx-auto w-full max-w-7xl"
+          className="fornitore-desktop-main-x mx-auto w-full max-w-7xl md:pt-2 lg:pt-3"
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
@@ -5621,7 +5631,6 @@ export default function FornitoreDetailPage() {
   idRef.current = id
 
   const [fornitore, setFornitore] = useState<Fornitore | null>(null)
-  const [bolleCount, setBolleCount] = useState(0)
   const [fattureCount, setFattureCount] = useState(0)
   const [pendingCount, setPendingCount] = useState(0)
   const [countryCode, setCountryCode] = useState('UK')
@@ -5649,9 +5658,8 @@ export default function FornitoreDetailPage() {
 
       try {
         const supabase = createClient()
-        const [fornitoreRes, bolleRes, fattureRes] = await Promise.all([
+        const [fornitoreRes, fattureRes] = await Promise.all([
           supabase.from('fornitori').select('*').eq('id', id).single(),
-          supabase.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', id),
           supabase.from('fatture').select('id', { count: 'exact', head: true }).eq('fornitore_id', id),
         ])
 
@@ -5666,7 +5674,6 @@ export default function FornitoreDetailPage() {
         setNotFound(false)
         const data = fornitoreRes.data as Fornitore
         setFornitore(data)
-        setBolleCount(bolleRes.count ?? 0)
         setFattureCount(fattureRes.count ?? 0)
 
         if (data.sede_id) {
@@ -5753,7 +5760,6 @@ export default function FornitoreDetailPage() {
       <FornitoreDetailClient
         reloadFornitore={reloadFornitore}
         fornitore={fornitore}
-        bolleCount={bolleCount}
         fattureCount={fattureCount}
         pendingCount={pendingCount}
         countryCode={countryCode}
