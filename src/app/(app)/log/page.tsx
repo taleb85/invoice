@@ -56,6 +56,9 @@ function sedeNomeFromLog(log: LogEntry): string | null {
   return row?.nome?.trim() || null
 }
 
+const LOG_ACTION_DELETE_BUTTON_CLASS =
+  'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-red-500/35 bg-red-950/45 p-0 text-red-200 transition-colors hover:border-red-400/45 hover:bg-red-950/65'
+
 export default async function LogPage() {
   const profile = await getProfile()
   const isMasterAdmin = profile?.role === 'admin'
@@ -292,6 +295,8 @@ export default async function LogPage() {
                         id={log.id}
                         table="log_sincronizzazione"
                         confirmMessage={t.appStrings.deleteLogConfirm}
+                        iconOnly
+                        className={LOG_ACTION_DELETE_BUTTON_CLASS}
                       />
                     </div>
                   </div>
@@ -363,7 +368,7 @@ export default async function LogPage() {
                           )}
                         </td>
                         <td className="min-w-0 px-2 py-2 sm:px-3">
-                          <div className="flex flex-wrap items-center gap-1.5">
+                          <div className="flex min-w-0 flex-nowrap items-center justify-end gap-1">
                             {isMasterAdmin && log.stato === 'fornitore_non_trovato' && log.file_url && (
                               <LogSupplierAiSuggest
                                 logId={log.id}
@@ -382,6 +387,8 @@ export default async function LogPage() {
                               id={log.id}
                               table="log_sincronizzazione"
                               confirmMessage={t.appStrings.deleteLogConfirm}
+                              iconOnly
+                              className={LOG_ACTION_DELETE_BUTTON_CLASS}
                             />
                           </div>
                         </td>

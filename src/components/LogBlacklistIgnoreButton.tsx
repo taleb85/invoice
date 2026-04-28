@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Ban } from 'lucide-react'
 import { useToast } from '@/lib/toast-context'
 import { useLocale } from '@/lib/locale-context'
 
@@ -47,9 +48,11 @@ export default function LogBlacklistIgnoreButton({ mittente, sedeId }: Props) {
       type="button"
       disabled={busy}
       onClick={() => void onClick()}
-      className="rounded border border-red-500/35 bg-red-950/40 px-2 py-0.5 text-[11px] font-medium text-red-100 hover:bg-red-950/65 disabled:opacity-50"
+      title={t.log.logIgnoreAlways}
+      aria-label={t.log.logIgnoreAlways}
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-rose-500/35 bg-rose-950/45 text-rose-100 transition-colors hover:border-rose-400/45 hover:bg-rose-950/70 disabled:cursor-not-allowed disabled:opacity-50 touch-manipulation"
     >
-      🚫 {t.log.logIgnoreAlways}
+      <Ban className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
     </button>
   )
 }

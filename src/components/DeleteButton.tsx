@@ -58,8 +58,10 @@ export default function DeleteButton({
 
   return (
     <button
+      type="button"
       onClick={handleDelete}
       disabled={loading}
+      aria-label={iconOnly ? t.common.delete : undefined}
       className={`${className ?? defaultButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
     >
       {loading ? (

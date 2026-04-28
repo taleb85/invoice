@@ -66,7 +66,7 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
       <button
         type="button"
         onClick={runSuggest}
-        className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/15 px-2 py-1 text-[11px] font-semibold text-violet-100 transition-colors hover:bg-violet-500/25"
+        className="inline-flex h-8 shrink-0 items-center rounded-md border border-violet-500/35 bg-violet-950/45 px-2 text-[11px] font-medium text-violet-100 transition-colors hover:border-violet-400/45 hover:bg-violet-950/65"
       >
         {t.log.aiSuggest}
       </button>
