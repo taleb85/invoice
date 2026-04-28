@@ -43,6 +43,8 @@ export default function AppPageHeaderStrip({
   mergedSummary,
   /** Icona colorata visualizzata a sinistra del titolo, stessa tinta dell'accent. */
   icon,
+  /** Prima dell’icona sezione/titolo, sulla stessa riga dello strip (es. torna indietro). */
+  leadingAccessory,
   /** Slot libero per contenuto arbitrario nella sezione merged (alternativo a `mergedSummary`). */
   mergedSlot,
 }: {
@@ -56,6 +58,7 @@ export default function AppPageHeaderStrip({
   mergedSummary?: Omit<AppSummaryHighlightMetricsProps, 'accent'>
   /** Icona colorata visualizzata a sinistra del titolo, stessa tinta dell'accent. */
   icon?: ReactNode
+  leadingAccessory?: ReactNode
   mergedSlot?: ReactNode
 }) {
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
@@ -77,6 +80,7 @@ export default function AppPageHeaderStrip({
   const headerRow = (
     <div className={dense ? innerClsDense : innerCls}>
       <div className="flex min-w-0 flex-1 items-center gap-3">
+        {leadingAccessory}
         {icon && (
           <span className={`shrink-0 opacity-90 ${theme ? theme.label : 'text-app-fg-muted'}`} aria-hidden>
             {icon}
