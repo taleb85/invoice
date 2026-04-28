@@ -128,15 +128,73 @@ Non usare questo file `.md` come query: servono i file `.sql` del progetto. Chec
 
 ---
 
-## Passo 4 — Configurare il Cron Job
+## Passo 4 — Sync email automatica ogni ora (Supabase Edge Function)
 
-Il file `vercel.json` avvia **`GET /api/cron/sync-emails`** (es. ogni **15 minuti**) con header `Authorization: Bearer {CRON_SECRET}`. Questa route invoca internamente la stessa logica di **`GET /api/scan-emails`** (tutte le sedi con IMAP configurato).
+La route **`GET /api/cron/sync-emails`** (stessa logica di **`GET /api/scan-emails`**, tutte le sedi con IMAP) è protetta da header `Authorization: Bearer {CRON_SECRET}`.
 
-Imposta **`CRON_SECRET`** in **Vercel → Settings → Environment Variables** e in `.env.local` per i test manuali sulla route cron.
+Su **Vercel Hobby** i Cron Job non permettono pianificazioni più frequenti della **giornaliera**; la **sync email oraria** è quindi gestita da **Supabase**:
 
-La scansione pianificata richiede il piano **Vercel** con **Cron Jobs** abilitati (dipende dall’offerta; controlla la dashboard).
+1. **Edge Function** `sync-emails` nel repo (`supabase/functions/sync-emails/`) che inoltra la richiesta all’app Next su Vercel.
+2. **`pg_cron` + `pg_net`** sul database Supabase per invocare l’URL della Function **ogni ora** (gratuito sul piano Free).
 
-In alternativa, un cron esterno può chiamare `GET /api/scan-emails` o `GET /api/cron/sync-emails` con lo stesso header Bearer.
+### Variabili d’ambiente
+
+| Dove | Variabile | Valore |
+|------|-----------|--------|
+| **Vercel** (già necessario) | `CRON_SECRET` | Stesso segreto ovunque |
+| **Supabase → Project Settings → Edge Functions → Secrets** | `CRON_SECRET` | Uguale a Vercel |
+| **Supabase Edge Functions → Secrets** | `NEXT_PUBLIC_SITE_URL` | URL pubblico dell’app, es. `https://smart-pair-psi-six.vercel.app` |
+
+Equivalente da CLI (dopo `supabase login`):
+
+```bash
+supabase secrets set --project-ref dubocvwsdzrqrrxsedas \
+  CRON_SECRET="(stesso valore di Vercel)" \
+  NEXT_PUBLIC_SITE_URL="https://smart-pair-psi-six.vercel.app"
+```
+
+Imposta **`CRON_SECRET`** anche in **Vercel** e in `.env.local` per prove manuali alla route cron.
+
+### Deploy della Edge Function
+
+Autenticazione CLI Supabase (`supabase login`), poi dalla cartella del progetto:
+
+```bash
+supabase functions deploy sync-emails --project-ref dubocvwsdzrqrrxsedas
+```
+
+Il file `supabase/config.toml` registra la Function `sync-emails` (la CLI **non** supporta `schedule` dentro `[functions]`; l’orario effettivo è solo tramite **`pg_cron`** sul database, vedi sotto).
+
+### Pianificazione ogni ora con `pg_cron` (una tantum in SQL Editor)
+
+Dopo il deploy della Function, nella **Supabase Dashboard → SQL Editor** abilita le estensioni se mancano (`pg_net`, `pg_cron`), poi schedula una richiesta HTTPS alla Function. Eseguire **una volta** (sostituisci `SERVICE_ROLE_OR_ANON_JWT` con la **anon key** del progetto, usata come `Bearer` richiesto da Edge Functions con `verify_jwt = true`):
+
+```sql
+select
+  cron.schedule(
+    'sync-emails-edge-hourly',
+    '0 * * * *',
+    $$
+    select
+      net.http_post(
+        url := 'https://dubocvwsdzrqrrxsedas.supabase.co/functions/v1/sync-emails',
+        headers := jsonb_build_object(
+          'Authorization', 'Bearer SERVICE_ROLE_OR_ANON_JWT',
+          'Content-Type', 'application/json'
+        ),
+        body := '{}'::jsonb
+      ) as request_id;
+    $$
+  );
+```
+
+Meglio memorizzare l’anon key in [Supabase Vault](https://supabase.com/docs/guides/database/vault) e richiamarla dalla query come nella [guida ufficiale “Schedule Edge Functions”](https://supabase.com/docs/guides/functions/schedule-functions).
+
+### Cron rimosso da Vercel
+
+Il job **`/api/cron/sync-emails`** è stato **tolto da `vercel.json`** così il piano Hobby non viene bloccato da un cron più frequente del giornaliero. Restano **solo** gli altri job Vercel (es. Rekki, backup) con schedule compatibile Hobby.
+
+Puoi sempre chiamare manualmente **`GET /api/scan-emails`** o **`GET /api/cron/sync-emails`** con lo stesso header Bearer `{CRON_SECRET}`.
 
 ---
 
@@ -161,7 +219,7 @@ Dopo il deploy, controlla i seguenti punti:
 - [ ] **Login**: Accedi con le credenziali admin su `/login`
 - [ ] **Dashboard**: Verifica che le bolle aperte vengano caricate
 - [ ] **Sidebar**: Sfondo `#0f172a` (Deep Ocean) e logo con gradiente blu-ciano
-- [ ] **Scansione email**: dopo il deploy attendi il cron oppure chiama manualmente `GET /api/scan-emails` con `Authorization: Bearer {CRON_SECRET}` per prova
+- [ ] **Scansione email**: dopo il deploy verifica `pg_cron` (Supabase) o la Edge Function `sync-emails`, oppure chiama manualmente `GET /api/scan-emails` con `Authorization: Bearer {CRON_SECRET}` per prova
 - [ ] **Log**: Verifica `/log` per eventuali errori di elaborazione
 - [ ] **Mobile**: Apri su smartphone — verifica l'hamburger menu e il layout responsive
 
@@ -194,7 +252,7 @@ npm run build   # Verifica errori TypeScript in locale prima del deploy
 ### Scansione email non funziona
 - Controlla che `SUPABASE_SERVICE_ROLE_KEY` sia impostata (necessaria per la scansione)
 - Verifica le credenziali IMAP nella tabella `sedi` del database
-- Controlla i log del cron job in Vercel → Settings → Cron Jobs
+- Controlla i log del cron Vercel (altri job) e in Supabase → **Database → Cron Jobs** / log `pg_cron` per la sync oraria
 
 ### Errore 401 su /api/me
 - La sessione Supabase non è valida — effettua il logout e rientra
