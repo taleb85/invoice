@@ -275,11 +275,15 @@
   /**
    * FY in header: i `<select>` nativi ignorano spesso `min-h` da utility; compattiamo l’altezza in modo affidabile.
    */
+  /** Compatto: deve vincere su `select { min-height }` desktop (non in @layer utilities). Usa anche `min-height` fisico. */
   select.app-fiscal-year-header-select {
-    min-block-size: 1.625rem;
+    min-height: 1.75rem;
+    max-height: 2rem;
+    min-block-size: 1.75rem;
     max-block-size: 2rem;
     padding-block: 0.125rem;
-    line-height: 1.2;
+    line-height: 1.15;
+    font-size: 0.75rem;
     box-sizing: border-box;
   }
 
@@ -931,9 +935,9 @@ body,
     transition: border-color 120ms, box-shadow 120ms;
   }
 
-  /* Input / select desktop: altezza 36px, testo 13px */
+  /* Input / select desktop: altezza 36px, testo 13px (FY header: escluso — v.s. `.app-fiscal-year-header-select`) */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
-  select {
+  select:not(.app-fiscal-year-header-select) {
     min-height: 36px;
     font-size: 13px;
   }
@@ -953,7 +957,7 @@ body,
 
 /* ── Touch: area minima 44px (WCAG) su tutti i dispositivi touch ── */
 @media (pointer: coarse) {
-  select,
+  select:not(.app-fiscal-year-header-select),
   input[type="text"],
   input[type="email"],
   input[type="tel"],
@@ -974,7 +978,7 @@ body,
     min-height: unset;
   }
 
-  select,
+  select:not(.app-fiscal-year-header-select),
   input[type="text"],
   input[type="email"],
   input[type="tel"],
