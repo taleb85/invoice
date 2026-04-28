@@ -20,6 +20,8 @@ import {
   fornitoreFatturaDeepLink,
   fornitoreSupplierClearDocParams,
 } from '@/lib/fornitore-supplier-url'
+import { buildListLocationPath, hrefWithReturnTo, readReturnToFromGetter } from '@/lib/return-navigation'
+import { saveScrollForListPath } from '@/lib/return-navigation-client'
 import {
   extractListinoSrcFatturaId,
   LISTINO_SRC_FATTURA_MARK,
@@ -1223,6 +1225,10 @@ function DashboardTab({
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const supplierReturnPath = useMemo(
+    () => buildListLocationPath(pathname, searchParams),
+    [pathname, searchParams],
+  )
   const t = useT()
   const { locale, timezone } = useLocale()
   const fornitoreNomeVisual = useMemo(
@@ -1297,7 +1303,8 @@ function DashboardTab({
       {!readOnly ? (
       <div className="md:hidden">
         <Link
-          href={`/bolle/new?fornitore_id=${fornitoreId}`}
+          href={hrefWithReturnTo(`/bolle/new?fornitore_id=${fornitoreId}`, supplierReturnPath)}
+          onClick={() => saveScrollForListPath(supplierReturnPath)}
           className={`app-glow-cyan flex min-h-[44px] min-w-0 touch-manipulation items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-white transition-colors active:scale-[0.99] ${
             nuovaBollaActive
               ? 'bg-cyan-600 ring-2 ring-white/30 ring-offset-2 ring-offset-[rgb(15_23_42)]'
@@ -1517,7 +1524,8 @@ function DashboardTab({
             {!fornitore.email && !readOnly && (
               <div className="flex flex-wrap items-center gap-2">
                 <Link
-                  href={`/fornitori/${fornitoreId}/edit`}
+                  href={hrefWithReturnTo(`/fornitori/${fornitoreId}/edit`, supplierReturnPath)}
+                  onClick={() => saveScrollForListPath(supplierReturnPath)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/35 px-2.5 py-1.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/20"
                 >
                   <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1669,6 +1677,10 @@ function BolleTab({
   const ocrStepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const canRianalizzaOcr = Boolean(me?.is_admin || me?.is_admin_sede)
+  const supplierReturnPath = useMemo(
+    () => buildListLocationPath(pathname, searchParams),
+    [pathname, searchParams],
+  )
 
   const runBollaOcr = useCallback(
     async (bollaId: string) => {
@@ -1903,7 +1915,13 @@ function BolleTab({
           }
         >
           {!readOnly ? (
-            <ActionLink href={`/bolle/new?fornitore_id=${fornitoreId}`} intent="nav" size="sm" className="mt-4">
+            <ActionLink
+              href={hrefWithReturnTo(`/bolle/new?fornitore_id=${fornitoreId}`, supplierReturnPath)}
+              onClick={() => saveScrollForListPath(supplierReturnPath)}
+              intent="nav"
+              size="sm"
+              className="mt-4"
+            >
               {t.bolle.creaLaPrimaBolla}
             </ActionLink>
           ) : null}
@@ -2256,6 +2274,10 @@ function FattureTab({
     )
     return serializeFatturaDuplicateDeletionPayload(analysis)
   }, [fatture])
+  const supplierReturnPath = useMemo(
+    () => buildListLocationPath(pathname, searchParams),
+    [pathname, searchParams],
+  )
 
   useEffect(() => {
     setLoading(true)
@@ -2337,7 +2359,8 @@ function FattureTab({
           ) : null}
           {!readOnly ? (
             <ActionLink
-              href={`/fatture/new?fornitore_id=${encodeURIComponent(fornitoreId)}`}
+              href={hrefWithReturnTo(`/fatture/new?fornitore_id=${encodeURIComponent(fornitoreId)}`, supplierReturnPath)}
+              onClick={() => saveScrollForListPath(supplierReturnPath)}
               intent="confirm"
               size="sm"
               className="mt-4"
@@ -4738,6 +4761,10 @@ function FornitoreDetailClient({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const supplierReturnPath = useMemo(
+    () => buildListLocationPath(pathname ?? '', searchParams),
+    [pathname, searchParams],
+  )
   const tabParam = searchParams.get('tab')
   const tab = useMemo((): Tab => {
     const p = tabParam?.trim().toLowerCase()
@@ -5293,7 +5320,8 @@ function FornitoreDetailClient({
             {/* CTA */}
             <div className="flex shrink-0 items-center gap-1">
               <Link
-                href={`/bolle/new?fornitore_id=${fornitore.id}`}
+                href={hrefWithReturnTo(`/bolle/new?fornitore_id=${fornitore.id}`, supplierReturnPath)}
+                onClick={() => saveScrollForListPath(supplierReturnPath)}
                 className="app-glow-cyan inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-app-cyan-500 px-2.5 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 sm:h-8 sm:gap-1.5 sm:px-3"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -5302,7 +5330,8 @@ function FornitoreDetailClient({
                 {t.nav.nuovaBolla}
               </Link>
               <Link
-                href={`/fornitori/${fornitore.id}/edit`}
+                href={hrefWithReturnTo(`/fornitori/${fornitore.id}/edit`, supplierReturnPath)}
+                onClick={() => saveScrollForListPath(supplierReturnPath)}
                 title={t.fornitori.editTitle}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg sm:h-8 sm:w-8"
               >
@@ -5691,8 +5720,17 @@ export default function FornitoreDetailPage() {
     return (
       <div className="max-w-5xl p-4 py-20 text-center md:p-8">
         <p className="mb-3 font-medium text-app-fg-muted">Fornitore non trovato.</p>
-        <button type="button" onClick={() => router.push('/fornitori')}
-          className="text-sm font-medium text-app-cyan-500 hover:underline">
+        <button
+          type="button"
+          onClick={() => {
+            const r = readReturnToFromGetter((k) =>
+              typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get(k) : null,
+            )
+            if (r) router.push(r)
+            else router.back()
+          }}
+          className="text-sm font-medium text-app-cyan-500 hover:underline"
+        >
           ← Torna ai fornitori
         </button>
       </div>

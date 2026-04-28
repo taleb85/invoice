@@ -11,6 +11,8 @@ import {
   fornitoreFatturaDeepLink,
   fornitoreSupplierCloseDocHref,
 } from '@/lib/fornitore-supplier-url'
+import { buildListLocationPath, hrefWithReturnTo } from '@/lib/return-navigation'
+import { saveScrollForListPath } from '@/lib/return-navigation-client'
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
@@ -590,6 +592,7 @@ function BollaLayerBody({
   timezone: string
 }) {
   const t = useT()
+  const supplierReturnPath = buildListLocationPath(pathname, searchParams)
   const { me } = useMe()
   const allowListinoForce = Boolean(me)
   const [loading, setLoading] = useState(true)
@@ -738,7 +741,11 @@ function BollaLayerBody({
           <div className="mb-3 flex items-center justify-between gap-2">
             <h4 className="text-sm font-semibold text-app-fg">{t.bolle.fattureCollegate}</h4>
             <Link
-              href={`/fatture/new?bolla_id=${bolla.id}&fornitore_id=${bolla.fornitore_id}`}
+              href={hrefWithReturnTo(
+                `/fatture/new?bolla_id=${bolla.id}&fornitore_id=${bolla.fornitore_id}`,
+                supplierReturnPath,
+              )}
+              onClick={() => saveScrollForListPath(supplierReturnPath)}
               className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted"
             >
               {t.bolle.aggiungi}

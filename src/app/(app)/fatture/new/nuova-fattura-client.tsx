@@ -13,6 +13,7 @@ import { useT } from '@/lib/use-t'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
+import { navigateAfterDetailAction } from '@/lib/return-navigation-client'
 
 type OcrStatus = 'idle' | 'scanning' | 'done' | 'error'
 
@@ -252,7 +253,7 @@ export default function NuovaFatturaForm() {
       await supabase.from('bolle').update({ stato: 'completato' }).in('id', bolleIds)
     }
 
-    router.push('/fatture')
+    navigateAfterDetailAction(router, searchParams)
     router.refresh()
   }
 
@@ -263,7 +264,7 @@ export default function NuovaFatturaForm() {
       <div
         className="app-desktop-header-glass sticky top-0 z-10 flex items-center gap-3 px-4 py-4"
       >
-        <button type="button" onClick={() => router.back()}
+        <button type="button" onClick={() => navigateAfterDetailAction(router, searchParams)}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-app-fg-muted transition-colors hover:bg-app-line-15 hover:text-app-fg">
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />

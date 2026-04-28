@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import Link from 'next/link'
+import { ReturnToLink } from '@/components/ReturnToLink'
 import { useT } from '@/lib/use-t'
 import type { PendingApprovalFattura } from '@/app/api/fatture/pending-approval/route'
 
@@ -140,12 +140,13 @@ export function ApprovalQueue() {
               <p className="font-mono text-lg font-bold tabular-nums text-app-fg">
                 {fmt(f.importo)}
               </p>
-              <Link
-                href={`/fatture/${f.id}`}
+              <ReturnToLink
+                to={`/fatture/${f.id}`}
+                from="/approvazioni"
                 className="text-[10px] text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
               >
                 {t.appStrings.approvazioni_viewInvoice}
-              </Link>
+              </ReturnToLink>
             </div>
           </div>
 

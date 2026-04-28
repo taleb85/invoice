@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getRequestAuth, getProfile } from '@/utils/supabase/server'
 import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supabase-detail-for-viewer'
@@ -8,6 +9,8 @@ import DocumentUnavailable from '@/components/DocumentUnavailable'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import DetailBackButton from '@/components/DetailBackButton'
+import { hrefWithReturnTo } from '@/lib/return-navigation'
 
 /** True se la bolla è citata in statement_rows.bolle_json con rekki_meta.prezzo_da_verificare (richiede migration RPC). */
 async function getRekkiPrezzoFlag(bollaId: string): Promise<boolean> {
@@ -46,16 +49,30 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
     <div className="max-w-2xl app-shell-page-padding">
       <AppPageHeaderStrip accent="indigo" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>}>
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <Link
-            href={`/fornitori/${bolla.fornitore_id}`}
-            className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
-            aria-label={t.appStrings.infoSupplierCard}
-            title={t.appStrings.infoSupplierCard}
+          <Suspense
+            fallback={
+              <Link
+                href={`/fornitori/${bolla.fornitore_id}`}
+                className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
+                aria-label={t.appStrings.infoSupplierCard}
+                title={t.appStrings.infoSupplierCard}
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+              </Link>
+            }
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </Link>
+            <DetailBackButton
+              className="mt-1 shrink-0 text-app-fg-muted transition-colors hover:text-app-fg"
+              aria-label={t.appStrings.infoSupplierCard}
+              title={t.appStrings.infoSupplierCard}
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </DetailBackButton>
+          </Suspense>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="app-page-title text-2xl font-bold">{fornitoreNomeMaiuscolo(bolla.fornitore?.nome)}</h1>
@@ -180,7 +197,10 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-app-fg">{t.bolle.fattureCollegate}</h2>
             <Link
-              href={`/fatture/new?bolla_id=${bolla.id}&fornitore_id=${bolla.fornitore_id}`}
+              href={hrefWithReturnTo(
+                `/fatture/new?bolla_id=${bolla.id}&fornitore_id=${bolla.fornitore_id}`,
+                `/bolle/${bolla.id}`,
+              )}
               className="text-xs font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
             >
               {t.bolle.aggiungi}

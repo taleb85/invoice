@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useState, useCallback, useRef, useMemo, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { thumbnailUrl } from '@/lib/storage-transform'
 import { getLocale, formatCurrency } from '@/lib/localization'
@@ -28,6 +28,8 @@ import {
   type SummaryHighlightAccent,
 } from '@/lib/summary-highlight-accent'
 import { SUPPLIER_DETAIL_TAB_HIGHLIGHT } from '@/lib/supplier-detail-tab-theme'
+import { buildListLocationPath, hrefWithReturnTo } from '@/lib/return-navigation'
+import { saveScrollForListPath } from '@/lib/return-navigation-client'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
@@ -885,6 +887,9 @@ export function PendingMatchesTab({
   const t = useT()
   const { timezone } = useLocale()
   const router = useRouter()
+  const pathname = usePathname() ?? ''
+  const pendingUrlSearchParams = useSearchParams()
+  const pendingListReturnPath = buildListLocationPath(pathname, pendingUrlSearchParams)
   const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
   const { me } = useMe()
   const { showToast } = useToast()
@@ -2054,15 +2059,19 @@ export function PendingMatchesTab({
                         {t.statements.openFile}
                       </OpenDocumentInAppButton>
                       {doc.stato === 'bozza_creata' && doc.metadata?.bozza_id && (
-                        <a
-                          href={`/${doc.metadata.bozza_tipo === 'fattura' ? 'fatture' : 'bolle'}/${doc.metadata.bozza_id}`}
+                        <Link
+                          href={hrefWithReturnTo(
+                            `/${doc.metadata.bozza_tipo === 'fattura' ? 'fatture' : 'bolle'}/${doc.metadata.bozza_id}`,
+                            pendingListReturnPath,
+                          )}
+                          onClick={() => saveScrollForListPath(pendingListReturnPath)}
                           className="inline-flex items-center gap-1 font-semibold text-emerald-400 hover:text-emerald-300 hover:underline"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
                           {doc.metadata.bozza_tipo === 'fattura' ? t.statements.gotoFatturaDraft : t.statements.gotoBollaDraft}
-                        </a>
+                        </Link>
                       )}
                     </div>
                   </div>

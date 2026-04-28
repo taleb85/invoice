@@ -35,6 +35,7 @@ import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/Sideba
 import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
 import BranchSessionGate from '@/components/BranchSessionGate'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { AppMainScrollRestoration } from '@/lib/return-navigation-client'
 
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
@@ -518,7 +519,12 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 <EmailSyncProgressBar />
               </ErrorBoundary>
               <ErrorBoundary sectionName="questa pagina">
-                <BranchSessionGate>{children}</BranchSessionGate>
+                <BranchSessionGate>
+                  <Suspense fallback={null}>
+                    <AppMainScrollRestoration />
+                  </Suspense>
+                  {children}
+                </BranchSessionGate>
               </ErrorBoundary>
             </main>
           </div>

@@ -10,6 +10,9 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SECTION_TABLE_HEAD_ROW } from '@/lib/app-shell-layout'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import DocumentiQueue, { type DocumentoInCoda as DocumentoInCodaProps } from '@/components/DocumentiQueue'
+import { ReturnToLink } from '@/components/ReturnToLink'
+
+const ARCHIVIO_LIST_PATH = '/archivio'
 
 interface Bolla {
   id: string
@@ -173,21 +176,26 @@ export default async function ArchivioPage() {
                     </span>
                   </div>
                 </div>
-                <Link
-                  href={`/fornitori/${f.id}/edit`}
+                <ReturnToLink
+                  to={`/fornitori/${f.id}/edit`}
+                  from={ARCHIVIO_LIST_PATH}
                   className="min-h-[36px] shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-app-cyan-500 transition-colors hover:bg-black/12 hover:text-app-fg-muted touch-manipulation"
                 >
                   {t.archivio.editLink} →
-                </Link>
+                </ReturnToLink>
               </div>
 
               {/* Sezione Bolle */}
               <div className="px-4 pb-2 pt-3">
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-[11px] font-bold uppercase tracking-wider text-app-fg-muted">{t.bolle.title}</h3>
-                  <Link href="/bolle/new" className="text-[11px] font-semibold text-app-cyan-500 hover:text-app-fg-muted hover:underline">
+                  <ReturnToLink
+                    to={`/bolle/new?fornitore_id=${f.id}`}
+                    from={ARCHIVIO_LIST_PATH}
+                    className="text-[11px] font-semibold text-app-cyan-500 hover:text-app-fg-muted hover:underline"
+                  >
                     + {t.archivio.nuova}
-                  </Link>
+                  </ReturnToLink>
                 </div>
                 {f.bolle.length === 0 ? (
                   <p className="py-1.5 text-xs italic text-app-fg-muted">{t.archivio.noBills}</p>
@@ -221,12 +229,13 @@ export default async function ArchivioPage() {
                             </OpenDocumentInAppButton>
                           )}
                           {b.stato === 'in attesa' && (
-                            <Link
-                              href={`/fatture/new?bolla_id=${b.id}&fornitore_id=${f.id}`}
+                            <ReturnToLink
+                              to={`/fatture/new?bolla_id=${b.id}&fornitore_id=${f.id}`}
+                              from={ARCHIVIO_LIST_PATH}
                               className="text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
                             >
                               {t.archivio.nuovaFattura}
-                            </Link>
+                            </ReturnToLink>
                           )}
                         </div>
                       </div>

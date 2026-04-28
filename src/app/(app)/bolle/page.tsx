@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ReturnToLink } from '@/components/ReturnToLink'
 import { cookies } from 'next/headers'
 import { AlertTriangle, Eye, Upload } from 'lucide-react'
 import { getRequestAuth } from '@/utils/supabase/server'
@@ -95,6 +96,15 @@ async function getBolleForToday(timeZone: string, sedeId: string | null) {
   return data ?? []
 }
 
+function bolleListReturnPath(sp: { tutte?: string; pending?: string; fy?: string }): string {
+  const q = new URLSearchParams()
+  if (sp.tutte != null && sp.tutte !== '') q.set('tutte', String(sp.tutte))
+  if (sp.pending != null && sp.pending !== '') q.set('pending', String(sp.pending))
+  if (sp.fy != null && sp.fy !== '') q.set('fy', String(sp.fy))
+  const qs = q.toString()
+  return qs ? `/bolle?${qs}` : '/bolle'
+}
+
 async function getBolleAll(
   sedeId: string | null,
   pendingOnly: boolean,
@@ -126,6 +136,7 @@ export default async function BollePage(props: {
   const sp = props.searchParams != null ? await props.searchParams : {}
   const showAll = sp.tutte === '1' || sp.tutte === 'true'
   const pendingOnly = sp.pending === '1' || sp.pending === 'true'
+  const bolleReturn = bolleListReturnPath(sp)
 
   const [tz, t, locale, sedeId, { supabase }] = await Promise.all([
     getTimezone(),
@@ -263,7 +274,7 @@ export default async function BollePage(props: {
                     b.stato === 'in attesa' && daysBetweenIsoCalendarDates(b.data, todayYmd) > 7
                   return (
                   <div key={b.id} className={APP_SECTION_MOBILE_ROW}>
-                    <Link href={`/bolle/${b.id}`} className="mb-3 block text-left transition-colors hover:opacity-90">
+                    <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className="mb-3 block text-left transition-colors hover:opacity-90">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p
@@ -318,7 +329,7 @@ export default async function BollePage(props: {
                           ) : null}
                         </div>
                       </div>
-                    </Link>
+                    </ReturnToLink>
                     <div className="flex flex-wrap items-center gap-2">
                       {b.file_url && (
                         <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
@@ -327,13 +338,14 @@ export default async function BollePage(props: {
                         </OpenDocumentInAppButton>
                       )}
                       {b.stato === 'in attesa' && (
-                        <Link
-                          href={`/fatture/new?bolla_id=${b.id}&fornitore_id=${b.fornitore_id}`}
+                        <ReturnToLink
+                          to={`/fatture/new?bolla_id=${b.id}&fornitore_id=${b.fornitore_id}`}
+                          from={bolleReturn}
                           className={standardLinkButtonClassName('primary', 'sm')}
                         >
                           <Upload className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
                           {t.bolle.uploadInvoice}
-                        </Link>
+                        </ReturnToLink>
                       )}
                       {!excessBollaIds.has(b.id) ? (
                         <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />
@@ -364,17 +376,18 @@ export default async function BollePage(props: {
                       <td
                         className={`${APP_SECTION_TABLE_TD} whitespace-nowrap font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
                       >
-                        <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
+                        <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={APP_SECTION_TABLE_CELL_LINK}>
                           {formatDate(b.data)}
-                        </Link>
+                        </ReturnToLink>
                       </td>
                       <td className={`${APP_SECTION_TABLE_TD} max-w-[10rem] font-mono text-app-fg-muted`}>
-                        <Link
-                          href={`/bolle/${b.id}`}
+                        <ReturnToLink
+                          to={`/bolle/${b.id}`}
+                          from={bolleReturn}
                           className={`${APP_SECTION_TABLE_CELL_LINK} ${overdueInv ? 'text-amber-100' : ''}`}
                         >
                           {b.numero_bolla?.trim() || '—'}
-                        </Link>
+                        </ReturnToLink>
                         <DuplicateLedgerRowExtras
                           rowId={b.id}
                           payload={dupPayload}
@@ -386,9 +399,9 @@ export default async function BollePage(props: {
                         />
                       </td>
                       <td className={`${APP_SECTION_TABLE_TD} font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
-                        <Link href={`/bolle/${b.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
+                        <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={APP_SECTION_TABLE_CELL_LINK}>
                           {supplierLabel || <span className="text-app-fg-muted">—</span>}
-                        </Link>
+                        </ReturnToLink>
                       </td>
                       <td className={APP_SECTION_TABLE_TD}>
                         <div className="flex flex-wrap items-center gap-2">
@@ -426,13 +439,14 @@ export default async function BollePage(props: {
                             </OpenDocumentInAppButton>
                           )}
                           {b.stato === 'in attesa' && (
-                            <Link
-                              href={`/fatture/new?bolla_id=${b.id}&fornitore_id=${b.fornitore_id}`}
+                            <ReturnToLink
+                              to={`/fatture/new?bolla_id=${b.id}&fornitore_id=${b.fornitore_id}`}
+                              from={bolleReturn}
                               className={standardLinkButtonClassName('primary', 'sm')}
                             >
                               <Upload className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />
                               {t.bolle.uploadInvoice}
-                            </Link>
+                            </ReturnToLink>
                           )}
                           {!excessBollaIds.has(b.id) ? (
                             <DeleteButton id={b.id} table="bolle" confirmMessage={t.bolle.deleteConfirm} />

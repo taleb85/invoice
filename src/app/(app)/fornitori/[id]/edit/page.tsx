@@ -7,6 +7,7 @@ import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_SHELL_SECTION_PAGE_H1_CLASS } from '@/lib/app-shell-layout'
 import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
+import { readReturnToFromGetter } from '@/lib/return-navigation'
 
 interface AliasEmail {
   id: string
@@ -117,9 +118,12 @@ export default function EditFornitore() {
     await loadAliases()
   }
 
-  /** Esci dalla modifica come “chiusura” (lista fornitori), non history.back — evita stati incoerenti su mobile. */
   const handleCloseEdit = () => {
-    router.push('/fornitori')
+    const r = readReturnToFromGetter((k) =>
+      typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get(k) : null,
+    )
+    if (r) router.push(r)
+    else router.back()
     router.refresh()
   }
 

@@ -28,6 +28,7 @@ import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
+import { navigateAfterDetailAction } from '@/lib/return-navigation-client'
 function ymdTodayInTimezone(tz: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: tz,
@@ -459,7 +460,7 @@ export default function NuovaBollaForm() {
         setError(null)
         // Show inline success message then navigate
         alert('Bolla salvata offline — verrà sincronizzata quando torni online')
-        router.push('/bolle?tutte=1')
+        navigateAfterDetailAction(router, searchParams)
       } catch {
         setSaving(false)
         setError('Impossibile salvare offline. Riprova.')
@@ -539,7 +540,7 @@ export default function NuovaBollaForm() {
         void supabase.from('scanner_flow_events').insert({ sede_id: sedeId, step: 'archiviata_fattura' })
       }
 
-      router.push('/fatture')
+      navigateAfterDetailAction(router, searchParams)
       router.refresh()
       return
     }
@@ -570,7 +571,7 @@ export default function NuovaBollaForm() {
     void swrMutate((key: unknown) => typeof key === 'string' && key.startsWith('/api/bolle-aperte'), undefined, { revalidate: true })
     void swrMutate('/api/operator-workspace-header', undefined, { revalidate: true })
 
-    router.push('/bolle?tutte=1')
+    navigateAfterDetailAction(router, searchParams)
     router.refresh()
   }
 

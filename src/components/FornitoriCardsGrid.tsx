@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import type { Fornitore } from '@/types'
@@ -18,6 +18,8 @@ import { fornitoreDisplayLabelUppercase, fornitoreNomeMaiuscolo } from '@/lib/fo
 import { cacheFornitoriList, readCachedFornitoriList } from '@/lib/app-data-cache'
 import { useNetworkStatusOptional } from '@/lib/network-context'
 import { SUMMARY_HIGHLIGHT_ACCENTS, SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
+import { buildListLocationPath, hrefWithReturnTo } from '@/lib/return-navigation'
+import { saveScrollForListPath } from '@/lib/return-navigation-client'
 
 /** Allineato al KPI «Fornitori» (`operatorKpiVisual` sky) e a `AppSummaryHighlightCard accent="sky"`. */
 const fornitoriCardTheme = SUMMARY_HIGHLIGHT_ACCENTS.sky
@@ -43,6 +45,21 @@ export default function FornitoriCardsGrid({
 }) {
   const t = useT()
   const router = useRouter()
+  const pathname = usePathname() ?? ''
+  const urlSearchParams = useSearchParams()
+  const fornitoriListPath = useMemo(
+    () => buildListLocationPath(pathname, urlSearchParams),
+    [pathname, urlSearchParams],
+  )
+
+  const goFornitore = useCallback(
+    (dest: 'detail' | 'edit', fid: string) => {
+      saveScrollForListPath(fornitoriListPath)
+      const base = dest === 'detail' ? `/fornitori/${fid}` : `/fornitori/${fid}/edit`
+      router.push(hrefWithReturnTo(base, fornitoriListPath))
+    },
+    [fornitoriListPath, router],
+  )
   const supabase = createClient()
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
@@ -145,22 +162,22 @@ export default function FornitoriCardsGrid({
       }
       // Scheda: corpo card → dettaglio senza PIN (anche admin). PIN solo dal footer (unlock).
       if (action === 'detail' && !isAdmin) {
-        window.location.assign(`/fornitori/${id}`)
+        goFornitore('detail', id)
         return
       }
       if (unlockedIds.has(id)) {
-        if (action === 'detail') window.location.assign(`/fornitori/${id}`)
-        else if (action === 'edit') window.location.assign(`/fornitori/${id}/edit`)
+        if (action === 'detail') goFornitore('detail', id)
+        else if (action === 'edit') goFornitore('edit', id)
         else if (action === 'delete') void runDelete(id, nome)
         return
       }
       if (action === 'detail' && isAdmin) {
-        window.location.assign(`/fornitori/${id}`)
+        goFornitore('detail', id)
         return
       }
       setGate({ action, id, nome })
     },
-    [isAdmin, runDelete, unlockedIds],
+    [goFornitore, isAdmin, runDelete, unlockedIds],
   )
 
   const onVerified = useCallback(() => {
@@ -171,10 +188,10 @@ export default function FornitoriCardsGrid({
       setUnlockedIds((prev) => new Set(prev).add(g.id))
       return
     }
-    if (g.action === 'detail') window.location.assign(`/fornitori/${g.id}`)
-    else if (g.action === 'edit') window.location.assign(`/fornitori/${g.id}/edit`)
+    if (g.action === 'detail') goFornitore('detail', g.id)
+    else if (g.action === 'edit') goFornitore('edit', g.id)
     else if (g.action === 'delete') void runDelete(g.id, g.nome)
-  }, [runDelete])
+  }, [goFornitore, runDelete])
 
   const detailCls =
     'text-[10px] font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-0.5 transition-colors sm:text-[11px] sm:gap-1'
