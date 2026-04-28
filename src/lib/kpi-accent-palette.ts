@@ -10,8 +10,8 @@ export const SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS =
   'mb-0 grid w-full max-w-none grid-cols-1 min-[360px]:grid-cols-2 md:grid-cols-3 gap-2 md:mb-5 md:gap-3 lg:grid-cols-3 lg:gap-2.5 xl:grid-cols-6 xl:gap-2'
 
 /**
- * Dashboard operatore: **6 KPI** (senza tile Fornitori).
- * Da `lg`: 3 colonne → **due righe** (3 + 3); sotto `lg` resta 2 colonne.
+ * Dashboard operatore: **5 KPI** (senza tile Fornitori).
+ * Da `lg`: 3 colonne → **due righe** (3 + 2); sotto `lg` resta 2 colonne.
  */
 export const DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS =
   'mb-0 grid w-full max-w-none grid-cols-2 items-stretch gap-2 md:mb-3 md:gap-2.5 lg:grid-cols-3 lg:gap-2.5'

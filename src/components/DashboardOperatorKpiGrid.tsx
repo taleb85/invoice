@@ -51,24 +51,18 @@ const OPERATOR_KPI_CARD_MIN_H = 'min-h-[7.25rem] sm:min-h-[7.5rem] lg:min-h-[7.7
 
 /**
  * Stessi colori/drop-shadow della scheda fornitore (`supplierKpiPalette` + `buildSupplierKpiItems`).
- * Ordine tile: … → Listino → Documenti (coda) → Documenti da revisionare.
+ * Ordine tile: Ordini → Bolle → Fatturato → Estratti → Documenti da revisionare.
  */
 const DASHBOARD_TILE_SUPPLIER_ICON_KEYS: (keyof typeof supplierKpiPalette)[] = [
   'conferme',
   'bolle',
   'fatture',
   'verifica',
-  'listino',
-  'documenti',
   'verifica',
 ]
 
-/**
- * Allinea accenti `operatorKpiVisual` all’ordine tile (7 card: 6 + «Documenti da revisionare»).
- * L’ultima card in JSX usa `operatorKpiVisual[2]`; lo skeleton usa `operatorKpiVisualAt(6)` — serve il 7° indice
- * o `operatorKpiVisualAt(6)` è `undefined` e il render va in TypeError (GET / in produzione).
- */
-const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 6, 1, 2] as const
+/** Allinea accenti `operatorKpiVisual` all’ordine delle 5 tile dashboard. */
+const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 2] as const
 
 function operatorKpiVisualAt(tileIndex: number) {
   const k = Math.max(0, Math.min(tileIndex, OPERATOR_KPI_VISUAL_INDEX.length - 1))
@@ -93,7 +87,7 @@ export function DashboardOperatorKpiSkeleton() {
       <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
       <div className={kpiGridInnerClass}>
         <div className={DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS}>
-          {[0, 1, 2, 3, 4, 5, 6].map((i) => {
+          {[0, 1, 2, 3, 4].map((i) => {
             const ov = operatorKpiVisualAt(i)
             return (
               <div
@@ -141,8 +135,6 @@ type KpiItem = {
   /** Tile Bolle: link secondario verso elenco solo `pending=1` (evita `<a>` annidato: gestito nel render). */
   bollePendingHref?: string
   bollePendingCta?: string
-  /** Sottotitolo listino con conteggio anomalie: enfasi testuale senza cambiare bordo card. */
-  listinoAnomalySubHighlight?: boolean
   /** Tile fatturato: avviso duplicati (arancio / neon). */
   duplicateInvoiceSub?: string
 }
@@ -183,8 +175,6 @@ export default function DashboardOperatorKpiGrid({
       ? t.dashboard.kpiBollePendingListCta.replace('{n}', String(k.bolleInAttesa))
       : undefined
 
-  const listinoAnomaly = k.anomaliePrezziCount > 0
-  const listinoAnomaliesCount = k.listinoAnomaliesCount ?? 0
   const verificaAnomalyParams = k.anomaliePrezziCount > 0 ? { stato: 'anomalia' as const } : undefined
 
   const items: KpiItem[] = [
@@ -299,22 +289,10 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: listinoAnomaly
-        ? withFiscalYearQuery('/statements/verifica', fy, { stato: 'anomalia' })
-        : withFiscalYearQuery('/listino', fy),
-      label: t.fornitori.kpiListinoProdottiPeriodo,
-      value: k.listinoProdottiDistinti,
-      sub:
-        listinoAnomaliesCount > 0
-          ? `${listinoAnomaliesCount} anomali${listinoAnomaliesCount === 1 ? 'a' : 'e'} prezzo da verificare`
-          : listinoAnomaly
-            ? t.dashboard.kpiListinoAnomaliesCountLine.replace('{n}', String(k.anomaliePrezziCount))
-            : k.listinoRows === 0
-              ? t.fornitori.subListinoPeriodoVuoto
-              : t.fornitori.subListinoProdottiEAggiornamenti
-                  .replace('{p}', String(k.listinoProdottiDistinti))
-                  .replace('{u}', String(k.listinoRows)),
-      listinoAnomalySubHighlight: listinoAnomaly || listinoAnomaliesCount > 0,
+      href: withFiscalYearQuery('/revisione', fy),
+      label: t.dashboard.kpiDocumentiDaRevisionareTitle,
+      value: k.documentiDaRevisionare,
+      sub: t.dashboard.kpiDocumentiDaRevisionareSub,
       accentHex: operatorKpiVisualAt(4).accentHex,
       glowRgb: operatorKpiVisualAt(4).glowRgb,
       borderClass: operatorKpiVisualAt(4).borderClass,
@@ -323,47 +301,7 @@ export default function DashboardOperatorKpiGrid({
       iconWrapClass: operatorKpiVisualAt(4).iconWrapClass,
       icon: (
         <svg
-          className={`h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px] ${dashboardKpiIconSvgClass(4)}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h10M4 18h10" />
-        </svg>
-      ),
-    },
-    {
-      href: '/statements/da-processare',
-      label: t.fornitori.kpiPending,
-      value: k.documentiPending,
-      sub: t.fornitori.subDocumentiCodaEmailPeriodo,
-      accentHex: operatorKpiVisualAt(5).accentHex,
-      glowRgb: operatorKpiVisualAt(5).glowRgb,
-      borderClass: operatorKpiVisualAt(5).borderClass,
-      ringClass: operatorKpiVisualAt(5).ringClass,
-      hoverClass: operatorKpiVisualAt(5).hoverClass,
-      iconWrapClass: operatorKpiVisualAt(5).iconWrapClass,
-      icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconSvgClass(5)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      href: withFiscalYearQuery('/revisione', fy),
-      label: t.dashboard.kpiDocumentiDaRevisionareTitle,
-      value: k.documentiDaRevisionare,
-      sub: t.dashboard.kpiDocumentiDaRevisionareSub,
-      accentHex: operatorKpiVisual[2].accentHex,
-      glowRgb: operatorKpiVisual[2].glowRgb,
-      borderClass: operatorKpiVisual[2].borderClass,
-      ringClass: operatorKpiVisual[2].ringClass,
-      hoverClass: operatorKpiVisual[2].hoverClass,
-      iconWrapClass: operatorKpiVisual[2].iconWrapClass,
-      icon: (
-        <svg
-          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${operatorKpiVisual[2].iconSvgClass}`}
+          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconSvgClass(4)}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -399,15 +337,7 @@ export default function DashboardOperatorKpiGrid({
                     <p className="break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight">
                       {item.value}
                     </p>
-                    <p
-                      className={
-                        item.listinoAnomalySubHighlight
-                          ? `${kpiTileSubLine} font-semibold text-rose-200/95`
-                          : kpiTileSubLine
-                      }
-                    >
-                      {item.sub}
-                    </p>
+                    <p className={kpiTileSubLine}>{item.sub}</p>
                     {item.bollePendingHref && item.bollePendingCta && k.bolleInAttesa > 0 ? (
                       <span
                         role="link"
