@@ -311,7 +311,7 @@ export default async function LogPage() {
                 <thead>
                   <tr className={APP_SECTION_TABLE_HEAD_ROW}>
                     <th className="w-[6%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colLogId}</th>
-                    <th className="w-[10%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.common.date}</th>
+                    <th className="w-[10%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colRegistered}</th>
                     {isMasterAdmin && (
                       <th className="w-[9%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.colSede}</th>
                     )}
