@@ -29,7 +29,7 @@ export async function GET(
   const service = createServiceClient()
   const { data, error } = await service
     .from('approval_settings')
-    .select('id, sede_id, threshold, require_approval')
+    .select('id, sede_id, threshold, require_approval, auto_register_fatture')
     .eq('sede_id', id)
     .maybeSingle()
 
@@ -37,7 +37,7 @@ export async function GET(
 
   // Return defaults if no settings row exists yet
   return NextResponse.json(
-    data ?? { sede_id: id, threshold: 500, require_approval: true },
+    data ?? { sede_id: id, threshold: 500, require_approval: true, auto_register_fatture: false },
   )
 }
 
@@ -68,6 +68,7 @@ export async function POST(
   const body = (await req.json().catch(() => ({}))) as {
     threshold?: number
     require_approval?: boolean
+    auto_register_fatture?: boolean
   }
 
   const threshold = Number(body.threshold ?? 500)
@@ -75,15 +76,22 @@ export async function POST(
     return NextResponse.json({ error: 'Soglia non valida' }, { status: 400 })
   }
   const requireApproval = body.require_approval !== false
+  const autoRegisterFatture = body.auto_register_fatture === true
 
   const service = createServiceClient()
   const { data, error } = await service
     .from('approval_settings')
     .upsert(
-      { sede_id: id, threshold, require_approval: requireApproval, updated_at: new Date().toISOString() },
+      {
+        sede_id: id,
+        threshold,
+        require_approval: requireApproval,
+        auto_register_fatture: autoRegisterFatture,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: 'sede_id' },
     )
-    .select('id, sede_id, threshold, require_approval')
+    .select('id, sede_id, threshold, require_approval, auto_register_fatture')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

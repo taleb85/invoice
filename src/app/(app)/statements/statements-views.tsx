@@ -33,6 +33,7 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import StatementsSummaryHighlight from '@/components/StatementsSummaryHighlight'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { checkResultMatchesVerificaProdotto } from '@/lib/listino-display'
+import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fattura'
 
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
@@ -46,7 +47,17 @@ type OcrMetadata = {
   importo_raw?:       string | null
   /** Numeric format detected: 'dot' | 'comma' | 'plain' */
   formato_importo?:   'dot' | 'comma' | 'plain' | null
-  matched_by:         'email' | 'alias' | 'domain' | 'piva' | 'unknown' | null
+  matched_by:
+    | 'email'
+    | 'alias'
+    | 'domain'
+    | 'piva'
+    | 'ragione_sociale'
+    | 'rekki_supplier'
+    | 'unknown'
+    | string
+    | null
+  estrazione_utile?: boolean | null
   tipo_documento?:    'fattura' | 'bolla' | 'altro' | null
   note_corpo_mail?:   string | null
   /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
@@ -245,6 +256,18 @@ function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>
   if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return false
   if (statementDocs.has(doc.id) || doc.is_statement) return false
   return true
+}
+
+/** Categoria documento in coda Da confermare (estratto / bolla / fattura / ordine). */
+function pendingKindForDoc(
+  doc: Documento,
+  statementDocs: Set<string>,
+): 'statement' | 'bolla' | 'fattura' | 'ordine' | null {
+  const pk = doc.metadata?.pending_kind
+  if (pk === 'statement') return 'statement'
+  if (pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return pk
+  if (statementDocs.has(doc.id) || doc.is_statement) return 'statement'
+  return null
 }
 
 /* ── Tab selector ───────────────────────────────────────────── */
@@ -869,6 +892,8 @@ export function PendingMatchesTab({
   const autoLinkTriedRef = useRef(new Set<string>())
   const autoAssocTriedRef = useRef(new Set<string>())
   const autoPendingKindTriedRef = useRef(new Set<string>())
+  const autoRegisterFatturaTriedRef = useRef(new Set<string>())
+  const [autoRegisterSetting, setAutoRegisterSetting] = useState(false)
 
   const addressClusterPeersByDocId = useMemo(() => {
     const pendingLike = docs.filter(
@@ -1114,7 +1139,23 @@ export function PendingMatchesTab({
 
   useEffect(() => {
     autoPendingKindTriedRef.current = new Set()
+    autoRegisterFatturaTriedRef.current = new Set()
   }, [filter, sedeId, fornitoreId, year, month, ledgerDateFrom, ledgerDateToExclusive])
+
+  useEffect(() => {
+    const sid = sedeId ?? me?.sede_id
+    if (!sid) return
+    let cancelled = false
+    void fetch(`/api/sedi/${sid}/approval-settings`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { auto_register_fatture?: boolean } | null) => {
+        if (!cancelled && d) setAutoRegisterSetting(Boolean(d.auto_register_fatture))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [sedeId, me?.sede_id])
 
   useEffect(() => {
     const onLayoutRefresh = () => {
@@ -1322,6 +1363,64 @@ export function PendingMatchesTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, docs])
 
+  // Registrazione automatica fattura (solo se sede ha flag + criteri AI/sede)
+  useEffect(() => {
+    if (loading || !autoRegisterSetting || !docs.length) return
+    void (async () => {
+      let anyDone = false
+      for (const doc of docs) {
+        if (doc.stato !== 'in_attesa' && doc.stato !== 'da_associare') continue
+        const pk = pendingKindForDoc(doc, statementDocs)
+        const openSame = bolleAperte.filter((b) => b.fornitore_id === doc.fornitore_id).length
+        if (
+          !shouldAutoRegisterPendingFattura({
+            fornitoreId: doc.fornitore_id,
+            pendingKind: pk,
+            metadata: doc.metadata ?? undefined,
+            openBolleSameSupplierCount: openSame,
+          })
+        ) {
+          continue
+        }
+        if (autoRegisterFatturaTriedRef.current.has(doc.id)) continue
+
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: doc.id, azione: 'associa', finalizza_da_tipo: true, bolla_ids: [] }),
+        })
+        if (res.ok) {
+          autoRegisterFatturaTriedRef.current.add(doc.id)
+          const nomeForn = (doc.fornitore as { nome: string } | null)?.nome ?? '—'
+          const num = doc.metadata?.numero_fattura?.trim() || '—'
+          showToast(
+            t.statements.autoRegisterFatturaToast
+              .replace(/\{numero\}/g, num)
+              .replace(/\{fornitore\}/g, nomeForn),
+            'success',
+          )
+          setActions((p) => ({ ...p, [doc.id]: 'done' }))
+          anyDone = true
+        } else {
+          autoRegisterFatturaTriedRef.current.add(doc.id)
+          let msg = t.statements.assignFailed
+          try {
+            const j = (await res.json()) as { error?: string }
+            if (j.error?.trim()) msg = j.error.trim()
+          } catch { /* ignore */ }
+          showToast(msg, 'error')
+        }
+      }
+      if (anyDone) {
+        setTimeout(() => {
+          void fetchDocs()
+          void fetchBolleAperte()
+        }, 400)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, docs, bolleAperte, autoRegisterSetting, statementDocs])
+
   // Auto-suggest when both docs and bolle are loaded
   useEffect(() => {
     if (loading || !bolleAperte.length || !docs.length) return
@@ -1432,14 +1531,6 @@ export function PendingMatchesTab({
     } finally {
       setMarkingStatement(null)
     }
-  }
-
-  function pendingKindForDoc(doc: Documento): 'statement' | 'bolla' | 'fattura' | 'ordine' | null {
-    const pk = doc.metadata?.pending_kind
-    if (pk === 'statement') return 'statement'
-    if (pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return pk
-    if (statementDocs.has(doc.id) || doc.is_statement) return 'statement'
-    return null
   }
 
   async function finalizzaTipo(docId: string) {
@@ -1789,7 +1880,7 @@ export function PendingMatchesTab({
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1.5">
                         {/* Tipo documento: ordine / bolla / fattura / estratto (mutua esclusione, persistito su DB) */}
                         {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && (() => {
-                          const pk = pendingKindForDoc(doc)
+                          const pk = pendingKindForDoc(doc, statementDocs)
                           const busy = markingStatement === doc.id
                           const chips: {
                             kind: 'statement' | 'bolla' | 'fattura' | 'ordine'
@@ -1846,7 +1937,7 @@ export function PendingMatchesTab({
                             </div>
                           )
                         })()}
-                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc) !== null && (
+                        {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc, statementDocs) !== null && (
                           !doc.fornitore_id ? (
                             <p className="max-w-[11rem] text-right text-[11px] leading-snug text-orange-200/95 sm:max-w-none sm:text-left">
                               {t.statements.finalizeNeedsSupplier}
@@ -1857,18 +1948,18 @@ export function PendingMatchesTab({
                               disabled={finalizingTipoId === doc.id || (actions[doc.id] ?? 'idle') === 'loading'}
                               onClick={() => void finalizzaTipo(doc.id)}
                               className={`min-h-[36px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
-                                pendingKindForDoc(doc) === 'ordine'
+                                pendingKindForDoc(doc, statementDocs) === 'ordine'
                                   ? 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
                                   : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
                               }`}
                             >
                               {finalizingTipoId === doc.id
                                 ? t.statements.btnFinalizing
-                                : pendingKindForDoc(doc) === 'fattura'
+                                : pendingKindForDoc(doc, statementDocs) === 'fattura'
                                   ? t.statements.btnFinalizeFattura
-                                  : pendingKindForDoc(doc) === 'bolla'
+                                  : pendingKindForDoc(doc, statementDocs) === 'bolla'
                                     ? t.statements.btnFinalizeBolla
-                                    : pendingKindForDoc(doc) === 'ordine'
+                                    : pendingKindForDoc(doc, statementDocs) === 'ordine'
                                       ? t.statements.btnFinalizeOrdine
                                       : t.statements.btnFinalizeStatement}
                             </button>
@@ -1998,7 +2089,7 @@ export function PendingMatchesTab({
 
                 {/* Match actions — multi-select. Se è «estratto» ma fornitore mancante, mostra comunque le bolle per poter associare e fissare il fornitore. Ordine: solo finalizza in header, niente bolle. */}
                 {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') &&
-                  pendingKindForDoc(doc) !== 'ordine' &&
+                  pendingKindForDoc(doc, statementDocs) !== 'ordine' &&
                   (!isStmt || !doc.fornitore_id) &&
                   (() => {
                   const selIds       = selezione[doc.id] ?? []
@@ -2298,7 +2389,7 @@ export function PendingMatchesTab({
                   )
                 })()}
 
-                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc) === 'ordine' && (
+                {(doc.stato === 'in_attesa' || doc.stato === 'da_associare') && pendingKindForDoc(doc, statementDocs) === 'ordine' && (
                   <div className="flex justify-end px-3 pb-3">
                     <button
                       onClick={() => scarta(doc.id)}

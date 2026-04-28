@@ -1140,6 +1140,10 @@ type Translations = {
     adminSedeRoleShort: string
     valutaFuso: string
   }
+  approvalSettings: {
+    autoRegisterTitle: string
+    autoRegisterDescription: string
+  }
   statements: {
     // page heading
     heading: string
@@ -1242,6 +1246,8 @@ type Translations = {
     btnFinalizeStatement: string
     btnFinalizing: string
     finalizeSuccess: string
+    /** Toast dopo registrazione automatica fattura AI; `{numero}` `{fornitore}` */
+    autoRegisterFatturaToast: string
     // PendingMatchesTab — empty states
     noPendingDocs: string
     noDocsFound: string
@@ -2584,7 +2590,12 @@ const it: Translations = {
     operatorDisplayNameLabel: 'Nome visualizzato',
     operatorPinMinLabel: 'PIN (min. 4 caratteri)',
     operatorNameRequired: 'Inserisci il nome dell’operatore.',
-    operatorPinTooShort: 'Il PIN deve essere di almeno 4 caratteri.', wizardOperatorHint: 'Gli operatori accedono con nome + PIN. Puoi aggiungerne altri dopo.', sedeStats: '{operatori} operatori · {fornitori} fornitori', operatoriHeader: 'Operatori ({n})', sedeAccessCodeLabel: 'Codice accesso sede', sedePinHint: 'PIN numerico di 4 cifre. Lascia vuoto per disabilitare.', sedePinError4Digits: 'Il PIN di accesso sede deve essere di 4 cifre oppure vuoto.', changePinTitle: 'Cambia PIN', newPinFor: 'Nuovo PIN per {name}', operatoreRoleShort: 'Op.', adminSedeRoleShort: 'Resp.', valutaFuso: 'Valuta e Fuso orario',
+    operatorPinTooShort: 'Il PIN deve essere di almeno 4 caratteri.', wizardOperatorHint: 'Gli operatori accedono con nome + PIN. Puoi aggiungerne altri dopo.', sedeStats: '{operatori} operatori · {fornitori} fornitori', operatoriHeader: 'Operatori ({n})', sedeAccessCodeLabel: 'Codice accesso sede', sedePinHint: 'PIN numerico di 4 cifre. Lascia vuoto per disabilitare.', sedePinError4Digits: 'Il PIN di accesso sede deve essere di 4 cifre oppure vuoto.', changePinTitle: 'Cambia PIN', newPinFor: 'Nuovo PIN per {name}', operatoreRoleShort: 'Op.', adminSedeRoleShort: 'Resp.',     valutaFuso: 'Valuta e Fuso orario',
+  },
+  approvalSettings: {
+    autoRegisterTitle: 'Registrazione automatica fatture AI',
+    autoRegisterDescription:
+      'Le fatture riconosciute con certezza dall’AI vengono registrate automaticamente senza conferma manuale.',
   },
   statements: {
     heading: 'Verifica Estratti Conto Mensili',
@@ -2670,6 +2681,7 @@ const it: Translations = {
     btnFinalizeStatement: 'Archivia estratto',
     btnFinalizing: 'Finalizzazione…',
     finalizeSuccess: 'Documento registrato.',
+    autoRegisterFatturaToast: 'Fattura #{numero} di {fornitore} registrata automaticamente',
     noPendingDocs: 'Nessun documento da esaminare',
     noDocsFound: 'Nessun documento trovato',
     noBolleAttesa: 'Nessuna bolla in attesa disponibile',
@@ -3290,6 +3302,11 @@ const en: Translations = {
   impostazioni: { title: 'Settings', subtitle: 'Customize currency and timezone', lingua: 'Language', valuta: 'Currency', fuso: 'Timezone', preview: 'Preview', saved: 'Settings saved — reloading…', sectionLocalisation: 'Localisation', accountSection: 'Account', changeSede: 'Switch branch', addOperatorsPickSede: 'Choose the active branch under Locations first — then you can add operators (name + PIN) here.', imapSection: 'IMAP Email' },
   log: { title: 'Email Sync Log', subtitle: 'History of emails processed by automatic synchronization.', sender: 'Sender', subject: 'Subject', stato: 'Status', detail: 'Detail', retry: 'Retry', retrying: 'Retrying…', success: 'Success', bollaNotFound: 'Document Received', supplierNotFound: 'Unknown sender', noLogs: 'No logs yet.', emptyHint: 'Run an email sync from the Dashboard.', totalLogs: 'Total logs', linkedInvoices: 'Documents received', withErrors: 'With errors', vediFile: 'View file', supplierSuggested: 'Suggested supplier', aiSuggest: 'AI suggestion', aiSuggestTitle: 'Suggested company data (OCR)', aiSuggestLoading: 'Analyzing…', aiSuggestError: 'Could not analyze the document.', openCreateSupplier: 'Open create supplier', associateRememberHint: 'After saving, the sender email will be linked to this supplier for future syncs.', colAttachment: 'Attachment', colSede: 'Location', colLogId: 'Log ID' },
   sedi: { title: 'Location & Users', titleGlobalAdmin: 'Locations', subtitle: 'Manage your location, email sync and operators', subtitleGlobalAdmin: 'Manage locations, email sync and operators', newSede: 'New Location', noSedi: 'No locations yet. Start by adding the first one.', users: 'Users', imap: 'Email Configuration (IMAP)', imapSubtitle: "Configure this location's email inbox. Invoices received here will be automatically matched to this location's suppliers.", imapHost: 'IMAP Host', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'Email / Username', imapPassword: 'Password', imapPasswordPlaceholder: 'Password or App Password', testConnection: 'Test connection', saveConfig: 'Save configuration', notConfigured: 'Email not configured', accessDenied: 'Access restricted to administrators', accessDeniedHint: 'Contact your admin to get access.', creatingBtn: 'Creating...', createBtn: 'Create', nomePlaceholder: 'e.g. London Office', nessunUtente: 'No users found.', emailHeader: 'Email', sedeHeader: 'Location', ruoloHeader: 'Role', nessunaSedeOption: '— No location —', operatoreRole: 'Operator', adminRole: 'Management portal', adminSedeRole: 'Branch administrator', profileRoleAdmin: 'Management portal', adminScopedSediHint: 'You only see the location linked to your profile. New locations and the “Unassigned users” section are for the main administrator (admin with no location on profile).', renameTitle: 'Rename', deleteTitle: 'Delete', addOperatorSedeTitle: 'New operator', addOperatorSedeDesc: 'They sign in with name and PIN (min. 4 characters). Email is generated automatically.', operatorDisplayNameLabel: 'Display name', operatorPinMinLabel: 'PIN (min. 4 characters)', operatorNameRequired: 'Enter the operator’s name.', operatorPinTooShort: 'PIN must be at least 4 characters.', wizardOperatorHint: 'Operators sign in with name + PIN. You can add more later.', sedeStats: '{operatori} operators · {fornitori} suppliers', operatoriHeader: 'Operators ({n})', sedeAccessCodeLabel: 'Branch access code', sedePinHint: '4-digit numeric PIN. Leave blank to disable.', sedePinError4Digits: 'Branch access PIN must be 4 digits or left empty.', changePinTitle: 'Change PIN', newPinFor: 'New PIN for {name}', operatoreRoleShort: 'Op.', adminSedeRoleShort: 'Br. Adm.', valutaFuso: 'Currency & Timezone', },
+  approvalSettings: {
+    autoRegisterTitle: 'Automatic AI invoice registration',
+    autoRegisterDescription:
+      'Invoices the AI is confident about are saved automatically without manual confirmation.',
+  },
   statements: {
     heading: 'Monthly Statement Verification',
     tabVerifica: 'Statement',
@@ -3375,6 +3392,7 @@ const en: Translations = {
     btnFinalizeStatement: 'Archive statement',
     btnFinalizing: 'Saving…',
     finalizeSuccess: 'Document saved.',
+    autoRegisterFatturaToast: 'Invoice #{numero} from {fornitore} registered automatically',
     noPendingDocs: 'No documents to review',
     noDocsFound: 'No documents found',
     noBolleAttesa: 'No pending delivery notes available',
@@ -3945,6 +3963,11 @@ const es: Translations = {
   impostazioni: { title: 'Configuración', subtitle: 'Personalizar moneda y zona horaria', lingua: 'Idioma', valuta: 'Moneda', fuso: 'Zona horaria', preview: 'Vista previa', saved: 'Configuración guardada — actualizando…', sectionLocalisation: 'Localización', accountSection: 'Cuenta', changeSede: 'Cambiar sede', addOperatorsPickSede: 'Elige la sede activa en Sedes — luego podrás crear operadores (nombre + PIN) aquí.', imapSection: 'Email IMAP' },
   log: { title: 'Log Sincronización Email', subtitle: 'Historial de emails procesados por la sincronización automática.', sender: 'Remitente', subject: 'Asunto', stato: 'Estado', detail: 'Detalle', retry: 'Reintentar', retrying: 'Reintentando…', success: 'Éxito', bollaNotFound: 'Documento Recibido', supplierNotFound: 'Remitente desconocido', noLogs: 'Sin logs.', emptyHint: 'Ejecuta una sincronización de email desde el Panel.', totalLogs: 'Total logs', linkedInvoices: 'Documentos recibidos', withErrors: 'Con errores', vediFile: 'Ver archivo', supplierSuggested: 'Proveedor sugerido', aiSuggest: 'Sugerencia IA', aiSuggestTitle: 'Datos sugeridos (OCR)', aiSuggestLoading: 'Analizando…', aiSuggestError: 'No se pudo analizar el documento.', openCreateSupplier: 'Abrir alta de proveedor', associateRememberHint: 'Tras guardar, el email del remitente quedará vinculado para futuras sincronizaciones.', colAttachment: 'Adjunto', colSede: 'Sede', colLogId: 'ID log' },
   sedi: { title: 'Sede y Usuarios', titleGlobalAdmin: 'Sedes', subtitle: 'Gestionar la sede, la sincronización de email y los operadores', subtitleGlobalAdmin: 'Gestionar las sedes, la sincronización de email y los operadores', newSede: 'Nueva Sede', noSedi: 'Sin sedes. Empieza añadiendo la primera.', users: 'Usuarios', imap: 'Configuración Email (IMAP)', imapSubtitle: 'Configura el buzón de esta sede. Las facturas recibidas aquí se asociarán automáticamente a los proveedores de la sede.', imapHost: 'Host IMAP', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Puerto', imapUser: 'Email / Usuario', imapPassword: 'Contraseña', imapPasswordPlaceholder: 'Contraseña o Contraseña de aplicación', testConnection: 'Probar conexión', saveConfig: 'Guardar configuración', notConfigured: 'Email no configurado', accessDenied: 'Acceso restringido a administradores', accessDeniedHint: 'Contacta al admin para obtener acceso.', creatingBtn: 'Creando...', createBtn: 'Crear', nomePlaceholder: 'Ej. Oficina Madrid', nessunUtente: 'No se encontraron usuarios.', emailHeader: 'Email', sedeHeader: 'Sede', ruoloHeader: 'Rol', nessunaSedeOption: '— Sin sede —', operatoreRole: 'Operador', adminRole: 'Portal de gestión', adminSedeRole: 'Administrador de sede', profileRoleAdmin: 'Portal de gestión', adminScopedSediHint: 'Solo ves la sede vinculada a tu perfil. Las sedes nuevas y «Usuarios sin sede» los gestiona el administrador principal (admin sin sede en el perfil).', renameTitle: 'Renombrar', deleteTitle: 'Eliminar', addOperatorSedeTitle: 'Nuevo operador', addOperatorSedeDesc: 'Accede con nombre y PIN (mín. 4 caracteres). El email se genera automáticamente.', operatorDisplayNameLabel: 'Nombre mostrado', operatorPinMinLabel: 'PIN (mín. 4 caracteres)', operatorNameRequired: 'Introduce el nombre del operador.', operatorPinTooShort: 'El PIN debe tener al menos 4 caracteres.', wizardOperatorHint: 'Los operadores acceden con nombre + PIN. Puedes añadir más después.', sedeStats: '{operatori} operadores · {fornitori} proveedores', operatoriHeader: 'Operadores ({n})', sedeAccessCodeLabel: 'Código de acceso sede', sedePinHint: 'PIN numérico de 4 dígitos. Deja vacío para desactivar.', sedePinError4Digits: 'El PIN de acceso debe tener 4 dígitos o estar vacío.', changePinTitle: 'Cambiar PIN', newPinFor: 'Nuevo PIN para {name}', operatoreRoleShort: 'Op.', adminSedeRoleShort: 'Resp.', valutaFuso: 'Moneda y Zona horaria', },
+  approvalSettings: {
+    autoRegisterTitle: 'Registro automático de facturas por IA',
+    autoRegisterDescription:
+      'Las facturas que la IA identifica con certeza se registran automáticamente sin confirmación manual.',
+  },
   statements: {
     heading: 'Verificación de Extractos Mensuales',
     tabVerifica: 'Estado de cuenta',
@@ -4029,6 +4052,7 @@ const es: Translations = {
     btnFinalizeStatement: 'Archivar extracto',
     btnFinalizing: 'Guardando…',
     finalizeSuccess: 'Documento registrado.',
+    autoRegisterFatturaToast: 'Factura #{numero} de {fornitore} registrada automáticamente',
     noPendingDocs: 'No hay documentos para revisar',
     noDocsFound: 'No se encontraron documentos',
     noBolleAttesa: 'No hay albaranes pendientes disponibles',
@@ -4596,6 +4620,11 @@ const fr: Translations = {
   impostazioni: { title: 'Paramètres', subtitle: 'Devise et fuseau horaire', lingua: 'Langue', valuta: 'Devise', fuso: 'Fuseau horaire', preview: 'Aperçu', saved: 'Paramètres sauvegardés — rechargement…', sectionLocalisation: 'Localisation', accountSection: 'Compte', changeSede: 'Changer de site', addOperatorsPickSede: 'Choisissez d’abord le site actif dans Sites — puis vous pourrez créer des opérateurs (nom + PIN) ici.', imapSection: 'Email IMAP' },
   log: { title: 'Log Sync Email', subtitle: 'Historique des emails traités par la synchronisation automatique.', sender: 'Expéditeur', subject: 'Objet', stato: 'Statut', detail: 'Détail', retry: 'Réessayer', retrying: 'Réessai…', success: 'Succès', bollaNotFound: 'Document Reçu', supplierNotFound: 'Expéditeur inconnu', noLogs: 'Aucun log.', emptyHint: 'Lancez une synchronisation email depuis le Tableau de bord.', totalLogs: 'Total logs', linkedInvoices: 'Documents reçus', withErrors: 'Avec erreurs', vediFile: 'Voir fichier', supplierSuggested: 'Fournisseur suggéré', aiSuggest: 'Suggestion IA', aiSuggestTitle: 'Données suggérées (OCR)', aiSuggestLoading: 'Analyse…', aiSuggestError: 'Impossible d’analyser le document.', openCreateSupplier: 'Ouvrir création fournisseur', associateRememberHint: 'Après enregistrement, l’e-mail de l’expéditeur sera lié pour les prochaines synchronisations.', colAttachment: 'Pièce jointe', colSede: 'Site', colLogId: 'ID log' },
   sedi: { title: 'Site et Utilisateurs', titleGlobalAdmin: 'Sites', subtitle: 'Gérer le site, la sync e-mail et les opérateurs', subtitleGlobalAdmin: 'Gérer les sites, la sync e-mail et les opérateurs', newSede: 'Nouveau Site', noSedi: 'Aucun site. Commencez par en ajouter un.', users: 'Utilisateurs', imap: 'Configuration Email (IMAP)', imapSubtitle: "Configurez la boîte mail de ce site. Les factures reçues ici seront associées automatiquement aux fournisseurs du site.", imapHost: 'Hôte IMAP', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'Email / Utilisateur', imapPassword: 'Mot de passe', imapPasswordPlaceholder: 'Mot de passe ou Mot de passe d\'application', testConnection: 'Tester la connexion', saveConfig: 'Enregistrer la configuration', notConfigured: 'Email non configuré', accessDenied: 'Accès réservé aux administrateurs', accessDeniedHint: 'Contactez votre admin pour obtenir l\'accès.', creatingBtn: 'Création...', createBtn: 'Créer', nomePlaceholder: 'Ex. Bureau Paris', nessunUtente: 'Aucun utilisateur trouvé.', emailHeader: 'Email', sedeHeader: 'Site', ruoloHeader: 'Rôle', nessunaSedeOption: '— Aucun site —', operatoreRole: 'Opérateur', adminRole: 'Portail de gestion', adminSedeRole: 'Administrateur de site', profileRoleAdmin: 'Portail de gestion', adminScopedSediHint: 'Vous ne voyez que le site lié à votre profil. Les nouveaux sites et les « Utilisateurs sans site » sont réservés à l’administrateur principal (admin sans site sur le profil).', renameTitle: 'Renommer', deleteTitle: 'Supprimer', addOperatorSedeTitle: 'Nouvel opérateur', addOperatorSedeDesc: 'Connexion avec nom et PIN (min. 4 caractères). L’e-mail est généré automatiquement.', operatorDisplayNameLabel: 'Nom affiché', operatorPinMinLabel: 'PIN (min. 4 caractères)', operatorNameRequired: 'Saisissez le nom de l’opérateur.', operatorPinTooShort: 'Le PIN doit comporter au moins 4 caractères.', wizardOperatorHint: "Les opérateurs se connectent avec nom + PIN. Vous pouvez en ajouter d'autres après.", sedeStats: '{operatori} opérateurs · {fornitori} fournisseurs', operatoriHeader: 'Opérateurs ({n})', sedeAccessCodeLabel: "Code d'accès site", sedePinHint: 'Code PIN à 4 chiffres. Laisser vide pour désactiver.', sedePinError4Digits: "Le code PIN d'accès doit contenir 4 chiffres ou être vide.", changePinTitle: 'Modifier le PIN', newPinFor: 'Nouveau PIN pour {name}', operatoreRoleShort: 'Op.', adminSedeRoleShort: 'Resp.', valutaFuso: 'Devise et Fuseau horaire', },
+  approvalSettings: {
+    autoRegisterTitle: 'Enregistrement automatique des factures IA',
+    autoRegisterDescription:
+      'Les factures reconnues avec certitude par l’IA sont enregistrées automatiquement sans confirmation manuelle.',
+  },
   statements: {
     heading: 'Vérification des Relevés Mensuels',
     tabVerifica: 'Relevé de Compte',
@@ -4680,6 +4709,7 @@ const fr: Translations = {
     btnFinalizeStatement: 'Archiver le relevé',
     btnFinalizing: 'Enregistrement…',
     finalizeSuccess: 'Document enregistré.',
+    autoRegisterFatturaToast: 'Facture #{numero} — {fornitore} enregistrée automatiquement',
     noPendingDocs: 'Aucun document à examiner',
     noDocsFound: 'Aucun document trouvé',
     noBolleAttesa: 'Aucun bon de livraison en attente disponible',
@@ -5246,6 +5276,11 @@ const de: Translations = {
   impostazioni: { title: 'Einstellungen', subtitle: 'Währung und Zeitzone', lingua: 'Sprache', valuta: 'Währung', fuso: 'Zeitzone', preview: 'Vorschau', saved: 'Einstellungen gespeichert — wird neu geladen…', sectionLocalisation: 'Lokalisierung', accountSection: 'Konto', changeSede: 'Standort wechseln', addOperatorsPickSede: 'Wählen Sie zuerst den aktiven Standort unter Standorte — dann können Sie hier Operatoren anlegen (Name + PIN).', imapSection: 'E-Mail IMAP' },
   log: { title: 'E-Mail-Sync-Log', subtitle: 'Verlauf der von der automatischen Synchronisierung verarbeiteten E-Mails.', sender: 'Absender', subject: 'Betreff', stato: 'Status', detail: 'Detail', retry: 'Erneut versuchen', retrying: 'Versuche erneut…', success: 'Erfolg', bollaNotFound: 'Dokument Empfangen', supplierNotFound: 'Unbekannter Absender', noLogs: 'Keine Logs.', emptyHint: 'Führen Sie eine E-Mail-Synchronisierung vom Dashboard aus durch.', totalLogs: 'Logs gesamt', linkedInvoices: 'Empfangene Dokumente', withErrors: 'Mit Fehlern', vediFile: 'Datei anzeigen', supplierSuggested: 'Vorgeschlagener Lieferant', aiSuggest: 'KI-Vorschlag', aiSuggestTitle: 'Vorgeschlagene Stammdaten (OCR)', aiSuggestLoading: 'Analyse…', aiSuggestError: 'Dokument konnte nicht analysiert werden.', openCreateSupplier: 'Lieferant anlegen öffnen', associateRememberHint: 'Nach dem Speichern wird die Absender-E-Mail für künftige Synchronisierungen verknüpft.', colAttachment: 'Anhang', colSede: 'Standort', colLogId: 'Log-ID' },
   sedi: { title: 'Standort & Nutzer', titleGlobalAdmin: 'Standorte', subtitle: 'Standort, E-Mail-Sync und Operatoren verwalten', subtitleGlobalAdmin: 'Standorte, E-Mail-Synchronisation und Operatoren verwalten', newSede: 'Neuer Standort', noSedi: 'Keine Standorte. Fügen Sie den ersten hinzu.', users: 'Nutzer', imap: 'E-Mail-Konfiguration (IMAP)', imapSubtitle: 'Konfigurieren Sie das E-Mail-Postfach dieses Standorts. Eingehende Rechnungen werden automatisch den Lieferanten des Standorts zugeordnet.', imapHost: 'IMAP-Host', imapHostPlaceholder: 'imap.gmail.com', imapPort: 'Port', imapUser: 'E-Mail / Nutzer', imapPassword: 'Passwort', imapPasswordPlaceholder: 'Passwort oder App-Passwort', testConnection: 'Verbindung testen', saveConfig: 'Konfiguration speichern', notConfigured: 'E-Mail nicht konfiguriert', accessDenied: 'Zugang nur für Administratoren', accessDeniedHint: 'Wenden Sie sich an Ihren Administrator, um Zugang zu erhalten.', creatingBtn: 'Erstellen...', createBtn: 'Erstellen', nomePlaceholder: 'z.B. Büro Berlin', nessunUtente: 'Keine Nutzer gefunden.', emailHeader: 'E-Mail', sedeHeader: 'Standort', ruoloHeader: 'Rolle', nessunaSedeOption: '— Kein Standort —', operatoreRole: 'Operator', adminRole: 'Verwaltungsportal', adminSedeRole: 'Standort-Administrator', profileRoleAdmin: 'Verwaltungsportal', adminScopedSediHint: 'Sie sehen nur den Standort, der mit Ihrem Profil verknüpft ist. Neue Standorte und «Benutzer ohne Standort» verwaltet der Hauptadministrator (Admin ohne Standort im Profil).', renameTitle: 'Umbenennen', deleteTitle: 'Löschen', addOperatorSedeTitle: 'Neuer Operator', addOperatorSedeDesc: 'Anmeldung mit Name und PIN (mind. 4 Zeichen). E-Mail wird automatisch erzeugt.', operatorDisplayNameLabel: 'Anzeigename', operatorPinMinLabel: 'PIN (mind. 4 Zeichen)', operatorNameRequired: 'Geben Sie den Namen des Operators ein.', operatorPinTooShort: 'Der PIN muss mindestens 4 Zeichen haben.', wizardOperatorHint: 'Mitarbeiter melden sich mit Name + PIN an. Sie können später weitere hinzufügen.', sedeStats: '{operatori} Mitarbeiter · {fornitori} Lieferanten', operatoriHeader: 'Mitarbeiter ({n})', sedeAccessCodeLabel: 'Standort-Zugangscode', sedePinHint: '4-stellige numerische PIN. Leer lassen zum Deaktivieren.', sedePinError4Digits: 'Der Zugangs-PIN muss 4 Ziffern lang sein oder leer bleiben.', changePinTitle: 'PIN ändern', newPinFor: 'Neuer PIN für {name}', operatoreRoleShort: 'Op.', adminSedeRoleShort: 'Filial-Adm.', valutaFuso: 'Währung & Zeitzone', },
+  approvalSettings: {
+    autoRegisterTitle: 'Automatische KI-Rechnungsregistrierung',
+    autoRegisterDescription:
+      'Rechnungen, die die KI zuverlässig erkennt, werden ohne manuelle Bestätigung gespeichert.',
+  },
   statements: {
     heading: 'Monatliche Kontoauszugs-Prüfung',
     tabVerifica: 'Kontoauszug',
@@ -5330,6 +5365,7 @@ const de: Translations = {
     btnFinalizeStatement: 'Auszug archivieren',
     btnFinalizing: 'Wird gespeichert…',
     finalizeSuccess: 'Dokument gespeichert.',
+    autoRegisterFatturaToast: 'Rechnung #{numero} von {fornitore} automatisch registriert',
     noPendingDocs: 'Keine Dokumente zu prüfen',
     noDocsFound: 'Keine Dokumente gefunden',
     noBolleAttesa: 'Keine ausstehenden Lieferscheine verfügbar',

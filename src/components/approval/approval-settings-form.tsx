@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useT } from '@/lib/use-t'
 
 type ApprovalSettings = {
   threshold: number
   require_approval: boolean
+  auto_register_fatture: boolean
 }
 
 type Props = {
@@ -12,7 +14,12 @@ type Props = {
 }
 
 export function ApprovalSettingsForm({ sedeId }: Props) {
-  const [settings, setSettings] = useState<ApprovalSettings>({ threshold: 500, require_approval: true })
+  const t = useT()
+  const [settings, setSettings] = useState<ApprovalSettings>({
+    threshold: 500,
+    require_approval: true,
+    auto_register_fatture: false,
+  })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -22,7 +29,12 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
     fetch(`/api/sedi/${sedeId}/approval-settings`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d: ApprovalSettings | null) => {
-        if (d) setSettings({ threshold: d.threshold ?? 500, require_approval: d.require_approval !== false })
+        if (d)
+          setSettings({
+            threshold: d.threshold ?? 500,
+            require_approval: d.require_approval !== false,
+            auto_register_fatture: d.auto_register_fatture === true,
+          })
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -57,6 +69,28 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-app-fg">{t.approvalSettings.autoRegisterTitle}</p>
+          <p className="text-xs text-app-fg-muted">{t.approvalSettings.autoRegisterDescription}</p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={settings.auto_register_fatture}
+          onClick={() => setSettings((s) => ({ ...s, auto_register_fatture: !s.auto_register_fatture }))}
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#22d3ee]/40 ${
+            settings.auto_register_fatture ? 'bg-emerald-600' : 'bg-app-line-30'
+          }`}
+        >
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+              settings.auto_register_fatture ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+
       {/* Toggle */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">

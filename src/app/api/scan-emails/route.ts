@@ -125,6 +125,7 @@ function buildMetadata(
     // Preserved for UI validation badge ("Parsed as UK format £1,234.56")
     importo_raw:        ocr.importo_raw ?? null,
     formato_importo:    ocr.formato_importo ?? null,
+    estrazione_utile:   ocr.estrazione_utile ?? undefined,
     matched_by:         matchedBy,
   }
 }
