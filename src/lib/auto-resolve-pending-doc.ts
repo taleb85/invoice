@@ -35,6 +35,17 @@ function normalizeSupplierNameKey(s: string): string {
     .replace(/\s+/g, ' ')
 }
 
+/** Dopo `normalizeSupplierNameKey`: Ltd ≈ Limited (OCR vs anagrafica), Inc, SRL … */
+function canonicalSupplierNameKey(raw: string): string {
+  let s = normalizeSupplierNameKey(raw)
+  if (!s) return s
+  s = s.replace(/\b(limited|ltd)\b/g, 'ltd')
+  s = s.replace(/\b(incorporated|inc)\b/g, 'inc')
+  s = s.replace(/\b(s\.r\.l\.|srl|s r l)\b/g, 'srl')
+  s = s.replace(/\b(plc|plc\.)\b/g, 'plc')
+  return s.replace(/\s+/g, ' ').trim()
+}
+
 function normEmail(s: string | null | undefined): string | null {
   const t = s?.trim().toLowerCase()
   return t && t.includes('@') ? t : null
@@ -140,12 +151,12 @@ export async function findUniqueFornitoreForPendingDoc(
     if (addrHits.length > 1) return null
   }
 
-  if (rsTrim && normalizeSupplierNameKey(rsTrim).length >= 3) {
-    const key = normalizeSupplierNameKey(rsTrim)
+  if (rsTrim && canonicalSupplierNameKey(rsTrim).length >= 3) {
+    const key = canonicalSupplierNameKey(rsTrim)
     const hits = list.filter(
       (f) =>
-        normalizeSupplierNameKey(f.nome) === key ||
-        (!!f.display_name?.trim() && normalizeSupplierNameKey(f.display_name) === key),
+        canonicalSupplierNameKey(f.nome) === key ||
+        (!!f.display_name?.trim() && canonicalSupplierNameKey(f.display_name) === key),
     )
     if (hits.length === 1) return { id: hits[0].id, nome: hits[0].nome }
   }
