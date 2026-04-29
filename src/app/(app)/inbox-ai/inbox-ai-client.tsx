@@ -120,6 +120,8 @@ function fmtTipoAiPerUi(tipo: string): string {
 
 /** Conferma automatica dopo la risposta Gemini (stesso criterio visivo del %. mostrato). */
 const AUTO_FINALIZE_AI_CONF_MIN = 0.95
+/** Fattura/bolla/… rimangono a 0.95; listino permette più varianti Gemini (≈90% reali). */
+const AUTO_FINALIZE_LISTINO_CONF_MIN = 0.9
 
 function suggestionConf01(s: GeminiSuggestion): number {
   const x =
@@ -313,7 +315,10 @@ export default function InboxAiClient(props: {
         if (!row) continue
         const kind = tipoAiToPendingKind(s.tipo_suggerito)
         if (!kind || !row.fornitore_id) continue
-        if (suggestionConf01(s) < AUTO_FINALIZE_AI_CONF_MIN) continue
+        const conf = suggestionConf01(s)
+        const minConf =
+          kind === 'listino' ? AUTO_FINALIZE_LISTINO_CONF_MIN : AUTO_FINALIZE_AI_CONF_MIN
+        if (conf < minConf) continue
         const ok = await finalizeWithKind(row.id, kind)
         if (!ok) break
         workingDocs = workingDocs.filter((d) => d.id !== row.id)
@@ -613,14 +618,17 @@ export default function InboxAiClient(props: {
           <section className="space-y-3">
             <p className="text-xs text-app-fg-muted">
               Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
-              <span className="font-mono text-app-fg">da_revisionare</span>). Se l&apos;analisi riporta almeno{' '}
-              <span className="font-semibold text-app-fg">95% confidenza</span>, tipo riconosciuto (
-              <span className="font-mono">fattura/bolla/listino/ordine/estratto</span>) e c&apos;è un{' '}
-              <span className="font-semibold text-app-fg">fornitore associato</span>, il documento viene registrato senza clic aggiuntivo.
-              Altrimenti usa{' '}
-              <span className="font-semibold text-app-fg">Conferma suggeriti</span> oppure{' '}
-              <span className="font-semibold text-app-fg">Registra fattura</span> /{' '}
-              <span className="font-semibold text-app-fg">Registra bolla</span> sulla riga. Ogni riga con analisi mostra ✓ e il dettaglio.
+              <span className="font-mono text-app-fg">da_revisionare</span>). Con{' '}
+              <span className="font-semibold text-app-fg">fornitore associato</span>, registrazione automatica se confidenza ok: almeno{' '}
+              <span className="font-semibold text-app-fg">95%</span> per fattura/bolla/ordine/estratto; almeno{' '}
+              <span className="font-semibold text-app-fg">90%</span> per{' '}
+              <span className="font-mono text-app-fg">listino</span> (
+              <span lang="en" className="text-app-fg/90">
+                e.g. &quot;Price Update&quot;, price lists
+              </span>
+              ). Altrimenti{' '}
+              <span className="font-semibold text-app-fg">Conferma suggeriti</span> o i pulsanti riga (incluso{' '}
+              <span className="font-semibold text-app-fg">Registra listino</span>). Ogni analisi mostra ✓ e il dettaglio.
             </p>
             {docsLoading ? (
               <ul className="space-y-2">
