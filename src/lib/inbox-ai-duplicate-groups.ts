@@ -11,6 +11,7 @@ export type DupFatturaRow = {
   data: string
   importo: number | null
   bolla_id: string | null
+  file_url: string | null
   sede_id: string | null
   fornitore_nome: string | null
 }
@@ -32,6 +33,7 @@ export type DupBollaRow = {
   fornitore_id: string
   data: string
   importo: number | null
+  file_url: string | null
   sede_id: string | null
   fornitore_nome: string | null
   ha_fattura_collegata: boolean
@@ -94,6 +96,7 @@ export async function fetchEnrichedDuplicateFattureGroups(
     importo: number | null
     data: string | null
     bolla_id: string | null
+    file_url: string | null
     sede_id: string | null
     fornitori: { nome: string | null } | null
   }
@@ -102,7 +105,7 @@ export async function fetchEnrichedDuplicateFattureGroups(
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('fatture')
-      .select('id, numero_fattura, fornitore_id, importo, data, bolla_id, sede_id, fornitori(nome)')
+      .select('id, numero_fattura, fornitore_id, importo, data, bolla_id, file_url, sede_id, fornitori(nome)')
       .eq('sede_id', sedeId)
       .order('data', { ascending: true })
       .order('id', { ascending: true })
@@ -130,6 +133,7 @@ export async function fetchEnrichedDuplicateFattureGroups(
       data: String(f.data ?? ''),
       importo: f.importo != null ? Number(f.importo) : null,
       bolla_id: f.bolla_id,
+      file_url: f.file_url ?? null,
       sede_id: f.sede_id,
       fornitore_nome: f.fornitori?.nome ?? null,
     }))
@@ -177,6 +181,7 @@ export async function fetchEnrichedDuplicateFattureGroups(
       data: String(f.data ?? ''),
       importo: f.importo != null ? Number(f.importo) : null,
       bolla_id: f.bolla_id,
+      file_url: f.file_url ?? null,
       sede_id: f.sede_id,
       fornitore_nome: f.fornitori?.nome ?? null,
     }))
@@ -228,6 +233,7 @@ export async function fetchEnrichedDuplicateBolleGroups(
     fornitore_id: string | null
     importo: number | null
     data: string | null
+    file_url: string | null
     sede_id: string | null
     fornitori: { nome: string | null } | null
   }
@@ -236,7 +242,7 @@ export async function fetchEnrichedDuplicateBolleGroups(
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('bolle')
-      .select('id, numero_bolla, fornitore_id, importo, data, sede_id, fornitori(nome)')
+      .select('id, numero_bolla, fornitore_id, importo, data, file_url, sede_id, fornitori(nome)')
       .eq('sede_id', sedeId)
       .order('data', { ascending: true })
       .order('id', { ascending: true })
@@ -256,6 +262,7 @@ export async function fetchEnrichedDuplicateBolleGroups(
       fornitore_id: b.fornitore_id!,
       data: String(b.data ?? ''),
       importo: b.importo != null ? Number(b.importo) : null,
+      file_url: b.file_url ?? null,
       sede_id: b.sede_id,
       fornitore_nome: b.fornitori?.nome ?? null,
       ha_fattura_collegata: fatturaByBolla.get(b.id) ?? false,

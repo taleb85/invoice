@@ -911,12 +911,23 @@ export default function InboxAiClient(props: {
                             ) : null}
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            <Link
-                              href={`/fatture/${f.id}`}
-                              className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
-                            >
-                              Dettaglio
-                            </Link>
+                            {f.file_url?.trim() ? (
+                              <OpenDocumentInAppButton
+                                fatturaId={f.id}
+                                fileUrl={f.file_url}
+                                className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
+                                title={t.bolle.viewDocument}
+                              >
+                                Dettaglio
+                              </OpenDocumentInAppButton>
+                            ) : (
+                              <Link
+                                href={`/fatture/${f.id}`}
+                                className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
+                              >
+                                Dettaglio
+                              </Link>
+                            )}
                             <button
                               type="button"
                               disabled={dupBusy === g.group_key}
@@ -978,12 +989,23 @@ export default function InboxAiClient(props: {
                             ) : null}
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            <Link
-                              href={`/bolle/${b.id}`}
-                              className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
-                            >
-                              Dettaglio
-                            </Link>
+                            {b.file_url?.trim() ? (
+                              <OpenDocumentInAppButton
+                                bollaId={b.id}
+                                fileUrl={b.file_url}
+                                className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
+                                title={t.bolle.viewDocument}
+                              >
+                                Dettaglio
+                              </OpenDocumentInAppButton>
+                            ) : (
+                              <Link
+                                href={`/bolle/${b.id}`}
+                                className="rounded border border-white/15 px-2 py-0.5 text-[11px] text-app-cyan-400 hover:bg-white/10"
+                              >
+                                Dettaglio
+                              </Link>
+                            )}
                             <button
                               type="button"
                               disabled={dupBusy === g.group_key}
