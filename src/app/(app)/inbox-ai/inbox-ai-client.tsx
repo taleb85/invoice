@@ -285,6 +285,16 @@ export default function InboxAiClient(props: {
     }).length
   }, [docsNewestFirst, suggestions])
 
+  /** Conteggio documenti dentro i gruppi duplicati (il badge deve riflettere le righe in elenco, non solo i gruppi). */
+  const dupFattureRigheCount = useMemo(
+    () => dupFat.reduce((s, g) => s + g.fatture.length, 0),
+    [dupFat],
+  )
+  const dupBolleRigheCount = useMemo(
+    () => dupBol.reduce((s, g) => s + g.bolle.length, 0),
+    [dupBol],
+  )
+
   const runAnalyze = async () => {
     if (!sedeId) return
     setAnalyzeBusy(true)
@@ -472,9 +482,10 @@ export default function InboxAiClient(props: {
 
   const tabBadge = (id: TabId) => {
     if (id === 'docs') return docs.length
-    if (id === 'fatture') return dupFat.length
-    if (id === 'bolle') return dupBol.length
+    if (id === 'fatture') return dupFattureRigheCount
+    if (id === 'bolle') return dupBolleRigheCount
     if (id === 'audit') return auditRows.length
+    if (id === 'rekki') return 0
     return 0
   }
 
