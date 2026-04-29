@@ -5,7 +5,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DupBollaGroup, DupFatturaGroup } from '@/lib/inbox-ai-duplicate-groups'
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { createClient } from '@/utils/supabase/client'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
+import { useT } from '@/lib/use-t'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -138,6 +140,7 @@ export default function InboxAiClient(props: {
   initialTab?: string | null
 }) {
   const { sedeId, blockedNoSede, initialTab } = props
+  const t = useT()
   const [tab, setTab] = useState<TabId>(() => parseInitialTab(initialTab ?? undefined))
   const [docs, setDocs] = useState<PendingDocRow[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
@@ -674,9 +677,21 @@ export default function InboxAiClient(props: {
                             )}
                           </div>
                           <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-app-fg">
-                            {d.file_name ?? 'Senza nome file'}
-                          </p>
+                            <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+                              <p className="min-w-0 flex-1 truncate text-sm font-semibold text-app-fg">
+                                {d.file_name ?? 'Senza nome file'}
+                              </p>
+                              {d.file_url ? (
+                                <OpenDocumentInAppButton
+                                  documentoId={d.id}
+                                  fileUrl={d.file_url}
+                                  className="shrink-0 text-[11px] font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline"
+                                  title={t.bolle.viewDocument}
+                                >
+                                  {t.bolle.viewDocument}
+                                </OpenDocumentInAppButton>
+                              ) : null}
+                            </div>
                           <p className="text-xs text-app-fg-muted">
                             Fornitore: <span className="text-app-fg">{supplier}</span> · Ricezione:{' '}
                             {fmtDate(d.created_at)} ·{' '}
