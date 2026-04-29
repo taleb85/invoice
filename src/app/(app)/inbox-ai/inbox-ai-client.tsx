@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DupBollaGroup, DupFatturaGroup } from '@/lib/inbox-ai-duplicate-groups'
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { createClient } from '@/utils/supabase/client'
+import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -20,6 +21,8 @@ type PendingDocRow = {
   file_name: string | null
   file_url: string | null
   created_at: string
+  /** Se valorizzato, ordinamento coda allineato al giorno documento come in batch Gemini */
+  data_documento?: string | null
   stato: string
   fornitore_id: string | null
   fornitore?: { nome?: string | null } | null
@@ -249,14 +252,9 @@ export default function InboxAiClient(props: {
     return Object.keys(suggestions)
   }, [suggestions])
 
-  /** Stessa vista della GET: più recenti in alto (evita liste capovolte vs batch AI). */
+  /** Stessa regola del POST `gemini_classify` per evitare ordine “dal basso” vs analisi. */
   const docsNewestFirst = useMemo(() => {
-    return [...docs].sort((a, b) => {
-      const ta = new Date(a.created_at).getTime()
-      const tb = new Date(b.created_at).getTime()
-      if (tb !== ta) return tb - ta
-      return b.id.localeCompare(a.id)
-    })
+    return [...docs].sort(compareInboxQueueNewestFirst)
   }, [docs])
 
   const runAnalyze = async () => {

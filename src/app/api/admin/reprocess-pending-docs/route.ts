@@ -7,6 +7,7 @@ import {
 } from '@/lib/reprocess-pending-docs-ocr'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { classifyDocumentWithGemini, type GeminiInboxClassification } from '@/lib/gemini-inbox-classify'
+import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 
 export const dynamic = 'force-dynamic'
 /** Riduce timeout su Vercel; batch massimo 5 documenti per richiesta. */
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
     )
     let q = service
       .from('documenti_da_processare')
-      .select('id, file_url, file_name, content_type, stato, created_at')
+      .select('id, file_url, file_name, content_type, stato, created_at, data_documento')
       .in('stato', ['da_associare', 'da_revisionare'])
 
     if (sedeFilterOrNull) {
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: fetchGeminiErr.message }, { status: 500 })
     }
 
-    /** Ordine esplicito: più recenti prima — allineato alla lista Inbox (GET usa `created_at` DESC). */
+    /** Ordine esplicito: stessa regola della lista Inbox (`compareInboxQueueNewestFirst`). */
     type GemRow = {
       id: string
       file_url: string | null
@@ -111,13 +112,9 @@ export async function POST(req: NextRequest) {
       content_type: string | null
       stato?: string | null
       created_at?: string | null
+      data_documento?: string | null
     }
-    const sorted = ((rawRows ?? []) as GemRow[]).slice().sort((a, b) => {
-      const ta = a.created_at ? new Date(a.created_at).getTime() : 0
-      const tb = b.created_at ? new Date(b.created_at).getTime() : 0
-      if (tb !== ta) return tb - ta
-      return b.id.localeCompare(a.id)
-    })
+    const sorted = ((rawRows ?? []) as GemRow[]).slice().sort(compareInboxQueueNewestFirst)
 
     const rows = sorted
       .filter((r) => !exclude.has(r.id))
