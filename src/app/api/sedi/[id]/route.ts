@@ -42,9 +42,11 @@ export async function PATCH(
     imap_user?: string | null
     imap_password?: string | null
     imap_lookback_days?: number | null
+    /** Nomi cliente/destinatario da non usare come fornitore in OCR (merge con default in app). */
+    nomi_cliente_da_ignorare?: string[] | null
   }
 
-  const update: Record<string, string | number | null> = {}
+  const update: Record<string, string | number | string[] | null> = {}
 
   if (body.country_code !== undefined) {
     if (!ALLOWED_COUNTRIES.includes(body.country_code)) {
@@ -106,6 +108,20 @@ export async function PATCH(
     const n = Number(body.imap_lookback_days)
     update.imap_lookback_days =
       body.imap_lookback_days == null || Number.isNaN(n) || n <= 0 ? null : n
+  }
+
+  if (body.nomi_cliente_da_ignorare !== undefined) {
+    if (body.nomi_cliente_da_ignorare === null) {
+      update.nomi_cliente_da_ignorare = null
+    } else if (Array.isArray(body.nomi_cliente_da_ignorare)) {
+      const names = body.nomi_cliente_da_ignorare
+        .filter((x): x is string => typeof x === 'string')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      update.nomi_cliente_da_ignorare = names
+    } else {
+      return NextResponse.json({ error: 'Invalid nomi_cliente_da_ignorare' }, { status: 400 })
+    }
   }
 
   if (Object.keys(update).length === 0) {

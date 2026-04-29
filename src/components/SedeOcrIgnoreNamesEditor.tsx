@@ -1,0 +1,139 @@
+'use client'
+
+import { useState } from 'react'
+
+type Props = {
+  sedeId: string
+  /** Da DB o, se vuoto, valori effettivi di default mostrati all’utente */
+  initialNames: string[]
+  canEdit: boolean
+}
+
+export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit }: Props) {
+  const [names, setNames] = useState<string[]>(() => [...initialNames])
+  const [draft, setDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!canEdit) return null
+
+  function add() {
+    const t = draft.trim()
+    if (!t) return
+    if (names.some((n) => n.toLowerCase() === t.toLowerCase())) {
+      setDraft('')
+      return
+    }
+    setNames([...names, t])
+    setDraft('')
+    setSaved(false)
+  }
+
+  function removeAt(i: number) {
+    setNames(names.filter((_, j) => j !== i))
+    setSaved(false)
+  }
+
+  async function save() {
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/sedi/${sedeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nomi_cliente_da_ignorare: names }),
+      })
+      const d = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        setError(typeof d.error === 'string' ? d.error : 'Errore salvataggio')
+        return
+      }
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch {
+      setError('Errore di rete')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/15">
+          <svg className="h-4 w-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-app-fg">Nomi azienda da ignorare nell&apos;OCR</p>
+          <p className="text-xs text-app-fg-muted">
+            Destinatari/clienti della sede: non usarli come fornitore su fatture e DDT. Elenco salvato nella sede.
+          </p>
+        </div>
+      </div>
+
+      <ul className="mb-4 flex flex-col gap-2">
+        {names.length === 0 ? (
+          <li className="text-sm text-app-fg-muted">Nessun nome — aggiungi almeno il nome del locale o della società.</li>
+        ) : (
+          names.map((n, i) => (
+            <li
+              key={`${n}-${i}`}
+              className="flex items-center justify-between gap-2 rounded-lg border border-app-line-20 bg-app-line-08 px-3 py-2"
+            >
+              <span className="min-w-0 flex-1 text-sm text-app-fg">{n}</span>
+              <button
+                type="button"
+                onClick={() => removeAt(i)}
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-rose-300 hover:bg-rose-500/15"
+              >
+                Rimuovi
+              </button>
+            </li>
+          ))
+        )}
+      </ul>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              add()
+            }
+          }}
+          placeholder="Aggiungi nome (es. nuovo locale)"
+          className="min-w-0 flex-1 rounded-lg border border-app-line-25 bg-[#0b1222] px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-30"
+        />
+        <button
+          type="button"
+          onClick={add}
+          className="rounded-lg border border-app-line-25 bg-app-line-08 px-4 py-2 text-sm font-medium text-app-fg hover:bg-app-line-15"
+        >
+          Aggiungi
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="rounded-lg bg-app-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-app-cyan-500 disabled:opacity-50"
+        >
+          {saving ? 'Salvataggio…' : 'Salva'}
+        </button>
+      </div>
+
+      {error ? <p className="mt-2 text-sm text-rose-400">{error}</p> : null}
+      {saved ? <p className="mt-2 text-sm text-emerald-400">Salvato.</p> : null}
+    </div>
+  )
+}

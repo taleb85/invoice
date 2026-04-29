@@ -54,6 +54,11 @@ export interface OcrResult {
    *  'plain' = No separator ambiguity (e.g. 150 or 150.00)
    */
   formato_importo?: 'dot' | 'comma' | 'plain' | null
+  /**
+   * Set when ragione_sociale matched a known customer/buyer name and was cleared —
+   * downstream should set document state to da_revisionare and flag metadata.
+   */
+  ocr_cliente_estratto_come_fornitore?: boolean
 
   // ── Alias backward-compatible ─────────────────────────────
   nome: string | null
@@ -73,6 +78,7 @@ export const EMPTY_OCR: OcrResult = {
   estrazione_utile: undefined,
   importo_raw: null,
   formato_importo: null,
+  ocr_cliente_estratto_come_fornitore: undefined,
   nome: null,
   piva: null,
   data: null,
@@ -170,10 +176,103 @@ function buildEmailBodyInstructionBlock(emailBodyText: string): string {
 
 type PromptMode = 'with_attachment' | 'email_body_only'
 
+/** Default buyer names — merged with `sedi.nomi_cliente_da_ignorare` when sede_id is set. */
+export const DEFAULT_NOMI_CLIENTE_DA_IGNORARE = [
+  'Osteria Basilico',
+  'Eurogold Restaurant Ltd',
+  'Eurogold Restaurant',
+  'Eurogold',
+  'Basilico Restaurant',
+  'Mediterraneo Restaurant',
+] as const
+
+function normalizeForCustomerNameMatch(s: string): string {
+  return s.toLowerCase().replace(/\s+/g, ' ').trim()
+}
+
+/** True if ragione_sociale matches an ignored customer/buyer name (exact or substring). */
+export function matchesIgnoredCustomerRagioneSociale(
+  ragioneSociale: string | null | undefined,
+  ignored: readonly string[],
+): boolean {
+  const rs = ragioneSociale?.trim()
+  if (!rs) return false
+  const norm = normalizeForCustomerNameMatch(rs)
+  for (const ign of ignored) {
+    const g = normalizeForCustomerNameMatch(ign)
+    if (!g) continue
+    if (norm === g || norm.includes(g) || g.includes(norm)) return true
+  }
+  return false
+}
+
+function buildIgnoredCustomerNamesPromptBlock(names: readonly string[]): string {
+  const joined = names.map((n) => n.trim()).filter(Boolean).join(', ')
+  const lines = names.map((n) => `- ${n}`).join('\n')
+  return `
+REGOLA IMPORTANTE (IT) / IMPORTANT RULE (EN):
+Il cliente/destinatario della fattura rientra sempre tra questi nomi (varianti incluse): ${joined}.
+The invoice **recipient** for this tenant is always one of these names (including variants): ${joined}.
+
+Il campo JSON **ragione_sociale** è il nome legale del FORNITORE/EMITTENTE (chi ha emesso e firmato la fattura), MAI il cliente. In UI questo valore è l'«azienda fornitore» — non il destinatario.
+
+Se uno di questi nomi appare come «azienda» principale sul foglio, cercare il venditore nel blocco intestazione in alto a destra, in **Cedente / Prestatore**, o in etichette **From / Emittente / Seller** — quello è il fornitore corretto. **Non** usare Cessionario / Bill to / Ship to per ragione_sociale.
+
+Se non riesci a identificare con certezza il fornitore, restituisci **ragione_sociale** null (non inventare).
+
+Reference list:
+${lines}
+`
+}
+
+async function resolveIgnoredCustomerNamesForOcr(
+  logContext: OcrInvoiceLogContext | undefined,
+): Promise<string[]> {
+  const merged = new Set<string>(DEFAULT_NOMI_CLIENTE_DA_IGNORARE as unknown as string[])
+  if (!logContext?.sede_id || !logContext?.supabase) {
+    return [...merged]
+  }
+  try {
+    const { data, error } = await logContext.supabase
+      .from('sedi')
+      .select('nomi_cliente_da_ignorare')
+      .eq('id', logContext.sede_id)
+      .maybeSingle()
+    if (error) {
+      console.warn('[OCR] sedi.nomi_cliente_da_ignorare:', error.message)
+      return [...merged]
+    }
+    const raw = data?.nomi_cliente_da_ignorare as unknown
+    if (Array.isArray(raw)) {
+      for (const x of raw) {
+        if (typeof x === 'string' && x.trim()) merged.add(x.trim())
+      }
+    }
+    return [...merged]
+  } catch (e) {
+    console.warn('[OCR] resolveIgnoredCustomerNamesForOcr:', e)
+    return [...merged]
+  }
+}
+
+function applyIgnoredCustomerSanitize(result: OcrResult, ignored: readonly string[]): OcrResult {
+  if (!matchesIgnoredCustomerRagioneSociale(result.ragione_sociale, ignored)) return result
+  return {
+    ...result,
+    ragione_sociale: null,
+    nome: null,
+    ocr_cliente_estratto_come_fornitore: true,
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    OCR system prompt — universal, all 5 languages
 ───────────────────────────────────────────────────────────── */
-function buildSystemPrompt(languageHint?: string, mode: PromptMode = 'with_attachment'): string {
+function buildSystemPrompt(
+  languageHint?: string,
+  mode: PromptMode = 'with_attachment',
+  extras?: { ignoredCustomerNames?: string[] },
+): string {
   const hint = languageHint
     ? `\nThe document is likely in ${languageHint.toUpperCase()}. Prioritise parsing conventions for that language.`
     : ''
@@ -187,6 +286,10 @@ function buildSystemPrompt(languageHint?: string, mode: PromptMode = 'with_attac
     mode === 'email_body_only'
       ? `- estrazione_utile: set false only for pure pleasantries / unrelated content with no totals, dates, references, VAT, or delivery information. Otherwise true.\n`
       : `- estrazione_utile: set true if useful data came from the attachment and/or the email body; false only if nothing business-relevant was found.\n`
+
+  const ignoredCount = extras?.ignoredCustomerNames?.length ?? 0
+  const ignoreBlock =
+    ignoredCount > 0 ? buildIgnoredCustomerNamesPromptBlock(extras!.ignoredCustomerNames!) : ''
 
   return `${modeIntro}Supported document types (all treated equivalently):
 - Invoice (EN) = Fattura (IT) = Factura (ES) = Facture (FR) = Rechnung (DE)
@@ -205,7 +308,7 @@ Return ONLY valid JSON — no markdown, no explanation:
   "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",
   "estrazione_utile": true
 }
-
+${ignoreBlock}
 Rules:
 ${DOCUMENT_EXTRACTION_PROMPT}
 
@@ -368,6 +471,15 @@ async function finalizeParseOutcome(
   return outcome.result
 }
 
+async function finalizeParseOutcomeAndSanitize(
+  outcome: ParseOcrOutcome,
+  logContext: OcrInvoiceLogContext | undefined,
+  ignoredCustomerNames: readonly string[],
+): Promise<OcrResult> {
+  const r = await finalizeParseOutcome(outcome, logContext)
+  return applyIgnoredCustomerSanitize(r, ignoredCustomerNames)
+}
+
 /* ─────────────────────────────────────────────────────────────
    PDF text extraction
 ───────────────────────────────────────────────────────────── */
@@ -402,8 +514,11 @@ export async function ocrInvoice(
   }
 
   const buf = Buffer.from(buffer)
-  const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'with_attachment')
   const logContext = options?.logContext
+  const ignoredCustomerNames = await resolveIgnoredCustomerNamesForOcr(logContext)
+  const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'with_attachment', {
+    ignoredCustomerNames,
+  })
   const emailBody = options?.emailBodyText
   const onUsage = options?.onUsage
 
@@ -433,7 +548,7 @@ export async function ocrInvoice(
         const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 900)
         onUsage?.(res.usage)
         const outcome = parseOcrJson(res.text)
-        return finalizeParseOutcome(outcome, logContext)
+        return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
       } catch (err) {
         if (err instanceof GeminiTransientError) {
           throw new OcrTransientError(`PDF testo: ${err.message}`, err)
@@ -459,7 +574,7 @@ export async function ocrInvoice(
       )
       onUsage?.(res.usage)
       const outcome = parseOcrJson(res.text)
-      return finalizeParseOutcome(outcome, logContext)
+      return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
     } catch (err) {
       if (err instanceof GeminiTransientError) {
         throw new OcrTransientError(`PDF vision: ${err.message}`, err)
@@ -486,7 +601,7 @@ export async function ocrInvoice(
     )
     onUsage?.(res.usage)
     const outcome = parseOcrJson(res.text)
-    return finalizeParseOutcome(outcome, logContext)
+    return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
   } catch (err) {
     if (err instanceof GeminiTransientError) {
       throw new OcrTransientError(`Vision immagine: ${err.message}`, err)
@@ -514,8 +629,11 @@ export async function ocrInvoiceFromEmailBody(
   const trimmed = emailBody?.trim()
   if (!trimmed) return { ...EMPTY_OCR, estrazione_utile: false }
 
-  const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'email_body_only')
   const logContext = options?.logContext
+  const ignoredCustomerNames = await resolveIgnoredCustomerNamesForOcr(logContext)
+  const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'email_body_only', {
+    ignoredCustomerNames,
+  })
 
   try {
     const res = await geminiGenerateText(
@@ -525,7 +643,7 @@ export async function ocrInvoiceFromEmailBody(
     )
     options?.onUsage?.(res.usage)
     const outcome = parseOcrJson(res.text)
-    return finalizeParseOutcome(outcome, logContext)
+    return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
   } catch (err) {
     if (err instanceof GeminiTransientError) {
       throw new OcrTransientError(`Email body: ${err.message}`, err)

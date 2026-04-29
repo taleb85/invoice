@@ -68,6 +68,9 @@ function buildMetadata(
     formato_importo: ocr.formato_importo ?? null,
     estrazione_utile: ocr.estrazione_utile ?? undefined,
     matched_by: matchedBy,
+    ...(ocr.ocr_cliente_estratto_come_fornitore
+      ? { ocr_cliente_estratto_come_fornitore: true as const }
+      : {}),
   }
 }
 
@@ -234,7 +237,7 @@ export async function processLegacyPendingDoc(
   let registratoAutoFatturaId: string | null = null
   let registratoAutoBollaId: string | null = null
   let duplicateSkippedFatturaId: string | null = null
-  let needsDocRevision = false
+  let needsDocRevision = !!ocr.ocr_cliente_estratto_come_fornitore
 
   const documentSedeId = row.sede_id ?? fornitore?.sede_id ?? null
 
@@ -256,7 +259,7 @@ export async function processLegacyPendingDoc(
         ? 'bolla'
         : 'fattura'
 
-  if (fornitore?.id && documentSedeId && !skipAutoBozza) {
+  if (fornitore?.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
     const dataDocLocal = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
 
     if (targetKind === 'fattura') {
@@ -323,15 +326,18 @@ export async function processLegacyPendingDoc(
       : {}),
   }
 
-  const rowStato: 'associato' | 'da_associare' | 'da_revisionare' = isStatementEmail
-    ? 'associato'
-    : skipAutoBozza
-      ? 'da_associare'
-      : registratoAutoFatturaId || registratoAutoBollaId
+  const rowStato: 'associato' | 'da_associare' | 'da_revisionare' =
+    ocr.ocr_cliente_estratto_come_fornitore === true
+      ? 'da_revisionare'
+      : isStatementEmail
         ? 'associato'
-        : needsDocRevision
-          ? 'da_revisionare'
-          : 'da_associare'
+        : skipAutoBozza
+          ? 'da_associare'
+          : registratoAutoFatturaId || registratoAutoBollaId
+            ? 'associato'
+            : needsDocRevision
+              ? 'da_revisionare'
+              : 'da_associare'
 
   const { error: updErr } = await service
     .from('documenti_da_processare')

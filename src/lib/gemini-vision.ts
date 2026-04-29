@@ -37,6 +37,7 @@ DATA (field data_fattura):
 SUPPLIER NAME (field ragione_sociale in the main JSON schema):
 - The **issuer/seller** legal name (with seller VAT), **not** the buyer. On many **EU and Italian** PDFs the **Cedente / Prestatore** block (seller P.IVA) is **upper-right**; **Cessionario / Committente** (customer) is often **upper-left** — do not swap them.
 - Prefer the company name **adjacent to the seller/issuer VAT**. A large **brand or chain** name elsewhere (top-centre, watermark) may **not** be the legal supplier — use the name in the **issuer VAT header** when they differ.
+- Multi-tenant SaaS: the **restaurant / venue that receives invoices** may appear very large (bill-to, logo, “deliver to”). A runtime list **IGNORE_AS_SUPPLIER** in the assembled system prompt lists **buyer-only** legal names for this deployment — **never** put those in ragione_sociale; if the only prominent name matches that list, extract the **issuer** from Cedente/Prestatore, From, Emittente, Seller, or the **upper-right** fiscal block.
 
 TIPO DOCUMENTO (field tipo_documento):
 - Return exactly one of these lower-case tokens (or null if unreadable): fattura | ddt | bolla | ordine | estratto_conto | altro | curriculum

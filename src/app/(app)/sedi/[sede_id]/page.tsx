@@ -15,6 +15,8 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
 import { ApprovalSettingsForm } from '@/components/approval/approval-settings-form'
+import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
+import SedeOcrIgnoreNamesEditor from '@/components/SedeOcrIgnoreNamesEditor'
 
 interface SedeProfile {
   id: string
@@ -24,13 +26,14 @@ interface SedeProfile {
   country_code: string
   fornitori_count: number
   operators_count: number
+  ocrClienteIgnoreNames: string[]
 }
 
 async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
   const service = createServiceClient()
   const { data: sede } = await service
     .from('sedi')
-    .select('id, nome, imap_user, imap_host, country_code')
+    .select('id, nome, imap_user, imap_host, country_code, nomi_cliente_da_ignorare')
     .eq('id', sedeId)
     .single()
 
@@ -41,6 +44,14 @@ async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
     service.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
   ])
 
+  const rawIgnored = (
+    sede as { nomi_cliente_da_ignorare?: string[] | null }
+  ).nomi_cliente_da_ignorare
+  const ocrClienteIgnoreNames =
+    Array.isArray(rawIgnored) && rawIgnored.length > 0
+      ? rawIgnored.filter((x): x is string => typeof x === 'string' && !!x.trim())
+      : [...DEFAULT_NOMI_CLIENTE_DA_IGNORARE]
+
   return {
     id: sede.id,
     nome: sede.nome,
@@ -49,6 +60,7 @@ async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
     country_code: (sede as { country_code?: string }).country_code ?? 'UK',
     fornitori_count: fornitori_count ?? 0,
     operators_count: operators_count ?? 0,
+    ocrClienteIgnoreNames,
   }
 }
 
@@ -253,6 +265,17 @@ export default async function SedeProfilePage(props: {
           </div>
         </Link>
       </div>
+
+      {/* OCR: nomi cliente da non confondere con fornitore */}
+      {(isMasterAdmin || isAdminSede) && (
+        <div className="mb-6">
+          <SedeOcrIgnoreNamesEditor
+            sedeId={sede_id}
+            initialNames={sede.ocrClienteIgnoreNames}
+            canEdit={canManageSedeOperators}
+          />
+        </div>
+      )}
 
       {/* Approval settings */}
       {(isMasterAdmin || isAdminSede) && (
