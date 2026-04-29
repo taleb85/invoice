@@ -34,6 +34,7 @@ import {
   emailSubjectLooksLikeStatement,
   inferAutoPendingKindFromEmailScan,
   inferPendingDocumentKindForQueueRow,
+  scanContextLooksLikeServiceReport,
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
@@ -828,6 +829,22 @@ async function processEmails(
         continue
       }
 
+      if (scanContextLooksLikeServiceReport(email.subject, attachment.filename ?? null)) {
+        mailDebugLog(
+          `[PROCESS] Service report — skip OCR e coda (mittente sconosciuto): "${(email.subject ?? '').slice(0, 120)}"`,
+        )
+        await insertLog(supabase, email, 'documento_non_fiscale', {
+          errore_dettaglio:
+            'Oggetto/allegato: service report — non incluso nella coda documenti.',
+          sede_id: effectiveSede,
+          allegato_nome: attachment.filename ?? null,
+          scan_attachment_fingerprint: fp,
+        })
+        bumpAttach(email.uid)
+        ignorate++
+        continue
+      }
+
       mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso (nessun fallback fornitore sul documento)`)
 
       const baseMimeU = (attachment.contentType ?? '').split(';')[0].trim().toLowerCase()
@@ -1046,6 +1063,21 @@ async function processEmails(
       continue
     }
 
+    if (scanContextLooksLikeServiceReport(email.subject, null)) {
+      mailDebugLog(
+        `[PROCESS] Service report — skip solo-testo sconosciuto: "${(email.subject ?? '').slice(0, 120)}"`,
+      )
+      await insertLog(supabase, email, 'documento_non_fiscale', {
+        errore_dettaglio: 'Oggetto: service report — non incluso nella coda documenti.',
+        sede_id: effectiveSede,
+        allegato_nome: null,
+        scan_attachment_fingerprint: fp,
+      })
+      bumpAttach(email.uid)
+      ignorate++
+      continue
+    }
+
     mailDebugLog(`[PROCESS] Solo testo, mittente sconosciuto "${email.from}" — estrazione AI sul corpo`)
 
     const ocrBodyOrNull = await runOcrEmailBodyOnly(supabase, email, undefined, null, effectiveSede, fp)
@@ -1188,10 +1220,32 @@ async function processEmails(
       }
     }
 
+    const skipServiceReport: boolean[] = new Array(items.length).fill(false)
+    for (let i = 0; i < items.length; i++) {
+      if (skipped[i]) continue
+      const { email, attachment } = items[i]
+      if (!scanContextLooksLikeServiceReport(email.subject, attachment?.filename ?? null)) continue
+
+      skipServiceReport[i] = true
+      mailDebugLog(
+        `[PROCESS] Service report — skip OCR e coda: "${(email.subject ?? '').slice(0, 120)}" | fornitore="${fornitore.nome}"`,
+      )
+      await insertLog(supabase, email, 'documento_non_fiscale', {
+        fornitore_id: fornitore.id,
+        errore_dettaglio:
+          'Oggetto/allegato: service report — non incluso nella coda documenti.',
+        sede_id: checkpointSede,
+        allegato_nome: attachment?.filename ?? null,
+        scan_attachment_fingerprint: fpList[i],
+      })
+      bumpAttach(email.uid)
+      ignorate++
+    }
+
     // null = transient OCR failure for that item — do NOT fingerprint; retry next scan.
     const ocrResults: (OcrResult | null)[] = await Promise.all(
       items.map(({ attachment, ocr, email }, i) => {
-        if (skipped[i]) return Promise.resolve(EMPTY_OCR)
+        if (skipped[i] || skipServiceReport[i]) return Promise.resolve(EMPTY_OCR)
         const fp = fpList[i]
         return ocr
           ? Promise.resolve(ocr)
@@ -1221,6 +1275,7 @@ async function processEmails(
 
     for (let i = 0; i < items.length; i++) {
       if (skipped[i]) continue
+      if (skipServiceReport[i]) continue
       const { email, attachment } = items[i]
       const fp = fpList[i]
 

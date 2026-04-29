@@ -126,6 +126,19 @@ export function scanContextLooksLikeOrderConfirmationDoc(
 }
 
 /**
+ * Report operativi (es. pest control, assistenza): non sono fatture/bolle — non salvare in coda.
+ */
+export function scanContextLooksLikeServiceReport(
+  subject: string | null | undefined,
+  fileName: string | null | undefined,
+): boolean {
+  const blob = `${subject ?? ''}\n${fileName ?? ''}`
+  if (!blob.trim()) return false
+  const b = blob.toLowerCase()
+  return /\bservice\s+report\b/.test(b) || /\brapporto\s+di\s+servizio\b/.test(b)
+}
+
+/**
  * Heuristics for email-scan bolla vs fattura bozza when OCR `tipo_documento`
  * is missing, wrong, or the model returns free-text (e.g. "Tax invoice").
  */
