@@ -6,7 +6,14 @@
  */
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
+/** Modello OCR predefinito (override con `GEMINI_MODEL` nell’env). */
 export const GEMINI_MODEL = 'gemini-2.5-flash-lite' as const
+
+/** Id effettivamente usato dall’SDK (rileva `.env`). */
+export function getGeminiModelId(): string {
+  const o = process.env.GEMINI_MODEL?.trim()
+  return o || GEMINI_MODEL
+}
 
 /** Cost per 1M tokens (USD) — Gemini 2.5 Flash-Lite. */
 export const GEMINI_PRICING = {
@@ -73,12 +80,40 @@ export class GeminiTransientError extends Error {
 
 // ─── Internals ────────────────────────────────────────────────────────────────
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+/** Ritento brevi backoff per 429/5xx RPM; sulla quota giornaliera free-tier i ritentativi non “riaprono” il tetto — serve billing sul progetto API. */
+async function invokeWithTransientRetry(run: () => Promise<GeminiResult>): Promise<GeminiResult> {
+  const backoffsMs = [2500, 12_000]
+  let attempt = 0
+  while (true) {
+    try {
+      return await run()
+    } catch (err: unknown) {
+      const last = attempt >= backoffsMs.length
+      if (!isTransientGeminiError(err) || last) {
+        if (isTransientGeminiError(err)) {
+          throw new GeminiTransientError(
+            `${err instanceof Error ? err.message : String(err)}`,
+            err,
+          )
+        }
+        throw err instanceof Error ? err : new Error(String(err))
+      }
+      await sleep(backoffsMs[attempt] ?? 12_000)
+      attempt++
+    }
+  }
+}
+
 function getModel(systemPrompt: string, maxOutputTokens: number) {
   const key = process.env.GEMINI_API_KEY?.trim()
   if (!key) throw new GeminiConfigurationError()
   const genAI = new GoogleGenerativeAI(key)
   return genAI.getGenerativeModel({
-    model: GEMINI_MODEL,
+    model: getGeminiModelId(),
     systemInstruction: systemPrompt,
     generationConfig: { maxOutputTokens, temperature: 0 },
   })
@@ -135,12 +170,15 @@ export async function geminiGenerateText(
 ): Promise<GeminiResult> {
   const model = getModel(systemPrompt, maxOutputTokens)
   try {
-    const result = await model.generateContent(userContent)
-    return {
-      text: result.response.text(),
-      usage: buildUsage(result.response.usageMetadata),
-    }
+    return await invokeWithTransientRetry(async () => {
+      const result = await model.generateContent(userContent)
+      return {
+        text: result.response.text(),
+        usage: buildUsage(result.response.usageMetadata),
+      }
+    })
   } catch (err) {
+    if (err instanceof GeminiTransientError) throw err
     if (isTransientGeminiError(err)) {
       throw new GeminiTransientError(
         `Gemini text: ${err instanceof Error ? err.message : String(err)}`,
@@ -167,15 +205,18 @@ export async function geminiGenerateVision(
 ): Promise<GeminiResult> {
   const model = getModel(systemPrompt, maxOutputTokens)
   try {
-    const result = await model.generateContent([
-      { inlineData: { mimeType, data: base64Data } },
-      { text: textPrompt },
-    ])
-    return {
-      text: result.response.text(),
-      usage: buildUsage(result.response.usageMetadata),
-    }
+    return await invokeWithTransientRetry(async () => {
+      const result = await model.generateContent([
+        { inlineData: { mimeType, data: base64Data } },
+        { text: textPrompt },
+      ])
+      return {
+        text: result.response.text(),
+        usage: buildUsage(result.response.usageMetadata),
+      }
+    })
   } catch (err) {
+    if (err instanceof GeminiTransientError) throw err
     if (isTransientGeminiError(err)) {
       throw new GeminiTransientError(
         `Gemini vision (${mimeType}): ${err instanceof Error ? err.message : String(err)}`,

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole } from '@/lib/roles'
-import { GEMINI_MODEL, GEMINI_PRICING } from '@/lib/gemini-vision'
+import { GEMINI_PRICING, getGeminiModelId } from '@/lib/gemini-vision'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,7 +133,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    model: GEMINI_MODEL,
+    model: getGeminiModelId(),
     pricing: GEMINI_PRICING,
     totalCalls,
     totalInputTokens,

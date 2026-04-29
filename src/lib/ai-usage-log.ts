@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { GEMINI_MODEL, type GeminiUsage } from '@/lib/gemini-vision'
+import { getGeminiModelId, type GeminiUsage } from '@/lib/gemini-vision'
 
 export async function recordAiUsage(
   supabase: SupabaseClient,
@@ -20,7 +20,7 @@ export async function recordAiUsage(
   const row = {
     sede_id: input.sede_id,
     documento_id: input.documento_id ?? null,
-    model: input.model ?? GEMINI_MODEL,
+    model: input.model ?? getGeminiModelId(),
     tokens_input: tokensIn,
     tokens_output: tokensOut,
     costo_usd: Math.round(costUsd * 100_000_000) / 100_000_000,

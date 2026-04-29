@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { GEMINI_MODEL, GEMINI_PRICING } from '@/lib/gemini-vision'
+import { GEMINI_PRICING, getGeminiModelId } from '@/lib/gemini-vision'
 
 export const dynamic = 'force-dynamic'
 
@@ -195,7 +195,7 @@ export async function GET(req: NextRequest) {
   const recent = rows.slice(0, 80).map(r => ({
     created_at: r.created_at,
     user_id: '',
-    operation: r.model ?? GEMINI_MODEL,
+    operation: r.model ?? getGeminiModelId(),
     intent: r.tipo ?? '',
     inputTokens: Number(r.tokens_input ?? 0),
     outputTokens: Number(r.tokens_output ?? 0),
@@ -212,7 +212,7 @@ export async function GET(req: NextRequest) {
       label_from_date: fromTs.slice(0, 10),
       label_to_date: toUpper.slice(0, 10),
     },
-    model: GEMINI_MODEL,
+    model: getGeminiModelId(),
     pricing: GEMINI_PRICING,
     scansioni_totali,
     tokens_input: tokensInput,

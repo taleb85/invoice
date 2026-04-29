@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
-import { geminiGenerateText, GEMINI_MODEL, type GeminiUsage } from '@/lib/gemini-vision'
+import { geminiGenerateText, getGeminiModelId, type GeminiUsage } from '@/lib/gemini-vision'
 import { logActivity } from '@/lib/activity-logger'
 import { recordAiUsage } from '@/lib/ai-usage-log'
 
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
           outputTokens: capturedUsageAggregate.outputTokens,
           totalTokens: capturedUsageAggregate.totalTokens,
           estimatedCostUsd: capturedUsageAggregate.estimatedCostUsd,
-          model: GEMINI_MODEL,
+          model: getGeminiModelId(),
           operation: 'scanner_hub',
           intent,
           sedeId: logSedeId,
