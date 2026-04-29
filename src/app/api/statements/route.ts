@@ -101,7 +101,24 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let q = (supabase as any)
     .from('statements')
-    .select('id, sede_id, fornitore_id, email_subject, received_at, extracted_pdf_dates, file_url, status, total_rows, missing_rows')
+    .select(
+      [
+        'id',
+        'sede_id',
+        'fornitore_id',
+        'file_url',
+        'document_date',
+        'periodo',
+        'totale_outstanding',
+        'created_at',
+        'email_reference_id',
+        'email_subject',
+        'received_at',
+        'status',
+        'total_rows',
+        'missing_rows',
+      ].join(', '),
+    )
     .order('received_at', { ascending: false })
     /* Per singolo fornitore servono più righe (estratto 2025 vs ricezioni 2026, cronologia lunga). */
     .limit(listLimit)
