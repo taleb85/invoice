@@ -4,13 +4,14 @@ import type React from 'react'
 import Link from 'next/link'
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { FileText, Home, Settings, Users } from 'lucide-react'
+import { Home, Settings, Users } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 import { resolvedOperatorDockDisplay } from '@/lib/operator-dock-display'
+import { getAssociatedSedeNome, navGestisciSediLabel } from '@/lib/gestisci-sede-label'
 import {
   isFornitoreProfileRoute,
   normalizeAppPath,
@@ -23,6 +24,13 @@ const QuickScanModal = dynamic(
   () => import('./quick-scan/quick-scan-modal').then((m) => m.QuickScanModal),
   { ssr: false },
 )
+
+/** Cookie browser (stesso pattern di `Sidebar.tsx` per `admin-sede-id`). */
+function readBrowserCookie(name: string): string {
+  if (typeof document === 'undefined') return ''
+  const m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
+  return m ? decodeURIComponent(m[1]) : ''
+}
 
 /**
  * Dock mobile edge-to-edge: si attacca al bordo inferiore dello schermo e usa
@@ -199,6 +207,8 @@ export default function DashboardMobileBottomNav() {
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === ''
+    if (href === '/consumi-ai') return pathname.startsWith('/consumi-ai')
+    if (href === '/sedi') return pathname === '/sedi' || pathname.startsWith('/sedi/')
     if (href === '/bolle') {
       if (pathname === '/bolle/new') return false
       return pathname === '/bolle' || pathname.startsWith('/bolle/')
@@ -232,36 +242,108 @@ export default function DashboardMobileBottomNav() {
     )
   }
 
-  const adminHubNav = () => (
-    <nav className={navClsHub} style={NAV_SHELL_SAFE_AREA_STYLE} aria-label={BOTTOM_NAV_ARIA_ADMIN}>
-      <DashboardHomeScannerDockCta />
-      <div className={hubIconsRow}>
-        <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
-          <span className="relative">
-            <Home className={`h-6 w-6 shrink-0 ${icon.home}`} aria-hidden />
-            {showOfflineBadge && (
-              <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
-                {pendingCount > 9 ? '9+' : pendingCount}
+  /** Stesse voci / icone / `iconAccentClass` della sidebar desktop admin (`Sidebar.tsx`). */
+  const adminHubNav = () => {
+    const gestisciSediLabel = navGestisciSediLabel(t, getAssociatedSedeNome(me, readBrowserCookie))
+    const portaleOPrimaVoce =
+      me?.is_admin && !activeOperator && !readBrowserCookie('admin-sede-id')?.trim()
+        ? t.sedi.adminRole
+        : t.nav.dashboard
+
+    return (
+      <nav className={navClsHub} style={NAV_SHELL_SAFE_AREA_STYLE} aria-label={BOTTOM_NAV_ARIA_ADMIN}>
+        <DashboardHomeScannerDockCta />
+        <div className={hubIconsRow}>
+          <Link href="/" className={itemCls(isActive('/'))} prefetch={false}>
+            <span className="relative">
+              <span
+                className={`shrink-0 ${isActive('/') ? icon.home : `${icon.home}/75`}`}
+                aria-hidden
+              >
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
+                </svg>
               </span>
-            )}
-          </span>
-          <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.dashboard}</span>
-        </Link>
-        <Link href="/fornitori" className={itemCls(isActive('/fornitori'))} prefetch={false}>
-          <Users className={`h-6 w-6 shrink-0 ${icon.fornitori}`} aria-hidden />
-          <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
-        </Link>
-        <Link href="/bolle" className={itemCls(isActive('/bolle'))} prefetch={false}>
-          <FileText className={`h-6 w-6 shrink-0 ${icon.bolle}`} aria-hidden />
-          <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.bolle}</span>
-        </Link>
-        <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
-          <Settings className={`h-6 w-6 shrink-0 ${icon.settingsTools}`} aria-hidden />
-          <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.impostazioni}</span>
-        </Link>
-      </div>
-    </nav>
-  )
+              {showOfflineBadge && (
+                <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white ring-1 ring-[#020617]">
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </span>
+              )}
+            </span>
+            <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">
+              {portaleOPrimaVoce}
+            </span>
+          </Link>
+
+          <Link href="/consumi-ai" className={itemCls(isActive('/consumi-ai'))} prefetch={false}>
+            <span
+              className={`shrink-0 ${isActive('/consumi-ai') ? icon.analytics : `${icon.analytics}/75`}`}
+              aria-hidden
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
+                />
+              </svg>
+            </span>
+            <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">
+              {t.nav.consumiAi}
+            </span>
+          </Link>
+
+          <Link href="/sedi" className={itemCls(isActive('/sedi'))} prefetch={false}>
+            <span
+              className={`shrink-0 ${isActive('/sedi') ? icon.fornitori : `${icon.fornitori}/75`}`}
+              aria-hidden
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                />
+              </svg>
+            </span>
+            <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">
+              {gestisciSediLabel}
+            </span>
+          </Link>
+
+          <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
+            <span
+              className={`shrink-0 ${isActive('/impostazioni') ? icon.settingsTools : `${icon.settingsTools}/75`}`}
+              aria-hidden
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </span>
+            <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.impostazioni}</span>
+          </Link>
+        </div>
+      </nav>
+    )
+  }
 
   /** Mobile operatore: azioni urgenti (fornitori/bolle estesi restano su desktop / griglia KPI). */
   const operatorHubNav = () => (
