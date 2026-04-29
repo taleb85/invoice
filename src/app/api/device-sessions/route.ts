@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   const [{ data: prof, error: pErr }, { data: sede, error: sErr }] = await Promise.all([
     service.from('profiles').select('id, email, full_name, role, sede_id').eq('id', row.profile_id).maybeSingle(),
-    service.from('sedi').select('id, nome').eq('id', row.sede_id).maybeSingle(),
+    service.from('sedi').select('id, nome, country_code').eq('id', row.sede_id).maybeSingle(),
   ])
   if (pErr || !prof || sErr || !sede) {
     return NextResponse.json({ notFound: true as const }, { status: 404 })
@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
     sede: {
       id: sede.id,
       nome: sede.nome,
+      country_code: (sede as { country_code?: string | null }).country_code ?? null,
     },
   })
 }

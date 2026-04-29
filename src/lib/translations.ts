@@ -173,6 +173,8 @@ type Translations = {
     deviceTrustNo: string
     /** Saluto dopo restore sessione dispositivo; sostituire {name} */
     deviceWelcomeBack: string
+    /** Sotto Bentornato: invito esplicito a toccare Accedi prima del PIN */
+    deviceWelcomeAccediHint: string
     /** Link in alto: nuova selezione operatore (reset device locale) */
     accessoSwitchOperator: string
   }
@@ -1974,6 +1976,7 @@ const it: Translations = {
     deviceTrustYes: 'Sì, ricordami',
     deviceTrustNo: 'No grazie',
     deviceWelcomeBack: 'Bentornato, {name}!',
+    deviceWelcomeAccediHint: 'Dispositivo riconosciuto. Continua quando sei pronto.',
     accessoSwitchOperator: 'Cambia operatore',
   },
   nav: {
@@ -3500,6 +3503,7 @@ const en: Translations = {
     deviceTrustYes: 'Yes, remember me',
     deviceTrustNo: 'No thanks',
     deviceWelcomeBack: 'Welcome back, {name}!',
+    deviceWelcomeAccediHint: 'Device recognised — continue when you are ready.',
     accessoSwitchOperator: 'Switch operator',
   },
   nav: {
@@ -4265,6 +4269,7 @@ const es: Translations = {
     deviceTrustYes: 'Sí, recordarme',
     deviceTrustNo: 'No, gracias',
     deviceWelcomeBack: '¡Bienvenido/a, {name}!',
+    deviceWelcomeAccediHint: 'Dispositivo reconocido — continúa cuando estés listo/a.',
     accessoSwitchOperator: 'Cambiar operador',
   },
   nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Registro de email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)', analytics: 'Analytics', approvazioni: 'Aprobaciones', attivita: 'Actividad', backup: 'Copia de seguridad', consumiAi: 'Consumo IA', strumenti: 'Herramientas' },
@@ -4977,6 +4982,7 @@ const fr: Translations = {
     deviceTrustYes: 'Oui, se souvenir de moi',
     deviceTrustNo: 'Non merci',
     deviceWelcomeBack: 'Bon retour, {name} !',
+    deviceWelcomeAccediHint: 'Appareil reconnu — continuez lorsque vous êtes prêt(e).',
     accessoSwitchOperator: 'Changer d’opérateur',
   },
   nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Journal email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)', analytics: 'Analytics', approvazioni: 'Approbations', attivita: 'Activité', backup: 'Sauvegarde', consumiAi: 'Consommation IA', strumenti: 'Outils' },
@@ -5689,6 +5695,7 @@ const de: Translations = {
     deviceTrustYes: 'Ja, merken',
     deviceTrustNo: 'Nein danke',
     deviceWelcomeBack: 'Willkommen zurück, {name}!',
+    deviceWelcomeAccediHint: 'Gerät erkannt — wenn Sie bereit sind, weiter.',
     accessoSwitchOperator: 'Benutzer wechseln',
   },
   nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', ordini: 'Bestellungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standort & Nutzer', sediTitle: 'Standort', sediNavGroupMaster: 'Standorte', gestisciSedeNamed: '{name} verwalten', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)', analytics: 'Analytics', approvazioni: 'Genehmigungen', attivita: 'Aktivität', backup: 'Sicherung', consumiAi: 'KI-Verbrauch', strumenti: 'Werkzeuge' },

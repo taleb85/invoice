@@ -176,9 +176,22 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const [gateUiReady, setGateUiReady] = useState(() => !sessionGateNext)
   /** Dopo check restore dispositivo su /accesso: sblocca griglia o form manuale. */
   const [accessoContentReady, setAccessoContentReady] = useState(() => !sessionGateNext)
-  const [accessoDevicePhase, setAccessoDevicePhase] = useState<'idle' | 'checking' | 'welcome' | 'restoring'>('idle')
+  const [accessoDevicePhase, setAccessoDevicePhase] = useState<
+    'idle' | 'checking' | 'bentornato' | 'restoring'
+  >('idle')
   const [accessoWelcomeName, setAccessoWelcomeName] = useState<string>('')
   const deviceAutoDoneRef = useRef(false)
+  /** Dopo «Accedi» su dispositivo registrato: non far partire la griglia «Who’s on shift» (restiamo sul PIN). */
+  const suppressAccessoOperatorGridRef = useRef(false)
+  /** True se siamo nel flusso Bentornato → PIN senza passare dalla griglia (serve al «indietro»). */
+  const deviceFromBentornatoRef = useRef(false)
+  const deviceRestoreGateProfileRef = useRef<{
+    id: string
+    email: string
+    full_name: string | null
+    sedeNome: string | null
+    countryCode: string | null
+  } | null>(null)
   const [hasRegisteredDeviceOnServer, setHasRegisteredDeviceOnServer] = useState(false)
   const [showDeviceTrustSheet, setShowDeviceTrustSheet] = useState(false)
   const [pendingAfterPinNav, setPendingAfterPinNav] = useState<string | null>(null)
@@ -270,7 +283,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   }, [sessionGateNext, meLoading, me?.user, me?.role, router])
 
   /**
-   * /accesso: tentativo login automatico da `sp_device_id` + device_sessions prima della griglia.
+   * /accesso: con `sp_device_id` registrato, mostra Bentornato + «Accedi» (niente sessione automatica).
+   * Il ripristino JWT e il PIN avvengono solo dopo il tap.
    */
   useEffect(() => {
     if (!sessionGateNext) return
@@ -300,45 +314,35 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         const r = await fetch(`/api/device-sessions?deviceId=${encodeURIComponent(devId)}`, { cache: 'no-store' })
         const j = (await r.json().catch(() => ({ notFound: true }))) as {
           notFound?: boolean
-          profile?: { id: string; full_name: string | null }
+          profile?: {
+            id: string
+            full_name: string | null
+            email?: string | null
+          }
+          sede?: { nome?: string | null; country_code?: string | null }
         }
         if (cancelled) return
         if (j.notFound) {
           deviceAutoDoneRef.current = true
+          deviceRestoreGateProfileRef.current = null
           setAccessoDevicePhase('idle')
           setAccessoContentReady(true)
           return
         }
         const fn = String(j.profile?.full_name ?? '').trim().split(/\s+/)[0] ?? '—'
         setAccessoWelcomeName(fn)
-        setAccessoDevicePhase('welcome')
-        await new Promise((res) => setTimeout(res, 1200))
-        if (cancelled) return
-        setAccessoDevicePhase('restoring')
-        const rs = await fetch('/api/auth/device-restore', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deviceId: devId }),
-          credentials: 'same-origin',
-        })
-        if (cancelled) return
-        if (!rs.ok) {
-          deviceAutoDoneRef.current = true
-          setAccessoDevicePhase('idle')
-          setAccessoContentReady(true)
-          return
+        deviceRestoreGateProfileRef.current = {
+          id: String(j.profile?.id ?? ''),
+          email: String(j.profile?.email ?? '').trim(),
+          full_name: j.profile?.full_name ?? null,
+          sedeNome: j.sede?.nome ?? null,
+          countryCode: j.sede?.country_code ?? null,
         }
-        markClientSessionJustEstablished()
-        revalidateMe()
-        markSessionOperatorGateOk()
-        deviceAutoDoneRef.current = true
-        setAccessoDevicePhase('idle')
-        setAccessoContentReady(true)
-        router.replace(sessionGateNext)
-        router.refresh()
+        setAccessoDevicePhase('bentornato')
       } catch {
         if (!cancelled) {
           deviceAutoDoneRef.current = true
+          deviceRestoreGateProfileRef.current = null
           setAccessoDevicePhase('idle')
           setAccessoContentReady(true)
         }
@@ -347,7 +351,58 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     return () => {
       cancelled = true
     }
-  }, [sessionGateNext, gateUiReady, meLoading, me?.user, me?.role, router])
+  }, [sessionGateNext, gateUiReady, meLoading, me?.user, me?.role])
+
+  const handleDeviceWelcomeAccedi = useCallback(async () => {
+    const devId = readSpDeviceId()
+    const prof = deviceRestoreGateProfileRef.current
+    if (!devId || !prof?.id || !prof.email) {
+      setMessage({ type: 'error', text: t.ui.networkError })
+      return
+    }
+    setAccessoDevicePhase('restoring')
+    setMessage(null)
+    try {
+      const rs = await fetch('/api/auth/device-restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: devId }),
+        credentials: 'same-origin',
+      })
+      if (!rs.ok) {
+        setAccessoDevicePhase('bentornato')
+        setMessage({ type: 'error', text: t.login.notFound })
+        return
+      }
+      markClientSessionJustEstablished()
+      revalidateMe()
+      suppressAccessoOperatorGridRef.current = true
+      deviceFromBentornatoRef.current = true
+      deviceAutoDoneRef.current = true
+      setNetflixSelected({
+        id: prof.id,
+        full_name: (prof.full_name?.trim() || prof.email) as string,
+      })
+      resolvedEmail.current = prof.email
+      setNameReady(true)
+      setSedeNome(prof.sedeNome)
+      try {
+        if (prof.sedeNome) localStorage.setItem('fluxo-last-sede-nome', prof.sedeNome)
+      } catch {
+        /* ignore */
+      }
+      setNetflixSedeName(prof.sedeNome)
+      setSedeLocale(localeFromCountryCode(prof.countryCode))
+      setPin(Array(PIN_LENGTH).fill(''))
+      setNetflixStep('pin')
+      setAccessoDevicePhase('idle')
+      setAccessoContentReady(true)
+      router.refresh()
+    } catch {
+      setAccessoDevicePhase('bentornato')
+      setMessage({ type: 'error', text: t.ui.networkError })
+    }
+  }, [revalidateMe, router, t.login.notFound, t.ui.networkError])
 
   const loadAccessoOperatorGrid = useCallback(async () => {
     if (!sessionGateNext) return
@@ -386,6 +441,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     if (!sessionGateNext || !accessoContentReady) return
     if (!me?.user || !branchSessionGateRequiredRole(me.role)) return
     if (isSessionOperatorGateOk()) return
+    if (suppressAccessoOperatorGridRef.current) return
     void loadAccessoOperatorGrid()
   }, [sessionGateNext, accessoContentReady, me?.user, me?.role, loadAccessoOperatorGrid])
 
@@ -396,6 +452,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     }
     clearSpDeviceId()
     clearSessionOperatorGate()
+    suppressAccessoOperatorGridRef.current = false
+    deviceFromBentornatoRef.current = false
+    deviceRestoreGateProfileRef.current = null
     setHasRegisteredDeviceOnServer(false)
     setNetflixSelected(null)
     setPin(Array(PIN_LENGTH).fill(''))
@@ -1119,10 +1178,28 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       '{name}',
       accessoWelcomeName && accessoWelcomeName.length > 0 ? accessoWelcomeName : '—',
     )
+    const showBentornatoCta = accessoDevicePhase === 'bentornato' || accessoDevicePhase === 'restoring'
     return (
       <div className="mx-auto flex min-h-[50vh] w-full max-w-sm flex-col items-center justify-center gap-4 px-4 text-center">
-        {accessoDevicePhase === 'welcome' ? (
-          <p className="text-balance text-xl font-semibold text-app-fg sm:text-2xl">{welcomeText}</p>
+        {showBentornatoCta ? (
+          <>
+            <p className="text-balance text-xl font-semibold text-app-fg sm:text-2xl">{welcomeText}</p>
+            <p className="text-sm text-app-fg-muted">{t.login.deviceWelcomeAccediHint}</p>
+            <button
+              type="button"
+              onClick={() => void handleDeviceWelcomeAccedi()}
+              disabled={accessoDevicePhase === 'restoring'}
+              className="app-glow-cyan mt-2 flex min-h-[3rem] w-full max-w-xs items-center justify-center gap-2 rounded-full bg-app-cyan-500 px-6 py-3 text-sm font-bold uppercase tracking-wide text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 disabled:opacity-60"
+            >
+              {accessoDevicePhase === 'restoring' ? (
+                <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+              ) : null}
+              {accessoDevicePhase === 'restoring' ? t.common.loading : t.login.loginBtn}
+            </button>
+          </>
         ) : (
           <>
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
@@ -1319,6 +1396,17 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             <button
               type="button"
               onClick={() => {
+                if (deviceFromBentornatoRef.current && sessionGateNext) {
+                  deviceFromBentornatoRef.current = false
+                  suppressAccessoOperatorGridRef.current = false
+                  setNetflixSelected(null)
+                  setPin(Array(PIN_LENGTH).fill(''))
+                  setMessage(null)
+                  setNameReady(false)
+                  resolvedEmail.current = null
+                  void loadAccessoOperatorGrid()
+                  return
+                }
                 setNetflixStep('grid')
                 setNetflixSelected(null)
                 setPin(Array(PIN_LENGTH).fill(''))

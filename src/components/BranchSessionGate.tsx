@@ -6,6 +6,7 @@ import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import {
   branchSessionGateRequiredRole,
+  clearSessionOperatorGate,
   isSessionOperatorGateOk,
 } from '@/lib/session-operator-gate'
 
@@ -107,6 +108,18 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
       }
     }
   }, [needsOperatoreAccesso, pathname])
+
+  /** Fine turno quando l’app/PWA va in background o viene chiusa — il `sp_device_id` resta su localStorage. */
+  useEffect(() => {
+    function onVisibility() {
+      if (typeof document === 'undefined') return
+      if (document.visibilityState === 'hidden') {
+        clearSessionOperatorGate()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [])
 
   if (!clientGateReady) {
     return <>{children}</>
