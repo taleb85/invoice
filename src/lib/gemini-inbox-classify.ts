@@ -15,20 +15,26 @@ Chiavi obbligatorie:
 
 When to choose each type — read carefully (English hints for common filenames/emails):
 
-• Use "listino" for supplier PRICE COMMUNICATIONS without full fiscal invoice semantics: English titles like "Price Update", "Price List", "New Prices", "Pricelist", "Updated price sheet", tariff/rate sheets, product grids with prices only, catalogue-style price tables. Italian: listino, aggiornamento prezzi, comunicazione prezzi.
+• Use "listino" ONLY for supplier PRICE COMMUNICATIONS (prices, catalogue lines, tariffs for products you buy). Never use "listino" for personal documents.
+
+• NEVER use "listino" for: CV / curriculum vitae / résumé / resume, job applications, cover letters, «modulo di candidatura», recruitment, staff hiring documents — those are always "altro".
 
 • Use "fattura" ONLY for VAT/tax invoices / proper fiscal invoices.
 
-• Use "altro" if nothing matches or the file is unreadable.
+• Use "altro" for CVs, resumes, contracts that are not invoices, internal memos, or anything that does not match the types above.
 
 Also in Italian:
-- "listino" per comunicazioni prezzi / listini / documenti dove il fine è aggiornare prezzi sul listino acquisti (senza essere una fattura fiscale completa).
+- "listino" SOLO per comunicazioni prezzi fornitori / listini acquisto. Mai per CV, curriculum, candidature lavoro, lettere di presentazione: per quelli usa "altro".
 
 - "fornitore_suggerito": nome leggibile sul documento, oppure null
 - "azione_consigliata": breve frase (italiano ok)
 - "confidenza": numero tra 0 e 1
 
 Se il file non è leggibile: tipo_suggerito "altro", fornitore_suggerito null, confidenza bassa.`
+
+/** Strong signals this is a CV / job application — must not be coerced or left as listino. */
+const CV_OR_JOB_APPLICATION_HINT =
+  /\.cv[\._]|_[\._]cv\b|\bcv\s*[_\.\-]?\s*\d|curriculum\s*vitae|\bcurriculum\b|résumé|\bresume\b|modulo\s+di\s+candidatura|candidatura\s+di\s+lavoro|job\s*application|lettera\s+(di\s+)?(presentazione|motivazione)|domanda\s+di\s+impiego|employment\s+application|application\s+for\s+(the\s+)?position/i
 
 /** Filename / caption signals (EN+IT): supplier price communiques often mis-labelled as altro. */
 const LISTINO_PRICE_DOC_HINT =
@@ -41,6 +47,13 @@ export function coerceListinoFromSignals(
   azione_consigliata: string,
 ): { tipo_suggerito: string; confidenza: number } {
   const tipo = (tipo_raw || 'altro').toLowerCase().trim()
+  const blobCheck = `${fileName ?? ''}\n${azione_consigliata ?? ''}`
+
+  /** CV / recruitment: never treat as supplier price list. */
+  if (CV_OR_JOB_APPLICATION_HINT.test(blobCheck)) {
+    return { tipo_suggerito: 'altro', confidenza: Math.min(confidenza, 0.92) }
+  }
+
   if (tipo === 'listino') {
     return { tipo_suggerito: 'listino', confidenza }
   }
@@ -146,8 +159,10 @@ export async function classifyDocumentWithGemini(
   const base64 = data.toString('base64')
   const userPrompt =
     `Nome file: ${row.file_name ?? 'sconosciuto'}\n\n` +
-    `IMPORTANT: If the filename or PDF content resembles a supplier "Price Update", "price list", or tariff sheet (not a full fiscal invoice), set tipo_suggerito to "listino" with high confidence (≥0.9).\n` +
-    `Classifica il documento e restituisci solo il JSON richiesto.`
+    `RULES:\n` +
+    `- NEVER use tipo_suggerito "listino" for a CV, curriculum vitae, résumé / resume, job application or hiring paper — those must be "altro".\n` +
+    `- Use "listino" only for supplier PRICE communications (e.g. "Price Update", price list with products/prices for purchasing).\n` +
+    `Return only the requested JSON.`
 
   try {
     const { text } = await geminiGenerateVision(CLASSIFY_SYSTEM, mime, base64, userPrompt, 700)
