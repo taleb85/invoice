@@ -1,4 +1,17 @@
 -- CV / resume / allegati non fiscalmente rilevanti — chiude fingerprint senza trattarli come errore fornitore.
+
+-- Righe storiche eventualmente fuori dai valori consentiti prima di sostituire il CHECK.
+UPDATE public.log_sincronizzazione
+SET stato = 'fornitore_non_trovato'
+WHERE stato IS NOT NULL
+  AND btrim(stato) NOT IN (
+    'successo',
+    'fornitore_non_trovato',
+    'bolla_non_trovata',
+    'fornitore_suggerito',
+    'documento_non_fiscale'
+  );
+
 ALTER TABLE public.log_sincronizzazione
   DROP CONSTRAINT IF EXISTS log_sincronizzazione_stato_check;
 
