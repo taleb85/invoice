@@ -22,6 +22,7 @@ import {
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
+import { ActionLink } from '@/components/ui/ActionButton'
 import type { Locale } from '@/lib/translations'
 import {
   loadEmailActivityDayRows,
@@ -98,6 +99,15 @@ export default async function LogPage() {
 
   const summaryLine = t.log.activitySummaryToday.replace(/\{n\}/g, String(autoProcessedToday))
 
+  const logToolbar = (
+    <>
+      <p className={`min-w-0 flex-1 text-sm ${rows.length === 0 ? 'text-app-fg-muted' : 'text-app-fg'}`}>{summaryLine}</p>
+      <ActionLink href="/inbox-ai" intent="nav" size="sm">
+        {t.log.activityProcessDocumentsCta}
+      </ActionLink>
+    </>
+  )
+
   const dateLocale =
     locale === 'it'
       ? 'it-IT'
@@ -156,8 +166,8 @@ export default async function LogPage() {
             {rows.length === 0 ? (
               <div className="app-card overflow-hidden">
                 <div className="app-card-bar" aria-hidden />
-                <div className="border-b border-white/[0.08] px-4 py-3 md:px-5">
-                  <p className="text-sm text-app-fg-muted">{summaryLine}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">
+                  {logToolbar}
                 </div>
                 <div className="p-16 text-center">
                   <svg
@@ -179,8 +189,8 @@ export default async function LogPage() {
             ) : (
               <div className="app-card flex flex-col overflow-hidden">
                 <div className="app-card-bar" aria-hidden />
-                <div className="border-b border-white/[0.08] px-4 py-3 md:px-5">
-                  <p className="text-sm text-app-fg">{summaryLine}</p>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">
+                  {logToolbar}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className={APP_SECTION_MOBILE_LIST}>
