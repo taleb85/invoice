@@ -55,12 +55,24 @@ async function finalizePendingByTipo(
       ? (doc.metadata as Record<string, unknown>)
       : {}
   let tipo = meta.pending_kind as string | undefined
-  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement' && tipo !== 'ordine') {
+  if (
+    tipo !== 'bolla' &&
+    tipo !== 'fattura' &&
+    tipo !== 'statement' &&
+    tipo !== 'ordine' &&
+    tipo !== 'listino'
+  ) {
     tipo = doc.is_statement ? 'statement' : undefined
   }
-  if (tipo !== 'bolla' && tipo !== 'fattura' && tipo !== 'statement' && tipo !== 'ordine') {
+  if (
+    tipo !== 'bolla' &&
+    tipo !== 'fattura' &&
+    tipo !== 'statement' &&
+    tipo !== 'ordine' &&
+    tipo !== 'listino'
+  ) {
     return NextResponse.json(
-      { error: 'Imposta il tipo di documento (estratto, bolla, fattura o ordine).' },
+      { error: 'Imposta il tipo di documento (estratto, bolla, fattura, listino o ordine).' },
       { status: 400 },
     )
   }
@@ -81,7 +93,8 @@ async function finalizePendingByTipo(
     numero_fattura?: string | null
   }
 
-  if (tipo === 'fattura') {
+  /** Listino prezzi: registra come fattura tecnica (stesso percorso «Analizza» listino sul PDF). */
+  if (tipo === 'fattura' || tipo === 'listino') {
     const numeroNorm =
       typeof m.numero_fattura === 'string' && m.numero_fattura.trim()
         ? normalizeNumeroFattura(m.numero_fattura)
@@ -167,8 +180,8 @@ async function finalizePendingByTipo(
       metadata: doc.metadata,
       pendingKind: 'fattura',
     })
-    // Fire-and-forget: check price anomalies for this fattura against listino_prezzi
-    if (fattura.id && doc.fornitore_id) {
+    // Fire-and-forget: check price anomalies (solo documenti fiscali, non listino comunicazioni prezzi)
+    if (tipo === 'fattura' && fattura.id && doc.fornitore_id) {
       const baseUrl =
         (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
       fetch(`${baseUrl}/api/price-anomalies/check`, {
@@ -387,7 +400,7 @@ export async function POST(req: NextRequest) {
     fornitore_id?: string
     is_statement?: boolean
     /** document classification: statement vs delivery note vs invoice vs order (pending queue UI) */
-    kind?: 'statement' | 'bolla' | 'fattura' | 'ordine'
+    kind?: 'statement' | 'bolla' | 'fattura' | 'ordine' | 'listino'
     /** Usato con azione `associa` per finalizzare senza bolle (stesso handler già deployato ovunque). */
     finalizza_da_tipo?: boolean
   }
@@ -404,7 +417,11 @@ export async function POST(req: NextRequest) {
     // Classificazione Estratto / Bolla / Fattura: stessa logica di set_pending_kind così
     // funziona anche su deploy che non espongono ancora l’azione dedicata (evita «Azione non valida»).
     const classifies =
-      kind === 'statement' || kind === 'bolla' || kind === 'fattura' || kind === 'ordine'
+      kind === 'statement' ||
+      kind === 'bolla' ||
+      kind === 'fattura' ||
+      kind === 'ordine' ||
+      kind === 'listino'
     if (classifies) {
       const { data: row, error: readErr } = await supabase
         .from('documenti_da_processare')
@@ -444,7 +461,13 @@ export async function POST(req: NextRequest) {
 
   // ── set_pending_kind — estratto / bolla / fattura (metadata + is_statement) ──
   if (azioneNorm === 'set_pending_kind') {
-    if (kind !== 'statement' && kind !== 'bolla' && kind !== 'fattura' && kind !== 'ordine') {
+  if (
+    kind !== 'statement' &&
+    kind !== 'bolla' &&
+    kind !== 'fattura' &&
+    kind !== 'ordine' &&
+    kind !== 'listino'
+  ) {
       return NextResponse.json({ error: 'kind non valido' }, { status: 400 })
     }
     const { data: row, error: readErr } = await supabase

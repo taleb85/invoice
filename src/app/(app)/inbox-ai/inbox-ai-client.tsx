@@ -94,12 +94,13 @@ function parseInitialTab(raw: string | undefined): TabId {
   return 'docs'
 }
 
-function tipoAiToPendingKind(tipo: string): 'fattura' | 'bolla' | 'statement' | 'ordine' | null {
+function tipoAiToPendingKind(tipo: string): 'fattura' | 'bolla' | 'statement' | 'ordine' | 'listino' | null {
   const k = tipo.toLowerCase().trim()
   if (k === 'fattura') return 'fattura'
   if (k === 'bolla' || k === 'ddt') return 'bolla'
   if (k === 'estratto_conto') return 'statement'
   if (k === 'ordine') return 'ordine'
+  if (k === 'listino') return 'listino'
   return null
 }
 
@@ -111,6 +112,7 @@ function fmtTipoAiPerUi(tipo: string): string {
     ddt: 'bolla (DDT)',
     estratto_conto: 'estratto conto',
     ordine: 'ordine',
+    listino: 'listino prezzi',
     altro: 'altro',
   }
   return map[k] ?? tipo
@@ -334,7 +336,7 @@ export default function InboxAiClient(props: {
 
   const finalizeWithKind = async (
     docId: string,
-    kind: 'fattura' | 'bolla' | 'statement' | 'ordine',
+    kind: 'fattura' | 'bolla' | 'statement' | 'ordine' | 'listino',
   ): Promise<boolean> => {
     setActionBusy(docId)
     try {
@@ -357,8 +359,11 @@ export default function InboxAiClient(props: {
     }
   }
 
-  /** Registra come fattura o bolla (solo quei due pulsanti manuali). */
-  const finalizeAs = async (docId: string, kind: 'fattura' | 'bolla') => {
+  /** Registra come fattura, bolla o listino (pulsanti manuali sulla riga). */
+  const finalizeAs = async (
+    docId: string,
+    kind: 'fattura' | 'bolla' | 'listino',
+  ) => {
     await finalizeWithKind(docId, kind)
   }
 
@@ -377,7 +382,7 @@ export default function InboxAiClient(props: {
     }
     if (queued.length === 0) {
       window.alert(
-        'Nessun documento pronto per la conferma massiva: serve fornitore associato e tipo (fattura, bolla, ordine, estratto) riconosciuto dall’AI.',
+        'Nessun documento pronto per la conferma massiva: serve fornitore associato e tipo (fattura, bolla, listino, ordine, estratto) riconosciuto dall’AI.',
       )
       return
     }
@@ -610,7 +615,7 @@ export default function InboxAiClient(props: {
               Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
               <span className="font-mono text-app-fg">da_revisionare</span>). Se l&apos;analisi riporta almeno{' '}
               <span className="font-semibold text-app-fg">95% confidenza</span>, tipo riconosciuto (
-              <span className="font-mono">fattura/bolla/ordine/estratto</span>) e c&apos;è un{' '}
+              <span className="font-mono">fattura/bolla/listino/ordine/estratto</span>) e c&apos;è un{' '}
               <span className="font-semibold text-app-fg">fornitore associato</span>, il documento viene registrato senza clic aggiuntivo.
               Altrimenti usa{' '}
               <span className="font-semibold text-app-fg">Conferma suggeriti</span> oppure{' '}
@@ -703,6 +708,19 @@ export default function InboxAiClient(props: {
                             className="rounded-md border border-violet-500/40 bg-violet-500/15 px-2 py-1 text-[11px] font-bold text-violet-100 disabled:opacity-35"
                           >
                             Registra bolla
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busyRow || !d.fornitore_id}
+                            title={
+                              !d.fornitore_id
+                                ? 'Associa un fornitore al documento prima di registrare'
+                                : 'Salva come fattura tecnica — poi dal listino fornitore puoi estrarre i prezzi (Analizza)'
+                            }
+                            onClick={() => void finalizeAs(d.id, 'listino')}
+                            className="rounded-md border border-sky-500/45 bg-sky-500/15 px-2 py-1 text-[11px] font-bold text-sky-100 disabled:opacity-35"
+                          >
+                            Registra listino
                           </button>
                           <button
                             type="button"

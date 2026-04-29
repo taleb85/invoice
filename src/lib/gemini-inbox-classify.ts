@@ -10,7 +10,8 @@ import { inferContentTypeFromBuffer } from '@/lib/fix-ocr-dates-helpers'
 const CLASSIFY_SYSTEM = `Sei un assistente per documenti contabili italiani (ristorazione / fornitori).
 Analizza il documento allegato e rispondi SOLO con un oggetto JSON valido, senza markdown, senza testo fuori dal JSON.
 Chiavi obbligatorie:
-- "tipo_suggerito": uno tra "fattura" | "bolla" | "ddt" | "estratto_conto" | "ordine" | "altro"
+- "tipo_suggerito": uno tra "fattura" | "bolla" | "ddt" | "estratto_conto" | "ordine" | "listino" | "altro"
+  (usa "listino" per comunicazioni prezzi, listino aggiornamenti, price list o documenti senza valenza fiscale da usare nella funzione listino prezzi)
 - "fornitore_suggerito": stringa con il nome fornitore leggibile dal documento, oppure null se assente
 - "azione_consigliata": una frase breve in italiano (es. "Registrare come fattura e collegare alla bolla esistente")
 - "confidenza": numero tra 0 e 1 (sicurezza della classificazione)
