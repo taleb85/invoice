@@ -61,8 +61,11 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Ignora richieste non-GET
-  if (request.method !== 'GET') return
+  /** Mutazioni (DELETE, POST, ecc.): sempre rete diretta senza intermedi (evita 405/body vuoti in PWA). */
+  if (request.method !== 'GET') {
+    event.respondWith(fetch(request))
+    return
+  }
 
   // Ignora origini esterne (es. ipapi.co, Supabase auth, analytics, ecc.)
   // Il SW gestisce solo risorse della stessa origine per evitare log ridondanti

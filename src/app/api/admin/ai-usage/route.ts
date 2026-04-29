@@ -302,8 +302,10 @@ async function wipeAiUsageLogViaPostgrest(
   return { error: e2.message ?? e1.message ?? 'Eliminazione non riuscita' }
 }
 
-/** Elimina tutte le righe di `ai_usage_log` (solo admin, service role). */
-export async function DELETE() {
+/** Body POST per chi non può usare DELETE (proxy / browser). */
+const CLEAR_BODY_ACTION = 'clear' as const
+
+async function respondClearAiUsageLog(): Promise<NextResponse> {
   const profile = await getProfile()
   if (!profile || String(profile.role ?? '').toLowerCase() !== 'admin') {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
@@ -320,4 +322,36 @@ export async function DELETE() {
     { ok: true, deleted: result.deleted, mode: result.mode },
     { headers: { 'Cache-Control': 'no-store, max-age=0' } },
   )
+}
+
+/** Elimina tutte le righe di `ai_usage_log` (solo admin, service role). */
+export async function DELETE() {
+  return respondClearAiUsageLog()
+}
+
+/**
+ * Stessa cosa di DELETE: alcuni proxy o la PWA restituiscono 405 su DELETE.
+ * Body JSON: `{ "action": "clear" }`.
+ */
+export async function POST(req: NextRequest) {
+  let parsed: unknown
+  try {
+    parsed = await req.json()
+  } catch {
+    return NextResponse.json(
+      { error: 'JSON richiesto: { "action": "clear" }' },
+      { status: 400 },
+    )
+  }
+  const action =
+    parsed &&
+    typeof parsed === 'object' &&
+    'action' in parsed &&
+    typeof (parsed as { action?: unknown }).action === 'string'
+      ? ((parsed as { action: string }).action).trim().toLowerCase()
+      : ''
+  if (action !== CLEAR_BODY_ACTION) {
+    return NextResponse.json({ error: 'Azione non riconosciuta' }, { status: 400 })
+  }
+  return respondClearAiUsageLog()
 }

@@ -525,9 +525,11 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
       setError(null)
       try {
         const res = await fetch('/api/admin/ai-usage', {
-          method: 'DELETE',
+          method: 'POST',
           credentials: 'include',
           cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'clear' }),
         })
         const raw = await res.text()
         const parsed = parseApiBody(res, raw)
