@@ -89,13 +89,13 @@ export async function POST(req: NextRequest) {
       .from('documenti_da_processare')
       .select('id, file_url, file_name, content_type, stato, created_at')
       .in('stato', ['da_associare', 'da_revisionare'])
-      /* Stesso ordine dell’Inbox AI: più recenti in cima (GET documenti-da-processare: created_at DESC). */
-      .order('created_at', { ascending: false })
-      .limit(120)
 
     if (sedeFilterOrNull) {
       q = q.or(`sede_id.eq.${sedeFilterOrNull},sede_id.is.null`) as typeof q
     }
+
+    /* `order` dopo filtri sede — alcune versioni PostgREST ignorano l’ordine se dichiarato prima di `or`. */
+    q = q.order('created_at', { ascending: false }).limit(120)
 
     const { data: rawRows, error: fetchGeminiErr } = await q
     if (fetchGeminiErr) {
@@ -103,7 +103,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: fetchGeminiErr.message }, { status: 500 })
     }
 
-    const rows = ((rawRows ?? []) as { id: string; file_url: string | null; file_name: string | null; content_type: string | null }[])
+    /** Ordine esplicito: più recenti prima — allineato alla lista Inbox (GET usa `created_at` DESC). */
+    type GemRow = {
+      id: string
+      file_url: string | null
+      file_name: string | null
+      content_type: string | null
+      stato?: string | null
+      created_at?: string | null
+    }
+    const sorted = ((rawRows ?? []) as GemRow[]).slice().sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0
+      if (tb !== ta) return tb - ta
+      return b.id.localeCompare(a.id)
+    })
+
+    const rows = sorted
       .filter((r) => !exclude.has(r.id))
       .slice(0, BATCH)
 

@@ -249,6 +249,16 @@ export default function InboxAiClient(props: {
     return Object.keys(suggestions)
   }, [suggestions])
 
+  /** Stessa vista della GET: più recenti in alto (evita liste capovolte vs batch AI). */
+  const docsNewestFirst = useMemo(() => {
+    return [...docs].sort((a, b) => {
+      const ta = new Date(a.created_at).getTime()
+      const tb = new Date(b.created_at).getTime()
+      if (tb !== ta) return tb - ta
+      return b.id.localeCompare(a.id)
+    })
+  }, [docs])
+
   const runAnalyze = async () => {
     if (!sedeId) return
     setAnalyzeBusy(true)
@@ -550,7 +560,7 @@ export default function InboxAiClient(props: {
               <p className="text-sm text-app-fg-muted">Nessun documento da processare in questa sede.</p>
             ) : (
               <ul className="space-y-3">
-                {docs.map((d) => {
+                {docsNewestFirst.map((d) => {
                   const sug = suggestions[d.id]
                   const supplier =
                     d.fornitore?.nome ?? (d.fornitore_id ? '(fornitore ID)' : '— sconosciuto —')
