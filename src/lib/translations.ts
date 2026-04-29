@@ -1358,12 +1358,6 @@ type Translations = {
     // PendingMatchesTab — filter bar
     tabPending: string
     tabAll: string
-    /** Barra sopra la lista: documenti in coda senza fornitore — titolo con `{n}` */
-    unknownSenderQuickStripTitle: string
-    /** `aria-label` della regione accesso rapido */
-    unknownSenderQuickStripAria: string
-    /** `title` su ogni chip (scroll alla riga) */
-    unknownSenderQuickStripChipTitle: string
     /** Contatore salvataggi OCR email (oggi) */
     emailSyncAutoSavedToday: string
     bolleAperteOne: string
@@ -2943,9 +2937,6 @@ const it: Translations = {
     sendError: "Errore durante l'invio del sollecito.",
     tabPending: 'Da confermare',
     tabAll: 'Tutti',
-    unknownSenderQuickStripTitle: 'Priorità: collega fornitore ({n})',
-    unknownSenderQuickStripAria: 'Accesso rapido ai documenti senza fornitore collegato',
-    unknownSenderQuickStripChipTitle: 'Vai al documento nella lista',
     emailSyncAutoSavedToday: '{n} salvati automaticamente oggi',
     bolleAperteOne: 'bolla aperta disponibile',
     bolleApertePlural: 'bolle aperte disponibili',
@@ -3713,9 +3704,6 @@ const en: Translations = {
     sendError: 'Error sending the reminder.',
     tabPending: 'To Confirm',
     tabAll: 'All',
-    unknownSenderQuickStripTitle: 'Priority: link supplier ({n})',
-    unknownSenderQuickStripAria: 'Quick access to documents without a linked supplier',
-    unknownSenderQuickStripChipTitle: 'Scroll to this document in the list',
     emailSyncAutoSavedToday: '{n} auto-saved today',
     bolleAperteOne: 'open delivery note available',
     bolleApertePlural: 'open delivery notes available',
@@ -4432,9 +4420,6 @@ const es: Translations = {
     sendError: 'Error al enviar el recordatorio.',
     tabPending: 'Por confirmar',
     tabAll: 'Todos',
-    unknownSenderQuickStripTitle: 'Prioridad: vincular proveedor ({n})',
-    unknownSenderQuickStripAria: 'Acceso rápido a documentos sin proveedor vinculado',
-    unknownSenderQuickStripChipTitle: 'Ir a este documento en la lista',
     emailSyncAutoSavedToday: '{n} guardados automáticamente hoy',
     bolleAperteOne: 'albarán abierto disponible',
     bolleApertePlural: 'albaranes abiertos disponibles',
@@ -5148,9 +5133,6 @@ const fr: Translations = {
     sendError: "Erreur lors de l'envoi de la relance.",
     tabPending: 'À confirmer',
     tabAll: 'Tous',
-    unknownSenderQuickStripTitle: 'Priorité : lier le fournisseur ({n})',
-    unknownSenderQuickStripAria: 'Accès rapide aux documents sans fournisseur lié',
-    unknownSenderQuickStripChipTitle: 'Aller à ce document dans la liste',
     emailSyncAutoSavedToday: '{n} enregistrés automatiquement aujourd’hui',
     bolleAperteOne: 'bon de livraison ouvert disponible',
     bolleApertePlural: 'bons de livraison ouverts disponibles',
@@ -5863,9 +5845,6 @@ const de: Translations = {
     sendError: 'Fehler beim Senden der Erinnerung.',
     tabPending: 'Zu bestätigen',
     tabAll: 'Alle',
-    unknownSenderQuickStripTitle: 'Priorität: Lieferant verknüpfen ({n})',
-    unknownSenderQuickStripAria: 'Schnellzugriff auf Dokumente ohne verknüpften Lieferanten',
-    unknownSenderQuickStripChipTitle: 'Zu diesem Dokument in der Liste springen',
     emailSyncAutoSavedToday: '{n} heute automatisch gespeichert',
     bolleAperteOne: 'offener Lieferschein verfügbar',
     bolleApertePlural: 'offene Lieferscheine verfügbar',
