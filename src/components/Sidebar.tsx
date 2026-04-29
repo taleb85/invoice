@@ -570,7 +570,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   </Link>
 
                   {/* Individual links */}
-                  {filteredFornitori.slice(0, 30).map((f) => {
+                  {filteredFornitori.map((f) => {
                     const isActive =
                       pathname === `/fornitori/${f.id}` || pathname.startsWith(`/fornitori/${f.id}/`)
                     return (
@@ -582,11 +582,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     )
                   })}
 
-                  {filteredFornitori.length > 30 && (
-                    <p className="px-2 py-1 text-[10px] text-app-fg-muted">
-                      +{filteredFornitori.length - 30} {t.nav.altriRisultati}
-                    </p>
-                  )}
                   {fornitoriSearch && filteredFornitori.length === 0 && (
                     <p className="px-2 py-1.5 text-[10px] text-app-fg-muted">{t.nav.nessunRisultato}</p>
                   )}
