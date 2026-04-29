@@ -441,6 +441,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
     const [data, setData] = useState<UsageData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [clearing, setClearing] = useState(false)
 
     const load = useCallback(async () => {
       setLoading(true)
@@ -484,7 +485,26 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
       }
     }, [preset, customFrom, customTo])
 
-  useImperativeHandle(ref, () => ({ refresh: load }), [load])
+    useImperativeHandle(ref, () => ({ refresh: load }), [load])
+
+    const clearAllHistory = useCallback(async () => {
+      const ok = window.confirm(
+        'Eliminare tutto lo storico consumi AI (tabella ai_usage_log)? Non si può annullare.',
+      )
+      if (!ok) return
+      setClearing(true)
+      setError(null)
+      try {
+        const res = await fetch('/api/admin/ai-usage', { method: 'DELETE' })
+        const json = (await res.json()) as { error?: string; deleted?: number | null }
+        if (!res.ok) throw new Error(json.error ?? 'Errore durante l’azzeramento')
+        await load()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Errore sconosciuto')
+      } finally {
+        setClearing(false)
+      }
+    }, [load])
 
     useEffect(() => {
       load()
@@ -656,6 +676,22 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                 {data.pricing.outputPerMillion}/M token output
               </div>
             )}
+
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={clearAllHistory}
+                disabled={clearing}
+                className="rounded-lg px-3 py-1.5 text-[11px] font-medium transition-opacity disabled:opacity-40"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.12)',
+                  border: '1px solid rgba(239, 68, 68, 0.35)',
+                  color: '#fca5a5',
+                }}
+              >
+                {clearing ? 'Azzeramento…' : 'Azzera storico'}
+              </button>
+            </div>
 
             {/* Empty state — nascosto se il periodo ha già una timeline (barre a zero) */}
             {data.totalCalls === 0 && chartSeries.length === 0 && (

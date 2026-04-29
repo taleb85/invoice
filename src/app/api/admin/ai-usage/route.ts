@@ -254,3 +254,27 @@ export async function GET(req: NextRequest) {
     avgCostPerScan: costo_per_scan,
   })
 }
+
+/** Elimina tutte le righe di `ai_usage_log` (solo admin, service role). */
+export async function DELETE() {
+  const profile = await getProfile()
+  if (!profile || String(profile.role ?? '').toLowerCase() !== 'admin') {
+    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+  }
+
+  const service = createServiceClient()
+  const { error, count } = await service
+    .from('ai_usage_log')
+    .delete({ count: 'exact' })
+    .gte('created_at', '1970-01-01T00:00:00.000Z')
+
+  if (error) {
+    console.error('[ai-usage-delete]', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    ok: true,
+    deleted: typeof count === 'number' ? count : null,
+  })
+}
