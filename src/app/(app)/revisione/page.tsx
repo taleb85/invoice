@@ -12,6 +12,11 @@ import {
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SHELL_SECTION_PAGE_CLASS } from '@/lib/app-shell-layout'
+import {
+  DEFAULT_OPERATOR_DASHBOARD_KPIS,
+  fetchOperatorDashboardKpis,
+  fornitoreIdsForSede,
+} from '@/lib/dashboard-operator-kpis'
 import { BackButton } from '@/components/BackButton'
 
 export const dynamic = 'force-dynamic'
@@ -40,14 +45,52 @@ export default async function RevisioneInboxPage(props: {
   const fiscal = sedeId ? await resolveFiscalFilterForSede(supabase, sedeId, searchParams.fy) : null
   const fy = fiscal?.labelYear
 
+  let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
+  const hubVisible = !!(sedeId || isMasterAdmin)
+  if (hubVisible) {
+    try {
+      if (sedeId) {
+        const fornitoreIds = await fornitoreIdsForSede(supabase, sedeId)
+        kpis = await fetchOperatorDashboardKpis(
+          supabase,
+          sedeId,
+          fornitoreIds,
+          fiscal ? { countryCode: fiscal.countryCode, labelYear: fiscal.labelYear } : null,
+        )
+      } else {
+        kpis = await fetchOperatorDashboardKpis(supabase, null, undefined, null)
+      }
+    } catch (e) {
+      console.error('[RevisioneInboxPage] KPI fetch', e)
+    }
+  }
+
+  const inboxAiCombinedCount = kpis.documentiPending + kpis.documentiDaRevisionare
+
   const theme = SUMMARY_HIGHLIGHT_ACCENTS.rose
   const nav = [
-    { href: '/inbox-ai', label: t.dashboard.inboxUrgenteNavAiInbox },
-    { href: '/statements/da-processare', label: t.dashboard.inboxUrgenteNavDocQueue },
-    { href: withFiscalYearQuery('/statements/verifica', fy, { stato: 'anomalia' }), label: t.dashboard.inboxUrgenteNavPriceAnomalies },
-    { href: withFiscalYearQuery('/fatture', fy), label: t.dashboard.inboxUrgenteNavInvoices },
-    { href: withFiscalYearQuery('/bolle', fy, { tutte: '1' }), label: t.dashboard.inboxUrgenteNavBolle },
-    { href: withFiscalYearQuery('/ordini', fy), label: t.dashboard.inboxUrgenteNavOrdini },
+    { href: '/inbox-ai', label: t.dashboard.inboxUrgenteNavAiInbox, count: inboxAiCombinedCount },
+    { href: '/statements/da-processare', label: t.dashboard.inboxUrgenteNavDocQueue, count: kpis.documentiPending },
+    {
+      href: withFiscalYearQuery('/statements/verifica', fy, { stato: 'anomalia' }),
+      label: t.dashboard.inboxUrgenteNavPriceAnomalies,
+      count: kpis.anomaliePrezziCount,
+    },
+    {
+      href: withFiscalYearQuery('/fatture', fy),
+      label: t.dashboard.inboxUrgenteNavInvoices,
+      count: kpis.duplicatiCount,
+    },
+    {
+      href: withFiscalYearQuery('/bolle', fy, { tutte: '1' }),
+      label: t.dashboard.inboxUrgenteNavBolle,
+      count: kpis.duplicatiBolleCount,
+    },
+    {
+      href: withFiscalYearQuery('/ordini', fy),
+      label: t.dashboard.inboxUrgenteNavOrdini,
+      count: kpis.duplicatiOrdiniCount,
+    },
   ]
 
   return (
@@ -83,8 +126,16 @@ export default async function RevisioneInboxPage(props: {
                     href={item.href}
                     className="block rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-app-fg transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-rose-950/20"
                   >
-                    {item.label}
-                    <span className="mt-0.5 block text-xs font-normal text-app-fg-muted">{item.href}</span>
+                    <span className="flex items-start justify-between gap-3">
+                      <span className="min-w-0 flex-1">{item.label}</span>
+                      <span
+                        className="shrink-0 tabular-nums text-base font-bold leading-none text-app-fg sm:text-lg"
+                        title={String(item.count)}
+                      >
+                        {item.count}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs font-normal text-app-fg-muted">{item.href}</span>
                   </Link>
                 </li>
               ))}

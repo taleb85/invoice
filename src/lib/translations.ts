@@ -1369,6 +1369,10 @@ type Translations = {
     labelReceived: string
     labelDocDate: string
     openFile: string
+    /** PendingMatchesTab — riesegue OCR e abbinamento fornitore */
+    reanalyzeDocButton: string
+    reanalyzeDocTitle: string
+    reanalyzeDocSuccess: string
     gotoFatturaDraft: string
     gotoBollaDraft: string
     toggleAddStatement: string
@@ -2939,6 +2943,9 @@ const it: Translations = {
     labelReceived: 'Ricevuto:',
     labelDocDate: 'Data doc.:',
     openFile: 'Apri file →',
+    reanalyzeDocButton: 'Rianalizza',
+    reanalyzeDocTitle: 'Riesegue la lettura del documento e l’abbinamento al fornitore (email, P.IV.A, ragione sociale).',
+    reanalyzeDocSuccess: 'Analisi aggiornata.',
     gotoFatturaDraft: 'Vai alla fattura bozza →',
     gotoBollaDraft: 'Vai alla bolla bozza →',
     toggleAddStatement: 'Aggiungi a estratto conto',
@@ -3702,6 +3709,9 @@ const en: Translations = {
     labelReceived: 'Received:',
     labelDocDate: 'Doc. date:',
     openFile: 'Open file →',
+    reanalyzeDocButton: 'Re-analyse',
+    reanalyzeDocTitle: 'Re-run document extraction and supplier matching (email, VAT, company name).',
+    reanalyzeDocSuccess: 'Analysis updated.',
     gotoFatturaDraft: 'Go to invoice draft →',
     gotoBollaDraft: 'Go to delivery note draft →',
     toggleAddStatement: 'Add to statement',
@@ -4414,6 +4424,9 @@ const es: Translations = {
     labelReceived: 'Recibido:',
     labelDocDate: 'Fecha doc.:',
     openFile: 'Abrir archivo →',
+    reanalyzeDocButton: 'Volver a analizar',
+    reanalyzeDocTitle: 'Vuelve a leer el documento y emparejar el proveedor (correo, NIF/CIF, razón social).',
+    reanalyzeDocSuccess: 'Análisis actualizado.',
     gotoFatturaDraft: 'Ir al borrador de factura →',
     gotoBollaDraft: 'Ir al borrador de albarán →',
     toggleAddStatement: 'Añadir al extracto',
@@ -5123,6 +5136,9 @@ const fr: Translations = {
     labelReceived: 'Reçu :',
     labelDocDate: 'Date doc. :',
     openFile: 'Ouvrir le fichier →',
+    reanalyzeDocButton: 'Réanalyser',
+    reanalyzeDocTitle: 'Relance la lecture du document et la correspondance fournisseur (email, TVA, raison sociale).',
+    reanalyzeDocSuccess: 'Analyse mise à jour.',
     gotoFatturaDraft: 'Voir le brouillon facture →',
     gotoBollaDraft: 'Voir le brouillon BL →',
     toggleAddStatement: 'Ajouter au relevé',
@@ -5831,6 +5847,9 @@ const de: Translations = {
     labelReceived: 'Erhalten:',
     labelDocDate: 'Dok.-Datum:',
     openFile: 'Datei öffnen →',
+    reanalyzeDocButton: 'Erneut analysieren',
+    reanalyzeDocTitle: 'Erneut auslesen und Lieferanten zuordnen (E-Mail, USt-IdNr., Firma).',
+    reanalyzeDocSuccess: 'Analyse aktualisiert.',
     gotoFatturaDraft: 'Zum Rechnungsentwurf →',
     gotoBollaDraft: 'Zum Lieferschein-Entwurf →',
     toggleAddStatement: 'Zum Auszug hinzufügen',

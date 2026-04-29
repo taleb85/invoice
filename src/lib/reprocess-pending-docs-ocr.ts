@@ -17,6 +17,7 @@ import {
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { inferContentTypeFromBuffer, resolvedContentTypeFromFetch } from '@/lib/fix-ocr-dates-helpers'
+import { inferFornitoreAfterOcr, type InferredFornitoreSource } from '@/lib/fornitore-infer-from-document'
 
 export type LegacyPendingDocRow = {
   id: string
@@ -74,6 +75,29 @@ export type ProcessLegacyPendingDocResult =
   | { status: 'ok'; category: 'auto_saved' | 'da_revisionare' | 'other' | 'rejected_cv' }
   | { status: 'error'; message: string }
 
+export type ProcessLegacyPendingDocOptions = {
+  /**
+   * Se true: non usa `fornitore_id` sulla riga per OCR lingua / abbinamento; dopo OCR
+   * rinnova mittente→P.IV.A→nome (es. pulsante «Rianalizza» sulla coda documenti).
+   */
+  ignoreLinkedFornitore?: boolean
+}
+
+function inferredSourceToMatchedBy(s: InferredFornitoreSource): MatchedBy {
+  switch (s) {
+    case 'email':
+      return 'email'
+    case 'piva':
+      return 'piva'
+    case 'rekki_supplier':
+      return 'rekki_supplier'
+    case 'ragione_sociale':
+      return 'ragione_sociale'
+    default:
+      return 'unknown'
+  }
+}
+
 /**
  * Una passata OCR su una riga legacy `documenti_da_processare` (stato da_associare, senza metadata.ocr_tipo):
  * scarica da Storage (bucket privato), Gemini OCR, auto-registro bolla/fattura come scan-email.
@@ -81,6 +105,7 @@ export type ProcessLegacyPendingDocResult =
 export async function processLegacyPendingDoc(
   service: SupabaseClient,
   row: LegacyPendingDocRow,
+  options?: ProcessLegacyPendingDocOptions,
 ): Promise<ProcessLegacyPendingDocResult> {
   const url = (row.file_url ?? '').trim()
   if (!url) {
@@ -104,7 +129,7 @@ export async function processLegacyPendingDoc(
   let fornitore: Fornitore | null = null
   let matchedBy: MatchedBy = 'unknown'
 
-  if (row.fornitore_id?.trim()) {
+  if (!options?.ignoreLinkedFornitore && row.fornitore_id?.trim()) {
     const { data: fr, error } = await service
       .from('fornitori')
       .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id, email')
@@ -125,7 +150,7 @@ export async function processLegacyPendingDoc(
         mittente: row.mittente ?? 'legacy-reprocess',
         oggetto_mail: row.oggetto_mail,
         file_name: row.file_name,
-        fornitore_id: row.fornitore_id,
+        fornitore_id: options?.ignoreLinkedFornitore ? null : row.fornitore_id,
         file_url: row.file_url,
         sede_id: row.sede_id,
       },
@@ -138,7 +163,17 @@ export async function processLegacyPendingDoc(
     throw e
   }
 
-  /** Nessuna inferenza P.IV.A / Rekki / fuzzy: mittente deve essere in rubrica (retroattiva via `/api/documenti-revisione-auto`). */
+  if (!fornitore) {
+    const inferred = await inferFornitoreAfterOcr(service, ocr, {
+      mittente: row.mittente,
+      sede_id: row.sede_id,
+      metadata: row.metadata,
+    })
+    if (inferred?.fornitore?.id) {
+      fornitore = inferred.fornitore as Fornitore
+      matchedBy = inferredSourceToMatchedBy(inferred.source)
+    }
+  }
 
   const existingMeta =
     row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
@@ -301,7 +336,8 @@ export async function processLegacyPendingDoc(
   const { error: updErr } = await service
     .from('documenti_da_processare')
     .update({
-      fornitore_id: fornitore?.id ?? row.fornitore_id,
+      fornitore_id:
+        options?.ignoreLinkedFornitore === true ? (fornitore?.id ?? null) : (fornitore?.id ?? row.fornitore_id),
       metadata,
       stato: normalizeDocumentoQueueStatoForDb(rowStato),
       data_documento: safeDate(ocr.data_fattura),

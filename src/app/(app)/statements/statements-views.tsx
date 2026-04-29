@@ -921,6 +921,7 @@ export function PendingMatchesTab({
   const [statementDocs, setStatementDocs]   = useState<Set<string>>(new Set())  // tracked locally
   const [markingStatement, setMarkingStatement] = useState<string | null>(null)
   const [finalizingTipoId, setFinalizingTipoId] = useState<string | null>(null)
+  const [reanalyzingDocId, setReanalyzingDocId] = useState<string | null>(null)
   const [rememberBar, setRememberBar] = useState<{
     fornitoreId: string
     email: string
@@ -1620,6 +1621,35 @@ export function PendingMatchesTab({
     }
   }
 
+  async function reanalyzeDocOcr(docId: string) {
+    setReanalyzingDocId(docId)
+    try {
+      const res = await fetch('/api/documenti-da-processare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: docId, azione: 'rianalizza_ocr' }),
+      })
+      if (!res.ok) {
+        let msg = t.common.error
+        try {
+          const j = (await res.json()) as { error?: string }
+          if (j.error?.trim()) msg = j.error.trim()
+        } catch {
+          /* ignore */
+        }
+        showToast(msg, 'error')
+        return
+      }
+      showToast(t.statements.reanalyzeDocSuccess, 'success')
+      setTimeout(() => {
+        void fetchDocs()
+        void fetchBolleAperte()
+      }, 350)
+    } finally {
+      setReanalyzingDocId(null)
+    }
+  }
+
   function handleSupplierUpdated(
     docId: string,
     fornitoreId: string,
@@ -2071,6 +2101,17 @@ export function PendingMatchesTab({
                       >
                         {t.statements.openFile}
                       </OpenDocumentInAppButton>
+                      {docNeedsManualProcessing(doc.stato) && doc.file_url && (
+                        <button
+                          type="button"
+                          disabled={reanalyzingDocId === doc.id}
+                          title={t.statements.reanalyzeDocTitle}
+                          onClick={() => void reanalyzeDocOcr(doc.id)}
+                          className="border-0 bg-transparent p-0 text-xs font-semibold text-amber-200/95 hover:text-amber-100 hover:underline disabled:opacity-45"
+                        >
+                          {reanalyzingDocId === doc.id ? t.common.loading : t.statements.reanalyzeDocButton}
+                        </button>
+                      )}
                       {doc.stato === 'bozza_creata' && doc.metadata?.bozza_id && (
                         <Link
                           href={hrefWithReturnTo(

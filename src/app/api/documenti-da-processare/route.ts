@@ -14,6 +14,8 @@ import {
 } from '@/lib/fattura-duplicate-check'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
+import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
+import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reprocess-pending-docs-ocr'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -394,7 +396,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { id, azione, bolla_id, bolla_ids, fornitore_id, is_statement, kind } = body as {
     id: string
-    azione: 'associa' | 'scarta' | 'aggiorna_fornitore' | 'mark_statement' | 'set_pending_kind' | 'finalizza_tipo'
+    azione:
+      | 'associa'
+      | 'scarta'
+      | 'aggiorna_fornitore'
+      | 'mark_statement'
+      | 'set_pending_kind'
+      | 'finalizza_tipo'
+      | 'rianalizza_ocr'
     bolla_id?: string          // legacy single-bolla
     bolla_ids?: string[]       // new multi-bolla
     fornitore_id?: string
@@ -535,6 +544,48 @@ export async function POST(req: NextRequest) {
       suggestRememberAssociation,
       mittenteEmail,
     })
+  }
+
+  // ── rianalizza_ocr — riesegue OCR + abbinamento fornitore (mittente, P.IV.A, nome) ──
+  if (azioneNorm === 'rianalizza_ocr') {
+    const { data: docRow, error: dre } = await supabase
+      .from('documenti_da_processare')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+    if (dre || !docRow) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
+
+    /** Stati da cui è consentito rieseguire OCR (legacy `mittente_sconosciuto` / `in_attesa`). */
+    const reanalyzeAllowedStati = [
+      ...DOCUMENTI_PENDING_FILTER_STATES,
+      'in_attesa',
+      'mittente_sconosciuto',
+    ] as string[]
+    if (!docRow.stato || !reanalyzeAllowedStati.includes(docRow.stato)) {
+      return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
+    }
+
+    const { data: profileR } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+    const isMasterAdminR = profileR?.role === 'admin'
+    if (!isMasterAdminR && profileR?.sede_id) {
+      const ds = (docRow as { sede_id?: string | null }).sede_id
+      if (ds != null && ds !== profileR.sede_id) {
+        return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+      }
+    }
+
+    try {
+      const r = await processLegacyPendingDoc(supabase, docRow as LegacyPendingDocRow, { ignoreLinkedFornitore: true })
+      if (r.status === 'error') {
+        return NextResponse.json({ error: r.message }, { status: 422 })
+      }
+      return NextResponse.json({ ok: true, category: r.category })
+    } catch (e) {
+      if (e instanceof OcrInvoiceConfigurationError) {
+        return NextResponse.json({ error: e.message }, { status: 503 })
+      }
+      throw e
+    }
   }
 
   // ── Recupera il documento ─────────────────────────────────────────────────
