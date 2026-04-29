@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { createClient } from '@/utils/supabase/client'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { useLocale } from '@/lib/locale-context'
@@ -86,12 +86,12 @@ export default function ManualDeliveryMobilePanel(props?: ManualDeliveryMobilePa
         <div className="app-card overflow-hidden">
           <div className="px-4 py-5 text-center">
             <p className="text-sm text-app-fg-muted">{t.fornitori.noSuppliers}</p>
-            <Link
+            <NewFornitoreLink
               href="/fornitori/new"
               className="mt-3 inline-block text-sm font-semibold text-app-cyan-500 hover:text-app-fg-muted"
             >
               {t.fornitori.addFirst}
-            </Link>
+            </NewFornitoreLink>
           </div>
         </div>
       ) : (

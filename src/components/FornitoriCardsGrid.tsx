@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -223,12 +224,12 @@ export default function FornitoriCardsGrid({
           </svg>
           <p className="text-sm font-medium text-app-fg-muted">{emptyState}</p>
           {showAddWhenEmpty ? (
-            <Link
+            <NewFornitoreLink
               href="/fornitori/new"
               className="mt-4 inline-block text-sm font-medium text-sky-400 hover:text-sky-300 hover:underline"
             >
               {addFirstLabel}
-            </Link>
+            </NewFornitoreLink>
           ) : null}
         </div>
       </div>

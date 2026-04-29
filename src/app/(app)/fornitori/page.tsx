@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { getRequestAuth } from '@/utils/supabase/server'
 import { getCookieStore } from '@/lib/locale-server'
 import { Fornitore } from '@/types'
@@ -89,12 +90,12 @@ export default async function FornitoriPage() {
             </svg>
             {t.fornitori.importaDaFattura}
           </Link>
-          <Link href="/fornitori/new" className={`hidden md:flex ${standardLinkButtonClassName('primary', 'sm')}`}>
+          <NewFornitoreLink href="/fornitori/new" className={`hidden md:flex ${standardLinkButtonClassName('primary', 'sm')}`}>
             <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             {t.fornitori.new}
-          </Link>
+          </NewFornitoreLink>
         </div>
       </AppPageHeaderStrip>
 

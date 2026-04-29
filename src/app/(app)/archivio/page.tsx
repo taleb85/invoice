@@ -1,5 +1,6 @@
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import Link from 'next/link'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { getT, getLocale, getTimezone, formatDate as fmtDate } from '@/lib/locale-server'
 import ExportZipButton from './ExportZipButton'
@@ -153,9 +154,9 @@ export default async function ArchivioPage() {
         <div className="app-card overflow-hidden">
           <div className="app-card-bar" aria-hidden />
           <AppSectionEmptyState message={t.fornitori.noSuppliers} messageClassName="text-app-fg-muted" density="comfortable">
-            <Link href="/fornitori/new" className={APP_SECTION_EMPTY_LINK_CLASS_COMPACT}>
+            <NewFornitoreLink href="/fornitori/new" className={APP_SECTION_EMPTY_LINK_CLASS_COMPACT}>
               {t.fornitori.addFirst}
-            </Link>
+            </NewFornitoreLink>
           </AppSectionEmptyState>
         </div>
       ) : (

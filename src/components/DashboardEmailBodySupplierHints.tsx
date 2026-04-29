@@ -1,9 +1,7 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
 import type { EmailBodySupplierHint } from '@/lib/dashboard-email-body-supplier-hints'
-import { appendReturnToNewFornitoreHref } from '@/lib/safe-internal-return-path'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 
 type Props = {
   hints: EmailBodySupplierHint[]
@@ -13,13 +11,9 @@ type Props = {
 }
 
 /**
- * Righe suggerimento fornitore ricorrenti (corpo email): link `/fornitori/new` con `return_to` alla dashboard corrente.
+ * Righe suggerimento fornitore ricorrenti (corpo email): link a `/fornitori/new` con ritorno automatico (`NewFornitoreLink`).
  */
 export default function DashboardEmailBodySupplierHints({ hints, bannerLineTemplate, ctaLabel }: Props) {
-  const pathname = usePathname()
-  const sp = useSearchParams()
-  const returnPath = `${pathname}${sp.toString() ? `?${sp.toString()}` : ''}`
-
   if (hints.length === 0) return null
 
   return (
@@ -33,12 +27,12 @@ export default function DashboardEmailBodySupplierHints({ hints, bannerLineTempl
             {bannerLineTemplate.replace(/\{name\}/g, h.displayName)}
             <span className="ml-1.5 tabular-nums text-violet-300/85">×{h.hits}</span>
           </p>
-          <Link
-            href={appendReturnToNewFornitoreHref(h.newFornitoreHref, returnPath)}
+          <NewFornitoreLink
+            href={h.newFornitoreHref}
             className="shrink-0 text-sm font-semibold text-violet-300 underline decoration-violet-400/50 hover:text-violet-200"
           >
             {ctaLabel}
-          </Link>
+          </NewFornitoreLink>
         </div>
       ))}
     </div>

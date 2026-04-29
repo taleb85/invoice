@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { useMemo, useState } from 'react'
 import type { Fornitore } from '@/types'
 import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
@@ -103,7 +103,7 @@ export default function FornitoriListSection({
         )}
 
         {/* Nuovo Fornitore: visible on mobile (header CTAs are md:hidden on sm and below) */}
-        <Link
+        <NewFornitoreLink
           href="/fornitori/new"
           className="app-glow-cyan md:hidden inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md bg-app-cyan-500 px-3 text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 touch-manipulation"
           aria-label={t.fornitori.new}
@@ -112,7 +112,7 @@ export default function FornitoriListSection({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           {t.fornitori.new}
-        </Link>
+        </NewFornitoreLink>
       </AppSectionFiltersBar>
 
       <StandardCard accent="sky" className="!mb-0">

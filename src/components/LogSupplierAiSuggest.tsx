@@ -1,10 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
 import { useT } from '@/lib/use-t'
-import { safeInternalReturnPath } from '@/lib/safe-internal-return-path'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 
 type Props = {
   logId: string
@@ -15,8 +13,6 @@ type Props = {
 
 export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId }: Props) {
   const t = useT()
-  const pathname = usePathname()
-  const urlSp = useSearchParams()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -60,9 +56,6 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
     if (em) q.set('prefill_email', em)
     if (mittente.includes('@')) q.set('remember_mittente', mittente.toLowerCase())
     if (sedeId?.trim()) q.set('prefill_sede_id', sedeId.trim())
-    const fullRt = `${pathname}${urlSp.toString() ? `?${urlSp.toString()}` : ''}`
-    const rt = safeInternalReturnPath(fullRt)
-    if (rt) q.set('return_to', rt)
     return `/fornitori/new?${q.toString()}`
   }
 
@@ -111,13 +104,13 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
                 {t.statements.btnClose}
               </button>
               {!loading && !err && (
-                <Link
+                <NewFornitoreLink
                   href={buildNewHref()}
                   className="rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white hover:bg-app-cyan-500"
                   onClick={() => setOpen(false)}
                 >
                   {t.log.openCreateSupplier}
-                </Link>
+                </NewFornitoreLink>
               )}
             </div>
           </div>

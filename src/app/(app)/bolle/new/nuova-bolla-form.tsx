@@ -10,7 +10,7 @@ const SCAN_ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/
 function isAllowedScanMime(ct: string): boolean {
   return (SCAN_ALLOWED_MIME as readonly string[]).includes(ct)
 }
-import Link from 'next/link'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Fornitore } from '@/types'
@@ -799,12 +799,12 @@ export default function NuovaBollaForm() {
           {fornitori.length === 0 ? (
             <p className="text-sm font-semibold text-amber-100">
               {t.fornitori.noSuppliers}{' '}
-              <Link
+              <NewFornitoreLink
                 href="/fornitori/new"
                 className="font-bold text-app-fg-muted underline decoration-app-a-45 underline-offset-2 transition-colors hover:text-app-fg"
               >
                 {t.fornitori.addFirst}
-              </Link>
+              </NewFornitoreLink>
             </p>
           ) : (
             <select
