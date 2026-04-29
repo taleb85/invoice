@@ -6,19 +6,60 @@ import { readReturnToFromGetter } from '@/lib/return-navigation'
 
 type BackButtonProps = {
   label?: string
-  /** Destinazione di default se NON c’è `returnTo` in query (stesso schema di `DetailBackButton`). */
+  /** Destinazione quando non si usa la cronologia (vedi `historyFirst`). */
   href?: string
   className?: string
   /** Solo icona 〈; `label` resta per `aria-label` (accessibilità). */
   iconOnly?: boolean
+  /**
+   * Se true (default quando `iconOnly`): dopo `returnTo` si usa la cronologia (`router.back()`), poi eventuale `href`.
+   * Se false (default per pulsante testuale tipo «← Lista»): dopo `returnTo` si usa `href`, poi `router.back()`.
+   */
+  historyFirst?: boolean
+}
+
+function resolveBackNavigation(
+  router: { push: (href: string) => void; back: () => void },
+  opts: {
+    returnToPath: string | null
+    href?: string
+    historyFirst: boolean
+  },
+) {
+  const { returnToPath, href, historyFirst } = opts
+
+  if (returnToPath) {
+    router.push(returnToPath)
+    return
+  }
+
+  if (historyFirst) {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+      return
+    }
+    if (href) {
+      router.push(href)
+      return
+    }
+    router.back()
+    return
+  }
+
+  if (href) {
+    router.push(href)
+    return
+  }
+  router.back()
 }
 
 /**
- * Pulsante «indietro»: preferisce `returnTo` se presente nell’URL; altrimenti `href`; altrimenti `router.back()`.
+ * Pulsante «indietro»: preferisce `returnTo` nell’URL; poi in base a `historyFirst` cronologia vs `href` (come `navigateAfterDetailAction` sullo strip).
  */
-export function BackButton({ label = 'Indietro', href, className, iconOnly }: BackButtonProps) {
+export function BackButton({ label = 'Indietro', href, className, iconOnly, historyFirst }: BackButtonProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const preferHistoryFirst = historyFirst ?? Boolean(iconOnly)
 
   /** `iconOnly`: variante compatta nello strip (icona sezione resta più grande). */
   const baseClass = iconOnly
@@ -30,16 +71,12 @@ export function BackButton({ label = 'Indietro', href, className, iconOnly }: Ba
       type="button"
       {...(iconOnly ? { 'aria-label': label } : {})}
       onClick={() => {
-        const r = readReturnToFromGetter((k) => searchParams.get(k))
-        if (r) {
-          router.push(r)
-          return
-        }
-        if (href) {
-          router.push(href)
-          return
-        }
-        router.back()
+        const returnToPath = readReturnToFromGetter((k) => searchParams.get(k))
+        resolveBackNavigation(router, {
+          returnToPath,
+          href,
+          historyFirst: preferHistoryFirst,
+        })
       }}
       className={`${baseClass} ${className ?? ''}`}
     >
