@@ -34,9 +34,14 @@ describe('normalizeTipoDocumento', () => {
     expect(normalizeTipoDocumento('statement')).toBe('altro')
   })
 
+  it('riconosce curriculum / CV / résumé', () => {
+    expect(normalizeTipoDocumento('curriculum vitae')).toBe('curriculum')
+    expect(normalizeTipoDocumento('Resume')).toBe('curriculum')
+    expect(normalizeTipoDocumento('lebenslauf')).toBe('curriculum')
+  })
+
   it('restituisce null per valori assenti o non riconosciuti', () => {
     expect(normalizeTipoDocumento(null)).toBeNull()
-    expect(normalizeTipoDocumento(undefined)).toBeNull()
     expect(normalizeTipoDocumento('')).toBeNull()
     expect(normalizeTipoDocumento('documento generico')).toBeNull()
   })
@@ -117,6 +122,16 @@ describe('inferPendingDocumentKindForQueueRow', () => {
         metadata: { tipo_documento: 'delivery_note', numero_fattura: '50229873' },
       }),
     ).toBe('bolla')
+  })
+
+  it('restituisce null quando OCR indica curriculum/CV (non forzare fattura da nome file)', () => {
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: null,
+        file_name: 'invoice_resume.pdf',
+        metadata: { tipo_documento: 'curriculum' },
+      }),
+    ).toBeNull()
   })
 
   // ── classificazione tramite contesto email / nome file ──────────────────

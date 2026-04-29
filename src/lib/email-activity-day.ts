@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 import { openDocumentUrl } from '@/lib/open-document-url'
 
-export type EmailActivityTipoKey = 'invoice' | 'ddt' | 'statement' | 'queue' | 'ordine'
+export type EmailActivityTipoKey = 'invoice' | 'ddt' | 'statement' | 'queue' | 'ordine' | 'resume'
 
 /** Metadati per `OpenDocumentInAppButton` (modale) sul log attività. */
 export type EmailActivityOpenTarget =
@@ -42,15 +42,19 @@ function metaRagioneSociale(metadata: unknown): string {
 
 function tipoFromDoc(isStatement: boolean, metadata: unknown): EmailActivityTipoKey {
   if (isStatement) return 'statement'
-  const m =
-    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
-      ? (metadata as { pending_kind?: string | null })
-      : null
-  const pk = m?.pending_kind
-  if (pk === 'statement') return 'statement'
-  if (pk === 'bolla') return 'ddt'
-  if (pk === 'fattura') return 'invoice'
-  if (pk === 'ordine') return 'ordine'
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    const m = metadata as {
+      pending_kind?: string | null
+      tipo_documento?: unknown
+      rejected_reason?: string | null
+    }
+    if (m.rejected_reason === 'curriculum' || m.tipo_documento === 'curriculum') return 'resume'
+    const pk = m.pending_kind
+    if (pk === 'statement') return 'statement'
+    if (pk === 'bolla') return 'ddt'
+    if (pk === 'fattura') return 'invoice'
+    if (pk === 'ordine') return 'ordine'
+  }
   return 'queue'
 }
 

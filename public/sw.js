@@ -3,7 +3,7 @@
  *
  * Bump quando cambi strategia cache — activate pulisce le vecchie.
  */
-const CACHE_NAME = 'fluxo-v7'
+const CACHE_NAME = 'fluxo-v9'
 const OFFLINE_URL = '/offline'
 
 // API routes to cache with NetworkFirst strategy (fallback to cache when offline)

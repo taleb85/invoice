@@ -20,6 +20,26 @@ function metadataMissingOcrTipo(metadata: unknown): boolean {
 
 type QueueRow = LegacyPendingDocRow & { stato?: string | null }
 
+/** Codici leggibili dalla UI (`log.activityProc*` / mapping). */
+export type LogReprocessOutcomeCode =
+  | 'processed_auto'
+  | 'processed_revision'
+  | 'processed_other'
+  | 'processed_rejected_cv'
+  | 'error'
+  | 'skipped_scartato'
+  | 'skipped_no_row_or_sede'
+  | 'skipped_no_mittente'
+  | 'skipped_no_supplier_match'
+  | 'skipped_already_has_ocr'
+  | 'pending_next_batch'
+
+export type LogReprocessOutcome = {
+  id: string
+  code: LogReprocessOutcomeCode
+  detail?: string
+}
+
 function sedeAllowsRow(
   rowSede: string | null,
   viewerSedeId: string | null,
@@ -29,6 +49,15 @@ function sedeAllowsRow(
   if (!viewerSedeId) return false
   if (rowSede === null || rowSede === '') return true
   return rowSede === viewerSedeId
+}
+
+function categoryCode(
+  c: 'auto_saved' | 'da_revisionare' | 'other' | 'rejected_cv',
+): 'processed_auto' | 'processed_revision' | 'processed_other' | 'processed_rejected_cv' {
+  if (c === 'auto_saved') return 'processed_auto'
+  if (c === 'da_revisionare') return 'processed_revision'
+  if (c === 'rejected_cv') return 'processed_rejected_cv'
+  return 'processed_other'
 }
 
 /**
@@ -104,14 +133,15 @@ export async function POST(req: NextRequest) {
   let autoSaved = 0
   let daRevisionareDelta = 0
   let skipped = 0
+  let runsRemaining = BATCH_MAX
   const errors: { id: string; message: string }[] = []
+  const rowOutcomes: LogReprocessOutcome[] = []
 
   for (const requestedId of docIds) {
-    if (runs >= BATCH_MAX) break
-
     const row = byId.get(requestedId)
     if (!row || !sedeAllowsRow(row.sede_id ?? null, viewerSedeId, master)) {
       skipped++
+      rowOutcomes.push({ id: requestedId, code: 'skipped_no_row_or_sede' })
       continue
     }
 
@@ -119,6 +149,7 @@ export async function POST(req: NextRequest) {
 
     if (stato === 'scartato') {
       skipped++
+      rowOutcomes.push({ id: requestedId, code: 'skipped_scartato' })
       continue
     }
 
@@ -128,11 +159,13 @@ export async function POST(req: NextRequest) {
       const emailNorm = normalizeSenderEmailCanonical(row.mittente)
       if (!emailNorm?.includes('@')) {
         skipped++
+        rowOutcomes.push({ id: requestedId, code: 'skipped_no_mittente' })
         continue
       }
       const fornitore = await resolveFornitoreFromScanEmail(service, emailNorm, row.sede_id ?? null)
       if (!fornitore?.id) {
         skipped++
+        rowOutcomes.push({ id: requestedId, code: 'skipped_no_supplier_match' })
         continue
       }
       toProcess = { ...row, fornitore_id: fornitore.id }
@@ -140,24 +173,35 @@ export async function POST(req: NextRequest) {
       toProcess = row
     } else {
       skipped++
+      rowOutcomes.push({ id: requestedId, code: 'skipped_already_has_ocr' })
       continue
     }
 
+    if (runsRemaining <= 0) {
+      rowOutcomes.push({ id: requestedId, code: 'pending_next_batch' })
+      continue
+    }
+
+    runsRemaining--
     runs++
     try {
       const result = await processLegacyPendingDoc(service, toProcess)
       if (result.status === 'error') {
         errors.push({ id: row.id, message: result.message })
+        rowOutcomes.push({ id: requestedId, code: 'error', detail: result.message })
         continue
       }
       processed++
       if (result.category === 'auto_saved') autoSaved++
       else if (result.category === 'da_revisionare') daRevisionareDelta++
+      rowOutcomes.push({ id: requestedId, code: categoryCode(result.category) })
     } catch (e) {
       if (e instanceof OcrInvoiceConfigurationError) {
         return NextResponse.json({ error: e.message }, { status: 503 })
       }
-      errors.push({ id: row.id, message: e instanceof Error ? e.message : String(e) })
+      const msg = e instanceof Error ? e.message : String(e)
+      errors.push({ id: row.id, message: msg })
+      rowOutcomes.push({ id: requestedId, code: 'error', detail: msg })
     }
   }
 
@@ -169,5 +213,6 @@ export async function POST(req: NextRequest) {
     da_revisionare: daRevisionareDelta,
     skipped,
     errors,
+    row_outcomes: rowOutcomes,
   })
 }

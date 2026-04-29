@@ -71,7 +71,7 @@ function buildMetadata(
 }
 
 export type ProcessLegacyPendingDocResult =
-  | { status: 'ok'; category: 'auto_saved' | 'da_revisionare' | 'other' }
+  | { status: 'ok'; category: 'auto_saved' | 'da_revisionare' | 'other' | 'rejected_cv' }
   | { status: 'error'; message: string }
 
 /**
@@ -144,6 +144,27 @@ export async function processLegacyPendingDoc(
     row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
       ? { ...row.metadata }
       : {}
+
+  if (ocr.tipo_documento === 'curriculum') {
+    const metadata: Record<string, unknown> = {
+      ...existingMeta,
+      ...buildMetadata(ocr, matchedBy),
+      ocr_tipo: 'curriculum',
+      rejected_reason: 'curriculum',
+    }
+    const noteFromEmailBody = ocr.note_corpo_mail?.trim() || row.note?.trim() || null
+    const { error: cvErr } = await service
+      .from('documenti_da_processare')
+      .update({
+        metadata,
+        stato: normalizeDocumentoQueueStatoForDb('scartato'),
+        note: noteFromEmailBody,
+        data_documento: safeDate(ocr.data_fattura),
+      })
+      .eq('id', row.id)
+    if (cvErr) return { status: 'error', message: cvErr.message }
+    return { status: 'ok', category: 'rejected_cv' }
+  }
 
   const ocrTipoNorm = normalizeTipoDocumento(ocr.tipo_documento)
   const ocrTipoStored = ocrTipoNorm ?? 'unknown'

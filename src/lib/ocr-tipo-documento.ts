@@ -1,10 +1,36 @@
 /**
  * Normalizza `tipo_documento` da OCR / metadata (solo stringhe, nessuna dipendenza server).
  * Usato da client e da scan email senza trascinare `ocr-invoice` + vision.
+ * `curriculum` = CV / résumé — non va in coda fatture/bolle.
  */
-export function normalizeTipoDocumento(raw: unknown): 'fattura' | 'bolla' | 'altro' | null {
+export type NormalizedTipoDocumento =
+  | 'fattura'
+  | 'bolla'
+  | 'altro'
+  | 'curriculum'
+  | null
+
+export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   if (raw == null || raw === '') return null
   const s = String(raw).toLowerCase().replace(/\s+/g, ' ').trim()
+
+  /** CV / resume personale — prima di heuristiche invoice/bolla che potrebbero confondersi. */
+  if (
+    s === 'cv' ||
+    s === 'c.v' ||
+    s === 'c.v.' ||
+    s === 'curriculum' ||
+    s === 'resume' ||
+    s === 'résumé' ||
+    s === 'resumé' ||
+    s === 'lebenslauf' ||
+    /\bcurriculum\s+vitae\b/.test(s) ||
+    /\bcurriculum\b/.test(s) ||
+    /\b(résumé|resumé|resume)\b/.test(s) ||
+    /\blebenslauf\b/.test(s)
+  ) {
+    return 'curriculum'
+  }
 
   if (
     s === 'fattura' ||

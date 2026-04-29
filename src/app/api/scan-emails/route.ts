@@ -176,7 +176,12 @@ async function insertDocumento(
   return error
 }
 
-type LogStato = 'successo' | 'fornitore_non_trovato' | 'bolla_non_trovata' | 'fornitore_suggerito'
+type LogStato =
+  | 'successo'
+  | 'fornitore_non_trovato'
+  | 'bolla_non_trovata'
+  | 'fornitore_suggerito'
+  | 'documento_non_fiscale'
 
 async function insertLog(
   supabase: SupabaseClient,
@@ -1232,6 +1237,24 @@ async function processEmails(
       }
       const ocr = ocrResults[i] as OcrResult
       const documentSedeId = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
+
+      /** CV / résumé — niente upload né `documenti_da_processare`; fingerprint chiuso nel log. */
+      if (ocr.tipo_documento === 'curriculum') {
+        mailDebugLog(
+          `[PROCESS] Allegato non fiscale (curriculum/CV) — nessun insert coda: ${attachment?.filename ?? 'corpo mail'} | "${fornitore.nome}"`,
+        )
+        await insertLog(supabase, email, 'documento_non_fiscale', {
+          fornitore_id: fornitore.id,
+          errore_dettaglio:
+            'Documento individuato come curriculum / CV — non incluso nella coda fatture.',
+          sede_id: documentSedeId,
+          allegato_nome: attachment?.filename ?? null,
+          scan_attachment_fingerprint: fp,
+        })
+        bumpAttach(email.uid)
+        ignorate++
+        continue
+      }
 
       let file_url: string
       let storedFileName: string | null

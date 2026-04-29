@@ -199,6 +199,7 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   if (fromMail === 'ordine' || fromMail === 'statement') return fromMail
 
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
+  if (tipo === 'curriculum') return null
   if (tipo === 'bolla') return 'bolla'
   if (tipo === 'fattura') return 'fattura'
 

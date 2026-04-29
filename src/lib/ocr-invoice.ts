@@ -28,7 +28,7 @@ export interface OcrResult {
    * Model classification: delivery note vs tax invoice vs other commercial PDF.
    * Used by email scan to choose bolla vs fattura bozza without misrouting DDT numbers.
    */
-  tipo_documento: 'fattura' | 'bolla' | 'altro' | null
+  tipo_documento: 'fattura' | 'bolla' | 'altro' | 'curriculum' | null
   /** Total amount as a pure float (no currency symbols) */
   totale_iva_inclusa: number | null
 
@@ -195,12 +195,12 @@ function buildSystemPrompt(languageHint?: string, mode: PromptMode = 'with_attac
 
 Return ONLY valid JSON — no markdown, no explanation:
 {
-  "ragione_sociale": "The party ISSUING the document (supplier/seller), not the recipient — or null",
+  "ragione_sociale": "The legal party ISSUING the document (seller with VAT in the issuer header — often top-right on EU invoices; not the buyer, not a logo-only banner) — or null",
   "p_iva": "Supplier VAT/tax number digits only, no country prefix — or null",
   "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
   "numero_fattura": "Document reference: invoice number, DDT/bolla number, credit note number — or null if none visible",
-  "tipo_documento": "Exactly one of: fattura | ddt | bolla | ordine | estratto_conto | altro | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
+  "tipo_documento": "Exactly one of: fattura | ddt | bolla | ordine | estratto_conto | altro | curriculum | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
   "totale_iva_inclusa": "The gross total amount — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format",
   "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",
   "estrazione_utile": true
@@ -209,8 +209,11 @@ Return ONLY valid JSON — no markdown, no explanation:
 Rules:
 ${DOCUMENT_EXTRACTION_PROMPT}
 
-- ragione_sociale: look for "Vendor", "Supplier", "Fornitore", "Mittente", "Absender", "Fournisseur", "Proveedor" — the SELLER, not the buyer.
-- p_iva: accept VAT No., P.IVA, NIF/CIF, N° TVA, USt-IdNr., SIRET — strip all non-digit characters.
+- **curriculum (CV / résumé):** If the PDF is a **personal résumé / curriculum vitae / CV** (education, work experience, skills — not a commercial purchase document), set **tipo_documento** to **curriculum** — never fattura or altro. Do not invent supplier VAT for private CVs.
+- ragione_sociale: the party **ISSUING** the document (seller), **never** the recipient/buyer. Look for labels such as Vendor, Supplier, Fornitore, Mittente, Absender, Fournisseur, Proveedor, **Cedente**, **Prestatore**, Seller — the SELLER, not the buyer.
+- **EU / Italian layout (PDF and scans):** Fiscal PDFs often split the page: **buyer/customer** (*Cessionario / Committente / Bill to / Ship to*) tends to appear **top-left** or in a left column; the **issuer/seller** (*Cedente / Prestatore / Supplier*) with **seller VAT (P.IVA)** is commonly in the **upper-right** block. **ragione_sociale** must match the legal entity shown next to the seller/issuer VAT, in that issuer block — **not** the customer block, **not** a marketplace "deliver to" line, **not** a carrier.
+- **Logo vs legal name:** A prominent **brand, chain, or distributor name** (large type top-centre or top-left) may differ from the **legal company** printed with **VAT in the issuer header (often top-right)**. Prefer the **VAT-adjacent legal company name** from the issuer block for ragione_sociale. If only a marketing name without VAT is visible in one area and a full legal header with VAT appears top-right, **use the top-right issuer name**.
+- p_iva: accept VAT No., P.IVA, NIF/CIF, N° TVA, USt-IdNr., SIRET — strip all non-digit characters. Prefer the **supplier/issuer** VAT in the same block as ragione_sociale, not the customer's VAT.
 - indirizzo: only the supplier/seller address, not the customer.
 - numero_fattura: for ANY document type, extract the main document reference number if visible — not only "Invoice No.". For delivery notes / DDT / dispatch documents, map English labels such as "Note Number", "Notes Number", "Notes No.", "Delivery Note No.", "DN", "D.N.", "Document No.", "Your document number", "Shipment number", "Despatch note"; Italian "Numero DDT", "Numero documento di trasporto"; German "Lieferschein-Nr."; French "N° bon de livraison"; Spanish "Nº albarán". Return ONLY the alphanumeric reference (e.g. "11851464"), never the label text. If both an invoice number and a separate delivery-note number appear on the same page, prefer the one matching tipo_documento.
 - For tipo_documento, also keep consistency with: Rechnung *as invoice*, Lieferschein, Albarán, Bon de livraison (map to ddt/bolla via the same keyword rules; never return fattura for a document whose primary title is only a transport/delivery docket, unless a full tax invoice is clearly the main document type).
@@ -413,7 +416,7 @@ export async function ocrInvoice(
   const rianalizzaVisionSuffix = options?.preferVisionForPdf
     ? `
 
-[Re-analysis: full document in vision] The file may be a **multi-page PDF** or a **phone photograph / camera scan** (not typed text on screen). For **photos and scans**: ignore desk background and fingers if visible; allow for perspective skew, shadows, and moiré; read the **largest printed title** on the paper. Classify tipo_documento from the **visible document header and layout** (tax lines, VAT, invoice number fields vs delivery/DDT wording), not from filename. If the main visible title is Tax / VAT / Commercial / Sales invoice, Fattura, Factura, Rechnung in a **fiscal** context, set tipo_documento to "fattura". Use "ddt" or "bolla" only when the dominant title is clearly a **transport / delivery docket** without a full tax-invoice form.`
+[Re-analysis: full document in vision] The file may be a **multi-page PDF** or a **phone photograph / camera scan** (not typed text on screen). For **photos and scans**: ignore desk background and fingers if visible; allow for perspective skew, shadows, and moiré; read the **visible fiscal header** (titles, VAT blocks), not only the largest marketing logo. Classify tipo_documento from the **visible document header and layout** (tax lines, VAT, invoice number fields vs delivery/DDT wording), not from filename. If the main visible title is Tax / VAT / Commercial / Sales invoice, Fattura, Factura, Rechnung in a **fiscal** context, set tipo_documento to "fattura". Use "ddt" or "bolla" only when the dominant title is clearly a **transport / delivery docket** without a full tax-invoice form. **For ragione_sociale / p_iva**: on typical EU invoices the **seller (Cedente/Prestatore)** is printed **top-right with VAT**; the **buyer** is often **top-left** — extract the issuer block, **not** a brand name that only appears beside the recipient or in the page centre without issuer VAT.`
     : ''
 
   const visionTextPrompt =

@@ -33,6 +33,7 @@ const TERMINAL_SCAN_STATI = [
   'fornitore_suggerito',
   'fornitore_non_trovato',
   'bolla_non_trovata',
+  'documento_non_fiscale',
 ] as const
 
 /**

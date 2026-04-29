@@ -34,14 +34,19 @@ DATA (field data_fattura):
 - Always output a single value in data_fattura: ISO 8601 date only, YYYY-MM-DD (no time, no free text).
 - If the document shows several dates (emission/invoice, delivery, due date, tax point, etc.), you MUST use the document issue / emission / invoice date — the date that legally identifies when this document was issued. Do not use: due/payment date, "delivery" or "consegna" date, "DDT data", or a printed period range end date, when a clearer invoice/DDT issue date exists on the same page.
 
+SUPPLIER NAME (field ragione_sociale in the main JSON schema):
+- The **issuer/seller** legal name (with seller VAT), **not** the buyer. On many **EU and Italian** PDFs the **Cedente / Prestatore** block (seller P.IVA) is **upper-right**; **Cessionario / Committente** (customer) is often **upper-left** — do not swap them.
+- Prefer the company name **adjacent to the seller/issuer VAT**. A large **brand or chain** name elsewhere (top-centre, watermark) may **not** be the legal supplier — use the name in the **issuer VAT header** when they differ.
+
 TIPO DOCUMENTO (field tipo_documento):
-- Return exactly one of these lower-case tokens (or null if unreadable): fattura | ddt | bolla | ordine | estratto_conto | altro
+- Return exactly one of these lower-case tokens (or null if unreadable): fattura | ddt | bolla | ordine | estratto_conto | altro | curriculum
 - fattura — **Default for any tax/commercial bill with a fiscal total, VAT, payment terms, or invoice/rechnung number**, when the main visible title is any of: Fattura, Fattura elettronica, Invoice, Tax Invoice, VAT Invoice, Commercial Invoice, Sales Invoice, Pro-forma invoice (fiscal), Factura, Factura fiscal, Rechnung (Steuer/Mehrwertsteuer context), Avoir, Gutschrift, Nota di credito (fiscal), Credit note (fiscal). **Never choose ddt/bolla** for these. UK “Self-billing” or “Remittance” blocks still mean fattura if a VAT/invoice number and total are present.
 - ddt — only if the **dominant** document title is a transport/dispatch document: DDT, Documento di Trasporto, Delivery note, Dispatch note, Despatch, Proof of delivery **without** a full tax-invoice header on the same first page. If a page mixes DDT and an invoice, prefer the invoice section’s title.
 - bolla — same as ddt (transport): Bolla, Bolla di consegna. A document titled as a **sales invoice / fattura** (VAT lines) is **fattura**, not bolla.
 - ordine — if the document is primarily an order, not a fiscal dispatch or invoice: Ordine, Purchase order, P.O. / PO.
 - estratto_conto — if the document is a supplier/customer account listing: Estratto conto, Statement, Account statement.
-- altro — quotes, packing lists, or **non-fiscal** commercial PDFs; use null if the type is completely unreadable.
+- curriculum — **personal CV / résumé / curriculum vitae** (employment history, education, skills): **not** a fiscal or commercial purchase document. Never return fattura for these.
+- altro — quotes, packing lists, or **non-fiscal** commercial PDFs (excluding CVs); use null if the type is completely unreadable.
 - If more than one label could apply, use the document’s **largest, topmost official title** (first page, main header), not a small line item or shipping box footer.
 - **Critical:** “Tax invoice”, “VAT invoice”, “TAX INVOICE”, “FATTURA” on the first page → **always fattura**, never bolla, unless the only visible text is a pure delivery note (no tax lines).
 `.trim()

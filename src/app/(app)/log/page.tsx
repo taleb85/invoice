@@ -1,7 +1,11 @@
 import { redirect } from 'next/navigation'
 import EmailLogTabs from '@/components/EmailLogTabs'
 import EmailBlacklistPanel from '@/components/EmailBlacklistPanel'
-import { LogActivityDocumentLink } from '@/components/LogActivityDocumentLink'
+import {
+  EmailActivityLogPanel,
+  type LogRowView,
+} from '@/components/EmailActivityLogPanel'
+import { LogProcessDocumentsButton } from '@/components/LogProcessDocumentsButton'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
   getT,
@@ -17,12 +21,7 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
-  APP_SECTION_MOBILE_LIST,
-  APP_SECTION_TABLE_HEAD_ROW,
-  APP_SECTION_TABLE_TBODY,
-  APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
-import { LogProcessDocumentsButton } from '@/components/LogProcessDocumentsButton'
 import type { Locale } from '@/lib/translations'
 import {
   loadEmailActivityDayRows,
@@ -44,6 +43,8 @@ function tipoLabelFromKey(
       return t.activityTipoStatement
     case 'ordine':
       return t.activityTipoOrdine
+    case 'resume':
+      return t.activityTipoResume
     default:
       return t.activityTipoQueue
   }
@@ -91,11 +92,8 @@ export default async function LogPage() {
 
   const autoProcessedToday = countAutoSavedTodayFromRows(rows)
 
-  const documentoIdsForProcess = rows
-    .filter((r) => r.docOpen?.kind === 'documento')
-    .map((r) => r.docOpen!.id)
+  const documentoIdsForProcess = rows.filter((r) => r.docOpen?.kind === 'documento').map((r) => r.docOpen!.id)
 
-  /** API: admin sede sempre con sede profilo; master opzionale vista sede (cookie). */
   const sedeForProcessApi = isMasterAdmin ? sedeScopeId : profile?.sede_id ?? null
 
   let blacklistSedeId = profile?.sede_id ?? null
@@ -106,7 +104,35 @@ export default async function LogPage() {
 
   const summaryLine = t.log.activitySummaryToday.replace(/\{n\}/g, String(autoProcessedToday))
 
-  const logToolbar = (
+  const dateLocale =
+    locale === 'it'
+      ? 'it-IT'
+      : locale === 'de'
+        ? 'de-DE'
+        : locale === 'fr'
+          ? 'fr-FR'
+          : locale === 'es'
+            ? 'es-ES'
+            : 'en-GB'
+
+  const fmtAmount = (n: number | null) =>
+    typeof n === 'number' && Number.isFinite(n) ? formatCurrency(n, currency, locale as Locale) : '—'
+
+  const logRowViews: LogRowView[] = rows.map((row) => ({
+    ...row,
+    amountDisplay: fmtAmount(row.importo),
+    timeDisplay: new Date(row.atIso).toLocaleString(dateLocale, {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: tz,
+    }),
+    tipoDisplay: tipoLabelFromKey(t.log, row.tipoLabelKey),
+    statusDisplay: statusLabelFromKey(t.log, row),
+  }))
+
+  const toolbarEmpty = (
     <>
       <p className={`min-w-0 flex-1 text-sm ${rows.length === 0 ? 'text-app-fg-muted' : 'text-app-fg'}`}>{summaryLine}</p>
       <LogProcessDocumentsButton
@@ -123,19 +149,34 @@ export default async function LogPage() {
     </>
   )
 
-  const dateLocale =
-    locale === 'it'
-      ? 'it-IT'
-      : locale === 'de'
-        ? 'de-DE'
-        : locale === 'fr'
-          ? 'fr-FR'
-          : locale === 'es'
-            ? 'es-ES'
-            : 'en-GB'
+  const tLogPanel = {
+    activityColSupplier: t.log.activityColSupplier,
+    activityColTipo: t.log.activityColTipo,
+    activityColAmount: t.log.activityColAmount,
+    activityColStatus: t.log.activityColStatus,
+    activityOpenDocument: t.log.activityOpenDocument,
+    activityProcessDocumentsCta: t.log.activityProcessDocumentsCta,
+    activityProcessDocumentsBusy: t.log.activityProcessDocumentsBusy,
+    activityProcessDocumentsNoEligibleInLog: t.log.activityProcessDocumentsNoEligibleInLog,
+    activityProcessDocumentsApiError: t.log.activityProcessDocumentsApiError,
+  }
 
-  const fmtAmount = (n: number | null) =>
-    typeof n === 'number' && Number.isFinite(n) ? formatCurrency(n, currency, locale as Locale) : '—'
+  const procLabels = {
+    column: t.log.activityProcColumn,
+    spinAria: t.log.activityProcSpinAria,
+    processedAuto: t.log.activityProcProcessedAuto,
+    processedRevision: t.log.activityProcProcessedRevision,
+    processedOther: t.log.activityProcProcessedOther,
+    outcomeError: t.log.activityProcOutcomeError,
+    skippedScartato: t.log.activityProcSkippedScartato,
+    skippedNoRowOrSede: t.log.activityProcSkippedNoRowOrSede,
+    skippedNoMittente: t.log.activityProcSkippedNoMittente,
+    skippedNoSupplier: t.log.activityProcSkippedNoSupplier,
+    skippedHasOcr: t.log.activityProcSkippedHasOcr,
+    pendingBatch: t.log.activityProcPendingBatch,
+    rejectedCv: t.log.activityProcRejectedCv,
+    dash: t.log.activityProcDash,
+  }
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -181,9 +222,7 @@ export default async function LogPage() {
             {rows.length === 0 ? (
               <div className="app-card overflow-hidden">
                 <div className="app-card-bar" aria-hidden />
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">
-                  {logToolbar}
-                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">{toolbarEmpty}</div>
                 <div className="p-16 text-center">
                   <svg
                     className="mx-auto h-12 w-12 text-app-fg-muted"
@@ -202,83 +241,14 @@ export default async function LogPage() {
                 </div>
               </div>
             ) : (
-              <div className="app-card flex flex-col overflow-hidden">
-                <div className="app-card-bar" aria-hidden />
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">
-                  {logToolbar}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className={APP_SECTION_MOBILE_LIST}>
-                    {rows.map((row, idx) => (
-                      <div key={`${row.atIso}-${idx}`} className="space-y-3 px-4 py-5">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold leading-snug text-app-fg">{row.fornitoreNome}</p>
-                            <p className="mt-0.5 text-[10px] text-app-fg-muted tabular-nums">
-                              {new Date(row.atIso).toLocaleString(dateLocale, {
-                                day: '2-digit',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                timeZone: tz,
-                              })}
-                            </p>
-                          </div>
-                          <span className="shrink-0 text-xs text-app-fg-muted">{tipoLabelFromKey(t.log, row.tipoLabelKey)}</span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/10 pt-3 text-xs">
-                          <span className="text-app-fg-muted">
-                            {t.log.activityColAmount}: <span className="font-medium text-app-fg">{fmtAmount(row.importo)}</span>
-                          </span>
-                          <span className="text-app-fg-muted">{statusLabelFromKey(t.log, row)}</span>
-                        </div>
-                        {row.href || row.docOpen ? (
-                          <LogActivityDocumentLink
-                            label={t.log.activityOpenDocument}
-                            href={row.href}
-                            docOpen={row.docOpen}
-                            variant="mobile"
-                          />
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="hidden min-w-0 md:block">
-                    <table className="w-full table-fixed border-collapse text-left text-xs">
-                      <thead>
-                        <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                          <th className="min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.activityColSupplier}</th>
-                          <th className="w-[12%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.activityColTipo}</th>
-                          <th className="w-[14%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.activityColAmount}</th>
-                          <th className="min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{t.log.activityColStatus}</th>
-                          <th className="w-[18%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">
-                            {t.log.activityOpenDocument}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className={APP_SECTION_TABLE_TBODY}>
-                        {rows.map((row, idx) => (
-                          <tr key={`${row.atIso}-t-${idx}`} className={`align-top ${APP_SECTION_TABLE_TR}`}>
-                            <td className="min-w-0 px-2 py-2 font-medium text-app-fg sm:px-3">{row.fornitoreNome}</td>
-                            <td className="min-w-0 px-2 py-2 text-app-fg-muted sm:px-3">{tipoLabelFromKey(t.log, row.tipoLabelKey)}</td>
-                            <td className="min-w-0 whitespace-nowrap px-2 py-2 tabular-nums text-app-fg sm:px-3">{fmtAmount(row.importo)}</td>
-                            <td className="min-w-0 px-2 py-2 text-app-fg sm:px-3">{statusLabelFromKey(t.log, row)}</td>
-                            <td className="min-w-0 px-2 py-2 sm:px-3">
-                              <LogActivityDocumentLink
-                                label={t.log.activityOpenDocument}
-                                href={row.href}
-                                docOpen={row.docOpen}
-                                variant="table"
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+              <EmailActivityLogPanel
+                rows={logRowViews}
+                summaryLine={summaryLine}
+                documentoIds={documentoIdsForProcess}
+                sedeId={sedeForProcessApi}
+                tLog={tLogPanel}
+                procLabels={procLabels}
+              />
             )}
           </>
         }
