@@ -257,6 +257,11 @@ export default function InboxAiClient(props: {
     return [...docs].sort(compareInboxQueueNewestFirst)
   }, [docs])
 
+  /** Suggerimenti AI visibili in toolbar accanto ad «Analizza» — stesso ordine della lista (più recenti prima). */
+  const docsWithAiSuggestionInToolbar = useMemo(() => {
+    return docsNewestFirst.filter((d) => suggestions[d.id])
+  }, [docsNewestFirst, suggestions])
+
   const runAnalyze = async () => {
     if (!sedeId) return
     setAnalyzeBusy(true)
@@ -497,19 +502,48 @@ export default function InboxAiClient(props: {
     <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} border-cyan-500/25`}>
       <div className="app-card-bar-accent shrink-0 bg-gradient-to-r from-teal-500/55 via-sky-500/45 to-violet-500/40" aria-hidden />
       <div className="space-y-5 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-          <p className="text-sm font-medium text-teal-200/95">
-            {resolvedToday} risolti oggi
-          </p>
+        <div className="flex flex-col gap-3 border-b border-white/10 pb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <p className="text-sm font-medium text-teal-200/95">{resolvedToday} risolti oggi</p>
           {tab === 'docs' ? (
-            <button
-              type="button"
-              onClick={() => void runAnalyze()}
-              disabled={analyzeBusy || docs.length === 0}
-              className="rounded-lg bg-gradient-to-r from-teal-600 to-sky-600 px-3 py-2 text-xs font-bold text-white shadow disabled:opacity-40"
-            >
-              {analyzeBusy ? 'Analisi AI…' : 'Analizza con AI (prossimi 5)'}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void runAnalyze()}
+                disabled={analyzeBusy || docs.length === 0}
+                className="rounded-lg bg-gradient-to-r from-teal-600 to-sky-600 px-3 py-2 text-xs font-bold text-white shadow disabled:opacity-40"
+              >
+                {analyzeBusy ? 'Analisi AI…' : 'Analizza con AI (prossimi 5)'}
+              </button>
+              {docsWithAiSuggestionInToolbar.map((d) => {
+                const sug = suggestions[d.id]
+                if (!sug) return null
+                const aiPendingKind = tipoAiToPendingKind(sug.tipo_suggerito)
+                const busyRow = actionBusy === d.id
+                const canConfirmAi = !!(aiPendingKind && d.fornitore_id && !busyRow)
+                const nameHint = (d.file_name ?? d.id).replace(/\s+/g, ' ')
+                const hintShort =
+                  nameHint.length > 22 ? `${nameHint.slice(0, 19)}…` : nameHint
+                const labelMain = `Conferma (${fmtTipoAiPerUi(sug.tipo_suggerito)}) · ${hintShort}`
+                return (
+                  <button
+                    key={`toolbar-confirm-${d.id}`}
+                    type="button"
+                    disabled={!canConfirmAi}
+                    title={
+                      !d.fornitore_id
+                        ? 'Associa un fornitore al documento prima di confermare'
+                        : !aiPendingKind
+                          ? `Tipo «${fmtTipoAiPerUi(sug.tipo_suggerito)}»: usa «Registra fattura» / «Registra bolla» sulla riga o Ignora`
+                          : `${nameHint}\nApplica tipo e registra come suggerito dall’AI`
+                    }
+                    onClick={() => void confirmAiSuggestion(d, sug)}
+                    className="max-w-[min(100vw-3rem,20rem)] rounded-md border border-cyan-400/50 bg-gradient-to-r from-cyan-600/90 to-teal-600/90 px-2.5 py-1 text-[11px] font-bold text-white shadow disabled:opacity-35"
+                  >
+                    <span className="block max-w-[20rem] truncate text-left">{labelMain}</span>
+                  </button>
+                )
+              })}
+            </div>
           ) : null}
         </div>
 
@@ -543,7 +577,7 @@ export default function InboxAiClient(props: {
             <p className="text-xs text-app-fg-muted">
               Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
               <span className="font-mono text-app-fg">da_revisionare</span>). L’analisi AI suggerisce tipo e azione senza modificare il database finché non confermi qui o usi «Registra fattura» / «Registra bolla».
-              Dopo «Analizza con AI», ogni riga mostra ✓ analizzato e il pulsante <span className="font-semibold text-app-fg">Conferma (…)</span> quando il tipo suggerito ha un&apos;azione rapida.
+              Dopo «Analizza con AI», le <span className="font-semibold text-app-fg">Conferma (…)</span> compaiono accanto al pulsante analisi; ogni riga mostra ✓ e il dettaglio suggerimento.
             </p>
             {docsLoading ? (
               <ul className="space-y-2">
@@ -563,8 +597,6 @@ export default function InboxAiClient(props: {
                   const supplier =
                     d.fornitore?.nome ?? (d.fornitore_id ? '(fornitore ID)' : '— sconosciuto —')
                   const busyRow = actionBusy === d.id
-                  const aiPendingKind = sug ? tipoAiToPendingKind(sug.tipo_suggerito) : null
-                  const canConfirmAi = !!(sug && aiPendingKind && d.fornitore_id && !busyRow)
                   return (
                     <li
                       key={d.id}
@@ -617,23 +649,6 @@ export default function InboxAiClient(props: {
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[min(100%,24rem)] sm:justify-end">
-                          {sug ? (
-                            <button
-                              type="button"
-                              disabled={!canConfirmAi}
-                              title={
-                                !d.fornitore_id
-                                  ? 'Associa un fornitore al documento prima di confermare'
-                                  : !aiPendingKind
-                                    ? `Tipo «${fmtTipoAiPerUi(sug.tipo_suggerito)}»: usa i pulsanti sotto o Ignora`
-                                    : 'Applica tipo e registra come suggerito dall’AI'
-                              }
-                              onClick={() => void confirmAiSuggestion(d, sug)}
-                              className="rounded-md border border-cyan-400/50 bg-gradient-to-r from-cyan-600/90 to-teal-600/90 px-2.5 py-1 text-[11px] font-bold text-white shadow disabled:opacity-35"
-                            >
-                              Conferma ({fmtTipoAiPerUi(sug.tipo_suggerito)})
-                            </button>
-                          ) : null}
                           <button
                             type="button"
                             disabled={busyRow || !d.fornitore_id}
