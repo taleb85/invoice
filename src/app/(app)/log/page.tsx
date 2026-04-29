@@ -22,7 +22,7 @@ import {
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
-import { ActionLink } from '@/components/ui/ActionButton'
+import { LogProcessDocumentsButton } from '@/components/LogProcessDocumentsButton'
 import type { Locale } from '@/lib/translations'
 import {
   loadEmailActivityDayRows,
@@ -91,6 +91,13 @@ export default async function LogPage() {
 
   const autoProcessedToday = countAutoSavedTodayFromRows(rows)
 
+  const documentoIdsForProcess = rows
+    .filter((r) => r.docOpen?.kind === 'documento')
+    .map((r) => r.docOpen!.id)
+
+  /** API: admin sede sempre con sede profilo; master opzionale vista sede (cookie). */
+  const sedeForProcessApi = isMasterAdmin ? sedeScopeId : profile?.sede_id ?? null
+
   let blacklistSedeId = profile?.sede_id ?? null
   if (!blacklistSedeId && profile?.role === 'admin') {
     const { data: firstSedeRow } = await supabase.from('sedi').select('id').limit(1).maybeSingle()
@@ -102,9 +109,17 @@ export default async function LogPage() {
   const logToolbar = (
     <>
       <p className={`min-w-0 flex-1 text-sm ${rows.length === 0 ? 'text-app-fg-muted' : 'text-app-fg'}`}>{summaryLine}</p>
-      <ActionLink href="/inbox-ai" intent="nav" size="sm">
-        {t.log.activityProcessDocumentsCta}
-      </ActionLink>
+      <LogProcessDocumentsButton
+        documentoIds={documentoIdsForProcess}
+        sedeId={sedeForProcessApi}
+        labels={{
+          cta: t.log.activityProcessDocumentsCta,
+          busy: t.log.activityProcessDocumentsBusy,
+          noEligibleInLog: t.log.activityProcessDocumentsNoEligibleInLog,
+          summary: t.log.activityProcessDocumentsSummary,
+          apiError: t.log.activityProcessDocumentsApiError,
+        }}
+      />
     </>
   )
 
