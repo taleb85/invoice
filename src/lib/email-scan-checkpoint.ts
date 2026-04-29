@@ -69,7 +69,7 @@ async function scanUnitHistoricalShouldSkipFullyLinked(
     .from('log_sincronizzazione')
     .select('stato, file_url')
     .eq('scan_attachment_fingerprint', fingerprint)
-    .order('created_at', { ascending: false })
+    .order('data', { ascending: false })
     .limit(1)
 
   if (error) {
