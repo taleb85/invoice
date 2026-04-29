@@ -89,7 +89,8 @@ export async function POST(req: NextRequest) {
       .from('documenti_da_processare')
       .select('id, file_url, file_name, content_type, stato, created_at')
       .in('stato', ['da_associare', 'da_revisionare'])
-      .order('created_at', { ascending: true })
+      /* Stesso ordine dell’Inbox AI: più recenti in cima (GET documenti-da-processare: created_at DESC). */
+      .order('created_at', { ascending: false })
       .limit(120)
 
     if (sedeFilterOrNull) {
