@@ -21,6 +21,8 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+import { clearAiUsageLogAction } from '@/app/(app)/consumi-ai/actions'
+
 /** ── Date helpers (calendar locale browser, anno fiscale UK = 6 aprile) ── */
 
 function localYmd(d: Date): string {
@@ -524,25 +526,9 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
       setClearing(true)
       setError(null)
       try {
-        const res = await fetch('/api/admin/ai-usage', {
-          method: 'POST',
-          credentials: 'include',
-          cache: 'no-store',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'clear' }),
-        })
-        const raw = await res.text()
-        const parsed = parseApiBody(res, raw)
-        if (!res.ok) {
-          const msg =
-            parsed &&
-            typeof parsed === 'object' &&
-            parsed !== null &&
-            'error' in parsed &&
-            typeof (parsed as { error?: string }).error === 'string'
-              ? (parsed as { error: string }).error
-              : `Errore durante l’azzeramento (${res.status})`
-          throw new Error(msg)
+        const r = await clearAiUsageLogAction()
+        if (!r.ok) {
+          throw new Error(r.error)
         }
         await load()
       } catch (e) {

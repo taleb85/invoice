@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { GEMINI_PRICING, getGeminiModelId } from '@/lib/gemini-vision'
+import { clearAiUsageLogForAdmin } from '@/lib/ai-usage-clear'
 
 export const dynamic = 'force-dynamic'
 
@@ -258,68 +259,16 @@ export async function GET(req: NextRequest) {
   )
 }
 
-async function wipeAiUsageLogViaPostgrest(
-  service: ReturnType<typeof createServiceClient>,
-): Promise<{ deleted: number | null; mode: 'rpc' | 'filter' } | { error: string }> {
-  const rpc = await service.rpc('delete_all_ai_usage_log')
-
-  if (!rpc.error && rpc.data !== null && rpc.data !== undefined) {
-    const raw = rpc.data
-    const n =
-      typeof raw === 'bigint'
-        ? Number(raw)
-        : typeof raw === 'string'
-          ? Number(raw)
-          : typeof raw === 'number'
-            ? raw
-            : null
-    const deleted = n != null && Number.isFinite(n) ? Math.trunc(n) : 0
-    return { deleted, mode: 'rpc' }
-  }
-
-  /** `tokens_input NOT NULL`; intero valido incluso anche con valori di default: match su tutta la tabella. */
-  const { error: e1, count: c1 } = await service
-    .from('ai_usage_log')
-    .delete({ count: 'exact' })
-    .gte('tokens_input', -1)
-
-  if (!e1) {
-    return { deleted: typeof c1 === 'number' ? c1 : null, mode: 'filter' }
-  }
-
-  console.error('[ai-usage-delete]', e1.message)
-
-  const { error: e2, count: c2 } = await service
-    .from('ai_usage_log')
-    .delete({ count: 'exact' })
-    .gte('tokens_output', -1)
-
-  if (!e2) {
-    return { deleted: typeof c2 === 'number' ? c2 : null, mode: 'filter' }
-  }
-
-  console.error('[ai-usage-delete] fallback', e2.message)
-  return { error: e2.message ?? e1.message ?? 'Eliminazione non riuscita' }
-}
-
-/** Body POST per chi non può usare DELETE (proxy / browser). */
+/** Body POST legacy: `{ "action": "clear" }` (preferire Server Action `clearAiUsageLogAction`). */
 const CLEAR_BODY_ACTION = 'clear' as const
 
 async function respondClearAiUsageLog(): Promise<NextResponse> {
-  const profile = await getProfile()
-  if (!profile || String(profile.role ?? '').toLowerCase() !== 'admin') {
-    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+  const r = await clearAiUsageLogForAdmin()
+  if (!r.ok) {
+    return NextResponse.json({ error: r.error }, { status: r.status })
   }
-
-  const service = createServiceClient()
-  const result = await wipeAiUsageLogViaPostgrest(service)
-
-  if ('error' in result) {
-    return NextResponse.json({ error: result.error }, { status: 500 })
-  }
-
   return NextResponse.json(
-    { ok: true, deleted: result.deleted, mode: result.mode },
+    { ok: true, deleted: r.deleted, mode: r.mode },
     { headers: { 'Cache-Control': 'no-store, max-age=0' } },
   )
 }
@@ -330,7 +279,7 @@ export async function DELETE() {
 }
 
 /**
- * Stessa cosa di DELETE: alcuni proxy o la PWA restituiscono 405 su DELETE.
+ * Stessa cosa di DELETE: proxy / vecchie PWA.
  * Body JSON: `{ "action": "clear" }`.
  */
 export async function POST(req: NextRequest) {
