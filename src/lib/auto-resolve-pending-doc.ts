@@ -52,10 +52,29 @@ function trimTrailingLooseDateFragment(s: string): string {
 }
 
 /**
- * OCR spesso concatena numero fattura + "from Supplier - sede/località - data".
- * La chiave canonica dell’intera stringa ≠ anagrafica ("Ital Cutlery"); proviamo
- * segmenti e strip "INV … from".
+ * OCR concatena numero fattura + "from Supplier — sede - data"; segmenti e strip «INV … from»;
+ * NBSP/trattini tipografici normalizzati perché `\s-\s` nello split funzioni.
  */
+function normalizeOcrRagioneSocialeLine(s: string): string {
+  return s
+    .replace(/\u00a0/g, ' ')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * OCR spesso più corto dell’anagrafica ("ital cutlery" vs "ital cutlery ltd") o più lungo
+ * con suffisso; match esatto è troppo fragile.
+ */
+function supplierNameKeysCompatible(ocrKey: string, dbKey: string): boolean {
+  if (ocrKey.length < 3 || dbKey.length < 3) return false
+  if (ocrKey === dbKey) return true
+  if (dbKey.startsWith(`${ocrKey} `)) return true
+  if (ocrKey.startsWith(`${dbKey} `)) return true
+  return false
+}
+
 function ragioneSocialeCandidatesForMatch(rsTrim: string): string[] {
   const seen = new Set<string>()
   const addChunk = (chunk: string) => {
@@ -75,7 +94,7 @@ function ragioneSocialeCandidatesForMatch(rsTrim: string): string[] {
     }
   }
 
-  const work = rsTrim.trim()
+  const work = normalizeOcrRagioneSocialeLine(rsTrim)
   if (!work) return []
 
   addChunk(work)
@@ -214,12 +233,15 @@ export async function findUniqueFornitoreForPendingDoc(
     const candidateKeys = ragioneSocialeCandidatesForMatch(rsTrim)
     for (const key of candidateKeys) {
       if (key.length < 3) continue
-      const hits = list.filter(
-        (f) =>
-          canonicalSupplierNameKey(f.nome) === key ||
-          (!!f.display_name?.trim() && canonicalSupplierNameKey(f.display_name) === key),
-      )
+      const hits = list.filter((f) => {
+        const nk = canonicalSupplierNameKey(f.nome)
+        const dk = f.display_name?.trim() ? canonicalSupplierNameKey(f.display_name) : ''
+        const nameHit = supplierNameKeysCompatible(key, nk)
+        const displayHit = dk ? supplierNameKeysCompatible(key, dk) : false
+        return nameHit || displayHit
+      })
       if (hits.length === 1) return { id: hits[0].id, nome: hits[0].nome }
+      if (hits.length > 1) continue
     }
   }
 
