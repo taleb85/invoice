@@ -1,6 +1,25 @@
 'use client'
 
-import { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from 'react'
+
+import {
+  CartesianGrid,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
 
 /** ── Date helpers (calendar locale browser, anno fiscale UK = 6 aprile) ── */
 
@@ -76,9 +95,15 @@ function defaultCustomRange(): { from: string; to: string } {
 
 interface DailyUsage {
   date: string
-  calls: number
-  tokens: number
-  costUsd: number
+  /** Alias di `calls` (API). */
+  count?: number
+  calls?: number
+  tokens?: number
+  tokensInput?: number
+  tokensOutput?: number
+  /** 0–100: % chiamate con token output. */
+  success_rate?: number
+  costUsd?: number
 }
 
 interface RecentCall {
@@ -199,42 +224,193 @@ function StatCard({
   )
 }
 
-// ─── Mini bar chart ────────────────────────────────────────────────────────────
-function MiniBarChart({ daily }: { daily: DailyUsage[] }) {
-  if (!daily.length) return null
-  const maxCalls = Math.max(...daily.map((d) => d.calls), 1)
-  const last7 = daily.slice(-7)
+/** Giorni da…a inclusivi (solo calendario locale). */
+function eachDayInclusiveYmd(fromYmd: string, toYmd: string): string[] {
+  const out: string[] = []
+  const [fy, fm, fd] = fromYmd.split('-').map(Number)
+  const [ty, tm, td] = toYmd.split('-').map(Number)
+  let d = new Date(fy, fm - 1, fd)
+  const end = new Date(ty, tm - 1, td)
+  let guard = 0
+  while (d <= end && guard++ < 400) {
+    out.push(localYmd(d))
+    d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
+  }
+  return out
+}
+
+type ChartPoint = {
+  date: string
+  label: string
+  count: number
+  success_rate: number | null
+}
+
+function shortAxisLabel(ymd: string): string {
+  try {
+    const [y, m, d] = ymd.split('-').map(Number)
+    const dt = new Date(y, m - 1, d)
+    return dt.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
+  } catch {
+    return ymd.slice(5)
+  }
+}
+
+function normalizeDaily(d: DailyUsage): DailyUsage {
+  const c = typeof d.count === 'number' ? d.count : (d.calls ?? 0)
+  const calls = typeof d.calls === 'number' ? d.calls : c
+  return {
+    ...d,
+    count: c,
+    calls,
+    success_rate: typeof d.success_rate === 'number' ? d.success_rate : calls > 0 ? 100 : 0,
+    tokens: typeof d.tokens === 'number' ? d.tokens : 0,
+    costUsd: typeof d.costUsd === 'number' ? d.costUsd : 0,
+  }
+}
+
+/**
+ * Serie completa per l’asse X (giorni senza dati → 0 richieste, linea null).
+ */
+function buildAiUsageChartSeries(
+  daily: DailyUsage[],
+  period?: UsageData['period'],
+): ChartPoint[] {
+  const normalized = daily.map(normalizeDaily)
+  const byDate = new Map(normalized.map((row) => [row.date, row]))
+
+  const from = period?.label_from_date?.slice(0, 10)
+  const to = period?.label_to_date?.slice(0, 10)
+  const useRange =
+    from &&
+    to &&
+    /^\d{4}-\d{2}-\d{2}$/.test(from) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(to)
+
+  const order: string[] = useRange
+    ? eachDayInclusiveYmd(from <= to ? from : to, from <= to ? to : from)
+    : [...new Set(normalized.map((x) => x.date))].sort()
+
+  return order.map((date) => {
+    const row = byDate.get(date)
+    const count = row ? (row.count ?? row.calls ?? 0) : 0
+    const success_rate =
+      count === 0 ? null : typeof row?.success_rate === 'number' ? row.success_rate : 100
+    return {
+      date,
+      label: shortAxisLabel(date),
+      count,
+      success_rate,
+    }
+  })
+}
+
+const CHART_BAR = '#22d3ee'
+const CHART_LINE = '#34d399'
+
+function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
+  if (data.length === 0) return null
 
   return (
     <div
-      className="rounded-xl p-4"
+      className="rounded-xl p-4 pt-3"
       style={{
         background: 'rgba(15, 42, 74, 0.6)',
         border: '1px solid rgba(34, 211, 238, 0.15)',
       }}
     >
-      <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-        Nel periodo — ultimi giorni disponibili (finestra grafico max 7)
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
+        Richieste API e tasso di successo
       </p>
-      <div className="flex items-end gap-1.5" style={{ height: 56 }}>
-        {last7.map((d) => (
-          <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
-            <div
-              className="w-full rounded-t transition-all"
-              style={{
-                height: `${Math.max(4, Math.round((d.calls / maxCalls) * 48))}px`,
-                background:
-                  d.calls > 0
-                    ? 'rgba(34, 211, 238, 0.55)'
-                    : 'rgba(34, 211, 238, 0.12)',
-              }}
-              title={`${d.date}: ${d.calls} scansioni`}
+      <p className="mb-3 text-[11px] text-app-fg-muted opacity-80">
+        Barre: numero di chiamate registrate · Linea: % con risposta modello (token output &gt; 0)
+      </p>
+      <div style={{ width: '100%', height: 300 }}>
+        <ResponsiveContainer>
+          <ComposedChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
+            <CartesianGrid stroke="rgba(34,211,238,0.08)" strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fill: 'rgba(148,163,184,0.95)', fontSize: 10 }}
+              tickLine={false}
+              axisLine={{ stroke: 'rgba(34,211,238,0.2)' }}
+              interval="preserveStartEnd"
+              minTickGap={12}
             />
-            <span className="text-[9px] text-app-fg-muted">
-              {d.date.slice(5)}
-            </span>
-          </div>
-        ))}
+            <YAxis
+              yAxisId="left"
+              tick={{ fill: 'rgba(34,211,238,0.85)', fontSize: 10 }}
+              tickLine={false}
+              axisLine={{ stroke: 'rgba(34,211,238,0.25)' }}
+              allowDecimals={false}
+              width={40}
+              label={{
+                value: 'Richieste',
+                angle: -90,
+                position: 'insideLeft',
+                fill: 'rgba(34,211,238,0.65)',
+                fontSize: 10,
+              }}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              domain={[0, 100]}
+              tick={{ fill: 'rgba(52,211,153,0.9)', fontSize: 10 }}
+              tickLine={false}
+              axisLine={{ stroke: 'rgba(52,211,153,0.25)' }}
+              width={36}
+              unit="%"
+              label={{
+                value: 'Successo',
+                angle: 90,
+                position: 'insideRight',
+                fill: 'rgba(52,211,153,0.65)',
+                fontSize: 10,
+              }}
+            />
+            <Tooltip
+              contentStyle={{
+                background: 'rgba(15, 42, 74, 0.96)',
+                border: '1px solid rgba(34, 211, 238, 0.22)',
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              labelFormatter={(_, payload) => {
+                const p = payload?.[0]?.payload as ChartPoint | undefined
+                return p?.date ?? ''
+              }}
+              formatter={(value: unknown, name: unknown) => {
+                if (name === 'Richieste') return [fmt(Number(value)), 'Richieste']
+                if (name === '% successo') {
+                  if (value == null || value === '') return ['—', '% successo']
+                  return [`${Number(value).toFixed(1)}%`, '% successo']
+                }
+                return [String(value), String(name)]
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Bar
+              yAxisId="left"
+              dataKey="count"
+              name="Richieste"
+              fill={CHART_BAR}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={56}
+            />
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="success_rate"
+              name="% successo"
+              stroke={CHART_LINE}
+              strokeWidth={2}
+              dot={{ r: 3, fill: CHART_LINE }}
+              activeDot={{ r: 4 }}
+              connectNulls={false}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
       </div>
     </div>
   )
@@ -310,6 +486,11 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
     useEffect(() => {
       load()
     }, [load])
+
+    const chartSeries = useMemo(() => {
+      if (!data?.daily) return []
+      return buildAiUsageChartSeries(data.daily, data.period)
+    }, [data])
 
     return (
     <div className="app-card overflow-hidden">
@@ -455,6 +636,9 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
               />
             </div>
 
+            {/* Richieste + % success (stile Google AI Studio: barre cyan, linea verde) */}
+            {chartSeries.length > 0 ? <AiUsageStudioChart data={chartSeries} /> : null}
+
             {/* Pricing info */}
             {data.pricing && (
               <div
@@ -470,11 +654,8 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
               </div>
             )}
 
-            {/* Bar chart */}
-            {data.daily.length > 0 && <MiniBarChart daily={data.daily} />}
-
-            {/* Empty state */}
-            {data.totalCalls === 0 && (
+            {/* Empty state — nascosto se il periodo ha già una timeline (barre a zero) */}
+            {data.totalCalls === 0 && chartSeries.length === 0 && (
               <div
                 className="rounded-xl px-5 py-8 text-center"
                 style={{

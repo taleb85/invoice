@@ -37,7 +37,7 @@ function boundsFromDates(fromRaw: string | null, toRaw: string | null): { fromTs
       ? toRaw!.trim().slice(0, 10)
       : toDefault
 
-  let fromTs = `${from}T00:00:00.000Z`
+  const fromTs = `${from}T00:00:00.000Z`
   let toDay = to
   if (toDay < from) toDay = from
   const toInclusive = `${toDay}T23:59:59.999Z`
@@ -100,7 +100,14 @@ export async function GET(req: NextRequest) {
   let costoTotaleUsd = 0
   const dailyMap: Record<
     string,
-    { calls: number; tokens: number; tokensIn: number; tokensOut: number; costUsd: number }
+    {
+      calls: number
+      callsWithOutputTokens: number
+      tokens: number
+      tokensIn: number
+      tokensOut: number
+      costUsd: number
+    }
   > = {}
   const sedeMap: Record<
     string,
@@ -117,9 +124,17 @@ export async function GET(req: NextRequest) {
 
     const day = r.created_at.slice(0, 10)
     if (!dailyMap[day]) {
-      dailyMap[day] = { calls: 0, tokens: 0, tokensIn: 0, tokensOut: 0, costUsd: 0 }
+      dailyMap[day] = {
+        calls: 0,
+        callsWithOutputTokens: 0,
+        tokens: 0,
+        tokensIn: 0,
+        tokensOut: 0,
+        costUsd: 0,
+      }
     }
     dailyMap[day].calls++
+    if (to > 0) dailyMap[day].callsWithOutputTokens++
     dailyMap[day].tokens += ti + to
     dailyMap[day].tokensIn += ti
     dailyMap[day].tokensOut += to
@@ -161,14 +176,21 @@ export async function GET(req: NextRequest) {
   }))
 
   const daily = Object.entries(dailyMap)
-    .map(([date, v]) => ({
-      date,
-      calls: v.calls,
-      tokens: v.tokens,
-      tokensInput: v.tokensIn,
-      tokensOutput: v.tokensOut,
-      costUsd: Math.round(v.costUsd * 1_000_000) / 1_000_000,
-    }))
+    .map(([date, v]) => {
+      const calls = v.calls
+      const success_rate =
+        calls > 0 ? Math.round((100 * v.callsWithOutputTokens) / calls * 100) / 100 : 0
+      return {
+        date,
+        count: calls,
+        calls,
+        tokens: v.tokens,
+        tokensInput: v.tokensIn,
+        tokensOutput: v.tokensOut,
+        success_rate,
+        costUsd: Math.round(v.costUsd * 1_000_000) / 1_000_000,
+      }
+    })
     .sort((a, b) => a.date.localeCompare(b.date))
 
   const knownIds = Object.keys(sedeMap).filter(k => k !== '__unknown__')
