@@ -107,6 +107,16 @@ function docAllowsAssociationFlow(stato: Documento['stato']): boolean {
   return stato === 'da_revisionare' || stato === 'in_attesa' || stato === 'da_associare'
 }
 
+function pendingDocQuickStripLabel(doc: Documento): string {
+  const rs = doc.metadata?.ragione_sociale?.trim()
+  if (rs) return rs.length > 42 ? `${rs.slice(0, 40)}…` : rs
+  const subj = doc.oggetto_mail?.trim()
+  if (subj) return subj.length > 48 ? `${subj.slice(0, 46)}…` : subj
+  const fn = doc.file_name?.trim()
+  if (fn) return fn.length > 48 ? `${fn.slice(0, 46)}…` : fn
+  return doc.id.slice(0, 8)
+}
+
 type BollaAperta = { id: string; data: string; importo: number | null; numero_bolla: string | null; fornitore_id: string; fornitore_nome: string }
 type Fornitore   = { id: string; nome: string }
 
@@ -1680,6 +1690,10 @@ export function PendingMatchesTab({
 
   const isPdf = (url: string) => url.toLowerCase().includes('.pdf')
   const inAttesa = docs.filter(d => docNeedsManualProcessing(d.stato)).length
+  const unknownSenderQuickDocs = useMemo(
+    () => docs.filter((d) => docNeedsManualProcessing(d.stato) && !d.fornitore_id),
+    [docs],
+  )
 
   const listShellTheme = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
   /** In scheda fornitore: stesso guscio/tab «Documenti» del resto della pagina. */
@@ -1784,6 +1798,45 @@ export function PendingMatchesTab({
         </div>
       </div>
 
+      {!supplierDocShell && unknownSenderQuickDocs.length > 0 && (
+        <div
+          role="region"
+          aria-label={t.statements.unknownSenderQuickStripAria}
+          className="mb-4 overflow-hidden rounded-[10px] border-t-2 border-t-orange-400/75 border-x-0 border-b-0 bg-white/[0.04] px-3 py-2.5 sm:px-4"
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3">
+            <p className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-orange-200/95 sm:max-w-[11rem] sm:leading-snug">
+              {t.statements.unknownSenderQuickStripTitle.replace(
+                /\{n\}/g,
+                String(unknownSenderQuickDocs.length),
+              )}
+            </p>
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
+              {unknownSenderQuickDocs.slice(0, 14).map((doc) => (
+                <button
+                  key={doc.id}
+                  type="button"
+                  title={t.statements.unknownSenderQuickStripChipTitle}
+                  onClick={() => {
+                    document
+                      .getElementById(`pending-doc-row-${doc.id}`)
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }}
+                  className="max-w-[min(100%,14rem)] truncate rounded-full border border-orange-400/35 bg-orange-950/40 px-2.5 py-1 text-left text-[11px] font-medium text-orange-100 transition-colors hover:border-orange-400/55 hover:bg-orange-950/55"
+                >
+                  {pendingDocQuickStripLabel(doc)}
+                </button>
+              ))}
+              {unknownSenderQuickDocs.length > 14 && (
+                <span className="self-center text-[11px] tabular-nums text-orange-200/65">
+                  +{unknownSenderQuickDocs.length - 14}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Preview modal */}
       {preview && (
         <div
@@ -1885,6 +1938,7 @@ export function PendingMatchesTab({
             return (
               <div
                 key={doc.id}
+                id={`pending-doc-row-${doc.id}`}
                 className={`${
                   supplierDocShell ? 'supplier-detail-tab-shell' : SUMMARY_HIGHLIGHT_SURFACE_CLASS
                 } overflow-hidden transition-opacity ${stato === 'done' ? 'opacity-[0.58] saturate-[0.85]' : ''} ${

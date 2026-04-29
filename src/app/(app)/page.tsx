@@ -13,12 +13,6 @@ import {
   fetchTodayScannerFlowDetail,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
-import { fetchAllSedeSupplierSuggestions } from '@/lib/suggested-fornitore'
-import {
-  SUPPLIER_HINT_SKIP_COOKIE,
-  parseSupplierHintSkipCookie,
-  skipsForSede,
-} from '@/lib/supplier-hint-dismiss-cookie'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
@@ -30,12 +24,6 @@ import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHea
 import { APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
-import {
-  SUMMARY_HIGHLIGHT_ACCENTS,
-  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
-  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
-} from '@/lib/summary-highlight-accent'
-import DashboardSedeSupplierSuggestion from '@/components/DashboardSedeSupplierSuggestion'
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 
 export const dynamic = 'force-dynamic'
@@ -238,12 +226,7 @@ export default async function DashboardPage(props: {
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
   const scannerFiscalBounds = kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
 
-  const cookieStoreForDismiss = await getCookieStore()
-  const supplierDismissSkips = parseSupplierHintSkipCookie(cookieStoreForDismiss.get(SUPPLIER_HINT_SKIP_COOKIE)?.value)
-  const excludeDocIdsForSupplierHint = sedeId ? skipsForSede(supplierDismissSkips, sedeId) : []
-
   let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
-  let supplierHints: Awaited<ReturnType<typeof fetchAllSedeSupplierSuggestions>> = []
   let scannerFlowDetail: Awaited<ReturnType<typeof fetchTodayScannerFlowDetail>> = {
     summary: { aiElaborate: 0, archiviate: 0 },
     events: [],
@@ -253,9 +236,6 @@ export default async function DashboardPage(props: {
       operatorScoped
         ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
         : Promise.resolve({ ...DEFAULT_OPERATOR_DASHBOARD_KPIS }),
-      operatorScoped && sedeId
-        ? fetchAllSedeSupplierSuggestions(supabase, sedeId, { excludeDocumentIds: excludeDocIdsForSupplierHint })
-        : Promise.resolve([]),
       operatorScoped && sedeId
         ? fetchTodayScannerFlowDetail(
             supabase,
@@ -268,8 +248,7 @@ export default async function DashboardPage(props: {
         : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
     ])
     kpis = bundle[0]
-    supplierHints = bundle[1]
-    scannerFlowDetail = bundle[2]
+    scannerFlowDetail = bundle[1]
   } catch (err) {
     console.error('[DashboardPage] KPI/fetch', err)
   }
@@ -304,14 +283,6 @@ export default async function DashboardPage(props: {
         <Suspense fallback={null}>
           <DuplicateDashboardBanner />
         </Suspense>
-      )}
-      {supplierHints.length > 0 && sedeId && (
-        <div className={`hidden md:block ${SUMMARY_HIGHLIGHT_SURFACE_CLASS}`}>
-          <div className={`app-card-bar-accent ${SUMMARY_HIGHLIGHT_ACCENTS.violet.bar}`} aria-hidden />
-          <div className={`app-workspace-surface-elevated ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
-            <DashboardSedeSupplierSuggestion sedeId={sedeId} items={supplierHints} />
-          </div>
-        </div>
       )}
       {operatorScoped ? (
         <>
