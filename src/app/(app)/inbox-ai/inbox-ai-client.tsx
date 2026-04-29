@@ -116,6 +116,16 @@ function fmtTipoAiPerUi(tipo: string): string {
   return map[k] ?? tipo
 }
 
+/** Conferma automatica dopo la risposta Gemini (stesso criterio visivo del %. mostrato). */
+const AUTO_FINALIZE_AI_CONF_MIN = 0.95
+
+function suggestionConf01(s: GeminiSuggestion): number {
+  const x =
+    typeof s.confidenza === 'number' ? s.confidenza : Number.parseFloat(String(s.confidenza))
+  if (!Number.isFinite(x)) return 0.5
+  return Math.min(1, Math.max(0, x))
+}
+
 export default function InboxAiClient(props: {
   sedeId: string | null
   /** Nessuna sede operativa per operatore — blocco totale */
@@ -293,6 +303,19 @@ export default function InboxAiClient(props: {
         for (const s of list) next[s.doc_id] = s
         return next
       })
+
+      /** Stessa copia lista usata dall’analisi dopo ogni finalize (stato aggiorna in modo asincrono). */
+      let workingDocs = [...docs]
+      for (const s of list) {
+        const row = workingDocs.find((d) => d.id === s.doc_id)
+        if (!row) continue
+        const kind = tipoAiToPendingKind(s.tipo_suggerito)
+        if (!kind || !row.fornitore_id) continue
+        if (suggestionConf01(s) < AUTO_FINALIZE_AI_CONF_MIN) continue
+        const ok = await finalizeWithKind(row.id, kind)
+        if (!ok) break
+        workingDocs = workingDocs.filter((d) => d.id !== row.id)
+      }
     } finally {
       setAnalyzeBusy(false)
     }
@@ -585,8 +608,14 @@ export default function InboxAiClient(props: {
           <section className="space-y-3">
             <p className="text-xs text-app-fg-muted">
               Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
-              <span className="font-mono text-app-fg">da_revisionare</span>). L’analisi AI suggerisce tipo e azione senza modificare il database finché non confermi qui o usi «Registra fattura» / «Registra bolla».
-              Dopo «Analizza con AI», usa <span className="font-semibold text-app-fg">Conferma suggeriti</span> accanto per registrare tutti i documenti con tipo riconosciuto e fornitore associato; ogni riga mostra ✓ e il dettaglio.
+              <span className="font-mono text-app-fg">da_revisionare</span>). Se l&apos;analisi riporta almeno{' '}
+              <span className="font-semibold text-app-fg">95% confidenza</span>, tipo riconosciuto (
+              <span className="font-mono">fattura/bolla/ordine/estratto</span>) e c&apos;è un{' '}
+              <span className="font-semibold text-app-fg">fornitore associato</span>, il documento viene registrato senza clic aggiuntivo.
+              Altrimenti usa{' '}
+              <span className="font-semibold text-app-fg">Conferma suggeriti</span> oppure{' '}
+              <span className="font-semibold text-app-fg">Registra fattura</span> /{' '}
+              <span className="font-semibold text-app-fg">Registra bolla</span> sulla riga. Ogni riga con analisi mostra ✓ e il dettaglio.
             </p>
             {docsLoading ? (
               <ul className="space-y-2">
