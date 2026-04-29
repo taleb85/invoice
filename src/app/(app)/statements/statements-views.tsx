@@ -499,6 +499,21 @@ function buildNewFornitoreHref(opts: {
   return `/fornitori/new${qs ? `?${qs}` : ''}`
 }
 
+/** Etichetta riga numero: `numero_fattura` in DB è generico OCR — non dire «fattura» se tipo non confermato. */
+function ocrDocNumberFieldLabel(
+  m: OcrMetadata,
+  t: { common: { invoiceNum: string; documentRef: string }; bolle: { colNumero: string } },
+): string {
+  const pk = m.pending_kind ?? null
+  const td = m.tipo_documento ?? null
+  if (pk === 'fattura') return t.common.invoiceNum
+  if (pk === 'bolla') return t.bolle.colNumero
+  if (pk === 'statement' || pk === 'ordine') return t.common.documentRef
+  if (td === 'fattura') return t.common.invoiceNum
+  if (td === 'bolla') return t.bolle.colNumero
+  return t.common.documentRef
+}
+
 function AiDataCard({
   metadata,
   countryCode,
@@ -634,7 +649,7 @@ function AiDataCard({
         )}
         {metadata.numero_fattura && (
           <div>
-            <span className="text-slate-300">{t.common.invoiceNum} · </span>
+            <span className="text-slate-300">{ocrDocNumberFieldLabel(metadata, t)} · </span>
             <span className="font-medium text-slate-100">{metadata.numero_fattura}</span>
           </div>
         )}
