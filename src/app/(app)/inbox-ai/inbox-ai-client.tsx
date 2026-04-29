@@ -132,6 +132,7 @@ export default function InboxAiClient(props: {
   const [dupLoading, setDupLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<Record<string, GeminiSuggestion>>({})
   const [analyzeBusy, setAnalyzeBusy] = useState(false)
+  const [confirmAllBusy, setConfirmAllBusy] = useState(false)
   const [resolvedToday, setResolvedToday] = useState(0)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [dupBusy, setDupBusy] = useState<string | null>(null)
@@ -257,9 +258,14 @@ export default function InboxAiClient(props: {
     return [...docs].sort(compareInboxQueueNewestFirst)
   }, [docs])
 
-  /** Suggerimenti AI visibili in toolbar accanto ad «Analizza» — stesso ordine della lista (più recenti prima). */
-  const docsWithAiSuggestionInToolbar = useMemo(() => {
-    return docsNewestFirst.filter((d) => suggestions[d.id])
+  /** Quanti documenti analizzati possono essere confermati in un colpo solo (tipo riconosciuto + fornitore). */
+  const confirmAllEligibleCount = useMemo(() => {
+    return docsNewestFirst.filter((d) => {
+      const sug = suggestions[d.id]
+      if (!sug) return false
+      const kind = tipoAiToPendingKind(sug.tipo_suggerito)
+      return !!(kind && d.fornitore_id)
+    }).length
   }, [docsNewestFirst, suggestions])
 
   const runAnalyze = async () => {
@@ -306,7 +312,7 @@ export default function InboxAiClient(props: {
   const finalizeWithKind = async (
     docId: string,
     kind: 'fattura' | 'bolla' | 'statement' | 'ordine',
-  ) => {
+  ): Promise<boolean> => {
     setActionBusy(docId)
     try {
       await postDoc({ id: docId, azione: 'set_pending_kind', kind })
@@ -319,8 +325,10 @@ export default function InboxAiClient(props: {
       })
       const n = bumpResolved(1)
       setResolvedToday(n)
+      return true
     } catch (e) {
       window.alert(e instanceof Error ? e.message : 'Operazione non riuscita')
+      return false
     } finally {
       setActionBusy(null)
     }
@@ -331,19 +339,34 @@ export default function InboxAiClient(props: {
     await finalizeWithKind(docId, kind)
   }
 
-  const confirmAiSuggestion = async (row: PendingDocRow, sug: GeminiSuggestion) => {
-    const kind = tipoAiToPendingKind(sug.tipo_suggerito)
-    if (!kind) {
+  /** Una conferma dopo l’analisi AI: registra nell’ordine lista (recenti prima) tutti i documenti con suggerimento applicabile. */
+  const confirmAllAiSuggestions = async () => {
+    const queued: {
+      row: PendingDocRow
+      kind: NonNullable<ReturnType<typeof tipoAiToPendingKind>>
+    }[] = []
+    for (const d of docsNewestFirst) {
+      const sug = suggestions[d.id]
+      if (!sug) continue
+      const kind = tipoAiToPendingKind(sug.tipo_suggerito)
+      if (!kind || !d.fornitore_id) continue
+      queued.push({ row: d, kind })
+    }
+    if (queued.length === 0) {
       window.alert(
-        `Il tipo suggerito («${sug.tipo_suggerito.trim() || '?'}») non ha un’azione rapida «Conferma». Usa Registra fattura, Registra bolla o Ignora.`,
+        'Nessun documento pronto per la conferma massiva: serve fornitore associato e tipo (fattura, bolla, ordine, estratto) riconosciuto dall’AI.',
       )
       return
     }
-    if (!row.fornitore_id) {
-      window.alert('Associa un fornitore al documento prima di confermare.')
-      return
+    setConfirmAllBusy(true)
+    try {
+      for (const { row, kind } of queued) {
+        const ok = await finalizeWithKind(row.id, kind)
+        if (!ok) break
+      }
+    } finally {
+      setConfirmAllBusy(false)
     }
-    await finalizeWithKind(row.id, kind)
   }
 
   const ignoreDoc = async (docId: string) => {
@@ -509,40 +532,26 @@ export default function InboxAiClient(props: {
               <button
                 type="button"
                 onClick={() => void runAnalyze()}
-                disabled={analyzeBusy || docs.length === 0}
+                disabled={analyzeBusy || confirmAllBusy || docs.length === 0}
                 className="rounded-lg bg-gradient-to-r from-teal-600 to-sky-600 px-3 py-2 text-xs font-bold text-white shadow disabled:opacity-40"
               >
                 {analyzeBusy ? 'Analisi AI…' : 'Analizza con AI (prossimi 5)'}
               </button>
-              {docsWithAiSuggestionInToolbar.map((d) => {
-                const sug = suggestions[d.id]
-                if (!sug) return null
-                const aiPendingKind = tipoAiToPendingKind(sug.tipo_suggerito)
-                const busyRow = actionBusy === d.id
-                const canConfirmAi = !!(aiPendingKind && d.fornitore_id && !busyRow)
-                const nameHint = (d.file_name ?? d.id).replace(/\s+/g, ' ')
-                const hintShort =
-                  nameHint.length > 22 ? `${nameHint.slice(0, 19)}…` : nameHint
-                const labelMain = `Conferma (${fmtTipoAiPerUi(sug.tipo_suggerito)}) · ${hintShort}`
-                return (
-                  <button
-                    key={`toolbar-confirm-${d.id}`}
-                    type="button"
-                    disabled={!canConfirmAi}
-                    title={
-                      !d.fornitore_id
-                        ? 'Associa un fornitore al documento prima di confermare'
-                        : !aiPendingKind
-                          ? `Tipo «${fmtTipoAiPerUi(sug.tipo_suggerito)}»: usa «Registra fattura» / «Registra bolla» sulla riga o Ignora`
-                          : `${nameHint}\nApplica tipo e registra come suggerito dall’AI`
-                    }
-                    onClick={() => void confirmAiSuggestion(d, sug)}
-                    className="max-w-[min(100vw-3rem,20rem)] rounded-md border border-cyan-400/50 bg-gradient-to-r from-cyan-600/90 to-teal-600/90 px-2.5 py-1 text-[11px] font-bold text-white shadow disabled:opacity-35"
-                  >
-                    <span className="block max-w-[20rem] truncate text-left">{labelMain}</span>
-                  </button>
-                )
-              })}
+              <button
+                type="button"
+                onClick={() => void confirmAllAiSuggestions()}
+                disabled={
+                  analyzeBusy || confirmAllBusy || docs.length === 0 || confirmAllEligibleCount === 0
+                }
+                title={
+                  confirmAllEligibleCount === 0
+                    ? 'Analizza con AI con fornitore associato: il pulsante attiva quando c’è almeno un documento confermabile in blocco.'
+                    : `Applica suggerimento e registra per ${confirmAllEligibleCount} documento/i (ordine lista, recenti prima).`
+                }
+                className="rounded-md border border-cyan-400/50 bg-gradient-to-r from-cyan-600/90 to-teal-600/90 px-2.5 py-2 text-xs font-bold text-white shadow disabled:opacity-35"
+              >
+                {confirmAllBusy ? 'Conferma in corso…' : `Conferma suggeriti (${confirmAllEligibleCount})`}
+              </button>
             </div>
           ) : null}
         </div>
@@ -577,7 +586,7 @@ export default function InboxAiClient(props: {
             <p className="text-xs text-app-fg-muted">
               Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
               <span className="font-mono text-app-fg">da_revisionare</span>). L’analisi AI suggerisce tipo e azione senza modificare il database finché non confermi qui o usi «Registra fattura» / «Registra bolla».
-              Dopo «Analizza con AI», le <span className="font-semibold text-app-fg">Conferma (…)</span> compaiono accanto al pulsante analisi; ogni riga mostra ✓ e il dettaglio suggerimento.
+              Dopo «Analizza con AI», usa <span className="font-semibold text-app-fg">Conferma suggeriti</span> accanto per registrare tutti i documenti con tipo riconosciuto e fornitore associato; ogni riga mostra ✓ e il dettaglio.
             </p>
             {docsLoading ? (
               <ul className="space-y-2">
