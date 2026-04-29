@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   const { data: fattura, error: qErr } = await supabase
     .from('fatture')
-    .select('id, data, file_url')
+    .select('id, data, importo, file_url')
     .eq('id', fatturaId)
     .single()
 
@@ -89,10 +89,14 @@ export async function POST(req: NextRequest) {
   }
 
   let normalized: string | null
+  let importFromOcr: number | null = null
   try {
     const ocr = await ocrInvoice(new Uint8Array(buffer), contentType)
     const raw = ocr.data_fattura ?? ocr.data
     normalized = raw != null && String(raw).trim() ? safeDate(String(raw)) : null
+    if (ocr.totale_iva_inclusa != null && Number.isFinite(Number(ocr.totale_iva_inclusa))) {
+      importFromOcr = Number(ocr.totale_iva_inclusa)
+    }
   } catch (e) {
     if (e instanceof OcrInvoiceConfigurationError) {
       return NextResponse.json({ error: e.message }, { status: 503 })
@@ -100,26 +104,38 @@ export async function POST(req: NextRequest) {
     throw e
   }
 
-  if (!normalized) {
+  const importNeedsFill = fattura.importo == null && importFromOcr != null
+  /** Se né data né totale dall’OCR, non abbiamo nulla da scrivere. */
+  if (normalized == null && !importNeedsFill) {
     return NextResponse.json(
-      { error: 'Data del documento non riconosciuta dal file. Prova a sostituire l’allegato o inserisci la data a mano.' },
+      {
+        error:
+          'Data del documento non riconosciuta dal file e impossibile derivare il totale. Prova a sostituire l’allegato o inserire i dati a mano.',
+      },
       { status: 422 },
     )
   }
 
-  if (normalized === fattura.data) {
+  const updates: { data?: string; importo?: number } = {}
+  if (normalized != null && normalized !== fattura.data) {
+    updates.data = normalized
+  }
+  if (importNeedsFill && importFromOcr != null) {
+    updates.importo = importFromOcr
+  }
+
+  if (Object.keys(updates).length === 0) {
     return NextResponse.json({
       ok: true,
-      data: normalized,
+      data: fattura.data,
       data_changed: false,
       previous: fattura.data,
+      importo: fattura.importo,
+      importo_changed: false,
     })
   }
 
-  const { error: uErr } = await supabase
-    .from('fatture')
-    .update({ data: normalized })
-    .eq('id', fatturaId)
+  const { error: uErr } = await supabase.from('fatture').update(updates).eq('id', fatturaId)
 
   if (uErr) {
     return NextResponse.json({ error: uErr.message }, { status: 500 })
@@ -127,8 +143,10 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    data: normalized,
-    data_changed: true,
+    data: updates.data ?? fattura.data,
+    data_changed: updates.data !== undefined,
     previous: fattura.data,
+    importo: updates.importo ?? fattura.importo ?? null,
+    importo_changed: updates.importo !== undefined,
   })
 }

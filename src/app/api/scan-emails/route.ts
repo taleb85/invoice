@@ -637,6 +637,7 @@ type ProcessEmailsOptions = {
   directFornitore?: Fornitore | null
   /** Filtro tipologia import lato server (default all). */
   documentKind?: EmailSyncDocumentKind
+  imapSyncMode?: 'auto' | 'manual' | 'historical'
 }
 
 async function processEmails(
@@ -675,6 +676,8 @@ async function processEmails(
 
   // La sede effettiva da usare: priorità sedeFilter (per-sede IMAP) → fallbackSedeId (global IMAP)
   const effectiveSede = sedeFilter ?? fallbackSedeId ?? null
+
+  const checkpointMode = options?.imapSyncMode === 'historical' ? 'historical' : 'standard'
 
   const blacklistSet =
     effectiveSede ? await loadEmailScanBlacklistSet(supabase, effectiveSede) : new Set<string>()
@@ -811,7 +814,7 @@ async function processEmails(
         content: attachment.content,
         kind: 'attachment',
       })
-      if (await isScanUnitAlreadyCompleted(supabase, fp)) {
+      if (await isScanUnitAlreadyCompleted(supabase, fp, checkpointMode)) {
         skippedAlreadyCompleted++
         bumpAttach(email.uid)
         continue
@@ -1029,7 +1032,7 @@ async function processEmails(
       content: Buffer.from(email.bodyText ?? '', 'utf8'),
       kind: 'body_only',
     })
-    if (await isScanUnitAlreadyCompleted(supabase, fp)) {
+    if (await isScanUnitAlreadyCompleted(supabase, fp, checkpointMode)) {
       skippedAlreadyCompleted++
       bumpAttach(email.uid)
       continue
@@ -1169,7 +1172,7 @@ async function processEmails(
             kind: 'body_only',
           })
       fpList[i] = fp
-      const done = await isScanUnitAlreadyCompleted(supabase, fp)
+      const done = await isScanUnitAlreadyCompleted(supabase, fp, checkpointMode)
       skipped[i] = done
       if (done) {
         skippedAlreadyCompleted++
@@ -2126,6 +2129,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
               },
               onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
               documentKind: effectiveDocKind,
+              imapSyncMode: params.imapSyncMode,
             })
             blacklistBatch = out.blacklistSkipped
             attTotalRun += out.attachmentsTotal
@@ -2288,6 +2292,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
             },
             onAttachmentProgress: batchAtt > 0 ? onAttachmentProgress : undefined,
             documentKind: effectiveDocKind,
+            imapSyncMode: params.imapSyncMode,
           })
           blacklistGlobal = out.blacklistSkipped
           attTotalRun += out.attachmentsTotal
