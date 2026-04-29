@@ -34,6 +34,18 @@ function startOfLocalDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0)
 }
 
+/** Evita `Unexpected end of JSON input` su body vuoto / HTML di errore. */
+function parseApiBody(res: Response, raw: string): unknown | null {
+  const t = raw.trim()
+  if (!t) return null
+  try {
+    return JSON.parse(t) as unknown
+  } catch {
+    if (t.startsWith('<')) throw new Error(`Errore server (${res.status})`)
+    throw new Error(t.slice(0, 160))
+  }
+}
+
 export type PeriodPreset =
   | 'today'
   | 'week'
@@ -478,9 +490,23 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
           credentials: 'include',
           cache: 'no-store',
         })
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error ?? 'Errore caricamento')
-        setData(json as UsageData)
+        const raw = await res.text()
+        const parsed = parseApiBody(res, raw)
+        if (!res.ok) {
+          const msg =
+            parsed &&
+            typeof parsed === 'object' &&
+            parsed !== null &&
+            'error' in parsed &&
+            typeof (parsed as { error?: string }).error === 'string'
+              ? (parsed as { error: string }).error
+              : `Errore caricamento (${res.status})`
+          throw new Error(msg)
+        }
+        if (parsed === null || typeof parsed !== 'object') {
+          throw new Error('Risposta vuota o non valida dal server')
+        }
+        setData(parsed as UsageData)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Errore sconosciuto')
       } finally {
@@ -503,8 +529,19 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
           credentials: 'include',
           cache: 'no-store',
         })
-        const json = (await res.json()) as { error?: string; deleted?: number | null }
-        if (!res.ok) throw new Error(json.error ?? 'Errore durante l’azzeramento')
+        const raw = await res.text()
+        const parsed = parseApiBody(res, raw)
+        if (!res.ok) {
+          const msg =
+            parsed &&
+            typeof parsed === 'object' &&
+            parsed !== null &&
+            'error' in parsed &&
+            typeof (parsed as { error?: string }).error === 'string'
+              ? (parsed as { error: string }).error
+              : `Errore durante l’azzeramento (${res.status})`
+          throw new Error(msg)
+        }
         await load()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Errore sconosciuto')
