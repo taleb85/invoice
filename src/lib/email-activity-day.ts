@@ -4,6 +4,12 @@ import { openDocumentUrl } from '@/lib/open-document-url'
 
 export type EmailActivityTipoKey = 'invoice' | 'ddt' | 'statement' | 'queue' | 'ordine'
 
+/** Metadati per `OpenDocumentInAppButton` (modale) sul log attività. */
+export type EmailActivityOpenTarget =
+  | { kind: 'fattura'; id: string; fileUrl: string | null | undefined }
+  | { kind: 'bolla'; id: string; fileUrl: string | null | undefined }
+  | { kind: 'documento'; id: string; fileUrl: string | null | undefined }
+
 export type EmailActivityRow = {
   /** ISO per ordinamento */
   atIso: string
@@ -12,6 +18,8 @@ export type EmailActivityRow = {
   importo: number | null
   statusKey: 'saved' | 'needs_supplier' | 'ignored'
   href: string | null
+  /** Se `fileUrl` valorizzato → anteprima in modale; altrimenti si usa `href` (navigazione / download). */
+  docOpen?: EmailActivityOpenTarget
 }
 
 function joinNome(fornitore: unknown): string | null {
@@ -78,14 +86,14 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
 
   let fattureQ = opts.user
     .from('fatture')
-    .select('id, importo, email_sync_auto_saved_at, fornitore:fornitori(nome)')
+    .select('id, importo, file_url, email_sync_auto_saved_at, fornitore:fornitori(nome)')
     .gte('email_sync_auto_saved_at', start)
     .lt('email_sync_auto_saved_at', endExclusive)
     .not('email_sync_auto_saved_at', 'is', null)
 
   let bolleQ = opts.user
     .from('bolle')
-    .select('id, importo, email_sync_auto_saved_at, fornitore:fornitori(nome)')
+    .select('id, importo, file_url, email_sync_auto_saved_at, fornitore:fornitori(nome)')
     .gte('email_sync_auto_saved_at', start)
     .lt('email_sync_auto_saved_at', endExclusive)
     .not('email_sync_auto_saved_at', 'is', null)
@@ -98,32 +106,38 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
   const [fattureRes, bolleRes] = await Promise.all([fattureQ, bolleQ])
 
   for (const f of fattureRes.data ?? []) {
+    const id = String((f as { id?: string }).id ?? '')
     const iso = String((f as { email_sync_auto_saved_at?: string }).email_sync_auto_saved_at ?? '')
+    const fileUrl = (f as { file_url?: string | null }).file_url ?? null
     rows.push({
       atIso: iso,
       tipoLabelKey: 'invoice',
       fornitoreNome: joinNome((f as { fornitore?: unknown }).fornitore) ?? '—',
       importo: (f as { importo?: number | null }).importo ?? null,
       statusKey: 'saved',
-      href: openDocumentUrl({ fatturaId: String((f as { id?: string }).id) }),
+      href: openDocumentUrl({ fatturaId: id }),
+      docOpen: { kind: 'fattura', id, fileUrl },
     })
   }
 
   for (const b of bolleRes.data ?? []) {
+    const id = String((b as { id?: string }).id ?? '')
     const iso = String((b as { email_sync_auto_saved_at?: string }).email_sync_auto_saved_at ?? '')
+    const fileUrl = (b as { file_url?: string | null }).file_url ?? null
     rows.push({
       atIso: iso,
       tipoLabelKey: 'ddt',
       fornitoreNome: joinNome((b as { fornitore?: unknown }).fornitore) ?? '—',
       importo: (b as { importo?: number | null }).importo ?? null,
       statusKey: 'saved',
-      href: openDocumentUrl({ bollaId: String((b as { id?: string }).id) }),
+      href: openDocumentUrl({ bollaId: id }),
+      docOpen: { kind: 'bolla', id, fileUrl },
     })
   }
 
   const docQ = opts.service
     .from('documenti_da_processare')
-    .select('id, created_at, stato, metadata, mittente, is_statement, sede_id, fornitore:fornitori(nome)')
+    .select('id, created_at, file_url, stato, metadata, mittente, is_statement, sede_id, fornitore:fornitori(nome)')
     .gte('created_at', start)
     .lt('created_at', endExclusive)
     .or('and(fornitore_id.is.null,stato.in.(da_revisionare,da_associare)),stato.eq.scartato')
@@ -154,6 +168,9 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
 
     const tipoLabelKey = tipoFromDoc(isStatement, meta)
 
+    const docId = String((d as { id?: string }).id ?? '')
+    const fileUrl = (d as { file_url?: string | null }).file_url ?? null
+
     if (stato === 'scartato') {
       rows.push({
         atIso: iso,
@@ -161,7 +178,8 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
         fornitoreNome: displayNome,
         importo,
         statusKey: 'ignored',
-        href: openDocumentUrl({ documentoId: String((d as { id?: string }).id) }),
+        href: openDocumentUrl({ documentoId: docId }),
+        docOpen: { kind: 'documento', id: docId, fileUrl },
       })
       continue
     }
@@ -172,7 +190,8 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
       fornitoreNome: displayNome,
       importo,
       statusKey: 'needs_supplier',
-      href: openDocumentUrl({ documentoId: String((d as { id?: string }).id) }),
+      href: openDocumentUrl({ documentoId: docId }),
+      docOpen: { kind: 'documento', id: docId, fileUrl },
     })
   }
 

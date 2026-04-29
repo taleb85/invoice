@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import EmailLogTabs from '@/components/EmailLogTabs'
 import EmailBlacklistPanel from '@/components/EmailBlacklistPanel'
+import { LogActivityDocumentLink } from '@/components/LogActivityDocumentLink'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
   getT,
@@ -207,13 +207,13 @@ export default async function LogPage() {
                           </span>
                           <span className="text-app-fg-muted">{statusLabelFromKey(t.log, row)}</span>
                         </div>
-                        {row.href ? (
-                          <Link
+                        {row.href || row.docOpen ? (
+                          <LogActivityDocumentLink
+                            label={t.log.activityOpenDocument}
                             href={row.href}
-                            className="inline-block text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
-                          >
-                            {t.log.activityOpenDocument}
-                          </Link>
+                            docOpen={row.docOpen}
+                            variant="mobile"
+                          />
                         ) : null}
                       </div>
                     ))}
@@ -240,16 +240,12 @@ export default async function LogPage() {
                             <td className="min-w-0 whitespace-nowrap px-2 py-2 tabular-nums text-app-fg sm:px-3">{fmtAmount(row.importo)}</td>
                             <td className="min-w-0 px-2 py-2 text-app-fg sm:px-3">{statusLabelFromKey(t.log, row)}</td>
                             <td className="min-w-0 px-2 py-2 sm:px-3">
-                              {row.href ? (
-                                <Link
-                                  href={row.href}
-                                  className="font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline"
-                                >
-                                  {t.log.activityOpenDocument}
-                                </Link>
-                              ) : (
-                                '—'
-                              )}
+                              <LogActivityDocumentLink
+                                label={t.log.activityOpenDocument}
+                                href={row.href}
+                                docOpen={row.docOpen}
+                                variant="table"
+                              />
                             </td>
                           </tr>
                         ))}
