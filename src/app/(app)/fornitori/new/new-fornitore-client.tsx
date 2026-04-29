@@ -12,6 +12,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
 import { APP_FORNITORE_FORM_PAGE_SHELL_CLASS, APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
 import { VatLookupField } from '@/components/vat-lookup-field'
+import { safeInternalReturnPath } from '@/lib/safe-internal-return-path'
 
 const fieldBaseCls =
   'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
@@ -27,6 +28,8 @@ export default function NewFornitoreForm() {
   const { activeOperator } = useActiveOperator()
   const t = useT()
   const prefillSedeParam = searchParams.get('prefill_sede_id')
+  /** Dopo creazione (e Annulla): torna alla pagina da cui si è aperti (es. estratti / log). */
+  const returnAfterSave = safeInternalReturnPath(searchParams.get('return_to'))
   const preSede = prefillSedeParam?.trim() || ''
   const sedeId =
     effectiveIsMasterAdminPlane(me, activeOperator) && preSede
@@ -102,13 +105,15 @@ export default function NewFornitoreForm() {
     }
 
     setSaving(false)
-    router.push('/fornitori')
+    router.push(returnAfterSave ?? '/fornitori')
     router.refresh()
   }
 
+  const backHref = returnAfterSave ?? '/fornitori'
+
   return (
     <div className={APP_FORNITORE_FORM_PAGE_SHELL_CLASS}>
-      <BackButton href="/fornitori" label={t.nav.fornitori} />
+      <BackButton href={backHref} label={t.nav.fornitori} />
       <AppPageHeaderStrip accent="sky" flushBottom icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>}>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <h1 className={`app-page-title min-w-0 flex-1 ${APP_PAGE_HEADER_STRIP_H1_CLASS}`}>{t.fornitori.new}</h1>
@@ -189,7 +194,7 @@ export default function NewFornitoreForm() {
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={() => router.push(backHref)}
               className="flex-1 rounded-xl border border-app-line-32 app-workspace-inset-bg py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:bg-black/18"
             >
               {t.common.cancel}

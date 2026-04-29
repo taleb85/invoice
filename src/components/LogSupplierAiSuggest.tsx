@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useT } from '@/lib/use-t'
+import { safeInternalReturnPath } from '@/lib/safe-internal-return-path'
 
 type Props = {
   logId: string
@@ -13,6 +15,8 @@ type Props = {
 
 export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId }: Props) {
   const t = useT()
+  const pathname = usePathname()
+  const urlSp = useSearchParams()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -56,6 +60,9 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
     if (em) q.set('prefill_email', em)
     if (mittente.includes('@')) q.set('remember_mittente', mittente.toLowerCase())
     if (sedeId?.trim()) q.set('prefill_sede_id', sedeId.trim())
+    const fullRt = `${pathname}${urlSp.toString() ? `?${urlSp.toString()}` : ''}`
+    const rt = safeInternalReturnPath(fullRt)
+    if (rt) q.set('return_to', rt)
     return `/fornitori/new?${q.toString()}`
   }
 

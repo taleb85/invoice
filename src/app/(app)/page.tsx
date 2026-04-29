@@ -36,6 +36,7 @@ import {
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
 } from '@/lib/summary-highlight-accent'
 import DashboardSedeSupplierSuggestion from '@/components/DashboardSedeSupplierSuggestion'
+import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 
 export const dynamic = 'force-dynamic'
 
@@ -116,25 +117,11 @@ export default async function DashboardPage(props: {
         </AppPageHeaderStrip>
 
         {emailBodySupplierHints.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {emailBodySupplierHints.map((h) => (
-              <div
-                key={`${h.sedeId ?? 'all'}-${h.displayName}`}
-                className="flex flex-col gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-violet-950/35 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <p className="text-sm text-violet-100">
-                  {t.dashboard.potentialSupplierFromEmailBodyBanner.replace(/\{name\}/g, h.displayName)}
-                  <span className="ml-1.5 tabular-nums text-violet-300/85">×{h.hits}</span>
-                </p>
-                <Link
-                  href={h.newFornitoreHref}
-                  className="shrink-0 text-sm font-semibold text-violet-300 underline decoration-violet-400/50 hover:text-violet-200"
-                >
-                  {t.dashboard.potentialSupplierFromEmailBodyCta}
-                </Link>
-              </div>
-            ))}
-          </div>
+          <DashboardEmailBodySupplierHints
+            hints={emailBodySupplierHints}
+            bannerLineTemplate={t.dashboard.potentialSupplierFromEmailBodyBanner}
+            ctaLabel={t.dashboard.potentialSupplierFromEmailBodyCta}
+          />
         ) : null}
 
         {sediStats.length === 0 ? (

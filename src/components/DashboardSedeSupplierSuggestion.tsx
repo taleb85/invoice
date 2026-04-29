@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { AppSheet } from '@/components/ui/AppSheet'
 import { createClient } from '@/utils/supabase/client'
 import type { SedeSupplierSuggestionItem } from '@/lib/suggested-fornitore'
+import { appendReturnToNewFornitoreHref } from '@/lib/safe-internal-return-path'
 import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 
@@ -16,6 +17,9 @@ type Props = {
 
 export default function DashboardSedeSupplierSuggestion({ sedeId, items }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
+  const urlSp = useSearchParams()
+  const returnPath = `${pathname}${urlSp.toString() ? `?${urlSp.toString()}` : ''}`
   const t = useT()
   const { showToast } = useToast()
   const supabase = createClient()
@@ -165,7 +169,7 @@ export default function DashboardSedeSupplierSuggestion({ sedeId, items }: Props
                     {saving ? t.fornitori.saving : t.dashboard.suggestedSupplierConfirm}
                   </button>
                   <Link
-                    href={item.newFornitoreHref}
+                    href={appendReturnToNewFornitoreHref(item.newFornitoreHref, returnPath)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`${actionDims} border border-[rgba(34,211,238,0.15)] bg-violet-950/30 text-violet-200 transition-colors hover:border-[rgba(34,211,238,0.2)] hover:bg-violet-900/35 hover:text-white`}

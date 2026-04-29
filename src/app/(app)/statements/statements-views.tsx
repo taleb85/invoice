@@ -12,6 +12,7 @@ import { useLocale } from '@/lib/locale-context'
 import { useToast } from '@/lib/toast-context'
 import { useT } from '@/lib/use-t'
 import { parseAnyAmount } from '@/lib/ocr-amount'
+import { safeInternalReturnPath } from '@/lib/safe-internal-return-path'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
@@ -479,6 +480,8 @@ function buildNewFornitoreHref(opts: {
   indirizzo?: string | null
   sedeId?: string | null
   mittente?: string | null
+  /** Path completo della pagina corrente (pathname + query), per `return_to` dopo creazione fornitore */
+  returnTo?: string | null
 }): string {
   const params = new URLSearchParams()
   const nome = opts.ragione_sociale?.trim()
@@ -493,6 +496,11 @@ function buildNewFornitoreHref(opts: {
   if (m?.includes('@')) {
     params.set('remember_mittente', m)
     params.set('prefill_email', m)
+  }
+  const rt = opts.returnTo?.trim()
+  if (rt) {
+    const safe = safeInternalReturnPath(rt)
+    if (safe) params.set('return_to', safe)
   }
   const qs = params.toString()
   return `/fornitori/new${qs ? `?${qs}` : ''}`
@@ -524,6 +532,10 @@ function AiDataCard({
   const formatD = useFmt()
   const { currency: ctxCurrency } = useLocale()
   const resolvedCurrency = currency ?? ctxCurrency ?? loc.currency ?? 'EUR'
+
+  const pathnameReturn = usePathname()
+  const queryReturn = useSearchParams()
+  const returnToPage = `${pathnameReturn}${queryReturn.toString() ? `?${queryReturn.toString()}` : ''}`
 
   // ── OCR amount format badge + toggle ──────────────────────
   const hasRaw = !!(metadata.importo_raw && metadata.totale_iva_inclusa !== null)
@@ -576,6 +588,7 @@ function AiDataCard({
         indirizzo: metadata.indirizzo,
         sedeId: newFornitoreSedeId,
         mittente: mittenteForRemember,
+        returnTo: returnToPage,
       })
     : ''
 
