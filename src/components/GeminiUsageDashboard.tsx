@@ -313,7 +313,7 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
 
   return (
     <div
-      className="rounded-xl p-4 pt-3"
+      className="min-w-0 max-w-full rounded-xl p-4 pt-3"
       style={{
         background: 'rgba(15, 42, 74, 0.6)',
         border: '1px solid rgba(34, 211, 238, 0.15)',
@@ -325,8 +325,11 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
       <p className="mb-3 text-[11px] text-app-fg-muted opacity-80">
         Barre: numero di chiamate registrate · Linea: % con risposta modello (token output &gt; 0)
       </p>
-      <div style={{ width: '100%', height: 300 }}>
-        <ResponsiveContainer>
+      {/*
+        `min-w-0` + altezza fissa: evita che `ResponsiveContainer` misuri -1 in flex / tab nascosti.
+      */}
+      <div className="h-[300px] w-full min-w-0 shrink-0 overflow-hidden">
+        <ResponsiveContainer width="100%" height="100%" debounce={32}>
           <ComposedChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
             <CartesianGrid stroke="rgba(34,211,238,0.08)" strokeDasharray="3 3" vertical={false} />
             <XAxis
@@ -493,7 +496,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
     }, [data])
 
     return (
-    <div className="app-card overflow-hidden">
+    <div className="app-card min-w-0 overflow-hidden">
       <div className="app-workspace-inset-bg-soft px-5 pb-5 pt-5">
         {loading && !data && (
           <div className="flex items-center justify-center py-10">
@@ -533,7 +536,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
         )}
 
         {data && (
-          <div className="flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             {/* Period filter */}
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2">
