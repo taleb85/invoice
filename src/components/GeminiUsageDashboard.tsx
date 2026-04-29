@@ -474,7 +474,10 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
           qs.set('to', range.to)
         }
 
-        const res = await fetch(`/api/admin/ai-usage?${qs.toString()}`)
+        const res = await fetch(`/api/admin/ai-usage?${qs.toString()}`, {
+          credentials: 'include',
+          cache: 'no-store',
+        })
         const json = await res.json()
         if (!res.ok) throw new Error(json.error ?? 'Errore caricamento')
         setData(json as UsageData)
@@ -495,7 +498,11 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
       setClearing(true)
       setError(null)
       try {
-        const res = await fetch('/api/admin/ai-usage', { method: 'DELETE' })
+        const res = await fetch('/api/admin/ai-usage', {
+          method: 'DELETE',
+          credentials: 'include',
+          cache: 'no-store',
+        })
         const json = (await res.json()) as { error?: string; deleted?: number | null }
         if (!res.ok) throw new Error(json.error ?? 'Errore durante l’azzeramento')
         await load()

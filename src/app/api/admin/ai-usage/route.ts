@@ -225,34 +225,81 @@ export async function GET(req: NextRequest) {
       typeof r.costo_usd === 'number' ? Number(r.costo_usd) : Number(r.costo_usd ?? 0),
   }))
 
-  return NextResponse.json({
-    ok: true,
-    period: {
-      start: fromTs,
-      end: toUpper,
-      range_mode: rangeMode,
-      label_from_date: fromTs.slice(0, 10),
-      label_to_date: toUpper.slice(0, 10),
+  return NextResponse.json(
+    {
+      ok: true,
+      period: {
+        start: fromTs,
+        end: toUpper,
+        range_mode: rangeMode,
+        label_from_date: fromTs.slice(0, 10),
+        label_to_date: toUpper.slice(0, 10),
+      },
+      model: getGeminiModelId(),
+      pricing: GEMINI_PRICING,
+      scansioni_totali,
+      tokens_input: tokensInput,
+      tokens_output: tokensOutput,
+      tokens_totali: tokensInput + tokensOutput,
+      costo_totale_usd,
+      costo_per_scan,
+      breakdown,
+      daily,
+      perSede,
+      recent,
+      totalCalls: scansioni_totali,
+      totalInputTokens: tokensInput,
+      totalOutputTokens: tokensOutput,
+      totalTokens: tokensInput + tokensOutput,
+      totalCostUsd: costo_totale_usd,
+      avgCostPerScan: costo_per_scan,
     },
-    model: getGeminiModelId(),
-    pricing: GEMINI_PRICING,
-    scansioni_totali,
-    tokens_input: tokensInput,
-    tokens_output: tokensOutput,
-    tokens_totali: tokensInput + tokensOutput,
-    costo_totale_usd,
-    costo_per_scan,
-    breakdown,
-    daily,
-    perSede,
-    recent,
-    totalCalls: scansioni_totali,
-    totalInputTokens: tokensInput,
-    totalOutputTokens: tokensOutput,
-    totalTokens: tokensInput + tokensOutput,
-    totalCostUsd: costo_totale_usd,
-    avgCostPerScan: costo_per_scan,
-  })
+    { headers: { 'Cache-Control': 'no-store, max-age=0' } },
+  )
+}
+
+async function wipeAiUsageLogViaPostgrest(
+  service: ReturnType<typeof createServiceClient>,
+): Promise<{ deleted: number | null; mode: 'rpc' | 'filter' } | { error: string }> {
+  const rpc = await service.rpc('delete_all_ai_usage_log')
+
+  if (!rpc.error && rpc.data !== null && rpc.data !== undefined) {
+    const raw = rpc.data
+    const n =
+      typeof raw === 'bigint'
+        ? Number(raw)
+        : typeof raw === 'string'
+          ? Number(raw)
+          : typeof raw === 'number'
+            ? raw
+            : null
+    const deleted = n != null && Number.isFinite(n) ? Math.trunc(n) : 0
+    return { deleted, mode: 'rpc' }
+  }
+
+  /** `tokens_input NOT NULL`; intero valido incluso anche con valori di default: match su tutta la tabella. */
+  const { error: e1, count: c1 } = await service
+    .from('ai_usage_log')
+    .delete({ count: 'exact' })
+    .gte('tokens_input', -1)
+
+  if (!e1) {
+    return { deleted: typeof c1 === 'number' ? c1 : null, mode: 'filter' }
+  }
+
+  console.error('[ai-usage-delete]', e1.message)
+
+  const { error: e2, count: c2 } = await service
+    .from('ai_usage_log')
+    .delete({ count: 'exact' })
+    .gte('tokens_output', -1)
+
+  if (!e2) {
+    return { deleted: typeof c2 === 'number' ? c2 : null, mode: 'filter' }
+  }
+
+  console.error('[ai-usage-delete] fallback', e2.message)
+  return { error: e2.message ?? e1.message ?? 'Eliminazione non riuscita' }
 }
 
 /** Elimina tutte le righe di `ai_usage_log` (solo admin, service role). */
@@ -263,18 +310,14 @@ export async function DELETE() {
   }
 
   const service = createServiceClient()
-  const { error, count } = await service
-    .from('ai_usage_log')
-    .delete({ count: 'exact' })
-    .gte('created_at', '1970-01-01T00:00:00.000Z')
+  const result = await wipeAiUsageLogViaPostgrest(service)
 
-  if (error) {
-    console.error('[ai-usage-delete]', error.message)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if ('error' in result) {
+    return NextResponse.json({ error: result.error }, { status: 500 })
   }
 
-  return NextResponse.json({
-    ok: true,
-    deleted: typeof count === 'number' ? count : null,
-  })
+  return NextResponse.json(
+    { ok: true, deleted: result.deleted, mode: result.mode },
+    { headers: { 'Cache-Control': 'no-store, max-age=0' } },
+  )
 }

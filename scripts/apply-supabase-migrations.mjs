@@ -68,6 +68,8 @@ const MIGRATIONS = [
   'supabase/migrations/fornitore-ocr-tipo-pending-kind-hints.sql',
   'supabase/migrations/20260415_fatture_add_updated_at_if_missing.sql',
   'supabase/migrations/20260423000000_fornitori_email_nullable.sql',
+  'supabase/migrations/20260428204500_ai_usage_log.sql',
+  'supabase/migrations/20260429193000_ai_usage_delete_all_rpc.sql',
 ]
 
 function loadEnvLocal() {
