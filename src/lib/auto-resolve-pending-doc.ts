@@ -79,7 +79,9 @@ async function resolveEffectiveSedeId(
 }
 
 /**
- * Single fornitore in sede scope when P.IVA, mittente email (or alias), normalized address on anagrafica, or normalized name is unambiguous.
+ * Unique supplier in sede scope via P.IV.A., sender email/alias, address or name.
+ * When scope sede is unknown (global queue, admin view) but OCR has a VAT number that
+ * matches exactly one visible `fornitori` row, links anyway (cross-sede VAT fallback).
  */
 export async function findUniqueFornitoreForPendingDoc(
   supabase: SupabaseClient,
@@ -96,9 +98,22 @@ export async function findUniqueFornitoreForPendingDoc(
   const pTrim = meta?.p_iva?.trim()
   const rsTrim = meta?.ragione_sociale?.trim()
   const ocrAddrKey = normalizeAddressKey(meta?.indirizzo)
+  const pDigits = pTrim ? normalizePivaDigits(pTrim) : ''
   if (!pTrim && !rsTrim && !normEmail(opts.mittente) && !ocrAddrKey) return null
 
   const sedeId = await resolveEffectiveSedeId(supabase, opts)
+
+  /**
+   * Record con `sede_id` NULL (mittente sconosciuto / IMAP globale) e vista senza sede
+   * (admin master): la partita IVA univoca nell’anagrafica visibile (RLS) basta per collegare
+   * senza scope sede — prima `!sedeId` faceva fallire sempre l’auto-link.
+   */
+  if (!sedeId && pDigits.length >= 5) {
+    const { data: pivaRows } = await supabase.from('fornitori').select('id, nome, piva').not('piva', 'is', null)
+    const gvHits = pivaRows?.filter((f) => f.piva && normalizePivaDigits(f.piva) === pDigits) ?? []
+    if (gvHits.length === 1) return { id: gvHits[0].id, nome: gvHits[0].nome }
+  }
+
   if (!sedeId) return null
 
   const { data: rows, error } = await supabase
@@ -110,7 +125,6 @@ export async function findUniqueFornitoreForPendingDoc(
 
   const list = rows as FornitoreMatchRow[]
 
-  const pDigits = pTrim ? normalizePivaDigits(pTrim) : ''
   if (pDigits.length >= 5) {
     const hits = list.filter((f) => f.piva && normalizePivaDigits(f.piva) === pDigits)
     if (hits.length === 1) return { id: hits[0].id, nome: hits[0].nome }
