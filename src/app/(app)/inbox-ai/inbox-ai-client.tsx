@@ -91,6 +91,28 @@ function parseInitialTab(raw: string | undefined): TabId {
   return 'docs'
 }
 
+function tipoAiToPendingKind(tipo: string): 'fattura' | 'bolla' | 'statement' | 'ordine' | null {
+  const k = tipo.toLowerCase().trim()
+  if (k === 'fattura') return 'fattura'
+  if (k === 'bolla' || k === 'ddt') return 'bolla'
+  if (k === 'estratto_conto') return 'statement'
+  if (k === 'ordine') return 'ordine'
+  return null
+}
+
+function fmtTipoAiPerUi(tipo: string): string {
+  const k = tipo.toLowerCase().trim()
+  const map: Record<string, string> = {
+    fattura: 'fattura',
+    bolla: 'bolla',
+    ddt: 'bolla (DDT)',
+    estratto_conto: 'estratto conto',
+    ordine: 'ordine',
+    altro: 'altro',
+  }
+  return map[k] ?? tipo
+}
+
 export default function InboxAiClient(props: {
   sedeId: string | null
   /** Nessuna sede operativa per operatore — blocco totale */
@@ -268,7 +290,10 @@ export default function InboxAiClient(props: {
     if (!res.ok) throw new Error(j.error ?? `HTTP ${res.status}`)
   }
 
-  const finalizeAs = async (docId: string, kind: 'fattura' | 'bolla') => {
+  const finalizeWithKind = async (
+    docId: string,
+    kind: 'fattura' | 'bolla' | 'statement' | 'ordine',
+  ) => {
     setActionBusy(docId)
     try {
       await postDoc({ id: docId, azione: 'set_pending_kind', kind })
@@ -286,6 +311,26 @@ export default function InboxAiClient(props: {
     } finally {
       setActionBusy(null)
     }
+  }
+
+  /** Registra come fattura o bolla (solo quei due pulsanti manuali). */
+  const finalizeAs = async (docId: string, kind: 'fattura' | 'bolla') => {
+    await finalizeWithKind(docId, kind)
+  }
+
+  const confirmAiSuggestion = async (row: PendingDocRow, sug: GeminiSuggestion) => {
+    const kind = tipoAiToPendingKind(sug.tipo_suggerito)
+    if (!kind) {
+      window.alert(
+        `Il tipo suggerito («${sug.tipo_suggerito.trim() || '?'}») non ha un’azione rapida «Conferma». Usa Registra fattura, Registra bolla o Ignora.`,
+      )
+      return
+    }
+    if (!row.fornitore_id) {
+      window.alert('Associa un fornitore al documento prima di confermare.')
+      return
+    }
+    await finalizeWithKind(row.id, kind)
   }
 
   const ignoreDoc = async (docId: string) => {
@@ -489,7 +534,8 @@ export default function InboxAiClient(props: {
           <section className="space-y-3">
             <p className="text-xs text-app-fg-muted">
               Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
-              <span className="font-mono text-app-fg">da_revisionare</span>). L’analisi AI suggerisce tipo e azione senza modificare il database finché non applichi un’azione.
+              <span className="font-mono text-app-fg">da_revisionare</span>). L’analisi AI suggerisce tipo e azione senza modificare il database finché non confermi qui o usi «Registra fattura» / «Registra bolla».
+              Dopo «Analizza con AI», ogni riga mostra ✓ analizzato e il pulsante <span className="font-semibold text-app-fg">Conferma (…)</span> quando il tipo suggerito ha un&apos;azione rapida.
             </p>
             {docsLoading ? (
               <ul className="space-y-2">
@@ -509,13 +555,34 @@ export default function InboxAiClient(props: {
                   const supplier =
                     d.fornitore?.nome ?? (d.fornitore_id ? '(fornitore ID)' : '— sconosciuto —')
                   const busyRow = actionBusy === d.id
+                  const aiPendingKind = sug ? tipoAiToPendingKind(sug.tipo_suggerito) : null
+                  const canConfirmAi = !!(sug && aiPendingKind && d.fornitore_id && !busyRow)
                   return (
                     <li
                       key={d.id}
-                      className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 sm:px-4"
+                      className={`rounded-xl border px-3 py-3 sm:px-4 ${
+                        sug
+                          ? 'border-teal-500/35 bg-gradient-to-br from-teal-950/25 to-white/[0.03]'
+                          : 'border-white/10 bg-white/[0.03]'
+                      }`}
                     >
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
+                        <div className="flex min-w-0 gap-2.5">
+                          <div
+                            className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-sm"
+                            title={sug ? 'Analizzato dall’AI' : 'In attesa di analisi'}
+                          >
+                            {sug ? (
+                              <span className="text-emerald-300" aria-hidden>
+                                ✓
+                              </span>
+                            ) : (
+                              <span className="text-app-fg-muted/50" aria-hidden>
+                                ○
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-app-fg">
                             {d.file_name ?? 'Senza nome file'}
                           </p>
@@ -539,8 +606,26 @@ export default function InboxAiClient(props: {
                               ) : null}
                             </div>
                           ) : null}
+                          </div>
                         </div>
-                        <div className="flex shrink-0 flex-wrap gap-1.5 sm:justify-end">
+                        <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[min(100%,24rem)] sm:justify-end">
+                          {sug ? (
+                            <button
+                              type="button"
+                              disabled={!canConfirmAi}
+                              title={
+                                !d.fornitore_id
+                                  ? 'Associa un fornitore al documento prima di confermare'
+                                  : !aiPendingKind
+                                    ? `Tipo «${fmtTipoAiPerUi(sug.tipo_suggerito)}»: usa i pulsanti sotto o Ignora`
+                                    : 'Applica tipo e registra come suggerito dall’AI'
+                              }
+                              onClick={() => void confirmAiSuggestion(d, sug)}
+                              className="rounded-md border border-cyan-400/50 bg-gradient-to-r from-cyan-600/90 to-teal-600/90 px-2.5 py-1 text-[11px] font-bold text-white shadow disabled:opacity-35"
+                            >
+                              Conferma ({fmtTipoAiPerUi(sug.tipo_suggerito)})
+                            </button>
+                          ) : null}
                           <button
                             type="button"
                             disabled={busyRow || !d.fornitore_id}
