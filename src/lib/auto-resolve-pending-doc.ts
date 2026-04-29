@@ -46,6 +46,51 @@ function canonicalSupplierNameKey(raw: string): string {
   return s.replace(/\s+/g, ' ').trim()
 }
 
+/** Data o residuo data in coda (es. "30/04/2025" o "- 30/04/2025") */
+function trimTrailingLooseDateFragment(s: string): string {
+  return s.replace(/\s*[,-]?\s*\d{1,4}[/.-]\d{1,2}[/.-]\d{2,4}(?:[^\p{L}\p{N}]*)$/u, '').trim()
+}
+
+/**
+ * OCR spesso concatena numero fattura + "from Supplier - sede/località - data".
+ * La chiave canonica dell’intera stringa ≠ anagrafica ("Ital Cutlery"); proviamo
+ * segmenti e strip "INV … from".
+ */
+function ragioneSocialeCandidatesForMatch(rsTrim: string): string[] {
+  const seen = new Set<string>()
+  const addChunk = (chunk: string) => {
+    const c1 = trimTrailingLooseDateFragment(chunk)
+    let c = c1.trim()
+    while (/-$/.test(c)) {
+      const x = trimTrailingLooseDateFragment(c.slice(0, -1).trim())
+      c = x.replace(/-+$/,'').trim()
+    }
+    if (!c) return
+    let k = canonicalSupplierNameKey(c)
+    if (k.length >= 3) seen.add(k)
+    const sansInv = c.replace(/^INV\s*#?\s*[A-Za-z0-9/]*\s*\d+\s+from\s+/i, '').trim()
+    if (sansInv && sansInv !== c) {
+      k = canonicalSupplierNameKey(sansInv)
+      if (k.length >= 3) seen.add(k)
+    }
+  }
+
+  const work = rsTrim.trim()
+  if (!work) return []
+
+  addChunk(work)
+
+  const parts = work.split(/\s+-\s+|\s*[|•]\s*/u)
+  for (const p of parts) {
+    if (p.trim()) addChunk(p.trim())
+  }
+
+  const leadOff = work.replace(/^INV\s*#?\s*[A-Za-z0-9/]*\s*\d+\s+from\s+/i, '').trim()
+  if (leadOff && leadOff !== work) addChunk(leadOff)
+
+  return [...seen].sort((a, b) => b.length - a.length)
+}
+
 function normEmail(s: string | null | undefined): string | null {
   const t = s?.trim().toLowerCase()
   return t && t.includes('@') ? t : null
@@ -165,14 +210,17 @@ export async function findUniqueFornitoreForPendingDoc(
     if (addrHits.length > 1) return null
   }
 
-  if (rsTrim && canonicalSupplierNameKey(rsTrim).length >= 3) {
-    const key = canonicalSupplierNameKey(rsTrim)
-    const hits = list.filter(
-      (f) =>
-        canonicalSupplierNameKey(f.nome) === key ||
-        (!!f.display_name?.trim() && canonicalSupplierNameKey(f.display_name) === key),
-    )
-    if (hits.length === 1) return { id: hits[0].id, nome: hits[0].nome }
+  if (rsTrim) {
+    const candidateKeys = ragioneSocialeCandidatesForMatch(rsTrim)
+    for (const key of candidateKeys) {
+      if (key.length < 3) continue
+      const hits = list.filter(
+        (f) =>
+          canonicalSupplierNameKey(f.nome) === key ||
+          (!!f.display_name?.trim() && canonicalSupplierNameKey(f.display_name) === key),
+      )
+      if (hits.length === 1) return { id: hits[0].id, nome: hits[0].nome }
+    }
   }
 
   return null
