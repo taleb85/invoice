@@ -238,7 +238,7 @@ export function OpenDocumentInAppButton({
         role="presentation"
       >
         <div
-          className="app-aurora-doc-modal-shell relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-lg border-t-2 border-t-sky-400/55 border-x-0 border-b-0 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
+          className="app-aurora-doc-modal-shell relative flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,1440px)] flex-col overflow-hidden rounded-lg border border-app-line-28 shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-1.5rem)] backdrop-blur-xl"
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"

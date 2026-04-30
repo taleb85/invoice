@@ -3,7 +3,7 @@ import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 import { getT } from '@/lib/locale-server'
 
 const secondaryBtn =
-  'inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-inset-bg-soft px-3 py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-40 hover:bg-app-line-10 hover:text-app-fg'
+  'inline-flex min-h-[44px] w-full items-center justify-center rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-40 hover:bg-app-line-10 hover:text-app-fg'
 
 /**
  * Bolla o fattura assente / non visibile (RLS): messaggio chiaro senza `notFound()` globale.

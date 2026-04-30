@@ -38,7 +38,7 @@ function readBrowserCookie(name: string): string {
  * Angoli arrotondati solo in alto. Altezza icone fissa — non cambia tra pagine.
  */
 const NAV_SHELL_BASE =
-  'app-glass-dock fixed bottom-0 left-0 right-0 z-[100] flex w-full items-stretch rounded-t-2xl border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 text-app-fg shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07),0_0_26px_-14px_rgba(56,189,248,0.14)] ring-1 ring-inset ring-app-a-35 pt-2 ps-[max(0.75rem,env(safe-area-inset-left,0px))] pe-[max(0.75rem,env(safe-area-inset-right,0px))] md:hidden'
+  'app-glass-dock fixed bottom-0 left-0 right-0 z-[100] flex w-full items-stretch rounded-t-2xl border border-app-line-28 text-app-fg shadow-[0_-8px_32px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.07)] ring-1 ring-inset ring-app-a-35 pt-2 ps-[max(0.75rem,env(safe-area-inset-left,0px))] pe-[max(0.75rem,env(safe-area-inset-right,0px))] md:hidden'
 
 /** Solid background applied via inline style so iOS always covers the safe-area strip. */
 const NAV_SHELL_SAFE_AREA_STYLE: React.CSSProperties = {

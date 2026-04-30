@@ -4462,7 +4462,7 @@ export function VerificationStatusTab({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                       <div
-                        className="flex min-w-[60px] flex-col items-center rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] px-3 py-1.5"
+                        className="flex min-w-[60px] flex-col items-center rounded-lg border border-app-line-28 bg-white/[0.04] px-3 py-1.5"
                       >
                         <span className="text-xs font-bold text-emerald-400">{gVerified}</span>
                         <span className="text-[9px] uppercase tracking-wide text-app-fg-muted">Fatture</span>
@@ -4472,7 +4472,7 @@ export function VerificationStatusTab({
                       </svg>
                       <div
                         className={`flex min-w-[60px] flex-col items-center rounded-lg border px-3 py-1.5 ${
-                          allGood ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10' : 'border-[rgba(34,211,238,0.15)] bg-red-500/10'
+                          allGood ? 'border-app-line-35 bg-emerald-500/10' : 'border-app-line-35 bg-red-500/10'
                         }`}
                       >
                         <span className={`text-xs font-bold ${allGood ? 'text-emerald-300' : 'text-red-300'}`}>{gMissing}</span>

@@ -2,7 +2,7 @@ import { APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 function SedeCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-10/30">
+    <div className="overflow-hidden rounded-lg border border-app-line-28 bg-app-line-10/30">
       <div className="h-1 w-full bg-gradient-to-r from-cyan-500/40 to-blue-500/25" />
       {/* Sede header */}
       <div className="flex items-center gap-3 border-b border-app-line-15 px-4 py-3.5">

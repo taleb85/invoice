@@ -203,7 +203,7 @@ export function AdminGlobalDashboard({
                     </AdminSelectSedeButton>
                     <Link
                       href={`/sedi/${sede.id}`}
-                      className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-inset-bg px-3 py-2.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-12"
+                      className="inline-flex flex-1 min-w-[8rem] items-center justify-center rounded-lg border border-app-line-28 app-workspace-inset-bg px-3 py-2.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-12"
                     >
                       {t.dashboard.adminSedeSettingsLink}
                     </Link>

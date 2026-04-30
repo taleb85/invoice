@@ -318,7 +318,7 @@ export default function NuovaFatturaForm() {
                   })}
                   {/* Totale bolle selezionate */}
                   {bolleSelezionate.size > 0 && tutteConImporto && (
-                    <div className="mt-1 flex items-center justify-between rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-app-line-10 px-3 py-2">
+                    <div className="mt-1 flex items-center justify-between rounded-lg border border-app-line-28 bg-app-line-10 px-3 py-2">
                       <span className="text-xs font-semibold text-app-fg-muted">
                         Totale {bolleSelezionate.size} boll{bolleSelezionate.size > 1 ? 'e' : 'a'}
                       </span>

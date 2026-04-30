@@ -217,10 +217,10 @@ export default function StatoSincronizzazioneIntelligente({
 
   if (loading) {
     return (
-      <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
+      <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-app-line-28">
         <div className="app-card-bar-accent" aria-hidden />
         <div className="flex items-center justify-center px-5 py-10">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-300 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-400/60 border-t-transparent" />
         </div>
       </div>
     )
@@ -240,7 +240,7 @@ export default function StatoSincronizzazioneIntelligente({
   }
 
   return (
-    <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-cyan-500/25">
+    <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-app-line-28">
       <div className="app-card-bar-accent" aria-hidden />
 
       <div className="px-5 py-4">
@@ -271,14 +271,14 @@ export default function StatoSincronizzazioneIntelligente({
 
               {syncing ? (
                 <>
-                  <div className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-300">
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+                  <div className="flex items-center gap-1.5 rounded-lg border border-app-line-35 bg-app-line-10 px-3 py-2 text-xs font-semibold text-app-fg-muted">
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400/70 border-t-transparent" />
                     {t.appStrings.rekkiSyncInProgress}…
                   </div>
                   <button
                     type="button"
                     onClick={stopSync}
-                    className="flex items-center gap-1 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-2.5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+                    className="flex items-center gap-1 rounded-lg border border-red-400/35 bg-red-500/10 px-2.5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/20"
                     title={t.appStrings.rekkiSyncStop}
                   >
                     <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
@@ -291,7 +291,7 @@ export default function StatoSincronizzazioneIntelligente({
                 <button
                   type="button"
                   onClick={handleSync}
-                  className="flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                  className="flex items-center gap-1.5 rounded-lg border border-app-line-35 bg-app-line-10 px-3 py-2 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-15"
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -317,13 +317,13 @@ export default function StatoSincronizzazioneIntelligente({
               <p className="mt-0.5 text-[11px] text-white/60">
                 {formatDistanceToNow(new Date(status.last_sync_at), { addSuffix: true, locale: dateFnsLocale })}
                 {!syncing && imapReady && (
-                  <span className="ml-1.5 text-cyan-400">· {t.appStrings.rekkiSyncTapUpdate}</span>
+                  <span className="ml-1.5 text-app-fg-muted">· {t.appStrings.rekkiSyncTapUpdate}</span>
                 )}
               </p>
             ) : (
               <p className="mt-0.5 text-[11px] text-white/60">
                 {t.appStrings.rekkiSyncNeverRun}
-                {!syncing && imapReady && <span className="ml-1.5 text-cyan-400">· {t.appStrings.rekkiSyncTapStart}</span>}
+                {!syncing && imapReady && <span className="ml-1.5 text-app-fg-muted">· {t.appStrings.rekkiSyncTapStart}</span>}
               </p>
             )}
           </div>
@@ -334,8 +334,8 @@ export default function StatoSincronizzazioneIntelligente({
         {imapReady && (
           <div className="mb-3 md:hidden">
             {syncing ? (
-              <div className="flex items-center gap-3 rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-2.5">
-                <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[rgba(34,211,238,0.15)] border-t-transparent" />
+              <div className="flex items-center gap-3 rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-2.5">
+                <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-slate-400/50 border-t-transparent" />
                 <p className="min-w-0 flex-1 text-xs font-semibold text-red-200">{t.appStrings.rekkiSyncProcessing}</p>
                 <button
                   type="button"
@@ -353,13 +353,13 @@ export default function StatoSincronizzazioneIntelligente({
                 type="button"
                 onClick={handleSync}
                 aria-label={t.appStrings.rekkiSyncButtonLabel}
-                className="flex w-full items-center gap-3 rounded-xl border border-cyan-500/25 bg-cyan-500/8 px-4 py-2.5 transition-colors active:bg-cyan-500/15"
+                className="flex w-full items-center gap-3 rounded-xl border border-app-line-28 bg-app-line-10/80 px-4 py-2.5 transition-colors active:bg-app-line-15"
               >
-                <svg className="h-5 w-5 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span className="min-w-0 flex-1 text-left text-xs font-semibold text-cyan-300">{t.appStrings.rekkiSyncButtonLabel}</span>
-                <svg className="h-4 w-4 shrink-0 text-cyan-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span className="min-w-0 flex-1 text-left text-xs font-semibold text-app-fg">{t.appStrings.rekkiSyncButtonLabel}</span>
+                <svg className="h-4 w-4 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -369,7 +369,7 @@ export default function StatoSincronizzazioneIntelligente({
 
         {/* ── IMAP non configurato ──────────────────────────────── */}
         {!imapReady && (
-          <div className="mb-4 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-4 py-3">
+          <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3">
             <div className="flex items-start gap-3">
               <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -386,26 +386,26 @@ export default function StatoSincronizzazioneIntelligente({
 
         {/* ── Progresso streaming ──────────────────────────────── */}
         {syncing && (
-          <div className="mb-4 overflow-hidden rounded-lg border border-cyan-500/25 bg-app-line-10/40">
+          <div className="mb-4 overflow-hidden rounded-lg border border-app-line-28 bg-app-line-10/40">
             <div className="h-1 w-full bg-app-line-15">
               <div
-                className="h-1 bg-gradient-to-r from-cyan-500 to-blue-400 transition-all duration-500"
+                className="h-1 bg-gradient-to-r from-slate-400 to-slate-500 transition-all duration-500"
                 style={{ width: `${syncPercent}%` }}
               />
             </div>
             <div className="px-3 py-2.5 space-y-1.5">
               {syncLog.length === 0 && (
                 <div className="flex items-center gap-2 text-xs text-app-fg-muted">
-                  <div className="h-3 w-3 animate-spin rounded-full border border-cyan-400 border-t-transparent" />
+                  <div className="h-3 w-3 animate-spin rounded-full border border-slate-400/70 border-t-transparent" />
                   <span>{t.appStrings.rekkiSyncStarting}</span>
                 </div>
               )}
               {syncLog.map((log, i) => {
                 const isLast = i === syncLog.length - 1
                 return (
-                  <div key={i} className={`flex items-center gap-2 text-xs ${isLast ? 'text-cyan-300' : 'text-app-fg-muted'}`}>
+                  <div key={i} className={`flex items-center gap-2 text-xs ${isLast ? 'text-app-fg' : 'text-app-fg-muted'}`}>
                     {isLast ? (
-                      <div className="h-3 w-3 shrink-0 animate-spin rounded-full border border-cyan-400 border-t-transparent" />
+                      <div className="h-3 w-3 shrink-0 animate-spin rounded-full border border-slate-400/70 border-t-transparent" />
                     ) : (
                       <svg className="h-3 w-3 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -422,7 +422,7 @@ export default function StatoSincronizzazioneIntelligente({
 
         {/* ── Feedback sync ────────────────────────────────────── */}
         {syncResult && !syncing && (
-          <div className="mb-3 flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-400/35 bg-emerald-500/10 px-3 py-2.5 text-xs text-emerald-200">
             <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
@@ -430,7 +430,7 @@ export default function StatoSincronizzazioneIntelligente({
           </div>
         )}
         {error && (
-          <div className="mb-3 flex items-start gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-400/35 bg-red-500/10 px-3 py-2.5 text-xs text-red-200">
             <svg className={`h-4 w-4 shrink-0 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -467,11 +467,11 @@ export default function StatoSincronizzazioneIntelligente({
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncDocuments}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_products_found}</p>
                 </div>
-                <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2.5 text-center">
+                <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">{t.appStrings.rekkiSyncMatched}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-200">{matched}</p>
                 </div>
-                <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2.5 text-center">
+                <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">{t.appStrings.rekkiSyncUnmatched}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-amber-200">{status.unmatched_count}</p>
                 </div>

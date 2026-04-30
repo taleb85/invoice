@@ -96,7 +96,7 @@ export default function FattureInAttesaAutoSync({
   }
 
   return (
-    <div className="rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] p-4">
+    <div className="rounded-lg border border-app-line-28 bg-white/[0.04] p-4">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-app-fg">{t.appStrings.autoSyncTitle}</h3>

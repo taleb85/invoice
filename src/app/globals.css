@@ -273,16 +273,12 @@
    * Le card con `theme.border` (accent) sovrascrivono solo il colore del bordo.
    */
   /**
-   * Guscio tab / sezioni scheda fornitore: solo bordo + ring, corpo trasparente sul canvas
-   * (come header desktop fornitore + `AppSummaryHighlightCard`).
+   * Guscio tab / sezioni scheda fornitore: contorno uniforme slate (niente fascia cyan in alto).
    */
   .supplier-detail-tab-shell {
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
-    border-top: 2px solid #22d3ee !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
+    border: 1px solid rgb(148 163 184 / 0.22) !important;
     background: rgba(255, 255, 255, 0.04) !important;
     background-image: none !important;
     box-shadow: none !important;
@@ -290,14 +286,11 @@
     -webkit-backdrop-filter: none !important;
   }
 
-  /** KPI scheda fornitore: stesso contorno; accento da `KpiLAccentOverlay` sulla tile. */
+  /** KPI scheda fornitore: contorno uniforme senza fascia cyan in alto (`supplier-desktop-kpi`). */
   .supplier-desktop-kpi-card {
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
-    border-top: 2px solid #22d3ee !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
+    border: 1px solid rgb(148 163 184 / 0.22) !important;
     background: rgba(255, 255, 255, 0.04) !important;
     background-image: none !important;
     box-shadow: none !important;
@@ -322,8 +315,7 @@
     );
     box-shadow:
       4px 0 28px rgba(0, 0, 0, 0.32),
-      inset -1px 0 0 var(--app-line-22),
-      0 0 40px -10px rgba(6, 182, 212, 0.15);
+      inset -1px 0 0 var(--app-line-22);
     -webkit-backdrop-filter: blur(18px) saturate(1.05);
     backdrop-filter: blur(18px) saturate(1.05);
   }
@@ -411,8 +403,7 @@
     );
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      0 6px 24px -12px rgba(0, 0, 0, 0.4),
-      0 0 30px -10px rgba(6, 182, 212, 0.12);
+      0 6px 24px -12px rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(26px) saturate(1.12);
     -webkit-backdrop-filter: blur(26px) saturate(1.12);
   }
@@ -444,10 +435,7 @@
   .app-card {
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
-    border-top: 2px solid #22d3ee !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
+    border: 1px solid rgb(148 163 184 / 0.22) !important;
     background: rgba(255, 255, 255, 0.04) !important;
     background-image: none !important;
     box-shadow: none !important;
@@ -495,7 +483,7 @@
       rgb(30 27 75 / 0.92)
     );
     background-color: rgb(15 23 42 / 0.96);
-    box-shadow: 0 -8px 24px -8px rgba(0, 0, 0, 0.45), 0 0 30px -10px rgba(6, 182, 212, 0.15);
+    box-shadow: 0 -8px 24px -8px rgba(0, 0, 0, 0.45);
   }
 
   /**
@@ -527,16 +515,12 @@
     height: 0.25rem;
     width: 100%;
     flex-shrink: 0;
-    background: linear-gradient(90deg, #3b82f6, #22d3ee, #5eead4);
-    box-shadow:
-      0 0 18px rgba(34, 211, 238, 0.75),
-      0 0 36px rgba(6, 182, 212, 0.45),
-      0 4px 22px rgba(34, 211, 238, 0.35);
+    background: linear-gradient(90deg, rgb(148 163 184 / 0.35), rgb(100 116 139 / 0.45), rgb(148 163 184 / 0.3));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
   }
 
   /**
-   * Solo struttura: altezza zero perché il bordo top unificato (`border-top: 2px solid #22d3ee`)
-   * funge già da accento superiore su tutte le card.
+   * Struttura barra sopra card: altezza zero (il guscio ha già bordo slate unificato).
    */
   .app-card-bar-accent {
     height: 0;
@@ -611,7 +595,7 @@
       rgb(15 23 42 / 0.92),
       rgb(30 27 75 / 0.80)
     );
-    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(6, 182, 212, 0.08);
+    box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
   /** Gestione Duplicati: guscio coprente di default (Aurora lo intensifica dopo). */
@@ -630,14 +614,12 @@
   }
 
   /**
-   * KPI scheda fornitore: stesso contorno; accento a L via `KpiLAccentOverlay`. */
+   * KPI dashboard operatore: stesso trattamento — bordo slate tenue, niente fascia superiore cyan.
+   */
   .operator-kpi-card {
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
-    border-top: 2px solid #22d3ee !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-bottom: none !important;
+    border: 1px solid rgb(148 163 184 / 0.22) !important;
     background: rgba(255, 255, 255, 0.04) !important;
     background-image: none !important;
     box-shadow: none !important;
@@ -1022,17 +1004,11 @@ body,
 }
 
 /*
- * Stile card unificato: tutti i pannelli/sezioni visibili nell'app hanno bordo top cyan,
- * sfondo semi-trasparente neutro, nessun bordo laterale/inferiore, angoli 8px.
- * Questa regola è fuori dai @layer per avere precedenza sulle utility Tailwind.
+ * `.app-card-unified`: pannelli opzionali — contorno slate (fuori @layer per precedenza sulle utility).
+ * Non più su `supplier-detail-tab*` / `app-workspace-inset*` (forzava striscia cyan ovunque).
  */
-.app-card-unified,
-[class*="supplier-detail-tab"],
-[class*="app-workspace-inset"] {
-  border-top: 2px solid #22d3ee !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
+.app-card-unified {
+  border: 1px solid rgb(148 163 184 / 0.22) !important;
   border-radius: 10px !important;
   background: rgba(255, 255, 255, 0.04) !important;
   background-image: none !important;
@@ -1094,7 +1070,7 @@ body:has([data-deep-aurora-public-shell]) {
   --accent-color: #38bdf8;
   /** Pannelli vetro: stesso linguaggio visivo app (KPI, scanner, login, modali leggeri). */
   --glass-bg: rgb(255 255 255 / 0.08);
-  --glass-border: rgb(56 189 248 / 0.26);
+  --glass-border: rgb(148 163 184 / 0.28);
   --glass-blur: 22px;
   --da-heading: #ffffff;
   --da-muted: #94a3b8;
@@ -1185,13 +1161,7 @@ body:has([data-deep-aurora-integration]) .app-workspace-scrim {
 /** Card/sezioni tipo `SUMMARY_HIGHLIGHT_SURFACE_CLASS` (marker `.app-summary-highlight-surface`). */
 body:has([data-deep-aurora-integration]) .app-summary-highlight-surface:not(.glass-card),
 body:has([data-deep-aurora-public-shell]) .app-summary-highlight-surface:not(.glass-card) {
-  border-color: rgb(56 189 248 / 0.28) !important;
-  border-top-color: rgb(56 189 248 / 0.52) !important;
-  border-left-color: rgb(56 189 248 / 0.2) !important;
-  border-right-color: rgb(56 189 248 / 0.2) !important;
-  border-bottom-color: rgb(255 255 255 / 0.06) !important;
-  border-width: 1px !important;
-  border-style: solid !important;
+  border: 1px solid rgb(148 163 184 / 0.28) !important;
   background: rgb(255 255 255 / 0.08) !important;
   background-image: none !important;
   backdrop-filter: blur(22px) saturate(165%) !important;
@@ -1216,48 +1186,55 @@ body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
  */
 body:has([data-deep-aurora-integration]) .app-card {
   border-radius: 16px !important;
-  border-top-color: rgb(56 189 248 / 0.55) !important;
+  border: 1px solid rgb(148 163 184 / 0.26) !important;
   background: rgb(255 255 255 / 0.065) !important;
   background-image: none !important;
   backdrop-filter: blur(20px) saturate(155%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
   box-shadow:
     0 4px 32px rgb(0 0 0 / 0.38),
-    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+    inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
 }
 
-/** Stesso trattamento di `.app-card-unified` (impostazioni, sezioni, tab fornitore). */
+/** Pannelli sezione Aurora: bordo slate, niente fascia cyan superiore. */
 body:has([data-deep-aurora-integration]) .app-card-unified,
 body:has([data-deep-aurora-integration]) .fornitore-tab-panel,
-body:has([data-deep-aurora-integration]) [class*='fornitore-tab-panel'],
-body:has([data-deep-aurora-integration]) [class*='supplier-detail-tab'] {
-  border-top-color: rgb(56 189 248 / 0.5) !important;
-  border-right-color: rgb(255 255 255 / 0.08) !important;
-  border-bottom-color: rgb(255 255 255 / 0.06) !important;
-  border-left-color: rgb(255 255 255 / 0.08) !important;
+body:has([data-deep-aurora-integration]) [class*='fornitore-tab-panel'] {
+  border: 1px solid rgb(148 163 184 / 0.28) !important;
   background: rgb(255 255 255 / 0.08) !important;
   background-image: none !important;
   backdrop-filter: blur(22px) saturate(165%) !important;
   -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
-  box-shadow: 0 4px 28px rgb(0 0 0 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
+  box-shadow: 0 4px 28px rgb(0 0 0 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+}
+
+/** Guscio tab fornitore sotto Aurora: allineato a `.supplier-detail-tab-shell` (layer components). */
+body:has([data-deep-aurora-integration]) .supplier-detail-tab-shell {
+  border: 1px solid rgb(148 163 184 / 0.28) !important;
+  background: rgb(255 255 255 / 0.05) !important;
+  background-image: none !important;
+  backdrop-filter: blur(14px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.28) !important;
 }
 
 /** Tab orizzontale fornitore (mobile Aurora): vetro sulla striscia sotto nome/KPI. */
 body:has([data-deep-aurora-integration]) .fornitore-mobile-tab-nav {
-  border-bottom-color: rgb(56 189 248 / 0.22) !important;
+  border-bottom-color: rgb(148 163 184 / 0.28) !important;
   background: linear-gradient(to bottom, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02)) !important;
   backdrop-filter: blur(14px) saturate(155%) !important;
   -webkit-backdrop-filter: blur(14px) saturate(155%) !important;
 }
 
-body:has([data-deep-aurora-integration]) .supplier-detail-tab-shell,
 body:has([data-deep-aurora-integration]) .supplier-desktop-kpi-card {
-  border-top-color: rgb(56 189 248 / 0.5) !important;
+  border: 1px solid rgb(148 163 184 / 0.26) !important;
   background: rgb(255 255 255 / 0.05) !important;
   background-image: none !important;
   backdrop-filter: blur(14px) saturate(145%) !important;
   -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05) !important;
+  box-shadow:
+    0 0 0 1px rgb(15 23 42 / 0.35),
+    0 12px 40px -14px rgb(0 0 0 / 0.45) !important;
 }
 
 /** Calendario / date nativi: tema scuro coerente con Aurora (Chrome/Safari). */
@@ -1277,12 +1254,11 @@ body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
   background-color: rgb(255 255 255 / 0.045) !important;
   box-shadow:
     0 -8px 32px -8px rgb(0 0 0 / 0.45),
-    inset 0 1px 0 rgb(255 255 255 / 0.09),
-    0 0 40px -12px rgb(56 189 248 / 0.18) !important;
+    inset 0 1px 0 rgb(255 255 255 / 0.09) !important;
 }
 
 body:has([data-deep-aurora-integration]) nav.app-glass-dock.border-t-2 {
-  border-top-color: rgb(56 189 248 / 0.55) !important;
+  border-top: 1px solid rgb(148 163 184 / 0.28) !important;
 }
 
 /**
@@ -1321,9 +1297,8 @@ body:has([data-deep-aurora-integration]) .app-aurora-doc-modal-shell {
   background-image: none !important;
   backdrop-filter: blur(22px) saturate(160%) !important;
   -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
-  border-top-color: rgb(56 189 248 / 0.55) !important;
+  border: 1px solid rgb(148 163 184 / 0.28) !important;
   box-shadow:
-    0 0 48px -12px rgb(56 189 248 / 0.2),
     0 24px 48px -12px rgb(0 0 0 / 0.48),
     inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
 }
@@ -1334,7 +1309,7 @@ body:has([data-deep-aurora-integration]) .app-aurora-viewer-fill {
 }
 
 body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet {
-  border-color: rgb(56 189 248 / 0.22) !important;
+  border: 1px solid rgb(148 163 184 / 0.26) !important;
   background: rgb(255 255 255 / 0.07) !important;
   background-image: none !important;
   backdrop-filter: blur(20px) saturate(155%) !important;
@@ -1345,50 +1320,43 @@ body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet {
 }
 
 body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet-header {
-  border-color: rgb(56 189 248 / 0.16) !important;
+  border-color: rgb(148 163 184 / 0.2) !important;
 }
 
-/* Login / accesso / sede-lock / offline — stesso linguaggio vetro delle card app (`integration`): bordo sky + fill leggibile */
+/* Login / accesso / sede-lock / offline — vetro Aurora senza fascia cyan superiore */
 [data-deep-aurora-public-shell] .app-card-login {
-  border-width: 1px !important;
-  border-style: solid !important;
-  border-color: rgb(56 189 248 / 0.28) !important;
-  border-top-width: 2px !important;
-  border-top-color: rgb(56 189 248 / 0.52) !important;
+  border: 1px solid rgb(148 163 184 / 0.3) !important;
   background-color: rgb(2 6 23 / 0.62) !important;
   background-image: linear-gradient(
     145deg,
     rgb(255 255 255 / 0.09) 0%,
-    rgb(255 255 255 / 0.038) 48%,
-    rgb(56 189 248 / 0.04) 100%
+    rgb(255 255 255 / 0.038) 52%,
+    rgb(148 163 184 / 0.04) 100%
   ) !important;
   backdrop-filter: blur(22px) saturate(165%) !important;
   -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
   box-shadow:
     0 4px 32px rgb(0 0 0 / 0.42),
     0 0 0 1px rgb(255 255 255 / 0.06),
-    0 0 56px -16px rgb(56 189 248 / 0.2),
     inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
 }
 
 /** Vetro più pieno: ex `.app-card-login-transparent`; `AuroraPanelShell tone="soft"`. */
 [data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent,
 [data-deep-aurora-public-shell] .glass-card.aurora-public-panel-soft {
-  border-color: rgb(56 189 248 / 0.32) !important;
-  border-top-color: rgb(56 189 248 / 0.58) !important;
+  border: 1px solid rgb(148 163 184 / 0.32) !important;
   background-color: rgb(2 6 23 / 0.68) !important;
   background-image: linear-gradient(
     155deg,
     rgb(255 255 255 / 0.12) 0%,
     rgb(255 255 255 / 0.048) 45%,
-    rgb(129 140 248 / 0.05) 100%
+    rgb(148 163 184 / 0.06) 100%
   ) !important;
   backdrop-filter: blur(24px) saturate(170%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(170%) !important;
   box-shadow:
     0 8px 40px rgb(0 0 0 / 0.48),
-    0 0 0 1px rgb(56 189 248 / 0.12),
-    0 0 64px -18px rgb(56 189 248 / 0.24),
+    0 0 0 1px rgb(255 255 255 / 0.08),
     inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
 }
 /* Pulsanti primari: se combina bg-app-cyan-500 + text-white, forza contrasto scuro (palette Aurora). */
@@ -1408,8 +1376,7 @@ body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
     ) !important;
     background-color: rgb(15 23 42 / 0.94) !important;
     box-shadow:
-      0 -8px 28px -8px rgb(0 0 0 / 0.42),
-      0 0 32px -10px rgb(56 189 248 / 0.12) !important;
+      0 -8px 28px -8px rgb(0 0 0 / 0.42) !important;
   }
 
   [data-deep-aurora-public-shell] .app-card-login,
@@ -1424,12 +1391,10 @@ body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
       rgb(30 27 75 / 0.92)
     ) !important;
     background-color: rgb(15 23 42 / 0.98) !important;
-    border-top-color: rgb(56 189 248 / 0.52) !important;
-    border-color: rgb(56 189 248 / 0.28) !important;
+    border: 1px solid rgb(148 163 184 / 0.26) !important;
     box-shadow:
       0 8px 36px rgb(0 0 0 / 0.5),
       0 0 0 1px rgb(255 255 255 / 0.08),
-      0 0 48px -14px rgb(56 189 248 / 0.18),
       inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
   }
 }

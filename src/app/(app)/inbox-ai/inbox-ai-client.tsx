@@ -549,15 +549,15 @@ export default function InboxAiClient(props: {
 
   if (!sedeId) {
     return (
-      <p className="rounded-xl border border-cyan-500/25 bg-cyan-950/20 px-4 py-3 text-sm text-cyan-100">
+      <p className="rounded-xl border border-app-line-35 bg-app-line-10 px-4 py-3 text-sm text-app-fg-muted">
         Seleziona una sede (menu sede admin) per caricare documenti e duplicati in questa vista.
       </p>
     )
   }
 
   return (
-    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} border-cyan-500/25`}>
-      <div className="app-card-bar-accent shrink-0 bg-gradient-to-r from-teal-500/55 via-sky-500/45 to-violet-500/40" aria-hidden />
+    <div className={SUMMARY_HIGHLIGHT_SURFACE_CLASS}>
+      <div className="app-card-bar-accent shrink-0 bg-gradient-to-r from-slate-500/40 via-slate-400/30 to-slate-500/35" aria-hidden />
       <div className="space-y-5 p-4 sm:p-5">
         <div className="flex flex-col gap-3 border-b border-white/10 pb-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-teal-200/95">{resolvedToday} risolti oggi</p>

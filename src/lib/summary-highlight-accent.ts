@@ -7,7 +7,7 @@ import { iconAccentClass } from '@/lib/icon-accent-classes'
 
 const NEUTRAL_BAR = ''
 const NEUTRAL_LABEL = 'text-app-fg-muted'
-const NEUTRAL_BORDER = 'border-[rgba(34,211,238,0.15)]'
+const NEUTRAL_BORDER = 'border-app-line-28'
 
 /** Allineamento icone strip alle voci correlati nella sidebar (`Sidebar.tsx`). */
 const HEADER_ICON = {
@@ -123,7 +123,7 @@ export type SummaryHighlightAccent = keyof typeof SUMMARY_HIGHLIGHT_ACCENTS
  * Striscia gradiente sulla card vetro Aurora (dashboard Scanner `glassShell`, login pubblico).
  */
 export const AURORA_GLASS_CARD_TOP_BAR_CLASS =
-  'h-1 shrink-0 bg-gradient-to-r from-sky-400/45 via-violet-500/35 to-cyan-400/40 md:h-1.5'
+  'h-1 shrink-0 bg-gradient-to-r from-slate-500/45 via-slate-400/35 to-slate-500/40 md:h-1.5'
 
 /**
  * Layout esterno delle card vetro Aurora (scanner, KPI, `AuroraPanelShell`): un solo look.
@@ -132,10 +132,10 @@ export const AURORA_GLASS_PANEL_LAYOUT_CLASS =
   'glass-card relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl'
 
 /**
- * Guscio esterno card/sezione: bordo top cyan unificato, sfondo semi-trasparente neutro.
+ * Guscio esterno card/sezione: bordo neutro, sfondo semi-trasparente.
  */
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =
-  'app-summary-highlight-surface relative overflow-hidden rounded-[10px] border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-white/[0.04] shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
+  'app-summary-highlight-surface relative overflow-hidden rounded-[10px] border border-app-line-28 bg-white/[0.04] shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
 
 /** Padding interno corpo (`AppSummaryHighlightCard`, tabelle in stesso guscio). */
 export const SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS =

@@ -103,7 +103,7 @@ function ScannerRow({
   }
 
   return (
-    <div className="app-workspace-surface-elevated rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 overflow-hidden">
+    <div className="app-workspace-surface-elevated rounded-lg border border-app-line-28 overflow-hidden">
       {/* Riga principale */}
       <div className="flex items-center gap-3 p-4">
         <EmailAvatar email={sender.email} />
@@ -450,7 +450,7 @@ export function DiscoveryContent({
 
       {/* Stato pre-scansione */}
       {!scanning && !result && !scanError && (
-        <div className="rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-surface-elevated py-20 text-center">
+        <div className="rounded-lg border border-app-line-28 app-workspace-surface-elevated py-20 text-center">
           <svg className="w-14 h-14 text-app-fg-muted mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>

@@ -817,7 +817,7 @@ export default function NuovaBollaForm() {
                   setMatchedFornitore(null)
                 }
               }}
-              className={`mt-0.5 w-full cursor-pointer rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30 ${
+              className={`mt-0.5 w-full cursor-pointer rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30 ${
                 ocrStatus === 'matched' ? 'font-bold' : ''
               }`}
             >

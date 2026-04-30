@@ -10,7 +10,7 @@ export default function AdminSedeViewBanner({ sedeNome }: { sedeNome: string }) 
   const { clearActiveOperator } = useActiveOperator()
   const t = useT()
   return (
-    <div className="mb-4 flex flex-col gap-2 rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 bg-cyan-950/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mb-4 flex flex-col gap-2 rounded-lg border border-app-line-28 bg-slate-900/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-app-fg-muted">
         <span className="font-semibold">{t.dashboard.viewingAsSedeBanner}</span>{' '}
         <span className="text-app-fg-muted">{sedeNome}</span>
