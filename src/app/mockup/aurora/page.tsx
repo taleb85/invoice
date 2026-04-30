@@ -263,219 +263,6 @@ const DESKTOP_KPIS = [
   },
 ] as const
 
-const DESKTOP_SIDEBAR = [
-  ['Dashboard', true],
-  ['Ordini', false],
-  ['Fatture & bolle', false],
-  ['Fornitori', false],
-  ['Scanner AI', false],
-  ['Archivio', false],
-  ['Impostazioni', false],
-] as const
-
-function DesktopWorkspaceMock() {
-  return (
-    <section aria-labelledby="mockup-desktop-title" className="mx-auto mb-16 max-w-[1280px]">
-      <h2
-        id="mockup-desktop-title"
-        className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.2em] text-white/90"
-      >
-        Versione desktop (workspace)
-      </h2>
-      <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-white/70">
-        Layout tipo app su viewport grandi: colonna navigazione + dashboard con grafico espanso e griglia KPI. Su schermo
-        stretto la cornice può essere scrollata in orizzontale.
-      </p>
-      <div className="overflow-x-auto pb-4">
-        <div className="mx-auto inline-block min-w-[min(1160px,100%)] lg:min-w-[1080px]">
-          <div className="overflow-hidden rounded-2xl border border-cyan-400/40 bg-[#020617]/92 shadow-[0_8px_32px_rgba(0,0,0,.5),0_0_72px_-12px_rgba(34,211,238,.28)]">
-            <div
-              aria-hidden
-              className="flex items-center gap-2 border-b border-white/10 bg-[#020617]/75 px-4 py-2.5 backdrop-blur-[20px]"
-            >
-              <span className="inline-flex gap-2">
-                <span className="h-3 w-3 rounded-full bg-red-400/85" />
-                <span className="h-3 w-3 rounded-full bg-amber-300/85" />
-                <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
-              </span>
-              <span className="ml-2 flex-1 rounded-md bg-white/[0.06] px-3 py-1 text-center text-[11px] text-white/70">
-                app · mockup aurora desktop
-              </span>
-            </div>
-            <div className="flex min-h-[560px]">
-              <aside className="hidden w-[220px] shrink-0 flex-col border-r border-white/10 bg-white/[0.03] backdrop-blur-xl sm:flex">
-                <div className="border-b border-white/[0.08] px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">Deep Aurora</p>
-                  <p className="mt-1 text-[11px] text-white/70">Intelligence · demo</p>
-                </div>
-                <nav className="flex flex-1 flex-col gap-0.5 p-3">
-                  {DESKTOP_SIDEBAR.map(([label, active]) => (
-                    <div
-                      key={label}
-                      className={`rounded-xl px-3 py-2.5 text-[13px] font-medium ${active ? 'border border-[#22d3ee]/35 bg-[#22d3ee]/10 text-[#22d3ee]' : 'cursor-default text-white/70 hover:bg-white/[0.05]'}`}
-                    >
-                      {label}
-                    </div>
-                  ))}
-                </nav>
-              </aside>
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <header className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-md sm:px-6">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white/90 sm:text-xl">Dashboard · Sede Nord demo</h3>
-                    <p className="mt-1 text-sm text-white/70">FY 2026 · Eur · fuso CET</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-[12px] text-white/70 backdrop-blur-[20px]" style={{ WebkitBackdropFilter: 'blur(20px)' }}>
-                      Cerca ovunque… ⌘K
-                    </span>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#3730A3]/40 text-sm font-semibold text-white/90">
-                      TB
-                    </span>
-                  </div>
-                </header>
-                <div className="relative flex min-h-0 flex-1 flex-col">
-                  <div className="pointer-events-none absolute inset-0 opacity-[0.42]">
-                    <AuroraWallpaper />
-                  </div>
-                  <div className="relative z-[1] flex flex-1 flex-col gap-5 p-4 sm:p-6">
-                  <GlassPanel className="p-5 sm:p-6">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-[13px] font-semibold uppercase tracking-wider text-white/90">
-                        Andamento mensile
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] text-white/70">
-                          Bolle vs fatture
-                        </span>
-                        <span className="rounded-lg border border-[#22d3ee]/35 bg-[#22d3ee]/10 px-2.5 py-1 text-[11px] text-[#67e8f9]">
-                          Esporta (mockup)
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex flex-row items-end gap-4">
-                      <div className="min-w-0 flex-1">
-                        <FakeLineChartWide uid="desk" />
-                        <div className="mt-1 flex justify-between text-[11px] text-white/70">
-                          {['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'].map((m) => (
-                            <span key={m}>{m}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <FakeBarsWide uid="desk" />
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/10 pt-4 text-[11px]">
-                      <span className="flex items-center gap-2 text-[#4ade80]">
-                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#4ade80]" />
-                        <span>Trend risparmi (serie A)</span>
-                      </span>
-                      <span className="flex items-center gap-2 text-[#facc15]">
-                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#facc15]" />
-                        <span>Serie B</span>
-                      </span>
-                      <span className="flex items-center gap-2 text-[#38bdf8]">
-                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#38bdf8]" />
-                        <span>Serie C</span>
-                      </span>
-                    </div>
-                  </GlassPanel>
-                  <div className="grid gap-5 lg:grid-cols-12 lg:gap-6">
-                    <div className="lg:col-span-8">
-                      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/90">
-                        KPI operatore
-                      </p>
-                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        {DESKTOP_KPIS.map((k) => (
-                          <GlassPanel key={k.title} className="relative overflow-hidden p-4">
-                            <div
-                              aria-hidden
-                              className={`absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r ${k.bar}`}
-                            />
-                            <p className="text-[11px] font-medium text-white/90">{k.title}</p>
-                            <p className={`mt-2 text-2xl font-semibold tracking-tight tabular-nums ${k.accent}`}>
-                              {k.value}
-                            </p>
-                            <p className="mt-1.5 text-[12px] text-white/70">{k.sub}</p>
-                          </GlassPanel>
-                        ))}
-                      </div>
-                      <GlassPanel className="mt-5 p-5">
-                        <p className="text-[13px] font-semibold uppercase tracking-wide text-white/90">
-                          Fluxo scanner · score anomalie
-                        </p>
-                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                          <div>
-                            <p className="text-[11px] text-white/70">Coda elaborata &lt; 24 h</p>
-                            <p className="mt-1 text-3xl font-semibold tabular-nums text-white/90">78%</p>
-                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
-                              <div
-                                className="h-full w-[78%] rounded-full"
-                                style={{
-                                  backgroundImage: `linear-gradient(90deg, ${DA.neonCyan}, ${DA.neonLime})`,
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                            <p className="text-[11px] text-white/70">Risk score sintetico</p>
-                            <p className="mt-2 text-xl font-semibold uppercase tracking-wide text-[#a3e635]">Basso</p>
-                            <p className="mt-1 text-[12px] text-white/70">rekki · duplicati · listino</p>
-                          </div>
-                        </div>
-                      </GlassPanel>
-                    </div>
-                    <div className="lg:col-span-4">
-                      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/90">
-                        Priorità
-                      </p>
-                      <GlassPanel className="divide-y divide-white/10">
-                        {[
-                          { t: 'Gruppi duplicati', d: '2 possibili doppioni fatture' },
-                          { t: 'Fornitori incompleti', d: 'P.IVA o SDI da completare' },
-                          { t: 'Estratti in bilanciamento', d: '4 movimenti non abbinati' },
-                          { t: 'Errori sync email', d: 'Vedere ultimo tentativo nel log' },
-                        ].map((row) => (
-                          <button
-                            key={row.t}
-                            type="button"
-                            className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.06]"
-                          >
-                            <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#22d3ee]/30 bg-[#22d3ee]/10 text-[#e0f2fe]">
-                              ◈
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-[13px] font-medium leading-snug text-white/90">{row.t}</p>
-                              <p className="mt-0.5 text-[12px] leading-snug text-white/70">{row.d}</p>
-                            </div>
-                          </button>
-                        ))}
-                      </GlassPanel>
-                      <GlassPanel className="mt-4 p-4">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-white/90">Suggerimento</p>
-                        <p className="mt-2 text-[13px] leading-relaxed text-white/70">
-                          Allinea i fornitori mancanti in coda Scanner prima del closing mensile — meno mismatch in listino
-                          e nelle approvazioni.
-                        </p>
-                        <button
-                          type="button"
-                          className="mt-3 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-left text-[12px] font-medium text-white/90 hover:bg-white/[0.12]"
-                        >
-                          Apri coda Scanner (mockup)
-                        </button>
-                      </GlassPanel>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </div>
-    </section>
-  )
-}
-
 function BottomNavDockIconWrap({
   active,
   children,
@@ -496,27 +283,40 @@ function BottomNavDockIconWrap({
   )
 }
 
-function BottomNavTab({
+function DeepAuroraDockTab({
   active,
   children,
   ariaLabel,
+  placement = 'bottom',
 }: {
   active?: boolean
   ariaLabel: string
+  placement?: 'bottom' | 'left'
   children: React.ReactNode
 }) {
+  const isLeft = placement === 'left'
+  const dim = isLeft
+    ? 'relative flex h-[52px] w-full shrink-0 items-center justify-center rounded-xl outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-[#38bdf8]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
+    : 'relative flex min-h-[52px] min-w-0 flex-1 shrink flex-col items-center justify-center rounded-[1.25rem] pb-2.5 pt-3 outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-[#38bdf8]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
   return (
     <button
       type="button"
       aria-label={ariaLabel}
       aria-current={active ? 'page' : undefined}
-      className={`relative flex min-h-[52px] min-w-0 flex-1 shrink flex-col items-center justify-center rounded-[1.25rem] pb-2.5 pt-3 outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-[#38bdf8]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${active ? '' : 'opacity-90 hover:opacity-100'}`}
+      className={`${dim} ${active ? '' : 'opacity-90 hover:opacity-100'}`}
     >
       <BottomNavDockIconWrap active={!!active}>{children}</BottomNavDockIconWrap>
-      {active ? (
+      {active && !isLeft ? (
         <span
           aria-hidden
           className="pointer-events-none absolute bottom-2 left-1/2 h-[3.5px] w-7 -translate-x-1/2 rounded-[2px] bg-[#38bdf8]"
+          style={{ boxShadow: '0 0 14px rgba(56,189,248,0.85), 0 0 6px rgba(56,189,248,1)' }}
+        />
+      ) : null}
+      {active && isLeft ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-2 top-1/2 h-7 w-[3.5px] -translate-y-1/2 rounded-[2px] bg-[#38bdf8]"
           style={{ boxShadow: '0 0 14px rgba(56,189,248,0.85), 0 0 6px rgba(56,189,248,1)' }}
         />
       ) : null}
@@ -531,18 +331,18 @@ function BottomNav() {
       className="mx-5 mb-[max(0.65rem,env(safe-area-inset-bottom))] flex shrink-0 items-center justify-evenly gap-1 border border-white/[0.12] bg-[rgba(15,23,42,0.42)] px-1 shadow-[0_12px_40px_-14px_rgba(0,0,0,.6),inset_0_1px_0_0_rgba(255,255,255,0.05)] backdrop-blur-[28px]"
       style={{ borderRadius: '1.875rem', WebkitBackdropFilter: 'blur(28px)' }}
     >
-      <BottomNavTab active ariaLabel="Home">
+      <DeepAuroraDockTab active ariaLabel="Home">
         <HomeDockIcon className="h-[26px] w-[26px]" />
-      </BottomNavTab>
-      <BottomNavTab ariaLabel="Attività">
+      </DeepAuroraDockTab>
+      <DeepAuroraDockTab ariaLabel="Attività">
         <ActivityDockIcon className="h-[26px] w-[26px]" />
-      </BottomNavTab>
-      <BottomNavTab ariaLabel="Alert">
+      </DeepAuroraDockTab>
+      <DeepAuroraDockTab ariaLabel="Alert">
         <BellDockIcon className="h-[26px] w-[26px]" />
-      </BottomNavTab>
-      <BottomNavTab ariaLabel="Impostazioni">
+      </DeepAuroraDockTab>
+      <DeepAuroraDockTab ariaLabel="Impostazioni">
         <GearDockIcon className="h-[26px] w-[26px]" />
-      </BottomNavTab>
+      </DeepAuroraDockTab>
     </nav>
   )
 }
@@ -615,6 +415,221 @@ function GearDockIcon({ className }: { className?: string }) {
       <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 0 0 2.572-1.065z" />
       <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
     </svg>
+  )
+}
+
+/** Stessa lingua visiva della bottom nav: vetro blur, glow solo su tab attiva, indicatore verticale a sinistra. */
+function DesktopSidebarRail() {
+  return (
+    <nav
+      aria-label="Navigazione principale workspace (mock Deep Aurora)"
+      className="flex w-[76px] shrink-0 flex-col gap-1 border-r border-white/[0.12] bg-[rgba(15,23,42,0.42)] px-2 py-4 shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.04)] backdrop-blur-[28px]"
+      style={{ WebkitBackdropFilter: 'blur(28px)' }}
+    >
+      <DeepAuroraDockTab active ariaLabel="Home" placement="left">
+        <HomeDockIcon className="h-[26px] w-[26px]" />
+      </DeepAuroraDockTab>
+      <DeepAuroraDockTab ariaLabel="Attività" placement="left">
+        <ActivityDockIcon className="h-[26px] w-[26px]" />
+      </DeepAuroraDockTab>
+      <DeepAuroraDockTab ariaLabel="Alert" placement="left">
+        <BellDockIcon className="h-[26px] w-[26px]" />
+      </DeepAuroraDockTab>
+      <DeepAuroraDockTab ariaLabel="Impostazioni" placement="left">
+        <GearDockIcon className="h-[26px] w-[26px]" />
+      </DeepAuroraDockTab>
+    </nav>
+  )
+}
+
+function DesktopWorkspaceMock() {
+  return (
+    <section aria-labelledby="mockup-desktop-title" className="mx-auto mb-16 max-w-[1280px]">
+      <h2
+        id="mockup-desktop-title"
+        className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.2em] text-white/90"
+      >
+        Versione desktop (workspace)
+      </h2>
+      <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-white/70">
+        Stesso set di icone della versione mobile, in colonna a sinistra: Home (attiva), Attività, Alert, Impostazioni.
+        L’indicatore attivo è un segmento verticale sul bordo sinistro dell’icona (sotto la barra resta solo su mobile).
+      </p>
+      <div className="overflow-x-auto pb-4">
+        <div className="mx-auto inline-block min-w-[min(1160px,100%)] lg:min-w-[1080px]">
+          <div className="overflow-hidden rounded-2xl border border-cyan-400/40 bg-[#020617]/92 shadow-[0_8px_32px_rgba(0,0,0,.5),0_0_72px_-12px_rgba(34,211,238,.28)]">
+            <div
+              aria-hidden
+              className="flex items-center gap-2 border-b border-white/10 bg-[#020617]/75 px-4 py-2.5 backdrop-blur-[20px]"
+            >
+              <span className="inline-flex gap-2">
+                <span className="h-3 w-3 rounded-full bg-red-400/85" />
+                <span className="h-3 w-3 rounded-full bg-amber-300/85" />
+                <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
+              </span>
+              <span className="ml-2 flex-1 rounded-md bg-white/[0.06] px-3 py-1 text-center text-[11px] text-white/70">
+                app · mockup aurora desktop
+              </span>
+            </div>
+            <div className="flex min-h-[560px]">
+              <DesktopSidebarRail />
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <header className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-md sm:px-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white/90 sm:text-xl">Dashboard · Sede Nord demo</h3>
+                    <p className="mt-1 text-sm text-white/70">FY 2026 · Eur · fuso CET</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-[12px] text-white/70 backdrop-blur-[20px]"
+                      style={{ WebkitBackdropFilter: 'blur(20px)' }}
+                    >
+                      Cerca ovunque… ⌘K
+                    </span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#3730A3]/40 text-sm font-semibold text-white/90">
+                      TB
+                    </span>
+                  </div>
+                </header>
+                <div className="relative flex min-h-0 flex-1 flex-col">
+                  <div className="pointer-events-none absolute inset-0 opacity-[0.42]">
+                    <AuroraWallpaper />
+                  </div>
+                  <div className="relative z-[1] flex flex-1 flex-col gap-5 p-4 sm:p-6">
+                    <GlassPanel className="p-5 sm:p-6">
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-[13px] font-semibold uppercase tracking-wider text-white/90">
+                          Andamento mensile
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] text-white/70">
+                            Bolle vs fatture
+                          </span>
+                          <span className="rounded-lg border border-[#22d3ee]/35 bg-[#22d3ee]/10 px-2.5 py-1 text-[11px] text-[#67e8f9]">
+                            Esporta (mockup)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-row items-end gap-4">
+                        <div className="min-w-0 flex-1">
+                          <FakeLineChartWide uid="desk" />
+                          <div className="mt-1 flex justify-between text-[11px] text-white/70">
+                            {['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'].map((m) => (
+                              <span key={m}>{m}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <FakeBarsWide uid="desk" />
+                      </div>
+                      <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/10 pt-4 text-[11px]">
+                        <span className="flex items-center gap-2 text-[#4ade80]">
+                          <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#4ade80]" />
+                          <span>Trend risparmi (serie A)</span>
+                        </span>
+                        <span className="flex items-center gap-2 text-[#facc15]">
+                          <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#facc15]" />
+                          <span>Serie B</span>
+                        </span>
+                        <span className="flex items-center gap-2 text-[#38bdf8]">
+                          <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#38bdf8]" />
+                          <span>Serie C</span>
+                        </span>
+                      </div>
+                    </GlassPanel>
+                    <div className="grid gap-5 lg:grid-cols-12 lg:gap-6">
+                      <div className="lg:col-span-8">
+                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/90">
+                          KPI operatore
+                        </p>
+                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          {DESKTOP_KPIS.map((k) => (
+                            <GlassPanel key={k.title} className="relative overflow-hidden p-4">
+                              <div
+                                aria-hidden
+                                className={`absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r ${k.bar}`}
+                              />
+                              <p className="text-[11px] font-medium text-white/90">{k.title}</p>
+                              <p className={`mt-2 text-2xl font-semibold tracking-tight tabular-nums ${k.accent}`}>
+                                {k.value}
+                              </p>
+                              <p className="mt-1.5 text-[12px] text-white/70">{k.sub}</p>
+                            </GlassPanel>
+                          ))}
+                        </div>
+                        <GlassPanel className="mt-5 p-5">
+                          <p className="text-[13px] font-semibold uppercase tracking-wide text-white/90">
+                            Fluxo scanner · score anomalie
+                          </p>
+                          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                            <div>
+                              <p className="text-[11px] text-white/70">Coda elaborata &lt; 24 h</p>
+                              <p className="mt-1 text-3xl font-semibold tabular-nums text-white/90">78%</p>
+                              <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
+                                <div
+                                  className="h-full w-[78%] rounded-full"
+                                  style={{
+                                    backgroundImage: `linear-gradient(90deg, ${DA.neonCyan}, ${DA.neonLime})`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                              <p className="text-[11px] text-white/70">Risk score sintetico</p>
+                              <p className="mt-2 text-xl font-semibold uppercase tracking-wide text-[#a3e635]">Basso</p>
+                              <p className="mt-1 text-[12px] text-white/70">rekki · duplicati · listino</p>
+                            </div>
+                          </div>
+                        </GlassPanel>
+                      </div>
+                      <div className="lg:col-span-4">
+                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/90">
+                          Priorità
+                        </p>
+                        <GlassPanel className="divide-y divide-white/10">
+                          {[
+                            { t: 'Gruppi duplicati', d: '2 possibili doppioni fatture' },
+                            { t: 'Fornitori incompleti', d: 'P.IVA o SDI da completare' },
+                            { t: 'Estratti in bilanciamento', d: '4 movimenti non abbinati' },
+                            { t: 'Errori sync email', d: 'Vedere ultimo tentativo nel log' },
+                          ].map((row) => (
+                            <button
+                              key={row.t}
+                              type="button"
+                              className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.06]"
+                            >
+                              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#22d3ee]/30 bg-[#22d3ee]/10 text-[#e0f2fe]">
+                                ◈
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-medium leading-snug text-white/90">{row.t}</p>
+                                <p className="mt-0.5 text-[12px] leading-snug text-white/70">{row.d}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </GlassPanel>
+                        <GlassPanel className="mt-4 p-4">
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-white/90">Suggerimento</p>
+                          <p className="mt-2 text-[13px] leading-relaxed text-white/70">
+                            Allinea i fornitori mancanti in coda Scanner prima del closing mensile — meno mismatch in
+                            listino e nelle approvazioni.
+                          </p>
+                          <button
+                            type="button"
+                            className="mt-3 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-left text-[12px] font-medium text-white/90 hover:bg-white/[0.12]"
+                          >
+                            Apri coda Scanner (mockup)
+                          </button>
+                        </GlassPanel>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
