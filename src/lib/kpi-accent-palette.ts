@@ -114,6 +114,24 @@ export function supplierDesktopKpiOuterShadow(): string {
   ].join(', ')
 }
 
+/** Stessi accenti delle card KPI fornitore (`buildSupplierKpiItems`): conferme → documenti / coda. */
+export const DASHBOARD_OPERATOR_KPI_SUPPLIER_HEXES = [
+  supplierKpiPalette.conferme.hex,
+  supplierKpiPalette.bolle.hex,
+  supplierKpiPalette.fatture.hex,
+  supplierKpiPalette.verifica.hex,
+  supplierKpiPalette.documenti.hex,
+] as const
+
+/** Stroke icone allineati alla scheda fornitore (`buildSupplierKpiItems`). */
+export const DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS = [
+  'text-cyan-400',
+  'text-violet-400',
+  'text-emerald-400',
+  'text-amber-400',
+  'text-orange-400',
+] as const
+
 /**
  * Accenti per tile `DashboardOperatorKpiGrid` — tutto neutro, senza colori per categoria.
  */

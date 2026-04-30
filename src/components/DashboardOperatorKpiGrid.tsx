@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
 import { type CSSProperties, type ReactNode } from 'react'
-import { DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS, operatorKpiVisual } from '@/lib/kpi-accent-palette'
+import {
+  DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS,
+  DASHBOARD_OPERATOR_KPI_SUPPLIER_HEXES,
+  DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS,
+  hexToRgbTuple,
+  operatorKpiVisual,
+  supplierDesktopKpiOuterShadow,
+} from '@/lib/kpi-accent-palette'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -49,18 +56,11 @@ const kpiGlassInnerClass =
 /** Guscio unico scheda riepilogo operatore in dashboard Aurora. */
 const OPERATOR_KPI_GLASS_SECTION_SHELL_CLASS = `${AURORA_GLASS_PANEL_LAYOUT_CLASS} app-card-unified overflow-hidden rounded-2xl`
 
-/**
- * Valore numerico in vetro: stesso accento delle icone SVG (ordine tile: Ordini, Bolle, Fatturato, Estratti, Revisione).
- */
-const OPERATOR_KPI_GLASS_VALUE_ACCENT: readonly string[] = [
-  'text-cyan-300 [text-shadow:0_0_22px_rgba(103,232,249,0.52)]',
-  'text-violet-300 [text-shadow:0_0_22px_rgba(196,181,253,0.5)]',
-  'text-emerald-300 [text-shadow:0_0_22px_rgba(110,231,183,0.5)]',
-  'text-amber-200 [text-shadow:0_0_20px_rgba(253,230,138,0.45)]',
-  'text-white [text-shadow:0_0_20px_rgba(255,255,255,0.14)]',
-]
+/** Ombra hover colorata (variabile `--supplier-kpi-rgb`) come `supplier-desktop-kpi-card`. */
+const GLASS_KPI_TILE_HOVER_SHADOW =
+  'transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)]'
 
-/** Corpo tile: griglia interna; l’altezza uniforme delle card è sul guscio `.operator-kpi-card`. */
+/** Corpo tile: griglia interna; l’altezza uniforme delle tile è sul guscio `.operator-kpi-card`. */
 const kpiTileInnerGridClass =
   'relative z-[1] grid h-full min-h-0 w-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-1.5 gap-y-1 py-2 pl-4 pr-2 sm:py-2.5 sm:pl-5 sm:pr-2.5'
 
@@ -68,36 +68,16 @@ const kpiTileInnerGridClass =
 const OPERATOR_KPI_CARD_MIN_H = 'min-h-[7.25rem] sm:min-h-[7.5rem] lg:min-h-[7.75rem]'
 
 /**
- * Stessi colori/drop-shadow della scheda fornitore (`supplierKpiPalette` + `buildSupplierKpiItems`).
  * Ordine tile: Ordini → Bolle → Fatturato → Estratti → Documenti da revisionare.
+ * Colore SVG: sequenza della scheda fornitore (`DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS`).
  */
 /** Allinea accenti `operatorKpiVisual` all’ordine delle 5 tile dashboard. */
 const OPERATOR_KPI_VISUAL_INDEX = [2, 3, 4, 5, 2] as const
 
-/** Colore solo sull’icona SVG — Ordini → Revisione (ordine tile `items`). */
-const DASHBOARD_OPERATOR_KPI_ICON_TEXT = [
-  'text-cyan-400',
-  'text-violet-400',
-  'text-emerald-400',
-  'text-amber-400',
-  'text-white/85',
-] as const
-
-const DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS = [
-  'text-cyan-300',
-  'text-violet-300',
-  'text-emerald-300',
-  'text-amber-300',
-  'text-white/80',
-] as const
-
-function dashboardKpiIconTextClass(index: number, glassShell: boolean) {
-  if (glassShell) {
-    const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS.length - 1))
-    return DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS[i]!
-  }
-  const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_ICON_TEXT.length - 1))
-  return DASHBOARD_OPERATOR_KPI_ICON_TEXT[i]!
+/** Colore icona SVG: stessa sequenza della scheda fornitore (`DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS`). */
+function dashboardKpiIconTextClass(index: number) {
+  const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS.length - 1))
+  return DASHBOARD_OPERATOR_KPI_SUPPLIER_ICON_CLASS[i]!
 }
 
 function operatorKpiVisualAt(tileIndex: number) {
@@ -232,7 +212,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(0).hoverClass,
       iconWrapClass: operatorKpiVisualAt(0).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(0, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -267,7 +247,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(1).hoverClass,
       iconWrapClass: operatorKpiVisualAt(1).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(1, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -298,7 +278,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(2).hoverClass,
       iconWrapClass: operatorKpiVisualAt(2).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(2, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -320,7 +300,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(3).hoverClass,
       iconWrapClass: operatorKpiVisualAt(3).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(3, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(3)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -343,7 +323,7 @@ export default function DashboardOperatorKpiGrid({
       iconWrapClass: operatorKpiVisualAt(4).iconWrapClass,
       icon: (
         <svg
-          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4, glassShell)}`}
+          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4)}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -379,15 +359,18 @@ export default function DashboardOperatorKpiGrid({
       <div className={`${innerPadClass} relative`}>
         <div className={`${DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS} ${!online ? 'pointer-events-none' : ''}`}>
           {items.map((item, tileIndex) => {
-            const valueAccent =
-              OPERATOR_KPI_GLASS_VALUE_ACCENT[tileIndex] ?? OPERATOR_KPI_GLASS_VALUE_ACCENT[0] ?? 'text-white'
+            const supplierHueIdx = Math.max(
+              0,
+              Math.min(tileIndex, DASHBOARD_OPERATOR_KPI_SUPPLIER_HEXES.length - 1),
+            )
+            const accentHexSupplier = DASHBOARD_OPERATOR_KPI_SUPPLIER_HEXES[supplierHueIdx]!
             const inner = (
               <>
                                 <div className={kpiTileInnerGridClass}>
                   <p
                     className={
                       glassShell
-                        ? 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[10px] font-semibold uppercase leading-snug tracking-wider text-white/78 line-clamp-2 sm:min-h-[2rem] sm:text-[11px] sm:tracking-widest'
+                        ? 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[10px] font-semibold uppercase leading-snug tracking-wider text-app-fg-muted line-clamp-2 sm:min-h-[2rem] sm:text-[11px] sm:tracking-widest'
                         : 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[12px] font-semibold leading-[1.15] tracking-wide text-app-fg line-clamp-2 sm:min-h-[2rem] sm:text-sm'
                     }
                   >
@@ -399,13 +382,7 @@ export default function DashboardOperatorKpiGrid({
                     {item.icon}
                   </span>
                   <div className="col-span-2 col-start-1 row-start-2 flex min-h-0 min-w-0 flex-col items-stretch gap-0.5 self-start">
-                    <p
-                      className={
-                        glassShell
-                          ? `break-words text-xl font-bold tabular-nums leading-none tracking-tight sm:text-2xl sm:leading-tight ${valueAccent}`
-                          : 'break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight'
-                      }
-                    >
+                    <p className="break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight">
                       {item.value}
                     </p>
                     {!glassShell ? (
@@ -464,14 +441,20 @@ export default function DashboardOperatorKpiGrid({
             )
 
             const shellClass = [
-              `operator-kpi-card relative z-[1] flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${OPERATOR_KPI_CARD_MIN_H} transition-[transform,border-color,background-color] duration-200`,
-              glassShell ? 'ring-0' : `${item.borderClass} ${item.ringClass} ${item.hoverClass}`,
+              `operator-kpi-card relative z-[1] group flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${OPERATOR_KPI_CARD_MIN_H}`,
+              glassShell ? `ring-0 ${GLASS_KPI_TILE_HOVER_SHADOW}` : 'transition-[transform,border-color,background-color] duration-200',
+              glassShell ? '' : `${item.borderClass} ${item.ringClass} ${item.hoverClass}`,
               glassShell ? '' : online ? 'hover:bg-white/[0.07]' : '',
               cardInteractive,
             ]
               .filter(Boolean)
               .join(' ')
-            const shellStyle: CSSProperties | undefined = glassShell ? undefined : { boxShadow: operatorKpiCardShadow() }
+            const shellStyle: CSSProperties | undefined = glassShell
+              ? {
+                  boxShadow: supplierDesktopKpiOuterShadow(),
+                  ['--supplier-kpi-rgb' as string]: hexToRgbTuple(accentHexSupplier),
+                }
+              : { boxShadow: operatorKpiCardShadow() }
 
             if (online) {
               return (
