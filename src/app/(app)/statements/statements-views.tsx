@@ -18,8 +18,8 @@ import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import {
   findUniqueFornitoreForPendingDoc,
-  greedyBollaIdsForTotal,
   normalizeAddressKey,
+  resolveBolleMatchForPendingInvoice,
 } from '@/lib/auto-resolve-pending-doc'
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
@@ -1077,7 +1077,7 @@ export function PendingMatchesTab({
   /**
    * Ricarica documenti e bolle, poi per ogni voce in elenco:
    * collega il fornitore se l’abbinamento è univoco (P.IVA / email / indirizzo / ragione sociale),
-   * associa alle bolle se l’importo OCR coincide con un sottoinsieme greedy di bolle aperte dello stesso fornitore.
+   * associa alle bolle se OCR + bolle coincide (somma greedy esatta oppure combinazione univoca entro tol. ~5 %) con data entro finestra giorni dalla data documento quando nota.
    */
   const runRefreshAndBulkAutoMatch = useCallback(async () => {
     setBulkAnalyzing(true)
@@ -1093,7 +1093,10 @@ export function PendingMatchesTab({
       }
       if (sedeId) params.set('sede_id', sedeId)
       if (fornitoreId) params.set('fornitore_id', fornitoreId)
-      if (year && month) {
+      if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+        params.set('from', ledgerDateFrom)
+        params.set('to', ledgerDateToExclusive)
+      } else if (year && month) {
         params.set('from', `${year}-${String(month).padStart(2, '0')}-01`)
         params.set('to', new Date(year, month, 1).toISOString().split('T')[0])
       }
@@ -1177,7 +1180,8 @@ export function PendingMatchesTab({
             !usedBollaIds.has(b.id),
         )
         if (!relevant.length) continue
-        const ids = greedyBollaIdsForTotal(relevant, ocr)
+        const invoiceDateIso = officialDateIsoForPendingDoc(doc)
+        const ids = resolveBolleMatchForPendingInvoice(relevant, ocr, invoiceDateIso)
         if (!ids?.length) continue
         const res = await fetch('/api/documenti-da-processare', {
           method: 'POST',
@@ -1217,6 +1221,8 @@ export function PendingMatchesTab({
     fornitoreId,
     year,
     month,
+    ledgerDateFrom,
+    ledgerDateToExclusive,
     me?.sede_id,
     fetchDocs,
     fetchBolleAperte,
@@ -1362,7 +1368,7 @@ export function PendingMatchesTab({
     })()
   }, [loading, docs, statementDocs])
 
-  // Auto-associa bolle when totale OCR matches a unique greedy subset (same heuristic as checkbox suggest)
+  // Auto-associa bolle: stesso fornitore; finestra ±30 giorni data doc ↔ bolla quando nota; somma OCR = subset bolle (esatto o univoco entro tol. ~5%, come suggerimento checkbox).
   useEffect(() => {
     if (loading || !bolleAperte.length || !docs.length) return
     void (async () => {
@@ -1382,7 +1388,8 @@ export function PendingMatchesTab({
           continue
         }
 
-        const ids = greedyBollaIdsForTotal(relevant, ocr)
+        const invoiceDateIso = officialDateIsoForPendingDoc(doc)
+        const ids = resolveBolleMatchForPendingInvoice(relevant, ocr, invoiceDateIso)
         if (!ids?.length) continue
 
         autoAssocTriedRef.current.add(doc.id)
@@ -1512,7 +1519,7 @@ export function PendingMatchesTab({
       if ((selezione[doc.id] ?? []).length > 0) return  // already has selection
       const relevant = bolleAperte.filter(b => b.fornitore_id === doc.fornitore_id)
       if (!relevant.length) return
-      autoSuggest(doc.id, relevant, ocrTotal)
+      autoSuggest(doc, relevant, ocrTotal)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, bolleAperte, docs])
@@ -1539,24 +1546,13 @@ export function PendingMatchesTab({
     }
   }
 
-  /** Auto-suggest bolle whose importi sum exactly to totalTarget (or closest subset) */
-  function autoSuggest(docId: string, bolle: BollaAperta[], totalTarget: number | null) {
-    if (!totalTarget || !bolle.length) return
-    // Exact match: find subset summing to totalTarget (greedy subset-sum, max 10 items)
-    const candidates = [...bolle].sort((a, b) => (b.importo ?? 0) - (a.importo ?? 0))
-    const found: string[] = []
-    let remaining = totalTarget
-    for (const b of candidates) {
-      const imp = b.importo ?? 0
-      if (imp > 0 && imp <= remaining + 0.001) {
-        found.push(b.id)
-        remaining = parseFloat((remaining - imp).toFixed(2))
-        if (remaining <= 0.001) break
-      }
-    }
-    if (found.length) {
-      setSelezione(p => ({ ...p, [docId]: found }))
-    }
+  /** Pre-seleziona checkbox bolle usando la stessa logica di abbina-auto (finestra date + somma esatta o combinazione univoca entro tol. importo). */
+  function autoSuggest(doc: Documento, bolle: BollaAperta[], totalTarget: number | null) {
+    if (!totalTarget || totalTarget <= 0 || !bolle.length) return
+    const invoiceDateIso = officialDateIsoForPendingDoc(doc)
+    const found = resolveBolleMatchForPendingInvoice(bolle, totalTarget, invoiceDateIso)
+    if (!found?.length) return
+    setSelezione((p) => ({ ...p, [doc.id]: found }))
   }
 
   async function scarta(docId: string) {
@@ -2312,7 +2308,7 @@ export function PendingMatchesTab({
                               <button
                                 type="button"
                                 onClick={() =>
-                                  autoSuggest(doc.id, bolleAbbinamentoPool, ocrTotal)
+                                  autoSuggest(doc, bolleAbbinamentoPool, ocrTotal)
                                 }
                                 className="whitespace-nowrap rounded-md border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/25"
                               >

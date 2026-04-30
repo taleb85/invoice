@@ -252,6 +252,40 @@ export type BollaMinimal = { id: string; importo: number | null }
 
 const AMOUNT_EPS = 0.001
 
+/** Pending invoice ↔ bolle auto-match: invoice doc date vs bolla delivery date (± days). */
+export const MATCH_BOLLA_DATE_WINDOW_DAYS = 30
+
+/** Max relative gap between invoice OCR total and sum of matched bolle importi (invoice as base). */
+export const MATCH_BOLLA_AMOUNT_REL_TOLERANCE = 0.05
+
+export type BollaForInvoiceMatch = BollaMinimal & { data?: string | null }
+
+function utcDayNumber(isoDateLike: string): number | null {
+  const base = isoDateLike.trim().slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(base)) return null
+  const t = Date.parse(`${base}T12:00:00.000Z`)
+  return Number.isFinite(t) ? Math.floor(t / 86400000) : null
+}
+
+/**
+ * Invoice doc date (`YYYY-MM-DD`) vs bolla row date: bolle più vecchie di 30 giorni rispetto alla data
+ * documento sono escluse dal pool di auto-match quando la data fattura è nota.
+ * Se manca la data sulla fattura o sulla bolla → non si filtra sulla data (evita blocchi OCR incompleti).
+ */
+export function bollaWithinInvoiceDateWindow(
+  invoiceDocIso: string | null | undefined,
+  bollaDataIso: string | null | undefined,
+  windowDays: number,
+): boolean {
+  if (!invoiceDocIso?.trim()) return true
+  const inv = utcDayNumber(invoiceDocIso)
+  const bol = bollaDataIso?.trim() ? utcDayNumber(bollaDataIso) : null
+  if (inv == null || bol == null) return true
+  return Math.abs(bol - inv) <= windowDays
+}
+
+const MAX_BRUTE_FORCE_BOLLE = 15
+
 /** Greedy subset-sum aligned with PendingMatchesTab autoSuggest. */
 export function greedyBollaIdsForTotal(bolle: BollaMinimal[], totalTarget: number): string[] | null {
   if (totalTarget <= 0 || !bolle.length) return null
@@ -268,4 +302,86 @@ export function greedyBollaIdsForTotal(bolle: BollaMinimal[], totalTarget: numbe
   }
   if (found.length === 0 || remaining > AMOUNT_EPS) return null
   return found
+}
+
+function sumImportiRounded(importi: number[]): number {
+  return Math.round(importi.reduce((a, x) => a + x, 0) * 100) / 100
+}
+
+/** Per ricerca combinazioni: tieni prima le bolle più vicine in data alla fattura, poi più grandi importi. */
+function prioritizeBolleForFuzzySearch(pool: BollaForInvoiceMatch[], invoiceDocIso: string | null): BollaForInvoiceMatch[] {
+  if (pool.length <= MAX_BRUTE_FORCE_BOLLE) return pool
+  const invDay = invoiceDocIso?.trim() ? utcDayNumber(invoiceDocIso) : null
+  const scored = pool.map((b) => ({
+    b,
+    dd:
+      invDay != null && b.data?.trim()
+        ? (() => {
+            const bd = utcDayNumber(b.data)
+            return bd == null ? 99999 : Math.abs(bd - invDay)
+          })()
+        : 99998,
+    imp: b.importo ?? 0,
+  }))
+  scored.sort((x, y) => (x.dd !== y.dd ? x.dd - y.dd : y.imp - x.imp))
+  return scored.slice(0, MAX_BRUTE_FORCE_BOLLE).map((x) => x.b)
+}
+
+/**
+ * Riconciliazione fattura in coda vs bolle aperte: stesso fornitore gestito dal chiamante;
+ * dopo filtro date (30 giorni se data doc nota) prova prima somma greedy esatta poi sottoinsieme univoco entro tol. 5% sull’importo fattura.
+ */
+export function resolveBolleMatchForPendingInvoice(
+  bolle: BollaForInvoiceMatch[],
+  totalTarget: number,
+  invoiceDocIso: string | null,
+  opts?: { windowDays?: number; amountRelTol?: number },
+): string[] | null {
+  const windowDays = opts?.windowDays ?? MATCH_BOLLA_DATE_WINDOW_DAYS
+  const amountRelTol = opts?.amountRelTol ?? MATCH_BOLLA_AMOUNT_REL_TOLERANCE
+
+  if (totalTarget <= 0 || !bolle.length) return null
+  const withAmount = bolle.filter((b) => b.importo != null && b.importo > 0)
+  if (!withAmount.length) return null
+
+  const pool = withAmount.filter((b) =>
+    bollaWithinInvoiceDateWindow(invoiceDocIso ?? null, b.data ?? null, windowDays),
+  )
+  if (!pool.length) return null
+
+  const minimal: BollaMinimal[] = pool.map(({ id, importo }) => ({ id, importo }))
+  const exactIds = greedyBollaIdsForTotal(minimal, totalTarget)
+  if (exactIds?.length) return exactIds
+
+  const atol = Math.max(totalTarget * amountRelTol, 0.009)
+  const searchPool = prioritizeBolleForFuzzySearch(pool, invoiceDocIso ?? null)
+
+  /** Sottoinsieme non vuoto univoco tale che |somma(importi) − totalTarget| ≤ atol. */
+  const fuzzyMatches: string[][] = []
+  const n = searchPool.length
+  for (let mask = 1; mask < 1 << n; mask++) {
+    const ids: string[] = []
+    const sums: number[] = []
+    for (let i = 0; i < n; i++) {
+      if (mask & (1 << i)) {
+        ids.push(searchPool[i].id)
+        sums.push(searchPool[i].importo!)
+      }
+    }
+    const sum = sumImportiRounded(sums)
+    if (Math.abs(sum - totalTarget) <= atol) {
+      fuzzyMatches.push(ids)
+    }
+  }
+
+  const seenKeys = new Set<string>()
+  const distinct: string[][] = []
+  for (const ids of fuzzyMatches) {
+    const key = [...ids].sort().join('|')
+    if (seenKeys.has(key)) continue
+    seenKeys.add(key)
+    distinct.push(ids)
+  }
+  if (distinct.length !== 1) return null
+  return distinct[0]
 }
