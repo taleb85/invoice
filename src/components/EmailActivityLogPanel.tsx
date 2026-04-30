@@ -365,6 +365,7 @@ export function EmailActivityLogPanel({
               {rows.map((row, idx) => (
                 <tr key={`${row.atIso}-t-${idx}`} className={`align-top ${APP_SECTION_TABLE_TR}`}>
                   <td className="w-[46%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
+                    <TableSupplierWithElab
                       row={row}
                       elab={elabFor(row)}
                       procLabels={procLabels}
