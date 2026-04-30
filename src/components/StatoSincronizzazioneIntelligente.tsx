@@ -217,7 +217,7 @@ export default function StatoSincronizzazioneIntelligente({
 
   if (loading) {
     return (
-      <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-app-line-28">
+      <div className="supplier-detail-tab-shell supplier-detail-tab-shell--soft-surface col-span-full overflow-hidden">
         <div className="app-card-bar-accent" aria-hidden />
         <div className="flex items-center justify-center px-5 py-10">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-400/60 border-t-transparent" />
@@ -240,7 +240,7 @@ export default function StatoSincronizzazioneIntelligente({
   }
 
   return (
-    <div className="supplier-detail-tab-shell col-span-full overflow-hidden border-app-line-28">
+    <div className="supplier-detail-tab-shell supplier-detail-tab-shell--soft-surface col-span-full overflow-hidden">
       <div className="app-card-bar-accent" aria-hidden />
 
       <div className="px-5 py-4">
