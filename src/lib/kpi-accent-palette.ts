@@ -11,10 +11,10 @@ export const SUPPLIER_DESKTOP_KPI_GRID_LAYOUT_CLASS =
 
 /**
  * Dashboard operatore: **5 KPI** (senza tile Fornitori).
- * Da `lg`: 3 colonne → **due righe** (3 + 2); sotto `lg` resta 2 colonne.
+ * Da `md`: **una sola riga** (5 colonne); su viewport piccoli (es. pagina sede) resta 2 colonne.
  */
 export const DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS =
-  'mb-0 grid w-full max-w-none grid-cols-2 items-stretch gap-2 md:mb-3 md:gap-2.5 lg:grid-cols-3 lg:gap-2.5'
+  'mb-0 grid w-full max-w-none grid-cols-2 items-stretch gap-2 md:mb-3 md:grid-cols-5 md:gap-2.5'
 
 const NEUTRAL_ICON_WRAP = 'bg-white/[0.07] ring-1 ring-white/10'
 const NEUTRAL_ICON_SVG = 'text-app-fg-muted'
