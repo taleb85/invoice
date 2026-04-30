@@ -10,7 +10,6 @@ import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
-  AURORA_GLASS_CARD_TOP_BAR_CLASS,
   AURORA_GLASS_PANEL_LAYOUT_CLASS,
 } from '@/lib/summary-highlight-accent'
 import { formatCurrency } from '@/lib/locale-shared'
@@ -80,13 +79,11 @@ function dashboardKpiIconTextClass(index: number) {
   return DASHBOARD_OPERATOR_KPI_ICON_TEXT[i]!
 }
 
-const kpiGridGlassShellBar = <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
-
 export function DashboardOperatorKpiSkeleton({ glassShell = false }: { glassShell?: boolean }) {
   const outer = glassShell
     ? AURORA_GLASS_PANEL_LAYOUT_CLASS
     : kpiGridShellClass
-  const bar = glassShell ? kpiGridGlassShellBar : (
+  const bar = glassShell ? null : (
     <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
   )
 
@@ -332,7 +329,7 @@ export default function DashboardOperatorKpiGrid({
   const cardInteractive = online ? 'cursor-pointer active:scale-[0.99]' : 'cursor-not-allowed opacity-[0.88]'
 
   const outerShellClass = glassShell ? AURORA_GLASS_PANEL_LAYOUT_CLASS : kpiGridShellClass
-  const shellAccentBar = glassShell ? kpiGridGlassShellBar : (
+  const shellAccentBar = glassShell ? null : (
     <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
   )
 

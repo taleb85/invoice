@@ -1,8 +1,5 @@
 import type { Metadata } from 'next'
-import {
-  AURORA_GLASS_CARD_TOP_BAR_CLASS,
-  AURORA_GLASS_PANEL_LAYOUT_CLASS,
-} from '@/lib/summary-highlight-accent'
+import { AURORA_GLASS_PANEL_LAYOUT_CLASS } from '@/lib/summary-highlight-accent'
 
 export const metadata: Metadata = {
   title: 'Mockup Aurora · anteprima',
@@ -49,24 +46,21 @@ function AuroraWallpaper({ className }: { className?: string }) {
 }
 
 /**
- * Pannello vetro: stesso sistema della dashboard (`AuroraPanelShell` — layout + striscia superiore).
- * `className` = esterno (margini/larghezze); `contentClassName` = padding/design sul corpo sotto la striscia.
+ * Pannello vetro: stesso sistema della dashboard (`AuroraPanelShell` — solo layout vetro).
+ * `className` = esterno (margini/larghezze); `contentClassName` = padding/design sul corpo.
  */
 function GlassPanel(props: {
   className?: string
   contentClassName?: string
-  showTopBar?: boolean
   children: React.ReactNode
 }) {
   const {
     className = '',
     contentClassName = '',
-    showTopBar = true,
     children,
   } = props
   return (
     <div className={[AURORA_GLASS_PANEL_LAYOUT_CLASS, className].filter(Boolean).join(' ')}>
-      {showTopBar ? <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden /> : null}
       <div className={[contentClassName, 'min-w-0'].filter(Boolean).join(' ')}>{children}</div>
     </div>
   )
