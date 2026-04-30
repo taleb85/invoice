@@ -5372,8 +5372,8 @@ function FornitoreDetailClient({
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
-        {/* Intestazione + tab — bordo leggero, sfondo trasparente (gradient visibile sotto). */}
-        <div className="sticky top-0 z-[1] w-full border-b border-white/[0.08] bg-white/[0.025] pb-0.5 pt-1">
+        {/* Intestazione + tab — bordo visibile allineato alle card dashboard (app-line-15). */}
+        <div className="sticky top-0 z-[1] w-full rounded-lg border border-app-line-15 bg-white/[0.025] pb-0.5 pt-1">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
