@@ -18,6 +18,7 @@ import { openDocumentUrl } from '@/lib/open-document-url'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import {
   findUniqueFornitoreForPendingDoc,
+  MATCH_BOLLA_DATE_WINDOW_DAYS,
   normalizeAddressKey,
   resolveBolleMatchForPendingInvoice,
 } from '@/lib/auto-resolve-pending-doc'
@@ -182,12 +183,30 @@ function receivedDateIsoForPendingDoc(doc: Documento): string | null {
   return null
 }
 
-function bolleResolveOptsFromDoc(doc: Documento): { fallbackInvoiceDocIso?: string | null } {
+function calendarGapDaysIso(a: string, b: string): number | null {
+  const xa = (a ?? '').trim().slice(0, 10)
+  const xb = (b ?? '').trim().slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(xa) || !/^\d{4}-\d{2}-\d{2}$/.test(xb)) return null
+  const t1 = Date.parse(`${xa}T12:00:00.000Z`)
+  const t2 = Date.parse(`${xb}T12:00:00.000Z`)
+  if (!Number.isFinite(t1) || !Number.isFinite(t2)) return null
+  return Math.round(Math.abs(t2 - t1) / 86400000)
+}
+
+function bolleResolveOptsFromDoc(doc: Documento): {
+  fallbackInvoiceDocIso?: string | null
+  windowDays?: number
+} {
   const inv = officialDateIsoForPendingDoc(doc)?.trim() || ''
   if (!inv) return {}
   const recv = receivedDateIsoForPendingDoc(doc)?.trim() || ''
   if (!recv || recv === inv) return {}
-  return { fallbackInvoiceDocIso: recv }
+  const gap = calendarGapDaysIso(inv, recv)
+  const base: { fallbackInvoiceDocIso: string; windowDays?: number } = { fallbackInvoiceDocIso: recv }
+  if (gap != null && gap > MATCH_BOLLA_DATE_WINDOW_DAYS * 2) {
+    base.windowDays = Math.min(730, gap + MATCH_BOLLA_DATE_WINDOW_DAYS)
+  }
+  return base
 }
 
 /** Campi opzionali in `statements.extracted_pdf_dates` (jsonb). */
@@ -990,6 +1009,9 @@ export function PendingMatchesTab({
   const autoPendingKindTriedRef = useRef(new Set<string>())
   const autoRegisterFatturaTriedRef = useRef(new Set<string>())
   const dataDocOcrSyncAttemptedRef = useRef(new Set<string>())
+  /** Una sola corsa «Abbina tutto» silenziosa dopo il caricamento elenco (per filtro/sede attuali). */
+  const pendingSilentBulkRanRef = useRef(false)
+  const prevSilentBulkPendingIdsKeyRef = useRef<string>('')
   const [autoRegisterSetting, setAutoRegisterSetting] = useState(false)
   const [emailAutoSavedToday, setEmailAutoSavedToday] = useState<number | null>(null)
 
@@ -1027,6 +1049,17 @@ export function PendingMatchesTab({
     }
     return out
   }, [docs])
+
+  /** Stabile rispetto a metadata: evita reset continui del debounce sul silent bulk quando cambiano solo campi di riga. */
+  const pendingDocIdsStableKey = useMemo(
+    () =>
+      docs
+        .filter((d) => docNeedsManualProcessing(d.stato))
+        .map((d) => d.id)
+        .sort()
+        .join(','),
+    [docs],
+  )
 
   const fetchDocs = useCallback(async () => {
     setLoading(true)
@@ -1140,8 +1173,10 @@ export function PendingMatchesTab({
    * Ricarica documenti e bolle, poi per ogni voce in elenco:
    * collega il fornitore se l’abbinamento è univoco (P.IVA / email / indirizzo / ragione sociale),
    * associa alle bolle se OCR + bolle coincide (somma greedy esatta oppure combinazione univoca entro tol. ~5 %) con bolle dentro la finestra date rispetto alla data documento o, se diversa, al giorno di ricezione in coda).
+   * @param opts.silent — nessun toast informativo né di riepilogo successo (esecuzione automatica al caricamento lista).
    */
-  const runRefreshAndBulkAutoMatch = useCallback(async () => {
+  const runRefreshAndBulkAutoMatch = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true
     setBulkAnalyzing(true)
     autoLinkTriedRef.current = new Set()
     autoAssocTriedRef.current = new Set()
@@ -1285,17 +1320,19 @@ export function PendingMatchesTab({
         if (total === 0) {
           if (postErrCount && firstPostErr) {
             showToast(firstPostErr, 'error')
-          } else if (!bolleFetchErr) {
+          } else if (!bolleFetchErr && !silent) {
             showToast(t.statements.bulkAutoMatchNone, 'info')
           }
         } else {
-          showToast(
-            t.statements.bulkAutoMatchSummary
-              .replace(/\{linked\}/g, String(linked))
-              .replace(/\{associated\}/g, String(associated)),
-            'success',
-          )
-          if (postErrCount && firstPostErr) showToast(firstPostErr, 'info')
+          if (!silent) {
+            showToast(
+              t.statements.bulkAutoMatchSummary
+                .replace(/\{linked\}/g, String(linked))
+                .replace(/\{associated\}/g, String(associated)),
+              'success',
+            )
+          }
+          if (postErrCount && firstPostErr && !silent) showToast(firstPostErr, 'info')
         }
       }
     } catch {
@@ -1323,7 +1360,31 @@ export function PendingMatchesTab({
 
   useEffect(() => { fetchDocs(); fetchBolleAperte(); fetchFornitori() }, [fetchDocs, fetchBolleAperte, fetchFornitori])
 
+  /** Dopo il caricamento elenco: un passaggio «Abbina tutto» senza toast (ripetuto quando cambia l’insieme doc in lavorazione o il numero di bolle aperte). */
   useEffect(() => {
+    let t: ReturnType<typeof window.setTimeout> | undefined
+    if (!(loading || bulkAnalyzing)) {
+      const key = `${pendingDocIdsStableKey}|${bolleAperte.length}`
+      if (prevSilentBulkPendingIdsKeyRef.current !== key) {
+        prevSilentBulkPendingIdsKeyRef.current = key
+        pendingSilentBulkRanRef.current = false
+      }
+
+      if (pendingDocIdsStableKey && !pendingSilentBulkRanRef.current) {
+        t = window.setTimeout(() => {
+          pendingSilentBulkRanRef.current = true
+          void runRefreshAndBulkAutoMatch({ silent: true })
+        }, 1600)
+      }
+    }
+    return () => {
+      if (t) window.clearTimeout(t)
+    }
+  }, [loading, bulkAnalyzing, pendingDocIdsStableKey, bolleAperte.length, runRefreshAndBulkAutoMatch])
+
+  useEffect(() => {
+    pendingSilentBulkRanRef.current = false
+    prevSilentBulkPendingIdsKeyRef.current = ''
     autoPendingKindTriedRef.current = new Set()
     autoRegisterFatturaTriedRef.current = new Set()
     dataDocOcrSyncAttemptedRef.current = new Set()
@@ -1471,10 +1532,7 @@ export function PendingMatchesTab({
         if (autoAssocTriedRef.current.has(doc.id)) continue
 
         const relevant = bolleAperte.filter((b) => b.fornitore_id === doc.fornitore_id && b.importo != null && b.importo > 0)
-        if (!relevant.length) {
-          autoAssocTriedRef.current.add(doc.id)
-          continue
-        }
+        if (!relevant.length) continue
 
         const invoiceDateIso = officialDateIsoForPendingDoc(doc)
         const ids = resolveBolleMatchForPendingInvoice(

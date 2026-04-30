@@ -15,4 +15,14 @@ describe('resolveBolleMatchForPendingInvoice', () => {
       }),
     ).toEqual(['a'])
   })
+
+  it('expanded window catches bolle between invoice-year and receipt-year anchors', () => {
+    const bolle = [{ id: 'mid', importo: 42, data: '2026-03-01' }]
+    expect(
+      resolveBolleMatchForPendingInvoice(bolle, 42, '2025-07-10', {
+        fallbackInvoiceDocIso: '2026-04-29',
+        windowDays: 330,
+      }),
+    ).toEqual(['mid'])
+  })
 })
