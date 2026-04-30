@@ -16,7 +16,7 @@ import {
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
-import { DashboardSmartPairRiskGlass } from '@/components/DashboardAuroraHomeWidgets'
+import { DashboardBolleWorkloadGlass } from '@/components/DashboardAuroraHomeWidgets'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
@@ -318,7 +318,7 @@ export default async function DashboardPage(props: {
               </Suspense>
             </div>
             <div className="dashboard-operator-aurora-area-smart min-w-0">
-              <DashboardSmartPairRiskGlass kpis={kpis} scanner={scannerFlowDetail.summary} t={t} />
+              <DashboardBolleWorkloadGlass kpis={kpis} scanner={scannerFlowDetail.summary} t={t} />
             </div>
             <div className="dashboard-operator-aurora-area-scan min-w-0">
               <DashboardScannerFlowCard

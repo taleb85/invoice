@@ -19,7 +19,7 @@ function riskFromKpis(k: OperatorDashboardKpis): 'low' | 'medium' | 'high' {
   return 'low'
 }
 
-export function DashboardSmartPairRiskGlass({ kpis, scanner, t }: SmartProps) {
+export function DashboardBolleWorkloadGlass({ kpis, scanner, t }: SmartProps) {
   const totalBolle = Math.max(1, kpis.bolleTotal)
   const matchedPct = Math.min(100, Math.round(((totalBolle - kpis.bolleInAttesa) / totalBolle) * 100))
   const risk = riskFromKpis(kpis)
@@ -38,10 +38,10 @@ export function DashboardSmartPairRiskGlass({ kpis, scanner, t }: SmartProps) {
   const subtitle = t.dashboard.homeSmartPairMatchedLine.replace(/\{pct\}/g, String(matchedPct))
 
   return (
-    <section className={AURORA_HOME_SECTION_CLASS}>
+    <section className={AURORA_HOME_SECTION_CLASS} aria-label={t.dashboard.homeSmartPairTitle}>
       <div className="flex flex-col gap-4 p-4 md:flex-row md:items-stretch md:gap-5 md:p-5">
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
             {t.dashboard.homeSmartPairTitle}
           </h2>
           <p className="text-4xl font-bold tabular-nums text-white [text-shadow:0_0_24px_rgba(255,255,255,0.12)] md:text-5xl">
