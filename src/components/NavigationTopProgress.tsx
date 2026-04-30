@@ -7,6 +7,9 @@ import { usePathname, useSearchParams } from 'next/navigation'
 /** Host: strip desktop sticky in `AppShellMain` (tratto sup./inf. senza lati verticali). */
 export const APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID = 'app-desktop-header-nav-progress'
 
+/** Sotto-riga opzionale in `#app-desktop-header-nav-progress`: toolbar scheda fornitore (desktop), stesso anchor della strip sync/toolbar. */
+export const APP_DESKTOP_FORNITORE_DETAIL_TOOLBAR_HOST_ID = 'app-desktop-fornitore-detail-toolbar-host'
+
 const BUSY_CLEAR_MS = 14_000
 const PROGRESS_TICK_MS = 280
 const PROGRESS_CAP = 0.92

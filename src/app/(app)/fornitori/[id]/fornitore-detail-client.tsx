@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { createPortal } from 'react-dom'
 import {
   useCallback,
   useEffect,
@@ -78,6 +79,7 @@ const RecuperoCreditiAudit = dynamic(
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { APP_DESKTOP_FORNITORE_DETAIL_TOOLBAR_HOST_ID } from '@/components/NavigationTopProgress'
 import GmailAuditReadyBadge from '@/components/GmailAuditReadyBadge'
 import FluxoSupplierProfileLoading from '@/components/FluxoSupplierProfileLoading'
 import FornitoreAvatar from '@/components/FornitoreAvatar'
@@ -4819,6 +4821,17 @@ function FornitoreDetailClient({
 
   const supplierReadOnlyMobile = useMobileSupplierReadOnly()
   const mdUp = useMinMdViewport()
+  const [dockSupplierToolbarInShell, setDockSupplierToolbarInShell] = useState(false)
+  useLayoutEffect(() => {
+    if (!mdUp) {
+      setDockSupplierToolbarInShell(false)
+      return
+    }
+    setDockSupplierToolbarInShell(
+      typeof document !== 'undefined' &&
+        document.getElementById(APP_DESKTOP_FORNITORE_DETAIL_TOOLBAR_HOST_ID) != null,
+    )
+  }, [mdUp])
   const displayTab = useMemo((): Tab => {
     if (supplierReadOnlyMobile && MOBILE_READONLY_HIDDEN_TABS.includes(tab)) return 'dashboard'
     return tab
@@ -5228,121 +5241,8 @@ function FornitoreDetailClient({
   )
 
   const activeTabInfo = tabs.find((tb) => tb.id === displayTab) ?? tabs[0]!
-
-  return (
-    <>
-      <FornitoreDocDetailLayer
-        fornitoreId={fornitore.id}
-        bollaId={searchParams.get('bolla')}
-        fatturaId={searchParams.get('fattura')}
-        onAfterDelete={bumpPeriodLedger}
-      />
-      {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
-      <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden">
-        <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
-          <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
-          <div className="flex items-start gap-3 border-t border-app-line-10 px-3 py-2.5 text-app-fg bg-transparent">
-            <FornitoreAvatar nome={fornitoreLabelAvatar} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
-            <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitoreNomeVisual}</h1>
-              {!supplierReadOnlyMobile ? (
-                <ScanEmailButton
-                  variant="supplier"
-                  alwaysShowLabel
-                  fornitoreId={fornitore.id}
-                  sedeId={fornitore.sede_id ?? undefined}
-                  disabled={!fornitore.sede_id}
-                  disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
-                />
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="min-w-0">
-          {supplierReadOnlyMobile ? (
-            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} hiddenTabs={MOBILE_READONLY_HIDDEN_TABS} />
-          ) : (
-            <div
-              className="fornitore-mobile-tab-nav -mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden supports-[backdrop-filter:blur(0px)]:bg-white/[0.03]"
-              role="navigation"
-              aria-label={fornitoreNomeVisual}
-            >
-              {tabs.map((tb) => (
-                <button
-                  key={tb.id}
-                  type="button"
-                  onClick={() => setTab(tb.id)}
-                  className={`box-border flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-t-md px-2.5 py-2 text-xs font-semibold leading-none transition-colors border-b-2 -mb-px touch-manipulation sm:min-h-10 sm:px-3 ${
-                    tab === tb.id
-                      ? `${SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE[tb.id]} bg-transparent text-app-fg`
-                      : 'border-b-transparent bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
-                  }`}
-                >
-                  {tb.label}
-                  {tb.badge !== undefined && tb.badge > 0 ? (
-                    <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                        tab === tb.id
-                          ? tb.id === 'documenti'
-                            ? 'bg-amber-400/20 text-amber-300'
-                            : 'bg-app-a-20 text-app-fg-muted'
-                          : 'bg-white/10 text-app-fg-muted'
-                      }`}
-                    >
-                      {tb.badge}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border bg-transparent px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 id="mobile-supplier-tab-title" className="text-lg font-bold leading-tight tracking-tight text-app-fg">
-              {activeTabInfo.label}
-            </h2>
-            {activeTabInfo.badge != null && activeTabInfo.badge > 0 && (
-              <span className="rounded-full border border-app-line-25 bg-transparent px-2 py-0.5 text-xs font-bold tabular-nums text-app-fg-muted">
-                {activeTabInfo.badge > 99 ? '99+' : activeTabInfo.badge}
-              </span>
-            )}
-          </div>
-        </header>
-
-        <div className="min-w-0 scroll-mt-4 p-3 outline-none sm:p-4" data-supplier-tab-region tabIndex={-1}>
-          <ErrorBoundary sectionName="dettaglio fornitore">
-            <TabContent variant="mobile" />
-          </ErrorBoundary>
-          {displayTab === 'dashboard' ? (
-            <ErrorBoundary sectionName="risultati sincronizzazione email">
-              <div className="mt-4">
-                <StatoSincronizzazioneIntelligente
-                  fornitoreId={fornitore.id}
-                  fornitoreNome={fornitoreNomeVisual}
-                  sedeId={fornitore.sede_id ?? null}
-                />
-              </div>
-            </ErrorBoundary>
-          ) : null}
-        </div>
-      </div>
-
-      {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
-      <div className="hidden min-w-0 text-app-fg md:mx-4 md:mb-4 md:mt-2 md:block lg:mx-6 xl:mx-10">
-        {/*
-          Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
-          Nessun `max-w-*` interno: su schermi larghi usa tutta la colonna main (oltre al padding della classe).
-        */}
-        <div
-          className="fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-none flex-col md:pt-2 lg:pt-3"
-          role="region"
-          aria-label={t.fornitori.supplierDesktopRegionAria}
-        >
-        {/* Intestazione + tab — bordo leggero, sfondo trasparente (gradient visibile sotto). */}
-        <div className="sticky top-0 z-20 w-full border-b border-white/[0.08] bg-transparent pb-0.5 pt-1">
+  const renderSupplierDesktopToolbarInner = () => (
+          <>
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
@@ -5616,7 +5516,138 @@ function FornitoreDetailClient({
               )}
             </div>
           </div>
+          </>
+  )
+
+
+  return (
+    <>
+      {dockSupplierToolbarInShell
+        ? createPortal(
+            <div className="w-full border-b border-white/[0.08] bg-transparent md:mx-4 lg:mx-6 xl:mx-10">
+              <div className="fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-none flex-col pb-0.5 pt-1">
+                {renderSupplierDesktopToolbarInner()}
+              </div>
+            </div>,
+            document.getElementById(APP_DESKTOP_FORNITORE_DETAIL_TOOLBAR_HOST_ID)!,
+          )
+        : null}
+      <FornitoreDocDetailLayer
+        fornitoreId={fornitore.id}
+        bollaId={searchParams.get('bolla')}
+        fatturaId={searchParams.get('fattura')}
+        onAfterDelete={bumpPeriodLedger}
+      />
+      {/* ══ MOBILE (< md): padding basso gestito da AppShell (`showsMobileBottomBar`) ══ */}
+      <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden">
+        <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
+          <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
+          <div className="flex items-start gap-3 border-t border-app-line-10 px-3 py-2.5 text-app-fg bg-transparent">
+            <FornitoreAvatar nome={fornitoreLabelAvatar} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitoreNomeVisual}</h1>
+              {!supplierReadOnlyMobile ? (
+                <ScanEmailButton
+                  variant="supplier"
+                  alwaysShowLabel
+                  fornitoreId={fornitore.id}
+                  sedeId={fornitore.sede_id ?? undefined}
+                  disabled={!fornitore.sede_id}
+                  disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
+                />
+              ) : null}
+            </div>
+          </div>
         </div>
+
+        <div className="min-w-0">
+          {supplierReadOnlyMobile ? (
+            <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} hiddenTabs={MOBILE_READONLY_HIDDEN_TABS} />
+          ) : (
+            <div
+              className="fornitore-mobile-tab-nav -mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden supports-[backdrop-filter:blur(0px)]:bg-white/[0.03]"
+              role="navigation"
+              aria-label={fornitoreNomeVisual}
+            >
+              {tabs.map((tb) => (
+                <button
+                  key={tb.id}
+                  type="button"
+                  onClick={() => setTab(tb.id)}
+                  className={`box-border flex min-h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-t-md px-2.5 py-2 text-xs font-semibold leading-none transition-colors border-b-2 -mb-px touch-manipulation sm:min-h-10 sm:px-3 ${
+                    tab === tb.id
+                      ? `${SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE[tb.id]} bg-transparent text-app-fg`
+                      : 'border-b-transparent bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+                  }`}
+                >
+                  {tb.label}
+                  {tb.badge !== undefined && tb.badge > 0 ? (
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                        tab === tb.id
+                          ? tb.id === 'documenti'
+                            ? 'bg-amber-400/20 text-amber-300'
+                            : 'bg-app-a-20 text-app-fg-muted'
+                          : 'bg-white/10 text-app-fg-muted'
+                      }`}
+                    >
+                      {tb.badge}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border bg-transparent px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="mobile-supplier-tab-title" className="text-lg font-bold leading-tight tracking-tight text-app-fg">
+              {activeTabInfo.label}
+            </h2>
+            {activeTabInfo.badge != null && activeTabInfo.badge > 0 && (
+              <span className="rounded-full border border-app-line-25 bg-transparent px-2 py-0.5 text-xs font-bold tabular-nums text-app-fg-muted">
+                {activeTabInfo.badge > 99 ? '99+' : activeTabInfo.badge}
+              </span>
+            )}
+          </div>
+        </header>
+
+        <div className="min-w-0 scroll-mt-4 p-3 outline-none sm:p-4" data-supplier-tab-region tabIndex={-1}>
+          <ErrorBoundary sectionName="dettaglio fornitore">
+            <TabContent variant="mobile" />
+          </ErrorBoundary>
+          {displayTab === 'dashboard' ? (
+            <ErrorBoundary sectionName="risultati sincronizzazione email">
+              <div className="mt-4">
+                <StatoSincronizzazioneIntelligente
+                  fornitoreId={fornitore.id}
+                  fornitoreNome={fornitoreNomeVisual}
+                  sedeId={fornitore.sede_id ?? null}
+                />
+              </div>
+            </ErrorBoundary>
+          ) : null}
+        </div>
+      </div>
+
+      {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
+      <div className="hidden min-w-0 text-app-fg md:mx-4 md:mb-4 md:mt-2 md:block lg:mx-6 xl:mx-10">
+        {/*
+          Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
+          Nessun `max-w-*` interno: su schermi larghi usa tutta la colonna main (oltre al padding della classe).
+        */}
+        <div
+          className="fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-none flex-col md:pt-2 lg:pt-3"
+          role="region"
+          aria-label={t.fornitori.supplierDesktopRegionAria}
+        >
+        {/* Intestazione + tab: nel main se l'host shell non è disponibile; altrimenti solo portal sopra. */}
+        {!dockSupplierToolbarInShell ? (
+        <div className="sticky top-0 z-20 w-full border-b border-white/[0.08] bg-transparent pb-0.5 pt-1">
+          {renderSupplierDesktopToolbarInner()}
+        </div>
+        ) : null}
 
         {/* Tab content — altezza = contenuto; niente viewport min‑h che taglia il pannello vetro. */}
         <div className="w-full min-w-0">
