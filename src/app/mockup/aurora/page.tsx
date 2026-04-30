@@ -476,46 +476,145 @@ function DesktopWorkspaceMock() {
   )
 }
 
+function BottomNavDockIconWrap({
+  active,
+  children,
+}: {
+  active: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <span
+      className={
+        active
+          ? 'text-[#38bdf8] [filter:drop-shadow(0_0_10px_rgba(56,189,248,.75))_drop-shadow(0_0_3px_rgba(56,189,248,.95))]'
+          : 'text-[#cbd5e1]/75'
+      }
+    >
+      {children}
+    </span>
+  )
+}
+
 function BottomNavTab({
   active,
   children,
-  label,
+  ariaLabel,
 }: {
   active?: boolean
+  ariaLabel: string
   children: React.ReactNode
-  label: string
 }) {
-  const base =
-    'relative flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-1 pb-3 pt-2 text-[9px] font-semibold uppercase tracking-[0.12em]'
   return (
-    <div className={`${base} ${active ? 'text-cyan-300' : 'text-white/60'}`}>
-      {children}
-      <span className="leading-none">{label}</span>
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      aria-current={active ? 'page' : undefined}
+      className={`relative flex min-h-[52px] min-w-0 flex-1 shrink flex-col items-center justify-center rounded-[1.25rem] pb-2.5 pt-3 outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-[#38bdf8]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${active ? '' : 'opacity-90 hover:opacity-100'}`}
+    >
+      <BottomNavDockIconWrap active={!!active}>{children}</BottomNavDockIconWrap>
       {active ? (
-        <span className="pointer-events-none absolute bottom-1 left-1/2 h-[3px] w-10 -translate-x-1/2 rounded-full bg-gradient-to-r from-cyan-400 via-sky-300 to-cyan-400 shadow-[0_0_14px_rgba(34,211,238,.9),0_0_28px_rgba(34,211,238,.45)]" />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bottom-2 left-1/2 h-[3.5px] w-7 -translate-x-1/2 rounded-[2px] bg-[#38bdf8]"
+          style={{ boxShadow: '0 0 14px rgba(56,189,248,0.85), 0 0 6px rgba(56,189,248,1)' }}
+        />
       ) : null}
-    </div>
+    </button>
   )
 }
 
 function BottomNav() {
-  const barGlass =
-    'mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] flex shrink-0 items-stretch overflow-hidden rounded-2xl border border-cyan-400/35 bg-black/35 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_0_36px_-8px_rgba(34,211,238,0.25)] backdrop-blur-[24px]'
   return (
-    <div className={barGlass} style={{ WebkitBackdropFilter: 'blur(24px)' }}>
-      <BottomNavTab active label="Home">
-        <HomeIcon />
+    <nav
+      aria-label="Navigazione inferiore (mock Deep Aurora)"
+      className="mx-5 mb-[max(0.65rem,env(safe-area-inset-bottom))] flex shrink-0 items-center justify-evenly gap-1 border border-white/[0.12] bg-[rgba(15,23,42,0.42)] px-1 shadow-[0_12px_40px_-14px_rgba(0,0,0,.6),inset_0_1px_0_0_rgba(255,255,255,0.05)] backdrop-blur-[28px]"
+      style={{ borderRadius: '1.875rem', WebkitBackdropFilter: 'blur(28px)' }}
+    >
+      <BottomNavTab active ariaLabel="Home">
+        <HomeDockIcon className="h-[26px] w-[26px]" />
       </BottomNavTab>
-      <BottomNavTab label="Attività">
-        <ChecklistIcon />
+      <BottomNavTab ariaLabel="Attività">
+        <ActivityDockIcon className="h-[26px] w-[26px]" />
       </BottomNavTab>
-      <BottomNavTab label="Alert">
-        <BellIcon />
+      <BottomNavTab ariaLabel="Alert">
+        <BellDockIcon className="h-[26px] w-[26px]" />
       </BottomNavTab>
-      <BottomNavTab label="Impostazioni">
-        <GearIcon />
+      <BottomNavTab ariaLabel="Impostazioni">
+        <GearDockIcon className="h-[26px] w-[26px]" />
       </BottomNavTab>
-    </div>
+    </nav>
+  )
+}
+
+function HomeDockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.65}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M4 11.5 12 4l8 7.5V20a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 20v-8.5z" />
+      <path d="M9 21.5v-9h6v9" />
+    </svg>
+  )
+}
+
+function ActivityDockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.65}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <rect x="4.5" y="4.5" width="15" height="15" rx="4" ry="4" />
+      <path d="m8 12.5 2.5 2 5-5.5" />
+    </svg>
+  )
+}
+
+function BellDockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.65}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9" />
+    </svg>
+  )
+}
+
+function GearDockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.65}
+      strokeLinejoin="round"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 0 0 2.572-1.065z" />
+      <path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+    </svg>
   )
 }
 
@@ -527,42 +626,6 @@ function DeepAuroraFloatingTitle(props: { subtitle?: string }) {
       </p>
       {props.subtitle ? <p className="mt-2 text-[11px] text-white/70">{props.subtitle}</p> : null}
     </div>
-  )
-}
-
-function ChecklistIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M8 7h13M8 12h13M8 17h13M4.5 7h2v2h-2V7zm0 5h2v2h-2v-2zm0 5h2v2h-2v-2z"
-      />
-    </svg>
-  )
-}
-
-function HomeIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  )
-}
-function BellIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-    </svg>
-  )
-}
-function GearIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
   )
 }
 
