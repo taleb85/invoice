@@ -1310,27 +1310,46 @@ body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet-header {
   border-color: rgb(56 189 248 / 0.16) !important;
 }
 
-/* Login / accesso / sede-lock / offline: card e vetro allineati ad Aurora */
-/* Login glass: combinato perché sia la base sia -transparent dichiarano background !important */
+/* Login / accesso / sede-lock / offline — stesso linguaggio vetro delle card app (`integration`): bordo sky + fill leggibile */
 [data-deep-aurora-public-shell] .app-card-login {
-  border-color: rgb(255 255 255 / 0.1) !important;
-  background: rgb(255 255 255 / 0.04) !important;
-  backdrop-filter: blur(28px) !important;
-  -webkit-backdrop-filter: blur(28px) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  border-color: rgb(56 189 248 / 0.28) !important;
+  border-top-width: 2px !important;
+  border-top-color: rgb(56 189 248 / 0.52) !important;
+  background-color: rgb(2 6 23 / 0.62) !important;
+  background-image: linear-gradient(
+    145deg,
+    rgb(255 255 255 / 0.09) 0%,
+    rgb(255 255 255 / 0.038) 48%,
+    rgb(56 189 248 / 0.04) 100%
+  ) !important;
+  backdrop-filter: blur(22px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
   box-shadow:
-    0 4px 30px rgb(0 0 0 / 0.45),
+    0 4px 32px rgb(0 0 0 / 0.42),
     0 0 0 1px rgb(255 255 255 / 0.06),
-    0 0 52px -14px rgb(56 189 248 / 0.14) !important;
+    0 0 56px -16px rgb(56 189 248 / 0.2),
+    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
 }
 
 [data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent {
-  background: rgb(255 255 255 / 0.09) !important;
-  backdrop-filter: blur(26px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(26px) saturate(160%) !important;
+  border-color: rgb(56 189 248 / 0.32) !important;
+  border-top-color: rgb(56 189 248 / 0.58) !important;
+  background-color: rgb(2 6 23 / 0.68) !important;
+  background-image: linear-gradient(
+    155deg,
+    rgb(255 255 255 / 0.12) 0%,
+    rgb(255 255 255 / 0.048) 45%,
+    rgb(129 140 248 / 0.05) 100%
+  ) !important;
+  backdrop-filter: blur(24px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(170%) !important;
   box-shadow:
-    0 4px 34px rgb(0 0 0 / 0.38),
+    0 8px 40px rgb(0 0 0 / 0.48),
+    0 0 0 1px rgb(56 189 248 / 0.12),
+    0 0 64px -18px rgb(56 189 248 / 0.24),
     inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
-  border-color: rgb(255 255 255 / 0.12) !important;
 }
 
 /* Pulsanti primari: se combina bg-app-cyan-500 + text-white, forza contrasto scuro (palette Aurora). */
@@ -1352,5 +1371,25 @@ body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
     box-shadow:
       0 -8px 28px -8px rgb(0 0 0 / 0.42),
       0 0 32px -10px rgb(56 189 248 / 0.12) !important;
+  }
+
+  [data-deep-aurora-public-shell] .app-card-login,
+  [data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-image: linear-gradient(
+      to bottom right,
+      rgb(30 41 59 / 0.97),
+      rgb(15 23 42 / 0.98),
+      rgb(30 27 75 / 0.92)
+    ) !important;
+    background-color: rgb(15 23 42 / 0.98) !important;
+    border-top-color: rgb(56 189 248 / 0.52) !important;
+    border-color: rgb(56 189 248 / 0.28) !important;
+    box-shadow:
+      0 8px 36px rgb(0 0 0 / 0.5),
+      0 0 0 1px rgb(255 255 255 / 0.08),
+      0 0 48px -14px rgb(56 189 248 / 0.18),
+      inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
   }
 }
