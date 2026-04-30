@@ -79,8 +79,7 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
       </AppPageHeaderStrip>
 
       {/* Period selector — stesso accento teal della strip Analitiche */}
-      <div className="relative mb-5 overflow-hidden rounded-2xl border border-teal-500/20 bg-transparent">
-        <div className="h-0.5 w-full shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-600 [box-shadow:0_0_16px_rgba(20,184,166,0.55),0_0_28px_rgba(6,182,212,0.35)]" />
+      <div className="relative mb-5 overflow-hidden rounded-2xl border border-app-line-28 bg-transparent">
         <div className="flex min-h-10 flex-wrap items-center gap-x-2 gap-y-2 px-4 py-2.5 sm:px-5 sm:py-3">
           {[3, 6, 12].map((value) => (
             <a

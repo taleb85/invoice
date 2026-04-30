@@ -852,9 +852,7 @@ export default function SediPage() {
         ) : (
           <div className="space-y-3">
             {sedi.map((sede) => (
-              <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent">
-                <div className="h-0.5 shrink-0 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-700 [box-shadow:0_0_16px_rgba(20,184,166,0.48)]" aria-hidden />
-
+              <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-app-line-28 bg-transparent">
                 {/* ── Header sede ── */}
                 <div className="flex items-center justify-between px-5 py-4">
                   {editingSede?.id === sede.id ? (
