@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { ReturnToLink } from '@/components/ReturnToLink'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { useT } from '@/lib/use-t'
 import type { PendingApprovalFattura } from '@/app/api/fatture/pending-approval/route'
 
@@ -140,13 +141,24 @@ export function ApprovalQueue() {
               <p className="font-mono text-lg font-bold tabular-nums text-app-fg">
                 {fmt(f.importo)}
               </p>
-              <ReturnToLink
-                to={`/fatture/${f.id}`}
-                from="/approvazioni"
-                className="text-[10px] text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
-              >
-                {t.appStrings.approvazioni_viewInvoice}
-              </ReturnToLink>
+              {f.file_url?.trim() ? (
+                <OpenDocumentInAppButton
+                  fatturaId={f.id}
+                  fileUrl={f.file_url}
+                  className="text-[10px] text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
+                  title={t.appStrings.approvazioni_viewInvoice}
+                >
+                  {t.appStrings.approvazioni_viewInvoice}
+                </OpenDocumentInAppButton>
+              ) : (
+                <ReturnToLink
+                  to={`/fatture/${f.id}`}
+                  from="/approvazioni"
+                  className="text-[10px] text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
+                >
+                  {t.appStrings.approvazioni_viewInvoice}
+                </ReturnToLink>
+              )}
             </div>
           </div>
 
