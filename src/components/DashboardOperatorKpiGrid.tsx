@@ -408,15 +408,9 @@ export default function DashboardOperatorKpiGrid({
                     >
                       {item.value}
                     </p>
-                    <p
-                      className={
-                        glassShell
-                          ? 'w-full min-w-0 text-[11px] font-medium leading-snug text-white/65 sm:text-[12px] sm:leading-snug'
-                          : kpiTileSubLine
-                      }
-                    >
-                      {item.sub}
-                    </p>
+                    {!glassShell ? (
+                      <p className={kpiTileSubLine}>{item.sub}</p>
+                    ) : null}
                     {item.bollePendingHref && item.bollePendingCta && k.bolleInAttesa > 0 ? (
                       <span
                         role="link"
