@@ -98,15 +98,16 @@ export function ActivityGlyph({ id, className = 'h-3 w-3' }: { id: ActivityGlyph
 /** Dot + etichetta sync IMAP toolbar (OK / ritardo / ferma / errore). */
 export function EmailSyncHealthMarker({
   tier,
-  className = 'h-2 w-2 shrink-0',
+  className,
 }: {
   tier: 'ok' | 'late' | 'stopped' | 'issue'
   className?: string
 }) {
+  const issueCn = ['h-3 w-3 shrink-0 text-amber-400', className].filter(Boolean).join(' ')
   if (tier === 'issue') {
     return (
       <GlyphIcon
-        className={`${className} h-3 w-3 text-amber-400`}
+        className={issueCn}
         paths={
           <path strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         }
@@ -115,8 +116,9 @@ export function EmailSyncHealthMarker({
   }
   const fill =
     tier === 'ok' ? 'rgb(52 211 153)' : tier === 'late' ? 'rgb(251 191 36)' : 'rgb(248 113 113)'
+  const dotCn = ['h-2 w-2 shrink-0 rounded-full', className].filter(Boolean).join(' ')
   return (
-    <svg viewBox="0 0 8 8" aria-hidden className={[className, 'rounded-full'].filter(Boolean).join(' ')}>
+    <svg viewBox="0 0 8 8" aria-hidden className={dotCn}>
       <circle cx="4" cy="4" r="4" fill={fill} />
     </svg>
   )
