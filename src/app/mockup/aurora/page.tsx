@@ -1,4 +1,8 @@
 import type { Metadata } from 'next'
+import {
+  AURORA_GLASS_CARD_TOP_BAR_CLASS,
+  AURORA_GLASS_PANEL_LAYOUT_CLASS,
+} from '@/lib/summary-highlight-accent'
 
 export const metadata: Metadata = {
   title: 'Mockup Aurora · anteprima',
@@ -44,9 +48,28 @@ function AuroraWallpaper({ className }: { className?: string }) {
   )
 }
 
-/** Pannello vetro: usa `.glass-card` definita in `globals.css` sotto `[data-deep-aurora-shell]`. */
-function GlassPanel(props: { className?: string; children: React.ReactNode }) {
-  return <div className={`glass-card ${props.className ?? ''}`}>{props.children}</div>
+/**
+ * Pannello vetro: stesso sistema della dashboard (`AuroraPanelShell` — layout + striscia superiore).
+ * `className` = esterno (margini/larghezze); `contentClassName` = padding/design sul corpo sotto la striscia.
+ */
+function GlassPanel(props: {
+  className?: string
+  contentClassName?: string
+  showTopBar?: boolean
+  children: React.ReactNode
+}) {
+  const {
+    className = '',
+    contentClassName = '',
+    showTopBar = true,
+    children,
+  } = props
+  return (
+    <div className={[AURORA_GLASS_PANEL_LAYOUT_CLASS, className].filter(Boolean).join(' ')}>
+      {showTopBar ? <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden /> : null}
+      <div className={[contentClassName, 'min-w-0'].filter(Boolean).join(' ')}>{children}</div>
+    </div>
+  )
 }
 
 function FakeLineChart({ uid }: { uid: string }) {
@@ -492,7 +515,7 @@ function DesktopWorkspaceMock() {
                     <AuroraWallpaper />
                   </div>
                   <div className="relative z-[1] flex flex-1 flex-col gap-5 p-4 sm:p-6">
-                    <GlassPanel className="p-5 sm:p-6">
+                    <GlassPanel contentClassName="p-5 sm:p-6">
                       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                         <span className="text-[13px] font-semibold uppercase tracking-wider text-white">
                           Andamento mensile
@@ -539,7 +562,7 @@ function DesktopWorkspaceMock() {
                         </p>
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                           {DESKTOP_KPIS.map((k) => (
-                            <GlassPanel key={k.title} className="relative overflow-hidden p-4">
+                            <GlassPanel key={k.title} contentClassName="relative overflow-hidden p-4">
                               <div
                                 aria-hidden
                                 className={`absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r ${k.bar}`}
@@ -552,7 +575,7 @@ function DesktopWorkspaceMock() {
                             </GlassPanel>
                           ))}
                         </div>
-                        <GlassPanel className="mt-5 p-5">
+                        <GlassPanel className="mt-5" contentClassName="p-5">
                           <p className="text-[13px] font-semibold uppercase tracking-wide text-white">
                             Smart Pair scanner · score anomalie
                           </p>
@@ -581,7 +604,7 @@ function DesktopWorkspaceMock() {
                         <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white">
                           Priorità
                         </p>
-                        <GlassPanel className="divide-y divide-white/10">
+                        <GlassPanel contentClassName="divide-y divide-white/10">
                           {[
                             { t: 'Gruppi duplicati', d: '2 possibili doppioni fatture' },
                             { t: 'Fornitori incompleti', d: 'P.IVA o SDI da completare' },
@@ -603,7 +626,7 @@ function DesktopWorkspaceMock() {
                             </button>
                           ))}
                         </GlassPanel>
-                        <GlassPanel className="mt-4 p-4">
+                        <GlassPanel className="mt-4" contentClassName="p-4">
                           <p className="text-[11px] font-medium uppercase tracking-wide text-white">Suggerimento</p>
                           <p className="mt-2 text-[13px] leading-relaxed text-slate-400">
                             Allinea i fornitori mancanti nella coda Smart Pair prima del closing mensile — meno mismatch in
@@ -681,7 +704,7 @@ function PhoneOpportunityStrip() {
     { Icon: OppSparkIcon, label: 'Azioni smart' },
   ]
   return (
-    <GlassPanel className="p-3">
+    <GlassPanel contentClassName="p-3">
       <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-white">
         Opportunità top
       </p>
@@ -727,7 +750,7 @@ export default function MockupAuroraPage() {
         className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-color)]/50 to-transparent"
       />
       <div className="relative z-[1] mx-auto min-h-dvh w-full max-w-[1600px] flex-1 px-4 py-8 pb-16 font-[family-name:var(--font-outfit)] sm:px-6 lg:py-12">
-        <GlassPanel className="mx-auto mb-10 max-w-3xl px-5 py-4 text-center sm:px-8">
+        <GlassPanel className="mx-auto mb-10 max-w-3xl" contentClassName="px-5 py-4 text-center sm:px-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#38bdf8]">
             Deep Aurora · Asset Guide
           </p>
@@ -753,7 +776,7 @@ export default function MockupAuroraPage() {
           <PhoneShell label="Schermata 1 · come il promo (grafici + KPI)">
             <DeepAuroraFloatingTitle subtitle="Insight mensili · demo" />
             <div className="flex-1 space-y-3 px-4 pb-2">
-              <GlassPanel className="p-4">
+              <GlassPanel contentClassName="p-4">
                 <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
@@ -792,7 +815,7 @@ export default function MockupAuroraPage() {
                 </div>
               </GlassPanel>
               <div className="grid grid-cols-2 gap-2">
-                <GlassPanel className="p-3">
+                <GlassPanel contentClassName="p-3">
                   <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white">
                     Velocità acquisti
                   </p>
@@ -801,7 +824,7 @@ export default function MockupAuroraPage() {
                   </p>
                   <p className="mt-1 text-[10px] text-slate-400">vs obiettivo FY</p>
                 </GlassPanel>
-                <GlassPanel className="p-3">
+                <GlassPanel contentClassName="p-3">
                   <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white">Risk score</p>
                   <p className="mt-2 text-xl font-bold uppercase tracking-wide text-[#4ade80] drop-shadow-[0_0_14px_rgba(74,222,128,.75)]">
                     Low
@@ -818,7 +841,7 @@ export default function MockupAuroraPage() {
             <p className="px-4 pb-1 text-center text-xs font-semibold text-white">Riepilogo operativo</p>
             <div className="flex-1 space-y-2.5 px-4 pb-2">
               {DESKTOP_KPIS.map((k) => (
-                <GlassPanel key={k.title} className="relative overflow-hidden p-3.5">
+                <GlassPanel key={k.title} contentClassName="relative overflow-hidden p-3.5">
                   <div
                     aria-hidden
                     className={`absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r ${k.bar} opacity-80`}
@@ -843,7 +866,7 @@ export default function MockupAuroraPage() {
             <DeepAuroraFloatingTitle subtitle="Purchase intelligence" />
             <div className="flex flex-1 flex-col gap-3 px-4 pb-2 pt-2">
               <PhoneOpportunityStrip />
-              <GlassPanel className="p-4">
+              <GlassPanel contentClassName="p-4">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white">Azioni consigliate</p>
                 <p className="mt-3 text-[12px] leading-relaxed text-slate-400">
                   Verifica prima i contratti vendor in scadenza e allinea gli alert sicurezza: massimo impatto sul
