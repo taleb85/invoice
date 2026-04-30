@@ -76,12 +76,12 @@ export function SidebarRailBrand() {
           </svg>
         </div>
 
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-baseline gap-1 leading-none">
             <span className="font-outfit text-[15px] font-semibold tracking-tight text-[#38bdf8]">Smart</span>
             <span className="font-outfit text-[15px] font-light tracking-tight text-white">Pair</span>
           </div>
-          <AppBuildInfo variant="rail" className="mt-1 block" />
+          <AppBuildInfo variant="rail" className="mt-1 block self-end" />
         </div>
       </div>
     </div>
