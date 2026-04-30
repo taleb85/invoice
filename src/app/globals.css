@@ -1212,6 +1212,69 @@ body:has([data-deep-aurora-integration]) input[type='datetime-local'] {
   color-scheme: dark;
 }
 
+/** Dock mobile: vetro su gradiente Aurora (niente fascia slate quasi opaca Fluxo). */
+body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
+  background-image: linear-gradient(
+    to top,
+    rgb(2 6 23 / 0.5),
+    rgb(15 23 42 / 0.38),
+    rgb(30 27 75 / 0.34)
+  ) !important;
+  background-color: rgb(255 255 255 / 0.045) !important;
+  box-shadow:
+    0 -8px 32px -8px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.09),
+    0 0 40px -12px rgb(56 189 248 / 0.18) !important;
+}
+
+body:has([data-deep-aurora-integration]) nav.app-glass-dock.border-t-2 {
+  border-top-color: rgb(56 189 248 / 0.55) !important;
+}
+
+/**
+ * Overlay modali liste / anteprima: scrim Aurora (elimina rgba hardcoded nei portal).
+ */
+body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay {
+  background: rgb(2 6 23 / 0.55) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+/**
+ * Pannello fullscreen documenti (`PublicPdfOpenMenu`, `OpenDocumentInAppButton`).
+ */
+body:has([data-deep-aurora-integration]) .app-aurora-doc-modal-shell {
+  background: rgb(255 255 255 / 0.06) !important;
+  background-image: none !important;
+  backdrop-filter: blur(22px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
+  border-top-color: rgb(56 189 248 / 0.55) !important;
+  box-shadow:
+    0 0 48px -12px rgb(56 189 248 / 0.2),
+    0 24px 48px -12px rgb(0 0 0 / 0.48),
+    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+}
+
+body:has([data-deep-aurora-integration]) iframe.app-aurora-viewer-fill,
+body:has([data-deep-aurora-integration]) .app-aurora-viewer-fill {
+  background-color: rgb(2 6 23 / 0.35) !important;
+}
+
+body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet {
+  border-color: rgb(56 189 248 / 0.22) !important;
+  background: rgb(255 255 255 / 0.07) !important;
+  background-image: none !important;
+  backdrop-filter: blur(20px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
+  box-shadow:
+    0 4px 36px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+}
+
+body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet-header {
+  border-color: rgb(56 189 248 / 0.16) !important;
+}
+
 /* Login / accesso / sede-lock / offline: card e vetro allineati ad Aurora */
 /* Login glass: combinato perché sia la base sia -transparent dichiarano background !important */
 [data-deep-aurora-public-shell] .app-card-login {
@@ -1240,4 +1303,19 @@ body:has([data-deep-aurora-shell]) .bg-app-cyan-500.text-white,
 body:has([data-deep-aurora-integration]) .bg-app-cyan-500.text-white,
 body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
   color: rgb(15 23 42) !important;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
+    background-image: linear-gradient(
+      to top,
+      rgb(15 23 42 / 0.96),
+      rgb(30 41 59 / 0.93),
+      rgb(30 27 75 / 0.9)
+    ) !important;
+    background-color: rgb(15 23 42 / 0.94) !important;
+    box-shadow:
+      0 -8px 28px -8px rgb(0 0 0 / 0.42),
+      0 0 32px -10px rgb(56 189 248 / 0.12) !important;
+  }
 }

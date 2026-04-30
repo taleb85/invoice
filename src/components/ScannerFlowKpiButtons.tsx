@@ -126,20 +126,17 @@ function DetailModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[120] flex items-end justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:items-center sm:p-5"
-      style={{ background: 'rgba(10,25,47,0.92)', backdropFilter: 'blur(10px)' }}
+      className="fixed inset-0 z-[120] flex items-end justify-center p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] app-aurora-modal-overlay sm:items-center sm:p-5"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-[rgba(34,211,238,0.2)] sm:max-h-[80vh] sm:max-w-4xl sm:rounded-2xl md:max-w-5xl lg:max-w-6xl"
-        style={{ background: '#0f2a4a' }}
+        className="app-aurora-kpi-sheet flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border sm:max-h-[80vh] sm:max-w-4xl sm:rounded-2xl md:max-w-5xl lg:max-w-6xl"
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-5"
-          style={{ borderColor: 'rgba(34,211,238,0.15)' }}>
+        <div className="app-aurora-kpi-sheet-header flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3.5 sm:px-5">
           <div className="min-w-0">
             <h2 id={titleId} className="text-sm font-bold text-app-fg sm:text-base">
               {title}
@@ -159,8 +156,7 @@ function DetailModal({
             type="button"
             onClick={onClose}
             aria-label="Chiudi"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors"
-            style={{ borderColor: 'rgba(34,211,238,0.2)', color: '#94a3b8' }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-sky-400/20 text-[#94a3b8] transition-colors hover:border-sky-400/35 hover:bg-white/[0.04] hover:text-app-fg"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -172,7 +168,7 @@ function DetailModal({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {fetchState === 'loading' && (
             <div className="flex items-center justify-center py-14" role="status" aria-live="polite">
-              <svg className="h-7 w-7 animate-spin text-cyan-400/70" fill="none" viewBox="0 0 24 24" aria-hidden>
+              <svg className="h-7 w-7 animate-spin text-sky-400/75" fill="none" viewBox="0 0 24 24" aria-hidden>
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
@@ -212,8 +208,7 @@ function DetailModal({
                   </colgroup>
                 )}
                 <thead>
-                  <tr className="border-b text-[10px] font-semibold uppercase tracking-wider text-app-fg-muted"
-                    style={{ borderColor: 'rgba(34,211,238,0.12)' }}>
+                  <tr className="border-b border-sky-400/15 text-[10px] font-semibold uppercase tracking-wider text-app-fg-muted">
                     <th className="px-2 py-2.5 pl-3 sm:px-2.5 sm:pl-4">Orario</th>
                     {!isElaborate && <th className="px-1 py-2.5">Tipo</th>}
                     {!isElaborate && <th className="px-1 py-2.5">Fornitore</th>}
@@ -224,14 +219,11 @@ function DetailModal({
                     {!isElaborate && <th className="px-1 py-2.5 pr-3 sm:pr-4">File</th>}
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: 'rgba(34,211,238,0.08)' }}>
+                <tbody className="divide-y divide-sky-400/10">
                   {rows.map((row) => (
                     <tr
                       key={row.id}
-                      className="transition-colors"
-                      style={{ borderColor: 'rgba(34,211,238,0.08)' }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(34,211,238,0.04)' }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = '' }}
+                      className="transition-colors hover:bg-white/[0.04]"
                     >
                       <td className="min-w-0 px-2 py-2 pl-3 sm:pl-4">
                         <span

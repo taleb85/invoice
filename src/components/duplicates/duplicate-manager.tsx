@@ -519,7 +519,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
         }}
       />
       <div
-        className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-6"
+        className="fixed inset-0 z-[90] flex items-end justify-center p-3 app-aurora-modal-overlay sm:items-center sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -527,7 +527,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
       >
         <div
           ref={panelRef}
-          className="flex max-h-[min(92vh,780px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] app-workspace-surface-elevated shadow-[0_0_50px_-15px_rgba(249,156,0,0.3)]"
+          className="flex max-h-[min(92vh,780px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-sky-400/22 app-workspace-surface-elevated shadow-[0_0_50px_-15px_rgba(249,156,0,0.28)]"
         >
           {/* Header */}
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5 sm:px-5">

@@ -123,7 +123,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
 
             {/* Document frame overlay */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[85%] max-w-sm aspect-[3/4] border-2 border-[#22d3ee] rounded-2xl" />
+              <div className="w-[85%] max-w-sm aspect-[3/4] border-2 border-sky-400 rounded-2xl" />
             </div>
 
             <div className="absolute top-4 left-0 right-0 text-center">
@@ -152,7 +152,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
             {/* Capture button */}
             <button
               onClick={capture}
-              className="w-20 h-20 rounded-full bg-[#22d3ee] flex items-center justify-center shadow-[0_0_30px_rgba(34,211,238,0.5)]"
+              className="w-20 h-20 rounded-full bg-[#38bdf8] flex items-center justify-center shadow-[0_0_30px_rgba(56,189,248,0.45)]"
             >
               <div className="w-16 h-16 rounded-full border-4 border-black/20" />
             </button>
@@ -172,14 +172,14 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
 
       {phase === 'processing' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="w-16 h-16 rounded-full border-4 border-[#22d3ee] border-t-transparent animate-spin" />
+          <div className="w-16 h-16 rounded-full border-4 border-[#38bdf8] border-t-transparent animate-spin" />
           <p className="text-white/70">Analisi documento in corso...</p>
           <p className="text-white/40 text-xs">L&apos;estrazione AI sta analizzando il documento</p>
         </div>
       )}
 
       {phase === 'confirm' && result && (
-        <div className="flex-1 flex flex-col bg-[#0a192f]">
+        <div className="flex-1 flex flex-col app-workspace-inset-bg-soft bg-slate-950/40">
           <div className="px-6 pt-8 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <div
@@ -209,7 +209,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
                 onClick={() => setSelectedTipo('bolla')}
                 className={`min-h-[44px] flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors touch-manipulation ${
                   selectedTipo === 'bolla'
-                    ? 'border-[#22d3ee] bg-cyan-500/15 text-cyan-100'
+                    ? 'border-sky-400/70 bg-sky-400/15 text-sky-100'
                     : 'border-white/15 bg-white/5 text-white/60 hover:border-white/25'
                 }`}
               >
@@ -259,7 +259,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
             <button
               onClick={handleConfirm}
               disabled={saving}
-              className="flex-1 py-3 rounded-xl bg-[#22d3ee] text-[#0a192f] font-semibold text-sm disabled:opacity-50"
+              className="flex-1 py-3 rounded-xl bg-[#38bdf8] text-slate-950 font-semibold text-sm disabled:opacity-50"
             >
               {saving ? 'Salvataggio...' : 'Conferma e salva'}
             </button>
@@ -274,7 +274,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
           <div className="flex gap-3">
             <button
               onClick={() => startCamera()}
-              className="px-6 py-3 rounded-xl bg-[#22d3ee] text-[#0a192f] font-semibold"
+              className="px-6 py-3 rounded-xl bg-[#38bdf8] text-slate-950 font-semibold"
             >
               Riprova
             </button>
@@ -287,7 +287,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
           </div>
           {/* File upload fallback when camera fails */}
           <label className="mt-2 cursor-pointer">
-            <span className="text-[#22d3ee] text-sm underline underline-offset-2">
+            <span className="text-[#38bdf8] text-sm underline underline-offset-2">
               Oppure carica un file
             </span>
             <input

@@ -387,23 +387,15 @@ export default function DocumentPreviewModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: 'rgba(10, 25, 47, 0.85)', backdropFilter: 'blur(8px)' }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 app-aurora-modal-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div
-        className="flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden shadow-[0_0_60px_-15px_rgba(34,211,238,0.25)]"
-        style={{
-          background: '#0f2a4a',
-          border: '1px solid rgba(34, 211, 238, 0.2)',
-          borderRadius: 16,
-        }}
-      >
+      <div className="app-card flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden shadow-[0_0_52px_-12px_rgba(56,189,248,0.22)]">
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[rgba(34,211,238,0.12)] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-sky-400/15 px-5 py-4">
           <h2 id={titleId} className="text-sm font-bold text-app-fg">
             {title}
           </h2>
@@ -423,7 +415,7 @@ export default function DocumentPreviewModal({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {fetchState.status === 'loading' && (
             <div className="flex flex-col items-center gap-3 py-12" role="status" aria-live="polite">
-              <svg className="h-7 w-7 animate-spin text-[#22d3ee]/60" fill="none" viewBox="0 0 24 24" aria-hidden>
+              <svg className="h-7 w-7 animate-spin text-sky-400/70" fill="none" viewBox="0 0 24 24" aria-hidden>
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
@@ -454,7 +446,7 @@ export default function DocumentPreviewModal({
         </div>
 
         {/* Footer */}
-        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[rgba(34,211,238,0.12)] px-5 py-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-sky-400/15 px-5 py-3">
           <button
             type="button"
             onClick={onClose}
