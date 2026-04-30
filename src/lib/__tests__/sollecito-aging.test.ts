@@ -3,6 +3,8 @@ import {
   DEFAULT_SOLLECITI_TOLERANCE,
   fetchSollecitiToleranceConfig,
   fetchSollecitiReminderSettings,
+  fetchSoglieSollecitiDocumenti,
+  getSoglieSollecitiDocumentiFallback,
   canSendSolleciti,
   isBollaOverdue,
   isPromisedDocOverdue,
@@ -81,6 +83,11 @@ describe('isBollaOverdue', () => {
       }),
     ).toBe(false)
   })
+
+  it('overload (bollaData, soglia): solo confronto data vs oggi, senza stato', () => {
+    expect(isBollaOverdue('2026-01-05', 5, now)).toBe(true)
+    expect(isBollaOverdue('2026-01-06', 5, now)).toBe(false)
+  })
 })
 
 describe('isPromisedDocOverdue', () => {
@@ -121,6 +128,20 @@ describe('isPromisedDocOverdue', () => {
       }),
     ).toBe(true)
   })
+
+  it('overload (metadata, createdAt, soglia)', () => {
+    expect(
+      isPromisedDocOverdue(
+        { promessa_invio_documento: true },
+        '2026-01-01T10:00:00Z',
+        2,
+        now,
+      ),
+    ).toBe(true)
+    expect(
+      isPromisedDocOverdue({ promessa_invio_documento: true }, '2026-01-05T10:00:00Z', 2, now),
+    ).toBe(false)
+  })
 })
 
 describe('statementCheckIsMismatch / isStatementMismatchOverdue', () => {
@@ -152,6 +173,25 @@ describe('statementCheckIsMismatch / isStatementMismatchOverdue', () => {
         now,
       }),
     ).toBe(false)
+  })
+})
+
+describe('getSoglieSollecitiDocumentiFallback / fetchSoglieSollecitiDocumenti', () => {
+  it('fallback statico 5 / 2 giorni', () => {
+    expect(getSoglieSollecitiDocumentiFallback()).toEqual({
+      giorniAttesaBolla: DEFAULT_SOLLECITI_TOLERANCE.giorniTolBolla,
+      giorniAttesaPromessa: DEFAULT_SOLLECITI_TOLERANCE.giorniTolPromessa,
+    })
+  })
+
+  it('fetch allinea a tolerance config (anche con DB fallito → default)', async () => {
+    const dead = mockSupabaseConfigMerge({
+      app: { data: null, error: { message: 'no table' } },
+      legacy: { data: null, error: { message: 'no table' } },
+    })
+    await expect(fetchSoglieSollecitiDocumenti(dead as never)).resolves.toEqual(
+      getSoglieSollecitiDocumentiFallback(),
+    )
   })
 })
 

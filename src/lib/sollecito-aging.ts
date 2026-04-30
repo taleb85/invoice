@@ -170,6 +170,34 @@ export async function fetchSollecitiToleranceConfig(
   }
 }
 
+/**
+ * Fallback esplicito per soglie bolla/promessa documento se il DB non risponde:
+ * {@link DEFAULT_SOLLECITI_TOLERANCE} → 5 gg bolle, 2 gg promesse.
+ */
+export function getSoglieSollecitiDocumentiFallback(): {
+  giorniAttesaBolla: number
+  giorniAttesaPromessa: number
+} {
+  return {
+    giorniAttesaBolla: DEFAULT_SOLLECITI_TOLERANCE.giorniTolBolla,
+    giorniAttesaPromessa: DEFAULT_SOLLECITI_TOLERANCE.giorniTolPromessa,
+  }
+}
+
+/**
+ * Legge da `configurazioni_app` (e legacy) i giorni di attesa per DDT e per promessa allegato.
+ * Se il database non risponde → stessi valori di {@link getSoglieSollecitiDocumentiFallback}.
+ */
+export async function fetchSoglieSollecitiDocumenti(
+  supabase: Pick<SupabaseClient, 'from'>,
+): Promise<{ giorniAttesaBolla: number; giorniAttesaPromessa: number }> {
+  const cfg = await fetchSollecitiToleranceConfig(supabase)
+  return {
+    giorniAttesaBolla: cfg.giorniTolBolla,
+    giorniAttesaPromessa: cfg.giorniTolPromessa,
+  }
+}
+
 function toUtcMidday(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0, 0))
 }
@@ -207,10 +235,30 @@ export type BollaOverdueInput = {
 }
 
 /**
+ * Confronta la data documento DDT con “oggi”: vero se sono passati almeno `soglia` giorni (UTC).
+ * Non controlla lo stato bolla; per il filtro “in attesa” usa l’overload a oggetto.
+ */
+export function isBollaOverdue(
+  bollaData: string | Date | null | undefined,
+  soglia: number,
+  now?: Date,
+): boolean
+/**
  * True se la bolla è ancora senza ciclo previsto (“in attesa”) e dalla data documento
  * sono trascorsi almeno `toleranceDays` (calendario UTC).
  */
-export function isBollaOverdue(input: BollaOverdueInput): boolean {
+export function isBollaOverdue(input: BollaOverdueInput): boolean
+export function isBollaOverdue(
+  bollaDataOrInput: string | Date | null | undefined | BollaOverdueInput,
+  soglia?: number,
+  now?: Date,
+): boolean {
+  if (typeof soglia === 'number') {
+    const anchor = parseDateOnlyOrIso(bollaDataOrInput as string | Date | null | undefined)
+    if (!anchor) return false
+    return wholeDaysSinceUtc(anchor, now ?? new Date()) >= soglia
+  }
+  const input = bollaDataOrInput as BollaOverdueInput
   const stato = String(input.stato ?? '').trim()
   if (stato !== 'in attesa') return false
   const anchor = parseDateOnlyOrIso(input.data ?? null)
@@ -236,11 +284,13 @@ function metadataPromessaTrue(meta: Record<string, unknown> | null | undefined):
   return meta?.promessa_invio_documento === true
 }
 
-/**
- * True se `promessa_invio_documento` in metadata, record creato da almeno `toleranceDays`
- * e il “documento reale” non è ancora considerato ricevuto.
- */
-export function isPromisedDocOverdue(input: PromisedDocOverdueInput): boolean {
+function isPromisedDocOverdueCore(input: {
+  metadata: Record<string, unknown> | null | undefined
+  recordCreatedAt: string | Date | null | undefined
+  toleranceDays: number
+  documentResolved: boolean
+  now?: Date
+}): boolean {
   if (input.documentResolved) return false
   if (!metadataPromessaTrue(input.metadata ?? undefined)) return false
   const createdRaw = input.recordCreatedAt
@@ -248,6 +298,50 @@ export function isPromisedDocOverdue(input: PromisedDocOverdueInput): boolean {
   const created = typeof createdRaw === 'string' ? new Date(createdRaw) : createdRaw
   if (Number.isNaN(created.getTime())) return false
   return wholeDaysSinceUtc(created, input.now ?? new Date()) >= input.toleranceDays
+}
+
+function isPromisedDocFullInput(x: unknown): x is PromisedDocOverdueInput {
+  if (x == null || typeof x !== 'object') return false
+  const o = x as Record<string, unknown>
+  return (
+    'recordCreatedAt' in o &&
+    'toleranceDays' in o &&
+    'documentResolved' in o
+  )
+}
+
+/**
+ * Usa `promessa_invio_documento` nei metadata: vero se dalla data record (es. arrivo mail)
+ * sono passati almeno `soglia` giorni senza che il documento sia considerato risolto.
+ */
+export function isPromisedDocOverdue(
+  metadata: Record<string, unknown> | null | undefined,
+  createdAt: string | Date | null | undefined,
+  soglia: number,
+  now?: Date,
+): boolean
+/**
+ * True se `promessa_invio_documento` in metadata, record creato da almeno `toleranceDays`
+ * e il “documento reale” non è ancora considerato ricevuto.
+ */
+export function isPromisedDocOverdue(input: PromisedDocOverdueInput): boolean
+export function isPromisedDocOverdue(
+  metaOrInput: Record<string, unknown> | null | undefined | PromisedDocOverdueInput,
+  createdAt?: string | Date | null | undefined,
+  soglia?: number,
+  now?: Date,
+): boolean {
+  if (isPromisedDocFullInput(metaOrInput)) {
+    return isPromisedDocOverdueCore(metaOrInput)
+  }
+  if (soglia === undefined) return false
+  return isPromisedDocOverdueCore({
+    metadata: metaOrInput as Record<string, unknown> | null | undefined,
+    recordCreatedAt: createdAt ?? null,
+    toleranceDays: soglia,
+    documentResolved: false,
+    now,
+  })
 }
 
 export type StatementMismatchOverdueInput = {

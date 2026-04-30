@@ -51,3 +51,37 @@ export function buildSollecitoBollaEmail(opts: { nome: string; dataISO: string; 
     html: `<p>Gentile ${nome},</p><p>in riferimento alla consegna del <strong>${d}</strong>, risulta ancora assente la relativa fattura nei nostri archivi.</p><p>Vi preghiamo cortesemente di inviarcela al più presto per consentire la chiusura contabile del periodo.</p><p>Cordiali saluti</p>`,
   }
 }
+
+/** Sollecito per messaggi con promessa di allegato (`promessa_invio_documento`) ancora senza PDF in coda. */
+export function buildSollecitoPromessaDocumentoEmail(opts: { nome: string; lang: Locale }) {
+  const { nome, lang } = opts
+
+  if (lang === 'en') {
+    return {
+      subject: 'Reminder: promised document still pending',
+      html: `<p>Dear ${nome},</p><p>Following your message indicating that you would send documentation shortly, we have not yet received the attachment in our inbox.</p><p>Please send it at your earliest convenience.</p><p>Kind regards</p>`,
+    }
+  }
+  if (lang === 'fr') {
+    return {
+      subject: 'Relance : document promis non reçu',
+      html: `<p>Madame, Monsieur,</p><p>Suite à votre message indiquant l’envoi prochain de pièces jointes, nous n’avons pas encore reçu le document (${nome}).</p><p>Merci de nous le transmettre dès que possible.</p><p>Cordialement</p>`,
+    }
+  }
+  if (lang === 'de') {
+    return {
+      subject: 'Erinnerung: zugesagtes Dokument ausstehend',
+      html: `<p>Sehr geehrte Damen und Herren,</p><p>auf Ihre Nachricht, dass Sie uns in Kürze Unterlagen zusenden würden, haben wir den Anhang noch nicht erhalten (${nome}).</p><p>Bitte senden Sie uns das Dokument zeitnah zu.</p><p>Mit freundlichen Grüßen</p>`,
+    }
+  }
+  if (lang === 'es') {
+    return {
+      subject: 'Recordatorio: documento prometido pendiente',
+      html: `<p>Estimado/a ${nome},</p><p>Tras su mensaje indicando que enviaría la documentación en breve, aún no hemos recibido el adjunto en nuestra bandeja.</p><p>Rogamos nos lo remita lo antes posible.</p><p>Atentamente</p>`,
+    }
+  }
+  return {
+    subject: 'Sollecito: documento promesso non ancora ricevuto',
+    html: `<p>Gentile ${nome},</p><p>in seguito alla sua comunicazione con cui ha indicato l’invio a breve della documentazione, non risulta ancora pervenuto l’allegato nella nostra casella.</p><p>La preghiamo di inviarcelo al più presto.</p><p>Cordiali saluti</p>`,
+  }
+}
