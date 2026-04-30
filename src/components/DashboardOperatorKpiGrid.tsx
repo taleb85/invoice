@@ -382,7 +382,13 @@ export default function DashboardOperatorKpiGrid({
                     {item.icon}
                   </span>
                   <div className="col-span-2 col-start-1 row-start-2 flex min-h-0 min-w-0 flex-col items-stretch gap-0.5 self-start">
-                    <p className="break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight">
+                    <p
+                      className={
+                        glassShell
+                          ? `break-words text-xl font-bold tabular-nums leading-none tracking-tight sm:text-2xl sm:leading-tight ${dashboardKpiIconTextClass(tileIndex)}`
+                          : 'break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight'
+                      }
+                    >
                       {item.value}
                     </p>
                     {!glassShell ? (
