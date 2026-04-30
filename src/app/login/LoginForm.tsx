@@ -331,7 +331,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       setAccessoDevicePhase('bentornato')
       setMessage({ type: 'error', text: t.ui.networkError })
     }
-  }, [revalidateMe, router, t.login.notFound, t.ui.networkError])
+  }, [router, t.login.notFound, t.ui.networkError])
 
   /**
    * /accesso: con `sp_device_id` presente in localStorage, se il server riconosce il dispositivo

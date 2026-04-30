@@ -168,7 +168,7 @@ export async function classifyDocumentWithGemini(
     const { text } = await geminiGenerateVision(CLASSIFY_SYSTEM, mime, base64, userPrompt, 700)
     const obj = parseJsonObject(text)
     const tipoRaw = strOrNull(obj.tipo_suggerito) ?? 'altro'
-    let confRaw = clamp01(obj.confidenza)
+    const confRaw = clamp01(obj.confidenza)
     const azione = strOrNull(obj.azione_consigliata) ?? '—'
 
     const coerced = coerceListinoFromSignals(row.file_name, tipoRaw, confRaw, azione)

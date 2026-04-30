@@ -106,20 +106,6 @@ function tipoAiToPendingKind(tipo: string): 'fattura' | 'bolla' | 'statement' | 
   return null
 }
 
-function fmtTipoAiPerUi(tipo: string): string {
-  const k = tipo.toLowerCase().trim()
-  const map: Record<string, string> = {
-    fattura: 'fattura',
-    bolla: 'bolla',
-    ddt: 'bolla (DDT)',
-    estratto_conto: 'estratto conto',
-    ordine: 'ordine',
-    listino: 'listino prezzi',
-    altro: 'altro',
-  }
-  return map[k] ?? tipo
-}
-
 /** Conferma automatica dopo la risposta Gemini (stesso criterio visivo del %. mostrato). */
 const AUTO_FINALIZE_AI_CONF_MIN = 0.95
 /** Fattura/bolla/… rimangono a 0.95; listino permette più varianti Gemini (≈90% reali). */
