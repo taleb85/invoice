@@ -571,10 +571,10 @@
     @apply flex flex-col items-center gap-2 px-6 py-14 text-center;
   }
   .app-empty-state-icon {
-    @apply mb-1 h-12 w-12 text-app-fg-muted;
+    @apply mb-1 h-12 w-12 text-app-fg-subtle;
   }
   .app-empty-state-title {
-    @apply text-sm font-medium text-app-fg-muted;
+    @apply text-sm font-medium text-app-fg-subtle;
   }
   .app-empty-state-sub {
     @apply text-xs text-app-fg-subtle;

@@ -77,7 +77,7 @@ export function ApprovalQueue() {
     return (
       <div className="space-y-3">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-20 animate-pulse rounded-2xl border border-app-line-22 bg-[#0f172b]/60" />
+          <div key={i} className="h-20 animate-pulse rounded-2xl border border-app-line-22 bg-transparent" />
         ))}
       </div>
     )
@@ -100,7 +100,7 @@ export function ApprovalQueue() {
           </svg>
         </div>
         <p className="font-semibold text-app-fg">{t.appStrings.approvazioni_noPending}</p>
-        <p className="text-sm text-app-fg-muted">{t.appStrings.approvazioni_allReviewed}</p>
+        <p className="text-sm text-app-fg-subtle">{t.appStrings.approvazioni_allReviewed}</p>
       </div>
     )
   }
@@ -110,7 +110,7 @@ export function ApprovalQueue() {
       {rows.map((f) => (
         <div
           key={f.id}
-          className="rounded-2xl border border-app-line-22 bg-[#0f172b]/80 p-5 transition-all hover:border-[rgba(34,211,238,0.15)]"
+          className="rounded-2xl border border-app-line-22 bg-transparent p-5 transition-all hover:border-[rgba(34,211,238,0.15)]"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             {/* Info */}
@@ -120,16 +120,16 @@ export function ApprovalQueue() {
                   {f.fornitoreNome ?? 'Fornitore sconosciuto'}
                 </p>
                 {f.sedeNome && (
-                  <span className="rounded-full bg-app-line-15 px-2 py-0.5 text-[10px] font-semibold text-app-fg-muted">
+                  <span className="rounded-full border border-app-line-20 bg-transparent px-2 py-0.5 text-[10px] font-semibold text-app-fg-subtle">
                     {f.sedeNome}
                   </span>
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-app-fg-muted">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-app-fg-subtle">
                 <span>{fmtDate(f.data)}</span>
                 {f.numero_fattura && <span>N° {f.numero_fattura}</span>}
                 {f.approval_threshold != null && (
-                  <span className="text-amber-400/70">
+                  <span className="text-amber-300">
                     {t.appStrings.approvazioni_threshold} {fmt(f.approval_threshold)}
                   </span>
                 )}
@@ -145,7 +145,7 @@ export function ApprovalQueue() {
                 <OpenDocumentInAppButton
                   fatturaId={f.id}
                   fileUrl={f.file_url}
-                  className="text-[10px] text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
+                  className="text-[10px] text-app-fg-subtle underline underline-offset-2 hover:text-app-fg"
                   title={t.appStrings.approvazioni_viewInvoice}
                 >
                   {t.appStrings.approvazioni_viewInvoice}
@@ -154,7 +154,7 @@ export function ApprovalQueue() {
                 <ReturnToLink
                   to={`/fatture/${f.id}`}
                   from="/approvazioni"
-                  className="text-[10px] text-app-fg-muted underline underline-offset-2 hover:text-app-fg"
+                  className="text-[10px] text-app-fg-subtle underline underline-offset-2 hover:text-app-fg"
                 >
                   {t.appStrings.approvazioni_viewInvoice}
                 </ReturnToLink>
@@ -227,7 +227,7 @@ export function ApprovalQueue() {
                   type="button"
                   disabled={actionPending === f.id}
                   onClick={() => setRejectState({ id: f.id, reason: '' })}
-                  className="flex items-center gap-1.5 rounded-xl border border-[rgba(34,211,238,0.15)] bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-400 transition-colors hover:bg-rose-500/20 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl border border-rose-400/45 bg-transparent px-4 py-2 text-sm font-semibold text-rose-300 transition-colors hover:border-rose-300/70 hover:bg-rose-500/15 disabled:opacity-50"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />

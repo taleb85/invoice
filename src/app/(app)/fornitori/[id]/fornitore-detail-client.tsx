@@ -189,6 +189,35 @@ function shiftLedgerPeriodByMonths(
   return clampLedgerPeriodToToday(localYmd(df), localYmd(dt), todayYmd)
 }
 
+const SUPPLIER_DESKTOP_LEDGER_STORAGE_PREFIX = 'supplier-desktop-ledger:'
+
+/** Periodo KPI/header desktop: persistito per fornitore fino a reset manuale (stessa scheda o nuova visita nella sessione). */
+function loadLedgerPeriodForSupplier(fornitoreId: string): SupplierLedgerPeriod {
+  const todayYmd = localYmd(new Date())
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.sessionStorage.getItem(`${SUPPLIER_DESKTOP_LEDGER_STORAGE_PREFIX}${fornitoreId}`)
+      if (raw) {
+        const parsed = JSON.parse(raw) as { from?: unknown; toIncl?: unknown }
+        if (
+          typeof parsed.from === 'string' &&
+          typeof parsed.toIncl === 'string' &&
+          /^\d{4}-\d{2}-\d{2}$/.test(parsed.from) &&
+          /^\d{4}-\d{2}-\d{2}$/.test(parsed.toIncl) &&
+          compareYmd(parsed.from, parsed.toIncl) <= 0
+        ) {
+          return clampLedgerPeriodToToday(parsed.from, parsed.toIncl, todayYmd)
+        }
+      }
+    } catch {
+      /* sessionStorage assente o JSON non valido */
+    }
+  }
+  const d = new Date()
+  const b = supplierMonthCalendarBounds(d.getFullYear(), d.getMonth() + 1)
+  return clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd)
+}
+
 /** Due `TabContent` (mobile/desktop); stesso schema del tab Verifica: `DashboardTab` solo dove `mdUp` coincide (evita doppio Rekki nel DOM). */
 function scrollSupplierTabPanelIntoView() {
   if (typeof document === 'undefined') return
@@ -4850,11 +4879,10 @@ function FornitoreDetailClient({
   const nowM = now.getMonth() + 1
   const todayYmd = localYmd(now)
 
-  const [ledgerPeriod, setLedgerPeriod] = useState<SupplierLedgerPeriod>(() => {
-    const d = new Date()
-    const b = supplierMonthCalendarBounds(d.getFullYear(), d.getMonth() + 1)
-    return clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(d))
-  })
+  const supplierLedgerPersistIdRef = useRef(fornitore.id)
+  const [ledgerPeriod, setLedgerPeriod] = useState<SupplierLedgerPeriod>(() =>
+    loadLedgerPeriodForSupplier(fornitore.id),
+  )
 
   const ledgerDateToExclusive = useMemo(
     () => supplierExclusiveEndAfterInclusive(ledgerPeriod.toIncl),
@@ -4862,10 +4890,10 @@ function FornitoreDetailClient({
   )
 
   /** Periodo solo per il riepilogo mensile in card: frecce anno qui non muovono il navigatore in header. */
-  const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState(() => ({
-    y: nowY,
-    m: nowM,
-  }))
+  const [monthlySummaryPeriod, setMonthlySummaryPeriod] = useState(() => {
+    const { y, m } = ymdYearMonth(loadLedgerPeriodForSupplier(fornitore.id).toIncl)
+    return { y, m }
+  })
 
   const filterYear = ymdYearMonth(ledgerPeriod.from).y
   const filterMonth = ymdYearMonth(ledgerPeriod.from).m
@@ -4879,6 +4907,22 @@ function FornitoreDetailClient({
     const { y, m } = ymdYearMonth(ledgerPeriod.toIncl)
     setMonthlySummaryPeriod({ y, m })
   }, [ledgerPeriod.toIncl])
+
+  useEffect(() => {
+    if (supplierLedgerPersistIdRef.current !== fornitore.id) {
+      supplierLedgerPersistIdRef.current = fornitore.id
+      setLedgerPeriod(loadLedgerPeriodForSupplier(fornitore.id))
+      return
+    }
+    try {
+      window.sessionStorage.setItem(
+        `${SUPPLIER_DESKTOP_LEDGER_STORAGE_PREFIX}${fornitore.id}`,
+        JSON.stringify({ from: ledgerPeriod.from, toIncl: ledgerPeriod.toIncl }),
+      )
+    } catch {
+      /* quota / private mode */
+    }
+  }, [fornitore.id, ledgerPeriod.from, ledgerPeriod.toIncl])
 
   const shiftMonthlySummaryYear = (delta: number) => {
     setMonthlySummaryPeriod((prev) => clampSupplierPeriod(prev.y + delta, prev.m))
@@ -4921,17 +4965,17 @@ function FornitoreDetailClient({
     if (ledgerPeriod.from === ledgerPeriod.toIncl) {
       return formatDateLib(ledgerPeriod.from, locale, timezone, {
         day: '2-digit',
-        month: 'short',
+        month: 'long',
         year: 'numeric',
       })
     }
     const fromPart = formatDateLib(ledgerPeriod.from, locale, timezone, {
       day: '2-digit',
-      month: 'short',
+      month: 'long',
     })
     const toPart = formatDateLib(ledgerPeriod.toIncl, locale, timezone, {
       day: '2-digit',
-      month: 'short',
+      month: 'long',
       year: 'numeric',
     })
     return `${fromPart} – ${toPart}`
@@ -5197,7 +5241,7 @@ function FornitoreDetailClient({
       <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden">
         <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
-          <div className="flex items-start gap-3 border-t border-app-line-10 px-3 py-2.5 text-app-fg app-workspace-inset-bg-soft backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
+          <div className="flex items-start gap-3 border-t border-app-line-10 px-3 py-2.5 text-app-fg bg-transparent">
             <FornitoreAvatar nome={fornitoreLabelAvatar} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitoreNomeVisual}</h1>
@@ -5255,7 +5299,7 @@ function FornitoreDetailClient({
           )}
         </div>
 
-        <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border app-workspace-inset-bg-soft px-4 py-3 backdrop-blur-xl [-webkit-backdrop-filter:blur(18px)]">
+        <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border bg-transparent px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="mobile-supplier-tab-title" className="text-lg font-bold leading-tight tracking-tight text-app-fg">
               {activeTabInfo.label}
@@ -5297,8 +5341,8 @@ function FornitoreDetailClient({
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
-        {/* Intestazione + tab — vetro omogeneo con lo shell Aurora (non seconda „card"). */}
-        <div className="sticky top-0 z-20 w-full border-b border-white/[0.08] bg-white/[0.04] pb-0.5 pt-1 backdrop-blur-xl [-webkit-backdrop-filter:blur(18px)]">
+        {/* Intestazione + tab — bordo leggero, sfondo trasparente (gradient visibile sotto). */}
+        <div className="sticky top-0 z-20 w-full border-b border-white/[0.08] bg-transparent pb-0.5 pt-1">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
@@ -5316,7 +5360,7 @@ function FornitoreDetailClient({
                   {fornitoreNomeVisual}
                 </h1>
                 {fornitore.email && (
-                  <p className="truncate text-[11px] leading-snug text-app-fg-muted">
+                  <p className="truncate text-[11px] leading-snug text-app-fg-subtle">
                     {fornitore.email}
                   </p>
                 )}
@@ -5469,7 +5513,7 @@ function FornitoreDetailClient({
                 title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 onClick={() => setPeriodPickerOpen((o) => !o)}
-                className="min-w-0 max-w-[11rem] truncate whitespace-nowrap rounded px-1 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:max-w-[14rem] xl:leading-8"
+                className="min-w-0 max-w-[min(22rem,calc(100vw-10rem))] truncate whitespace-nowrap rounded px-1 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:leading-8"
               >
                 {periodTriggerLabel}
               </button>
