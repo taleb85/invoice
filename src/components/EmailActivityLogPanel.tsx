@@ -3,7 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
 import { LogActivityDocumentLink } from '@/components/LogActivityDocumentLink'
+import LogBlacklistIgnoreButton from '@/components/LogBlacklistIgnoreButton'
 import { actionButtonClassName } from '@/components/ui/ActionButton'
+import { useToast } from '@/lib/toast-context'
 import type { EmailActivityRow } from '@/lib/email-activity-day'
 import {
   APP_SECTION_MOBILE_LIST,
@@ -220,10 +222,14 @@ export function EmailActivityLogPanel({
     activityProcessDocumentsBusy: string
     activityProcessDocumentsNoEligibleInLog: string
     activityProcessDocumentsApiError: string
+    activityProcessDocumentsSummary: string
+    activityProcessToastDetail: string
+    activityQueueEmptyCelebrate: string
   }
   procLabels: ProcLabels
 }) {
   const router = useRouter()
+  const { showToast } = useToast()
   const [busy, setBusy] = useState(false)
   const [elabByDoc, setElabByDoc] = useState<Record<string, RowElab>>({})
 
@@ -261,23 +267,59 @@ export function EmailActivityLogPanel({
       })
       const j = (await res.json()) as {
         error?: string
+        runs?: number
+        processed?: number
+        skipped?: number
+        auto_saved?: number
+        da_revisionare?: number
         row_outcomes?: { id: string; code: string; detail?: string }[]
+        errors?: { id?: string; message?: string }[]
       }
       if (!res.ok) {
-        window.alert(`${tLog.activityProcessDocumentsApiError}: ${j.error ?? res.statusText}`)
+        showToast(`${tLog.activityProcessDocumentsApiError}: ${j.error ?? res.statusText}`, 'error')
         setElabByDoc({})
         return
       }
       const outcomes = j.row_outcomes ?? []
-      if (outcomes.length > 0) {
-        applyOutcomes(outcomes)
-      } else if (documentoIds.length > 0) {
-        window.alert(tLog.activityProcessDocumentsNoEligibleInLog)
+      const runs = j.runs ?? 0
+      if (runs === 0 && documentoIds.length > 0) {
+        showToast(tLog.activityProcessDocumentsNoEligibleInLog, 'info')
         setElabByDoc({})
+      } else if (outcomes.length > 0) {
+        applyOutcomes(outcomes)
       }
+
+      const processed = j.processed ?? 0
+      const skippedCount = j.skipped ?? 0
+      const autoSaved = j.auto_saved ?? 0
+      const inRevisione = j.da_revisionare ?? 0
+      if (runs > 0) {
+        let msg = tLog.activityProcessToastDetail
+          .replace(/\{auto\}/g, String(autoSaved))
+          .replace(/\{rev\}/g, String(inRevisione))
+        const errList = j.errors ?? []
+        if (errList.length > 0) {
+          msg += ` · ${errList
+            .slice(0, 2)
+            .map((e) => e.message ?? '')
+            .filter(Boolean)
+            .join('; ')}`
+        }
+        if (processed === 0 && autoSaved === 0 && inRevisione === 0 && skippedCount > 0) {
+          msg = tLog.activityProcessDocumentsSummary
+            .replace(/\{runs\}/g, String(runs))
+            .replace(/\{processed\}/g, String(processed))
+            .replace(/\{skipped\}/g, String(skippedCount))
+        }
+        showToast(msg, processed > 0 || autoSaved > 0 ? 'success' : 'info')
+        if (runs > 0 && processed === runs && (j.errors?.length ?? 0) === 0 && skippedCount === 0) {
+          showToast(tLog.activityQueueEmptyCelebrate, 'success')
+        }
+      }
+
       router.refresh()
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : tLog.activityProcessDocumentsApiError)
+      showToast(e instanceof Error ? e.message : tLog.activityProcessDocumentsApiError, 'error')
       setElabByDoc({})
     } finally {
       setBusy(false)

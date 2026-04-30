@@ -65,7 +65,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  void autoProcessAfterFornitoreEmailAdded(service, fornitoreId, emailExtracted).catch(() => {})
+  let retroactive: { processed: number; scanned: number; errors: string[] } | null = null
+  try {
+    retroactive = await autoProcessAfterFornitoreEmailAdded(service, fornitoreId, emailExtracted)
+  } catch (e) {
+    console.warn('[POST /api/fornitore-emails] retroactive', e)
+    retroactive = { processed: 0, scanned: 0, errors: [e instanceof Error ? e.message : String(e)] }
+  }
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, retroactive })
 }

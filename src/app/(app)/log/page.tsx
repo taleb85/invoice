@@ -144,6 +144,8 @@ export default async function LogPage() {
           noEligibleInLog: t.log.activityProcessDocumentsNoEligibleInLog,
           summary: t.log.activityProcessDocumentsSummary,
           apiError: t.log.activityProcessDocumentsApiError,
+          toastDetail: t.log.activityProcessToastDetail,
+          queueEmpty: t.log.activityQueueEmptyCelebrate,
         }}
       />
     </>
@@ -161,6 +163,8 @@ export default async function LogPage() {
     activityProcessDocumentsBusy: t.log.activityProcessDocumentsBusy,
     activityProcessDocumentsNoEligibleInLog: t.log.activityProcessDocumentsNoEligibleInLog,
     activityProcessDocumentsApiError: t.log.activityProcessDocumentsApiError,
+    activityProcessToastDetail: t.log.activityProcessToastDetail,
+    activityQueueEmptyCelebrate: t.log.activityQueueEmptyCelebrate,
   }
 
   const procLabels = {

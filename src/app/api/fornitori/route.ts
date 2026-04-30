@@ -57,15 +57,21 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Register email in fornitore_emails for IMAP matching (ignore errors — non-blocking)
+  let retroactive: { processed: number; scanned: number; errors: string[] } | null = null
   if (email) {
     await service.from('fornitore_emails').insert({
       fornitore_id: fornitore.id,
       email,
     })
-    void autoProcessAfterFornitoreEmailAdded(service, fornitore.id, email).catch(() => {})
+    try {
+      retroactive = await autoProcessAfterFornitoreEmailAdded(service, fornitore.id, email)
+    } catch (e) {
+      console.warn('[POST /api/fornitori] retroactive reprocess', e)
+      retroactive = { processed: 0, scanned: 0, errors: [e instanceof Error ? e.message : String(e)] }
+    }
   }
 
-  return NextResponse.json({ fornitore }, { status: 201 })
+  return NextResponse.json({ fornitore, retroactive }, { status: 201 })
 }
 
 // ── DELETE /api/fornitori ──────────────────────────────────────────────────────

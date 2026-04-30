@@ -3,6 +3,7 @@ import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { extractEmailFromSenderHeader } from '@/lib/sender-email'
 
 export type EmailActivityTipoKey = 'invoice' | 'ddt' | 'statement' | 'queue' | 'ordine' | 'resume'
 
@@ -25,6 +26,10 @@ export type EmailActivityRow = {
   href: string | null
   /** Se `fileUrl` valorizzato → anteprima in modale; altrimenti si usa `href` (navigazione / download). */
   docOpen?: EmailActivityOpenTarget
+  /** Mittente grezzo (header email) — per blacklist / azioni su code. */
+  mittenteRaw?: string | null
+  /** Email canonica estratta da `mittenteRaw`, se presente. */
+  mittenteEmail?: string | null
 }
 
 function joinNome(fornitore: unknown): string | null {
@@ -253,6 +258,7 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
     const nomeForn = joinNome((d as { fornitore?: unknown }).fornitore)
     const rs = metaRagioneSociale(meta)
     const mitt = String((d as { mittente?: string | null }).mittente ?? '').trim()
+    const mittenteEmail = extractEmailFromSenderHeader(mitt)
     const { primary: displayNome, docDetectedHint } = queueSupplierCell({
       nomeFornitoreCollegato: nomeForn,
       mittente: mitt,
@@ -285,6 +291,8 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
         statusKey: 'ignored',
         href: openDocumentUrl({ documentoId: docId }),
         docOpen: { kind: 'documento', id: docId, fileUrl },
+        mittenteRaw: mitt || null,
+        mittenteEmail,
       })
       continue
     }
@@ -298,6 +306,8 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
       statusKey: 'needs_supplier',
       href: openDocumentUrl({ documentoId: docId }),
       docOpen: { kind: 'documento', id: docId, fileUrl },
+      mittenteRaw: mitt || null,
+      mittenteEmail,
     })
   }
 

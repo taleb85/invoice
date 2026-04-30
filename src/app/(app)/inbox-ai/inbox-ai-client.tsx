@@ -9,6 +9,9 @@ import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 import { useT } from '@/lib/use-t'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
+import { extractEmailFromSenderHeader } from '@/lib/sender-email'
+import { useToast } from '@/lib/toast-context'
+import { useRouter } from 'next/navigation'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -29,6 +32,8 @@ type PendingDocRow = {
   stato: string
   fornitore_id: string | null
   fornitore?: { nome?: string | null } | null
+  mittente?: string | null
+  metadata?: unknown
 }
 
 type TabId = 'docs' | 'fatture' | 'bolle' | 'rekki' | 'audit'
@@ -119,6 +124,12 @@ function suggestionConf01(s: GeminiSuggestion): number {
   return Math.min(1, Math.max(0, x))
 }
 
+function pdfNomeFromMetadata(meta: unknown): string {
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return ''
+  const r = (meta as { ragione_sociale?: string | null }).ragione_sociale
+  return typeof r === 'string' && r.trim() ? r.trim() : ''
+}
+
 export default function InboxAiClient(props: {
   sedeId: string | null
   /** Nessuna sede operativa per operatore — blocco totale */
@@ -128,6 +139,8 @@ export default function InboxAiClient(props: {
 }) {
   const { sedeId, blockedNoSede, initialTab } = props
   const t = useT()
+  const { showToast } = useToast()
+  const router = useRouter()
   const [tab, setTab] = useState<TabId>(() => parseInitialTab(initialTab ?? undefined))
   const [docs, setDocs] = useState<PendingDocRow[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
@@ -146,6 +159,10 @@ export default function InboxAiClient(props: {
   const [fornitori, setFornitori] = useState<FornitoreOption[]>([])
   const [reassignSel, setReassignSel] = useState<Record<string, string>>({})
   const [auditBusy, setAuditBusy] = useState<string | null>(null)
+  const [supplierModal, setSupplierModal] = useState<PendingDocRow | null>(null)
+  const [supplierNomeDraft, setSupplierNomeDraft] = useState('')
+  const [supplierEmailDraft, setSupplierEmailDraft] = useState('')
+  const [supplierSaveBusy, setSupplierSaveBusy] = useState(false)
 
   useEffect(() => {
     setResolvedToday(readResolvedToday())
@@ -414,10 +431,113 @@ export default function InboxAiClient(props: {
       })
       const n = bumpResolved(1)
       setResolvedToday(n)
+      showToast(t.log.activityDocDiscardedToast, 'success')
+      router.refresh()
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Operazione non riuscita')
+      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
     } finally {
       setActionBusy(null)
+    }
+  }
+
+  const ignoreSenderAndDiscard = async (doc: PendingDocRow) => {
+    const email = extractEmailFromSenderHeader(doc.mittente ?? '')
+    if (!email?.includes('@')) {
+      showToast(t.log.activityNeedEmailOnRow, 'error')
+      return
+    }
+    if (!sedeId) return
+    setActionBusy(doc.id)
+    try {
+      const bl = await fetch('/api/email-blacklist', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mittente: doc.mittente?.trim() || email,
+          motivo: 'non_fornitore',
+          sede_id: sedeId,
+        }),
+      })
+      const bj = (await bl.json().catch(() => ({}))) as { error?: string }
+      if (!bl.ok) {
+        showToast(bj.error ?? t.log.blacklistError, 'error')
+        return
+      }
+      await postDoc({ id: doc.id, azione: 'scarta' })
+      setDocs((d) => d.filter((x) => x.id !== doc.id))
+      setSuggestions((s) => {
+        const n = { ...s }
+        delete n[doc.id]
+        return n
+      })
+      setResolvedToday(bumpResolved(1))
+      showToast(t.log.activityIgnoreSenderDoneToast, 'success')
+      router.refresh()
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : t.log.blacklistError, 'error')
+    } finally {
+      setActionBusy(null)
+    }
+  }
+
+  const openSupplierModal = (doc: PendingDocRow) => {
+    const email = extractEmailFromSenderHeader(doc.mittente ?? '') ?? ''
+    const sug = suggestions[doc.id]
+    const fromAi = typeof sug?.fornitore_suggerito === 'string' ? sug.fornitore_suggerito.trim() : ''
+    const fromPdf = pdfNomeFromMetadata(doc.metadata)
+    setSupplierNomeDraft(fromAi || fromPdf || '')
+    setSupplierEmailDraft(email)
+    setSupplierModal(doc)
+  }
+
+  const submitSupplierModal = async () => {
+    const doc = supplierModal
+    if (!doc || !sedeId) return
+    const nome = supplierNomeDraft.trim()
+    const email = supplierEmailDraft.trim().toLowerCase()
+    if (!nome) {
+      showToast(`${t.fornitori.nome}: obbligatorio`, 'error')
+      return
+    }
+    if (!email.includes('@')) {
+      showToast(t.log.activityNeedEmailOnRow, 'error')
+      return
+    }
+    setSupplierSaveBusy(true)
+    try {
+      const res = await fetch('/api/fornitori', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ nome, email, sede_id: sedeId }),
+      })
+      const j = (await res.json()) as {
+        error?: string
+        retroactive?: { processed: number; scanned?: number; errors?: string[] }
+      }
+      if (!res.ok) {
+        showToast(j.error ?? 'Errore salvataggio', 'error')
+        return
+      }
+      const n = j.retroactive?.processed ?? 0
+      showToast(
+        t.log.activitySupplierAddedReprocessedToast.replace(/\{n\}/g, String(n)),
+        'success',
+      )
+      setSupplierModal(null)
+      setDocs((d) => d.filter((x) => x.id !== doc.id))
+      setSuggestions((s) => {
+        const next = { ...s }
+        delete next[doc.id]
+        return next
+      })
+      await loadDocs()
+      router.refresh()
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Errore', 'error')
+    } finally {
+      setSupplierSaveBusy(false)
     }
   }
 
@@ -642,7 +762,7 @@ export default function InboxAiClient(props: {
                 ))}
               </ul>
             ) : docs.length === 0 ? (
-              <p className="text-sm text-app-fg-muted">Nessun documento da processare in questa sede.</p>
+              <p className="text-sm text-app-fg-muted">{t.log.activityQueueEmptyCelebrate}</p>
             ) : (
               <ul className="space-y-3">
                 {docsNewestFirst.map((d) => {
@@ -650,6 +770,7 @@ export default function InboxAiClient(props: {
                   const supplier =
                     d.fornitore?.nome ?? (d.fornitore_id ? '(fornitore ID)' : '— sconosciuto —')
                   const busyRow = actionBusy === d.id
+                  const needsSupplier = !d.fornitore_id
                   return (
                     <li
                       key={d.id}
@@ -712,6 +833,26 @@ export default function InboxAiClient(props: {
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[min(100%,24rem)] sm:justify-end">
+                          {needsSupplier ? (
+                            <>
+                              <button
+                                type="button"
+                                disabled={busyRow}
+                                onClick={() => void ignoreSenderAndDiscard(d)}
+                                className="rounded-md border border-rose-500/40 bg-rose-950/35 px-2 py-1 text-[11px] font-bold text-rose-100 disabled:opacity-35"
+                              >
+                                {t.log.activityInboxIgnoreSender}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={busyRow}
+                                onClick={() => openSupplierModal(d)}
+                                className="rounded-md border border-teal-500/45 bg-teal-500/15 px-2 py-1 text-[11px] font-bold text-teal-100 disabled:opacity-35"
+                              >
+                                {t.log.activityInboxAddSupplier}
+                              </button>
+                            </>
+                          ) : null}
                           <button
                             type="button"
                             disabled={busyRow || !d.fornitore_id}
@@ -748,7 +889,7 @@ export default function InboxAiClient(props: {
                             onClick={() => void ignoreDoc(d.id)}
                             className="rounded-md border border-white/15 px-2 py-1 text-[11px] font-semibold text-app-fg-muted hover:bg-white/10"
                           >
-                            Ignora
+                            {t.log.activityInboxDiscard}
                           </button>
                         </div>
                       </div>
@@ -1023,6 +1164,63 @@ export default function InboxAiClient(props: {
           </div>
         ) : null}
       </div>
+
+      {supplierModal ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 p-4 sm:items-center"
+          role="dialog"
+          aria-modal
+          aria-labelledby="inbox-add-supplier-title"
+        >
+          <div className="app-card max-h-[90dvh] w-full max-w-md overflow-y-auto border border-white/15 p-4 shadow-2xl">
+            <h2 id="inbox-add-supplier-title" className="text-base font-semibold text-app-fg">
+              {t.log.activityAddSupplierModalTitle}
+            </h2>
+            <p className="mt-1 text-xs text-app-fg-muted">
+              {t.fornitori.nome} · {t.log.activityPdfNameLabel}
+            </p>
+            <div className="mt-4 space-y-3">
+              <label className="block text-xs font-medium text-app-fg-muted">
+                {t.fornitori.nome}
+                <input
+                  className="mt-1 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-app-fg"
+                  value={supplierNomeDraft}
+                  onChange={(e) => setSupplierNomeDraft(e.target.value)}
+                  autoComplete="organization"
+                />
+              </label>
+              <label className="block text-xs font-medium text-app-fg-muted">
+                {t.fornitori.email}
+                <input
+                  type="email"
+                  className="mt-1 w-full rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-app-fg"
+                  value={supplierEmailDraft}
+                  onChange={(e) => setSupplierEmailDraft(e.target.value)}
+                  autoComplete="email"
+                />
+              </label>
+            </div>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg border border-white/15 px-3 py-2 text-sm text-app-fg-muted hover:bg-white/10"
+                onClick={() => setSupplierModal(null)}
+                disabled={supplierSaveBusy}
+              >
+                {t.log.activityCancel}
+              </button>
+              <button
+                type="button"
+                disabled={supplierSaveBusy}
+                className="rounded-lg bg-gradient-to-r from-teal-600 to-sky-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                onClick={() => void submitSupplierModal()}
+              >
+                {supplierSaveBusy ? '…' : t.log.activitySaveSupplier}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
