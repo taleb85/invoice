@@ -192,7 +192,7 @@ function SedeLockPageInner() {
             placeholder={a.sedeLockPlaceholder}
             autoFocus
             required
-            className="w-full rounded-lg border border-app-line-30 app-workspace-inset-bg px-3 py-2.5 text-center text-lg tracking-[0.35em] text-app-fg placeholder:text-app-fg-muted placeholder:tracking-widest ring-1 ring-inset ring-white/5 focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35"
+            className="w-full rounded-lg border border-app-line-30 app-workspace-inset-bg px-3 py-2.5 text-center text-lg tracking-[0.35em] text-app-fg placeholder:text-app-fg-placeholder placeholder:tracking-widest ring-1 ring-inset ring-white/5 focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35"
           />
           {error && (
             <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">

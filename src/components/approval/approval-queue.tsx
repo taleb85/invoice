@@ -173,7 +173,7 @@ export function ApprovalQueue() {
                 value={rejectState.reason}
                 onChange={(e) => setRejectState({ id: f.id, reason: e.target.value })}
                 placeholder={t.appStrings.approvazioni_rejectPlaceholder}
-                className="w-full rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-2 focus:ring-rose-400/20"
+                className="w-full rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-2 focus:ring-rose-400/20"
                 autoFocus
               />
             </div>

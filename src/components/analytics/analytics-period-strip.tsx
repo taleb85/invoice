@@ -41,13 +41,13 @@ export function AnalyticsPeriodStrip({ basePath, fiscalYear, months, fyLabel }: 
             className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} ${
               months === value
                 ? 'bg-white/[0.1] text-white ring-1 ring-white/18'
-                : 'text-white/65 hover:bg-white/[0.08] hover:text-white'
+                : 'text-app-fg-muted hover:bg-white/[0.08] hover:text-white'
             }`}
           >
             {periodLabels[value]}
           </Link>
         ))}
-        <span className="ms-1 shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/45 sm:ms-2">
+        <span className="ms-1 shrink-0 text-[10px] font-medium uppercase tracking-wider text-app-fg-subtle sm:ms-2">
           {t.appStrings.analyticsSinceFY}
         </span>
       </div>

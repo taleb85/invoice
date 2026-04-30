@@ -10,8 +10,8 @@ type Props = {
 }
 
 const inputCls =
-  'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-[#22d3ee]/50 focus:outline-none focus:ring-2 focus:ring-[#22d3ee]/20 [color-scheme:dark]'
-const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-white/50'
+  'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-app-fg-subtle focus:border-[#22d3ee]/50 focus:outline-none focus:ring-2 focus:ring-[#22d3ee]/20 [color-scheme:dark]'
+const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-subtle'
 
 export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
   const [form, setForm] = useState({ nome: '', email: '', piva: '' })
@@ -60,7 +60,7 @@ export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
           inputClassName={inputCls}
           placeholder="es. 01234567890"
         />
-        <p className="mt-1 text-[11px] text-white/30">Inserisci la P.IVA per auto-compilare il nome</p>
+        <p className="mt-1 text-[11px] text-app-fg-subtle">Inserisci la P.IVA per auto-compilare il nome</p>
       </div>
 
       <div>
@@ -102,7 +102,7 @@ export function FornitoreStep({ sedeId, onComplete, onSkip }: Props) {
         <button
           type="button"
           onClick={onSkip}
-          className="w-full py-2 text-xs text-white/30 transition hover:text-white/60"
+          className="w-full py-2 text-xs text-app-fg-subtle transition hover:text-app-fg-muted"
         >
           Salta questo passaggio
         </button>

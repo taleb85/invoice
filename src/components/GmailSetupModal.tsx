@@ -262,7 +262,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                     value={clientId}
                     onChange={(e) => setClientId(e.target.value)}
                     placeholder="123456789-abcdefg.apps.googleusercontent.com"
-                    className="w-full rounded-lg border border-app-line-35 bg-app-line-10/50 px-3.5 py-2.5 font-mono text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                    className="w-full rounded-lg border border-app-line-35 bg-app-line-10/50 px-3.5 py-2.5 font-mono text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
                   />
                 </div>
 
@@ -275,7 +275,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                     value={clientSecret}
                     onChange={(e) => setClientSecret(e.target.value)}
                     placeholder="GOCSPX-aBcDeFgHiJkLmNoPqRsTuVwXyZ"
-                    className="w-full rounded-lg border border-app-line-35 bg-app-line-10/50 px-3.5 py-2.5 font-mono text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+                    className="w-full rounded-lg border border-app-line-35 bg-app-line-10/50 px-3.5 py-2.5 font-mono text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
                   />
                 </div>
 

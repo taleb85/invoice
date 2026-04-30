@@ -16,7 +16,7 @@ export type ManualDeliveryFormProps = {
 }
 
 const inputCls =
-  'mb-3 w-full resize-y rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-40 transition-shadow disabled:opacity-60'
+  'mb-3 w-full resize-y rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-3 py-2.5 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-40 transition-shadow disabled:opacity-60'
 
 /** Mobile-first: testo libero e/o foto + "Registra Consegna". */
 export default function ManualDeliveryForm({

@@ -69,7 +69,7 @@ export default function SedeAddOperatorForm({
   }
 
   const inputCls =
-    'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-app-line-40'
+    'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-2 focus:ring-app-line-40'
 
   const nameId = embedded ? 'imp-embedded-op-name' : 'sede-op-name'
   const pinId = embedded ? 'imp-embedded-op-pin' : 'sede-op-pin'

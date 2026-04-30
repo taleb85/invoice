@@ -18,7 +18,7 @@ export const DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS =
 
 const NEUTRAL_ICON_WRAP = 'bg-white/[0.07] ring-1 ring-white/10'
 const NEUTRAL_ICON_SVG = 'text-app-fg-muted'
-const NEUTRAL_CHEVRON = 'text-app-fg-muted/60 group-hover:text-app-fg group-hover:opacity-100'
+const NEUTRAL_CHEVRON = 'text-app-fg-subtle group-hover:text-app-fg group-hover:opacity-100'
 const NEUTRAL_SUB = 'text-app-fg-muted'
 const NEUTRAL_ICON_DROP = ''
 

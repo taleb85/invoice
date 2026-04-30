@@ -28,12 +28,12 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
       </div>
 
       <h2 className="text-2xl font-bold text-white">Tutto pronto!</h2>
-      <p className="mt-1 text-sm text-white/50">{"Smart Pair è configurato e pronto all'uso"}</p>
+      <p className="mt-1 text-sm text-app-fg-subtle">{"Smart Pair è configurato e pronto all'uso"}</p>
 
       {/* Summary */}
       {(sedeNome || fornitoreNome || operatoreNome) && (
         <div className="mt-6 w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Riepilogo configurazione</p>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-app-fg-subtle">Riepilogo configurazione</p>
           <div className="space-y-2">
             {sedeNome && (
               <div className="flex items-center gap-3">
@@ -43,7 +43,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] text-white/40">Sede creata</p>
+                  <p className="text-[11px] text-app-fg-subtle">Sede creata</p>
                   <p className="text-sm font-medium text-white">{sedeNome}</p>
                 </div>
               </div>
@@ -56,7 +56,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] text-white/40">Primo fornitore</p>
+                  <p className="text-[11px] text-app-fg-subtle">Primo fornitore</p>
                   <p className="text-sm font-medium text-white">{fornitoreNome}</p>
                 </div>
               </div>
@@ -69,7 +69,7 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[11px] text-white/40">Operatore creato</p>
+                  <p className="text-[11px] text-app-fg-subtle">Operatore creato</p>
                   <p className="text-sm font-medium text-white">{operatoreNome}</p>
                 </div>
               </div>
@@ -80,11 +80,11 @@ export function CompleteStep({ sedeNome, fornitoreNome, operatoreNome, onDone }:
 
       {/* Quick tips */}
       <div className="mt-6 w-full space-y-2 text-left">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-white/40">Prossimi passi</p>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-app-fg-subtle">Prossimi passi</p>
         {TIPS.map((tip, i) => (
           <div key={i} className="flex items-start gap-3 rounded-xl border border-white/8 bg-white/3 px-4 py-3">
             <span className="mt-px shrink-0 text-base">{tip.icon}</span>
-            <p className="text-xs text-white/60">{tip.text}</p>
+            <p className="text-xs text-app-fg-muted">{tip.text}</p>
           </div>
         ))}
       </div>

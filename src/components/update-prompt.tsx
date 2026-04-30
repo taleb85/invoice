@@ -24,7 +24,7 @@ function UpdatePrompt() {
         </div>
         <div>
           <p className="text-sm font-medium text-white/90">Aggiornamento disponibile</p>
-          <p className="text-xs text-white/40">Nuova versione di Smart Pair</p>
+          <p className="text-xs text-app-fg-subtle">Nuova versione di Smart Pair</p>
         </div>
       </div>
       <button

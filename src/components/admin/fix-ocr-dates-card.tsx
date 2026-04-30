@@ -145,7 +145,7 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
                     <span className="font-mono text-[10px] text-amber-100/80" title={e.id}>
                       {e.id.length > 10 ? `${e.id.slice(0, 8)}…` : e.id}
                     </span>
-                    <span className="mt-0.5 block text-app-fg-muted/90 dark:text-amber-50/80">{e.message}</span>
+                    <span className="mt-0.5 block text-app-fg-muted dark:text-amber-50/80">{e.message}</span>
                   </li>
                 ))}
               </ul>
@@ -168,9 +168,9 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
                         {d.previousData} → <span className="font-medium text-emerald-200/95">{d.newData}</span>
                       </span>
                     ) : d.action === 'unchanged' ? (
-                      <span className="mt-0.5 block text-app-fg-muted/90">Data: {d.previousData}</span>
+                      <span className="mt-0.5 block text-app-fg-muted">Data: {d.previousData}</span>
                     ) : d.action === 'error' ? (
-                      <span className="mt-0.5 block text-app-fg-muted/90">Data in DB: {d.previousData}</span>
+                      <span className="mt-0.5 block text-app-fg-muted">Data in DB: {d.previousData}</span>
                     ) : null}
                     {d.ocrTipo ? (
                       <span className="mt-0.5 block text-[10px] text-violet-300/90">OCR: {d.ocrTipo}</span>

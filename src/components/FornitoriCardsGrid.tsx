@@ -291,7 +291,7 @@ export default function FornitoriCardsGrid({
                   <p className="mt-0.5 truncate text-[11px] text-app-fg-muted sm:mt-1 sm:text-xs">{f.email}</p>
                 ) : null}
                 {f.piva ? (
-                  <p className="mt-1 truncate font-mono text-[10px] text-app-fg-muted/60 sm:text-[11px]">
+                  <p className="mt-1 truncate font-mono text-[10px] text-app-fg-subtle sm:text-[11px]">
                     {t.fornitori.pivaLabel} {f.piva}
                   </p>
                 ) : null}

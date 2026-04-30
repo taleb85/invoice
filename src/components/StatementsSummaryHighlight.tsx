@@ -111,7 +111,7 @@ export default function StatementsSummaryHighlight({
           className={`${tabBtnBase} font-semibold ${
             activeTabProp === 'status'
               ? 'text-app-fg-muted'
-              : 'text-app-fg-muted hover:text-app-fg-muted/80'
+              : 'text-app-fg-subtle hover:text-app-fg-muted'
           }`}
         >
           {t.statements.tabVerifica}

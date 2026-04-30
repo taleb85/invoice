@@ -150,7 +150,7 @@ function ScannerFlowCardIntro({
               </p>
             ) : null}
             {fiscalYearLabel?.trim() ? (
-              <p className="max-w-2xl px-3 text-[11px] leading-snug text-app-fg-muted/95 md:px-2.5">
+              <p className="max-w-2xl px-3 text-[11px] leading-snug text-app-fg md:px-2.5">
                 {t.dashboard.scannerFlowCardHintFiscal}
               </p>
             ) : null}

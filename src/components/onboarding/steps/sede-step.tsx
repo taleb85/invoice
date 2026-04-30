@@ -22,8 +22,8 @@ type Props = {
 }
 
 const inputCls =
-  'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-[#22d3ee]/50 focus:outline-none focus:ring-2 focus:ring-[#22d3ee]/20 [color-scheme:dark]'
-const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-white/50'
+  'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-app-fg-subtle focus:border-[#22d3ee]/50 focus:outline-none focus:ring-2 focus:ring-[#22d3ee]/20 [color-scheme:dark]'
+const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-subtle'
 
 export function SedeStep({ onComplete }: Props) {
   const [nome, setNome] = useState('')

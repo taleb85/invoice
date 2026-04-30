@@ -137,7 +137,7 @@ export function OnboardingWizard() {
                       ? 'bg-emerald-500 text-white cursor-pointer'
                       : isActive
                         ? 'bg-[#22d3ee] text-[#020617]'
-                        : 'bg-white/10 text-white/40'
+                        : 'bg-white/10 text-app-fg-subtle'
                   }`}
                 >
                   {isCompleted ? (
@@ -158,7 +158,7 @@ export function OnboardingWizard() {
 
         {/* Mobile progress bar */}
         <div className="mb-6 sm:hidden">
-          <div className="mb-1.5 flex items-center justify-between text-xs text-white/40">
+          <div className="mb-1.5 flex items-center justify-between text-xs text-app-fg-subtle">
             <span>Passaggio {step + 1} di {totalSteps}</span>
             <span>{STEPS[step]?.title}</span>
           </div>
@@ -181,12 +181,12 @@ export function OnboardingWizard() {
                 </span>
                 <h2 className="text-lg font-bold text-white">{STEPS[step]?.title}</h2>
                 {STEPS[step]?.optional && (
-                  <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] text-white/40">
+                  <span className="rounded-full border border-white/20 px-2 py-0.5 text-[10px] text-app-fg-subtle">
                     opzionale
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-sm text-white/50">{STEPS[step]?.subtitle}</p>
+              <p className="mt-1 text-sm text-app-fg-subtle">{STEPS[step]?.subtitle}</p>
             </div>
           )}
 

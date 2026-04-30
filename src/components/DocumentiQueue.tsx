@@ -159,7 +159,7 @@ export default function DocumentiQueue({ documenti, fornitori, formattedDates, l
                         <div className="min-w-0">
                           <p className="whitespace-nowrap text-sm font-medium text-app-fg-muted">{displayDate}</p>
                           {doc.data_documento && doc.data_documento !== doc.created_at && (
-                            <p className="text-[10px] text-app-fg-muted/60">
+                            <p className="text-[10px] text-app-fg-subtle">
                               {labels.receivedOn} {formattedDates[doc.created_at] ?? doc.created_at}
                             </p>
                           )}

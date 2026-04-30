@@ -9,8 +9,8 @@ type Props = {
 }
 
 const inputCls =
-  'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-[#22d3ee]/50 focus:outline-none focus:ring-2 focus:ring-[#22d3ee]/20 [color-scheme:dark]'
-const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-white/50'
+  'w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-app-fg-subtle focus:border-[#22d3ee]/50 focus:outline-none focus:ring-2 focus:ring-[#22d3ee]/20 [color-scheme:dark]'
+const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-subtle'
 
 export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
   const [form, setForm] = useState({
@@ -133,7 +133,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
             ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-400'
             : testStatus === 'error'
               ? 'border-[rgba(34,211,238,0.15)] bg-rose-500/10 text-rose-400'
-              : 'border-white/10 bg-white/5 text-white/60'
+              : 'border-white/10 bg-white/5 text-app-fg-muted'
         }`}>
           {testStatus === 'testing' && (
             <span className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export function EmailStep({ sedeId, onComplete, onSkip }: Props) {
         <button
           type="button"
           onClick={onSkip}
-          className="w-full py-2 text-xs text-white/30 transition hover:text-white/60"
+          className="w-full py-2 text-xs text-app-fg-subtle transition hover:text-app-fg-muted"
         >
           Salta questo passaggio
         </button>

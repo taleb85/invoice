@@ -302,7 +302,7 @@ export function OpenDocumentInAppButton({
                   >
                     100%
                   </button>
-                  <span className="w-full text-center text-[10px] text-app-fg-muted/90 sm:ml-1 sm:inline sm:w-auto">
+                  <span className="w-full text-center text-[10px] text-app-fg-muted sm:ml-1 sm:inline sm:w-auto">
                     {t.common.viewerZoomHint}
                   </span>
                 </div>

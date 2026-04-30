@@ -34,7 +34,7 @@ const RED_ACTION_PILL =
   'inline-flex items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-transparent px-2 py-1 text-[10px] font-semibold text-red-200/95 shadow-sm ring-1 ring-inset ring-red-400/10 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-500/10 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-40'
 
 const inputClass =
-  'w-full rounded-lg border border-app-line-25 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-a-40 focus:outline-none focus:ring-1 focus:ring-app-a-25 [color-scheme:dark]'
+  'w-full rounded-lg border border-app-line-25 app-workspace-inset-bg-soft px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-a-40 focus:outline-none focus:ring-1 focus:ring-app-a-25 [color-scheme:dark]'
 
 function pathFromDocumentiPublicUrl(url: string): string | null {
   try {

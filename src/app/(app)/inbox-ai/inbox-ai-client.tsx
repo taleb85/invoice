@@ -790,7 +790,7 @@ export default function InboxAiClient(props: {
                             {sug ? (
                               <GlyphCheck className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
                             ) : (
-                              <span className="text-app-fg-muted/50" aria-hidden>
+                              <span className="text-app-fg-subtle" aria-hidden>
                                 ○
                               </span>
                             )}

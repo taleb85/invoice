@@ -254,17 +254,17 @@ function DetailModal({
                             className="min-w-0 truncate px-1 py-2 tabular-nums text-app-fg-muted align-top"
                             title={row.numero ?? undefined}
                           >
-                            {row.numero ?? <span className="text-app-fg-muted/60">—</span>}
+                            {row.numero ?? <span className="text-app-fg-subtle">—</span>}
                           </td>
                           <td className="min-w-0 whitespace-nowrap px-1 py-2 tabular-nums text-app-fg-muted align-top">
-                            {row.data ? formatDate(row.data) : <span className="text-app-fg-muted/60">—</span>}
+                            {row.data ? formatDate(row.data) : <span className="text-app-fg-subtle">—</span>}
                           </td>
                           <td className="min-w-0 px-1 py-2 align-top">
                             {row.stato ? (
                               <span className="inline-block max-w-full truncate rounded bg-app-line-20 px-1.5 py-0.5 text-[10px] font-medium text-app-fg-muted" title={row.stato}>
                                 {row.stato}
                               </span>
-                            ) : <span className="text-app-fg-muted/60">—</span>}
+                            ) : <span className="text-app-fg-subtle">—</span>}
                           </td>
                           <td
                             className="min-w-0 truncate px-1 py-2 pr-3 font-mono text-[10px] text-app-fg-muted sm:pr-4 align-top"

@@ -15,7 +15,7 @@ import { VatLookupField } from '@/components/vat-lookup-field'
 import { safeInternalReturnPath } from '@/lib/safe-internal-return-path'
 
 const fieldBaseCls =
-  'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
+  'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-placeholder transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
 const inputCls = `${fieldBaseCls} appearance-none`
 const labelCls = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted'
 

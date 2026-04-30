@@ -18,7 +18,7 @@ interface AliasEmail {
 
 /** Campi su canvas / guscio trasparente: leggibilità senza secondo strato “vetro”. */
 const fieldBaseCls =
-  'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
+  'w-full rounded-xl border border-app-line-28 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-placeholder transition [color-scheme:dark] focus:border-app-line-50 focus:outline-none focus:ring-2 focus:ring-app-line-50'
 /** `appearance-none` su input evita lo stile nativo chiaro su mobile; il select resta nativo per il menu. */
 const inputCls = `${fieldBaseCls} appearance-none`
 const selectCls = fieldBaseCls

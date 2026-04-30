@@ -292,7 +292,7 @@ export default async function BollePage(props: {
                             {formatDate(b.data)}
                           </p>
                           <p className="mt-1 text-[11px] text-app-fg-muted">
-                            <span className="font-semibold uppercase tracking-wide text-app-fg-muted/90">
+                            <span className="font-semibold uppercase tracking-wide text-app-fg-muted">
                               {t.bolle.colNumero}
                             </span>{' '}
                             <span className={`font-mono ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>

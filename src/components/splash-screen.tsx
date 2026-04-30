@@ -71,7 +71,7 @@ export function SplashScreen({ message }: SplashScreenProps) {
               />
             ))}
           </div>
-          <p className="min-w-[180px] text-center text-sm text-white/40">
+          <p className="min-w-[180px] text-center text-sm text-app-fg-subtle">
             {message ?? `Caricamento${dots}`}
           </p>
         </div>

@@ -160,7 +160,7 @@ function ScannerRow({
                 value={form.nome}
                 onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
                 placeholder="es. Rossi S.r.l."
-                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
+                className="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
               />
             </div>
 
@@ -185,7 +185,7 @@ function ScannerRow({
                   ...f,
                   nome: data.ragione_sociale ?? f.nome,
                 }))}
-                inputClassName="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
+                inputClassName="w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-2 focus:ring-emerald-500 [color-scheme:dark]"
                 placeholder="12345678901"
               />
             </div>

@@ -127,7 +127,7 @@ export default function EmailBlacklistPanel({ sedeId }: { sedeId: string }) {
             value={mittInput}
             onChange={(e) => setMittInput(e.target.value)}
             placeholder={t.log.blacklistPlaceholder}
-            className="rounded-md border border-app-soft-border bg-black/30 px-2 py-1.5 font-mono text-xs text-app-fg placeholder:text-app-fg-muted/50"
+            className="rounded-md border border-app-soft-border bg-black/30 px-2 py-1.5 font-mono text-xs text-app-fg placeholder:text-app-fg-placeholder"
           />
         </label>
         <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wider text-app-fg-muted">

@@ -66,7 +66,7 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
               {displayName}
             </h1>
             {remembered && (
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-app-fg-subtle">
                 last branch
               </p>
             )}

@@ -342,7 +342,7 @@ export default function NuovaFatturaForm() {
               placeholder="es. FT-2025-042"
               value={numeroFattura}
               onChange={e => setNumeroFattura(e.target.value)}
-              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-0"
+              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-0"
             />
           </div>
           <div className="p-5">
@@ -361,7 +361,7 @@ export default function NuovaFatturaForm() {
                   type="number" min="0" step="0.01" placeholder="0.00"
                   value={importoManuale}
                   onChange={e => setImportoManuale(e.target.value)}
-                  className="flex-1 border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-0"
+                  className="flex-1 border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-0"
                 />
               </div>
             )}
@@ -418,7 +418,7 @@ export default function NuovaFatturaForm() {
             </label>
             <input type="text" placeholder="Nome di chi ha registrato la fattura…"
               value={registratoDa} onChange={e => setRegistratoDa(e.target.value)}
-              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-0"
+              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-0"
             />
             </div>
           </AuroraPanelShell>

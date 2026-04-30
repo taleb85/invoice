@@ -1112,7 +1112,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   }
 
   const inputCls =
-    'w-full rounded-xl border border-app-line-30 app-workspace-inset-bg px-4 py-3 text-sm text-app-fg ring-1 ring-inset ring-white/5 transition placeholder:text-app-fg-muted focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
+    'w-full rounded-xl border border-app-line-30 app-workspace-inset-bg px-4 py-3 text-sm text-app-fg ring-1 ring-inset ring-white/5 transition placeholder:text-app-fg-placeholder focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
 
   const pinFilled = pin.join('').length === PIN_LENGTH
 
@@ -1262,7 +1262,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               <button
                 type="button"
                 onClick={() => { setNetflixStep('manual'); setMode('admin') }}
-                className="text-left text-[11px] text-app-fg-muted/60 transition-colors hover:text-app-fg-muted"
+                className="text-left text-[11px] text-app-fg-subtle transition-colors hover:text-app-fg-muted"
               >
                 {sedeT.adminLink}
               </button>
@@ -1837,7 +1837,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     resolvedEmail.current = null
                     setPin(Array(PIN_LENGTH).fill(''))
                   }}
-                  className="text-left text-[11px] text-app-fg-muted/80 transition-colors hover:text-app-fg"
+                  className="text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
                 >
                   {t.login.operatorLink}
                 </button>

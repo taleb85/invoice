@@ -683,7 +683,7 @@ function SupplierDesktopKpiGrid({
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center [&>svg]:h-3.5 [&>svg]:w-3.5">
                   {k.icon}
                 </span>
-                <p className="min-w-0 truncate text-[9px] font-semibold uppercase tracking-wide text-white/70">
+                <p className="min-w-0 truncate text-[9px] font-semibold uppercase tracking-wide text-app-fg-muted">
                   {k.label}
                 </p>
               </div>
@@ -997,7 +997,7 @@ function SupplierDesktopMonthlyDocSummary({
               <span className="font-bold text-app-fg">{t.fornitori.supplierMonthlyDocTitle}</span>
               {!periodNav ? (
                 <>
-                  <span className="text-app-fg-muted/45" aria-hidden>
+                  <span className="text-app-fg-subtle" aria-hidden>
                     {' '}
                     ·{' '}
                   </span>
@@ -1009,7 +1009,7 @@ function SupplierDesktopMonthlyDocSummary({
             </span>
             {periodNav ? (
               <>
-                <span className="shrink-0 text-app-fg-muted/45 uppercase tracking-wide md:tracking-wider" aria-hidden>
+                <span className="shrink-0 text-app-fg-subtle uppercase tracking-wide md:tracking-wider" aria-hidden>
                   {' '}
                   ·{' '}
                 </span>
@@ -1040,7 +1040,7 @@ function SupplierDesktopMonthlyDocSummary({
                     disabled={periodNav.disableNextYear}
                     title={t.appStrings.monthNavNextYearTitle}
                     aria-label={t.appStrings.monthNavNextYearTitle}
-                    className={`flex h-5 w-5 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-30 ${tabTable.periodNavIconBtn}`}
+                    className={`flex h-5 w-5 items-center justify-center rounded transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${tabTable.periodNavIconBtn}`}
                   >
                     <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
@@ -1348,7 +1348,7 @@ function DashboardTab({
             <div className="flex items-center gap-2">
               {/* Chevron accordion su mobile */}
               <svg
-                className={`h-4 w-4 text-white/50 transition-transform duration-200 md:hidden ${mobileContattiOpen ? 'rotate-180' : ''}`}
+                className={`h-4 w-4 text-app-fg-subtle transition-transform duration-200 md:hidden ${mobileContattiOpen ? 'rotate-180' : ''}`}
                 fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -1489,7 +1489,7 @@ function DashboardTab({
             <p className="text-xs font-semibold uppercase tracking-wide text-white/80">{t.appStrings.infoSupplierCard}</p>
           </div>
           <svg
-            className={`h-4 w-4 text-white/50 transition-transform duration-200 md:hidden ${mobileSchedaOpen ? 'rotate-180' : ''}`}
+            className={`h-4 w-4 text-app-fg-subtle transition-transform duration-200 md:hidden ${mobileSchedaOpen ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -3882,7 +3882,7 @@ function ListinoTab({
                                         )
                                       }
                                       placeholder="—"
-                                      className="w-full min-w-0 border-0 bg-transparent px-1 py-1.5 font-mono text-[13px] font-medium leading-snug tracking-wide text-app-fg placeholder:text-app-fg-muted focus:app-workspace-inset-bg-soft focus:outline-none focus:ring-0"
+                                      className="w-full min-w-0 border-0 bg-transparent px-1 py-1.5 font-mono text-[13px] font-medium leading-snug tracking-wide text-app-fg placeholder:text-app-fg-placeholder focus:app-workspace-inset-bg-soft focus:outline-none focus:ring-0"
                                     />
                                   </td>
                                   <td className="min-w-0 px-3 py-2.5 align-top">
@@ -3925,7 +3925,7 @@ function ListinoTab({
                                                 placeholder="Rekki ID"
                                                 disabled={importSavingRekkiIdx === idx}
                                                 autoFocus
-                                                className="flex-1 rounded border border-[rgba(34,211,238,0.15)] bg-violet-950/30 px-1.5 py-0.5 text-[10px] text-app-fg placeholder:text-app-fg-muted/60 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
+                                                className="flex-1 rounded border border-[rgba(34,211,238,0.15)] bg-violet-950/30 px-1.5 py-0.5 text-[10px] text-app-fg placeholder:text-app-fg-placeholder focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
                                               />
                                               <button
                                                 type="button"
@@ -4329,7 +4329,7 @@ function ListinoTab({
                               hasAnomaly
                                 ? APP_SECTION_AMOUNT_NEGATIVE_CLASS
                                 : listinoPriceStale
-                                  ? 'text-app-fg-muted/75'
+                                  ? 'text-app-fg-muted'
                                   : 'text-white'
                             }`}
                           >
@@ -4445,7 +4445,7 @@ function ListinoTab({
                                   placeholder="es. WINE-123"
                                   disabled={savingRekkiId}
                                   autoFocus
-                                  className="flex-1 rounded border border-[rgba(34,211,238,0.15)] bg-violet-950/30 px-2 py-0.5 text-xs text-app-fg placeholder:text-app-fg-muted/60 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
+                                  className="flex-1 rounded border border-[rgba(34,211,238,0.15)] bg-violet-950/30 px-2 py-0.5 text-xs text-app-fg placeholder:text-app-fg-placeholder focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-violet-500/50 disabled:opacity-50"
                                 />
                                 <button
                                   type="button"
@@ -5443,7 +5443,7 @@ function FornitoreDetailClient({
                 onClick={() => shiftLedgerYear(-1)}
                 title={t.appStrings.monthNavPrevYearTitle}
                 aria-label={t.appStrings.monthNavPrevYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
@@ -5454,7 +5454,7 @@ function FornitoreDetailClient({
                 onClick={() => shiftLedgerMonth(-1)}
                 title={t.appStrings.monthNavPrevMonthTitle}
                 aria-label={t.appStrings.monthNavPrevMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -5539,7 +5539,7 @@ function FornitoreDetailClient({
                 disabled={!canShiftLedgerMonthForward}
                 title={t.appStrings.monthNavNextMonthTitle}
                 aria-label={t.appStrings.monthNavNextMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -5551,7 +5551,7 @@ function FornitoreDetailClient({
                 disabled={!canShiftLedgerYearForward}
                 title={t.appStrings.monthNavNextYearTitle}
                 aria-label={t.appStrings.monthNavNextYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />

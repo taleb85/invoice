@@ -113,7 +113,7 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
             }
           }}
           placeholder="Aggiungi nome (es. nuovo locale)"
-          className="min-w-0 flex-1 rounded-lg border border-app-line-25 bg-[#0b1222] px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-30"
+          className="min-w-0 flex-1 rounded-lg border border-app-line-25 bg-[#0b1222] px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-30"
         />
         <button
           type="button"

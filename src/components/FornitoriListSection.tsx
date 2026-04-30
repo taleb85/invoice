@@ -75,7 +75,7 @@ export default function FornitoriListSection({
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t.nav.cerca}
               autoComplete="off"
-              className="w-full rounded-md border border-[rgba(34,211,238,0.15)] app-workspace-inset-bg-soft py-1.5 pl-8 pr-2.5 text-xs font-normal text-app-fg placeholder:text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-sky-500/10 [color-scheme:dark] focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-2 focus:ring-sky-400/30"
+              className="w-full rounded-md border border-[rgba(34,211,238,0.15)] app-workspace-inset-bg-soft py-1.5 pl-8 pr-2.5 text-xs font-normal text-app-fg placeholder:text-app-fg-placeholder shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-sky-500/10 [color-scheme:dark] focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-2 focus:ring-sky-400/30"
             />
           </div>
         </label>

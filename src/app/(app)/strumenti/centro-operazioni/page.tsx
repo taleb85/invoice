@@ -348,7 +348,7 @@ export default function CentroOperazioniPage() {
               >
                 {s.breadcrumbTools}
               </Link>
-              <span className="mx-2 text-app-fg-muted/40">&rsaquo;</span>
+              <span className="mx-2 text-app-fg-subtle">&rsaquo;</span>
               <span>{s.pageTitle}</span>
             </nav>
             <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>

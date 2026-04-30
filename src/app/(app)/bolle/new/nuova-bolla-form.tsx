@@ -580,10 +580,10 @@ export default function NuovaBollaForm() {
   const fieldLabelCls = `mb-2 block ${fieldLabelTextCls}`
   const fieldHintCls = 'font-semibold normal-case tracking-normal text-app-fg-muted'
   const fieldInputCls =
-    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 placeholder:text-app-fg-muted transition-[border-color,box-shadow] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30'
+    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 placeholder:text-app-fg-placeholder transition-[border-color,box-shadow] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30'
   /** Campo «Registrato da»: stesso guscio bordato degli altri input dello scanner. */
   const registeredByInputCls =
-    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 placeholder:text-app-fg-muted transition-[border-color,box-shadow] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30'
+    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2 text-base font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 placeholder:text-app-fg-placeholder transition-[border-color,box-shadow] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-30'
 
   const intentBtn = (active: boolean) =>
     `rounded-lg border px-2 py-1 text-[11px] font-bold transition-colors sm:px-2.5 sm:py-1 sm:text-xs ${

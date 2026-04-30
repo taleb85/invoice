@@ -137,7 +137,7 @@ function AddFornitoreModal({
               value={nome}
               onChange={e => setNome(e.target.value)}
               placeholder="es. Mario Rossi S.r.l."
-              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-muted"
+              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-placeholder"
               required
             />
           </div>
@@ -155,7 +155,7 @@ function AddFornitoreModal({
               placeholder="es. 01234567890"
               maxLength={11}
               inputMode="numeric"
-              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-muted"
+              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-placeholder"
             />
           </div>
 
@@ -170,7 +170,7 @@ function AddFornitoreModal({
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="es. fatture@fornitore.it"
-              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-muted"
+              className="w-full px-3.5 py-2.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-30 focus:border-app-cyan-500 placeholder:text-app-fg-placeholder"
             />
             <p className="mt-1.5 text-xs text-slate-400">
               Questa email verrà usata per abbinare automaticamente le fatture ricevute.

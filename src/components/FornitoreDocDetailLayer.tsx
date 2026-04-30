@@ -185,7 +185,7 @@ function FornitoreInlineDocPreview({
       >
         100%
       </button>
-      <span className="hidden w-full text-center text-[10px] text-app-fg-muted/80 sm:ml-1 sm:inline sm:w-auto">
+      <span className="hidden w-full text-center text-[10px] text-app-fg-muted sm:ml-1 sm:inline sm:w-auto">
         {t.common.viewerZoomHint}
       </span>
     </div>
@@ -498,7 +498,7 @@ function FatturaLayerBody({
         <div className="shrink-0 border-t border-app-line-22/90 app-workspace-inset-bg-soft px-4 py-2.5 md:px-5">
           <p className="text-[11px] leading-relaxed text-app-fg-muted">{t.appStrings.listinoDocDetailImportHint}</p>
           {listinoAdmin ? (
-            <p className="mt-1 text-[10px] leading-snug text-app-fg-muted/85">{t.appStrings.listinoDocDetailImportHintAdmin}</p>
+            <p className="mt-1 text-[10px] leading-snug text-app-fg-muted">{t.appStrings.listinoDocDetailImportHintAdmin}</p>
           ) : null}
           {deleteBtn && <div className="mt-2">{deleteBtn}</div>}
         </div>

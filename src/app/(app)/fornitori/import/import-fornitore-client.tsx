@@ -131,7 +131,7 @@ export default function ImportFornitoreInner() {
     router.refresh()
   }
 
-  const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-2 focus:ring-app-cyan-500'
+  const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3.5 py-2.5 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-2 focus:ring-app-cyan-500'
   const labelCls = 'block text-xs font-medium text-app-fg-muted mb-1'
 
   return (

@@ -463,7 +463,7 @@ export default function SediPage() {
     )
   }
 
-  const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35'
+  const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35'
 
   const isSedeScopedAdmin = adminListScope === 'sede'
 
@@ -541,7 +541,7 @@ export default function SediPage() {
                         value={wizardSedeName}
                         onChange={(e) => setWizardSedeName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && wizardSedeName.trim() && setWizardStep(2)}
-                        className="w-full rounded-xl border border-app-line-25 app-workspace-surface-elevated px-4 py-3 text-sm text-app-fg placeholder:text-app-fg-muted focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35"
+                        className="w-full rounded-xl border border-app-line-25 app-workspace-surface-elevated px-4 py-3 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35"
                       />
                     </div>
 
@@ -1100,7 +1100,7 @@ export default function SediPage() {
                                       setNewPin(e.target.value.replace(/\D/g, ''))
                                       setPinMsg(null)
                                     }}
-                                    className="w-28 rounded-lg border border-app-line-25 bg-transparent px-2.5 py-1.5 text-sm text-app-fg placeholder:text-app-fg-muted/50 focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                                    className="w-28 rounded-lg border border-app-line-25 bg-transparent px-2.5 py-1.5 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                                     autoFocus
                                   />
                                   <button
