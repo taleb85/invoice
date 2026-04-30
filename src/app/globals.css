@@ -1067,6 +1067,8 @@ body:has([data-deep-aurora-integration]) {
   --glass-blur: 16px;
   --da-heading: #ffffff;
   --da-muted: #94a3b8;
+  --app-fg-body: #ffffff;
+  --app-fg-muted: #94a3b8;
 }
 
 [data-deep-aurora-shell] {
@@ -1112,4 +1114,49 @@ body:has([data-deep-aurora-integration]) {
   backdrop-filter: blur(var(--glass-blur)) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
   border: 1px solid var(--glass-border) !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * App autenticata: superfici Fluxo → vetro Aurora (solo con `body:has([data-deep-aurora-integration])`).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+body:has([data-deep-aurora-integration]) .app-workspace-inset-bg,
+body:has([data-deep-aurora-integration]) .app-workspace-inset-bg-soft,
+body:has([data-deep-aurora-integration]) .app-workspace-inset-footer-row {
+  background: rgb(255 255 255 / 0.03) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+}
+
+body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated {
+  background: rgb(255 255 255 / 0.05) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow:
+    0 4px 26px rgb(0 0 0 / 0.38),
+    inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
+}
+
+body:has([data-deep-aurora-integration]) .app-workspace-scrim {
+  background: linear-gradient(to bottom, rgb(2 6 23 / 0.72), rgb(30 58 138 / 0.38)) !important;
+}
+
+/** Card/sezioni tipo `SUMMARY_HIGHLIGHT_SURFACE_CLASS` (marker `.app-summary-highlight-surface`). */
+body:has([data-deep-aurora-integration]) .app-summary-highlight-surface:not(.glass-card) {
+  border-top-color: rgb(56 189 248 / 0.5) !important;
+  background: rgb(255 255 255 / 0.03) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 4px 30px rgb(0 0 0 / 0.35) !important;
+}
+
+body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear {
+  background-color: rgb(255 255 255 / 0.025) !important;
+  backdrop-filter: blur(22px) !important;
+  -webkit-backdrop-filter: blur(22px) !important;
+}
+
+body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
+  background-color: rgb(255 255 255 / 0.045) !important;
 }

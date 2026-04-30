@@ -26,7 +26,6 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
-import { DeepAuroraIntegration } from '@/components/deep-aurora/DeepAuroraIntegration'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,7 +68,6 @@ export default async function DashboardPage(props: {
 
     return (
       <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-        <DeepAuroraIntegration>
         <AppPageHeaderStrip embedded>
           <AppPageHeaderTitleWithDashboardShortcut>
             <h1 id="page-dashboard-strip-title" className="app-page-title text-xl font-bold leading-tight md:text-2xl" aria-describedby="page-dashboard-strip-desc">
@@ -207,7 +205,6 @@ export default async function DashboardPage(props: {
           })}
           </div>
         )}
-        </DeepAuroraIntegration>
       </div>
     )
   }
@@ -259,7 +256,6 @@ export default async function DashboardPage(props: {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <DeepAuroraIntegration>
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
@@ -353,8 +349,6 @@ export default async function DashboardPage(props: {
           <DashboardRecentBolleCard />
         </div>
       )}
-      </DeepAuroraIntegration>
-
     </div>
   )
 }

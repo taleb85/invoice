@@ -36,6 +36,7 @@ import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/Sideba
 import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
 import BranchSessionGate from '@/components/BranchSessionGate'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { DeepAuroraIntegration } from '@/components/deep-aurora/DeepAuroraIntegration'
 import { AppMainScrollRestoration } from '@/lib/return-navigation-client'
 
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
@@ -513,20 +514,22 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                   : 'pt-[calc(3.25rem+env(safe-area-inset-top,0px))]'
               } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
             >
-              <Suspense fallback={null}>
-                <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
-              </Suspense>
-              <ErrorBoundary sectionName="barra di sincronizzazione" fallback={null}>
-                <EmailSyncProgressBar />
-              </ErrorBoundary>
-              <ErrorBoundary sectionName="questa pagina">
-                <BranchSessionGate>
-                  <Suspense fallback={null}>
-                    <AppMainScrollRestoration />
-                  </Suspense>
-                  {children}
-                </BranchSessionGate>
-              </ErrorBoundary>
+              <DeepAuroraIntegration>
+                <Suspense fallback={null}>
+                  <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
+                </Suspense>
+                <ErrorBoundary sectionName="barra di sincronizzazione" fallback={null}>
+                  <EmailSyncProgressBar />
+                </ErrorBoundary>
+                <ErrorBoundary sectionName="questa pagina">
+                  <BranchSessionGate>
+                    <Suspense fallback={null}>
+                      <AppMainScrollRestoration />
+                    </Suspense>
+                    {children}
+                  </BranchSessionGate>
+                </ErrorBoundary>
+              </DeepAuroraIntegration>
             </main>
           </div>
         </div>
