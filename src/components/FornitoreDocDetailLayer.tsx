@@ -318,7 +318,7 @@ export default function FornitoreDocDetailLayer({
    */
   return createPortal(
     <div
-      className="fixed inset-0 z-[215] flex min-h-0 items-stretch justify-center app-workspace-inset-bg app-aurora-modal-overlay p-0 md:p-6"
+      className="app-fornitore-doc-detail-scrim fixed inset-0 z-[215] flex min-h-0 items-stretch justify-center app-workspace-inset-bg app-aurora-modal-overlay p-0 md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fornitore-doc-detail-title"
