@@ -1285,7 +1285,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
         {accessoTopBar}
         <AuroraPanelShell aria-labelledby="login-pin-heading">
-          <div className="flex flex-col items-center gap-5 p-6 text-center">
+          <div className="flex flex-col items-center gap-5 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-6 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
             {/* Avatar selezionato */}
             <div className="flex flex-col items-center gap-3">
               <div
