@@ -760,7 +760,7 @@ async function processEmails(
       if (email.attachments.length) {
         const fornitore = await resolveFornitore(supabase, email.from, sedeFilter)
         if (!fornitore) {
-          mailDebugLog(`[PROCESS] ⚠️  Fornitore non trovato per "${email.from}" — OCR+P.IVA verrà tentato`)
+          mailDebugLog(`[PROCESS] WARN  Fornitore non trovato per "${email.from}" — OCR+P.IVA verrà tentato`)
           noFornitore.push(email)
           continue
         }
@@ -769,7 +769,7 @@ async function processEmails(
           for (let ai = 0; ai < email.attachments.length; ai++) bumpAttach(email.uid)
           continue
         }
-        mailDebugLog(`[PROCESS] ✅ Fornitore abbinato: ${fornitore.nome} (${fornitore.id})`)
+        mailDebugLog(`[PROCESS] OK Fornitore abbinato: ${fornitore.nome} (${fornitore.id})`)
         if (!groups.has(fornitore.id)) {
           groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'email' })
         }
@@ -785,13 +785,13 @@ async function processEmails(
           // email corpo-testo (newsletter, promo, notifiche automatiche ecc.).
           if (!subjectLooksFiscal(email.subject)) {
             mailDebugLog(
-              `[PREFILTRO] ✂️  Scartata (mittente sconosciuto + oggetto non fiscale): da="${email.from}" oggetto="${(email.subject ?? '').slice(0, 80)}"`,
+              `[PREFILTRO] SKIP Scartata (mittente sconosciuto + oggetto non fiscale): da="${email.from}" oggetto="${(email.subject ?? '').slice(0, 80)}"`,
             )
             preFiltered++
             bumpAttach(email.uid)
             continue
           }
-          mailDebugLog(`[PROCESS] ⚠️  Solo testo, fornitore non trovato per "${email.from}" — estrazione corpo email`)
+          mailDebugLog(`[PROCESS] WARN  Solo testo, fornitore non trovato per "${email.from}" — estrazione corpo email`)
           noFornitoreBodyOnly.push(email)
           continue
         }
@@ -800,7 +800,7 @@ async function processEmails(
           bumpAttach(email.uid)
           continue
         }
-        mailDebugLog(`[PROCESS] ✅ Solo testo, fornitore: ${fornitore.nome} (${fornitore.id})`)
+        mailDebugLog(`[PROCESS] OK Solo testo, fornitore: ${fornitore.nome} (${fornitore.id})`)
         if (!groups.has(fornitore.id)) {
           groups.set(fornitore.id, { fornitore, items: [], matchedBy: 'email' })
         }
@@ -932,7 +932,7 @@ async function processEmails(
         const insErr = await insertDocumento(supabase, unknownPayload)
         if (insErr) {
           const detail = `[${insErr.code ?? 'ERR'}] ${insErr.message}${insErr.details ? ' | ' + insErr.details : ''}`
-          console.error(`[PROCESS] ❌ Insert sintetico sconosciuto fallito: ${detail}`)
+          console.error(`[PROCESS] ERR Insert sintetico sconosciuto fallito: ${detail}`)
           await insertLog(supabase, email, 'fornitore_non_trovato', {
             errore_dettaglio: detail,
             sede_id: unknownDocSedeId,
@@ -942,7 +942,7 @@ async function processEmails(
           ignorate++
           bumpAttach(email.uid)
         } else {
-          mailDebugLog(`[PROCESS] ✅ Documento [DA TESTO EMAIL] salvato — mittente="${email.from}"`)
+          mailDebugLog(`[PROCESS] OK Documento [DA TESTO EMAIL] salvato — mittente="${email.from}"`)
           const hinted =
             !!(ocr.ragione_sociale?.trim() || (ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7))
           const sugLabel = ocr.ragione_sociale?.trim() || ocr.p_iva || '—'
@@ -1016,7 +1016,7 @@ async function processEmails(
 
       if (insErr) {
         const detail = `[${insErr.code ?? 'ERR'}] ${insErr.message}${insErr.details ? ' | ' + insErr.details : ''}`
-        console.error(`[PROCESS] ❌ Insert sconosciuto fallito: ${detail}`)
+        console.error(`[PROCESS] ERR Insert sconosciuto fallito: ${detail}`)
         await insertLog(supabase, email, 'fornitore_non_trovato', {
           errore_dettaglio: detail,
           sede_id: unknownDocSedeId,
@@ -1026,7 +1026,7 @@ async function processEmails(
         ignorate++
         bumpAttach(email.uid)
       } else {
-        mailDebugLog(`[PROCESS] ✅ Documento sconosciuto salvato — mittente="${email.from}" sede=${unknownDocSedeId ?? 'NULL'} piva_ocr="${ocr.p_iva ?? '—'}"`)
+        mailDebugLog(`[PROCESS] OK Documento sconosciuto salvato — mittente="${email.from}" sede=${unknownDocSedeId ?? 'NULL'} piva_ocr="${ocr.p_iva ?? '—'}"`)
         const hinted =
           !!(ocr.ragione_sociale?.trim() || (ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7))
         const sugLabel = ocr.ragione_sociale?.trim() || ocr.p_iva || '—'
@@ -1150,7 +1150,7 @@ async function processEmails(
 
     if (insErr) {
       const detail = `[${insErr.code ?? 'ERR'}] ${insErr.message}${insErr.details ? ' | ' + insErr.details : ''}`
-      console.error(`[PROCESS] ❌ Insert solo-testo sconosciuto fallito: ${detail}`)
+      console.error(`[PROCESS] ERR Insert solo-testo sconosciuto fallito: ${detail}`)
       await insertLog(supabase, email, 'fornitore_non_trovato', {
         errore_dettaglio: detail,
         sede_id: unknownDocSedeId,
@@ -1160,7 +1160,7 @@ async function processEmails(
       ignorate++
       bumpAttach(email.uid)
     } else {
-      mailDebugLog(`[PROCESS] ✅ Documento solo-testo salvato — mittente="${email.from}"`)
+      mailDebugLog(`[PROCESS] OK Documento solo-testo salvato — mittente="${email.from}"`)
       const hinted =
         !!(ocr.ragione_sociale?.trim() || (ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7))
       const sugLabel = ocr.ragione_sociale?.trim() || ocr.p_iva || '—'
@@ -1327,7 +1327,7 @@ async function processEmails(
           .upload(uniqueName, attachment.content, { contentType: attachment.contentType, upsert: false })
 
         if (uploadError) {
-          console.error(`[PROCESS] ❌ Upload fallito: ${uploadError.message}`)
+          console.error(`[PROCESS] ERR Upload fallito: ${uploadError.message}`)
           await insertLog(supabase, email, 'fornitore_non_trovato', {
             fornitore_id: fornitore.id,
             errore_dettaglio: `Errore upload allegato: ${uploadError.message}`,
@@ -1346,7 +1346,7 @@ async function processEmails(
         mailDebugLog(`[PROCESS] Documento sintetico da corpo mail per "${fornitore.nome}"`)
         const syn = await uploadSyntheticEmailBodyDoc(supabase, email)
         if ('error' in syn) {
-          console.error(`[PROCESS] ❌ Upload testo sintetico fallito: ${syn.error}`)
+          console.error(`[PROCESS] ERR Upload testo sintetico fallito: ${syn.error}`)
           await insertLog(supabase, email, 'fornitore_non_trovato', {
             fornitore_id: fornitore.id,
             errore_dettaglio: `Errore upload documento da testo email: ${syn.error}`,
@@ -1434,7 +1434,7 @@ async function processEmails(
           if ('id' in res) {
             registratoAutoFatturaId = res.id
             bozzaCreate++
-            mailDebugLog(`[AUTO] ✅ Fattura registrata: id=${res.id}`)
+            mailDebugLog(`[AUTO] OK Fattura registrata: id=${res.id}`)
             const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
             fetch(`${baseUrl}/api/price-anomalies/check`, {
               method: 'POST',
@@ -1447,7 +1447,7 @@ async function processEmails(
           } else if ('duplicateId' in res) {
             duplicateSkippedFatturaId = res.duplicateId
             needsDocRevision = true
-            mailDebugLog(`[AUTO] ⚠️ Fattura già esistente (id=${res.duplicateId}) — in coda revisione`)
+            mailDebugLog(`[AUTO] WARN Fattura già esistente (id=${res.duplicateId}) — in coda revisione`)
           } else if ('error' in res) {
             console.warn(`[AUTO] Fattura non registrata: ${res.error}`)
           }
@@ -1464,7 +1464,7 @@ async function processEmails(
           if ('id' in rb) {
             registratoAutoBollaId = rb.id
             bozzaCreate++
-            mailDebugLog(`[AUTO] ✅ Bolla registrata (in attesa fattura): id=${rb.id}`)
+            mailDebugLog(`[AUTO] OK Bolla registrata (in attesa fattura): id=${rb.id}`)
           }
         } else {
           needsDocRevision = true
@@ -1540,7 +1540,7 @@ async function processEmails(
 
       if (insertError) {
         const detail = `[${insertError.code ?? 'ERR'}] ${insertError.message}${insertError.details ? ' | ' + insertError.details : ''}`
-        console.error(`[PROCESS] ❌ Insert FALLITO per "${fornitore.nome}": ${detail}`)
+        console.error(`[PROCESS] ERR Insert FALLITO per "${fornitore.nome}": ${detail}`)
         await insertLog(supabase, email, 'fornitore_non_trovato', {
           fornitore_id: fornitore.id,
           file_url,
@@ -1559,7 +1559,7 @@ async function processEmails(
         (attachment.contentType === 'application/pdf' || String(attachment.extension).toLowerCase() === 'pdf')
       if (treatAsStatement && stmtPdf) {
         mailDebugLog(
-          `[PROCESS] 📋 Documento estratto/receipt rilevato per "${fornitore.nome}" — avvio parsing automatico righe`,
+          `[PROCESS] DOC Documento estratto/receipt rilevato per "${fornitore.nome}" — avvio parsing automatico righe`,
         )
         // Fire-and-forget in background (don't block the main loop)
         processStatementInBackground(supabase, {
@@ -1572,7 +1572,7 @@ async function processEmails(
         }).catch(err => console.error('[STMT] Errore background processing:', err))
       } else {
         mailDebugLog(
-          `[PROCESS] ✅ Documento salvato per "${fornitore.nome}" | stato=${rowStato} | autoFatt=${registratoAutoFatturaId ?? '—'} autoBolla=${registratoAutoBollaId ?? '—'} | sede=${documentSedeId ?? 'NULL'}`,
+          `[PROCESS] OK Documento salvato per "${fornitore.nome}" | stato=${rowStato} | autoFatt=${registratoAutoFatturaId ?? '—'} autoBolla=${registratoAutoBollaId ?? '—'} | sede=${documentSedeId ?? 'NULL'}`,
         )
       }
 
@@ -1715,7 +1715,7 @@ async function processStatementInBackground(
     extracted_pdf_dates: extractedPdfDates,
   }).eq('id', statementId)
 
-  mailDebugLog(`[STMT] ✅ Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)
+  mailDebugLog(`[STMT] OK Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)
 }
 
 /** Stessa coda della GET `/api/scan-emails` (cron `sync-emails`, test). Default `imapSyncMode`: `auto` (finestra 3h). */
@@ -2251,7 +2251,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
       } catch (err) {
         if (params.historicalNarrowChunk?.sedeId === sede.id) throw err
         const { avviso, classified } = classifyImapErrorForSede(err, sede.nome)
-        console.error(`[SEDE] ❌ Errore sede "${sede.nome}" [${classified.kind}]:`, err)
+        console.error(`[SEDE] ERR Errore sede "${sede.nome}" [${classified.kind}]:`, err)
         avvisi.push(avviso)
         imapErrorDetails.push(classified)
         // Stream a structured event so the UI can render a per-sede error card immediately
@@ -2406,7 +2406,7 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
       await recordImapSuccess(supabase, null)
     } catch (err) {
       const { avviso, classified } = classifyImapErrorForSede(err, 'casella globale')
-      console.error(`[GLOBALE] ❌ Errore casella globale [${classified.kind}]:`, err)
+      console.error(`[GLOBALE] ERR Errore casella globale [${classified.kind}]:`, err)
       avvisi.push(avviso)
       imapErrorDetails.push(classified)
       await s({

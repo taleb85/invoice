@@ -8,6 +8,7 @@ import { useT } from '@/lib/use-t'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
 import { BackButton } from '@/components/BackButton'
+import { GlyphCheck, GlyphWarningTriangle } from '@/components/ui/glyph-icons'
 
 interface ExtractedData {
   nome: string | null
@@ -159,7 +160,16 @@ export default function ImportFornitoreInner() {
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <div className="relative">
                 <div className="w-16 h-16 rounded-full border-4 border-white/20 border-t-[#1a3050] animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center text-xl">🤖</div>
+                <div className="absolute inset-0 flex items-center justify-center text-[#22d3ee]" aria-hidden>
+                  <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.75}
+                      d="M12 18h.01M8 21h8M9.664 17h4.672M18 13a8 8 0 10-11.314 0 7.974 7.974 0 003.974 6.132L12 21l.34-1.868A8.006 8.006 0 0018 13z"
+                    />
+                  </svg>
+                </div>
               </div>
               <div className="text-center">
                 <p className="font-medium text-app-fg">{t.bolle.ocrAnalyzing}</p>
@@ -208,10 +218,30 @@ export default function ImportFornitoreInner() {
           )}
 
           <div className="flex gap-2 flex-wrap">
-            {extracted.nome && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.nome}</span>}
-            {extracted.piva && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.piva}</span>}
-            {extracted.email && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">✓ {t.fornitori.email}</span>}
-            {!extracted.nome && <span className="text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200 rounded-full font-medium">⚠ {t.bolle.ocrNotFound}</span>}
+            {extracted.nome && (
+              <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">
+                <GlyphCheck className="h-3 w-3 shrink-0" aria-hidden />
+                {t.fornitori.nome}
+              </span>
+            )}
+            {extracted.piva && (
+              <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">
+                <GlyphCheck className="h-3 w-3 shrink-0" aria-hidden />
+                {t.fornitori.piva}
+              </span>
+            )}
+            {extracted.email && (
+              <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200 rounded-full font-medium">
+                <GlyphCheck className="h-3 w-3 shrink-0" aria-hidden />
+                {t.fornitori.email}
+              </span>
+            )}
+            {!extracted.nome && (
+              <span className="inline-flex items-center gap-1 text-xs px-2.5 py-1 border border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200 rounded-full font-medium">
+                <GlyphWarningTriangle className="h-3 w-3 shrink-0" aria-hidden />
+                {t.bolle.ocrNotFound}
+              </span>
+            )}
           </div>
 
           <form onSubmit={handleSave} className="app-workspace-surface-elevated rounded-xl border border-app-line-22 p-6 space-y-4">

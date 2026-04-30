@@ -1585,15 +1585,6 @@ function DashboardTab({
       </div>
       </div>
 
-      {/* Pannello unico sincronizzazione Rekki — full-width */}
-      <ErrorBoundary sectionName="risultati sincronizzazione email">
-        <StatoSincronizzazioneIntelligente
-          fornitoreId={fornitoreId}
-          fornitoreNome={fornitoreNomeVisual}
-          sedeId={fornitore.sede_id ?? null}
-        />
-      </ErrorBoundary>
-      
       </div>
 
     </div>
@@ -5283,6 +5274,17 @@ function FornitoreDetailClient({
           <ErrorBoundary sectionName="dettaglio fornitore">
             <TabContent variant="mobile" />
           </ErrorBoundary>
+          {displayTab === 'dashboard' ? (
+            <ErrorBoundary sectionName="risultati sincronizzazione email">
+              <div className="mt-4">
+                <StatoSincronizzazioneIntelligente
+                  fornitoreId={fornitore.id}
+                  fornitoreNome={fornitoreNomeVisual}
+                  sedeId={fornitore.sede_id ?? null}
+                />
+              </div>
+            </ErrorBoundary>
+          ) : null}
         </div>
       </div>
 
@@ -5615,6 +5617,15 @@ function FornitoreDetailClient({
                     <ActivityFeed fornitoreId={fornitore.id} limit={5} compact={true} />
                   </div>
                 </div>
+                <ErrorBoundary sectionName="risultati sincronizzazione email">
+                  <div className="mt-4">
+                    <StatoSincronizzazioneIntelligente
+                      fornitoreId={fornitore.id}
+                      fornitoreNome={fornitoreNomeVisual}
+                      sedeId={fornitore.sede_id ?? null}
+                    />
+                  </div>
+                </ErrorBoundary>
               </>
             ) : null}
             <div

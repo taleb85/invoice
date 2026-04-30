@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 import { useT } from '@/lib/use-t'
+import { GlyphCheck } from '@/components/ui/glyph-icons'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -628,7 +629,8 @@ export default function InboxAiClient(props: {
               </span>
               ). Altrimenti{' '}
               <span className="font-semibold text-app-fg">Conferma suggeriti</span> o i pulsanti riga (incluso{' '}
-              <span className="font-semibold text-app-fg">Registra listino</span>). Ogni analisi mostra ✓ e il dettaglio.
+              <span className="font-semibold text-app-fg">Registra listino</span>
+              ). Ogni analisi mostra un segno di spunta e il dettaglio.
             </p>
             {docsLoading ? (
               <ul className="space-y-2">
@@ -664,9 +666,7 @@ export default function InboxAiClient(props: {
                             title={sug ? 'Analizzato dall’AI' : 'In attesa di analisi'}
                           >
                             {sug ? (
-                              <span className="text-emerald-300" aria-hidden>
-                                ✓
-                              </span>
+                              <GlyphCheck className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
                             ) : (
                               <span className="text-app-fg-muted/50" aria-hidden>
                                 ○
@@ -786,7 +786,10 @@ export default function InboxAiClient(props: {
               </ul>
             ) : auditRows.length === 0 ? (
               <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-4 py-6 text-center text-sm text-emerald-100/95">
-                Tutti gli abbinamenti sono corretti <span aria-hidden>✅</span>
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  Tutti gli abbinamenti sono corretti
+                  <GlyphCheck className="h-4 w-4 text-emerald-300" aria-hidden />
+                </span>
               </div>
             ) : (
               <ul className="space-y-3">
@@ -1013,7 +1016,10 @@ export default function InboxAiClient(props: {
 
         {tab === 'rekki' ? (
           <div className="rounded-lg border border-emerald-500/25 bg-emerald-950/15 px-4 py-8 text-center text-sm text-emerald-100/95">
-            Nessuna anomalia presente <span aria-hidden>✅</span>
+            <span className="inline-flex items-center justify-center gap-1.5">
+              Nessuna anomalia presente
+              <GlyphCheck className="h-4 w-4 text-emerald-300" aria-hidden />
+            </span>
           </div>
         ) : null}
       </div>

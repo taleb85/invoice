@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import { GlyphLightBulb } from '@/components/ui/glyph-icons'
 
 interface GmailSetupModalProps {
   isOpen: boolean
@@ -179,7 +180,17 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
           {step === 'input' && (
             <div className="space-y-5">
               <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-blue-500/10 p-4">
-                <h3 className="text-sm font-bold text-blue-200">📋 Passaggi Rapidi</h3>
+                <h3 className="flex items-center gap-2 text-sm font-bold text-blue-200">
+                  <svg className="h-4 w-4 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                    />
+                  </svg>
+                  Passaggi Rapidi
+                </h3>
                 <ol className="mt-3 ml-4 list-decimal space-y-2 text-xs leading-relaxed text-blue-200/80">
                   <li>
                     Vai su{' '}
@@ -218,8 +229,17 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                     <span className="font-bold text-blue-100">Copia Client ID e Client Secret</span> e incollali qui sotto
                   </li>
                 </ol>
-                <div className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-2 text-xs text-cyan-200">
-                  📖 Per istruzioni dettagliate, consulta{' '}
+                <div className="mt-3 flex gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-2 text-xs text-cyan-200">
+                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                  <span>
+                    Per istruzioni dettagliate, consulta{' '}
                   <a
                     href="/INSTRUCTIONS_GOOGLE_API.md"
                     target="_blank"
@@ -227,6 +247,7 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                   >
                     INSTRUCTIONS_GOOGLE_API.md
                   </a>
+                  </span>
                 </div>
               </div>
 
@@ -302,14 +323,24 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="mt-4 text-lg font-bold text-emerald-200">✅ Credenziali Salvate!</h3>
+                <h3 className="mt-4 text-lg font-bold text-emerald-200">Credenziali salvate!</h3>
                 <p className="mt-2 text-sm text-emerald-200/80">
                   Ora collega il tuo account Gmail per attivare lo scanner automatico
                 </p>
               </div>
 
               <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-blue-500/10 p-4">
-                <h4 className="text-sm font-bold text-blue-200">📧 Prossimi Passaggi</h4>
+                <h4 className="flex items-center gap-2 text-sm font-bold text-blue-200">
+                  <svg className="h-4 w-4 shrink-0 text-cyan-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Prossimi passaggi
+                </h4>
                 <ol className="mt-3 ml-4 list-decimal space-y-2 text-xs leading-relaxed text-blue-200/80">
                   <li>Verrai reindirizzato alla pagina di autorizzazione Google</li>
                   <li>
@@ -370,14 +401,14 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-emerald-200">🎉 Tutto Pronto!</h3>
+                <h3 className="text-xl font-bold text-emerald-200">Tutto pronto!</h3>
                 <p className="mt-2 text-sm text-emerald-200/80">
                   Gmail è connesso e lo scanner automatico è attivo
                 </p>
               </div>
 
               <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 p-4 text-left">
-                <p className="text-xs font-semibold text-emerald-200">✅ Funzionalità Attive:</p>
+                <p className="text-xs font-semibold text-emerald-200">Funzionalità attive:</p>
                 <ul className="mt-2 ml-4 list-disc space-y-1 text-xs text-emerald-200/80">
                   <li>Scanner automatico email Rekki (ogni 15 minuti)</li>
                   <li>Aggiornamento listino prezzi in background</li>
@@ -402,8 +433,9 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
 
         {/* Footer */}
         <div className="border-t border-app-line-25 px-6 py-3">
-          <p className="text-center text-xs text-app-fg-muted">
-            💡 Configurazione sicura • Tokens crittografati • Revocabile in qualsiasi momento
+          <p className="flex flex-wrap items-center justify-center gap-1.5 text-center text-xs text-app-fg-muted">
+            <GlyphLightBulb className="h-3.5 w-3.5 shrink-0 text-amber-300/90" aria-hidden />
+            Configurazione sicura · Tokens crittografati · Revocabile in qualsiasi momento
           </p>
         </div>
       </div>
