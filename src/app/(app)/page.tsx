@@ -5,7 +5,7 @@ import DuplicateDashboardBanner from '@/components/duplicates/duplicate-dashboar
 import DashboardScannerFlowCard from '@/components/DashboardScannerFlowCard'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
-import { getT, getLocale, getTimezone, getCookieStore, formatDate as fmtDate } from '@/lib/locale-server'
+import { getT, getLocale, getTimezone, getCurrency, getCookieStore, formatDate as fmtDate } from '@/lib/locale-server'
 import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
   DEFAULT_OPERATOR_DASHBOARD_KPIS,
@@ -15,6 +15,7 @@ import {
 } from '@/lib/dashboard-operator-kpis'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
+import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
 import { DashboardSmartPairRiskGlass } from '@/components/DashboardAuroraHomeWidgets'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
@@ -34,7 +35,13 @@ export default async function DashboardPage(props: {
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
   const cookieStore = await getCookieStore()
-  const [t, locale, tz, profile] = await Promise.all([getT(), getLocale(), getTimezone(), getProfile()])
+  const [t, locale, tz, profile, currency] = await Promise.all([
+    getT(),
+    getLocale(),
+    getTimezone(),
+    getProfile(),
+    getCurrency(),
+  ])
   const isMasterAdmin = profile?.role === 'admin'
   const isAdminSede = profile?.role === 'admin_sede'
   const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
@@ -289,9 +296,27 @@ export default async function DashboardPage(props: {
         </>
       ) : null}
 
+      {!operatorScoped ? (
+        <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
+          <DashboardOperatorKpiGrid glassShell kpis={kpis} t={t} locale={locale} currency={currency} />
+        </div>
+      ) : null}
+
       {operatorScoped ? (
         <>
           <div className="dashboard-operator-desktop-column dashboard-operator-aurora-grid hidden min-h-0 w-full min-w-0 md:flex">
+            <div className="dashboard-operator-aurora-area-kpi min-w-0">
+              <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
+                <DashboardOperatorKpiGrid
+                  glassShell
+                  kpis={kpis}
+                  t={t}
+                  locale={locale}
+                  currency={currency}
+                  fiscalYear={fiscalYear}
+                />
+              </Suspense>
+            </div>
             <div className="dashboard-operator-aurora-area-smart min-w-0">
               <DashboardSmartPairRiskGlass kpis={kpis} scanner={scannerFlowDetail.summary} t={t} />
             </div>

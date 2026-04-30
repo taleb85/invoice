@@ -54,11 +54,11 @@ const OPERATOR_KPI_GLASS_SECTION_SHELL_CLASS = `${AURORA_GLASS_PANEL_LAYOUT_CLAS
  * Usato solo con `glassShell` per avvicinare il mock «KPI OPERATORE».
  */
 const OPERATOR_KPI_GLASS_VALUE_ACCENT: readonly string[] = [
-  'text-white [text-shadow:0_0_24px_rgba(255,255,255,0.18)]',
-  'text-lime-400 [text-shadow:0_0_18px_rgba(163,230,53,0.42)]',
-  'text-cyan-400 [text-shadow:0_0_20px_rgba(34,211,238,0.45)]',
-  'text-amber-300 [text-shadow:0_0_16px_rgba(252,211,77,0.35)]',
-  'text-orange-400 [text-shadow:0_0_18px_rgba(251,146,60,0.4)]',
+  'text-white [text-shadow:0_0_28px_rgba(255,255,255,0.28)]',
+  'text-lime-300 [text-shadow:0_0_20px_rgba(190,242,100,0.5)]',
+  'text-cyan-300 [text-shadow:0_0_22px_rgba(103,232,249,0.52)]',
+  'text-amber-200 [text-shadow:0_0_18px_rgba(253,230,138,0.42)]',
+  'text-orange-300 [text-shadow:0_0_20px_rgba(253,186,116,0.48)]',
 ]
 
 /** Corpo tile: griglia interna; l’altezza uniforme delle card è sul guscio `.operator-kpi-card`. */
@@ -84,6 +84,23 @@ const DASHBOARD_OPERATOR_KPI_ICON_TEXT = [
   'text-red-400',
 ] as const
 
+const DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS = [
+  'text-cyan-300',
+  'text-violet-300',
+  'text-emerald-300',
+  'text-amber-300',
+  'text-red-300',
+] as const
+
+function dashboardKpiIconTextClass(index: number, glassShell: boolean) {
+  if (glassShell) {
+    const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS.length - 1))
+    return DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS[i]!
+  }
+  const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_ICON_TEXT.length - 1))
+  return DASHBOARD_OPERATOR_KPI_ICON_TEXT[i]!
+}
+
 function operatorKpiVisualAt(tileIndex: number) {
   const k = Math.max(0, Math.min(tileIndex, OPERATOR_KPI_VISUAL_INDEX.length - 1))
   const v = OPERATOR_KPI_VISUAL_INDEX[k]!
@@ -91,11 +108,6 @@ function operatorKpiVisualAt(tileIndex: number) {
     return operatorKpiVisual[v]!
   }
   return operatorKpiVisual[0]!
-}
-
-function dashboardKpiIconTextClass(index: number) {
-  const i = Math.max(0, Math.min(index, DASHBOARD_OPERATOR_KPI_ICON_TEXT.length - 1))
-  return DASHBOARD_OPERATOR_KPI_ICON_TEXT[i]!
 }
 
 export function DashboardOperatorKpiSkeleton({ glassShell = false }: { glassShell?: boolean }) {
@@ -221,7 +233,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(0).hoverClass,
       iconWrapClass: operatorKpiVisualAt(0).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(0)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(0, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -256,7 +268,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(1).hoverClass,
       iconWrapClass: operatorKpiVisualAt(1).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(1)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(1, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -287,7 +299,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(2).hoverClass,
       iconWrapClass: operatorKpiVisualAt(2).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(2)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(2, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -309,7 +321,7 @@ export default function DashboardOperatorKpiGrid({
       hoverClass: operatorKpiVisualAt(3).hoverClass,
       iconWrapClass: operatorKpiVisualAt(3).iconWrapClass,
       icon: (
-        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(3)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <svg className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(3, glassShell)}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -332,7 +344,7 @@ export default function DashboardOperatorKpiGrid({
       iconWrapClass: operatorKpiVisualAt(4).iconWrapClass,
       icon: (
         <svg
-          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4)}`}
+          className={`h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${dashboardKpiIconTextClass(4, glassShell)}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -362,7 +374,7 @@ export default function DashboardOperatorKpiGrid({
       {shellAccentBar}
       {glassShell ? (
         <div className="border-b border-white/10 px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-3.5">
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">{t.fornitori.tabRiepilogo}</h2>
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">{t.fornitori.tabRiepilogo}</h2>
         </div>
       ) : null}
       <div className={`${innerPadClass} relative`}>
@@ -376,14 +388,14 @@ export default function DashboardOperatorKpiGrid({
                   <p
                     className={
                       glassShell
-                        ? 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[10px] font-semibold uppercase leading-snug tracking-wider text-white/55 line-clamp-2 sm:min-h-[2rem] sm:text-[11px] sm:tracking-widest'
+                        ? 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[10px] font-semibold uppercase leading-snug tracking-wider text-white/78 line-clamp-2 sm:min-h-[2rem] sm:text-[11px] sm:tracking-widest'
                         : 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[12px] font-semibold leading-[1.15] tracking-wide text-app-fg line-clamp-2 sm:min-h-[2rem] sm:text-sm'
                     }
                   >
                     {item.label}
                   </p>
                   <span
-                    className={`${kpiTileIconWrapBase} ${item.iconWrapClass}${glassShell ? ' opacity-[0.72]' : ''}`}
+                    className={`${kpiTileIconWrapBase} ${item.iconWrapClass}${glassShell ? ' opacity-95' : ''}`}
                   >
                     {item.icon}
                   </span>
@@ -397,14 +409,22 @@ export default function DashboardOperatorKpiGrid({
                     >
                       {item.value}
                     </p>
-                    <p className={glassShell ? `${kpiTileSubLine} text-white/42` : kpiTileSubLine}>{item.sub}</p>
+                    <p
+                      className={
+                        glassShell
+                          ? 'w-full min-w-0 text-[11px] font-medium leading-snug text-white/65 sm:text-[12px] sm:leading-snug'
+                          : kpiTileSubLine
+                      }
+                    >
+                      {item.sub}
+                    </p>
                     {item.bollePendingHref && item.bollePendingCta && k.bolleInAttesa > 0 ? (
                       <span
                         role="link"
                         tabIndex={online ? 0 : -1}
                         className={`mt-0.5 inline-flex w-fit max-w-full rounded-md text-left text-[11px] font-semibold leading-snug underline decoration-indigo-400/50 underline-offset-2 transition-colors sm:text-[12px] ${
                           online
-                            ? 'cursor-pointer text-indigo-200 hover:text-indigo-100 hover:decoration-indigo-200/80'
+                            ? 'cursor-pointer text-indigo-100 hover:text-white hover:decoration-white/80'
                             : 'text-app-fg-muted line-through decoration-transparent'
                         }`}
                         onClick={(e) => {
@@ -425,7 +445,13 @@ export default function DashboardOperatorKpiGrid({
                       </span>
                     ) : null}
                     {item.microSub ? (
-                      <p className="w-full min-w-0 text-[11px] font-medium leading-snug text-emerald-300/85 sm:text-[12px] sm:leading-snug">
+                      <p
+                        className={
+                          glassShell
+                            ? 'w-full min-w-0 text-[11px] font-medium leading-snug text-emerald-200/95 sm:text-[12px] sm:leading-snug'
+                            : 'w-full min-w-0 text-[11px] font-medium leading-snug text-emerald-300/85 sm:text-[12px] sm:leading-snug'
+                        }
+                      >
                         {item.microSub}
                       </p>
                     ) : null}
