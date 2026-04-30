@@ -297,12 +297,7 @@ export default async function DashboardPage(props: {
 
       {!operatorScoped ? (
         <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
-          <div>
-            <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
-              {t.fornitori.tabRiepilogo}
-            </h2>
-            <DashboardOperatorKpiGrid glassShell kpis={kpis} t={t} locale={locale} currency={currency} />
-          </div>
+          <DashboardOperatorKpiGrid glassShell kpis={kpis} t={t} locale={locale} currency={currency} />
         </div>
       ) : null}
 
@@ -310,19 +305,14 @@ export default async function DashboardPage(props: {
         <>
           <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
             <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
-              <div>
-                <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
-                  {t.fornitori.tabRiepilogo}
-                </h2>
-                <DashboardOperatorKpiGrid
-                  glassShell
-                  kpis={kpis}
-                  t={t}
-                  locale={locale}
-                  currency={currency}
-                  fiscalYear={fiscalYear}
-                />
-              </div>
+              <DashboardOperatorKpiGrid
+                glassShell
+                kpis={kpis}
+                t={t}
+                locale={locale}
+                currency={currency}
+                fiscalYear={fiscalYear}
+              />
             </Suspense>
           </div>
           {/* Scanner: visibile su mobile e desktop (sotto i KPI ≥1024px). Vedi globals.css. */}

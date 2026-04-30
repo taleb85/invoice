@@ -1220,6 +1220,28 @@ body:has([data-deep-aurora-integration]) .supplier-desktop-kpi-card {
     0 12px 40px -14px rgb(0 0 0 / 0.45) !important;
 }
 
+/**
+ * KPI dashboard operatore (`.operator-kpi-card`) sotto Aurora: vetro + angoli larghi come mock KPI OPERATORE.
+ * Copre quanto definito nel layer components (piatto / senza blur).
+ */
+body:has([data-deep-aurora-integration]) .operator-kpi-card {
+  border-radius: 1rem !important;
+  border: 1px solid rgb(255 255 255 / 0.1) !important;
+  background: rgb(255 255 255 / 0.05) !important;
+  background-image: none !important;
+  backdrop-filter: blur(14px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
+  box-shadow:
+    0 0 0 1px rgb(15 23 42 / 0.32),
+    0 10px 36px -12px rgb(0 0 0 / 0.42),
+    inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+}
+
+body:has([data-deep-aurora-integration]) .operator-kpi-card:hover {
+  border-color: rgb(255 255 255 / 0.16) !important;
+  background: rgb(255 255 255 / 0.082) !important;
+}
+
 /** Calendario / date nativi: tema scuro coerente con Aurora (Chrome/Safari). */
 body:has([data-deep-aurora-integration]) input[type='date'],
 body:has([data-deep-aurora-integration]) input[type='datetime-local'] {

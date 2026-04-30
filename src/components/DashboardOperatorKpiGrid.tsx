@@ -42,6 +42,25 @@ const kpiGridShellClass = [
 const kpiGridInnerClass =
   'w-full min-w-0 px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-3.5 md:py-2.5 lg:px-4 lg:py-2.5'
 
+/** Corpo sotto l’intestazione nella sezione vetro unificata (mock AURA «KPI OPERATORE»). */
+const kpiGlassInnerClass =
+  'w-full min-w-0 px-3 py-3 sm:px-3.5 sm:py-3.5 md:px-4 md:py-4 lg:px-5 lg:py-4'
+
+/** Guscio unico scheda riepilogo operatore in dashboard Aurora. */
+const OPERATOR_KPI_GLASS_SECTION_SHELL_CLASS = `${AURORA_GLASS_PANEL_LAYOUT_CLASS} app-card-unified overflow-hidden rounded-2xl`
+
+/**
+ * Valore numerico con alone neon (ordine tile: Ordini, Bolle, Fatturato, Estratti, Revisione).
+ * Usato solo con `glassShell` per avvicinare il mock «KPI OPERATORE».
+ */
+const OPERATOR_KPI_GLASS_VALUE_ACCENT: readonly string[] = [
+  'text-white [text-shadow:0_0_24px_rgba(255,255,255,0.18)]',
+  'text-lime-400 [text-shadow:0_0_18px_rgba(163,230,53,0.42)]',
+  'text-cyan-400 [text-shadow:0_0_20px_rgba(34,211,238,0.45)]',
+  'text-amber-300 [text-shadow:0_0_16px_rgba(252,211,77,0.35)]',
+  'text-orange-400 [text-shadow:0_0_18px_rgba(251,146,60,0.4)]',
+]
+
 /** Corpo tile: griglia interna; l’altezza uniforme delle card è sul guscio `.operator-kpi-card`. */
 const kpiTileInnerGridClass =
   'relative z-[1] grid h-full min-h-0 w-full min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_1fr] gap-x-1.5 gap-y-1 py-2 pl-4 pr-2 sm:py-2.5 sm:pl-5 sm:pr-2.5'
@@ -80,25 +99,29 @@ function dashboardKpiIconTextClass(index: number) {
 }
 
 export function DashboardOperatorKpiSkeleton({ glassShell = false }: { glassShell?: boolean }) {
-  const outer = glassShell
-    ? AURORA_GLASS_PANEL_LAYOUT_CLASS
-    : kpiGridShellClass
+  const outer = glassShell ? OPERATOR_KPI_GLASS_SECTION_SHELL_CLASS : kpiGridShellClass
   const bar = glassShell ? null : (
     <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
   )
+  const innerPad = glassShell ? kpiGlassInnerClass : kpiGridInnerClass
 
   return (
     <div className={outer}>
       {bar}
-      <div className={kpiGridInnerClass}>
+      {glassShell ? (
+        <div className="border-b border-white/10 px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-3.5" aria-hidden>
+          <div className="h-2.5 w-32 max-w-[40%] animate-pulse rounded bg-white/12" />
+        </div>
+      ) : null}
+      <div className={innerPad}>
         <div className={DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS}>
           {[0, 1, 2, 3, 4].map((i) => {
             const ov = operatorKpiVisualAt(i)
             return (
               <div
                 key={i}
-                className={`operator-kpi-card relative flex h-full min-h-0 min-w-0 w-full animate-pulse flex-col overflow-hidden rounded-2xl ${OPERATOR_KPI_CARD_MIN_H} ${ov.borderClass} ${ov.ringClass}`}
-                style={{ boxShadow: operatorKpiCardShadow() }}
+                className={`operator-kpi-card relative flex h-full min-h-0 min-w-0 w-full animate-pulse flex-col overflow-hidden rounded-2xl ${OPERATOR_KPI_CARD_MIN_H} ${glassShell ? '' : `${ov.borderClass} ${ov.ringClass}`}`}
+                style={glassShell ? undefined : { boxShadow: operatorKpiCardShadow() }}
               >
                                 <div className={kpiTileInnerGridClass}>
                   <div className="col-start-1 row-start-1 flex min-h-[1.875rem] items-start sm:min-h-[2rem]">
@@ -328,29 +351,53 @@ export default function DashboardOperatorKpiGrid({
 
   const cardInteractive = online ? 'cursor-pointer active:scale-[0.99]' : 'cursor-not-allowed opacity-[0.88]'
 
-  const outerShellClass = glassShell ? AURORA_GLASS_PANEL_LAYOUT_CLASS : kpiGridShellClass
+  const outerShellClass = glassShell ? OPERATOR_KPI_GLASS_SECTION_SHELL_CLASS : kpiGridShellClass
   const shellAccentBar = glassShell ? null : (
     <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
   )
+  const innerPadClass = glassShell ? kpiGlassInnerClass : kpiGridInnerClass
 
   const panel = (
     <div className={outerShellClass}>
       {shellAccentBar}
-      <div className={`${kpiGridInnerClass} relative`}>
+      {glassShell ? (
+        <div className="border-b border-white/10 px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-3.5">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">{t.fornitori.tabRiepilogo}</h2>
+        </div>
+      ) : null}
+      <div className={`${innerPadClass} relative`}>
         <div className={`${DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS} ${!online ? 'pointer-events-none' : ''}`}>
-          {items.map((item) => {
+          {items.map((item, tileIndex) => {
+            const valueAccent =
+              OPERATOR_KPI_GLASS_VALUE_ACCENT[tileIndex] ?? OPERATOR_KPI_GLASS_VALUE_ACCENT[0] ?? 'text-white'
             const inner = (
               <>
                                 <div className={kpiTileInnerGridClass}>
-                  <p className="col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[12px] font-semibold leading-[1.15] tracking-wide text-app-fg line-clamp-2 sm:min-h-[2rem] sm:text-sm">
+                  <p
+                    className={
+                      glassShell
+                        ? 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[10px] font-semibold uppercase leading-snug tracking-wider text-white/55 line-clamp-2 sm:min-h-[2rem] sm:text-[11px] sm:tracking-widest'
+                        : 'col-start-1 row-start-1 flex min-h-[1.875rem] min-w-0 items-start self-start text-[12px] font-semibold leading-[1.15] tracking-wide text-app-fg line-clamp-2 sm:min-h-[2rem] sm:text-sm'
+                    }
+                  >
                     {item.label}
                   </p>
-                  <span className={`${kpiTileIconWrapBase} ${item.iconWrapClass}`}>{item.icon}</span>
+                  <span
+                    className={`${kpiTileIconWrapBase} ${item.iconWrapClass}${glassShell ? ' opacity-[0.72]' : ''}`}
+                  >
+                    {item.icon}
+                  </span>
                   <div className="col-span-2 col-start-1 row-start-2 flex min-h-0 min-w-0 flex-col items-stretch gap-0.5 self-start">
-                    <p className="break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight">
+                    <p
+                      className={
+                        glassShell
+                          ? `break-words text-xl font-bold tabular-nums leading-none tracking-tight sm:text-2xl sm:leading-tight ${valueAccent}`
+                          : 'break-words text-xl font-bold tabular-nums leading-none tracking-tight text-app-fg sm:text-2xl sm:leading-tight'
+                      }
+                    >
                       {item.value}
                     </p>
-                    <p className={kpiTileSubLine}>{item.sub}</p>
+                    <p className={glassShell ? `${kpiTileSubLine} text-white/42` : kpiTileSubLine}>{item.sub}</p>
                     {item.bollePendingHref && item.bollePendingCta && k.bolleInAttesa > 0 ? (
                       <span
                         role="link"
@@ -397,10 +444,15 @@ export default function DashboardOperatorKpiGrid({
               </>
             )
 
-            const shellClass = `operator-kpi-card relative z-[1] flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${OPERATOR_KPI_CARD_MIN_H} ${item.borderClass} ${item.ringClass} transition-[transform,box-shadow,border-color,background-color] duration-200 ${online ? 'hover:bg-white/[0.07]' : ''} ${item.hoverClass} ${cardInteractive}`
-            const shellStyle: CSSProperties = {
-              boxShadow: operatorKpiCardShadow(),
-            }
+            const shellClass = [
+              `operator-kpi-card relative z-[1] flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${OPERATOR_KPI_CARD_MIN_H} transition-[transform,border-color,background-color] duration-200`,
+              glassShell ? 'ring-0' : `${item.borderClass} ${item.ringClass} ${item.hoverClass}`,
+              glassShell ? '' : online ? 'hover:bg-white/[0.07]' : '',
+              cardInteractive,
+            ]
+              .filter(Boolean)
+              .join(' ')
+            const shellStyle: CSSProperties | undefined = glassShell ? undefined : { boxShadow: operatorKpiCardShadow() }
 
             if (online) {
               return (
