@@ -11,7 +11,9 @@ import {
   isBollaOverdue,
   isPromisedDocOverdue,
   parseAutoSollecitiEnabled,
+  parseDateOnlyOrIso,
   SOLLECITI_CONFIG_CHIAVI,
+  wholeDaysSinceUtc,
 } from '@/lib/sollecito-aging'
 import { createServiceClient } from '@/utils/supabase/server'
 
@@ -69,6 +71,16 @@ function parseEmailFromMittente(mittente: string | null | undefined): string | n
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t)) return t
   const angle = t.match(/<([^>\s@]+@[^>\s]+)>/)
   return angle?.[1]?.trim() ?? null
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Giorni decimali dall’anchor (es. 4.2) per log cron; allineato al conteggio calendario UTC intero dove utile. */
+function giorniTrascorsiDecimali(anchor: Date | null, ref: Date): string {
+  if (!anchor || Number.isNaN(anchor.getTime())) return 'n/d'
+  const raw = (ref.getTime() - anchor.getTime()) / DAY_MS
+  const rounded = Math.round(raw * 10) / 10
+  return Number.isFinite(rounded) ? String(rounded) : 'n/d'
 }
 
 /**
@@ -139,22 +151,40 @@ export async function GET(req: NextRequest) {
 
   for (const b of bolle ?? []) {
     const id = String(b.id)
-    if (
-      !isBollaOverdue({
-        stato: b.stato,
-        data: b.data,
-        toleranceDays: sogliaBolla,
-        now,
-      })
-    ) {
+    const anchor = parseDateOnlyOrIso(b.data ?? null)
+    const giorniDec = giorniTrascorsiDecimali(anchor, now)
+    const giorniCal = anchor ? wholeDaysSinceUtc(anchor, now) : null
+    const statoNorm = String(b.stato ?? '').trim()
+
+    const overdueBolla = isBollaOverdue({
+      stato: b.stato,
+      data: b.data,
+      toleranceDays: sogliaBolla,
+      now,
+    })
+
+    let sintesiAging: string
+    if (!anchor) {
+      sintesiAging = `senza data valida -> NON_ANALIZZABILE`
+    } else if (statoNorm !== 'in attesa') {
+      sintesiAging = `stato="${statoNorm}" -> NON_ELEGIBILE`
+    } else {
+      sintesiAging = `${giorniDec}gg passati su ${sogliaBolla} -> ${overdueBolla ? 'SOGLIA_RAGGIUNTA' : 'OK'}`
+    }
+
+    console.log(
+      `[AGING CHECK] bolla id=${id}: Giorni trascorsi: ${giorniDec} | Giorni calendario UTC: ${giorniCal ?? 'n/d'} | Soglia: ${sogliaBolla} | ${sintesiAging}`,
+    )
+
+    if (!overdueBolla) {
       skippedAging++
-      console.log(`[SKIP] ID: ${id} - Motivo: Aging non raggiunto`)
+      console.log(`[DECISION] bolla id=${id}: SKIP — aging non raggiunto o non eleggibile`)
       continue
     }
 
     if (await wasCronSollecitoRecent(supabase, 'bolla', id)) {
       skippedDedup++
-      console.log(`[SKIP] ID: ${id} - Motivo: Sollecito già inviato negli ultimi 7 giorni`)
+      console.log(`[DECISION] bolla id=${id}: SKIP — sollecito già inviato negli ultimi 7 giorni`)
       continue
     }
 
@@ -162,7 +192,7 @@ export async function GET(req: NextRequest) {
     const email = fornitore?.email?.trim()
     if (!email) {
       skippedNoEmail++
-      console.log(`[SKIP] ID: ${id} - Motivo: Email fornitore assente`)
+      console.log(`[DECISION] bolla id=${id}: SKIP — email fornitore assente`)
       continue
     }
 
@@ -183,11 +213,12 @@ export async function GET(req: NextRequest) {
 
     if (mailErr) {
       errors.push(`bolla ${id}: ${mailErr.message}`)
+      console.log(`[DECISION] bolla id=${id}: ERRORE INVIO — ${mailErr.message}`)
       continue
     }
 
     inviati++
-    console.log(`[INVIO] Sollecito a: ${email}`)
+    console.log(`[DECISION] bolla id=${id}: INVIO sollecito a ${email}`)
 
     await supabase.from('log_sincronizzazione').insert([
       {
@@ -219,15 +250,38 @@ export async function GET(req: NextRequest) {
 
     if (meta.promessa_invio_documento !== true) continue
 
-    if (!isPromisedDocOverdue(meta, row.created_at, sogliaPromessa, now)) {
+    const createdRaw = row.created_at
+    const anchorProm =
+      createdRaw == null
+        ? null
+        : typeof createdRaw === 'string'
+          ? new Date(createdRaw)
+          : createdRaw instanceof Date
+            ? createdRaw
+            : null
+    const anchorOk = anchorProm && !Number.isNaN(anchorProm.getTime()) ? anchorProm : null
+
+    const overduePromessa = isPromisedDocOverdue(meta, row.created_at, sogliaPromessa, now)
+    const giorniDec = giorniTrascorsiDecimali(anchorOk, now)
+    const giorniCal = anchorOk ? wholeDaysSinceUtc(anchorOk, now) : null
+
+    const sintesiAging = !anchorOk
+      ? `senza created_at valido -> NON_ANALIZZABILE`
+      : `${giorniDec}gg passati su ${sogliaPromessa} -> ${overduePromessa ? 'SOGLIA_RAGGIUNTA' : 'OK'}`
+
+    console.log(
+      `[AGING CHECK] promessa_doc id=${id}: Giorni trascorsi: ${giorniDec} | Giorni calendario UTC: ${giorniCal ?? 'n/d'} | Soglia: ${sogliaPromessa} | ${sintesiAging}`,
+    )
+
+    if (!overduePromessa) {
       skippedAging++
-      console.log(`[SKIP] ID: ${id} - Motivo: Aging non raggiunto`)
+      console.log(`[DECISION] promessa_doc id=${id}: SKIP — aging non raggiunto`)
       continue
     }
 
     if (await wasCronSollecitoRecent(supabase, 'promessa_doc', id)) {
       skippedDedup++
-      console.log(`[SKIP] ID: ${id} - Motivo: Sollecito già inviato negli ultimi 7 giorni`)
+      console.log(`[DECISION] promessa_doc id=${id}: SKIP — sollecito già inviato negli ultimi 7 giorni`)
       continue
     }
 
@@ -235,7 +289,7 @@ export async function GET(req: NextRequest) {
     const email = fornitore?.email?.trim() ?? parseEmailFromMittente(row.mittente ?? undefined)
     if (!email) {
       skippedNoEmail++
-      console.log(`[SKIP] ID: ${id} - Motivo: Email fornitore assente`)
+      console.log(`[DECISION] promessa_doc id=${id}: SKIP — email destinatario assente`)
       continue
     }
 
@@ -254,11 +308,12 @@ export async function GET(req: NextRequest) {
 
     if (mailErr) {
       errors.push(`promessa_doc ${id}: ${mailErr.message}`)
+      console.log(`[DECISION] promessa_doc id=${id}: ERRORE INVIO — ${mailErr.message}`)
       continue
     }
 
     inviati++
-    console.log(`[INVIO] Sollecito a: ${email}`)
+    console.log(`[DECISION] promessa_doc id=${id}: INVIO sollecito a ${email}`)
 
     await supabase.from('log_sincronizzazione').insert([
       {
