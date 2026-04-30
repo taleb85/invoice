@@ -11,11 +11,11 @@ export const APP_FORNITORE_FORM_PAGE_SHELL_CLASS =
   'fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-[83rem] flex-col gap-3 pb-8 pt-2 md:gap-4 md:pb-10'
 
 /**
- * Pagine sezione a stack (header → riepilogo → lista): stesso ritmo verticale della dashboard
- * (`gap-5 md:gap-6`). Sulle strip/card che hanno ancora `mb-6`/`mb-8`, passare `className="!mb-0"`.
+ * Stack verticale (header strip → contenuto) come la dashboard KPI: sotto Aurora vedi anche
+ * `.app-shell-main-stack` (vetro pannello grande, `globals.css`).
  */
 export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
-  'flex w-full min-w-0 flex-col gap-3 md:gap-4 app-shell-page-padding'
+  'app-shell-main-stack flex w-full min-w-0 flex-col gap-3 md:gap-4 app-shell-page-padding'
 
 /**
  * Padding della riga interna `AppPageHeaderStrip` con `dense` (corpo trasparente sul canvas).

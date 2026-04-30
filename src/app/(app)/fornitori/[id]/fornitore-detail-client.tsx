@@ -5289,7 +5289,7 @@ function FornitoreDetailClient({
       </div>
 
       {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
-      <div className="hidden min-w-0 text-app-fg md:block">
+      <div className="app-shell-main-stack hidden min-h-0 min-w-0 text-app-fg md:mx-4 md:mb-4 md:mt-2 md:block lg:mx-6 xl:mx-10">
         {/*
           Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
         */}
