@@ -23,14 +23,14 @@ type Message = { type: 'error' | 'success'; text: string }
 
 // ─── Avatar helpers ───────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  ['#22d3ee', '#0e4f63'], // cyan
+  ['#38bdf8', '#0f3460'], // sky Aurora / deep navy
   ['#818cf8', '#312e81'], // indigo
-  ['#7c9dfc', '#1e3a8a'], // blue-violet
-  ['#34d399', '#064e3b'], // teal-emerald
-  ['#67e8f9', '#0c4a6e'], // sky-cyan
-  ['#a78bfa', '#4c1d95'], // violet-purple
+  ['#7dd3fc', '#164e73'], // light sky → blue depth
+  ['#34d399', '#064e3b'], // emerald
+  ['#a5b4fc', '#3730a3'], // soft indigo
+  ['#c4b5fd', '#5b21b6'], // violet
   ['#2dd4bf', '#134e4a'], // teal
-  ['#93c5fd', '#1e3a8a'], // light-blue
+  ['#93c5fd', '#1e40af'], // blue
 ]
 
 function avatarColors(name: string): [string, string] {
@@ -69,7 +69,7 @@ function AvatarCard({
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
-      className="flex flex-col items-center gap-3 rounded-2xl p-3 outline-none transition-colors duration-150 hover:bg-white/[0.06] active:scale-95 sm:p-4"
+      className="flex flex-col items-center gap-3 rounded-2xl p-3 outline-none ring-1 ring-transparent transition-all duration-200 hover:bg-white/[0.035] hover:ring-white/10 active:scale-[0.98] sm:p-4"
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
       {/* Avatar — 120 px rounded square */}
@@ -82,8 +82,8 @@ function AvatarCard({
           background: `radial-gradient(circle at 35% 35%, ${fg}40, ${bg}e8)`,
           color: fg,
           boxShadow: hovered
-            ? `0 10px 40px ${bg}cc, 0 0 0 3px ${fg}55, 0 0 28px ${fg}22`
-            : `0 4px 22px ${bg}99`,
+            ? `0 12px 44px ${bg}aa, 0 0 0 1px rgb(255 255 255 / 0.12), 0 0 36px rgba(56,189,248,0.18)`
+            : `0 6px 28px ${bg}88, 0 0 0 1px rgb(255 255 255 / 0.06)`,
           transform: hovered ? 'scale(1.08)' : 'scale(1)',
           transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
         }}
@@ -132,15 +132,15 @@ function AvatarGrid({
       {/* Sede badge */}
       {sedeNome && (
         <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.7)]" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-app-fg-muted">{sedeNome}</p>
+          <span className="h-1.5 w-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.65)]" />
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#94a3b8]">{sedeNome}</p>
         </div>
       )}
 
       {/* Title + subtitle */}
       <div className="flex flex-col items-center gap-1.5 text-center">
-        <h2 className="text-2xl font-bold text-app-fg sm:text-3xl">{title}</h2>
-        <p className="text-xs text-app-fg-muted/75">{subtitle}</p>
+        <h2 className="font-outfit text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h2>
+        <p className="max-w-[20rem] text-xs leading-relaxed text-[#94a3b8]">{subtitle}</p>
       </div>
 
       {/* Grid */}
@@ -1238,6 +1238,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
+          {/* Barra accento come le KPI dashboard Aurora */}
+          <div
+            aria-hidden
+            className="h-0.5 w-full shrink-0 bg-gradient-to-r from-[#38bdf8]/70 via-indigo-400/45 to-transparent"
+          />
           <div className="px-4 pb-2 pt-4 sm:px-6">
             <AvatarGrid
               operators={netflixOperators}
@@ -1248,7 +1253,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             />
           </div>
           {/* Footer links */}
-          <div className="flex items-center justify-between gap-3 border-t border-white/[0.08] bg-white/[0.03] px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-3">
             <div className="flex flex-col gap-1">
               <button
                 type="button"
@@ -1284,6 +1289,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
         {accessoTopBar}
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
+          <div
+            aria-hidden
+            className="h-0.5 w-full shrink-0 bg-gradient-to-r from-[#38bdf8]/70 via-indigo-400/45 to-transparent"
+          />
           <div className="flex flex-col items-center gap-5 p-6 text-center">
 
             {/* Avatar selezionato */}
@@ -1419,7 +1428,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           </div>
 
           {/* Footer lingua */}
-          <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/[0.08] bg-white/[0.03] px-4 py-2.5">
+          <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-2.5">
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
         </div>
@@ -1455,6 +1464,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
       {/* Card: bordo leggero su canvas gradient (`LoginBrandedShell`); vetro pieno disattivato */}
       <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
+        <div
+          aria-hidden
+          className="h-0.5 w-full shrink-0 bg-gradient-to-r from-[#38bdf8]/70 via-indigo-400/45 to-transparent"
+        />
 
         <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
 
@@ -1773,7 +1786,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
         {/* Barra inferiore: stessa larghezza della card (link admin + lingua) */}
         <div
-          className={`flex min-h-[3rem] items-center gap-3 border-t border-white/[0.08] bg-white/[0.03] px-4 py-2.5 ${
+          className={`flex min-h-[3rem] items-center gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-2.5 ${
             sessionGateNext ? 'justify-center' : 'justify-between'
           }`}
         >
