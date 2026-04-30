@@ -165,7 +165,7 @@ export function ActivityFeed({
               key={id}
               type="button"
               onClick={() => setActiveFilter(id)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${
                 activeFilter === id
                   ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
                   : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
@@ -225,7 +225,7 @@ export function ActivityFeed({
                   <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5">
                     <div className="min-w-0">
                       <span
-                        className={`mr-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${COLOR_BADGE[color]}`}
+                        className={`mr-1.5 inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[10px] font-semibold ${COLOR_BADGE[color]}`}
                       >
                         <ActivityGlyph id={row.actionGlyph} className="h-3 w-3 opacity-95" aria-hidden />
                         {row.actionLabel}

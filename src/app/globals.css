@@ -167,6 +167,14 @@
   [role='button'] {
     border-radius: var(--app-radius-btn);
   }
+
+  /*
+   * `<Link>` (Next.js) rende `<a href>`. Stesso default quando è layout flex / inline-flex
+   * tipo CTA, senza una classe contenente «rounded». Le utility rounded-* continuano a vincere.
+   */
+  a[href]:is(.inline-flex, .flex):not([class*='rounded']) {
+    border-radius: var(--app-radius-btn);
+  }
 }
 
 /* Smartphone stretti: testo leggermente più arioso senza toccare i breakpoint Tailwind. */

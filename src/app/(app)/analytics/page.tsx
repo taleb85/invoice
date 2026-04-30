@@ -85,7 +85,7 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
             <a
               key={value}
               href={`/analytics?months=${value}&fy=${fiscalYear}`}
-              className={`inline-flex min-h-9 shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              className={`inline-flex min-h-9 shrink-0 items-center rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${
                 months === value
                   ? 'bg-teal-500/15 text-teal-200 ring-1 ring-teal-500/35'
                   : 'text-teal-300/55 hover:bg-teal-500/12 hover:text-teal-200/90'

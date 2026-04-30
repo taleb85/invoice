@@ -21,7 +21,7 @@ export default async function AppNotFound() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6 text-center">
-        <Link href="/" className="group inline-flex items-center justify-center gap-2.5">
+        <Link href="/" className="group inline-flex items-center justify-center gap-2.5 rounded-lg">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-app-a-35 bg-[#0f2a4a] shadow-[0_0_24px_rgba(34,211,238,0.22)] ring-1 ring-inset ring-[#22d3ee]/30 transition-colors group-hover:border-app-tint-300-45 group-hover:bg-[#0f2a4a]/80">
             <svg width="22" height="22" viewBox="0 0 40 40" fill="none" aria-hidden>
               <path d="M4 20 L16 8 L16 15 L28 15 L28 20" stroke="#22d3ee" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="round"/>
