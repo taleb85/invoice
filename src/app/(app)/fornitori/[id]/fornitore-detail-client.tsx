@@ -192,7 +192,9 @@ function shiftLedgerPeriodByMonths(
 /** Due `TabContent` (mobile/desktop); stesso schema del tab Verifica: `DashboardTab` solo dove `mdUp` coincide (evita doppio Rekki nel DOM). */
 function scrollSupplierTabPanelIntoView() {
   if (typeof document === 'undefined') return
-  const panel = [...document.querySelectorAll<HTMLElement>('.fornitore-tab-panel')].find((e) => e.offsetHeight > 0)
+  const panel = [...document.querySelectorAll<HTMLElement>('[data-supplier-tab-region]')].find(
+    (e) => e.offsetHeight > 0,
+  )
   if (!panel) return
   const main = document.querySelector('[data-app-main-scroll]') as HTMLElement | null
   if (main) {
@@ -5270,7 +5272,7 @@ function FornitoreDetailClient({
           </div>
         </header>
 
-        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-lg border border-app-line-15 bg-white/[0.04] p-3 outline-none backdrop-blur-md [-webkit-backdrop-filter:blur(12px)] sm:p-4">
+        <div className="min-w-0 scroll-mt-4 p-3 outline-none sm:p-4" data-supplier-tab-region tabIndex={-1}>
           <ErrorBoundary sectionName="dettaglio fornitore">
             <TabContent variant="mobile" />
           </ErrorBoundary>
@@ -5629,8 +5631,9 @@ function FornitoreDetailClient({
               </>
             ) : null}
             <div
-              className={`fornitore-tab-panel min-w-0 scroll-mt-6 rounded-xl border border-app-line-15 bg-transparent p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8 ${displayTab === 'dashboard' ? 'mt-6 lg:mt-8' : ''}`}
+              className={`min-w-0 scroll-mt-6 p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8 ${displayTab === 'dashboard' ? 'mt-6 lg:mt-8' : ''}`}
               tabIndex={-1}
+              data-supplier-tab-region
             >
               <ErrorBoundary sectionName="dettaglio fornitore">
                 <TabContent variant="desktop" />

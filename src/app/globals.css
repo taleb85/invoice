@@ -1209,9 +1209,7 @@ body:has([data-deep-aurora-integration]) .app-card {
 }
 
 /** Pannelli sezione Aurora: bordo slate, niente fascia cyan superiore. */
-body:has([data-deep-aurora-integration]) .app-card-unified,
-body:has([data-deep-aurora-integration]) .fornitore-tab-panel,
-body:has([data-deep-aurora-integration]) [class*='fornitore-tab-panel'] {
+body:has([data-deep-aurora-integration]) .app-card-unified {
   border: 1px solid rgb(148 163 184 / 0.28) !important;
   background: rgb(255 255 255 / 0.08) !important;
   background-image: none !important;
