@@ -1160,13 +1160,56 @@ body:has([data-deep-aurora-integration]) .app-summary-highlight-surface:not(.gla
 }
 
 body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear {
-  background-color: rgb(255 255 255 / 0.025) !important;
-  backdrop-filter: blur(22px) !important;
-  -webkit-backdrop-filter: blur(22px) !important;
+  background-color: rgb(255 255 255 / 0.04) !important;
+  backdrop-filter: blur(26px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(150%) !important;
 }
 
 body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
   background-color: rgb(255 255 255 / 0.045) !important;
+}
+
+/**
+ * Card standard (modali, pannelli): vetro Aurora al posto del fill piatto + backdrop none.
+ */
+body:has([data-deep-aurora-integration]) .app-card {
+  border-radius: 16px !important;
+  border-top-color: rgb(56 189 248 / 0.55) !important;
+  background: rgb(255 255 255 / 0.065) !important;
+  background-image: none !important;
+  backdrop-filter: blur(20px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
+  box-shadow:
+    0 4px 32px rgb(0 0 0 / 0.38),
+    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+}
+
+/** Stesso trattamento di `.app-card-unified` (impostazioni, sezioni, tab fornitore). */
+body:has([data-deep-aurora-integration]) .app-card-unified,
+body:has([data-deep-aurora-integration]) [class*='fornitore-tab-panel'],
+body:has([data-deep-aurora-integration]) [class*='supplier-detail-tab'] {
+  border-top-color: rgb(56 189 248 / 0.5) !important;
+  background: rgb(255 255 255 / 0.055) !important;
+  background-image: none !important;
+  backdrop-filter: blur(16px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
+  box-shadow: 0 4px 26px rgb(0 0 0 / 0.32), inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+}
+
+body:has([data-deep-aurora-integration]) .supplier-detail-tab-shell,
+body:has([data-deep-aurora-integration]) .supplier-desktop-kpi-card {
+  border-top-color: rgb(56 189 248 / 0.5) !important;
+  background: rgb(255 255 255 / 0.05) !important;
+  background-image: none !important;
+  backdrop-filter: blur(14px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05) !important;
+}
+
+/** Calendario / date nativi: tema scuro coerente con Aurora (Chrome/Safari). */
+body:has([data-deep-aurora-integration]) input[type='date'],
+body:has([data-deep-aurora-integration]) input[type='datetime-local'] {
+  color-scheme: dark;
 }
 
 /* Login / accesso / sede-lock / offline: card e vetro allineati ad Aurora */

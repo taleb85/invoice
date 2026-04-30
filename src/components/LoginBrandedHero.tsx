@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale } from '@/lib/locale-context'
+import { formatAppVersionLabel } from '@/lib/app-build-info'
 
 interface Props {
   mode: 'name' | 'admin'
@@ -45,6 +46,9 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
           </div>
           <span className="text-[10px] uppercase tracking-[3px] text-[#94a3b8]">
             Invoice Management
+          </span>
+          <span className="text-[10px] font-medium tabular-nums tracking-widest text-[#94a3b8]/80">
+            {formatAppVersionLabel()}
           </span>
         </div>
 

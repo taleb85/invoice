@@ -228,11 +228,7 @@ export default function OperatorSwitchModal() {
       }}
     >
       <div
-        className="app-card pointer-events-auto flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden p-0 text-app-fg"
-        style={{
-          background: 'linear-gradient(to bottom, rgba(6, 182, 212, 0.22), rgba(91, 33, 182, 0.16)), rgb(10 18 38 / 0.82)',
-          boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.35), 0 0 60px -15px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)',
-        }}
+        className="app-card pointer-events-auto flex max-h-[min(90dvh,36rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-white/10 p-0 text-app-fg shadow-[0_4px_40px_rgb(0_0_0/_0.42),0_0_0_1px_rgb(255_255_255/_0.06)]"
         onClick={(e) => e.stopPropagation()}
       >
 
@@ -305,14 +301,9 @@ export default function OperatorSwitchModal() {
                         className={[
                           'flex min-h-[56px] w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all touch-manipulation active:scale-[0.99]',
                           selected?.id === op.id
-                            ? 'border-app-a-50 text-app-fg shadow-[0_0_24px_-8px_rgba(34,211,238,0.4)] ring-1 ring-app-a-25'
-                            : 'border-app-line-25 text-app-fg-muted ring-1 ring-app-line-5 hover:border-app-a-40',
+                            ? 'border-sky-400/45 text-app-fg shadow-[0_0_24px_-10px_rgba(56,189,248,0.35)] ring-1 ring-sky-400/25 app-workspace-inset-bg'
+                            : 'border-app-line-25 text-app-fg-muted ring-1 ring-app-line-5 hover:border-sky-400/35 app-workspace-inset-bg-soft',
                         ].join(' ')}
-                        style={
-                          selected?.id === op.id
-                            ? { background: 'linear-gradient(135deg, rgba(6,182,212,0.18), rgba(91,33,182,0.14)), rgb(10 18 38 / 0.95)' }
-                            : { background: 'rgb(8 14 30 / 0.92)' }
-                        }
                       >
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-app-line-35 bg-app-line-15 text-sm font-bold text-app-fg-muted shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                           {(op.full_name.trim().toUpperCase() || '?').charAt(0)}
@@ -368,7 +359,7 @@ export default function OperatorSwitchModal() {
                     className={[
                       'w-4 h-4 rounded-full transition-all duration-150',
                       pin[i]
-                        ? 'bg-app-cyan-400 scale-110 shadow-[0_0_10px_rgba(34,211,238,0.65)]'
+                        ? 'scale-110 bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.55)]'
                         : 'border border-app-line-35 app-workspace-inset-bg',
                     ].join(' ')}
                   />
@@ -377,7 +368,7 @@ export default function OperatorSwitchModal() {
 
               {/* Error */}
               {error && (
-                <div className="flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-3 py-2 ring-1 ring-red-500/15">
+                <div className="flex items-center gap-2 rounded-lg border border-sky-400/20 bg-red-950/40 px-3 py-2 ring-1 ring-red-500/15">
                   <svg className="w-3.5 h-3.5 shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                   </svg>

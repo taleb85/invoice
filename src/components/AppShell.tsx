@@ -454,7 +454,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 onClick={(e) => e.stopPropagation()}
                 aria-label="Navigazione principale"
               >
-                <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 min-h-[52px]">
+                <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
                   <SidebarRailBrand />
                 </div>
                 <ErrorBoundary sectionName="navigazione">
@@ -471,7 +471,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-visible lg:relative lg:z-auto',
             ].join(' ')}
           >
-            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25 lg:min-h-[52px]">
+            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
               <SidebarRailBrand />
             </div>
             <ErrorBoundary sectionName="navigazione">
