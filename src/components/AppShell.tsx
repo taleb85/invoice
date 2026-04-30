@@ -30,7 +30,6 @@ import { isFornitoreProfileRoute, normalizeAppPath, showsMobileBottomBar } from 
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { NetworkProvider } from '@/lib/network-context'
 import NavigationTopProgress, {
-  APP_DESKTOP_FORNITORE_DETAIL_TOOLBAR_HOST_ID,
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
 import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/SidebarBrandHeader'
@@ -482,10 +481,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             <div
               ref={bindDesktopNavHost}
               id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-              className="relative isolate z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:w-full md:flex-col md:items-stretch"
+              className="relative isolate z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[52px] md:w-full md:items-stretch"
             >
               <div
-                className={`relative z-30 flex min-h-[52px] min-w-0 w-full shrink-0 flex-1 items-stretch overflow-visible md:w-full ${desktopToolbarOnlySurface}`}
+                className={`relative z-30 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible md:w-full ${desktopToolbarOnlySurface}`}
               >
                 {/* Hamburger: visible on md (tablet), hidden on lg (desktop with sidebar) */}
                 <button
@@ -500,19 +499,11 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 </button>
                 <DesktopHeaderActionsStrip />
               </div>
-              {/*
-                Host per toolbar scheda fornitore (desktop): `empty:hidden` quando non in `/fornitori/[id]`.
-                Stessa colonna della strip sync → ancoraggio visivo con DesktopHeaderActionsStrip.
-              */}
-              <div
-                id={APP_DESKTOP_FORNITORE_DETAIL_TOOLBAR_HOST_ID}
-                className="relative z-20 w-full min-h-0 shrink-0 empty:hidden"
-              />
             </div>
             <main
               id="app-main"
               data-app-main-scroll
-              className={`app-main-workspace-scroll flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] md:pt-0 ${
+              className={`app-main-workspace-scroll relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] md:pt-0 ${
                 normalized === '/bolle/new'
                   ? 'pt-0'
                   : 'pt-[calc(3.25rem+env(safe-area-inset-top,0px))]'
