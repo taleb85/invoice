@@ -328,34 +328,55 @@ export default async function DashboardPage(props: {
 
       {operatorScoped ? (
         <>
-          <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
-            <DashboardMonthlyTrendGlassCard
-              points={monthlyTrendPoints}
-              t={t}
-              locale={locale}
-              currency={currency}
-              analyticsHref={analyticsHomeHref}
-              fiscalHint={monthlyTrendFiscalHint}
-            />
-            <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
-              <DashboardOperatorKpiGrid
-                glassShell
-                kpis={kpis}
+          <div className="dashboard-operator-desktop-column dashboard-operator-aurora-grid hidden min-h-0 w-full min-w-0 md:flex">
+            <div className="dashboard-operator-aurora-area-chart min-w-0">
+              <DashboardMonthlyTrendGlassCard
+                points={monthlyTrendPoints}
                 t={t}
                 locale={locale}
                 currency={currency}
-                fiscalYear={fiscalYear}
+                analyticsHref={analyticsHomeHref}
+                fiscalHint={monthlyTrendFiscalHint}
               />
-            </Suspense>
-            <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,1fr),minmax(260px,20rem)] xl:items-start xl:gap-5">
-              <div className="flex min-w-0 flex-col gap-4 xl:col-start-1">
-                <DashboardSmartPairRiskGlass kpis={kpis} scanner={scannerFlowDetail.summary} t={t} />
-              </div>
-              <DashboardPrioritaGlassPanel kpis={kpis} fiscalYear={fiscalYear} t={t} />
             </div>
+            <div className="dashboard-operator-aurora-area-kpi min-w-0">
+              <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
+                <DashboardOperatorKpiGrid
+                  glassShell
+                  kpis={kpis}
+                  t={t}
+                  locale={locale}
+                  currency={currency}
+                  fiscalYear={fiscalYear}
+                />
+              </Suspense>
+            </div>
+            <div className="dashboard-operator-aurora-area-smart min-w-0">
+              <DashboardSmartPairRiskGlass kpis={kpis} scanner={scannerFlowDetail.summary} t={t} />
+            </div>
+            <div className="dashboard-operator-aurora-area-scan min-w-0">
+              <DashboardScannerFlowCard
+                glassShell
+                summary={scannerFlowDetail.summary}
+                events={scannerFlowDetail.events}
+                formatEventTime={formatScannerEventTime}
+                t={t}
+                headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
+                tz={tz}
+                fiscalYearLabel={kpiFiscal ? formatFiscalYearShort(kpiFiscal.countryCode, kpiFiscal.labelYear) : undefined}
+                detailTimeRange={
+                  scannerFiscalBounds
+                    ? { from: scannerFiscalBounds.tsFrom, toExclusive: scannerFiscalBounds.tsToExclusive }
+                    : undefined
+                }
+              />
+            </div>
+            <aside className="dashboard-operator-aurora-area-prio min-w-0">
+              <DashboardPrioritaGlassPanel kpis={kpis} fiscalYear={fiscalYear} t={t} />
+            </aside>
           </div>
-          {/* Scanner: visibile su mobile e desktop (sotto i KPI ≥1024px). Vedi globals.css. */}
-          <div className="dashboard-operator-scanner-bolle-stack">
+          {/* Stesso contenuto Scanner su viewport strette (<md il blocco sopra è nascosto). */}
+          <div className="dashboard-operator-scanner-mobile-only">
             <DashboardScannerFlowCard
               glassShell
               summary={scannerFlowDetail.summary}
