@@ -1519,6 +1519,8 @@ type Translations = {
     statementVerifyBanner: string
     /** Badge: AI ha estratto dati e fornitore noto / abbinabile */
     badgeAiRecognized: string
+    /** Tooltip lungo sul badge sopra — non è l’abbrina bolle già risolta */
+    badgeAiRecognizedTitle: string
     /** Badge: serve associazione fornitore umana */
     badgeNeedsHuman: string
     rememberAssociationTitle: string
@@ -3075,6 +3077,8 @@ const it: Translations = {
     statusCheckPending: 'In attesa',
     statementVerifyBanner: 'Verifica estratto conto',
     badgeAiRecognized: 'AI OK',
+    badgeAiRecognizedTitle:
+      'Fornitore collegato. L’abbinamento automatico alle bolle richiede importi coerenti e date nei ±30 giorni dalla data documento oppure dalla data di ricezione in coda.',
     badgeNeedsHuman: 'Serve abbinamento',
     rememberAssociationTitle: 'Ricordare questa associazione per il futuro?',
     rememberAssociationSave: 'Salva email mittente',
@@ -3844,6 +3848,8 @@ const en: Translations = {
     statusCheckPending: 'Pending',
     statementVerifyBanner: 'Statement verification',
     badgeAiRecognized: 'AI OK',
+    badgeAiRecognizedTitle:
+      'Supplier linked. Auto-matching delivery notes still needs aligned amounts and dates within ±30 days of document date or of queue receipt date.',
     badgeNeedsHuman: 'Needs match',
     rememberAssociationTitle: 'Remember this sender–supplier link for next time?',
     rememberAssociationSave: 'Save sender email',
@@ -4563,6 +4569,8 @@ const es: Translations = {
     statusCheckPending: 'Pendiente',
     statementVerifyBanner: 'Verificación de extracto',
     badgeAiRecognized: 'IA OK',
+    badgeAiRecognizedTitle:
+      'Proveedor enlazado. El emparejamiento automático con albaranes requiere importes coherentes y fechas dentro de ±30 días desde la fecha del documento o la recepción en la lista.',
     badgeNeedsHuman: 'Requiere asociación',
     rememberAssociationTitle: '¿Recordar esta asociación remitente–proveedor?',
     rememberAssociationSave: 'Guardar email del remitente',
@@ -5279,6 +5287,8 @@ const fr: Translations = {
     statusCheckPending: 'En attente',
     statementVerifyBanner: 'Vérification du relevé',
     badgeAiRecognized: 'IA OK',
+    badgeAiRecognizedTitle:
+      'Fournisseur associé. Le rapprochement automatique des bons nécessite des montants cohérents et des dates dans une fenêtre ±30 j par rapport au document ou à la réception en file.',
     badgeNeedsHuman: 'Association requise',
     rememberAssociationTitle: 'Mémoriser cette association expéditeur–fournisseur ?',
     rememberAssociationSave: 'Enregistrer l’e-mail de l’expéditeur',
@@ -5994,6 +6004,8 @@ const de: Translations = {
     statusCheckPending: 'Ausstehend',
     statementVerifyBanner: 'Kontoauszugsprüfung',
     badgeAiRecognized: 'KI OK',
+    badgeAiRecognizedTitle:
+      'Lieferant verknüpft. Automatischer Abgleich mit Lieferscheinen erfordert passende Beträge und Daten innerhalb von ±30 Tagen zum Belegdatum oder zum Eingang in der Liste.',
     badgeNeedsHuman: 'Zuordnung nötig',
     rememberAssociationTitle: 'Diese Absender–Lieferant-Zuordnung merken?',
     rememberAssociationSave: 'Absender-E-Mail speichern',

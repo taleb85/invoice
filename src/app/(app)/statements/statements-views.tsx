@@ -171,6 +171,24 @@ function officialDateIsoForPendingDoc(doc: Documento): string | null {
   return null
 }
 
+/** Giorno (YYYY-MM-DD) della ricezione in coda — ancoraggio alternativo quando data fattura e DDT distano parecchio. */
+function receivedDateIsoForPendingDoc(doc: Documento): string | null {
+  const c = doc.created_at?.trim()
+  if (!c) return null
+  if (/^\d{4}-\d{2}-\d{2}/.test(c)) return c.slice(0, 10)
+  const t = Date.parse(c)
+  if (!Number.isNaN(t)) return new Date(t).toISOString().slice(0, 10)
+  return null
+}
+
+function bolleResolveOptsFromDoc(doc: Documento): { fallbackInvoiceDocIso?: string | null } {
+  const inv = officialDateIsoForPendingDoc(doc)?.trim() || ''
+  if (!inv) return {}
+  const recv = receivedDateIsoForPendingDoc(doc)?.trim() || ''
+  if (!recv || recv === inv) return {}
+  return { fallbackInvoiceDocIso: recv }
+}
+
 /** Campi opzionali in `statements.extracted_pdf_dates` (jsonb). */
 type StmtExtractedPdfDates = {
   issued_date?: string | null
@@ -1088,7 +1106,7 @@ export function PendingMatchesTab({
   /**
    * Ricarica documenti e bolle, poi per ogni voce in elenco:
    * collega il fornitore se l’abbinamento è univoco (P.IVA / email / indirizzo / ragione sociale),
-   * associa alle bolle se OCR + bolle coincide (somma greedy esatta oppure combinazione univoca entro tol. ~5 %) con data entro finestra giorni dalla data documento quando nota.
+   * associa alle bolle se OCR + bolle coincide (somma greedy esatta oppure combinazione univoca entro tol. ~5 %) con bolle dentro la finestra date rispetto alla data documento o, se diversa, al giorno di ricezione in coda).
    */
   const runRefreshAndBulkAutoMatch = useCallback(async () => {
     setBulkAnalyzing(true)
@@ -1197,7 +1215,12 @@ export function PendingMatchesTab({
         )
         if (!relevant.length) continue
         const invoiceDateIso = officialDateIsoForPendingDoc(doc)
-        const ids = resolveBolleMatchForPendingInvoice(relevant, ocr, invoiceDateIso)
+        const ids = resolveBolleMatchForPendingInvoice(
+          relevant,
+          ocr,
+          invoiceDateIso,
+          bolleResolveOptsFromDoc(doc),
+        )
         if (!ids?.length) continue
         const res = await fetch('/api/documenti-da-processare', {
           method: 'POST',
@@ -1399,7 +1422,7 @@ export function PendingMatchesTab({
     })()
   }, [loading, docs, statementDocs])
 
-  // Auto-associa bolle: stesso fornitore; finestra ±30 giorni data doc ↔ bolla quando nota; somma OCR = subset bolle (esatto o univoco entro tol. ~5%, come suggerimento checkbox).
+  // Auto-associa bolle: stesso fornitore; finestra ±30 giorni rispetto a data doc **o** giorno ricezione in coda (se diverso); somma OCR = subset bolle (esatto o univoco entro tol. ~5%, come suggerimento checkbox).
   useEffect(() => {
     if (loading || !bolleAperte.length || !docs.length) return
     void (async () => {
@@ -1420,7 +1443,12 @@ export function PendingMatchesTab({
         }
 
         const invoiceDateIso = officialDateIsoForPendingDoc(doc)
-        const ids = resolveBolleMatchForPendingInvoice(relevant, ocr, invoiceDateIso)
+        const ids = resolveBolleMatchForPendingInvoice(
+          relevant,
+          ocr,
+          invoiceDateIso,
+          bolleResolveOptsFromDoc(doc),
+        )
         if (!ids?.length) continue
 
         autoAssocTriedRef.current.add(doc.id)
@@ -1581,7 +1609,12 @@ export function PendingMatchesTab({
   function autoSuggest(doc: Documento, bolle: BollaAperta[], totalTarget: number | null) {
     if (!totalTarget || totalTarget <= 0 || !bolle.length) return
     const invoiceDateIso = officialDateIsoForPendingDoc(doc)
-    const found = resolveBolleMatchForPendingInvoice(bolle, totalTarget, invoiceDateIso)
+    const found = resolveBolleMatchForPendingInvoice(
+      bolle,
+      totalTarget,
+      invoiceDateIso,
+      bolleResolveOptsFromDoc(doc),
+    )
     if (!found?.length) return
     setSelezione((p) => ({ ...p, [doc.id]: found }))
   }
@@ -2153,7 +2186,7 @@ export function PendingMatchesTab({
                         </span>
                         {docNeedsManualProcessing(doc.stato) && (
                           doc.fornitore_id ? (
-                            <span className="rounded-full bg-emerald-600/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-100 ring-1 ring-emerald-500/40" title={t.statements.badgeAiRecognized}>
+                            <span className="rounded-full bg-emerald-600/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-100 ring-1 ring-emerald-500/40" title={t.statements.badgeAiRecognizedTitle}>
                               {t.statements.badgeAiRecognized}
                             </span>
                           ) : (

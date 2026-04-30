@@ -329,24 +329,45 @@ function prioritizeBolleForFuzzySearch(pool: BollaForInvoiceMatch[], invoiceDocI
 
 /**
  * Riconciliazione fattura in coda vs bolle aperte: stesso fornitore gestito dal chiamante;
- * dopo filtro date (30 giorni se data doc nota) prova prima somma greedy esatta poi sottoinsieme univoco entro tol. 5% sull’importo fattura.
+ * dopo filtro date (±`windowDays` se data doc nota) prova prima somma greedy esatta poi sottoinsieme univoco entro tol. sul totale OCR.
+ *
+ * Senza **data documento**, nessuna restrizione per data sulle bolle (`bollaWithinInvoiceDateWindow` riceve invoice null → tutto il pool valido come prima).
+ *
+ * Con data documento, `opts.fallbackInvoiceDocIso` (es. giorno della **ricezione**): una bolla entra nel pool se ricade nei ± giorni dall’invoice **oppure**
+ * dal fallback (unione utile quando data fattura e data DDT/logistica distano molti mesi).
  */
 export function resolveBolleMatchForPendingInvoice(
   bolle: BollaForInvoiceMatch[],
   totalTarget: number,
   invoiceDocIso: string | null,
-  opts?: { windowDays?: number; amountRelTol?: number },
+  opts?: { windowDays?: number; amountRelTol?: number; fallbackInvoiceDocIso?: string | null },
 ): string[] | null {
   const windowDays = opts?.windowDays ?? MATCH_BOLLA_DATE_WINDOW_DAYS
   const amountRelTol = opts?.amountRelTol ?? MATCH_BOLLA_AMOUNT_REL_TOLERANCE
+  const fallbackIso =
+    invoiceDocIso?.trim() &&
+    opts?.fallbackInvoiceDocIso?.trim() &&
+    opts.fallbackInvoiceDocIso.trim() !== invoiceDocIso.trim()
+      ? opts.fallbackInvoiceDocIso.trim()
+      : null
 
   if (totalTarget <= 0 || !bolle.length) return null
   const withAmount = bolle.filter((b) => b.importo != null && b.importo > 0)
   if (!withAmount.length) return null
 
-  const pool = withAmount.filter((b) =>
-    bollaWithinInvoiceDateWindow(invoiceDocIso ?? null, b.data ?? null, windowDays),
-  )
+  const invTrim = invoiceDocIso?.trim() || null
+
+  let pool: BollaForInvoiceMatch[]
+  if (!invTrim) {
+    pool = withAmount
+  } else {
+    pool = withAmount.filter((b) => {
+      if (bollaWithinInvoiceDateWindow(invTrim, b.data ?? null, windowDays)) return true
+      if (fallbackIso && bollaWithinInvoiceDateWindow(fallbackIso, b.data ?? null, windowDays))
+        return true
+      return false
+    })
+  }
   if (!pool.length) return null
 
   const minimal: BollaMinimal[] = pool.map(({ id, importo }) => ({ id, importo }))
