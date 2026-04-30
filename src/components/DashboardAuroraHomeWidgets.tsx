@@ -97,7 +97,14 @@ export function DashboardMonthlyTrendGlassCard({
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke="rgba(255,255,255,0.06)" strokeDasharray="4 6" vertical={false} />
-                <XAxis dataKey="label" tick={CHART_AXIS} tickLine={false} axisLine={false} />
+                <XAxis
+                  type="category"
+                  dataKey="label"
+                  tick={CHART_AXIS}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={0}
+                />
                 <YAxis hide domain={[0, 100]} />
                 <Tooltip
                   content={({ active, payload }) => {

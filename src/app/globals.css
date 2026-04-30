@@ -1216,6 +1216,22 @@ body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear
   -webkit-backdrop-filter: blur(26px) saturate(150%) !important;
 }
 
+/**
+ * Menu lingua (popover sul rail): stessa elevate globale sarebbe quasi invisibile (5% bianco)
+ * sopra una sidebar già sfocata; allinea leggibilità a `.app-summary-highlight-surface` / `.app-card-unified`.
+ */
+body:has([data-deep-aurora-integration])
+  .app-sidebar-aside
+  .app-sidebar-locale-menu.app-workspace-surface-elevated {
+  border-color: rgb(148 163 184 / 0.3) !important;
+  background: rgb(255 255 255 / 0.11) !important;
+  backdrop-filter: blur(22px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
+  box-shadow:
+    0 16px 44px rgb(0 0 0 / 0.42),
+    inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
+}
+
 body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
   background-color: rgb(255 255 255 / 0.045) !important;
 }

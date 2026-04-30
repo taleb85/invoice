@@ -925,7 +925,13 @@ export async function fetchDashboardHomeMonthlyTrend(
 
   return aggKeys.map((key) => {
     const d = new Date(`${key}-01T12:00:00Z`)
-    const label = d.toLocaleDateString(lc, { month: 'short', year: '2-digit' })
+    // Allinea l'etichetta al bucket YYYY-MM (date di documento senza ora): senza timeZone: 'UTC'
+    // in fusi molto indietro rispetto a UTC il "1° del mese" può finire nel mese locale precedente.
+    const label = d.toLocaleDateString(lc, {
+      month: 'short',
+      year: '2-digit',
+      timeZone: 'UTC',
+    })
     return {
       key,
       label,

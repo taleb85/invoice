@@ -723,7 +723,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 )}
               </button>
               {langOpen && (
-                <div className="absolute bottom-full left-0 z-20 mb-1 w-40 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-lg border border-app-line-28 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15 backdrop-blur-xl [-webkit-backdrop-filter:blur(20px)] backdrop-saturate-150">
+                <div className="app-sidebar-locale-menu absolute bottom-full left-0 z-20 mb-1 w-40 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-lg border border-app-line-28 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}
