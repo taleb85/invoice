@@ -911,7 +911,7 @@ function useSupplierMonthlyDocSummary(
 /** Thead sul guscio trasparente: niente `app-workspace-inset-bg-soft` (vedi `APP_SECTION_TABLE_HEAD_ROW`). */
 const SUPPLIER_MONTHLY_TABLE_HEAD_ROW = 'border-b border-app-line-22 bg-transparent'
 
-/** Tabella riepilogo documenti per mese — solo desktop, sotto la griglia KPI. */
+/** Tabella riepilogo documenti per mese (scheda Riepilogo); `overflow-x-auto` per viewport stretti. */
 function SupplierDesktopMonthlyDocSummary({
   fornitoreId,
   endYear,
@@ -985,7 +985,7 @@ function SupplierDesktopMonthlyDocSummary({
 
   return (
     <section
-      className={`supplier-detail-tab-shell mb-5 hidden overflow-hidden md:flex md:flex-col ${tabHi.border}`}
+      className={`supplier-detail-tab-shell flex flex-col overflow-hidden ${tabHi.border}`}
       aria-busy={loading}
       aria-live="polite"
     >
@@ -5068,6 +5068,56 @@ function FornitoreDetailClient({
     supplierReadOnlyMobile,
   ])
 
+  /** Tabella mensile + attività + stato sync: nella stessa area scroll della scheda Riepilogo. */
+  function RiepilogoDashboardAnalyticsBlock() {
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <SupplierDesktopMonthlyDocSummary
+          fornitoreId={fornitore.id}
+          endYear={monthlySummaryPeriod.y}
+          endMonth={monthlySummaryPeriod.m}
+          selectedYear={filterYear}
+          selectedMonth={filterMonth}
+          countryCode={countryCode}
+          currency={currency ?? 'GBP'}
+          activeTab="dashboard"
+          periodNav={{
+            onPrevYear: () => shiftMonthlySummaryYear(-1),
+            onNextYear: () => shiftMonthlySummaryYear(1),
+            onResetToNow: () => setMonthlySummaryPeriod({ y: nowY, m: nowM }),
+            disableNextYear: !canShiftMonthlySummaryYearForward,
+            showResetToNow: !isMonthlySummaryAtCurrentMonth,
+          }}
+          onOpenMonthTab={(y, m, nextTab) => {
+            const c = clampSupplierPeriod(y, m)
+            const b = supplierMonthCalendarBounds(c.y, c.m)
+            setLedgerPeriod(clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(new Date())))
+            setTab(nextTab)
+          }}
+        />
+        <div className={`relative overflow-hidden rounded-lg border border-app-line-15 bg-white/[0.04]`}>
+          <div className={`app-card-bar-accent shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
+          <div className="p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <svg className="h-4 w-4 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm font-semibold text-app-fg">{t.appStrings.attivitaRecentTitle}</p>
+            </div>
+            <ActivityFeed fornitoreId={fornitore.id} limit={5} compact={true} />
+          </div>
+        </div>
+        <ErrorBoundary sectionName="risultati sincronizzazione email">
+          <StatoSincronizzazioneIntelligente
+            fornitoreId={fornitore.id}
+            fornitoreNome={fornitoreNomeVisual}
+            sedeId={fornitore.sede_id ?? null}
+          />
+        </ErrorBoundary>
+      </div>
+    )
+  }
+
   const TabContent = ({ variant }: { variant: 'mobile' | 'desktop' }) => (
     <>
       {displayTab === 'dashboard' &&
@@ -5270,19 +5320,11 @@ function FornitoreDetailClient({
 
         <div className="min-w-0 scroll-mt-4 p-3 outline-none sm:p-4" data-supplier-tab-region tabIndex={-1}>
           <ErrorBoundary sectionName="dettaglio fornitore">
-            <TabContent variant="mobile" />
+            {displayTab === 'dashboard' ? <RiepilogoDashboardAnalyticsBlock /> : null}
+            <div className={displayTab === 'dashboard' ? 'mt-6' : undefined}>
+              <TabContent variant="mobile" />
+            </div>
           </ErrorBoundary>
-          {displayTab === 'dashboard' ? (
-            <ErrorBoundary sectionName="risultati sincronizzazione email">
-              <div className="mt-4">
-                <StatoSincronizzazioneIntelligente
-                  fornitoreId={fornitore.id}
-                  fornitoreNome={fornitoreNomeVisual}
-                  sedeId={fornitore.sede_id ?? null}
-                />
-              </div>
-            </ErrorBoundary>
-          ) : null}
         </div>
       </div>
 
@@ -5577,62 +5619,18 @@ function FornitoreDetailClient({
         <div className="w-full min-w-0">
           <div className="w-full min-w-0 py-3 sm:py-3.5 md:py-5 lg:py-6 xl:py-8">
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
-            {displayTab === 'dashboard' ? (
-              <>
-                <SupplierDesktopMonthlyDocSummary
-                  fornitoreId={fornitore.id}
-                  endYear={monthlySummaryPeriod.y}
-                  endMonth={monthlySummaryPeriod.m}
-                  selectedYear={filterYear}
-                  selectedMonth={filterMonth}
-                  countryCode={countryCode}
-                  currency={currency ?? 'GBP'}
-                  activeTab="dashboard"
-                  periodNav={{
-                    onPrevYear: () => shiftMonthlySummaryYear(-1),
-                    onNextYear: () => shiftMonthlySummaryYear(1),
-                    onResetToNow: () => setMonthlySummaryPeriod({ y: nowY, m: nowM }),
-                    disableNextYear: !canShiftMonthlySummaryYearForward,
-                    showResetToNow: !isMonthlySummaryAtCurrentMonth,
-                  }}
-                  onOpenMonthTab={(y, m, nextTab) => {
-                    const c = clampSupplierPeriod(y, m)
-                    const b = supplierMonthCalendarBounds(c.y, c.m)
-                    setLedgerPeriod(clampLedgerPeriodToToday(b.from, b.toIncl, localYmd(new Date())))
-                    setTab(nextTab)
-                  }}
-                />
-                {/* Mini activity feed for this fornitore */}
-                <div className={`mt-4 relative overflow-hidden rounded-lg border border-app-line-15 bg-white/[0.04]`}>
-                  <div className={`app-card-bar-accent shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
-                  <div className="p-4">
-                    <div className="mb-3 flex items-center gap-2">
-                      <svg className="h-4 w-4 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-sm font-semibold text-app-fg">{t.appStrings.attivitaRecentTitle}</p>
-                    </div>
-                    <ActivityFeed fornitoreId={fornitore.id} limit={5} compact={true} />
-                  </div>
-                </div>
-                <ErrorBoundary sectionName="risultati sincronizzazione email">
-                  <div className="mt-6">
-                    <StatoSincronizzazioneIntelligente
-                      fornitoreId={fornitore.id}
-                      fornitoreNome={fornitoreNomeVisual}
-                      sedeId={fornitore.sede_id ?? null}
-                    />
-                  </div>
-                </ErrorBoundary>
-              </>
-            ) : null}
             <div
-              className={`min-w-0 scroll-mt-6 p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8 ${displayTab === 'dashboard' ? 'mt-6 lg:mt-8' : ''}`}
+              className={`min-w-0 scroll-mt-6 p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8 ${
+                displayTab === 'dashboard' ? 'mt-4 md:mt-5 lg:mt-6' : 'mt-6 lg:mt-8'
+              }`}
               tabIndex={-1}
               data-supplier-tab-region
             >
               <ErrorBoundary sectionName="dettaglio fornitore">
-                <TabContent variant="desktop" />
+                {displayTab === 'dashboard' ? <RiepilogoDashboardAnalyticsBlock /> : null}
+                <div className={displayTab === 'dashboard' ? 'mt-6 md:mt-8' : undefined}>
+                  <TabContent variant="desktop" />
+                </div>
                 {displayTab === 'verifica' && mdUp ? (
                   <div className="min-w-0 mt-3 md:mt-4">
                     <VerificationStatusTab
