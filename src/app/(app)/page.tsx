@@ -16,6 +16,7 @@ import {
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
+import { DashboardEmbeddedAnalytics } from '@/components/analytics/dashboard-embedded-analytics'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
@@ -30,7 +31,7 @@ import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage(props: {
-  searchParams?: Promise<{ fy?: string }>
+  searchParams?: Promise<{ fy?: string; months?: string }>
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
   const cookieStore = await getCookieStore()
@@ -223,6 +224,18 @@ export default async function DashboardPage(props: {
   const sedeCountryCode = (sedeMetaRow.data?.country_code ?? 'IT').trim() || 'IT'
   const operatorScoped = !!sedeId
   const fiscalYear = operatorScoped ? parseFiscalYearQueryParam(searchParams.fy, sedeCountryCode) : 0
+  const dashboardAnalyticsMonths = (() => {
+    const raw = searchParams.months
+    if (raw == null || raw === '') return 6
+    const n = parseInt(String(raw), 10)
+    return Math.min(24, Math.max(1, Number.isFinite(n) ? n : 6))
+  })()
+  const analyticsFyLabelEmbedded = operatorScoped ? formatFiscalYearShort(sedeCountryCode, fiscalYear) : ''
+  const canViewEmbeddedAnalytics =
+    !!operatorScoped &&
+    !!sedeId &&
+    !!profile?.role &&
+    (profile.role === 'admin' || profile.role === 'admin_sede')
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
   const scannerFiscalBounds = kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
 
@@ -352,6 +365,16 @@ export default async function DashboardPage(props: {
               }
             />
           </div>
+          {canViewEmbeddedAnalytics && sedeId ? (
+            <div className="min-h-0 w-full min-w-0 mt-5 md:mt-6 pt-6 border-t border-app-line-15">
+              <DashboardEmbeddedAnalytics
+                sedeId={sedeId}
+                fiscalYear={fiscalYear}
+                months={dashboardAnalyticsMonths}
+                fyLabel={analyticsFyLabelEmbedded}
+              />
+            </div>
+          ) : null}
         </>
       ) : (
         <div className="dashboard-operator-empty-shell-desktop">

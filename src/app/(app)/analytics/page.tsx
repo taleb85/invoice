@@ -3,13 +3,13 @@ import { createClient, getProfile } from '@/utils/supabase/server'
 import { getCookieStore, getT } from '@/lib/locale-server'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AnalyticsDashboard } from '@/components/analytics/analytics-dashboard'
+import { AnalyticsPeriodStrip } from '@/components/analytics/analytics-period-strip'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
-  APP_SEGMENT_CHIP_CONTROL_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 import { parseFiscalYearQueryParam, formatFiscalYearShort } from '@/lib/fiscal-year'
@@ -50,13 +50,6 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
   const fiscalYear = parseFiscalYearQueryParam(sp.fy, countryCode)
   const fyLabel = formatFiscalYearShort(countryCode, fiscalYear)
 
-  // Period button labels — always FY-anchored
-  const periodLabels: Record<number, string> = {
-    3: 'Q1',
-    6: 'H1',
-    12: fyLabel,
-  }
-
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
@@ -78,26 +71,13 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
 
-      {/* Periodo — stesso vetro slate delle card app (`app-card-unified` sotto Aurora). */}
-      <div className="relative mb-5 overflow-hidden rounded-2xl app-card-unified">
-        <div className="flex min-h-10 flex-wrap items-center gap-x-2 gap-y-2 px-4 py-2.5 sm:px-5 sm:py-3">
-          {[3, 6, 12].map((value) => (
-            <a
-              key={value}
-              href={`/analytics?months=${value}&fy=${fiscalYear}`}
-              className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} ${
-                months === value
-                  ? 'bg-white/[0.1] text-white ring-1 ring-white/18'
-                  : 'text-white/65 hover:bg-white/[0.08] hover:text-white'
-              }`}
-            >
-              {periodLabels[value]}
-            </a>
-          ))}
-          <span className="ms-1 shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/45 sm:ms-2">
-            {t.appStrings.analyticsSinceFY}
-          </span>
-        </div>
+      <div className="mb-5">
+        <AnalyticsPeriodStrip
+          basePath="/analytics"
+          fiscalYear={fiscalYear}
+          months={months}
+          fyLabel={fyLabel}
+        />
       </div>
 
       <AnalyticsDashboard sedeId={sedeId} months={months} fiscalYear={fiscalYear} />
