@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 import { openDocumentUrl } from '@/lib/open-document-url'
+import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
 export type EmailActivityTipoKey = 'invoice' | 'ddt' | 'statement' | 'queue' | 'ordine' | 'resume'
 
@@ -40,21 +42,65 @@ function metaRagioneSociale(metadata: unknown): string {
   return typeof r === 'string' && r.trim() ? r.trim() : ''
 }
 
-function tipoFromDoc(isStatement: boolean, metadata: unknown): EmailActivityTipoKey {
+/**
+ * Etichetta “Tipo” nel log attività: non usare solo `pending_kind`
+ * (può essere suggerimento di routing errato mentre OCR ha già letto dal PDF il tipo reale).
+ */
+function tipoFromQueueRow(opts: {
+  isStatement: boolean
+  oggettoMail: string | null | undefined
+  fileName: string | null | undefined
+  metadata: unknown
+}): EmailActivityTipoKey {
+  const { isStatement, oggettoMail, fileName, metadata } = opts
   if (isStatement) return 'statement'
-  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
-    const m = metadata as {
-      pending_kind?: string | null
-      tipo_documento?: unknown
-      rejected_reason?: string | null
-    }
-    if (m.rejected_reason === 'curriculum' || m.tipo_documento === 'curriculum') return 'resume'
+
+  const m =
+    metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+      ? (metadata as {
+          pending_kind?: string | null
+          tipo_documento?: unknown
+          ocr_tipo?: unknown
+          rejected_reason?: string | null
+        })
+      : null
+
+  if (m?.rejected_reason === 'curriculum' || normalizeTipoDocumento(m?.tipo_documento) === 'curriculum') {
+    return 'resume'
+  }
+
+  if (m) {
+    const fromTipoDoc = normalizeTipoDocumento(m.tipo_documento)
+    if (fromTipoDoc === 'fattura') return 'invoice'
+    if (fromTipoDoc === 'bolla') return 'ddt'
+
+    const fromOcrTipo = normalizeTipoDocumento(m.ocr_tipo)
+    if (fromOcrTipo === 'fattura') return 'invoice'
+    if (fromOcrTipo === 'bolla') return 'ddt'
+
+    const inferred = inferPendingDocumentKindForQueueRow({
+      oggetto_mail: oggettoMail ?? null,
+      file_name: fileName ?? null,
+      metadata: m as {
+        ragione_sociale?: string | null
+        note_corpo_mail?: string | null
+        tipo_documento?: unknown
+        numero_fattura?: string | null
+        totale_iva_inclusa?: number | null
+      },
+    })
+    if (inferred === 'statement') return 'statement'
+    if (inferred === 'fattura') return 'invoice'
+    if (inferred === 'bolla') return 'ddt'
+    if (inferred === 'ordine') return 'ordine'
+
     const pk = m.pending_kind
     if (pk === 'statement') return 'statement'
     if (pk === 'bolla') return 'ddt'
     if (pk === 'fattura') return 'invoice'
     if (pk === 'ordine') return 'ordine'
   }
+
   return 'queue'
 }
 
@@ -141,10 +187,14 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
 
   const docQ = opts.service
     .from('documenti_da_processare')
-    .select('id, created_at, file_url, stato, metadata, mittente, is_statement, sede_id, fornitore:fornitori(nome)')
+    .select(
+      'id, created_at, file_url, file_name, stato, metadata, mittente, oggetto_mail, is_statement, sede_id, fornitore:fornitori(nome)',
+    )
     .gte('created_at', start)
     .lt('created_at', endExclusive)
-    .or('and(fornitore_id.is.null,stato.in.(da_revisionare,da_associare)),stato.eq.scartato')
+    .or(
+      'and(fornitore_id.is.null,stato.in.(da_revisionare,da_associare,da_processare,in_attesa)),and(stato.eq.da_revisionare,fornitore_id.not.is.null),stato.eq.scartato',
+    )
 
   const { data: docRows, error: docErr } = await docQ
   if (docErr) {
@@ -170,7 +220,12 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
         : null
     const importo = typeof tot === 'number' && Number.isFinite(tot) ? tot : null
 
-    const tipoLabelKey = tipoFromDoc(isStatement, meta)
+    const tipoLabelKey = tipoFromQueueRow({
+      isStatement,
+      oggettoMail: (d as { oggetto_mail?: string | null }).oggetto_mail ?? null,
+      fileName: (d as { file_name?: string | null }).file_name ?? null,
+      metadata: meta,
+    })
 
     const docId = String((d as { id?: string }).id ?? '')
     const fileUrl = (d as { file_url?: string | null }).file_url ?? null

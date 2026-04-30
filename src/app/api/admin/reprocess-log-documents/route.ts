@@ -9,16 +9,33 @@ import { resolveFornitoreFromScanEmail } from '@/lib/fornitore-resolve-scan-emai
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const BATCH_MAX = 5
-
-function metadataMissingOcrTipo(metadata: unknown): boolean {
-  if (metadata == null) return true
-  if (typeof metadata !== 'object' || Array.isArray(metadata)) return true
-  const ot = (metadata as Record<string, unknown>).ocr_tipo
-  return ot == null || ot === ''
-}
+/** Limite Gemini per richiesta serverless (~60s `maxDuration`). */
+const BATCH_MAX = 12
 
 type QueueRow = LegacyPendingDocRow & { stato?: string | null }
+
+/** Stati su cui conviene ripassare OCR + registrazione auto (stessa pipeline scan-email legacy). */
+const PIPELINE_RETRY_STATES = new Set([
+  'da_processare',
+  'in_attesa',
+  'da_associare',
+  'da_revisionare',
+])
+
+function statoNormalized(statoRaw: string): string {
+  return statoRaw.trim() || ''
+}
+
+function rowEligibleForPipeline(row: QueueRow): boolean {
+  const s = statoNormalized(String(row.stato ?? ''))
+  return PIPELINE_RETRY_STATES.has(s)
+}
+
+function terminalStatoSkippedCode(statoRaw: string): LogReprocessOutcomeCode {
+  const s = statoNormalized(statoRaw)
+  if (s === 'scartato') return 'skipped_scartato'
+  return 'skipped_already_has_ocr'
+}
 
 /** Codici leggibili dalla UI (`log.activityProc*` / mapping). */
 export type LogReprocessOutcomeCode =
@@ -145,7 +162,7 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    const stato = String(row.stato ?? '')
+    const stato = statoNormalized(String(row.stato ?? ''))
 
     if (stato === 'scartato') {
       skipped++
@@ -155,6 +172,7 @@ export async function POST(req: NextRequest) {
 
     let toProcess: LegacyPendingDocRow | null = null
 
+    /** `da_revisionare` senza fornitore: prova mittente→anagrafica come in scan-email. */
     if (stato === 'da_revisionare' && !row.fornitore_id?.trim()) {
       const emailNorm = normalizeSenderEmailCanonical(row.mittente)
       if (!emailNorm?.includes('@')) {
@@ -169,11 +187,12 @@ export async function POST(req: NextRequest) {
         continue
       }
       toProcess = { ...row, fornitore_id: fornitore.id }
-    } else if (stato === 'da_associare' && metadataMissingOcrTipo(row.metadata)) {
+    } else if (rowEligibleForPipeline(row)) {
+      /** OCR completo ma senza match fornitore, o nuovo stato `da_processare` / legacy `in_attesa`. */
       toProcess = row
     } else {
       skipped++
-      rowOutcomes.push({ id: requestedId, code: 'skipped_already_has_ocr' })
+      rowOutcomes.push({ id: requestedId, code: terminalStatoSkippedCode(stato) })
       continue
     }
 
