@@ -41,6 +41,16 @@ import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fa
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
 
+async function parsePendingQueueMutationError(res: Response): Promise<string> {
+  try {
+    const j = (await res.json()) as { error?: unknown }
+    if (typeof j?.error === 'string' && j.error.trim()) return j.error.trim()
+  } catch {
+    /* ignore */
+  }
+  return res.statusText.trim() || `HTTP ${res.status}`
+}
+
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
   ragione_sociale:    string | null
@@ -1109,8 +1119,12 @@ export function PendingMatchesTab({
         fetch(`/api/documenti-da-processare?${params}`),
         fetch(bolleUrl),
       ])
-      const rawDocs = docRes.ok ? await docRes.json() : []
-      const rawBolle = bolleRes.ok ? await bolleRes.json() : []
+      let docFetchErr: string | null = null
+      let bolleFetchErr: string | null = null
+      const rawDocs = docRes.ok ? ((await docRes.json()) ?? []) : []
+      if (!docRes.ok) docFetchErr = await parsePendingQueueMutationError(docRes)
+      const rawBolle = bolleRes.ok ? ((await bolleRes.json()) ?? []) : []
+      if (!bolleRes.ok) bolleFetchErr = await parsePendingQueueMutationError(bolleRes)
 
       const freshDocs = (rawDocs ?? []).map(
         (d: Record<string, unknown>) =>
@@ -1140,6 +1154,8 @@ export function PendingMatchesTab({
       const supabase = createClient()
       let linked = 0
       let associated = 0
+      let postErrCount = 0
+      let firstPostErr = ''
 
       for (const doc of working) {
         if (doc.fornitore_id) continue
@@ -1161,6 +1177,9 @@ export function PendingMatchesTab({
           doc.fornitore_id = match.id
           doc.fornitore = { nome: match.nome }
           linked++
+        } else {
+          postErrCount++
+          if (!firstPostErr) firstPostErr = await parsePendingQueueMutationError(res)
         }
       }
 
@@ -1191,6 +1210,9 @@ export function PendingMatchesTab({
         if (res.ok) {
           associated++
           for (const id of ids) usedBollaIds.add(id)
+        } else {
+          postErrCount++
+          if (!firstPostErr) firstPostErr = await parsePendingQueueMutationError(res)
         }
       }
 
@@ -1200,15 +1222,28 @@ export function PendingMatchesTab({
       window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
       router.refresh()
 
-      if (linked === 0 && associated === 0) {
-        showToast(t.statements.bulkAutoMatchNone, 'success')
+      if (docFetchErr) {
+        showToast(docFetchErr, 'error')
       } else {
-        showToast(
-          t.statements.bulkAutoMatchSummary
-            .replace(/\{linked\}/g, String(linked))
-            .replace(/\{associated\}/g, String(associated)),
-          'success',
-        )
+        if (bolleFetchErr) {
+          showToast(bolleFetchErr, 'error')
+        }
+        const total = linked + associated
+        if (total === 0) {
+          if (postErrCount && firstPostErr) {
+            showToast(firstPostErr, 'error')
+          } else if (!bolleFetchErr) {
+            showToast(t.statements.bulkAutoMatchNone, 'success')
+          }
+        } else {
+          showToast(
+            t.statements.bulkAutoMatchSummary
+              .replace(/\{linked\}/g, String(linked))
+              .replace(/\{associated\}/g, String(associated)),
+            'success',
+          )
+          if (postErrCount && firstPostErr) showToast(firstPostErr, 'info')
+        }
       }
     } catch {
       showToast(t.statements.assignFailed, 'error')
