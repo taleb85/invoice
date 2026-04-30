@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { useT } from '@/lib/use-t'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
+import {
+  APP_SEGMENT_CHIP_CONTROL_CLASS,
+  APP_SEGMENT_CHIP_LABEL_CLASS,
+} from '@/lib/app-shell-layout'
 import { ActivityGlyph } from '@/components/ui/glyph-icons'
 import { activityColor } from '@/lib/activity-logger'
 import type { ActivityAction } from '@/lib/activity-logger'
@@ -159,13 +163,13 @@ export function ActivityFeed({
     <div className="flex flex-col gap-3">
       {/* Filter chips */}
       {showFilters && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {(Object.keys(FILTER_CHIP_ACTIONS) as FilterChip[]).map((id) => (
             <button
               key={id}
               type="button"
               onClick={() => setActiveFilter(id)}
-              className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors ${
+              className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} ${
                 activeFilter === id
                   ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
                   : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
@@ -225,7 +229,7 @@ export function ActivityFeed({
                   <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5">
                     <div className="min-w-0">
                       <span
-                        className={`mr-1.5 inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[10px] font-semibold ${COLOR_BADGE[color]}`}
+                        className={`${APP_SEGMENT_CHIP_LABEL_CLASS} ${COLOR_BADGE[color]}`}
                       >
                         <ActivityGlyph id={row.actionGlyph} className="h-3 w-3 opacity-95" aria-hidden />
                         {row.actionLabel}

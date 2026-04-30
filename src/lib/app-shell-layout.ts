@@ -155,6 +155,19 @@ export const APP_SECTION_MOBILE_LIST = 'divide-y divide-app-soft-border md:hidde
 
 export const APP_SECTION_MOBILE_ROW = `px-4 py-4 ${APP_SECTION_TABLE_ROW_HOVER}`
 
+/**
+ * Chip / segmenti (filtri Attività, periodo Analytics, ecc.): stessa altezza delle righe
+ * input desktop (`min-height: 36px` in globals) e stessa scala tipografica delle pill tabelle.
+ */
+export const APP_SEGMENT_CHIP_CONTROL_CLASS =
+  'inline-flex min-h-9 shrink-0 items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors touch-manipulation'
+
+/**
+ * Etichetta chip in riga (es. badge azione + icona in timeline): stesso box dei controlli segment.
+ */
+export const APP_SEGMENT_CHIP_LABEL_CLASS =
+  'mr-1.5 inline-flex min-h-9 shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold'
+
 /** Pill / azione secondaria in riga (es. “Apri fattura”). */
 export const APP_SECTION_ROW_ACTION_PILL =
   'inline-flex items-center gap-1.5 rounded-lg bg-app-line-15 px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-25'
