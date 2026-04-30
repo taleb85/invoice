@@ -1343,8 +1343,8 @@ body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay {
 body:has([data-deep-aurora-integration])
   .app-fornitore-doc-detail-scrim.app-aurora-modal-overlay {
   background: rgb(2 6 23 / 0.58) !important;
-  backdrop-filter: blur(28px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(155%) !important;
+  backdrop-filter: blur(48px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(165%) !important;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
