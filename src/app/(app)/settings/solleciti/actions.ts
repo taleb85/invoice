@@ -10,7 +10,7 @@ import {
 
 export type SaveSollecitiSettingsResult =
   | { ok: true }
-  | { ok: false; error: string }
+  | { ok: false; error: string; details?: string }
 
 function clampDay(raw: unknown, fallback: number): number {
   const n =
@@ -20,7 +20,11 @@ function clampDay(raw: unknown, fallback: number): number {
 }
 
 export type SaveSollecitiSettingsPayload = {
-  autoSollecitiEnabled: boolean
+  /**
+   * 1 = solleciti automatici attivi, 0 = disattivi.
+   * Usare un intero evita edge case di serializzazione `false` nelle Server Actions.
+   */
+  autoSolleciti: 0 | 1
   giorniTolBolla: number
   giorniTolPromessa: number
   giorniTolEstrattoMismatch: number
@@ -37,10 +41,17 @@ export async function saveSollecitiSettingsAction(
     return { ok: false, error: 'forbidden' }
   }
 
+  const rawFlag = Number(input.autoSolleciti)
+  const flag = Number.isInteger(rawFlag) ? rawFlag : NaN
+  if (flag !== 0 && flag !== 1) {
+    return { ok: false, error: 'invalid_payload' }
+  }
+  const autoOn = flag === 1
+
   const rows = [
     {
       chiave: SOLLECITI_CONFIG_CHIAVI.autoEnabled,
-      valore: input.autoSollecitiEnabled ? 'true' : 'false',
+      valore: autoOn ? 'true' : 'false',
       descrizione: SOLLECITI_APP_DESCRIZIONI[SOLLECITI_CONFIG_CHIAVI.autoEnabled],
     },
     {
@@ -69,16 +80,25 @@ export async function saveSollecitiSettingsAction(
     },
   ]
 
-  const { error } = await supabase.from('configurazioni_app').upsert(rows, {
-    onConflict: 'chiave',
-  })
-
-  if (error) {
-    console.error('[saveSollecitiSettingsAction]', error.message)
-    return { ok: false, error: 'db_error' }
+  for (const row of rows) {
+    const { error } = await supabase.from('configurazioni_app').upsert([row], {
+      onConflict: 'chiave',
+    })
+    if (error) {
+      console.error('[saveSollecitiSettingsAction]', row.chiave, error.message, error.code, error.details)
+      return {
+        ok: false,
+        error: 'db_error',
+        details: error.message,
+      }
+    }
   }
 
-  revalidatePath('/settings/solleciti')
-  revalidatePath('/impostazioni')
+  try {
+    revalidatePath('/settings/solleciti')
+    revalidatePath('/impostazioni')
+  } catch (revalidateErr) {
+    console.warn('[saveSollecitiSettingsAction] revalidatePath', revalidateErr)
+  }
   return { ok: true }
 }

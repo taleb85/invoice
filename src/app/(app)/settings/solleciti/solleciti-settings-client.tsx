@@ -33,7 +33,7 @@ export default function SollecitiSettingsClient({ initial }: Props) {
 
   const payload: SaveSollecitiSettingsPayload = useMemo(
     () => ({
-      autoSollecitiEnabled: autoOn,
+      autoSolleciti: autoOn ? 1 : 0,
       giorniTolBolla: Math.min(366, Math.max(0, numOrZero(bolla))),
       giorniTolPromessa: Math.min(366, Math.max(0, numOrZero(prom))),
       giorniTolEstrattoMismatch: Math.min(366, Math.max(0, numOrZero(stmt))),
