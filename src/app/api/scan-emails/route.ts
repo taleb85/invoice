@@ -39,6 +39,12 @@ import {
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
+import {
+  tryBootstrapFornitoreFromOcrRagione,
+  fetchFullFornitoreForScan,
+  linkScanSenderToFornitore,
+} from '@/lib/scan-email-ocr-bootstrap-fornitore'
+import { persistKnownFornitoreEmailScanWithFile } from '@/lib/email-scan-persist-known-with-file'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import {
@@ -672,6 +678,7 @@ async function processEmails(
 }> {
   let ricevuti = 0
   let ignorate = 0
+  let bozzaCreate = 0
   let skippedAlreadyCompleted = 0
   let preFiltered = 0
   const rekkiPersistedUids = new Set<number>()
@@ -912,6 +919,87 @@ async function processEmails(
           bodySnipU,
           ocr,
         )
+
+        const bootstrapU = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId)
+        if (bootstrapU.kind === 'ignored_buyer') {
+          const unknownPayloadIg = {
+            fornitore_id: null,
+            sede_id: unknownDocSedeId,
+            mittente: email.from || 'sconosciuto',
+            oggetto_mail: email.subject ?? null,
+            file_url: syn.publicUrl,
+            file_name: SYNTHETIC_EMAIL_DOC_FILENAME,
+            content_type: 'text/plain',
+            data_documento: safeDate(ocr.data_fattura),
+            stato: 'da_revisionare',
+            metadata: {
+              ...buildMetadata(ocr, 'unknown'),
+              mittente_sconosciuto: true,
+              origine_testo_email: true,
+              ragione_sociale_cliente_sede_ignorata: true,
+              ...(autoKindU ? { pending_kind: autoKindU } : {}),
+            },
+            ...(autoKindU === 'statement' ? { is_statement: true } : {}),
+            note: ocr.note_corpo_mail?.trim() || null,
+          }
+          const insErrIg = await insertDocumento(supabase, unknownPayloadIg)
+          if (insErrIg) {
+            const detail = `[${insErrIg.code ?? 'ERR'}] ${insErrIg.message}${insErrIg.details ? ' | ' + insErrIg.details : ''}`
+            await insertLog(supabase, email, 'fornitore_non_trovato', {
+              errore_dettaglio: detail,
+              sede_id: unknownDocSedeId,
+              allegato_nome: attachment.filename ?? null,
+              scan_attachment_fingerprint: fp,
+            })
+            ignorate++
+          } else {
+            ricevuti++
+            await insertLog(supabase, email, 'successo', {
+              file_url: syn.publicUrl,
+              sede_id: unknownDocSedeId,
+              allegato_nome: attachment.filename ?? null,
+              scan_attachment_fingerprint: fp,
+            })
+          }
+          bumpAttach(email.uid)
+          continue
+        }
+
+        if (bootstrapU.kind === 'resolved') {
+          await linkScanSenderToFornitore(supabase, bootstrapU.fornitore.id, email.from)
+          const fullF = await fetchFullFornitoreForScan(supabase, bootstrapU.fornitore.id)
+          if (fullF) {
+            const pc = { ricevuti: 0, ignorate: 0, bozzaCreate: 0 }
+            await persistKnownFornitoreEmailScanWithFile(
+              supabase,
+              {
+                email,
+                fornitore: fullF,
+                matchedBy: 'ragione_sociale',
+                ocr,
+                file_url: syn.publicUrl,
+                storedFileName: SYNTHETIC_EMAIL_DOC_FILENAME,
+                storedContentType: 'text/plain',
+                isSyntheticBodyDoc: true,
+                fp,
+                docKind,
+                sedeFilter,
+                fallbackSedeId,
+                effectiveSede,
+                rekkiPersistedUids,
+                attachmentBuffer: null,
+                attachmentContentType: null,
+              },
+              pc,
+            )
+            ricevuti += pc.ricevuti
+            ignorate += pc.ignorate
+            bozzaCreate += pc.bozzaCreate
+            bumpAttach(email.uid)
+            continue
+          }
+        }
+
         const unknownPayload = {
           fornitore_id:   null,
           sede_id:        unknownDocSedeId,
@@ -966,7 +1054,89 @@ async function processEmails(
         continue
       }
 
-      // 3b. Upload allegato + salva come sconosciuto (mittente_sconosciuto)
+      // 3b. Upload allegato + salva come sconosciuto (mittente_sconosciuto), oppure abbinamento da ragione sociale OCR
+      const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+      const bodySnipAtt = email.bodyText?.slice(0, 12_000) ?? null
+      const autoKindAtt = inferAutoPendingKindFromEmailScan(
+        email.subject,
+        attachment.filename ?? null,
+        bodySnipAtt,
+        ocr,
+      )
+
+      const bootstrapAtt = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId)
+
+      if (bootstrapAtt.kind === 'ignored_buyer') {
+        const uniqueNameIg = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
+        const { error: upIg } = await supabase.storage
+          .from('documenti')
+          .upload(uniqueNameIg, attachment.content, { contentType: attachment.contentType, upsert: false })
+        if (upIg) {
+          console.error(`[PROCESS] Upload fallito (sconosciuto, cliente ignorato): ${upIg.message}`)
+          await insertLog(supabase, email, 'fornitore_non_trovato', {
+            errore_dettaglio: `Upload: ${upIg.message}`,
+            sede_id: effectiveSede,
+            allegato_nome: attachment.filename ?? null,
+          })
+          ignorate++
+          bumpAttach(email.uid)
+          continue
+        }
+        const publicRefIg = documentiPublicRefUrl(uniqueNameIg)
+        const unknownPayloadIg = {
+          fornitore_id: null,
+          sede_id: unknownDocSedeId,
+          mittente: email.from || 'sconosciuto',
+          oggetto_mail: email.subject ?? null,
+          file_url: publicRefIg,
+          file_name: attachment.filename ?? null,
+          content_type: attachment.contentType ?? null,
+          data_documento: safeDate(ocr.data_fattura),
+          stato: 'da_revisionare',
+          metadata: {
+            ...buildMetadata(ocr, 'unknown'),
+            mittente_sconosciuto: true,
+            ragione_sociale_cliente_sede_ignorata: true,
+            ...(autoKindAtt ? { pending_kind: autoKindAtt } : {}),
+          },
+          ...(autoKindAtt === 'statement' ? { is_statement: true } : {}),
+          note: ocr.note_corpo_mail?.trim() || null,
+        }
+        const insIg = await insertDocumento(supabase, unknownPayloadIg)
+        if (insIg) {
+          const detail = `[${insIg.code ?? 'ERR'}] ${insIg.message}${insIg.details ? ' | ' + insIg.details : ''}`
+          await insertLog(supabase, email, 'fornitore_non_trovato', {
+            errore_dettaglio: detail,
+            sede_id: unknownDocSedeId,
+            allegato_nome: attachment.filename ?? null,
+            scan_attachment_fingerprint: fp,
+          })
+          ignorate++
+        } else {
+          ricevuti++
+          await insertLog(supabase, email, 'successo', {
+            file_url: publicRefIg,
+            sede_id: unknownDocSedeId,
+            allegato_nome: attachment.filename ?? null,
+            scan_attachment_fingerprint: fp,
+          })
+        }
+        bumpAttach(email.uid)
+        continue
+      }
+
+      if (bootstrapAtt.kind === 'resolved') {
+        await linkScanSenderToFornitore(supabase, bootstrapAtt.fornitore.id, email.from)
+        const fullF = await fetchFullFornitoreForScan(supabase, bootstrapAtt.fornitore.id)
+        if (fullF) {
+          if (!groups.has(fullF.id)) {
+            groups.set(fullF.id, { fornitore: fullF, items: [], matchedBy: 'ragione_sociale' })
+          }
+          groups.get(fullF.id)!.items.push({ email, attachment, ocr })
+          continue
+        }
+      }
+
       const uniqueName = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
       const { error: uploadError } = await supabase.storage
         .from('documenti')
@@ -985,15 +1155,6 @@ async function processEmails(
       }
 
       const publicRef = documentiPublicRefUrl(uniqueName)
-      // sede_id: usa sempre sedeFilter (scansione corrente) come priorità massima
-      const unknownDocSedeId = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
-      const bodySnipAtt = email.bodyText?.slice(0, 12_000) ?? null
-      const autoKindAtt = inferAutoPendingKindFromEmailScan(
-        email.subject,
-        attachment.filename ?? null,
-        bodySnipAtt,
-        ocr,
-      )
 
       const unknownPayload = {
         fornitore_id:   null,
@@ -1128,6 +1289,87 @@ async function processEmails(
       bodySnipOnly,
       ocr,
     )
+
+    const bootstrapBo = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId)
+    if (bootstrapBo.kind === 'ignored_buyer') {
+      const unknownPayloadIg = {
+        fornitore_id: null,
+        sede_id: unknownDocSedeId,
+        mittente: email.from || 'sconosciuto',
+        oggetto_mail: email.subject ?? null,
+        file_url: syn.publicUrl,
+        file_name: SYNTHETIC_EMAIL_DOC_FILENAME,
+        content_type: 'text/plain',
+        data_documento: safeDate(ocr.data_fattura),
+        stato: 'da_revisionare',
+        metadata: {
+          ...buildMetadata(ocr, 'unknown'),
+          mittente_sconosciuto: true,
+          origine_testo_email: true,
+          ragione_sociale_cliente_sede_ignorata: true,
+          ...(autoKindOnly ? { pending_kind: autoKindOnly } : {}),
+        },
+        ...(autoKindOnly === 'statement' ? { is_statement: true } : {}),
+        note: ocr.note_corpo_mail?.trim() || null,
+      }
+      const insIg = await insertDocumento(supabase, unknownPayloadIg)
+      if (insIg) {
+        const detail = `[${insIg.code ?? 'ERR'}] ${insIg.message}${insIg.details ? ' | ' + insIg.details : ''}`
+        await insertLog(supabase, email, 'fornitore_non_trovato', {
+          errore_dettaglio: detail,
+          sede_id: unknownDocSedeId,
+          allegato_nome: null,
+          scan_attachment_fingerprint: fp,
+        })
+        ignorate++
+      } else {
+        ricevuti++
+        await insertLog(supabase, email, 'successo', {
+          file_url: syn.publicUrl,
+          sede_id: unknownDocSedeId,
+          allegato_nome: null,
+          scan_attachment_fingerprint: fp,
+        })
+      }
+      bumpAttach(email.uid)
+      continue
+    }
+
+    if (bootstrapBo.kind === 'resolved') {
+      await linkScanSenderToFornitore(supabase, bootstrapBo.fornitore.id, email.from)
+      const fullF = await fetchFullFornitoreForScan(supabase, bootstrapBo.fornitore.id)
+      if (fullF) {
+        const pc = { ricevuti: 0, ignorate: 0, bozzaCreate: 0 }
+        await persistKnownFornitoreEmailScanWithFile(
+          supabase,
+          {
+            email,
+            fornitore: fullF,
+            matchedBy: 'ragione_sociale',
+            ocr,
+            file_url: syn.publicUrl,
+            storedFileName: SYNTHETIC_EMAIL_DOC_FILENAME,
+            storedContentType: 'text/plain',
+            isSyntheticBodyDoc: true,
+            fp,
+            docKind,
+            sedeFilter,
+            fallbackSedeId,
+            effectiveSede,
+            rekkiPersistedUids,
+            attachmentBuffer: null,
+            attachmentContentType: null,
+          },
+          pc,
+        )
+        ricevuti += pc.ricevuti
+        ignorate += pc.ignorate
+        bozzaCreate += pc.bozzaCreate
+        bumpAttach(email.uid)
+        continue
+      }
+    }
+
     const unknownPayload = {
       fornitore_id:   null,
       sede_id:        unknownDocSedeId,
@@ -1184,7 +1426,6 @@ async function processEmails(
   }
 
   // ── FASE 2: per ogni fornitore, OCR, salva in coda e crea Bolla/Fattura bozza ─
-  let bozzaCreate = 0
 
   for (const { fornitore, items, matchedBy } of groups.values()) {
     // OCR in parallelo; se già pre-computato (da P.IVA match) lo riutilizza.

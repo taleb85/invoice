@@ -149,6 +149,9 @@ export default function CentroOperazioniPage() {
   const [historicSyncError, setHistoricSyncError] = useState<string | null>(null)
   const [historicSyncResult, setHistoricSyncResult] = useState<string | null>(null)
   const [historicProgressLine, setHistoricProgressLine] = useState<string | null>(null)
+  const [reprocessLoading, setReprocessLoading] = useState(false)
+  const [reprocessError, setReprocessError] = useState<string | null>(null)
+  const [reprocessResult, setReprocessResult] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoadError(null)
@@ -278,6 +281,47 @@ export default function CentroOperazioniPage() {
     }
   }, [effectiveSedeId, s.historicSyncCompleted, s.historicSyncProgress, s.historicSyncResult])
 
+  const onReprocessDaAssociare = useCallback(async () => {
+    setReprocessLoading(true)
+    setReprocessError(null)
+    setReprocessResult(null)
+    try {
+      const res = await fetch('/api/admin/reprocess-da-associare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(effectiveSedeId ? { sede_id: effectiveSedeId } : {}),
+        }),
+      })
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string
+        processed?: number
+        auto_saved?: number
+        da_revisionare?: number
+        errors?: number
+        has_more_candidates?: boolean
+      }
+      if (!res.ok) {
+        setReprocessError(j.error ?? `HTTP ${res.status}`)
+        return
+      }
+      const more =
+        j.has_more_candidates === true ? s.reprocessDaAssociareMoreHint.trim() : ''
+      setReprocessResult(
+        s.reprocessDaAssociareResult
+          .replace('{processed}', String(j.processed ?? 0))
+          .replace('{auto_saved}', String(j.auto_saved ?? 0))
+          .replace('{da_revisionare}', String(j.da_revisionare ?? 0))
+          .replace('{errors}', String(j.errors ?? 0))
+          .replace('{more}', more),
+      )
+    } catch (e) {
+      setReprocessError(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setReprocessLoading(false)
+    }
+  }, [effectiveSedeId, s])
+
   if (!canView) {
     return (
       <div className={`${APP_SHELL_SECTION_PAGE_CLASS} px-6 py-10`}>
@@ -365,6 +409,34 @@ export default function CentroOperazioniPage() {
             ) : null}
             {historicSyncResult ? (
               <p className="mt-3 whitespace-pre-line text-sm text-emerald-200/95">{historicSyncResult}</p>
+            ) : null}
+          </div>
+
+          <div className="app-card overflow-hidden p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+              {s.reprocessDaAssociareTitle}
+            </p>
+            <p className="mt-2 text-sm text-app-fg-muted">{s.reprocessDaAssociareDesc}</p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={reprocessLoading}
+                onClick={onReprocessDaAssociare}
+                className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-emerald-500/45 bg-emerald-500/12 px-4 py-2.5 text-xs font-bold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {reprocessLoading ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100 border-t-transparent" />
+                    {t.common.loading}
+                  </>
+                ) : (
+                  s.reprocessDaAssociareCta
+                )}
+              </button>
+              {reprocessError ? <span className="text-xs text-rose-300">{reprocessError}</span> : null}
+            </div>
+            {reprocessResult ? (
+              <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
             ) : null}
           </div>
 

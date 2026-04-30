@@ -1163,6 +1163,11 @@ type Translations = {
     /** Segnaposto `{label}` = mese/anno UTC del batch storico corrente */
     historicSyncProgress: string
     historicSyncCompleted: string
+    reprocessDaAssociareTitle: string
+    reprocessDaAssociareDesc: string
+    reprocessDaAssociareCta: string
+    reprocessDaAssociareResult: string
+    reprocessDaAssociareMoreHint: string
     hintContextualShortcuts: string
   }
   log: {
@@ -2146,6 +2151,13 @@ const it: Translations = {
     historicSyncResult: '{n} documenti importati dall’anno precedente',
     historicSyncProgress: 'Elaborazione: {label}…',
     historicSyncCompleted: 'Completato!',
+    reprocessDaAssociareTitle: 'Documenti «da associare» con fornitore già noto',
+    reprocessDaAssociareDesc:
+      'OCR Gemini e registrazione automatica (fino a 5 documenti per richiesta) per le righe in coda con fornitore collegato e file presente, senza elaborazione OCR completa. Ripeti finché necessario.',
+    reprocessDaAssociareCta: 'Riprocessa documenti storici',
+    reprocessDaAssociareResult:
+      'Ultimo batch: elaborati {processed}, auto-salvati {auto_saved}, in revisione {da_revisionare}, errori {errors}.{more}',
+    reprocessDaAssociareMoreHint: ' Altri documenti in coda — ripeti l’operazione.',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
   },
@@ -3731,6 +3743,13 @@ const en: Translations = {
     historicSyncResult: '{n} documents imported from the previous year',
     historicSyncProgress: 'Processing: {label}…',
     historicSyncCompleted: 'Completed!',
+    reprocessDaAssociareTitle: 'Queued documents with supplier already linked',
+    reprocessDaAssociareDesc:
+      'Runs Gemini OCR and auto-registration (up to 5 per request) for rows stuck in “to match” with a linked supplier and a file. Repeat until the queue is clear.',
+    reprocessDaAssociareCta: 'Reprocess historical queue documents',
+    reprocessDaAssociareResult:
+      'Last batch: processed {processed}, auto-saved {auto_saved}, needs review {da_revisionare}, errors {errors}.{more}',
+    reprocessDaAssociareMoreHint: ' More items may remain — run again.',
     hintContextualShortcuts:
       'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
   },
@@ -4478,6 +4497,13 @@ const es: Translations = {
     historicSyncResult: '{n} documentos importados del año anterior',
     historicSyncProgress: 'Procesando: {label}…',
     historicSyncCompleted: '¡Listo!',
+    reprocessDaAssociareTitle: 'Documentos en cola con proveedor ya vinculado',
+    reprocessDaAssociareDesc:
+      'OCR Gemini y registro automático (hasta 5 por solicitud) para filas «por asociar» con proveedor y archivo. Repite hasta vaciar la cola.',
+    reprocessDaAssociareCta: 'Reprocesar documentos históricos en cola',
+    reprocessDaAssociareResult:
+      'Último lote: procesados {processed}, auto-guardados {auto_saved}, en revisión {da_revisionare}, errores {errors}.{more}',
+    reprocessDaAssociareMoreHint: ' Puede quedar más cola — ejecuta de nuevo.',
     hintContextualShortcuts:
       'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
   },
@@ -5219,6 +5245,13 @@ const fr: Translations = {
     historicSyncResult: '{n} documents importés pour l’année précédente',
     historicSyncProgress: 'Traitement : {label}…',
     historicSyncCompleted: 'Terminé !',
+    reprocessDaAssociareTitle: 'Documents en file — fournisseur déjà lié',
+    reprocessDaAssociareDesc:
+      'OCR Gemini et enregistrement auto (5 max par requête) pour les lignes « à associer » avec fournisseur et fichier. Répéter jusqu’à file vide.',
+    reprocessDaAssociareCta: 'Retraiter les documents historiques en file',
+    reprocessDaAssociareResult:
+      'Dernier lot : traités {processed}, auto-enregistrés {auto_saved}, à réviser {da_revisionare}, erreurs {errors}.{more}',
+    reprocessDaAssociareMoreHint: ' D’autres éléments peuvent rester — relancer.',
     hintContextualShortcuts:
       'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
   },
@@ -5960,6 +5993,13 @@ const de: Translations = {
     historicSyncResult: '{n} Dokumente aus dem Vorjahr importiert',
     historicSyncProgress: 'Verarbeitung: {label}…',
     historicSyncCompleted: 'Fertig!',
+    reprocessDaAssociareTitle: 'Dokumente in Warteschlange — Lieferant bereits verknüpft',
+    reprocessDaAssociareDesc:
+      'Gemini-OCR und automatische Erfassung (bis 5 pro Anfrage) für „zu verknüpfen“ mit Lieferant und Datei. Wiederholen, bis die Schlange leer ist.',
+    reprocessDaAssociareCta: 'Historische Warteschlangen-Dokumente neu verarbeiten',
+    reprocessDaAssociareResult:
+      'Letzter Batch: verarbeitet {processed}, auto-gespeichert {auto_saved}, zur Prüfung {da_revisionare}, Fehler {errors}.{more}',
+    reprocessDaAssociareMoreHint: ' Es können weitere Dokumente warten — erneut ausführen.',
     hintContextualShortcuts:
       'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',
   },
