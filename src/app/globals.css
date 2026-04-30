@@ -1020,10 +1020,13 @@ select.app-fiscal-year-header-select {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * Deep Aurora Intelligence — solo mock `[data-deep-aurora-shell]` (+ body quando
- * è montata questa pagina), senza alterare Fluxo sul resto del sito.
+ * Deep Aurora Intelligence — tema mock `[data-deep-aurora-shell]` e integrazione
+ * dashboard `[data-deep-aurora-integration]`. `:root` Fluxo non viene toccato.
+ * Tipografia aggressiva (titoli #fff / base #94a3b8) solo su `.deep-aurora-mock`.
  * ═══════════════════════════════════════════════════════════════════════════ */
-body:has([data-deep-aurora-shell]) {
+
+body:has([data-deep-aurora-shell]),
+body:has([data-deep-aurora-integration]) {
   background-color: #020617;
   background-image:
     radial-gradient(circle at 20% 20%, #1e40af 0%, transparent 52%),
@@ -1034,7 +1037,21 @@ body:has([data-deep-aurora-shell]) {
   min-height: 100vh;
 }
 
-[data-deep-aurora-shell] {
+@media (min-width: 768px) {
+  body:has([data-deep-aurora-integration]) .app-shell-workspace-canvas {
+    background-image: none;
+    background-color: transparent;
+  }
+}
+
+@media (max-width: 767px) {
+  body:has([data-deep-aurora-integration]) [data-app-desktop-canvas] {
+    background-image: none;
+    background-color: transparent;
+  }
+}
+
+:is([data-deep-aurora-shell], [data-deep-aurora-integration]) {
   --bg-base: #020617;
   --accent-color: #38bdf8;
   --glass-bg: rgb(255 255 255 / 0.03);
@@ -1042,6 +1059,9 @@ body:has([data-deep-aurora-shell]) {
   --glass-blur: 16px;
   --da-heading: #ffffff;
   --da-muted: #94a3b8;
+}
+
+[data-deep-aurora-shell] {
   font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -1055,14 +1075,17 @@ body:has([data-deep-aurora-shell]) {
   background-color: transparent;
   display: flex;
   flex-direction: column;
+}
+
+[data-deep-aurora-shell].app-background.deep-aurora-mock {
   color: var(--da-muted);
 }
 
-[data-deep-aurora-shell] :where(h1, h2, h3) {
+[data-deep-aurora-shell].deep-aurora-mock :where(h1, h2, h3) {
   color: var(--da-heading);
 }
 
-[data-deep-aurora-shell] .glass-card {
+:is([data-deep-aurora-shell], [data-deep-aurora-integration]) .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -1072,12 +1095,11 @@ body:has([data-deep-aurora-shell]) {
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-[data-deep-aurora-shell] .glass-card:hover {
+:is([data-deep-aurora-shell], [data-deep-aurora-integration]) .glass-card:hover {
   border-color: rgb(255 255 255 / 0.16);
 }
 
-/* Pannello vetro compatto + chip mock (equiv. Tailwind bg-white/[0.03] backdrop-blur-lg border-white/10) */
-[data-deep-aurora-shell] .glass-surface {
+:is([data-deep-aurora-shell], [data-deep-aurora-integration]) .glass-surface {
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));

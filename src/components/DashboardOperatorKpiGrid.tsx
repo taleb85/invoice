@@ -75,10 +75,22 @@ function dashboardKpiIconTextClass(index: number) {
   return DASHBOARD_OPERATOR_KPI_ICON_TEXT[i]!
 }
 
-export function DashboardOperatorKpiSkeleton() {
+const kpiGridGlassShellTopBar =
+  'h-1 shrink-0 bg-gradient-to-r from-sky-400/45 via-violet-500/35 to-cyan-400/40 md:h-1.5'
+
+export function DashboardOperatorKpiSkeleton({ glassShell = false }: { glassShell?: boolean }) {
+  const outer = glassShell
+    ? 'glass-card flex flex-col overflow-hidden'
+    : kpiGridShellClass
+  const bar = glassShell ? (
+    <div className={kpiGridGlassShellTopBar} aria-hidden />
+  ) : (
+    <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
+  )
+
   return (
-    <div className={kpiGridShellClass}>
-      <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
+    <div className={outer}>
+      {bar}
       <div className={kpiGridInnerClass}>
         <div className={DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS}>
           {[0, 1, 2, 3, 4].map((i) => {
@@ -139,6 +151,7 @@ export default function DashboardOperatorKpiGrid({
   locale,
   currency,
   fiscalYear,
+  glassShell = false,
 }: {
   kpis: OperatorDashboardKpis
   t: Translations
@@ -146,6 +159,8 @@ export default function DashboardOperatorKpiGrid({
   currency: string
   /** Se impostato, aggiunge `?fy=` (e `tutte=1` su Bolle) ai link delle schede. */
   fiscalYear?: number
+  /** Contenitore vetro Deep Aurora quando la dashboard è dentro `DeepAuroraIntegration`. */
+  glassShell?: boolean
 }) {
   const router = useRouter()
   const network = useNetworkStatusOptional()
@@ -314,9 +329,16 @@ export default function DashboardOperatorKpiGrid({
 
   const cardInteractive = online ? 'cursor-pointer active:scale-[0.99]' : 'cursor-not-allowed opacity-[0.88]'
 
+  const outerShellClass = glassShell ? 'glass-card flex flex-col overflow-hidden' : kpiGridShellClass
+  const shellAccentBar = glassShell ? (
+    <div className={kpiGridGlassShellTopBar} aria-hidden />
+  ) : (
+    <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
+  )
+
   const panel = (
-    <div className={kpiGridShellClass}>
-      <div className={`app-card-bar-accent shrink-0 ${kpiGridShellTheme.bar}`} aria-hidden />
+    <div className={outerShellClass}>
+      {shellAccentBar}
       <div className={`${kpiGridInnerClass} relative`}>
         <div className={`${DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS} ${!online ? 'pointer-events-none' : ''}`}>
           {items.map((item) => {

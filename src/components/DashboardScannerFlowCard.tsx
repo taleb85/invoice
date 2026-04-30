@@ -68,6 +68,9 @@ export type DashboardScannerFlowHeaderLinks = {
   eventsHref?: string
 }
 
+const scannerFlowGlassShellTopBar =
+  'h-1 shrink-0 bg-gradient-to-r from-sky-400/45 via-violet-500/35 to-cyan-400/40 md:h-1.5'
+
 function ScannerFlowCardIntro({
   summary,
   t,
@@ -79,6 +82,7 @@ function ScannerFlowCardIntro({
   tz,
   fiscalYearLabel,
   detailTimeRange,
+  glassShell = false,
 }: {
   summary: ScannerFlowDaySummary
   t: Translations
@@ -92,6 +96,7 @@ function ScannerFlowCardIntro({
   fiscalYearLabel?: string
   /** Quando presente, le liste nel modal e i conteggi usano lo stesso intervallo */
   detailTimeRange?: { from: string; toExclusive: string }
+  glassShell?: boolean
 }) {
   const todayLine = t.dashboard.scannerFlowTodayCounts
     .replace('{ai}', String(summary.aiElaborate))
@@ -99,8 +104,20 @@ function ScannerFlowCardIntro({
 
   const kpiNumCls = embedded ? 'text-app-fg md:text-3xl' : 'text-app-fg md:text-3xl'
   const kpiLabelCls = embedded ? 'text-app-fg-muted md:text-xs' : 'text-app-fg-muted md:text-xs'
-  const kpiBoxBorder = embedded ? 'border-app-line-28' : 'border-app-line-30'
-  const kpiBoxBg = embedded ? 'app-workspace-inset-bg-soft' : 'app-workspace-inset-bg-soft shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10'
+  const kpiBoxBorder = embedded
+    ? glassShell
+      ? 'border-white/10'
+      : 'border-app-line-28'
+    : glassShell
+      ? 'border-white/10'
+      : 'border-app-line-30'
+  const kpiBoxBg = embedded
+    ? glassShell
+      ? 'glass-surface shadow-inner shadow-black/20'
+      : 'app-workspace-inset-bg-soft'
+    : glassShell
+      ? 'glass-surface shadow-inner shadow-black/20 ring-1 ring-white/5'
+      : 'app-workspace-inset-bg-soft shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10'
 
   const eventsInHeader = Boolean(headerLinks?.eventsHref?.trim())
   const showFooterEventsLink = Boolean(allEventsHref?.trim()) && !eventsInHeader
@@ -147,7 +164,11 @@ function ScannerFlowCardIntro({
               {headerLinks.newScanHref?.trim() ? (
                 <Link
                   href={headerLinks.newScanHref}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-app-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_0_18px_-4px_rgba(34,211,238,0.5)] ring-1 ring-app-tint-300-30 transition-colors hover:bg-app-cyan-400"
+                  className={
+                    glassShell
+                      ? 'inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#38bdf8] px-3 py-1.5 text-xs font-semibold text-slate-950 shadow-md transition hover:brightness-110 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#38bdf8]/50'
+                      : 'inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-app-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_0_18px_-4px_rgba(34,211,238,0.5)] ring-1 ring-app-tint-300-30 transition-colors hover:bg-app-cyan-400'
+                  }
                 >
                   <HubScannerIcon className="h-3.5 w-3.5 shrink-0" />
                   {newScanLabel}
@@ -220,6 +241,7 @@ export default function DashboardScannerFlowCard({
   tz = 'UTC',
   fiscalYearLabel,
   detailTimeRange,
+  glassShell = false,
 }: {
   summary: ScannerFlowDaySummary
   events: ScannerFlowEventRow[]
@@ -236,6 +258,8 @@ export default function DashboardScannerFlowCard({
   fiscalYearLabel?: string
   /** Intervallo (timestamp ISO) condiviso con il modal /api/scansioni/detail. */
   detailTimeRange?: { from: string; toExclusive: string }
+  /** Guscio vetro sulla dashboard dentro `DeepAuroraIntegration`. */
+  glassShell?: boolean
 }) {
   const embedded = variant === 'embedded'
 
@@ -253,12 +277,39 @@ export default function DashboardScannerFlowCard({
           tz={tz}
           fiscalYearLabel={undefined}
           detailTimeRange={undefined}
+          glassShell={glassShell}
         />
       </div>
     )
   }
 
   const scannerShellTheme = SUMMARY_HIGHLIGHT_ACCENTS.cyan
+
+  if (glassShell) {
+    return (
+      <section
+        className="glass-card flex flex-col overflow-hidden"
+        aria-label={t.dashboard.scannerFlowCardTitle}
+      >
+        <div className={scannerFlowGlassShellTopBar} aria-hidden />
+        <div className={`w-full min-w-0 ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
+          <ScannerFlowCardIntro
+            summary={summary}
+            t={t}
+            events={events}
+            formatEventTime={formatEventTime}
+            embedded={false}
+            allEventsHref={allEventsHref}
+            headerLinks={headerLinks}
+            tz={tz}
+            fiscalYearLabel={fiscalYearLabel}
+            detailTimeRange={detailTimeRange}
+            glassShell
+          />
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${scannerShellTheme.border}`}>

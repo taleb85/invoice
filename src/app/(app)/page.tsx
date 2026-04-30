@@ -26,6 +26,7 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { DeepAuroraIntegration } from '@/components/deep-aurora/DeepAuroraIntegration'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +69,7 @@ export default async function DashboardPage(props: {
 
     return (
       <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+        <DeepAuroraIntegration>
         <AppPageHeaderStrip embedded>
           <AppPageHeaderTitleWithDashboardShortcut>
             <h1 id="page-dashboard-strip-title" className="app-page-title text-xl font-bold leading-tight md:text-2xl" aria-describedby="page-dashboard-strip-desc">
@@ -205,6 +207,7 @@ export default async function DashboardPage(props: {
           })}
           </div>
         )}
+        </DeepAuroraIntegration>
       </div>
     )
   }
@@ -256,6 +259,7 @@ export default async function DashboardPage(props: {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+      <DeepAuroraIntegration>
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
@@ -301,12 +305,7 @@ export default async function DashboardPage(props: {
             <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
               {t.fornitori.tabRiepilogo}
             </h2>
-            <DashboardOperatorKpiGrid
-              kpis={kpis}
-              t={t}
-              locale={locale}
-              currency={currency}
-            />
+            <DashboardOperatorKpiGrid glassShell kpis={kpis} t={t} locale={locale} currency={currency} />
           </div>
         </div>
       ) : null}
@@ -314,12 +313,13 @@ export default async function DashboardPage(props: {
       {operatorScoped ? (
         <>
           <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
-            <Suspense fallback={<DashboardOperatorKpiSkeleton />}>
+            <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
               <div>
                 <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
                   {t.fornitori.tabRiepilogo}
                 </h2>
                 <DashboardOperatorKpiGrid
+                  glassShell
                   kpis={kpis}
                   t={t}
                   locale={locale}
@@ -332,6 +332,7 @@ export default async function DashboardPage(props: {
           {/* Scanner: visibile su mobile e desktop (sotto i KPI ≥1024px). Vedi globals.css. */}
           <div className="dashboard-operator-scanner-bolle-stack">
             <DashboardScannerFlowCard
+              glassShell
               summary={scannerFlowDetail.summary}
               events={scannerFlowDetail.events}
               formatEventTime={formatScannerEventTime}
@@ -352,6 +353,7 @@ export default async function DashboardPage(props: {
           <DashboardRecentBolleCard />
         </div>
       )}
+      </DeepAuroraIntegration>
 
     </div>
   )

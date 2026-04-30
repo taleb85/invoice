@@ -720,7 +720,7 @@ function PhoneShell(props: { label: string; children: React.ReactNode }) {
 
 export default function MockupAuroraPage() {
   return (
-    <div data-deep-aurora-shell className="app-background relative min-h-dvh">
+    <div data-deep-aurora-shell className="app-background deep-aurora-mock relative min-h-dvh">
       {/* Accento alto sottile sopra ai radial gradient */}
       <div
         aria-hidden
