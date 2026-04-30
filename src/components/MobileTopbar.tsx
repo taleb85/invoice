@@ -11,6 +11,7 @@ import {
 } from '@/lib/mobile-hub-routes'
 import { useLocale } from '@/lib/locale-context'
 import { LOCALES } from '@/lib/translations'
+import { LocaleCodeChip } from '@/components/ui/glyph-icons'
 import { useT } from '@/lib/use-t'
 import { createClient } from '@/utils/supabase/client'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
@@ -210,7 +211,7 @@ export default function MobileTopbar() {
                               : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
                           }`}
                         >
-                          <span className="text-lg leading-none">{l.flag}</span>
+                          <LocaleCodeChip code={l.code} className="h-7 min-w-[1.75rem] text-[10px]" />
                           <span className="truncate">{l.label}</span>
                           {locale === l.code && (
                             <svg

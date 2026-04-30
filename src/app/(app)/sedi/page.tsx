@@ -7,6 +7,8 @@ import type { Sede, Profile } from '@/types'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { getLocale, COUNTRY_OPTIONS } from '@/lib/localization'
+import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
+import { GlyphXMark } from '@/components/ui/glyph-icons'
 import { CURRENCIES, TIMEZONES } from '@/lib/translations'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -563,7 +565,7 @@ export default function SediPage() {
                           </>
                         ) : wizardGeoStatus === 'detected' ? (
                           <>
-                            <span className="text-base leading-none">{loc.flag}</span>
+                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
                             <span className="font-semibold">Rilevata posizione: {loc.name}.</span>
                             <span className="text-blue-600">Termini fiscali impostati su <strong>{loc.vat}</strong> · <strong>{loc.vatLabel}</strong>.</span>
                           </>
@@ -587,11 +589,11 @@ export default function SediPage() {
                             className="appearance-none pl-7 pr-6 py-1 text-xs border border-current/20 rounded-lg app-workspace-surface-elevated focus:outline-none focus:ring-2 focus:ring-app-line-30 cursor-pointer"
                           >
                             {COUNTRY_OPTIONS.map(o => (
-                              <option key={o.code} value={o.code}>{o.flag} {o.name}</option>
+                              <option key={o.code} value={o.code}>{o.code} — {o.name}</option>
                             ))}
                           </select>
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm leading-none">
-                            {loc.flag}
+                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 leading-none">
+                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
                           </span>
                           <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
@@ -863,7 +865,9 @@ export default function SediPage() {
                         className="flex-1 px-3 py-1.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500"
                       />
                       <button type="submit" className="px-3 py-1.5 text-xs bg-app-cyan-500 text-white rounded-lg hover:bg-cyan-600">{t.common.save}</button>
-                      <button type="button" onClick={() => setEditingSede(null)} className="px-3 py-1.5 text-xs border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">✕</button>
+                      <button type="button" onClick={() => setEditingSede(null)} className="inline-flex items-center justify-center px-3 py-1.5 text-xs border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted" aria-label="Annulla">
+                        <GlyphXMark className="h-3.5 w-3.5" />
+                      </button>
                     </form>
                   ) : (
                     <>

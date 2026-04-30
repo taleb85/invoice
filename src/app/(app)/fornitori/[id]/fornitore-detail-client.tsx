@@ -14,6 +14,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { GlyphCheck, GlyphWarningTriangle, GlyphXMark } from '@/components/ui/glyph-icons'
 import { useParams, usePathname, useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
 import {
   fornitoreBollaDeepLink,
@@ -3672,7 +3673,12 @@ function ListinoTab({
                 <span>
                   {autoImportError
                     ? autoImportError
-                    : `✓ ${autoImportResult!.inserted} prezzi importati da ${autoImportResult!.fatture} fattur${autoImportResult!.fatture === 1 ? 'a' : 'e'}`
+                    : (
+                      <span className="inline-flex items-center gap-1">
+                        <GlyphCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {`${autoImportResult!.inserted} prezzi importati da ${autoImportResult!.fatture} fattur${autoImportResult!.fatture === 1 ? 'a' : 'e'}`}
+                      </span>
+                    )
                   }
                 </span>
                 <button
@@ -3900,8 +3906,9 @@ function ListinoTab({
                                           className="-mx-1 min-h-[1.25rem] min-w-0 flex-1 rounded bg-transparent px-1 font-medium leading-snug text-app-fg focus:bg-black/15 focus:outline-none"
                                         />
                                         {item.matchedByRekkiId && (
-                                          <span className="shrink-0 rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-300">
-                                            ✓ Rekki
+                                          <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-violet-500/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-300">
+                                            <GlyphCheck className="h-2.5 w-2.5" aria-hidden />
+                                            Rekki
                                           </span>
                                         )}
                                         {item.isNew && (
@@ -3938,7 +3945,7 @@ function ListinoTab({
                                                 title="Salva"
                                                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-violet-600 text-[10px] font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
                                               >
-                                                {importSavingRekkiIdx === idx ? '...' : '✓'}
+                                                {importSavingRekkiIdx === idx ? '...' : <GlyphCheck className="h-2.5 w-2.5" aria-hidden />}
                                               </button>
                                               <button
                                                 type="button"
@@ -3950,7 +3957,7 @@ function ListinoTab({
                                                 title="Annulla"
                                                 className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-app-line-15 text-[10px] text-app-fg-muted transition-colors hover:bg-app-line-20 disabled:opacity-50"
                                               >
-                                                ✕
+                                                <GlyphXMark className="h-2.5 w-2.5" aria-hidden />
                                               </button>
                                             </>
                                           ) : item.rekki_product_id ? (
@@ -4368,8 +4375,9 @@ function ListinoTab({
                               <StatusBadge tone="green">{t.fornitori.listinoRowBadgeOk}</StatusBadge>
                             ) : null}
                             {rekkiLinked && ultimo.rekki_product_id ? (
-                              <StatusBadge tone="violet" className="!normal-case !tracking-wide">
-                                ✓ Rekki
+                              <StatusBadge tone="violet" className="!inline-flex !items-center !gap-0.5 !normal-case !tracking-wide">
+                                <GlyphCheck className="h-3 w-3" aria-hidden />
+                                Rekki
                               </StatusBadge>
                             ) : null}
                           </div>
@@ -4378,8 +4386,16 @@ function ListinoTab({
                         {/* Riga Stato Anomalie */}
                         {summaryLine ? (
                           <div className={`rounded-md px-2.5 py-1.5 ${hasAnomaly ? 'bg-red-500/10 border border-[rgba(34,211,238,0.15)]' : 'bg-emerald-500/10 border border-[rgba(34,211,238,0.15)]'}`}>
-                            <p className={`text-xs font-semibold leading-tight ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
-                              {hasAnomaly ? '⚠️ Attenzione: ' : '✓ '}{summaryLine}
+                            <p className={`flex items-start gap-1 text-xs font-semibold leading-tight ${hasAnomaly ? 'text-red-200' : 'text-emerald-200'}`}>
+                              {hasAnomaly ? (
+                                <GlyphWarningTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                              ) : (
+                                <GlyphCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                              )}
+                              <span>
+                                {hasAnomaly ? 'Attenzione: ' : ''}
+                                {summaryLine}
+                              </span>
                             </p>
                           </div>
                         ) : null}
@@ -4449,7 +4465,7 @@ function ListinoTab({
                                   title="Salva"
                                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-violet-600 text-xs font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-50"
                                 >
-                                  {savingRekkiId ? '...' : '✓'}
+                                  {savingRekkiId ? '...' : <GlyphCheck className="h-3 w-3" aria-hidden />}
                                 </button>
                                 <button
                                   type="button"
@@ -4461,7 +4477,7 @@ function ListinoTab({
                                   title="Annulla"
                                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-app-line-15 text-xs text-app-fg-muted transition-colors hover:bg-app-line-20 disabled:opacity-50"
                                 >
-                                  ✕
+                                  <GlyphXMark className="h-3 w-3" aria-hidden />
                                 </button>
                               </>
                             ) : ultimo.rekki_product_id ? (

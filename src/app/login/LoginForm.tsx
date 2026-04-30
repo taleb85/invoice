@@ -19,6 +19,7 @@ import { PinNumpad } from '@/components/PinNumpad'
 import { SmartPairLogo } from '@/components/smart-pair-logo'
 import { formatAppVersionLabel } from '@/lib/app-build-info'
 import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
+import { LocaleCodeChip } from '@/components/ui/glyph-icons'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -1875,7 +1876,7 @@ function LangPicker({
         aria-expanded={langOpen}
         aria-haspopup="listbox"
       >
-        <span className="text-base leading-none">{LOCALES.find(l => l.code === locale)?.flag}</span>
+        <LocaleCodeChip code={LOCALES.find(l => l.code === locale)?.code ?? 'en'} className="h-5 min-w-[1.5rem] text-[9px]" />
         <span className="max-w-[5.5rem] truncate text-left font-medium">
           {LOCALES.find(l => l.code === locale)?.label}
         </span>
@@ -1909,7 +1910,7 @@ function LangPicker({
                   : 'text-app-fg-muted hover:bg-app-line-12 hover:text-app-fg'
               }`}
             >
-              <span className="text-sm">{l.flag}</span>
+              <LocaleCodeChip code={l.code} className="h-6 min-w-[1.5rem] text-[9px]" />
               <span>{l.label}</span>
               {locale === l.code && (
                 <svg className="ml-auto h-3 w-3 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

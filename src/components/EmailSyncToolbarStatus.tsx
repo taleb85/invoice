@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { EmailSyncHealthMarker } from '@/components/ui/glyph-icons'
 import { useT } from '@/lib/use-t'
 import type { Translations } from '@/lib/translations'
 
@@ -20,7 +21,13 @@ function formatImapRelative(iso: string, t: DashboardT): string {
   }
 }
 
-type HealthTier = 'imap_issue' | 'stopped' | 'late' | 'ok'
+type HealthTier = 'stopped' | 'late' | 'ok'
+
+function markerTierForImap(health: HealthTier): 'ok' | 'late' | 'stopped' {
+  if (health === 'late') return 'late'
+  if (health === 'stopped') return 'stopped'
+  return 'ok'
+}
 
 function imapHealthTier(lastImapSyncAt?: string | null): HealthTier {
   const iso = lastImapSyncAt?.trim()
@@ -53,7 +60,7 @@ export default function EmailSyncToolbarStatus({
     return () => clearInterval(id)
   }, [])
 
-  const { label, title } = useMemo(() => {
+  const { label, title, markerTier } = useMemo(() => {
     void tick
     const iso = lastImapSyncAt?.trim()
     const rel = !iso ? t.emailSyncCronNever : formatImapRelative(iso, t)
@@ -61,6 +68,7 @@ export default function EmailSyncToolbarStatus({
       return {
         label: t.emailSyncCronIssueLine.replace('{relative}', rel),
         title: lastImapSyncError.trim(),
+        markerTier: 'issue' as const,
       }
     }
     const tier = imapHealthTier(lastImapSyncAt ?? null)
@@ -70,12 +78,20 @@ export default function EmailSyncToolbarStatus({
         : tier === 'stopped'
           ? t.emailSyncCronStoppedLine.replace('{relative}', rel)
           : t.emailSyncCronLine.replace('{relative}', rel)
-    return { label: line, title: undefined as string | undefined }
+    return {
+      label: line,
+      title: undefined as string | undefined,
+      markerTier: markerTierForImap(tier),
+    }
   }, [lastImapSyncAt, lastImapSyncError, t, tick])
 
   return (
-    <span className={`whitespace-normal break-words text-left text-[10px] font-semibold leading-snug text-app-fg-muted sm:text-[11px] ${className ?? ''}`} title={title}>
-      {label}
+    <span
+      className={`inline-flex items-start gap-1.5 whitespace-normal break-words text-left text-[10px] font-semibold leading-snug text-app-fg-muted sm:text-[11px] ${className ?? ''}`}
+      title={title}
+    >
+      <EmailSyncHealthMarker tier={markerTier} className="mt-0.5" />
+      <span>{label}</span>
     </span>
   )
 }

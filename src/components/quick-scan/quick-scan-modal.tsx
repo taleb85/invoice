@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState, useEffect } from 'react'
+import { GlyphWarningTriangle } from '@/components/ui/glyph-icons'
 
 export type QuickScanResult = {
   tipo: 'bolla' | 'fattura' | 'unknown'
@@ -269,7 +270,7 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
 
       {phase === 'error' && (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
-          <div className="text-4xl">⚠️</div>
+          <GlyphWarningTriangle className="h-14 w-14 text-amber-400" aria-hidden />
           <p className="text-white text-center">{errorMsg}</p>
           <div className="flex gap-3">
             <button

@@ -21,6 +21,32 @@ export type ActivityAction =
   | 'price_anomaly.resolved'
   | 'gemini.ocr'
 
+/** ID stabile per icona SVG nel feed attività (JSON-safe dalla API). */
+export type ActivityGlyphId =
+  | 'package'
+  | 'document-text'
+  | 'clipboard-list'
+  | 'building-store'
+  | 'user'
+  | 'mail'
+  | 'currency'
+  | 'trash'
+  | 'sparkles'
+  | 'adjustments-horizontal'
+
+export function activityGlyphId(action: ActivityAction): ActivityGlyphId {
+  if (action.startsWith('bolla')) return 'package'
+  if (action.startsWith('fattura')) return 'document-text'
+  if (action.startsWith('documento')) return 'clipboard-list'
+  if (action.startsWith('fornitore')) return 'building-store'
+  if (action.startsWith('operatore')) return 'user'
+  if (action.startsWith('email')) return 'mail'
+  if (action.startsWith('price')) return 'currency'
+  if (action === 'duplicate.bulk_deleted') return 'trash'
+  if (action === 'gemini.ocr') return 'sparkles'
+  return 'adjustments-horizontal'
+}
+
 /**
  * Inserisce in `activity_log`. Le policy RLS ammettono INSERT solo con **service role**
  * (vedi `20260421100000_create_activity_log.sql`): passa `createServiceClient()` come primo
@@ -87,17 +113,4 @@ export function activityColor(action: ActivityAction): 'green' | 'red' | 'blue' 
   if (action.endsWith('.updated') || action.endsWith('.pin_changed')) return 'amber'
   if (action.startsWith('operatore') || action.startsWith('fornitore')) return 'purple'
   return 'gray'
-}
-
-export function activityIcon(action: ActivityAction): string {
-  if (action.startsWith('bolla')) return '📦'
-  if (action.startsWith('fattura')) return '📄'
-  if (action.startsWith('documento')) return '📋'
-  if (action.startsWith('fornitore')) return '🏪'
-  if (action.startsWith('operatore')) return '👤'
-  if (action.startsWith('email')) return '📧'
-  if (action.startsWith('price')) return '💰'
-  if (action === 'duplicate.bulk_deleted') return '🗑️'
-  if (action === 'gemini.ocr') return '✨'
-  return '🔧'
 }

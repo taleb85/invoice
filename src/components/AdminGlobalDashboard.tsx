@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { Translations } from '@/lib/translations'
-import { getLocale as getCountryLocale } from '@/lib/localization'
+import { getLocale as getCountryLocale, type CountryCode } from '@/lib/localization'
+import { LocaleCodeChip } from '@/components/ui/glyph-icons'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import { dashboardManageSediLabel } from '@/lib/gestisci-sede-label'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -146,7 +147,11 @@ export function AdminGlobalDashboard({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {sediCards.map((sede) => {
             const loc = getCountryLocale(sede.country_code)
-            const metaLine = [loc.flag, loc.name].filter(Boolean).join(' · ')
+            const badgeCode = sede.country_code?.trim()?.toUpperCase()
+            const chipCode: CountryCode =
+              badgeCode === 'IT' || badgeCode === 'FR' || badgeCode === 'DE' || badgeCode === 'ES' || badgeCode === 'UK'
+                ? badgeCode
+                : 'UK'
             const imapOk = !!(sede.imap_host?.trim() && sede.imap_user?.trim())
             const needsAttention = sede.bolleInAttesa > 0 || sede.documentiInCoda > 0
             return (
@@ -159,7 +164,10 @@ export function AdminGlobalDashboard({
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="block truncate font-semibold text-app-fg">{sede.nome}</span>
-                      {metaLine ? <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-app-fg-muted">{metaLine}</p> : null}
+                      <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-app-fg-muted flex items-center gap-1.5">
+                        <LocaleCodeChip code={chipCode} className="h-5 min-w-[1.5rem] shrink-0 text-[9px]" />
+                        <span>{loc.name}</span>
+                      </p>
                     </div>
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${

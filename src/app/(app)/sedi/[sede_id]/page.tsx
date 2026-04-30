@@ -5,6 +5,7 @@ import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import CountrySelector from '@/components/CountrySelector'
+import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import { getLocale } from '@/lib/localization'
 import { getT, getLocale as getAppLocale, getCurrency } from '@/lib/locale-server'
@@ -172,7 +173,11 @@ export default async function SedeProfilePage(props: {
             <div className="ml-auto flex flex-wrap items-center gap-4 text-xs text-app-fg-muted">
               <span><span className="font-medium text-app-fg-muted">{loc.vat}</span> · etichetta imposta</span>
               <span><span className="font-medium text-app-fg-muted">{loc.vatLabel}</span> · n. partita {loc.vat}</span>
-              <span><span className="font-medium text-app-fg-muted">{loc.currency}</span> · valuta ({loc.flag})</span>
+              <span className="inline-flex flex-wrap items-center gap-1">
+                <span className="font-medium text-app-fg-muted">{loc.currency}</span>
+                <span>· valuta</span>
+                <LocaleCodeChip code={sede.country_code} className="inline-flex h-5 min-w-[1.5rem] text-[9px]" />
+              </span>
             </div>
             </div>
           </div>

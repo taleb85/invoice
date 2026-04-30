@@ -18,8 +18,6 @@ export interface CountryLocale {
   currency: string
   /** Locale BCP-47 per Intl.NumberFormat (es. "en-GB", "it-IT") */
   currencyLocale: string
-  /** Emoji bandiera */
-  flag: string
   /** Nome del paese in italiano */
   name: string
 }
@@ -31,7 +29,6 @@ const LOCALES: Record<CountryCode, CountryLocale> = {
     taxId:          'UTR',
     currency:       'GBP',
     currencyLocale: 'en-GB',
-    flag:           '🇬🇧',
     name:           'Regno Unito',
   },
   IT: {
@@ -40,7 +37,6 @@ const LOCALES: Record<CountryCode, CountryLocale> = {
     taxId:          'Cod. Fiscale',
     currency:       'EUR',
     currencyLocale: 'it-IT',
-    flag:           '🇮🇹',
     name:           'Italia',
   },
   FR: {
@@ -49,7 +45,6 @@ const LOCALES: Record<CountryCode, CountryLocale> = {
     taxId:          'SIRET',
     currency:       'EUR',
     currencyLocale: 'fr-FR',
-    flag:           '🇫🇷',
     name:           'Francia',
   },
   DE: {
@@ -58,7 +53,6 @@ const LOCALES: Record<CountryCode, CountryLocale> = {
     taxId:          'Steuernr.',
     currency:       'EUR',
     currencyLocale: 'de-DE',
-    flag:           '🇩🇪',
     name:           'Germania',
   },
   ES: {
@@ -67,7 +61,6 @@ const LOCALES: Record<CountryCode, CountryLocale> = {
     taxId:          'NIF',
     currency:       'EUR',
     currencyLocale: 'es-ES',
-    flag:           '🇪🇸',
     name:           'Spagna',
   },
 }
@@ -124,10 +117,10 @@ export function formatNumber(
 }
 
 /** Elenco ordinato dei paesi supportati (per UI dropdown). */
-export const COUNTRY_OPTIONS: { code: CountryCode; name: string; flag: string }[] = [
-  { code: 'UK', name: 'Regno Unito', flag: '🇬🇧' },
-  { code: 'IT', name: 'Italia',      flag: '🇮🇹' },
-  { code: 'FR', name: 'Francia',     flag: '🇫🇷' },
-  { code: 'DE', name: 'Germania',    flag: '🇩🇪' },
-  { code: 'ES', name: 'Spagna',      flag: '🇪🇸' },
+export const COUNTRY_OPTIONS: { code: CountryCode; name: string }[] = [
+  { code: 'UK', name: 'Regno Unito' },
+  { code: 'IT', name: 'Italia' },
+  { code: 'FR', name: 'Francia' },
+  { code: 'DE', name: 'Germania' },
+  { code: 'ES', name: 'Spagna' },
 ]

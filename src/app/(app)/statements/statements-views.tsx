@@ -43,6 +43,14 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
 import { DOCUMENTI_PENDING_STATI_API_DEFAULT } from '@/lib/documenti-queue-stato'
 import { safeDate } from '@/lib/safe-date'
+import {
+  GlyphCheck,
+  GlyphEllipsis,
+  GlyphExclamationBold,
+  GlyphLightBulb,
+  GlyphWarningTriangle,
+  GlyphXMark,
+} from '@/components/ui/glyph-icons'
 
 async function parsePendingQueueMutationError(res: Response): Promise<string> {
   try {
@@ -521,7 +529,7 @@ function EditSupplierPopup({
           <li key={f.id}>
             <button disabled={saving} onClick={() => pick(f)}
               className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-700/60 transition-colors ${f.id === current ? 'font-semibold text-cyan-400' : 'text-slate-200'}`}>
-              {f.nome}{f.id === current && <span className="ml-1 text-[10px] text-cyan-400">✓</span>}
+              {f.nome}{f.id === current && <GlyphCheck className="ml-1 inline h-2.5 w-2.5 text-cyan-400 align-[-2px]" aria-hidden />}
             </button>
           </li>
         ))}
@@ -862,7 +870,11 @@ function StatementPanel({ doc, onRequestMissing, countryCode }: {
         ) : bolle.map(bolla => (
           <div key={bolla.id} className="flex items-center gap-3 px-4 py-2.5">
             <span className={`flex h-5 w-5 flex-none items-center justify-center rounded-full text-xs font-bold text-white ${bolla.fattura ? 'bg-emerald-500' : 'bg-red-500/90'}`}>
-              {bolla.fattura ? '✓' : '✗'}
+              {bolla.fattura ? (
+                <GlyphCheck className="h-3 w-3 text-emerald-400 mx-auto block" aria-hidden />
+              ) : (
+                <GlyphXMark className="h-3 w-3 text-rose-400 mx-auto block" aria-hidden />
+              )}
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-slate-200">{t.nav.bolle} · {formatD(bolla.data)}</p>
@@ -2311,7 +2323,12 @@ export function PendingMatchesTab({
                             isUnknown ? 'text-orange-200' : supplierDocShell ? 'text-slate-100' : 'text-app-fg'
                           }`}
                         >
-                          {nomeFornitore ?? `⚠ ${t.statements.unknownSender}`}
+                          {nomeFornitore ?? (
+                            <span className="inline-flex items-center gap-1">
+                              <GlyphWarningTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" aria-hidden />
+                              {t.statements.unknownSender}
+                            </span>
+                          )}
                         </p>
                         {docAllowsAssociationFlow(doc.stato) && (
                           <button onClick={() => setEditSupplier(editSupplier === doc.id ? null : doc.id)}
@@ -2636,9 +2653,10 @@ export function PendingMatchesTab({
                                 onClick={() =>
                                   autoSuggest(doc, bolleAbbinamentoPool, ocrTotal)
                                 }
-                                className="whitespace-nowrap rounded-md border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/25"
+                                className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 text-[10px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/25"
                               >
-                                ✦ Suggerisci auto
+                                <GlyphLightBulb className="h-3 w-3 shrink-0" aria-hidden />
+                                Suggerisci auto
                               </button>
                             </div>
                           )}
@@ -2847,8 +2865,9 @@ export function PendingMatchesTab({
                           </span>
                         )}
                         {hasSel && diff === 0 && ocrTotal !== null && (
-                          <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-500/35">
-                            ✓ {t.statements.exactAmount}
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-200 ring-1 ring-emerald-500/35">
+                            <GlyphCheck className="h-3 w-3 shrink-0" aria-hidden />
+                            {t.statements.exactAmount}
                           </span>
                         )}
 
@@ -2975,13 +2994,30 @@ function normalizeCheckStatus(raw: unknown): CheckStatus {
   return 'pending'
 }
 
-const STATUS_STYLE: Record<CheckStatus, { cls: string; dot: string; icon: string }> = {
-  pending:                   { cls: 'border border-slate-400/45 bg-slate-800/50 text-slate-100',        dot: 'bg-slate-400',  icon: '…' },
-  ok:                        { cls: 'border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200',   dot: 'bg-green-500',  icon: '✓' },
-  fattura_mancante:          { cls: 'border border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-200', dot: 'bg-yellow-400', icon: '!' },
-  bolle_mancanti:            { cls: 'border border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-200', dot: 'bg-orange-500', icon: '⚠' },
-  errore_importo:            { cls: 'border border-[rgba(34,211,238,0.15)] bg-red-500/15 text-red-200',          dot: 'bg-red-500',    icon: '✗' },
-  rekki_prezzo_discordanza:  { cls: 'border border-[rgba(34,211,238,0.15)] bg-amber-500/12 text-amber-100',   dot: 'bg-amber-400',  icon: '⚠' },
+type CheckStatusGlyphKind = 'ellipsis' | 'check' | 'exclaim' | 'warning' | 'x'
+
+function StmtCheckGlyph({ kind, className = 'h-3 w-3 shrink-0' }: { kind: CheckStatusGlyphKind; className?: string }) {
+  switch (kind) {
+    case 'check':
+      return <GlyphCheck className={className} />
+    case 'x':
+      return <GlyphXMark className={className} />
+    case 'warning':
+      return <GlyphWarningTriangle className={className} />
+    case 'exclaim':
+      return <GlyphExclamationBold className={className} />
+    default:
+      return <GlyphEllipsis className={className} />
+  }
+}
+
+const STATUS_STYLE: Record<CheckStatus, { cls: string; dot: string; glyph: CheckStatusGlyphKind }> = {
+  pending:                   { cls: 'border border-slate-400/45 bg-slate-800/50 text-slate-100',        dot: 'bg-slate-400',  glyph: 'ellipsis' },
+  ok:                        { cls: 'border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200',   dot: 'bg-green-500',  glyph: 'check' },
+  fattura_mancante:          { cls: 'border border-[rgba(34,211,238,0.15)] bg-yellow-500/15 text-yellow-200', dot: 'bg-yellow-400', glyph: 'exclaim' },
+  bolle_mancanti:            { cls: 'border border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-200', dot: 'bg-orange-500', glyph: 'warning' },
+  errore_importo:            { cls: 'border border-[rgba(34,211,238,0.15)] bg-red-500/15 text-red-200',          dot: 'bg-red-500',    glyph: 'x' },
+  rekki_prezzo_discordanza:  { cls: 'border border-[rgba(34,211,238,0.15)] bg-amber-500/12 text-amber-100',   dot: 'bg-amber-400',  glyph: 'warning' },
 }
 function useStatusConfig() {
   const t = useT()
@@ -2992,7 +3028,7 @@ function useStatusConfig() {
     bolle_mancanti:   { label: t.statements.statusBolleManc,        ...STATUS_STYLE.bolle_mancanti },
     errore_importo:            { label: t.statements.statusErrImporto,            ...STATUS_STYLE.errore_importo },
     rekki_prezzo_discordanza:  { label: t.statements.statusRekkiPrezzo,            ...STATUS_STYLE.rekki_prezzo_discordanza },
-  } as Record<CheckStatus, { label: string; cls: string; dot: string; icon: string }>
+  } as Record<CheckStatus, { label: string; cls: string; dot: string; glyph: CheckStatusGlyphKind }>
 }
 
 const STMT_MIGRATION_SQL = `-- Esegui nel Supabase Dashboard → SQL Editor
@@ -3049,7 +3085,12 @@ function MigrationCard() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
         </svg>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-amber-200">⬇ {t.statements.migrationTitle}</p>
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-200">
+            <svg className="h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+            {t.statements.migrationTitle}
+          </p>
           <p className="mt-0.5 text-xs leading-relaxed text-amber-300/90">{t.statements.migrationSubtitle}</p>
           <ol className="mt-2 space-y-1 text-xs text-amber-100/90">
             <li className="flex items-center gap-2">
@@ -3669,7 +3710,10 @@ export function VerificationStatusTab({
                           {(s.missing_rows === 1 ? t.statements.stmtAnomalies_one : t.statements.stmtAnomalies_other).replace(/\{n\}/g, String(s.missing_rows))}
                         </span>
                       ) : (
-                        <span className="text-[10px] font-semibold text-emerald-400">✓ OK</span>
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-400">
+                          <GlyphCheck className="h-3 w-3" aria-hidden />
+                          OK
+                        </span>
                       )}
                     </div>
                   )}
@@ -3849,9 +3893,15 @@ export function VerificationStatusTab({
                       >
                         {r.numero}
                       </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.cls}`}>{cfg.icon} {cfg.label}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${cfg.cls}`}>
+                        <StmtCheckGlyph kind={cfg.glyph} className="h-3 w-3" />
+                        {cfg.label}
+                      </span>
                       {r.status === 'ok' && (
-                        <span className="text-xs font-medium text-emerald-400">{formatCurrency(r.importoStatement, countryCode, resolvedCurrency)} ✓</span>
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
+                          {formatCurrency(r.importoStatement, countryCode, resolvedCurrency)}
+                          <GlyphCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        </span>
                       )}
                     </div>
                     <div className="space-y-0.5 text-xs text-app-fg-muted">
@@ -4458,7 +4508,10 @@ export function VerificationStatusTab({
                         <span className="flex-1" />
                         {bolla.fattura ? (
                           <>
-                            <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-200">✓ Verificata</span>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-200">
+                              <GlyphCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              Verificata
+                            </span>
                             {bolla.fattura.file_url && (
                               <OpenDocumentInAppButton
                                 fatturaId={bolla.fattura.id}
@@ -4477,7 +4530,16 @@ export function VerificationStatusTab({
                               <svg className={`w-3 h-3 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                               </svg>
-                              {stato === 'loading' ? 'Invio…' : stato === 'sent' ? 'Inviato ✓' : 'Richiedi'}
+                              {stato === 'loading' ? (
+                                'Invio…'
+                              ) : stato === 'sent' ? (
+                                <span className="inline-flex items-center gap-1">
+                                  Inviato
+                                  <GlyphCheck className="h-3.5 w-3.5" aria-hidden />
+                                </span>
+                              ) : (
+                                'Richiedi'
+                              )}
                             </button>
                           </>
                         )}

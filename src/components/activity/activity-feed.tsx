@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { useT } from '@/lib/use-t'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
+import { ActivityGlyph } from '@/components/ui/glyph-icons'
 import { activityColor } from '@/lib/activity-logger'
 import type { ActivityAction } from '@/lib/activity-logger'
 
@@ -224,9 +225,10 @@ export function ActivityFeed({
                   <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5">
                     <div className="min-w-0">
                       <span
-                        className={`mr-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${COLOR_BADGE[color]}`}
+                        className={`mr-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${COLOR_BADGE[color]}`}
                       >
-                        {row.actionIcon} {row.actionLabel}
+                        <ActivityGlyph id={row.actionGlyph} className="h-3 w-3 opacity-95" aria-hidden />
+                        {row.actionLabel}
                       </span>
                       {row.entityLabel && !compact && (
                         <span className="text-xs text-app-fg-muted">· {row.entityLabel}</span>

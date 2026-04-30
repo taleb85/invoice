@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useRef, useState } from 'react'
 import { LOCALES } from '@/lib/translations'
+import { GlyphGlobe, LocaleCodeChip } from '@/components/ui/glyph-icons'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
@@ -715,7 +716,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 title={LOCALES.find(l => l.code === locale)?.label ?? locale}
                 className="flex h-7 w-7 items-center justify-center rounded-md text-base leading-none text-white/40 transition-colors hover:bg-app-line-10 hover:text-app-fg"
               >
-                {LOCALES.find(l => l.code === locale)?.flag ?? '🌐'}
+                {LOCALES.find(l => l.code === locale)?.code ? (
+                  <LocaleCodeChip code={LOCALES.find(l => l.code === locale)!.code} className="h-6 min-w-[1.5rem] px-1 text-[9px]" />
+                ) : (
+                  <GlyphGlobe className="h-4 w-4 text-white/45" aria-hidden />
+                )}
               </button>
               {langOpen && (
                 <div className="absolute bottom-full left-0 z-20 mb-1 w-40 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-lg border-t-2 border-t-[#22d3ee] border-x-0 border-b-0 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15 backdrop-blur-xl [-webkit-backdrop-filter:blur(20px)] backdrop-saturate-150">
@@ -733,7 +738,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                           : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
                       }`}
                     >
-                      <span className="text-sm">{l.flag}</span>
+                      <LocaleCodeChip code={l.code} className="h-6 min-w-[1.5rem] px-1 text-[9px]" />
                       <span>{l.label}</span>
                       {locale === l.code && (
                         <svg className="ml-auto h-3 w-3 text-app-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

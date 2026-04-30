@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
-import { activityLabel, activityIcon, type ActivityAction } from '@/lib/activity-logger'
+import { activityGlyphId, activityLabel, type ActivityAction, type ActivityGlyphId } from '@/lib/activity-logger'
 
 export type ActivityLogRow = {
   id: string
   action: string
   actionLabel: string
-  actionIcon: string
+  actionGlyph: ActivityGlyphId
   entityType: string
   entityLabel: string | null
   entityId: string | null
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     id: row.id,
     action: row.action,
     actionLabel: activityLabel(row.action as ActivityAction),
-    actionIcon: activityIcon(row.action as ActivityAction),
+    actionGlyph: activityGlyphId(row.action as ActivityAction),
     entityType: row.entity_type,
     entityLabel: row.entity_label,
     entityId: row.entity_id,

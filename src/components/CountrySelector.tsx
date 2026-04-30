@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { COUNTRY_OPTIONS } from '@/lib/localization'
 import { useT } from '@/lib/use-t'
+import { LocaleCodeChip } from '@/components/ui/glyph-icons'
 
 interface Props {
   sedeId: string
@@ -56,13 +57,13 @@ export default function CountrySelector({ sedeId, initialCode }: Props) {
         >
           {COUNTRY_OPTIONS.map(o => (
             <option key={o.code} value={o.code}>
-              {o.flag} {o.name}
+              {o.code} — {o.name}
             </option>
           ))}
         </select>
         {/* Flag overlay */}
-        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-base leading-none">
-          {current.flag}
+        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 leading-none">
+          <LocaleCodeChip code={current.code} className="h-6 min-w-[1.75rem] px-1 text-[9px]" />
         </span>
         {/* Chevron */}
         <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
