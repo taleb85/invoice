@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import {
   DEFAULT_SOLLECITI_TOLERANCE,
   fetchSollecitiToleranceConfig,
+  fetchSollecitiReminderSettings,
+  canSendSolleciti,
   isBollaOverdue,
   isPromisedDocOverdue,
   isStatementMismatchOverdue,
@@ -171,5 +173,46 @@ describe('fetchSollecitiToleranceConfig', () => {
       giorniTolPromessa: 1,
       giorniTolEstrattoMismatch: 4,
     })
+  })
+})
+
+describe('fetchSollecitiReminderSettings', () => {
+  it('autoSollecitiEnabled true quando la chiave manca', async () => {
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn().mockResolvedValue({
+          data: [
+            { chiave: 'giorni_tolleranza_bolla', valore: '5' },
+            { chiave: 'giorni_tolleranza_promessa_documento', valore: '2' },
+            { chiave: 'giorni_tolleranza_estratto_mismatch', valore: '3' },
+          ],
+          error: null,
+        }),
+      })),
+    }
+    const r = await fetchSollecitiReminderSettings(supabase as never)
+    expect(r.autoSollecitiEnabled).toBe(true)
+    expect(r.giorniTolBolla).toBe(5)
+  })
+
+  it('legge auto_solleciti_enabled false', async () => {
+    const supabase = {
+      from: vi.fn(() => ({
+        select: vi.fn().mockResolvedValue({
+          data: [{ chiave: 'auto_solleciti_enabled', valore: 'false' }],
+          error: null,
+        }),
+      })),
+    }
+    await expect(fetchSollecitiReminderSettings(supabase as never)).resolves.toMatchObject({
+      autoSollecitiEnabled: false,
+    })
+  })
+})
+
+describe('canSendSolleciti', () => {
+  it('true solo quando abilitati', () => {
+    expect(canSendSolleciti({ autoSollecitiEnabled: true })).toBe(true)
+    expect(canSendSolleciti({ autoSollecitiEnabled: false })).toBe(false)
   })
 })

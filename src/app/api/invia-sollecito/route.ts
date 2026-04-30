@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { Resend } from 'resend'
 import { localeFromCountryCode, type Locale } from '@/lib/translations'
+import { canSendSolleciti, fetchSollecitiReminderSettings } from '@/lib/sollecito-aging'
 
 type Lang = Locale
 
@@ -149,6 +150,17 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceClient()
+
+  const reminderCfg = await fetchSollecitiReminderSettings(supabase)
+  if (!canSendSolleciti(reminderCfg)) {
+    return NextResponse.json(
+      {
+        error:
+          'Solleciti disattivati: attiva «Solleciti automatici» in Impostazioni (/settings/solleciti).',
+      },
+      { status: 403 },
+    )
+  }
 
   const { data: fornitore, error: fErr } = await supabase
     .from('fornitori')

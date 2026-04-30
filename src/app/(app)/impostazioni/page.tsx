@@ -120,6 +120,32 @@ function ProfileMobileHub() {
   )
 }
 
+/** Accesso rapido a soglie solleciti (admin / admin sede). */
+function SollecitiSettingsLinkCard() {
+  const { t } = useLocale()
+  return (
+    <div className="app-card overflow-hidden">
+      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
+          <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.impostazioni.linkSolleciti}</p>
+          <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.impostazioni.linkSollecitiDesc}</p>
+          <Link
+            href="/settings/solleciti"
+            className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
+          >
+            {t.sollecitiSettingsPage.title} →
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** Scheda rapida per accedere alla configurazione IMAP della sede attiva. */
 function ImapConfigCard() {
   const { me } = useMe()
@@ -214,6 +240,7 @@ export default function ImpostazioniPage() {
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
   const canManageDuplicates = !!(me?.sede_id && (masterPlane || isAdminSede))
+  const canEditSolleciti = masterPlane || isAdminSede
 
   // Local draft state — confirmed on Save
   const [draftCurrency, setDraftCurrency] = useState(currency)
@@ -385,6 +412,7 @@ export default function ImpostazioniPage() {
           </div>
         </div>
         <ImapConfigCard />
+        {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
         <NotificationSettings />
         <FixOcrDatesCard anchorId="fix-ocr-dates" />
         {canManageDuplicates && (
@@ -491,6 +519,11 @@ export default function ImpostazioniPage() {
           <div className="mt-4">
             <ImapConfigCard />
           </div>
+          {canEditSolleciti ? (
+            <div className="mt-4">
+              <SollecitiSettingsLinkCard />
+            </div>
+          ) : null}
           <div className="mt-4">
             <NotificationSettings />
           </div>

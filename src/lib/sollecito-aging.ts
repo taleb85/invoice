@@ -9,6 +9,7 @@ export const SOLLECITI_CONFIG_CHIAVI = {
   bolla: 'giorni_tolleranza_bolla',
   promessa: 'giorni_tolleranza_promessa_documento',
   estratto: 'giorni_tolleranza_estratto_mismatch',
+  autoEnabled: 'auto_solleciti_enabled',
 } as const
 
 export type SollecitiToleranceConfig = {
@@ -24,6 +25,26 @@ export const DEFAULT_SOLLECITI_TOLERANCE: SollecitiToleranceConfig = {
   giorniTolBolla: 5,
   giorniTolPromessa: 2,
   giorniTolEstrattoMismatch: 3,
+}
+
+/** Se la chiave manca nel DB si assume attivo per non bloccare comportamento legacy */
+export const DEFAULT_AUTO_SOLLECITI_ENABLED = true
+
+export type SollecitiReminderSettings = SollecitiToleranceConfig & {
+  autoSollecitiEnabled: boolean
+}
+
+export function parseAutoSollecitiEnabled(raw: string | undefined | null): boolean {
+  if (raw == null || String(raw).trim() === '') return DEFAULT_AUTO_SOLLECITI_ENABLED
+  const v = String(raw).trim().toLowerCase()
+  if (['true', '1', 'yes', 'si', 'sì', 'on'].includes(v)) return true
+  if (['false', '0', 'no', 'off'].includes(v)) return false
+  return DEFAULT_AUTO_SOLLECITI_ENABLED
+}
+
+/** Nessun endpoint/cron deve inviare solleciti se l’automazione è disattivata dall’admin. */
+export function canSendSolleciti(reminderSettings: Pick<SollecitiReminderSettings, 'autoSollecitiEnabled'>): boolean {
+  return reminderSettings.autoSollecitiEnabled === true
 }
 
 /** Stati `statement_rows.check_status` da considerare “mismatch / errore” per aging solleciti. */
@@ -43,9 +64,7 @@ function parseToleranceInt(raw: string | undefined | null, fallback: number): nu
   return n
 }
 
-function mapRowsToTolerance(
-  rows: { chiave: string; valore: string }[] | null | undefined,
-): SollecitiToleranceConfig {
+function mapRowsToReminderSettings(rows: { chiave: string; valore: string }[] | null | undefined): SollecitiReminderSettings {
   const byKey = new Map<string, string>()
   for (const r of rows ?? []) {
     if (r?.chiave) byKey.set(r.chiave.trim(), r.valore)
@@ -63,6 +82,30 @@ function mapRowsToTolerance(
       byKey.get(SOLLECITI_CONFIG_CHIAVI.estratto),
       DEFAULT_SOLLECITI_TOLERANCE.giorniTolEstrattoMismatch,
     ),
+    autoSollecitiEnabled: parseAutoSollecitiEnabled(byKey.get(SOLLECITI_CONFIG_CHIAVI.autoEnabled)),
+  }
+}
+
+/** Legge tolleranze + toggle automazione da Supabase. */
+export async function fetchSollecitiReminderSettings(
+  supabase: Pick<SupabaseClient, 'from'>,
+): Promise<SollecitiReminderSettings> {
+  try {
+    const { data, error } = await supabase.from('configurazioni_solleciti').select('chiave, valore')
+    if (error) {
+      console.warn('[sollecito-aging] configurazioni_solleciti:', error.message)
+      return {
+        ...DEFAULT_SOLLECITI_TOLERANCE,
+        autoSollecitiEnabled: DEFAULT_AUTO_SOLLECITI_ENABLED,
+      }
+    }
+    return mapRowsToReminderSettings(data as { chiave: string; valore: string }[])
+  } catch (e) {
+    console.warn('[sollecito-aging] configurazioni_solleciti read failed:', e)
+    return {
+      ...DEFAULT_SOLLECITI_TOLERANCE,
+      autoSollecitiEnabled: DEFAULT_AUTO_SOLLECITI_ENABLED,
+    }
   }
 }
 
@@ -70,16 +113,11 @@ function mapRowsToTolerance(
 export async function fetchSollecitiToleranceConfig(
   supabase: Pick<SupabaseClient, 'from'>,
 ): Promise<SollecitiToleranceConfig> {
-  try {
-    const { data, error } = await supabase.from('configurazioni_solleciti').select('chiave, valore')
-    if (error) {
-      console.warn('[sollecito-aging] configurazioni_solleciti:', error.message)
-      return { ...DEFAULT_SOLLECITI_TOLERANCE }
-    }
-    return mapRowsToTolerance(data as { chiave: string; valore: string }[])
-  } catch (e) {
-    console.warn('[sollecito-aging] configurazioni_solleciti read failed:', e)
-    return { ...DEFAULT_SOLLECITI_TOLERANCE }
+  const r = await fetchSollecitiReminderSettings(supabase)
+  return {
+    giorniTolBolla: r.giorniTolBolla,
+    giorniTolPromessa: r.giorniTolPromessa,
+    giorniTolEstrattoMismatch: r.giorniTolEstrattoMismatch,
   }
 }
 

@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { createClient } from '@supabase/supabase-js'
 import type { Locale } from '@/lib/translations'
 import { buildSollecitoBollaEmail } from '@/lib/mail-sollecito-bolla'
+import { createServiceClient } from '@/utils/supabase/server'
+import { canSendSolleciti, fetchSollecitiReminderSettings } from '@/lib/sollecito-aging'
 
 export async function POST() {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
-    // Usa anon key con RLS disabilitata per questa tabella (lettura pubblica)
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const supabase = createServiceClient()
+
+    const reminderCfg = await fetchSollecitiReminderSettings(supabase)
+    if (!canSendSolleciti(reminderCfg)) {
+      return NextResponse.json({
+        inviati: 0,
+        skipped: true,
+        messaggio:
+          'Solleciti automatici disattivati in Impostazioni → Solleciti. Nessuna email inviata.',
+        reason: 'auto_solleciti_disabled',
+      })
+    }
 
     // Soglia: domani (modalità test – rimetti .lt e -7 per produzione)
     const soglia = new Date()
