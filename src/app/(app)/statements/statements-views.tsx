@@ -1365,7 +1365,8 @@ export function PendingMatchesTab({
 
   /** Dopo il caricamento elenco: un passaggio «Abbina tutto» senza toast (ripetuto quando cambia l’insieme doc in lavorazione o il numero di bolle aperte). */
   useEffect(() => {
-    let t: ReturnType<typeof window.setTimeout> | undefined
+    /** `window.setTimeout` returns `number` in DOM; bundled Node timer typings disagree — treat as numeric id here. */
+    let timerId: number | undefined
     if (!(loading || bulkAnalyzing)) {
       const key = `${pendingDocIdsStableKey}|${bolleAperte.length}`
       if (prevSilentBulkPendingIdsKeyRef.current !== key) {
@@ -1374,14 +1375,14 @@ export function PendingMatchesTab({
       }
 
       if (pendingDocIdsStableKey && !pendingSilentBulkRanRef.current) {
-        t = window.setTimeout(() => {
+        timerId = window.setTimeout(() => {
           pendingSilentBulkRanRef.current = true
           void runRefreshAndBulkAutoMatch({ silent: true })
-        }, 1600)
+        }, 1600) as unknown as number
       }
     }
     return () => {
-      if (t) window.clearTimeout(t)
+      if (timerId !== undefined) window.clearTimeout(timerId)
     }
   }, [loading, bulkAnalyzing, pendingDocIdsStableKey, bolleAperte.length, runRefreshAndBulkAutoMatch])
 
