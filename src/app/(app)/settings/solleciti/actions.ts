@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import type { PostgrestError } from '@supabase/supabase-js'
-import { getProfile, getRequestAuth, type SupabaseServerClient } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
   DEFAULT_SOLLECITI_TOLERANCE,
   SOLLECITI_APP_DESCRIZIONI,
@@ -72,8 +72,10 @@ function isConfigAppTableUnavailable(error: PostgrestError): boolean {
   return false
 }
 
+type SollecitiSettingsDb = ReturnType<typeof createServiceClient>
+
 async function writeLegacyConfigRow(
-  supabase: SupabaseServerClient,
+  supabase: SollecitiSettingsDb,
   row: { chiave: string; valore: string },
 ): Promise<{ error: PostgrestError | null }> {
   const legacyKey = SOLLECITI_APP_TO_LEGACY_CHIAVE[row.chiave]
@@ -115,7 +117,7 @@ async function writeLegacyConfigRow(
 
 /** Update + insert: alcuni setup RLS/PostgREST gestiscono meglio questo rispetto a UPSERT. */
 async function writeConfigRow(
-  supabase: SupabaseServerClient,
+  supabase: SollecitiSettingsDb,
   row: { chiave: string; valore: string; descrizione: string },
 ): Promise<{ error: PostgrestError | null }> {
   const upd = await supabase
@@ -160,7 +162,7 @@ async function writeConfigRow(
 export async function saveSollecitiSettingsAction(
   input: SaveSollecitiSettingsPayload,
 ): Promise<SaveSollecitiSettingsResult> {
-  const { supabase, user } = await getRequestAuth()
+  const { user } = await getRequestAuth()
   if (!user) return { ok: false, error: 'not_authenticated' }
 
   const profile = await getProfile()
@@ -181,6 +183,8 @@ export async function saveSollecitiSettingsAction(
     return { ok: false, error: 'invalid_payload' }
   }
   const autoOn = resolved.flag === 1
+
+  const service = createServiceClient()
 
   const rows = [
     {
@@ -215,7 +219,7 @@ export async function saveSollecitiSettingsAction(
   ]
 
   for (const row of rows) {
-    const { error } = await writeConfigRow(supabase, row)
+    const { error } = await writeConfigRow(service, row)
     if (error) {
       console.error(
         '[saveSollecitiSettingsAction]',
