@@ -1234,6 +1234,13 @@ body:has([data-deep-aurora-public-shell]) .app-summary-highlight-surface {
     inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
 }
 
+/** Solo strip header pagina (`SUMMARY_HIGHLIGHT_HEADER_STRIP_SURFACE_CLASS`): niente fill sul canvas Aurora. */
+body:has([data-deep-aurora-integration]) .app-summary-highlight-header-strip-surface,
+body:has([data-deep-aurora-public-shell]) .app-summary-highlight-header-strip-surface {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear {
   background-color: transparent !important;
   background-image: none !important;

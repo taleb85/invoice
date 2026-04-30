@@ -131,6 +131,12 @@ export const AURORA_GLASS_PANEL_LAYOUT_CLASS =
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =
   'app-summary-highlight-surface relative overflow-hidden rounded-[10px] border border-app-line-28 bg-white/[0.04] shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
 
+/**
+ * Fascia titolo / FY (`AppPageHeaderStrip` con `accent`): bordo come le altre summary, sfondo trasparente.
+ */
+export const SUMMARY_HIGHLIGHT_HEADER_STRIP_SURFACE_CLASS =
+  'app-summary-highlight-surface app-summary-highlight-header-strip-surface relative overflow-hidden rounded-[10px] border border-app-line-28 bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
+
 /** Padding interno corpo (`AppSummaryHighlightCard`, tabelle in stesso guscio). */
 export const SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS =
   'px-4 py-3 sm:px-4 sm:py-4 md:px-5 md:py-4 lg:px-5'

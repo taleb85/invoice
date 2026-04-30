@@ -5,7 +5,7 @@ import AppSummaryHighlightMetrics, {
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
-  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+  SUMMARY_HIGHLIGHT_HEADER_STRIP_SURFACE_CLASS,
   type SummaryHighlightAccent,
 } from '@/lib/summary-highlight-accent'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
@@ -78,7 +78,7 @@ export default function AppPageHeaderStrip({
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
   const shell = theme
-    ? `${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col p-0${skipMb ? '' : ' mb-6 md:mb-8'} ${theme.border}`
+    ? `${SUMMARY_HIGHLIGHT_HEADER_STRIP_SURFACE_CLASS} flex flex-col p-0${skipMb ? '' : ' mb-6 md:mb-8'} ${theme.border}`
     : embedded
       ? 'app-card flex flex-col overflow-hidden p-0'
       : flushBottom
