@@ -1469,6 +1469,11 @@ type Translations = {
     bulkAutoMatchButtonLabel: string
     /** Title / descrizione lunga (tooltip) */
     bulkAutoMatchButtonTitle: string
+    /** Toolbar: gruppo pulsanti conferma tutti per tipo `{kind}`, `{n}` documenti idonei */
+    bulkFinalizeToolbarGroupAria: string
+    bulkFinalizeKindTooltip: string
+    bulkFinalizeBulkOk: string
+    bulkFinalizeBulkPartial: string
     ocrFormatToggleTitle: string
     allBolleInvoicedOk: string
     aiStatementTotalLabel: string
@@ -3032,6 +3037,12 @@ const it: Translations = {
     bulkAutoMatchButtonLabel: 'Abbina tutto',
     bulkAutoMatchButtonTitle:
       'Ricarica l’elenco e collega fornitori univoci; associa alle bolle quando l’importo del documento coincide con una o più bolle aperte.',
+    bulkFinalizeToolbarGroupAria:
+      'Conferma in blocco i documenti con tipo selezionato e fornitore collegato',
+    bulkFinalizeKindTooltip:
+      'Come il pulsante Conferma sulla riga: registra tutti i documenti in lista con tipo «{kind}» e fornitore già associato ({n}).',
+    bulkFinalizeBulkOk: '{n} documenti confermati ({kind}).',
+    bulkFinalizeBulkPartial: '{ok} confermati, {fail} non riusciti ({kind}).',
     ocrFormatToggleTitle: 'Forza interpretazione numerica alternativa',
     allBolleInvoicedOk: 'Tutte le bolle hanno una fattura corrispondente — estratto verificato ✓',
     aiStatementTotalLabel: 'Totale estratto (IA):',
@@ -3803,6 +3814,11 @@ const en: Translations = {
     bulkAutoMatchButtonLabel: 'Match all',
     bulkAutoMatchButtonTitle:
       'Reload the list, link unique suppliers, and match delivery notes when the document total equals one or more open notes.',
+    bulkFinalizeToolbarGroupAria: 'Confirm all queued documents by selected document type',
+    bulkFinalizeKindTooltip:
+      'Same as the row Confirm button: finalize every visible document labeled “{kind}” with supplier already linked ({n}).',
+    bulkFinalizeBulkOk: '{n} documents confirmed ({kind}).',
+    bulkFinalizeBulkPartial: '{ok} confirmed, {fail} failed ({kind}).',
     ocrFormatToggleTitle: 'Force alternate numeric format interpretation',
     allBolleInvoicedOk: 'Every delivery note has a matching invoice — statement verified ✓',
     aiStatementTotalLabel: 'AI-extracted statement total:',
@@ -4524,6 +4540,11 @@ const es: Translations = {
     bulkAutoMatchButtonLabel: 'Emparejar todo',
     bulkAutoMatchButtonTitle:
       'Recarga la lista, vincula proveedores únicos y asocia albaranes cuando el total del documento coincide con uno o más albaranes abiertos.',
+    bulkFinalizeToolbarGroupAria: 'Confirmar en bloque por tipo de documento seleccionado',
+    bulkFinalizeKindTooltip:
+      'Igual que Confirmar en la fila: registra todos los documentos del listado con tipo «{kind}» y proveedor ya asociado ({n}).',
+    bulkFinalizeBulkOk: '{n} documentos confirmados ({kind}).',
+    bulkFinalizeBulkPartial: '{ok} confirmados, {fail} no realizados ({kind}).',
     ocrFormatToggleTitle: 'Forzar interpretación numérica alternativa',
     allBolleInvoicedOk: 'Todos los albaranes tienen factura correspondiente — extracto verificado ✓',
     aiStatementTotalLabel: 'Total del extracto (IA):',
@@ -5242,6 +5263,11 @@ const fr: Translations = {
     bulkAutoMatchButtonLabel: 'Tout rapprocher',
     bulkAutoMatchButtonTitle:
       'Recharge la liste, lie les fournisseurs uniques et associe les bons de livraison lorsque le total du document correspond à un ou plusieurs BL ouverts.',
+    bulkFinalizeToolbarGroupAria: 'Confirmer en masse par type de document sélectionné',
+    bulkFinalizeKindTooltip:
+      'Comme Confirmer sur la ligne : enregistre tous les documents listés comme « {kind} » avec fournisseur déjà lié ({n}).',
+    bulkFinalizeBulkOk: '{n} documents confirmés ({kind}).',
+    bulkFinalizeBulkPartial: '{ok} confirmés, {fail} échoués ({kind}).',
     ocrFormatToggleTitle: 'Forcer l’interprétation numérique alternative',
     allBolleInvoicedOk: 'Tous les bons de livraison ont une facture correspondante — relevé vérifié ✓',
     aiStatementTotalLabel: 'Total extrait du relevé (IA) :',
@@ -5959,6 +5985,11 @@ const de: Translations = {
     bulkAutoMatchButtonLabel: 'Alles abgleichen',
     bulkAutoMatchButtonTitle:
       'Liste neu laden, eindeutige Lieferanten verknüpfen und Lieferscheine zuordnen, wenn der Dokumentenbetrag einem oder mehreren offenen Lieferscheinen entspricht.',
+    bulkFinalizeToolbarGroupAria: 'Alle Dokumente nach gewähltem Typ bestätigen',
+    bulkFinalizeKindTooltip:
+      'Wie „Bestätigen“ in der Zeile: schließt alle sichtbaren Dokumente mit Typ „{kind}“ und verknüpftem Lieferanten ab ({n}).',
+    bulkFinalizeBulkOk: '{n} Dokumente bestätigt ({kind}).',
+    bulkFinalizeBulkPartial: '{ok} bestätigt, {fail} fehlgeschlagen ({kind}).',
     ocrFormatToggleTitle: 'Alternative Zahleninterpretation erzwingen',
     allBolleInvoicedOk: 'Alle Lieferscheine haben eine passende Rechnung — Auszug geprüft ✓',
     aiStatementTotalLabel: 'Auszugssumme (KI):',

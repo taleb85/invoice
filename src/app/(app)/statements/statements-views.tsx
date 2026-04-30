@@ -982,6 +982,9 @@ export function PendingMatchesTab({
   const pendingUrlSearchParams = useSearchParams()
   const pendingListReturnPath = buildListLocationPath(pathname, pendingUrlSearchParams)
   const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
+  const [bulkFinalizeKindBusy, setBulkFinalizeKindBusy] = useState<
+    'statement' | 'bolla' | 'fattura' | 'ordine' | null
+  >(null)
   const { me } = useMe()
   const { showToast } = useToast()
   const [docs, setDocs]                     = useState<Documento[]>([])
@@ -1847,6 +1850,80 @@ export function PendingMatchesTab({
     [docs],
   )
 
+  /** Documenti in lista con tipo già scelto e fornitore collegato: pronti per `finalizza_da_tipo` come sulla riga. */
+  const finalizeReadyIdsByKind = useMemo(() => {
+    const out: Record<'ordine' | 'bolla' | 'fattura' | 'statement', string[]> = {
+      ordine: [],
+      bolla: [],
+      fattura: [],
+      statement: [],
+    }
+    for (const d of docs) {
+      if (!docAllowsAssociationFlow(d.stato) || !d.fornitore_id) continue
+      const pk = pendingKindForDoc(d, statementDocs)
+      if (!pk) continue
+      out[pk].push(d.id)
+    }
+    return out
+  }, [docs, statementDocs])
+
+  const runBulkFinalizeForKind = useCallback(
+    async (kind: 'statement' | 'bolla' | 'fattura' | 'ordine') => {
+      const ids = finalizeReadyIdsByKind[kind]
+      if (!ids.length) return
+      setBulkFinalizeKindBusy(kind)
+      let ok = 0
+      let fail = 0
+      let firstErr = ''
+      for (const id of ids) {
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            azione: 'associa',
+            finalizza_da_tipo: true,
+            bolla_ids: [],
+          }),
+        })
+        if (res.ok) ok++
+        else {
+          fail++
+          if (!firstErr) firstErr = await parsePendingQueueMutationError(res)
+        }
+      }
+      setBulkFinalizeKindBusy(null)
+      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+      router.refresh()
+      await fetchDocs()
+      await fetchBolleAperte()
+      const kindLabel =
+        kind === 'ordine'
+          ? t.statements.docKindOrdine
+          : kind === 'bolla'
+            ? t.statements.docKindBolla
+            : kind === 'fattura'
+              ? t.statements.docKindFattura
+              : t.statements.docKindEstratto
+      if (fail === 0) {
+        showToast(
+          t.statements.bulkFinalizeBulkOk.replace(/\{n\}/g, String(ok)).replace(/\{kind\}/g, kindLabel),
+          'success',
+        )
+      } else {
+        showToast(
+          t.statements.bulkFinalizeBulkPartial
+            .replace(/\{ok\}/g, String(ok))
+            .replace(/\{fail\}/g, String(fail))
+            .replace(/\{kind\}/g, kindLabel),
+          fail === ids.length ? 'error' : 'info',
+        )
+        if (firstErr) showToast(firstErr, 'error')
+      }
+    },
+    [finalizeReadyIdsByKind, fetchDocs, fetchBolleAperte, router, showToast, t.statements],
+  )
+
   const listShellTheme = SUMMARY_HIGHLIGHT_ACCENTS[cardAccent]
   /** In scheda fornitore: stesso guscio/tab «Documenti» del resto della pagina. */
   const supplierDocShell = Boolean(fornitoreId)
@@ -1905,10 +1982,77 @@ export function PendingMatchesTab({
           <p className={`text-xs font-medium ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>
             {bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}
           </p>
+          {(['ordine', 'bolla', 'fattura', 'statement'] as const).some((k) => finalizeReadyIdsByKind[k].length > 0) && (
+            <div
+              role="group"
+              aria-label={t.statements.bulkFinalizeToolbarGroupAria}
+              className="flex flex-wrap items-center justify-end gap-1"
+            >
+              {(['ordine', 'bolla', 'fattura', 'statement'] as const).map((kind) => {
+                const n = finalizeReadyIdsByKind[kind].length
+                if (n === 0) return null
+                const kindLabel =
+                  kind === 'ordine'
+                    ? t.statements.docKindOrdine
+                    : kind === 'bolla'
+                      ? t.statements.docKindBolla
+                      : kind === 'fattura'
+                        ? t.statements.docKindFattura
+                        : t.statements.docKindEstratto
+                const tip = t.statements.bulkFinalizeKindTooltip
+                  .replace(/\{kind\}/g, kindLabel)
+                  .replace(/\{n\}/g, String(n))
+                const busyAny = bulkFinalizeKindBusy !== null
+                const accent =
+                  kind === 'ordine'
+                    ? 'border-fuchsia-500/40 bg-fuchsia-500/[0.12] text-fuchsia-100 hover:bg-fuchsia-500/20'
+                    : kind === 'bolla'
+                      ? 'border-amber-500/40 bg-amber-500/[0.12] text-amber-100 hover:bg-amber-500/20'
+                      : kind === 'fattura'
+                        ? 'border-emerald-500/40 bg-emerald-500/[0.12] text-emerald-100 hover:bg-emerald-500/20'
+                        : 'border-cyan-500/40 bg-cyan-500/[0.12] text-cyan-100 hover:bg-cyan-500/20'
+                return (
+                  <button
+                    key={kind}
+                    type="button"
+                    title={tip}
+                    aria-label={tip}
+                    aria-busy={bulkFinalizeKindBusy === kind}
+                    onClick={() => void runBulkFinalizeForKind(kind)}
+                    disabled={busyAny || bulkAnalyzing}
+                    className={`inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold ring-1 ring-inset ring-white/5 transition-colors disabled:pointer-events-none disabled:opacity-45 md:min-h-0 md:py-1 md:px-2 ${accent} ${
+                      supplierDocShell ? '' : 'shadow-sm'
+                    }`}
+                  >
+                    {bulkFinalizeKindBusy === kind ? (
+                      <svg
+                        className="h-3.5 w-3.5 shrink-0 animate-spin opacity-90"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                    ) : (
+                      <span className="whitespace-nowrap tabular-nums">
+                        {kindLabel} · {n}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <button
             type="button"
             onClick={() => void runRefreshAndBulkAutoMatch()}
-            disabled={bulkAnalyzing}
+            disabled={bulkAnalyzing || bulkFinalizeKindBusy !== null}
             title={t.statements.bulkAutoMatchButtonTitle}
             className="inline-flex min-h-[44px] shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/40 bg-gradient-to-r from-cyan-500/15 to-teal-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-50 shadow-[0_0_24px_-12px_rgba(34,211,238,0.55)] ring-1 ring-cyan-500/20 transition-colors hover:border-cyan-400/55 hover:from-cyan-500/22 hover:to-teal-500/14 hover:ring-cyan-400/30 disabled:pointer-events-none disabled:opacity-45 md:min-h-0 md:py-1.5 md:px-3"
             aria-label={t.statements.bulkAutoMatchButtonLabel}
@@ -2176,92 +2320,100 @@ export function PendingMatchesTab({
 
                       <div className="flex shrink-0 flex-wrap items-center justify-end gap-x-2 gap-y-1.5">
                         {/* Tipo documento: ordine / bolla / fattura / estratto (mutua esclusione, persistito su DB) */}
-                        {docAllowsAssociationFlow(doc.stato) && (() => {
-                          const pk = pendingKindForDoc(doc, statementDocs)
-                          const busy = markingStatement === doc.id
-                          const chips: {
-                            kind: 'statement' | 'bolla' | 'fattura' | 'ordine'
-                            label: string
-                            title: string
-                            activeCls: string
-                          }[] = [
-                            {
-                              kind: 'ordine',
-                              label: t.statements.docKindOrdine,
-                              title: t.statements.docKindHintOrdine,
-                              activeCls: 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-200',
-                            },
-                            {
-                              kind: 'bolla',
-                              label: t.statements.docKindBolla,
-                              title: t.statements.docKindHintBolla,
-                              activeCls: 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200',
-                            },
-                            {
-                              kind: 'fattura',
-                              label: t.statements.docKindFattura,
-                              title: t.statements.docKindHintFattura,
-                              activeCls: 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200',
-                            },
-                            {
-                              kind: 'statement',
-                              label: t.statements.docKindEstratto,
-                              title: t.statements.toggleAddStatement,
-                              activeCls: 'border-cyan-500/40 bg-cyan-500/15 text-cyan-200',
-                            },
-                          ]
-                          return (
-                            <div className="flex flex-wrap items-center gap-1" role="group" aria-label={t.statements.docKindGroupAria}>
-                              {chips.map(({ kind, label, title, activeCls }) => (
-                                <button
-                                  key={kind}
-                                  type="button"
-                                  disabled={busy}
-                                  onClick={() => {
-                                    if (pk !== kind) void setPendingKind(doc.id, kind)
-                                  }}
-                                  title={title}
-                                  aria-pressed={pk === kind}
-                                  className={`min-h-[28px] rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors touch-manipulation disabled:opacity-50 ${
-                                    pk === kind
-                                      ? activeCls
-                                      : 'border-app-line-30 bg-transparent text-app-fg-muted hover:border-app-line-35 hover:bg-app-line-10 hover:text-app-fg'
-                                  }`}
+                        {docAllowsAssociationFlow(doc.stato) &&
+                          (() => {
+                            const pk = pendingKindForDoc(doc, statementDocs)
+                            const busy = markingStatement === doc.id
+                            const chips: {
+                              kind: 'statement' | 'bolla' | 'fattura' | 'ordine'
+                              label: string
+                              title: string
+                              activeCls: string
+                            }[] = [
+                              {
+                                kind: 'ordine',
+                                label: t.statements.docKindOrdine,
+                                title: t.statements.docKindHintOrdine,
+                                activeCls: 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-200',
+                              },
+                              {
+                                kind: 'bolla',
+                                label: t.statements.docKindBolla,
+                                title: t.statements.docKindHintBolla,
+                                activeCls: 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200',
+                              },
+                              {
+                                kind: 'fattura',
+                                label: t.statements.docKindFattura,
+                                title: t.statements.docKindHintFattura,
+                                activeCls: 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200',
+                              },
+                              {
+                                kind: 'statement',
+                                label: t.statements.docKindEstratto,
+                                title: t.statements.toggleAddStatement,
+                                activeCls: 'border-cyan-500/40 bg-cyan-500/15 text-cyan-200',
+                              },
+                            ]
+                            return (
+                              <div className="flex max-w-full flex-wrap items-center gap-1.5">
+                                <div
+                                  className="flex flex-wrap items-center gap-1"
+                                  role="group"
+                                  aria-label={t.statements.docKindGroupAria}
                                 >
-                                  {label}
-                                </button>
-                              ))}
-                            </div>
-                          )
-                        })()}
-                        {docAllowsAssociationFlow(doc.stato) && pendingKindForDoc(doc, statementDocs) !== null && (
-                          !doc.fornitore_id ? (
-                            <p className="max-w-[11rem] text-right text-[11px] leading-snug text-orange-200/95 sm:max-w-none sm:text-left">
-                              {t.statements.finalizeNeedsSupplier}
-                            </p>
-                          ) : (
-                            <button
-                              type="button"
-                              disabled={finalizingTipoId === doc.id || (actions[doc.id] ?? 'idle') === 'loading'}
-                              onClick={() => void finalizzaTipo(doc.id)}
-                              className={`min-h-[36px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
-                                pendingKindForDoc(doc, statementDocs) === 'ordine'
-                                  ? 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
-                                  : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
-                              }`}
-                            >
-                              {finalizingTipoId === doc.id
-                                ? t.statements.btnFinalizing
-                                : pendingKindForDoc(doc, statementDocs) === 'fattura'
-                                  ? t.statements.btnFinalizeFattura
-                                  : pendingKindForDoc(doc, statementDocs) === 'bolla'
-                                    ? t.statements.btnFinalizeBolla
-                                    : pendingKindForDoc(doc, statementDocs) === 'ordine'
-                                      ? t.statements.btnFinalizeOrdine
-                                      : t.statements.btnFinalizeStatement}
-                            </button>
-                          )
-                        )}
+                                  {chips.map(({ kind, label, title, activeCls }) => (
+                                    <button
+                                      key={kind}
+                                      type="button"
+                                      disabled={busy}
+                                      onClick={() => {
+                                        if (pk !== kind) void setPendingKind(doc.id, kind)
+                                      }}
+                                      title={title}
+                                      aria-pressed={pk === kind}
+                                      className={`min-h-[28px] rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors touch-manipulation disabled:opacity-50 ${
+                                        pk === kind
+                                          ? activeCls
+                                          : 'border-app-line-30 bg-transparent text-app-fg-muted hover:border-app-line-35 hover:bg-app-line-10 hover:text-app-fg'
+                                      }`}
+                                    >
+                                      {label}
+                                    </button>
+                                  ))}
+                                </div>
+                                {pk !== null &&
+                                  (!doc.fornitore_id ? (
+                                    <p className="max-w-[11rem] text-right text-[11px] leading-snug text-orange-200/95 sm:max-w-none sm:text-left">
+                                      {t.statements.finalizeNeedsSupplier}
+                                    </p>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        finalizingTipoId === doc.id || (actions[doc.id] ?? 'idle') === 'loading'
+                                      }
+                                      onClick={() => void finalizzaTipo(doc.id)}
+                                      className={`min-h-[36px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
+                                        pk === 'ordine'
+                                          ? 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
+                                          : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
+                                      }`}
+                                    >
+                                      {finalizingTipoId === doc.id
+                                        ? t.statements.btnFinalizing
+                                        : pk === 'fattura'
+                                          ? t.statements.btnFinalizeFattura
+                                          : pk === 'bolla'
+                                            ? t.statements.btnFinalizeBolla
+                                            : pk === 'ordine'
+                                              ? t.statements.btnFinalizeOrdine
+                                              : t.statements.btnFinalizeStatement}
+                                    </button>
+                                  ))}
+                              </div>
+                            )
+                          })()}
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ${
                           doc.stato === 'bozza_creata'
                             ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/35'
