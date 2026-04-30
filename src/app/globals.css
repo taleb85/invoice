@@ -1028,13 +1028,14 @@ select.app-fiscal-year-header-select {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * Deep Aurora Intelligence — tema mock `[data-deep-aurora-shell]` e integrazione
- * dashboard `[data-deep-aurora-integration]`. `:root` Fluxo non viene toccato.
+ * Deep Aurora Intelligence — mock `[data-deep-aurora-shell]`, app `[data-deep-aurora-integration]`,
+ * auth pubblica `[data-deep-aurora-public-shell]`. `:root` Fluxo non viene toccato.
  * Tipografia aggressiva (titoli #fff / base #94a3b8) solo su `.deep-aurora-mock`.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 body:has([data-deep-aurora-shell]),
-body:has([data-deep-aurora-integration]) {
+body:has([data-deep-aurora-integration]),
+body:has([data-deep-aurora-public-shell]) {
   background-color: #020617 !important;
   background-image:
     radial-gradient(circle at 20% 20%, #1e40af 0%, transparent 52%),
@@ -1059,7 +1060,7 @@ body:has([data-deep-aurora-integration]) {
   }
 }
 
-:is([data-deep-aurora-shell], [data-deep-aurora-integration]) {
+:is([data-deep-aurora-shell], [data-deep-aurora-integration], [data-deep-aurora-public-shell]) {
   --bg-base: #020617;
   --accent-color: #38bdf8;
   --glass-bg: rgb(255 255 255 / 0.03);
@@ -1069,6 +1070,10 @@ body:has([data-deep-aurora-integration]) {
   --da-muted: #94a3b8;
   --app-fg-body: #ffffff;
   --app-fg-muted: #94a3b8;
+  /* Primary CTA: sky-accent invece di cyan Fluxo (`@theme` → `var(--app-cyan-*)`). */
+  --app-cyan-300: #bae6fd;
+  --app-cyan-400: #7dd3fc;
+  --app-cyan-500: #38bdf8;
 }
 
 [data-deep-aurora-shell] {
@@ -1095,7 +1100,7 @@ body:has([data-deep-aurora-integration]) {
   color: var(--da-heading);
 }
 
-:is([data-deep-aurora-shell], [data-deep-aurora-integration]) .glass-card {
+:is([data-deep-aurora-shell], [data-deep-aurora-integration], [data-deep-aurora-public-shell]) .glass-card {
   background: var(--glass-bg) !important;
   backdrop-filter: blur(var(--glass-blur)) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
@@ -1105,11 +1110,11 @@ body:has([data-deep-aurora-integration]) {
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-:is([data-deep-aurora-shell], [data-deep-aurora-integration]) .glass-card:hover {
+:is([data-deep-aurora-shell], [data-deep-aurora-integration], [data-deep-aurora-public-shell]) .glass-card:hover {
   border-color: rgb(255 255 255 / 0.16) !important;
 }
 
-:is([data-deep-aurora-shell], [data-deep-aurora-integration]) .glass-surface {
+:is([data-deep-aurora-shell], [data-deep-aurora-integration], [data-deep-aurora-public-shell]) .glass-surface {
   background: var(--glass-bg) !important;
   backdrop-filter: blur(var(--glass-blur)) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
@@ -1122,7 +1127,10 @@ body:has([data-deep-aurora-integration]) {
 
 body:has([data-deep-aurora-integration]) .app-workspace-inset-bg,
 body:has([data-deep-aurora-integration]) .app-workspace-inset-bg-soft,
-body:has([data-deep-aurora-integration]) .app-workspace-inset-footer-row {
+body:has([data-deep-aurora-integration]) .app-workspace-inset-footer-row,
+body:has([data-deep-aurora-public-shell]) .app-workspace-inset-bg,
+body:has([data-deep-aurora-public-shell]) .app-workspace-inset-bg-soft,
+body:has([data-deep-aurora-public-shell]) .app-workspace-inset-footer-row {
   background: rgb(255 255 255 / 0.03) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
@@ -1159,4 +1167,33 @@ body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear
 
 body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
   background-color: rgb(255 255 255 / 0.045) !important;
+}
+
+/* Login / accesso / sede-lock / offline: card e vetro allineati ad Aurora */
+[data-deep-aurora-public-shell] .app-card-login {
+  border-color: rgb(255 255 255 / 0.1) !important;
+  background: rgb(255 255 255 / 0.04) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  box-shadow:
+    0 4px 30px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 0 52px -14px rgb(56 189 248 / 0.14) !important;
+}
+
+[data-deep-aurora-public-shell] .app-card-login-transparent {
+  background: rgb(255 255 255 / 0.03) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  box-shadow:
+    0 4px 30px rgb(0 0 0 / 0.42),
+    inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+  border-color: rgb(255 255 255 / 0.1) !important;
+}
+
+/* Pulsanti primari: se combina bg-app-cyan-500 + text-white, forza contrasto scuro (palette Aurora). */
+body:has([data-deep-aurora-shell]) .bg-app-cyan-500.text-white,
+body:has([data-deep-aurora-integration]) .bg-app-cyan-500.text-white,
+body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
+  color: rgb(15 23 42) !important;
 }
