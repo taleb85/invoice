@@ -16,7 +16,10 @@ export type EmailActivityRow = {
   /** ISO per ordinamento */
   atIso: string
   tipoLabelKey: EmailActivityTipoKey
+  /** Mittente email, nome fornitore collegato, o — (non più la ragione sociale OCR come titolo della colonna fornitore). */
   fornitoreNome: string
+  /** Testo sul PDF (RS ecc.) quando non coincide col mittente — non è l’anagrafica collegata. */
+  docDetectedHint?: string | null
   importo: number | null
   statusKey: 'saved' | 'needs_supplier' | 'ignored'
   href: string | null
@@ -40,6 +43,43 @@ function metaRagioneSociale(metadata: unknown): string {
   if (!metadata || typeof metadata !== 'object') return ''
   const r = (metadata as { ragione_sociale?: string | null }).ragione_sociale
   return typeof r === 'string' && r.trim() ? r.trim() : ''
+}
+
+/** Colonna mittente/fornitore: senza legame DB non dare priorità alla RS OCR (è spesso cliente o terza parte). */
+function queueSupplierCell(opts: {
+  nomeFornitoreCollegato: string | null
+  mittente: string
+  ragioneSocialeOcr: string
+}): { primary: string; docDetectedHint: string | null } {
+  const mitt = opts.mittente.trim()
+  const rs = opts.ragioneSocialeOcr.trim()
+  const linked = opts.nomeFornitoreCollegato?.trim() || null
+
+  if (linked) {
+    return { primary: linked, docDetectedHint: null }
+  }
+
+  const looseSame = (a: string, b: string) => {
+    if (!a || !b) return false
+    const x = a.toLowerCase()
+    const y = b.toLowerCase()
+    if (x === y) return true
+    if (x.includes('@') && y.includes('@')) return x === y
+    const short = Math.min(14, x.length, y.length)
+    if (short < 4) return false
+    return x.slice(0, short) === y.slice(0, short)
+  }
+
+  if (mitt) {
+    const docDetectedHint = rs && !looseSame(mitt, rs) ? rs : null
+    return { primary: mitt, docDetectedHint }
+  }
+
+  if (rs) {
+    return { primary: '—', docDetectedHint: rs }
+  }
+
+  return { primary: '—', docDetectedHint: null }
 }
 
 /**
@@ -210,9 +250,13 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
     const meta = (d as { metadata?: unknown }).metadata
     const isStatement = !!(d as { is_statement?: boolean }).is_statement
     const nomeForn = joinNome((d as { fornitore?: unknown }).fornitore)
-    const nome = nomeForn ?? metaRagioneSociale(meta)
+    const rs = metaRagioneSociale(meta)
     const mitt = String((d as { mittente?: string | null }).mittente ?? '').trim()
-    const displayNome = nome || mitt || '—'
+    const { primary: displayNome, docDetectedHint } = queueSupplierCell({
+      nomeFornitoreCollegato: nomeForn,
+      mittente: mitt,
+      ragioneSocialeOcr: rs,
+    })
 
     const tot =
       meta && typeof meta === 'object'
@@ -235,6 +279,7 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
         atIso: iso,
         tipoLabelKey,
         fornitoreNome: displayNome,
+        docDetectedHint,
         importo,
         statusKey: 'ignored',
         href: openDocumentUrl({ documentoId: docId }),
@@ -247,6 +292,7 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
       atIso: iso,
       tipoLabelKey,
       fornitoreNome: displayNome,
+      docDetectedHint,
       importo,
       statusKey: 'needs_supplier',
       href: openDocumentUrl({ documentoId: docId }),

@@ -151,6 +151,7 @@ export default async function LogPage() {
 
   const tLogPanel = {
     activityColSupplier: t.log.activityColSupplier,
+    activityPdfDetectedLine: t.log.activityPdfDetectedLine,
     activityColTipo: t.log.activityColTipo,
     activityColAmount: t.log.activityColAmount,
     activityColStatus: t.log.activityColStatus,

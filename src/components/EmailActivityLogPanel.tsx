@@ -88,6 +88,34 @@ function labelForOutcome(code: ProcOutcomeCode, detail: string | undefined, L: P
   }
 }
 
+function ActivityLogSupplierCell({
+  primary,
+  docHint,
+  pdfLineTemplate,
+  primaryClassName,
+}: {
+  primary: string
+  docHint?: string | null
+  pdfLineTemplate: string
+  /** Default: tabella desktop */
+  primaryClassName?: string
+}) {
+  const hint = typeof docHint === 'string' ? docHint.trim() : ''
+  return (
+    <div className="min-w-0">
+      <span className={primaryClassName ?? 'font-medium leading-snug text-app-fg'}>{primary}</span>
+      {hint ? (
+        <span
+          className="mt-0.5 block break-words text-[10px] leading-snug text-app-fg-muted line-clamp-2"
+          title={hint}
+        >
+          {pdfLineTemplate.includes('{name}') ? pdfLineTemplate.replace(/\{name\}/g, hint) : `${pdfLineTemplate} ${hint}`}
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
 function ElabCell({ row, elab, procLabels }: { row: EmailActivityRow; elab: RowElab; procLabels: ProcLabels }) {
   const id = docId(row)
   if (!id) {
@@ -146,6 +174,7 @@ export function EmailActivityLogPanel({
   sedeId: string | null
   tLog: {
     activityColSupplier: string
+    activityPdfDetectedLine: string
     activityColTipo: string
     activityColAmount: string
     activityColStatus: string
@@ -247,7 +276,12 @@ export function EmailActivityLogPanel({
             <div key={`${row.atIso}-${idx}`} className="space-y-3 px-4 py-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold leading-snug text-app-fg">{row.fornitoreNome}</p>
+                  <ActivityLogSupplierCell
+                    primary={row.fornitoreNome}
+                    docHint={row.docDetectedHint}
+                    pdfLineTemplate={tLog.activityPdfDetectedLine}
+                    primaryClassName="text-sm font-semibold leading-snug text-app-fg"
+                  />
                   <p className="mt-0.5 text-[10px] text-app-fg-muted tabular-nums">{row.timeDisplay}</p>
                 </div>
                 <span className="shrink-0 text-xs text-app-fg-muted">{row.tipoDisplay}</span>
@@ -293,7 +327,13 @@ export function EmailActivityLogPanel({
             <tbody className={APP_SECTION_TABLE_TBODY}>
               {rows.map((row, idx) => (
                 <tr key={`${row.atIso}-t-${idx}`} className={`align-top ${APP_SECTION_TABLE_TR}`}>
-                  <td className="min-w-0 px-2 py-2 font-medium text-app-fg sm:px-3">{row.fornitoreNome}</td>
+                  <td className="min-w-0 px-2 py-2 sm:px-3">
+                    <ActivityLogSupplierCell
+                      primary={row.fornitoreNome}
+                      docHint={row.docDetectedHint}
+                      pdfLineTemplate={tLog.activityPdfDetectedLine}
+                    />
+                  </td>
                   <td className="min-w-0 px-2 py-2 text-app-fg-muted sm:px-3">{row.tipoDisplay}</td>
                   <td className="min-w-0 whitespace-nowrap px-2 py-2 tabular-nums text-app-fg sm:px-3">{row.amountDisplay}</td>
                   <td className="min-w-0 px-2 py-2 text-app-fg sm:px-3">{row.statusDisplay}</td>
