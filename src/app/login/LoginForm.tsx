@@ -1323,7 +1323,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 <span className="font-normal normal-case"> {t.login.pinDigits}</span>
               </label>
               <div
-                className="flex justify-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-2 py-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:gap-3 sm:px-3 sm:py-3"
+                className="flex justify-center gap-2 rounded-xl bg-transparent px-2 py-2.5 sm:gap-3 sm:px-3 sm:py-3"
                 onPaste={handlePinPaste}
               >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -1556,7 +1556,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 <span className="font-normal normal-case text-app-fg-muted"> {t.login.pinDigits}</span>
               </label>
               <div
-                className="flex justify-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-2 py-2.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] sm:gap-3 sm:px-3 sm:py-3"
+                className="flex justify-center gap-2 rounded-xl bg-transparent px-2 py-2.5 sm:gap-3 sm:px-3 sm:py-3"
                 onPaste={handlePinPaste}
               >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
