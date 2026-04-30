@@ -50,14 +50,13 @@ const kpiGlassInnerClass =
 const OPERATOR_KPI_GLASS_SECTION_SHELL_CLASS = `${AURORA_GLASS_PANEL_LAYOUT_CLASS} app-card-unified overflow-hidden rounded-2xl`
 
 /**
- * Valore numerico con alone neon (ordine tile: Ordini, Bolle, Fatturato, Estratti, Revisione).
- * Usato solo con `glassShell` per avvicinare il mock «KPI OPERATORE».
+ * Valore numerico in vetro: stesso accento delle icone SVG (ordine tile: Ordini, Bolle, Fatturato, Estratti, Revisione).
  */
 const OPERATOR_KPI_GLASS_VALUE_ACCENT: readonly string[] = [
-  'text-white [text-shadow:0_0_28px_rgba(255,255,255,0.28)]',
-  'text-lime-300 [text-shadow:0_0_20px_rgba(190,242,100,0.5)]',
   'text-cyan-300 [text-shadow:0_0_22px_rgba(103,232,249,0.52)]',
-  'text-amber-200 [text-shadow:0_0_18px_rgba(253,230,138,0.42)]',
+  'text-violet-300 [text-shadow:0_0_22px_rgba(196,181,253,0.5)]',
+  'text-emerald-300 [text-shadow:0_0_22px_rgba(110,231,183,0.5)]',
+  'text-amber-200 [text-shadow:0_0_20px_rgba(253,230,138,0.45)]',
   'text-red-300 [text-shadow:0_0_22px_rgba(252,165,165,0.55)]',
 ]
 
