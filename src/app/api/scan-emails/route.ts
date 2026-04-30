@@ -920,7 +920,7 @@ async function processEmails(
           ocr,
         )
 
-        const bootstrapU = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId)
+        const bootstrapU = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId, email.from)
         if (bootstrapU.kind === 'ignored_buyer') {
           const unknownPayloadIg = {
             fornitore_id: null,
@@ -1064,7 +1064,7 @@ async function processEmails(
         ocr,
       )
 
-      const bootstrapAtt = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId)
+      const bootstrapAtt = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId, email.from)
 
       if (bootstrapAtt.kind === 'ignored_buyer') {
         const uniqueNameIg = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
@@ -1290,7 +1290,7 @@ async function processEmails(
       ocr,
     )
 
-    const bootstrapBo = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId)
+    const bootstrapBo = await tryBootstrapFornitoreFromOcrRagione(supabase, ocr, unknownDocSedeId, email.from)
     if (bootstrapBo.kind === 'ignored_buyer') {
       const unknownPayloadIg = {
         fornitore_id: null,
