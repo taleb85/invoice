@@ -2,7 +2,7 @@
 import { useServiceWorkerUpdate } from '@/hooks/use-service-worker-update'
 import { SplashScreen } from './splash-screen'
 
-export function UpdatePrompt() {
+function UpdatePrompt() {
   const { updateAvailable, updating, applyUpdate } = useServiceWorkerUpdate()
 
   if (updating) {
@@ -43,3 +43,6 @@ export function UpdatePrompt() {
     </div>
   )
 }
+
+export { UpdatePrompt }
+export default UpdatePrompt

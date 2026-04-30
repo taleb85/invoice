@@ -4,10 +4,7 @@ import dynamic from 'next/dynamic'
 import { useMe } from '@/lib/me-context'
 import type { QuickScanResult } from './quick-scan-modal'
 
-const QuickScanModal = dynamic(
-  () => import('./quick-scan-modal').then((m) => m.QuickScanModal),
-  { ssr: false },
-)
+const QuickScanModal = dynamic(() => import('./quick-scan-modal'), { ssr: false })
 
 export function QuickScanFab() {
   const [open, setOpen] = useState(false)

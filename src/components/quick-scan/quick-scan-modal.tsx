@@ -17,7 +17,7 @@ type QuickScanModalProps = {
   sedeId: string | null
 }
 
-export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
+function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -303,3 +303,6 @@ export function QuickScanModal({ onClose, onConfirm, sedeId }: QuickScanModalPro
     </div>
   )
 }
+
+export { QuickScanModal }
+export default QuickScanModal

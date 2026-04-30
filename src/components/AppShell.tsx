@@ -42,14 +42,8 @@ import { AppMainScrollRestoration } from '@/lib/return-navigation-client'
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
 const OperatorSwitchModal = dynamic(() => import('./OperatorSwitchModal'), { ssr: false })
-const OfflineBanner = dynamic(
-  () => import('./offline/offline-banner').then((m) => m.OfflineBanner),
-  { ssr: false },
-)
-const UpdatePrompt = dynamic(
-  () => import('./update-prompt').then((m) => m.UpdatePrompt),
-  { ssr: false },
-)
+const OfflineBanner = dynamic(() => import('./offline/offline-banner'), { ssr: false })
+const UpdatePrompt = dynamic(() => import('./update-prompt'), { ssr: false })
 
 /**
  * Syncs locale, currency and timezone from the active sede when the user

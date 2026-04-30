@@ -20,10 +20,7 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import DashboardHomeScannerDockCta from '@/components/DashboardHomeScannerDockCta'
 import type { QuickScanResult } from './quick-scan/quick-scan-modal'
 
-const QuickScanModal = dynamic(
-  () => import('./quick-scan/quick-scan-modal').then((m) => m.QuickScanModal),
-  { ssr: false },
-)
+const QuickScanModal = dynamic(() => import('./quick-scan/quick-scan-modal'), { ssr: false })
 
 /** Cookie browser (stesso pattern di `Sidebar.tsx` per `admin-sede-id`). */
 function readBrowserCookie(name: string): string {

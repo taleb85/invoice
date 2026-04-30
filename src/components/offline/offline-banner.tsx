@@ -2,7 +2,7 @@
 
 import { useOfflineSync } from '@/hooks/use-offline-sync'
 
-export function OfflineBanner() {
+function OfflineBanner() {
   const { isOnline, pendingCount, syncing, lastSyncResult, syncPending } = useOfflineSync()
 
   // Nothing to show when online, no pending, no recent sync
@@ -69,3 +69,6 @@ export function OfflineBanner() {
     </div>
   )
 }
+
+export { OfflineBanner }
+export default OfflineBanner
