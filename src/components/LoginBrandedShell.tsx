@@ -7,14 +7,14 @@ export default function LoginBrandedShell({ children }: { children: ReactNode })
       data-deep-aurora-public-shell
       className="fixed inset-0 z-0 flex flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain bg-transparent"
     >
-      {/* Luce cenitale soft + vignetta per contrasto carte */}
+      {/* Luce cenitale soft — niente fascia scura fullscreen: così il blur sulla card «vede» i radial del body */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 min-h-[120%] bg-[radial-gradient(ellipse_72%_48%_at_50%_-8%,rgb(56_189_248/0.14),transparent_58%)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 min-h-[300vh] bg-gradient-to-b from-[#020617]/45 via-transparent to-[#020617]/55"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_110%_85%_at_50%_45%,transparent_35%,rgb(15_23_42/0.18)_92%)] sm:bg-[radial-gradient(ellipse_95%_80%_at_50%_48%,transparent_42%,rgb(15_23_42/0.22)_96%)]"
       />
       {/* Auréole */}
       <div className="pointer-events-none absolute -bottom-36 -right-28 h-[22rem] w-[22rem] rounded-full bg-sky-400/14 blur-[100px]" />

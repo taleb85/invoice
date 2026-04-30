@@ -1170,6 +1170,7 @@ body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
 }
 
 /* Login / accesso / sede-lock / offline: card e vetro allineati ad Aurora */
+/* Login glass: combinato perché sia la base sia -transparent dichiarano background !important */
 [data-deep-aurora-public-shell] .app-card-login {
   border-color: rgb(255 255 255 / 0.1) !important;
   background: rgb(255 255 255 / 0.04) !important;
@@ -1181,14 +1182,14 @@ body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
     0 0 52px -14px rgb(56 189 248 / 0.14) !important;
 }
 
-[data-deep-aurora-public-shell] .app-card-login-transparent {
-  background: rgb(255 255 255 / 0.03) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+[data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent {
+  background: rgb(255 255 255 / 0.09) !important;
+  backdrop-filter: blur(26px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(160%) !important;
   box-shadow:
-    0 4px 30px rgb(0 0 0 / 0.42),
-    inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
-  border-color: rgb(255 255 255 / 0.1) !important;
+    0 4px 34px rgb(0 0 0 / 0.38),
+    inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
+  border-color: rgb(255 255 255 / 0.12) !important;
 }
 
 /* Pulsanti primari: se combina bg-app-cyan-500 + text-white, forza contrasto scuro (palette Aurora). */
