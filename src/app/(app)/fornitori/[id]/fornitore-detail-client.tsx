@@ -5618,7 +5618,7 @@ function FornitoreDetailClient({
                   </div>
                 </div>
                 <ErrorBoundary sectionName="risultati sincronizzazione email">
-                  <div className="mt-4">
+                  <div className="mt-6">
                     <StatoSincronizzazioneIntelligente
                       fornitoreId={fornitore.id}
                       fornitoreNome={fornitoreNomeVisual}
@@ -5629,7 +5629,7 @@ function FornitoreDetailClient({
               </>
             ) : null}
             <div
-              className="fornitore-tab-panel min-w-0 scroll-mt-6 rounded-xl border border-app-line-15 bg-transparent p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8"
+              className={`fornitore-tab-panel min-w-0 scroll-mt-6 rounded-xl border border-app-line-15 bg-transparent p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8 ${displayTab === 'dashboard' ? 'mt-6 lg:mt-8' : ''}`}
               tabIndex={-1}
             >
               <ErrorBoundary sectionName="dettaglio fornitore">
