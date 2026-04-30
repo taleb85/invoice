@@ -20,6 +20,14 @@ export const SOLLECITI_CONFIG_KEY_READ_ORDER = {
   estratto: ['giorni_attesa_mismatch_estratto', 'giorni_tolleranza_estratto_mismatch'] as const,
 } as const
 
+/** Mappa chiavi `configurazioni_app` → `configurazioni_solleciti` (solo tabella legacy). */
+export const SOLLECITI_APP_TO_LEGACY_CHIAVE: Record<string, string> = {
+  [SOLLECITI_CONFIG_CHIAVI.autoEnabled]: 'auto_solleciti_enabled',
+  [SOLLECITI_CONFIG_CHIAVI.bolla]: 'giorni_tolleranza_bolla',
+  [SOLLECITI_CONFIG_CHIAVI.promessa]: 'giorni_tolleranza_promessa_documento',
+  [SOLLECITI_CONFIG_CHIAVI.estratto]: 'giorni_tolleranza_estratto_mismatch',
+}
+
 /** Testi descrittivi salvati in DB insieme al valore (upsert). */
 export const SOLLECITI_APP_DESCRIZIONI: Record<(typeof SOLLECITI_CONFIG_CHIAVI)[keyof typeof SOLLECITI_CONFIG_CHIAVI], string> =
   {

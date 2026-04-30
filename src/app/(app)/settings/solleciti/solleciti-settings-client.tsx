@@ -29,11 +29,13 @@ export default function SollecitiSettingsClient({ initial }: Props) {
   const [prom, setProm] = useState(String(initial.giorniTolPromessa))
   const [stmt, setStmt] = useState(String(initial.giorniTolEstrattoMismatch))
   const [msg, setMsg] = useState<'idle' | 'saved' | 'error' | 'forbidden'>('idle')
+  const [errorDetail, setErrorDetail] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   const payload: SaveSollecitiSettingsPayload = useMemo(
     () => ({
       autoSolleciti: autoOn ? 1 : 0,
+      autoSollecitiEnabled: autoOn,
       giorniTolBolla: Math.min(366, Math.max(0, numOrZero(bolla))),
       giorniTolPromessa: Math.min(366, Math.max(0, numOrZero(prom))),
       giorniTolEstrattoMismatch: Math.min(366, Math.max(0, numOrZero(stmt))),
@@ -43,11 +45,15 @@ export default function SollecitiSettingsClient({ initial }: Props) {
 
   const submit = () => {
     setMsg('idle')
+    setErrorDetail(null)
     startTransition(async () => {
       const res = await saveSollecitiSettingsAction(payload)
       if (res.ok) setMsg('saved')
       else if (res.error === 'forbidden') setMsg('forbidden')
-      else setMsg('error')
+      else {
+        setMsg('error')
+        setErrorDetail('details' in res && res.details ? res.details : null)
+      }
     })
   }
 
@@ -123,7 +129,12 @@ export default function SollecitiSettingsClient({ initial }: Props) {
             <p className="text-center text-sm font-semibold text-emerald-300">{lt.savedToast}</p>
           ) : null}
           {msg === 'error' ? (
-            <p className="text-center text-sm font-semibold text-red-300">{lt.errorGeneric}</p>
+            <p className="text-center text-sm font-semibold text-red-300">
+              {lt.errorGeneric}
+              {errorDetail ? (
+                <span className="mt-1 block font-mono text-[11px] font-normal text-red-200/90">{errorDetail}</span>
+              ) : null}
+            </p>
           ) : null}
           {msg === 'forbidden' ? (
             <p className="text-center text-sm font-semibold text-amber-200">{lt.forbidden}</p>
@@ -188,7 +199,14 @@ export default function SollecitiSettingsClient({ initial }: Props) {
 
             <div className="flex flex-wrap items-center justify-end gap-3 border-t border-app-line-30 pt-5">
               {msg === 'saved' ? <span className="text-sm font-semibold text-emerald-300">{lt.savedToast}</span> : null}
-              {msg === 'error' ? <span className="text-sm font-semibold text-red-300">{lt.errorGeneric}</span> : null}
+              {msg === 'error' ? (
+                <span className="text-sm font-semibold text-red-300">
+                  {lt.errorGeneric}
+                  {errorDetail ? (
+                    <span className="mt-1 block font-mono text-[11px] font-normal text-red-200/90">{errorDetail}</span>
+                  ) : null}
+                </span>
+              ) : null}
               {msg === 'forbidden' ? <span className="text-sm font-semibold text-amber-200">{lt.forbidden}</span> : null}
               <button
                 type="button"
