@@ -285,10 +285,10 @@ export default function DashboardScannerFlowCard({
   if (glassShell) {
     return (
       <section
-        className={`${AURORA_GLASS_PANEL_LAYOUT_CLASS} app-card-unified overflow-hidden rounded-2xl`}
+        className={`${AURORA_GLASS_PANEL_LAYOUT_CLASS} flex-1 app-card-unified overflow-hidden rounded-2xl`}
         aria-label={t.dashboard.scannerFlowCardTitle}
       >
-        <div className={`w-full min-w-0 ${SCANNER_FLOW_CARD_INNER_PADDING_CLASS}`}>
+        <div className={`w-full min-w-0 flex-1 flex flex-col ${SCANNER_FLOW_CARD_INNER_PADDING_CLASS}`}>
           <ScannerFlowCardIntro
             summary={summary}
             t={t}

@@ -3,9 +3,9 @@
 import type { OperatorDashboardKpis, ScannerFlowDaySummary } from '@/lib/dashboard-operator-kpis'
 import type { Translations } from '@/lib/translations'
 
-/** `shrink-0` evita che la colonna aurora comprima questa scheda sotto l’altezza del contenuto. */
+/** Accanto allo scanner (`page.tsx`, riga md+): `flex-1` / `min-h-0` per uniformare altezza con `items-stretch`. */
 const AURORA_HOME_SECTION_CLASS =
-  'relative flex w-full min-w-0 shrink-0 flex-col min-h-[min-content] app-card-unified overflow-hidden rounded-2xl'
+  'relative flex h-full min-h-0 flex-1 w-full min-w-0 flex-col app-card-unified overflow-hidden rounded-2xl'
 
 type SmartProps = {
   kpis: OperatorDashboardKpis
@@ -40,7 +40,7 @@ export function DashboardBolleWorkloadGlass({ kpis, scanner, t }: SmartProps) {
 
   return (
     <section className={AURORA_HOME_SECTION_CLASS} aria-label={t.dashboard.homeSmartPairTitle}>
-      <div className="flex flex-col gap-5 p-5 sm:p-6 md:flex-row md:items-stretch md:gap-7 md:py-6 lg:gap-8 lg:px-7 lg:py-7">
+      <div className="flex flex-1 flex-col gap-5 p-5 sm:p-6 md:flex-row md:items-stretch md:gap-7 md:py-6 lg:gap-8 lg:px-7 lg:py-7">
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 sm:gap-3.5">
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/65 sm:text-[11px]">
             {t.dashboard.homeSmartPairTitle}
