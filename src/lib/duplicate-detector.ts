@@ -37,6 +37,29 @@ function datesWithinDays(a: string | null, b: string | null, days: number): bool
   return Math.abs(da - db) <= days * 24 * 60 * 60 * 1000
 }
 
+async function bollaIdsWithFatturaInSede(
+  supabase: SupabaseClient,
+  sedeId: string,
+  bollaIds: string[],
+): Promise<Set<string>> {
+  const out = new Set<string>()
+  const unique = [...new Set(bollaIds)]
+  const chunk = 400
+  for (let i = 0; i < unique.length; i += chunk) {
+    const slice = unique.slice(i, i + chunk)
+    const { data } = await supabase
+      .from('fatture')
+      .select('bolla_id')
+      .eq('sede_id', sedeId)
+      .in('bolla_id', slice)
+    for (const row of data ?? []) {
+      const bid = (row as { bolla_id: string | null }).bolla_id
+      if (bid) out.add(bid)
+    }
+  }
+  return out
+}
+
 function groupBy<T>(items: T[], keyFn: (item: T) => string | null): Map<string, T[]> {
   const map = new Map<string, T[]>()
   for (const item of items) {
@@ -56,6 +79,9 @@ type FatturaRow = {
   importo: number | null
   data: string | null
   file_url: string | null
+  bolla_id: string | null
+  created_at: string | null
+  updated_at: string | null
   fornitori: { nome: string | null } | null
 }
 
@@ -67,7 +93,9 @@ export async function detectDuplicateFatture(
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('fatture')
-      .select('id, numero_fattura, fornitore_id, importo, data, file_url, fornitori(nome)')
+      .select(
+        'id, numero_fattura, fornitore_id, importo, data, file_url, bolla_id, created_at, updated_at, fornitori(nome)',
+      )
       .eq('sede_id', sedeId)
       .order('data', { ascending: true })
       .order('id', { ascending: true })
@@ -94,7 +122,16 @@ export async function detectDuplicateFatture(
         id: f.id,
         label: `${f.fornitori?.nome ?? f.fornitore_id ?? '—'} · n.${f.numero_fattura ?? '—'}${f.importo != null ? ` · €${f.importo.toFixed(2)}` : ''} · ${f.data ?? '—'}`,
         created_at: f.data ?? '',
-        metadata: { numero_fattura: f.numero_fattura, fornitore_id: f.fornitore_id, importo: f.importo, data: f.data },
+        metadata: {
+          numero_fattura: f.numero_fattura,
+          fornitore_id: f.fornitore_id,
+          importo: f.importo,
+          data: f.data,
+          bolla_id: f.bolla_id,
+          ha_file: Boolean(f.file_url?.trim()),
+          sistema_created_at: f.created_at,
+          sistema_updated_at: f.updated_at,
+        },
       })),
     })
   }
@@ -126,7 +163,16 @@ export async function detectDuplicateFatture(
           id: f.id,
           label: `${f.fornitori?.nome ?? f.fornitore_id ?? '—'} · ${f.numero_fattura ? `n.${f.numero_fattura}` : '—'} · €${f.importo?.toFixed(2)} · ${f.data ?? '—'}`,
           created_at: f.data ?? '',
-          metadata: { numero_fattura: f.numero_fattura, fornitore_id: f.fornitore_id, importo: f.importo, data: f.data },
+          metadata: {
+            numero_fattura: f.numero_fattura,
+            fornitore_id: f.fornitore_id,
+            importo: f.importo,
+            data: f.data,
+            bolla_id: f.bolla_id,
+            ha_file: Boolean(f.file_url?.trim()),
+            sistema_created_at: f.created_at,
+            sistema_updated_at: f.updated_at,
+          },
         })),
       })
     }
@@ -145,6 +191,9 @@ type BollaRow = {
   importo: number | null
   data: string | null
   file_url: string | null
+  stato: string | null
+  created_at: string | null
+  updated_at: string | null
   fornitori: { nome: string | null } | null
 }
 
@@ -156,7 +205,9 @@ export async function detectDuplicateBolle(
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('bolle')
-      .select('id, numero_bolla, fornitore_id, importo, data, file_url, fornitori(nome)')
+      .select(
+        'id, numero_bolla, fornitore_id, importo, data, file_url, stato, created_at, updated_at, fornitori(nome)',
+      )
       .eq('sede_id', sedeId)
       .order('data', { ascending: true })
       .order('id', { ascending: true })
@@ -165,6 +216,12 @@ export async function detectDuplicateBolle(
     all.push(...(data as unknown as BollaRow[]))
     if (data.length < PAGE_SIZE) break
   }
+
+  const linkedToFattura = await bollaIdsWithFatturaInSede(
+    supabase,
+    sedeId,
+    all.map((b) => b.id),
+  )
 
   const groups: DuplicateGroup[] = []
   const usedIds = new Set<string>()
@@ -183,7 +240,17 @@ export async function detectDuplicateBolle(
         id: b.id,
         label: `${b.fornitori?.nome ?? b.fornitore_id ?? '—'} · n.${b.numero_bolla ?? '—'}${b.importo != null ? ` · €${b.importo.toFixed(2)}` : ''} · ${b.data ?? '—'}`,
         created_at: b.data ?? '',
-        metadata: { numero_bolla: b.numero_bolla, fornitore_id: b.fornitore_id, importo: b.importo, data: b.data },
+        metadata: {
+          numero_bolla: b.numero_bolla,
+          fornitore_id: b.fornitore_id,
+          importo: b.importo,
+          data: b.data,
+          stato: b.stato,
+          ha_file: Boolean(b.file_url?.trim()),
+          ha_fattura_collegata: linkedToFattura.has(b.id),
+          sistema_created_at: b.created_at,
+          sistema_updated_at: b.updated_at,
+        },
       })),
     })
   }
@@ -215,7 +282,17 @@ export async function detectDuplicateBolle(
           id: b.id,
           label: `${b.fornitori?.nome ?? b.fornitore_id ?? '—'} · ${b.numero_bolla ? `n.${b.numero_bolla}` : '—'} · €${b.importo?.toFixed(2)} · ${b.data ?? '—'}`,
           created_at: b.data ?? '',
-          metadata: { numero_bolla: b.numero_bolla, fornitore_id: b.fornitore_id, importo: b.importo, data: b.data },
+          metadata: {
+            numero_bolla: b.numero_bolla,
+            fornitore_id: b.fornitore_id,
+            importo: b.importo,
+            data: b.data,
+            stato: b.stato,
+            ha_file: Boolean(b.file_url?.trim()),
+            ha_fattura_collegata: linkedToFattura.has(b.id),
+            sistema_created_at: b.created_at,
+            sistema_updated_at: b.updated_at,
+          },
         })),
       })
     }
@@ -233,6 +310,7 @@ type FornitoreRow = {
   piva: string | null
   email: string | null
   created_at: string | null
+  updated_at: string | null
 }
 
 export async function detectDuplicateFornitori(
@@ -243,7 +321,7 @@ export async function detectDuplicateFornitori(
   for (let from = 0; from < 5_000; from += 500) {
     const { data, error } = await supabase
       .from('fornitori')
-      .select('id, nome, piva, email, created_at')
+      .select('id, nome, piva, email, created_at, updated_at')
       .eq('sede_id', sedeId)
       .order('created_at', { ascending: true })
       .range(from, from + 499)
@@ -269,7 +347,13 @@ export async function detectDuplicateFornitori(
         id: f.id,
         label: `${f.nome ?? '—'} · P.IVA ${f.piva}${f.email ? ` · ${f.email}` : ''}`,
         created_at: f.created_at ?? '',
-        metadata: { nome: f.nome, piva: f.piva, email: f.email },
+        metadata: {
+          nome: f.nome,
+          piva: f.piva,
+          email: f.email,
+          sistema_created_at: f.created_at,
+          sistema_updated_at: f.updated_at,
+        },
       })),
     })
   }
@@ -288,7 +372,13 @@ export async function detectDuplicateFornitori(
         id: f.id,
         label: `${f.nome}${f.piva ? ` · P.IVA ${f.piva}` : ''}${f.email ? ` · ${f.email}` : ''}`,
         created_at: f.created_at ?? '',
-        metadata: { nome: f.nome, piva: f.piva, email: f.email },
+        metadata: {
+          nome: f.nome,
+          piva: f.piva,
+          email: f.email,
+          sistema_created_at: f.created_at,
+          sistema_updated_at: f.updated_at,
+        },
       })),
     })
   }
@@ -306,7 +396,13 @@ export async function detectDuplicateFornitori(
         id: f.id,
         label: `${f.nome ?? '—'}${f.piva ? ` · P.IVA ${f.piva}` : ''} · ${f.email}`,
         created_at: f.created_at ?? '',
-        metadata: { nome: f.nome, piva: f.piva, email: f.email },
+        metadata: {
+          nome: f.nome,
+          piva: f.piva,
+          email: f.email,
+          sistema_created_at: f.created_at,
+          sistema_updated_at: f.updated_at,
+        },
       })),
     })
   }

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useToast } from '@/lib/toast-context'
 import type { AllDuplicatesReport, DuplicateGroup } from '@/lib/duplicate-detector'
+import { pickDiscardDuplicateItemIds, pickKeepDuplicateItemId } from '@/lib/duplicate-auto-select'
 import DocumentPreviewModal from './document-preview-modal'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
@@ -35,11 +36,13 @@ function entityAccent(e: Entity): string {
 
 function GroupSection({
   group,
+  entity,
   selected,
   onToggle,
   onPreview,
 }: {
   group: DuplicateGroup
+  entity: Entity
   selected: Set<string>
   onToggle: (id: string) => void
   onPreview: (id: string) => void
@@ -48,6 +51,8 @@ function GroupSection({
 
   const allSelectedInGroup = group.items.every((i) => selected.has(i.id))
   const someSelectedInGroup = group.items.some((i) => selected.has(i.id))
+  const suggestedKeepId =
+    group.items.length >= 2 ? pickKeepDuplicateItemId(group.items, entity) : null
 
   return (
     <div className="rounded-xl border border-white/10 app-workspace-inset-bg-soft">
@@ -102,6 +107,11 @@ function GroupSection({
                     <span className="ml-2 font-mono text-[10px] text-app-fg-muted opacity-60">
                       #{item.id.slice(0, 8)}
                     </span>
+                    {suggestedKeepId === item.id ? (
+                      <span className="ml-2 inline-flex align-middle rounded border border-emerald-500/35 bg-emerald-500/10 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-emerald-200/95">
+                        Consigliato da tenere
+                      </span>
+                    ) : null}
                   </span>
                 </label>
                 <button
@@ -132,6 +142,7 @@ function EntityPanel({
   groups,
   selected,
   onToggle,
+  onSmartSuggest,
   onSelectMostRecent,
   onDeselectAll,
   onPreview,
@@ -140,6 +151,7 @@ function EntityPanel({
   groups: DuplicateGroup[]
   selected: Set<string>
   onToggle: (id: string) => void
+  onSmartSuggest: (entity: Entity) => void
   onSelectMostRecent: (entity: Entity) => void
   onDeselectAll: (entity: Entity) => void
   onPreview: (id: string, entity: Entity) => void
@@ -184,13 +196,24 @@ function EntityPanel({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
+              onClick={() => onSmartSuggest(entity)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-200 transition-colors hover:border-emerald-400/45 hover:bg-emerald-500/15"
+            >
+              <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Suggerimento automatico
+            </button>
+            <button
+              type="button"
               onClick={() => onSelectMostRecent(entity)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-30 app-workspace-inset-bg-soft px-3 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:border-app-line-45 hover:text-app-fg"
+              title="Mantiene la riga con data documento più recente; ignora bolla, allegati e aggiornamenti."
             >
               <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Seleziona più recente
+              Solo data documento più recente
             </button>
             {selectedCount > 0 && (
               <button
@@ -206,6 +229,7 @@ function EntityPanel({
             {groups.map((g, i) => (
               <GroupSection
                 key={i}
+                entity={entity}
                 group={g}
                 selected={selected}
                 onToggle={onToggle}
@@ -368,21 +392,41 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
     })
   }, [])
 
+  const handleSmartAutoSelect = useCallback(
+    (entity: Entity) => {
+      if (fetchState.status !== 'done') return
+      const groups = fetchState.report[entity].groups
+      setSelected((prev) => {
+        const next = new Set(prev)
+        const entityIds = new Set(groups.flatMap((g) => g.items.map((i) => i.id)))
+        for (const id of entityIds) next.delete(id)
+        for (const g of groups) {
+          for (const id of pickDiscardDuplicateItemIds(g.items, entity)) {
+            next.add(id)
+          }
+        }
+        return next
+      })
+      showToast(`Suggerimento applicato per ${entityLabel(entity)}: rivedi le selezioni prima di eliminare.`, 'success')
+    },
+    [fetchState, showToast],
+  )
+
   const handleSelectMostRecent = useCallback(
     (entity: Entity) => {
       if (fetchState.status !== 'done') return
       const groups = fetchState.report[entity].groups
       setSelected((prev) => {
         const next = new Set(prev)
+        const entityIds = new Set(groups.flatMap((g) => g.items.map((i) => i.id)))
+        for (const id of entityIds) next.delete(id)
         for (const group of groups) {
-          // Sort by created_at desc, keep the newest (index 0 after sort), mark rest for deletion
           const sorted = [...group.items].sort((a, b) => {
             const da = a.created_at || ''
             const db = b.created_at || ''
             if (da !== db) return db < da ? -1 : db > da ? 1 : 0
             return b.id.localeCompare(a.id)
           })
-          // newest = sorted[0] → keep; rest → delete
           for (let i = 1; i < sorted.length; i++) {
             next.add(sorted[i]!.id)
           }
@@ -599,6 +643,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
                     groups={report![entity].groups}
                     selected={selected}
                     onToggle={handleToggle}
+                    onSmartSuggest={handleSmartAutoSelect}
                     onSelectMostRecent={handleSelectMostRecent}
                     onDeselectAll={handleDeselectAll}
                     onPreview={handlePreview}
