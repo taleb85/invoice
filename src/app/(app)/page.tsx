@@ -10,19 +10,13 @@ import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
   DEFAULT_OPERATOR_DASHBOARD_KPIS,
   fetchOperatorDashboardKpis,
-  fetchDashboardHomeMonthlyTrend,
   fetchTodayScannerFlowDetail,
   fornitoreIdsForSede,
-  type DashboardHomeMonthlyPoint,
 } from '@/lib/dashboard-operator-kpis'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
-import {
-  DashboardMonthlyTrendGlassCard,
-  DashboardPrioritaGlassPanel,
-  DashboardSmartPairRiskGlass,
-} from '@/components/DashboardAuroraHomeWidgets'
+import { DashboardPrioritaGlassPanel, DashboardSmartPairRiskGlass } from '@/components/DashboardAuroraHomeWidgets'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
@@ -33,7 +27,6 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
-import { withFiscalYearQuery } from '@/lib/fiscal-link'
 
 export const dynamic = 'force-dynamic'
 
@@ -235,21 +228,15 @@ export default async function DashboardPage(props: {
   const scannerFiscalBounds = kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
 
   let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
-  let monthlyTrendPoints: DashboardHomeMonthlyPoint[] = []
   let scannerFlowDetail: Awaited<ReturnType<typeof fetchTodayScannerFlowDetail>> = {
     summary: { aiElaborate: 0, archiviate: 0 },
     events: [],
   }
   try {
-    const fyBoundsForTrend =
-      operatorScoped && kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
     const bundle = await Promise.all([
       operatorScoped
         ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
         : Promise.resolve({ ...DEFAULT_OPERATOR_DASHBOARD_KPIS }),
-      operatorScoped && sedeId && kpiFiscal
-        ? fetchDashboardHomeMonthlyTrend(supabase, fornitoreIds, fyBoundsForTrend, locale, 12)
-        : Promise.resolve([] as DashboardHomeMonthlyPoint[]),
       operatorScoped && sedeId
         ? fetchTodayScannerFlowDetail(
             supabase,
@@ -262,22 +249,11 @@ export default async function DashboardPage(props: {
         : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
     ])
     kpis = bundle[0]
-    monthlyTrendPoints = bundle[1]
-    scannerFlowDetail = bundle[2]
+    scannerFlowDetail = bundle[1]
   } catch (err) {
     console.error('[DashboardPage] KPI/fetch', err)
   }
   const formatScannerEventTime = (iso: string) => fmtDate(iso, locale, tz, { hour: '2-digit', minute: '2-digit' })
-
-  const analyticsHomeHref =
-    operatorScoped ? withFiscalYearQuery('/analytics', fiscalYear, { months: '12' }) : '/analytics'
-  const monthlyTrendFiscalHint =
-    operatorScoped && kpiFiscal
-      ? t.dashboard.scannerFlowFiscalPeriodLine.replace(
-          /\{year\}/g,
-          formatFiscalYearShort(kpiFiscal.countryCode, kpiFiscal.labelYear),
-        )
-      : null
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -329,16 +305,6 @@ export default async function DashboardPage(props: {
       {operatorScoped ? (
         <>
           <div className="dashboard-operator-desktop-column dashboard-operator-aurora-grid hidden min-h-0 w-full min-w-0 md:flex">
-            <div className="dashboard-operator-aurora-area-chart min-w-0">
-              <DashboardMonthlyTrendGlassCard
-                points={monthlyTrendPoints}
-                t={t}
-                locale={locale}
-                currency={currency}
-                analyticsHref={analyticsHomeHref}
-                fiscalHint={monthlyTrendFiscalHint}
-              />
-            </div>
             <div className="dashboard-operator-aurora-area-kpi min-w-0">
               <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
                 <DashboardOperatorKpiGrid

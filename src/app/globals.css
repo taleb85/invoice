@@ -873,17 +873,13 @@ body {
   .dashboard-operator-aurora-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(272px, min(26vw, 320px));
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto;
     gap: 1rem 1.25rem;
     align-items: start;
     grid-template-areas:
-      'aur-chart aur-chart'
       'aur-kpi aur-prio'
       'aur-smart aur-prio'
       'aur-scan aur-prio';
-  }
-  .dashboard-operator-aurora-area-chart {
-    grid-area: aur-chart;
   }
   .dashboard-operator-aurora-area-kpi {
     grid-area: aur-kpi;
