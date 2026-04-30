@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 type AppSheetProps = {
@@ -76,14 +76,14 @@ export function AppSheet({
   const panelClassName = variant === 'center' ? centerPanelClass : sidePanelClass
   const panelStyle = {
     background: 'linear-gradient(to bottom right, rgba(15, 23, 42, 0.95), rgba(30, 27, 75, 0.92))',
-    boxShadow: '0 0 40px -10px rgba(6, 182, 212, 0.2), 0 24px 48px -12px rgba(0, 0, 0, 0.5)'
-  }
+    boxShadow: '0 24px 48px -12px rgba(0, 0, 0, 0.5)',
+  } as CSSProperties
 
   return createPortal(
     <div className="fixed inset-0 z-[210]">
       <button
         type="button"
-        className="absolute inset-0 z-[211] app-workspace-inset-bg/80 backdrop-blur-sm"
+        className="absolute inset-0 z-[211] app-aurora-modal-overlay"
         aria-label={scrimCloseLabel}
         onClick={close}
       />
@@ -92,7 +92,7 @@ export function AppSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={panelClassName}
+        className={`${panelClassName} app-aurora-doc-modal-shell`}
         style={panelStyle}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-app-line-22 px-4 py-3 sm:px-5">

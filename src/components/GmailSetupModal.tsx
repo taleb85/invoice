@@ -134,8 +134,8 @@ export default function GmailSetupModal({ isOpen, onClose, onSuccess }: GmailSet
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-lg border border-app-line-28 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 app-aurora-modal-overlay">
+      <div className="app-aurora-doc-modal-shell w-full max-w-2xl overflow-hidden rounded-lg shadow-2xl">
         {/* Header */}
         <div className="border-b border-app-line-25 px-6 py-4">
           <div className="flex items-start justify-between gap-3">

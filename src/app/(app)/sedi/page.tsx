@@ -505,7 +505,7 @@ export default function SediPage() {
 
       {/* ── Wizard nuova sede ── */}
       {showWizard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center app-workspace-scrim p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center app-workspace-scrim app-aurora-modal-overlay p-4 backdrop-blur-sm">
           <div className="app-workspace-surface-elevated rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
 
             {/* Wizard header */}

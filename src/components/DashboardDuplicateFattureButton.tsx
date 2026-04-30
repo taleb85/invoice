@@ -240,7 +240,7 @@ export default function DashboardDuplicateFattureButton({
     open && mounted
       ? createPortal(
           <div
-            className="fixed inset-0 z-[80] flex items-end justify-center app-workspace-inset-bg p-3 backdrop-blur-sm sm:items-center sm:p-6"
+            className="fixed inset-0 z-[80] flex items-end justify-center app-workspace-inset-bg app-aurora-modal-overlay p-3 backdrop-blur-sm sm:items-center sm:p-6"
             role="dialog"
             aria-modal="true"
             aria-labelledby="dup-fatture-title"

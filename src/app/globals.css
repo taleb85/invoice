@@ -1154,8 +1154,20 @@ body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated {
     inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
 }
 
+/** Scrim modali (`.app-workspace-scrim`): coerente con `.app-aurora-modal-overlay`. */
 body:has([data-deep-aurora-integration]) .app-workspace-scrim {
-  background: linear-gradient(to bottom, rgb(2 6 23 / 0.72), rgb(30 58 138 / 0.38)) !important;
+  background: rgb(2 6 23 / 0.55) !important;
+  background-image: none !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body:has([data-deep-aurora-integration]) .app-workspace-scrim {
+    background: rgb(2 6 23 / 0.85) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }
 
 /** Card/sezioni tipo `SUMMARY_HIGHLIGHT_SURFACE_CLASS` (marker `.app-summary-highlight-surface`). */
@@ -1320,6 +1332,27 @@ body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay {
   background: rgb(2 6 23 / 0.55) !important;
   backdrop-filter: blur(12px) saturate(140%) !important;
   -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+/**
+ * Full-viewport con `app-workspace-inset-bg` ma senza marca esplicita `app-aurora-modal-overlay`
+ * (es. `FornitoreDocDetailLayer`): stesso scrim documenti.
+ */
+body:has([data-deep-aurora-integration])
+  div.fixed.inset-0.app-workspace-inset-bg:not(.app-aurora-modal-overlay) {
+  background: rgb(2 6 23 / 0.55) !important;
+  background-image: none !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body:has([data-deep-aurora-integration])
+    div.fixed.inset-0.app-workspace-inset-bg:not(.app-aurora-modal-overlay) {
+    background: rgb(2 6 23 / 0.88) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }
 
 /**

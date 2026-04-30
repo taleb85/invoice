@@ -71,12 +71,12 @@ export default function LogSupplierAiSuggest({ logId, fileUrl, mittente, sedeId 
         {t.log.aiSuggest}
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center app-workspace-scrim p-4 backdrop-blur-sm sm:items-center" role="dialog">
+        <div className="fixed inset-0 z-50 flex items-end justify-center app-workspace-scrim app-aurora-modal-overlay p-4 backdrop-blur-sm sm:items-center" role="dialog">
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-app-line-30 app-workspace-surface-elevated p-5 shadow-xl">
             <h3 className="text-sm font-semibold text-app-fg">{t.log.aiSuggestTitle}</h3>
             {loading && <p className="mt-3 text-xs text-app-fg-muted">{t.log.aiSuggestLoading}</p>}
             {err && (
-              <p className="mt-3 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/40 px-3 py-2 text-xs text-red-200">{err}</p>
+              <p className="mt-3 rounded-lg border border-red-400/35 bg-red-950/40 px-3 py-2 text-xs text-red-200">{err}</p>
             )}
             {!loading && !err && (
               <dl className="mt-4 space-y-2 text-xs">

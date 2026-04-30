@@ -242,7 +242,7 @@ function ConfirmModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[290] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[290] flex items-center justify-center p-4 app-aurora-modal-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}

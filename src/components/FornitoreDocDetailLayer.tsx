@@ -151,7 +151,7 @@ function FornitoreInlineDocPreview({
 
   const zoomBar = showZoomUi ? (
     <div
-      className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-b border-app-line-22/80 bg-[#0a1420]/95 px-2 py-1.5"
+      className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-b border-app-line-22 app-workspace-inset-bg-soft px-2 py-1.5 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]"
       role="toolbar"
       aria-label="Zoom"
     >
@@ -318,7 +318,7 @@ export default function FornitoreDocDetailLayer({
    */
   return createPortal(
     <div
-      className="fixed inset-0 z-[215] flex min-h-0 items-stretch justify-center app-workspace-inset-bg p-0 backdrop-blur-sm md:p-6"
+      className="fixed inset-0 z-[215] flex min-h-0 items-stretch justify-center app-workspace-inset-bg app-aurora-modal-overlay p-0 md:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="fornitore-doc-detail-title"
@@ -329,7 +329,7 @@ export default function FornitoreDocDetailLayer({
         className="absolute inset-0 z-0 cursor-default md:hidden"
         onClick={close}
       />
-      <div className="relative z-10 flex h-full min-h-0 max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none border border-app-line-22 bg-gradient-to-br from-[#0b1524] via-[#152238] to-[#121f2e] shadow-2xl pb-[env(safe-area-inset-bottom,0px)] md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:pb-0 md:rounded-xl">
+      <div className="app-aurora-doc-modal-shell relative z-10 flex h-full min-h-0 max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-none pb-[env(safe-area-inset-bottom,0px)] md:max-h-[min(96dvh,960px)] md:max-w-[min(96vw,1280px)] md:rounded-xl md:pb-0">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-app-line-22 px-3 py-2.5 md:px-4">
           <h2 id="fornitore-doc-detail-title" className="min-w-0 truncate text-sm font-semibold text-app-fg">
             {showFattura ? t.fatture.invoice : t.bolle.dettaglio}
@@ -454,7 +454,7 @@ function FatturaLayerBody({
       type="button"
       onClick={handleDelete}
       disabled={deleting}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/25 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-red-400/35 bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm transition-colors hover:bg-red-600/25 hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {deleting ? (
         <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -495,7 +495,7 @@ function FatturaLayerBody({
           openKind="fattura"
           docId={fattura.id}
         />
-        <div className="shrink-0 border-t border-app-line-22/90 bg-black/20 px-4 py-2.5 md:px-5">
+        <div className="shrink-0 border-t border-app-line-22/90 app-workspace-inset-bg-soft px-4 py-2.5 md:px-5">
           <p className="text-[11px] leading-relaxed text-app-fg-muted">{t.appStrings.listinoDocDetailImportHint}</p>
           {listinoAdmin ? (
             <p className="mt-1 text-[10px] leading-snug text-app-fg-muted/85">{t.appStrings.listinoDocDetailImportHintAdmin}</p>
