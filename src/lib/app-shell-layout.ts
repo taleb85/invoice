@@ -10,12 +10,9 @@ export const APP_SHELL_SECTION_PAGE_CLASS = 'w-full min-w-0 app-shell-page-paddi
 export const APP_FORNITORE_FORM_PAGE_SHELL_CLASS =
   'fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-[83rem] flex-col gap-3 pb-8 pt-2 md:gap-4 md:pb-10'
 
-/**
- * Stack verticale (header strip → contenuto) come la dashboard KPI: sotto Aurora vedi anche
- * `.app-shell-main-stack` (vetro pannello grande, `globals.css`).
- */
+/** Stack verticale (header strip → contenuto) come la dashboard KPI; corpo trasparente sul canvas workspace. */
 export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
-  'app-shell-main-stack flex w-full min-w-0 flex-col gap-3 md:gap-4 app-shell-page-padding'
+  'flex w-full min-w-0 flex-col gap-3 md:gap-4 app-shell-page-padding'
 
 /**
  * Padding della riga interna `AppPageHeaderStrip` con `dense` (corpo trasparente sul canvas).

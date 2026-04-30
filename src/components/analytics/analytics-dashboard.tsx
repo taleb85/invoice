@@ -18,7 +18,7 @@ import {
 import { KpiCard } from './kpi-card'
 import type { AnalyticsOverview } from '@/app/api/analytics/overview/route'
 
-const AXIS_COLOR = 'rgba(255,255,255,0.35)'
+const AXIS_COLOR = 'rgba(255,255,255,0.58)'
 const GRID_COLOR = 'rgba(255,255,255,0.06)'
 const CYAN = '#22d3ee'
 const PURPLE = '#818cf8'
@@ -97,7 +97,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
   if (error || !data) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-app-fg-muted">{error ?? t.appStrings.analyticsNoData}</p>
+        <p className="text-white/85">{error ?? t.appStrings.analyticsNoData}</p>
       </div>
     )
   }
@@ -165,7 +165,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
       {/* Chart 1: Spesa mensile — full width */}
       <div className={chartCardClass}>
-        <h3 className="mb-4 text-sm font-semibold text-app-fg">{t.appStrings.analyticsChartMonthlySpend}</h3>
+        <h3 className="mb-4 text-sm font-semibold text-white">{t.appStrings.analyticsChartMonthlySpend}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={data.spesaMensile} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <defs>
@@ -210,7 +210,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Chart 2: Top fornitori */}
         <div className={chartCardClass}>
-          <h3 className="mb-4 text-sm font-semibold text-app-fg">{t.appStrings.analyticsChartTopSuppliers}</h3>
+          <h3 className="mb-4 text-sm font-semibold text-white">{t.appStrings.analyticsChartTopSuppliers}</h3>
           {data.topFornitori.length === 0 ? (
             <div className="flex h-[220px] items-center justify-center text-xs text-app-fg-muted">
               {t.appStrings.analyticsChartNoData}
@@ -252,7 +252,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
         {/* Chart 3: Bolle vs Fatture */}
         <div className={chartCardClass}>
-          <h3 className="mb-4 text-sm font-semibold text-app-fg">{t.appStrings.analyticsChartBolleVsFatture}</h3>
+          <h3 className="mb-4 text-sm font-semibold text-white">{t.appStrings.analyticsChartBolleVsFatture}</h3>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart
               data={data.andamentoBolle}
@@ -277,7 +277,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
                 contentStyle={tooltipStyle}
               />
               <Legend
-                wrapperStyle={{ fontSize: 11, color: AXIS_COLOR }}
+                wrapperStyle={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.78)' }}
                 formatter={(v) => (v === 'bolle' ? t.appStrings.analyticsChartDeliveryNotes : t.appStrings.analyticsChartInvoices)}
               />
               <Line
@@ -305,18 +305,18 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5">
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
-          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryPendingDocs}</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.documentiPendenti}</p>
+          <p className="text-[11px] uppercase tracking-wider text-white/85">{t.appStrings.analyticsSummaryPendingDocs}</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-white">{data.documentiPendenti}</p>
         </div>
         <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5">
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
-          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryPendingNotes}</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">{data.riconciliazione.inAttesa}</p>
+          <p className="text-[11px] uppercase tracking-wider text-white/85">{t.appStrings.analyticsSummaryPendingNotes}</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-white">{data.riconciliazione.inAttesa}</p>
         </div>
         <div className="relative col-span-2 overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5 lg:col-span-1">
           <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
-          <p className="text-[11px] uppercase tracking-wider text-app-fg-muted">{t.appStrings.analyticsSummaryArchivedInvoices}</p>
-          <p className="mt-1 text-xl font-bold tabular-nums text-app-fg">
+          <p className="text-[11px] uppercase tracking-wider text-white/85">{t.appStrings.analyticsSummaryArchivedInvoices}</p>
+          <p className="mt-1 text-xl font-bold tabular-nums text-white">
             {data.spesaMensile.reduce((s, m) => s + m.fatture, 0)}
           </p>
         </div>

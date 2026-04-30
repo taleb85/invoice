@@ -22,76 +22,80 @@ const NEUTRAL_CHEVRON = 'text-app-fg-muted/60 group-hover:text-app-fg group-hove
 const NEUTRAL_SUB = 'text-app-fg-muted'
 const NEUTRAL_ICON_DROP = ''
 
+/** Bordi tile KPI scheda fornitore: Aura glass slate (icone restano tinte per lettura rapida). */
+const SUPPLIER_KPI_TILE_ACCENT_BORDER = 'border-l border-white/[0.06]'
+const SUPPLIER_KPI_TILE_HEADER_RULE = 'border-b border-white/10'
+
 export const supplierKpiPalette = {
   conferme: {
     hex: '#f43f5e',
-    accent: 'border-l-[rgba(34,211,238,0.15)]',
+    accent: SUPPLIER_KPI_TILE_ACCENT_BORDER,
     iconClass: NEUTRAL_ICON_SVG,
     iconDropShadow: NEUTRAL_ICON_DROP,
     chevronClass: NEUTRAL_CHEVRON,
     chevronHoverClass: 'group-hover:text-app-fg',
     subStrong: NEUTRAL_SUB,
-    headerRule: 'border-b border-[rgba(34,211,238,0.15)]',
+    headerRule: SUPPLIER_KPI_TILE_HEADER_RULE,
   },
   bolle: {
     hex: '#6366f1',
-    accent: 'border-l-[rgba(34,211,238,0.15)]',
+    accent: SUPPLIER_KPI_TILE_ACCENT_BORDER,
     iconClass: NEUTRAL_ICON_SVG,
     iconDropShadow: NEUTRAL_ICON_DROP,
     chevronClass: NEUTRAL_CHEVRON,
     chevronHoverClass: 'group-hover:text-app-fg',
     subStrong: NEUTRAL_SUB,
-    headerRule: 'border-b border-[rgba(34,211,238,0.15)]',
+    headerRule: SUPPLIER_KPI_TILE_HEADER_RULE,
   },
   fatture: {
     hex: '#34d399',
-    accent: 'border-l-[rgba(34,211,238,0.15)]',
+    accent: SUPPLIER_KPI_TILE_ACCENT_BORDER,
     iconClass: NEUTRAL_ICON_SVG,
     iconDropShadow: NEUTRAL_ICON_DROP,
     chevronClass: NEUTRAL_CHEVRON,
     chevronHoverClass: 'group-hover:text-app-fg',
     subStrong: NEUTRAL_SUB,
-    headerRule: 'border-b border-[rgba(34,211,238,0.15)]',
+    headerRule: SUPPLIER_KPI_TILE_HEADER_RULE,
   },
   verifica: {
     hex: '#06b6d4',
-    accent: 'border-l-[rgba(34,211,238,0.15)]',
+    accent: SUPPLIER_KPI_TILE_ACCENT_BORDER,
     iconClass: NEUTRAL_ICON_SVG,
     iconDropShadow: NEUTRAL_ICON_DROP,
     chevronClass: NEUTRAL_CHEVRON,
     chevronHoverClass: 'group-hover:text-app-fg',
     subStrong: NEUTRAL_SUB,
-    headerRule: 'border-b border-[rgba(34,211,238,0.15)]',
+    headerRule: SUPPLIER_KPI_TILE_HEADER_RULE,
   },
   listino: {
     hex: '#c026d3',
-    accent: 'border-l-[rgba(34,211,238,0.15)]',
+    accent: SUPPLIER_KPI_TILE_ACCENT_BORDER,
     iconClass: NEUTRAL_ICON_SVG,
     iconDropShadow: NEUTRAL_ICON_DROP,
     chevronClass: NEUTRAL_CHEVRON,
     chevronHoverClass: 'group-hover:text-app-fg',
     subStrong: NEUTRAL_SUB,
-    headerRule: 'border-b border-[rgba(34,211,238,0.15)]',
+    headerRule: SUPPLIER_KPI_TILE_HEADER_RULE,
   },
   totaleSpesa: {
     hex: '#7c3aed',
-    accent: 'border-l-[rgba(34,211,238,0.15)]',
+    accent: SUPPLIER_KPI_TILE_ACCENT_BORDER,
     iconClass: NEUTRAL_ICON_SVG,
     iconDropShadow: NEUTRAL_ICON_DROP,
     chevronClass: NEUTRAL_CHEVRON,
     chevronHoverClass: 'group-hover:text-app-fg',
     subStrong: NEUTRAL_SUB,
-    headerRule: 'border-b border-[rgba(34,211,238,0.15)]',
+    headerRule: SUPPLIER_KPI_TILE_HEADER_RULE,
   },
   documenti: {
     hex: '#f59e0b',
-    accent: 'border-l-[rgba(34,211,238,0.15)]',
+    accent: SUPPLIER_KPI_TILE_ACCENT_BORDER,
     iconClass: NEUTRAL_ICON_SVG,
     iconDropShadow: NEUTRAL_ICON_DROP,
     chevronClass: NEUTRAL_CHEVRON,
     chevronHoverClass: 'group-hover:text-app-fg',
     subStrong: NEUTRAL_SUB,
-    headerRule: 'border-b border-[rgba(34,211,238,0.15)]',
+    headerRule: SUPPLIER_KPI_TILE_HEADER_RULE,
   },
 } as const
 
@@ -101,12 +105,12 @@ export function hexToRgbTuple(hex: string): string {
   return `${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)}`
 }
 
-/** Ombra tile KPI scheda fornitore: neutrale. */
+/** Ombra tile KPI scheda fornitore: bordo slate Aura (icone restano tinte tramite `--supplier-kpi-rgb`). */
 export function supplierDesktopKpiOuterShadow(): string {
   return [
-    '0 0 0 1px rgba(34,211,238,0.12)',
-    '0 0 44px -12px rgba(0,0,0,0.4)',
-    '0 20px 44px -12px rgba(0,0,0,0.5)',
+    '0 0 0 1px rgb(148 163 184 / 0.2)',
+    '0 10px 36px -10px rgb(0 0 0 / 0.45)',
+    'inset 0 1px 0 rgb(255 255 255 / 0.05)',
   ].join(', ')
 }
 

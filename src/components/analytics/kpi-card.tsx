@@ -58,9 +58,9 @@ export function KpiCard({
     >
       <div className={`h-0.5 w-full shrink-0 ${c.bar}`} aria-hidden />
       <div className="px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-app-fg-muted">{title}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-white/92">{title}</p>
 
-        <p className="mt-1.5 text-2xl font-bold leading-none tabular-nums text-app-fg">{value}</p>
+        <p className="mt-1.5 text-2xl font-bold leading-none tabular-nums text-white">{value}</p>
 
         {(subtitle || (trend && trendValue)) && (
           <div className="mt-2 flex items-center gap-2">
@@ -68,10 +68,10 @@ export function KpiCard({
               <span
                 className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
                   trend === 'up'
-                    ? 'text-emerald-400'
+                    ? 'text-emerald-300'
                     : trend === 'down'
-                      ? 'text-rose-400'
-                      : 'text-app-fg-muted'
+                      ? 'text-rose-300'
+                      : 'text-white/82'
                 }`}
               >
                 {trend === 'up' && (
@@ -87,7 +87,7 @@ export function KpiCard({
                 {trendValue}
               </span>
             )}
-            {subtitle && <p className="text-xs text-app-fg-muted">{subtitle}</p>}
+            {subtitle && <p className="text-xs text-white/82">{subtitle}</p>}
           </div>
         )}
       </div>

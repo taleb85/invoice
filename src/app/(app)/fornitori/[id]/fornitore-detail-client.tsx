@@ -5289,17 +5289,17 @@ function FornitoreDetailClient({
       </div>
 
       {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
-      <div className="app-shell-main-stack app-shell-main-stack-fit hidden min-w-0 text-app-fg md:mx-4 md:mb-4 md:mt-2 md:block lg:mx-6 xl:mx-10">
+      <div className="hidden min-w-0 text-app-fg md:mx-4 md:mb-4 md:mt-2 md:block lg:mx-6 xl:mx-10">
         {/*
           Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
         */}
         <div
-          className="fornitore-desktop-main-x mx-auto w-full max-w-7xl md:pt-2 lg:pt-3"
+          className="fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-7xl flex-col md:pt-2 lg:pt-3"
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
-        {/* Intestazione + tab: sticky in `#app-main` così nome/sync/CTA e tab+mese restano visibili allo scroll. */}
-        <div className="sticky top-0 z-20 w-full border-b border-app-soft-border app-workspace-inset-bg-soft pb-0.5 pt-1 shadow-[0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
+        {/* Intestazione + tab — vetro omogeneo con lo shell Aurora (non seconda „card"). */}
+        <div className="sticky top-0 z-20 w-full border-b border-white/[0.08] bg-white/[0.04] pb-0.5 pt-1 backdrop-blur-xl [-webkit-backdrop-filter:blur(18px)]">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
@@ -5437,14 +5437,14 @@ function FornitoreDetailClient({
 
             <div
               ref={periodPickerRef}
-              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-cyan-500/20 bg-app-line-12 px-0.5 shadow-[inset_0_1px_0_rgba(34,211,238,0.07),0_1px_4px_rgba(0,0,0,0.18)] xl:h-8 xl:px-1"
+              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-white/10 bg-white/[0.03] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:px-1"
             >
               <button
                 type="button"
                 onClick={() => shiftLedgerYear(-1)}
                 title={t.appStrings.monthNavPrevYearTitle}
                 aria-label={t.appStrings.monthNavPrevYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
@@ -5455,7 +5455,7 @@ function FornitoreDetailClient({
                 onClick={() => shiftLedgerMonth(-1)}
                 title={t.appStrings.monthNavPrevMonthTitle}
                 aria-label={t.appStrings.monthNavPrevMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -5470,7 +5470,7 @@ function FornitoreDetailClient({
                 title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 onClick={() => setPeriodPickerOpen((o) => !o)}
-                className="min-w-0 max-w-[11rem] truncate whitespace-nowrap rounded px-1 text-center text-[11px] font-semibold tabular-nums leading-none text-cyan-200 transition-colors hover:bg-cyan-500/10 hover:text-white xl:max-w-[14rem] xl:leading-8"
+                className="min-w-0 max-w-[11rem] truncate whitespace-nowrap rounded px-1 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:max-w-[14rem] xl:leading-8"
               >
                 {periodTriggerLabel}
               </button>
@@ -5540,7 +5540,7 @@ function FornitoreDetailClient({
                 disabled={!canShiftLedgerMonthForward}
                 title={t.appStrings.monthNavNextMonthTitle}
                 aria-label={t.appStrings.monthNavNextMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -5552,7 +5552,7 @@ function FornitoreDetailClient({
                 disabled={!canShiftLedgerYearForward}
                 title={t.appStrings.monthNavNextYearTitle}
                 aria-label={t.appStrings.monthNavNextYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-cyan-500/10 hover:text-cyan-200 disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
+                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted/70 transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-30 xl:h-6 xl:w-6"
               >
                 <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
@@ -5564,9 +5564,9 @@ function FornitoreDetailClient({
                   onClick={() => setLedgerPeriod(currentMonthBounds)}
                   title={t.appStrings.monthNavResetTitle}
                   aria-label={t.appStrings.monthNavResetTitle}
-                  className="flex h-5 w-5 items-center justify-center rounded-sm text-app-cyan-500 transition-colors hover:bg-app-line-15 hover:text-app-fg xl:h-6 xl:w-6"
+                  className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
                 >
-                  <svg className="h-3 w-3 text-app-cyan-500 xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
                   </svg>
                 </button>
@@ -5575,8 +5575,8 @@ function FornitoreDetailClient({
           </div>
         </div>
 
-        {/* Tab content — KPI desktop sempre visibili; tabella mensile solo sul tab Riepilogo (`dashboard`). */}
-        <div className="min-h-[calc(100vh-8rem)]">
+        {/* Tab content — altezza = contenuto; niente viewport min‑h che taglia il pannello vetro. */}
+        <div className="w-full min-w-0">
           <div className="w-full min-w-0 py-3 sm:py-3.5 md:py-5 lg:py-6 xl:py-8">
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
             {displayTab === 'dashboard' ? (
