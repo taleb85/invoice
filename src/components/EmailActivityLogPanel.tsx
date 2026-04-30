@@ -8,6 +8,7 @@ import type { EmailActivityRow } from '@/lib/email-activity-day'
 import {
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_TABLE_HEAD_ROW,
+  APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
@@ -103,10 +104,10 @@ function ActivityLogSupplierCell({
   const hint = typeof docHint === 'string' ? docHint.trim() : ''
   return (
     <div className="min-w-0">
-      <span className={primaryClassName ?? 'font-medium leading-snug text-app-fg'}>{primary}</span>
+      <span className={primaryClassName ?? 'text-sm font-medium leading-snug text-app-fg'}>{primary}</span>
       {hint ? (
         <span
-          className="mt-0.5 block break-words text-[10px] leading-snug text-app-fg-muted line-clamp-2"
+          className="mt-0.5 block break-words text-xs leading-snug text-app-fg-muted line-clamp-2"
           title={hint}
         >
           {pdfLineTemplate.includes('{name}') ? pdfLineTemplate.replace(/\{name\}/g, hint) : `${pdfLineTemplate} ${hint}`}
@@ -119,16 +120,16 @@ function ActivityLogSupplierCell({
 function ElabCell({ row, elab, procLabels }: { row: EmailActivityRow; elab: RowElab; procLabels: ProcLabels }) {
   const id = docId(row)
   if (!id) {
-    return <span className="text-app-fg-muted tabular-nums">{procLabels.dash}</span>
+    return <span className="text-sm text-app-fg-muted tabular-nums">{procLabels.dash}</span>
   }
 
   if (elab.phase === 'idle') {
-    return <span className="text-app-fg-muted">{procLabels.dash}</span>
+    return <span className="text-sm text-app-fg-muted">{procLabels.dash}</span>
   }
 
   if (elab.phase === 'loading') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-cyan-200/90" title={procLabels.spinAria}>
+      <span className="inline-flex items-center gap-1.5 text-sm text-cyan-200/90" title={procLabels.spinAria}>
         <svg className="h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden>
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path
@@ -152,7 +153,7 @@ function ElabCell({ row, elab, procLabels }: { row: EmailActivityRow; elab: RowE
 
   return (
     <span
-      className={`block max-w-[14rem] min-w-0 break-words leading-snug md:max-w-none ${bad ? 'text-red-300/95' : good ? 'text-emerald-200/95' : muted ? 'text-amber-200/85' : 'text-app-fg-muted'}`}
+      className={`text-sm block max-w-[14rem] min-w-0 break-words leading-snug md:max-w-none ${bad ? 'text-red-300/95' : good ? 'text-emerald-200/95' : muted ? 'text-amber-200/85' : 'text-app-fg-muted'}`}
       title={text}
     >
       {text}
@@ -282,18 +283,18 @@ export function EmailActivityLogPanel({
                     pdfLineTemplate={tLog.activityPdfDetectedLine}
                     primaryClassName="text-sm font-semibold leading-snug text-app-fg"
                   />
-                  <p className="mt-0.5 text-[10px] text-app-fg-muted tabular-nums">{row.timeDisplay}</p>
+                  <p className="mt-0.5 text-xs text-app-fg-muted tabular-nums">{row.timeDisplay}</p>
                 </div>
-                <span className="shrink-0 text-xs text-app-fg-muted">{row.tipoDisplay}</span>
+                <span className="shrink-0 text-sm text-app-fg-muted">{row.tipoDisplay}</span>
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/10 pt-3 text-xs">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-white/10 pt-3 text-sm">
                 <span className="text-app-fg-muted">
                   {tLog.activityColAmount}: <span className="font-medium text-app-fg">{row.amountDisplay}</span>
                 </span>
-                <span className="text-app-fg-muted">{row.statusDisplay}</span>
+                <span className="text-app-fg">{row.statusDisplay}</span>
               </div>
               {docId(row) ? (
-                <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-2 text-[11px]">
+                <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-2 text-sm">
                   <span className="shrink-0 font-medium text-app-fg-muted">{procLabels.column}:</span>
                   <ElabCell row={row} elab={elabFor(row)} procLabels={procLabels} />
                 </div>
@@ -311,15 +312,15 @@ export function EmailActivityLogPanel({
         </div>
 
         <div className="hidden min-w-0 md:block">
-          <table className="w-full table-fixed border-collapse text-left text-xs">
+          <table className="w-full table-fixed border-collapse text-left text-sm">
             <thead>
               <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                <th className="min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{tLog.activityColSupplier}</th>
-                <th className="w-[11%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{tLog.activityColTipo}</th>
-                <th className="w-[12%] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{tLog.activityColAmount}</th>
-                <th className="min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{tLog.activityColStatus}</th>
-                <th className="w-[min(18rem,22%)] min-w-0 px-2 py-2 font-semibold text-app-fg-muted sm:px-3">{procLabels.column}</th>
-                <th className="w-[14%] min-w-0 whitespace-nowrap px-2 py-2 font-semibold text-app-fg-muted sm:px-3">
+                <th className={`${APP_SECTION_TABLE_TH} min-w-0`}>{tLog.activityColSupplier}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[11%] min-w-0`}>{tLog.activityColTipo}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[12%] min-w-0 tabular-nums`}>{tLog.activityColAmount}</th>
+                <th className={`${APP_SECTION_TABLE_TH} min-w-0`}>{tLog.activityColStatus}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[min(18rem,22%)] min-w-0`}>{procLabels.column}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[14%] min-w-0 whitespace-nowrap`}>
                   {tLog.activityOpenDocument}
                 </th>
               </tr>
@@ -327,20 +328,22 @@ export function EmailActivityLogPanel({
             <tbody className={APP_SECTION_TABLE_TBODY}>
               {rows.map((row, idx) => (
                 <tr key={`${row.atIso}-t-${idx}`} className={`align-top ${APP_SECTION_TABLE_TR}`}>
-                  <td className="min-w-0 px-2 py-2 sm:px-3">
+                  <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <ActivityLogSupplierCell
                       primary={row.fornitoreNome}
                       docHint={row.docDetectedHint}
                       pdfLineTemplate={tLog.activityPdfDetectedLine}
                     />
                   </td>
-                  <td className="min-w-0 px-2 py-2 text-app-fg-muted sm:px-3">{row.tipoDisplay}</td>
-                  <td className="min-w-0 whitespace-nowrap px-2 py-2 tabular-nums text-app-fg sm:px-3">{row.amountDisplay}</td>
-                  <td className="min-w-0 px-2 py-2 text-app-fg sm:px-3">{row.statusDisplay}</td>
-                  <td className="min-w-0 px-2 py-2 sm:px-3">
+                  <td className="min-w-0 px-4 py-2.5 text-app-fg-muted md:px-5 md:py-3 lg:py-2">{row.tipoDisplay}</td>
+                  <td className="min-w-0 whitespace-nowrap px-4 py-2.5 tabular-nums text-app-fg md:px-5 md:py-3 lg:py-2">
+                    {row.amountDisplay}
+                  </td>
+                  <td className="min-w-0 px-4 py-2.5 text-app-fg md:px-5 md:py-3 lg:py-2">{row.statusDisplay}</td>
+                  <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <ElabCell row={row} elab={elabFor(row)} procLabels={procLabels} />
                   </td>
-                  <td className="min-w-0 px-2 py-2 sm:px-3">
+                  <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <LogActivityDocumentLink
                       label={tLog.activityOpenDocument}
                       href={row.href}

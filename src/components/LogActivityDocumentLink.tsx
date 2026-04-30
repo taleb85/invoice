@@ -16,8 +16,8 @@ type Props = {
 export function LogActivityDocumentLink({ label, href, docOpen, variant }: Props) {
   const textClass =
     variant === 'mobile'
-      ? 'inline-block text-xs font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline'
-      : 'font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline'
+      ? 'inline-block text-sm font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline'
+      : 'text-sm font-medium text-app-cyan-500 hover:text-app-fg-muted hover:underline'
 
   if (docOpen?.fileUrl?.trim()) {
     const u = docOpen.fileUrl.trim()
