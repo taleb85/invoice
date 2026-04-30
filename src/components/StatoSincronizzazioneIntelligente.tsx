@@ -481,7 +481,7 @@ export default function StatoSincronizzazioneIntelligente({
             {/* Colonna destra — nascosta su mobile */}
             <div className="hidden md:block min-w-0">
               {status.recent_updates.length > 0 ? (
-                <div className="rounded-lg border border-app-line-22 bg-app-line-10/30 p-3">
+                <div className="rounded-lg border border-app-line-35 bg-white/[0.025] p-3">
                   <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
                     {t.appStrings.rekkiSyncRecentEmails}
                   </p>
@@ -517,7 +517,7 @@ export default function StatoSincronizzazioneIntelligente({
                   </div>
                 </div>
               ) : (
-                <div className="flex h-full flex-col items-center justify-center rounded-lg border border-app-line-22 bg-app-line-10/30 px-4 py-8 text-center">
+                <div className="flex h-full flex-col items-center justify-center rounded-lg border border-app-line-35 bg-white/[0.025] px-4 py-8 text-center">
                   <svg className="h-10 w-10 text-app-fg-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
