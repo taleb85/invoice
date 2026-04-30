@@ -214,6 +214,7 @@ export function EmailActivityLogPanel({
     activityColTipo: string
     activityColAmount: string
     activityColStatus: string
+    activityColDocument: string
     activityOpenDocument: string
     activityProcessDocumentsCta: string
     activityProcessDocumentsBusy: string
@@ -357,7 +358,7 @@ export function EmailActivityLogPanel({
                 <th className={`${APP_SECTION_TABLE_TH} w-[10%] min-w-0 tabular-nums`}>{tLog.activityColAmount}</th>
                 <th className={`${APP_SECTION_TABLE_TH} w-[18%] min-w-0`}>{tLog.activityColStatus}</th>
                 <th className={`${APP_SECTION_TABLE_TH} w-[17%] min-w-0 whitespace-nowrap`}>
-                  {tLog.activityOpenDocument}
+                  {tLog.activityColDocument}
                 </th>
               </tr>
             </thead>

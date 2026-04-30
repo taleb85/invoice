@@ -155,6 +155,7 @@ export default async function LogPage() {
     activityColTipo: t.log.activityColTipo,
     activityColAmount: t.log.activityColAmount,
     activityColStatus: t.log.activityColStatus,
+    activityColDocument: t.log.activityColDocument,
     activityOpenDocument: t.log.activityOpenDocument,
     activityProcessDocumentsCta: t.log.activityProcessDocumentsCta,
     activityProcessDocumentsBusy: t.log.activityProcessDocumentsBusy,
