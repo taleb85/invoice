@@ -73,19 +73,15 @@ function parseEmailFromMittente(mittente: string | null | undefined): string | n
   return angle?.[1]?.trim() ?? null
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
-/** Giorni decimali dall’anchor (es. 4.2) per log cron; allineato al conteggio calendario UTC intero dove utile. */
-function giorniTrascorsiDecimali(anchor: Date | null, ref: Date): string {
-  if (!anchor || Number.isNaN(anchor.getTime())) return 'n/d'
-  const raw = (ref.getTime() - anchor.getTime()) / DAY_MS
-  const rounded = Math.round(raw * 10) / 10
-  return Number.isFinite(rounded) ? String(rounded) : 'n/d'
+/** Giorni calendario UTC da `sollecito-aging` (coerente con isBollaOverdue / isPromisedDocOverdue). */
+function giorniPassati(anchor: Date | null, now: Date): number | null {
+  if (!anchor || Number.isNaN(anchor.getTime())) return null
+  return wholeDaysSinceUtc(anchor, now)
 }
 
 /**
  * GET /api/cron/process-solleciti
- * Solleciti automatici (bolle in attesa + coda documenti con promessa allegato).
+ * Bolle in attesa + documenti in coda con promessa invio documento.
  * Header: Authorization: Bearer CRON_SECRET
  */
 export async function GET(req: NextRequest) {
@@ -119,7 +115,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!autoSollecitiEnabled) {
-    console.log('[CRON] Automazione disattivata')
+    console.log('[CRON] Esecuzione interrotta: automazione disattivata')
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -151,10 +147,12 @@ export async function GET(req: NextRequest) {
 
   for (const b of bolle ?? []) {
     const id = String(b.id)
+    const tipo = 'bolla' as const
     const anchor = parseDateOnlyOrIso(b.data ?? null)
-    const giorniDec = giorniTrascorsiDecimali(anchor, now)
-    const giorniCal = anchor ? wholeDaysSinceUtc(anchor, now) : null
-    const statoNorm = String(b.stato ?? '').trim()
+    const days = giorniPassati(anchor, now)
+    const daysLabel = days === null ? 'n/d' : String(days)
+
+    console.log(`[CHECK] Doc: ${id} | Tipo: ${tipo} | Giorni passati: ${daysLabel} | Soglia: ${sogliaBolla}`)
 
     const overdueBolla = isBollaOverdue({
       stato: b.stato,
@@ -163,28 +161,15 @@ export async function GET(req: NextRequest) {
       now,
     })
 
-    let sintesiAging: string
-    if (!anchor) {
-      sintesiAging = `senza data valida -> NON_ANALIZZABILE`
-    } else if (statoNorm !== 'in attesa') {
-      sintesiAging = `stato="${statoNorm}" -> NON_ELEGIBILE`
-    } else {
-      sintesiAging = `${giorniDec}gg passati su ${sogliaBolla} -> ${overdueBolla ? 'SOGLIA_RAGGIUNTA' : 'OK'}`
-    }
-
-    console.log(
-      `[AGING CHECK] bolla id=${id}: Giorni trascorsi: ${giorniDec} | Giorni calendario UTC: ${giorniCal ?? 'n/d'} | Soglia: ${sogliaBolla} | ${sintesiAging}`,
-    )
-
-    if (!overdueBolla) {
+    if (!overdueBolla || days === null) {
       skippedAging++
-      console.log(`[DECISION] bolla id=${id}: SKIP — aging non raggiunto o non eleggibile`)
+      console.log(`[SKIP] ID ${id}: Troppo recente.`)
       continue
     }
 
     if (await wasCronSollecitoRecent(supabase, 'bolla', id)) {
       skippedDedup++
-      console.log(`[DECISION] bolla id=${id}: SKIP — sollecito già inviato negli ultimi 7 giorni`)
+      console.log(`[SKIP] ID ${id}: Già sollecitato negli ultimi 7gg.`)
       continue
     }
 
@@ -192,7 +177,7 @@ export async function GET(req: NextRequest) {
     const email = fornitore?.email?.trim()
     if (!email) {
       skippedNoEmail++
-      console.log(`[DECISION] bolla id=${id}: SKIP — email fornitore assente`)
+      console.log(`[SKIP] ID ${id}: Email destinatario assente.`)
       continue
     }
 
@@ -213,12 +198,12 @@ export async function GET(req: NextRequest) {
 
     if (mailErr) {
       errors.push(`bolla ${id}: ${mailErr.message}`)
-      console.log(`[DECISION] bolla id=${id}: ERRORE INVIO — ${mailErr.message}`)
+      console.error(`[CRON] Invio fallito bolla ${id}:`, mailErr.message)
       continue
     }
 
     inviati++
-    console.log(`[DECISION] bolla id=${id}: INVIO sollecito a ${email}`)
+    console.log(`[SEND] Sollecito inviato con successo a ${email}.`)
 
     await supabase.from('log_sincronizzazione').insert([
       {
@@ -250,6 +235,7 @@ export async function GET(req: NextRequest) {
 
     if (meta.promessa_invio_documento !== true) continue
 
+    const tipo = 'promessa' as const
     const createdRaw = row.created_at
     const anchorProm =
       createdRaw == null
@@ -261,27 +247,22 @@ export async function GET(req: NextRequest) {
             : null
     const anchorOk = anchorProm && !Number.isNaN(anchorProm.getTime()) ? anchorProm : null
 
+    const days = giorniPassati(anchorOk, now)
+    const daysLabel = days === null ? 'n/d' : String(days)
+
+    console.log(`[CHECK] Doc: ${id} | Tipo: ${tipo} | Giorni passati: ${daysLabel} | Soglia: ${sogliaPromessa}`)
+
     const overduePromessa = isPromisedDocOverdue(meta, row.created_at, sogliaPromessa, now)
-    const giorniDec = giorniTrascorsiDecimali(anchorOk, now)
-    const giorniCal = anchorOk ? wholeDaysSinceUtc(anchorOk, now) : null
 
-    const sintesiAging = !anchorOk
-      ? `senza created_at valido -> NON_ANALIZZABILE`
-      : `${giorniDec}gg passati su ${sogliaPromessa} -> ${overduePromessa ? 'SOGLIA_RAGGIUNTA' : 'OK'}`
-
-    console.log(
-      `[AGING CHECK] promessa_doc id=${id}: Giorni trascorsi: ${giorniDec} | Giorni calendario UTC: ${giorniCal ?? 'n/d'} | Soglia: ${sogliaPromessa} | ${sintesiAging}`,
-    )
-
-    if (!overduePromessa) {
+    if (!overduePromessa || days === null) {
       skippedAging++
-      console.log(`[DECISION] promessa_doc id=${id}: SKIP — aging non raggiunto`)
+      console.log(`[SKIP] ID ${id}: Troppo recente.`)
       continue
     }
 
     if (await wasCronSollecitoRecent(supabase, 'promessa_doc', id)) {
       skippedDedup++
-      console.log(`[DECISION] promessa_doc id=${id}: SKIP — sollecito già inviato negli ultimi 7 giorni`)
+      console.log(`[SKIP] ID ${id}: Già sollecitato negli ultimi 7gg.`)
       continue
     }
 
@@ -289,7 +270,7 @@ export async function GET(req: NextRequest) {
     const email = fornitore?.email?.trim() ?? parseEmailFromMittente(row.mittente ?? undefined)
     if (!email) {
       skippedNoEmail++
-      console.log(`[DECISION] promessa_doc id=${id}: SKIP — email destinatario assente`)
+      console.log(`[SKIP] ID ${id}: Email destinatario assente.`)
       continue
     }
 
@@ -308,12 +289,12 @@ export async function GET(req: NextRequest) {
 
     if (mailErr) {
       errors.push(`promessa_doc ${id}: ${mailErr.message}`)
-      console.log(`[DECISION] promessa_doc id=${id}: ERRORE INVIO — ${mailErr.message}`)
+      console.error(`[CRON] Invio fallito promessa_doc ${id}:`, mailErr.message)
       continue
     }
 
     inviati++
-    console.log(`[DECISION] promessa_doc id=${id}: INVIO sollecito a ${email}`)
+    console.log(`[SEND] Sollecito inviato con successo a ${email}.`)
 
     await supabase.from('log_sincronizzazione').insert([
       {
