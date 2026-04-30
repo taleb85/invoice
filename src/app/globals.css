@@ -1220,7 +1220,7 @@ body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear
 }
 
 /**
- * Menu lingua (rail): slate **solido** sul popover; niente `backdrop-filter` (stacking sulla sidebar blur).
+ * Menu lingua (rail): slate solido di default (tablet / stacking). Con Aurora autenticata → trasparenza sotto.
  */
 .app-sidebar-aside .app-sidebar-locale-menu.app-workspace-surface-elevated {
   border-color: rgb(148 163 184 / 0.42) !important;
@@ -1238,7 +1238,14 @@ body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear
 }
 
 body:has([data-deep-aurora-integration]) .app-sidebar-aside .app-sidebar-locale-menu.app-workspace-surface-elevated {
-  border-color: rgb(148 163 184 / 0.48) !important;
+  border-color: rgb(148 163 184 / 0.32) !important;
+  background-color: rgb(255 255 255 / 0.08) !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    0 16px 40px -8px rgb(0 0 0 / 0.38),
+    inset 0 1px 0 rgb(255 255 255 / 0.09) !important;
 }
 
 body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
