@@ -20,6 +20,11 @@ type Props = {
   /** Es. righe tabella con `onClick` di navigazione. */
   stopTriggerPropagation?: boolean
   title?: string
+  /**
+   * Sostituisce la classe `z-*` sull’overlay del viewer (portal su `body`).
+   * Usa es. `z-[292]` quando il trigger è dentro una modale con z &gt; 215 (es. anteprima Gestione duplicati).
+   */
+  viewerOverlayClassName?: string
 }
 
 function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId'>): {
@@ -97,6 +102,7 @@ export function OpenDocumentInAppButton({
   className,
   stopTriggerPropagation,
   title,
+  viewerOverlayClassName,
 }: Props) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -233,7 +239,7 @@ export function OpenDocumentInAppButton({
   const overlayNode =
     open && portalReady ? (
       <div
-        className="fixed inset-0 z-[215] flex items-center justify-center app-workspace-inset-bg app-aurora-modal-overlay p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] sm:p-3"
+        className={`fixed inset-0 flex items-center justify-center app-workspace-inset-bg app-aurora-modal-overlay p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-[max(0.5rem,env(safe-area-inset-top))] sm:p-3 ${viewerOverlayClassName?.trim() || 'z-[215]'}`}
         onClick={() => setOpen(false)}
         role="presentation"
       >

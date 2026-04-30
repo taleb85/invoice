@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
-import { openDocumentUrl } from '@/lib/open-document-url'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 
 type Entity = 'fatture' | 'bolle' | 'fornitori'
 
@@ -164,10 +164,11 @@ function FatturaDetail({ doc }: { doc: FatturaDoc }) {
       {doc.file_url && (
         <div className="border-t border-white/10 pt-4">
           <SectionTitle>Allegato</SectionTitle>
-          <a
-            href={openDocumentUrl({ fatturaId: doc.id })}
-            target="_blank"
-            rel="noopener noreferrer"
+          <OpenDocumentInAppButton
+            fatturaId={doc.id}
+            fileUrl={doc.file_url}
+            title={fileNome ?? undefined}
+            viewerOverlayClassName="z-[300]"
             className="inline-flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] px-3 py-1.5 text-[11px] font-semibold text-[#22d3ee] transition-colors hover:bg-[rgba(34,211,238,0.12)]"
           >
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -177,7 +178,7 @@ function FatturaDetail({ doc }: { doc: FatturaDoc }) {
             <svg className="h-3 w-3 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-          </a>
+          </OpenDocumentInAppButton>
         </div>
       )}
     </div>
@@ -232,10 +233,11 @@ function BollaDetail({ doc }: { doc: BollaDoc }) {
       {doc.file_url && (
         <div className="border-t border-white/10 pt-4">
           <SectionTitle>Allegato</SectionTitle>
-          <a
-            href={openDocumentUrl({ bollaId: doc.id })}
-            target="_blank"
-            rel="noopener noreferrer"
+          <OpenDocumentInAppButton
+            bollaId={doc.id}
+            fileUrl={doc.file_url}
+            title={fileNome ?? undefined}
+            viewerOverlayClassName="z-[300]"
             className="inline-flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.2)] bg-[rgba(34,211,238,0.06)] px-3 py-1.5 text-[11px] font-semibold text-[#22d3ee] transition-colors hover:bg-[rgba(34,211,238,0.12)]"
           >
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -245,7 +247,7 @@ function BollaDetail({ doc }: { doc: BollaDoc }) {
             <svg className="h-3 w-3 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-          </a>
+          </OpenDocumentInAppButton>
         </div>
       )}
     </div>
