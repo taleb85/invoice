@@ -150,6 +150,23 @@
   button:not(:disabled) {
     cursor: pointer;
   }
+
+  /*
+   * Tutti i pulsanti nativi stondati di default (`--app-radius-btn`, 8px).
+   * Override: classi Tailwind `rounded-*`, `rounded-full`, `rounded-none` (layer utilities).
+   */
+  button,
+  input[type='submit'],
+  input[type='button'],
+  input[type='reset'],
+  ::file-selector-button {
+    border-radius: var(--app-radius-btn);
+  }
+
+  /* Div/span con ruolo pulsante: stesso default se non è già definito via utility. */
+  [role='button'] {
+    border-radius: var(--app-radius-btn);
+  }
 }
 
 /* Smartphone stretti: testo leggermente più arioso senza toccare i breakpoint Tailwind. */
