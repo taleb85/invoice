@@ -1147,17 +1147,46 @@ body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated {
 
 /** Scrim modali (`.app-workspace-scrim`): coerente con `.app-aurora-modal-overlay`. */
 body:has([data-deep-aurora-integration]) .app-workspace-scrim {
-  background: rgb(2 6 23 / 0.55) !important;
+  background: rgb(2 6 23 / 0.58) !important;
   background-image: none !important;
-  backdrop-filter: blur(12px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(140%) !important;
+  backdrop-filter: blur(20px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   body:has([data-deep-aurora-integration]) .app-workspace-scrim {
-    background: rgb(2 6 23 / 0.85) !important;
+    background: rgb(2 6 23 / 0.88) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+  }
+}
+
+/** `.app-card` diretta sopra `.app-workspace-scrim`: stesso satinato dei viewer (singolo stack). */
+body:has([data-deep-aurora-integration]) .app-workspace-scrim > .app-card {
+  border-color: rgb(255 255 255 / 0.22) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgb(255 255 255 / 0.14) 0%,
+      rgb(255 255 255 / 0.05) 42%,
+      rgb(15 23 42 / 0.28) 100%
+    ) !important;
+  backdrop-filter: blur(44px) saturate(188%) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(188%) !important;
+  box-shadow:
+    0 20px 56px rgb(0 0 0 / 0.5),
+    inset 0 1px 0 rgb(255 255 255 / 0.13),
+    inset 0 0 0 1px rgb(255 255 255 / 0.04) !important;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body:has([data-deep-aurora-integration]) .app-workspace-scrim > .app-card {
+    background: rgb(15 23 42 / 0.94) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow:
+      0 12px 48px rgb(0 0 0 / 0.52),
+      inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
   }
 }
 
@@ -1312,17 +1341,24 @@ body:has([data-deep-aurora-integration]) nav.app-glass-dock.border-t-2 {
 }
 
 /**
- * Overlay modali liste / anteprima: scrim Aurora (elimina rgba hardcoded nei portal).
+ * Gestione Duplicati: vetro satinato + alone arancione (identità modulo).
  */
 body:has([data-deep-aurora-integration]) .app-duplicate-manager-shell {
-  background-image: linear-gradient(to bottom right, rgb(15 23 42 / 0.94), rgb(15 23 42 / 0.88)) !important;
-  background-color: rgb(2 6 23 / 0.92) !important;
-  backdrop-filter: blur(22px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  border-color: rgb(148 163 184 / 0.32) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgb(255 255 255 / 0.16) 0%,
+      rgb(255 255 255 / 0.05) 42%,
+      rgb(15 23 42 / 0.22) 100%
+    ) !important;
+  backdrop-filter: blur(44px) saturate(188%) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(188%) !important;
   box-shadow:
     0 0 56px -12px rgb(249 156 0 / 0.22),
-    0 24px 52px -12px rgb(0 0 0 / 0.52),
-    inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
+    0 28px 64px -14px rgb(0 0 0 / 0.52),
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    inset 0 0 0 1px rgb(255 255 255 / 0.04) !important;
 }
 
 /** Barra azioni Gestione Duplicati: sopra vetro contenuto senza bleed del dock mobile. */
@@ -1357,28 +1393,59 @@ body:has([data-deep-aurora-integration])
 }
 
 /**
- * Pannello modale diretto nell’overlay (portal → `document.body`).
- * Fill **opaco** + **senza** `backdrop-filter` sulla card: con due modali (es. Gestione Duplicati + Dettaglio fattura)
- * il blur sulla card figlia campiona lo strato sbagliato → pannello quasi invisibile. Non dipende da `body:has()`.
+ * `.app-card` figlia diretta dell’overlay Aurora:
+ * senza `backdrop-filter` quando ci sono più modali in stack (blur campiona lo strato sbagliato).
+ * Effetto satinato solo con gradiente + bordo/inset — stessa famiglia cromatica del viewer vetro.
  */
 .app-aurora-modal-overlay > .app-card {
   border-radius: 16px !important;
-  border: 1px solid rgb(148 163 184 / 0.42) !important;
-  background-color: rgb(15 23 42) !important;
+  border: 1px solid rgb(255 255 255 / 0.22) !important;
+  background-color: transparent !important;
   background-image: linear-gradient(
-    to bottom right,
-    rgb(30 41 59),
-    rgb(15 23 42)
+    145deg,
+    rgb(255 255 255 / 0.14) 0%,
+    rgb(255 255 255 / 0.05) 42%,
+    rgb(15 23 42 / 0.94) 100%
   ) !important;
   box-shadow:
-    0 16px 56px rgb(0 0 0 / 0.58),
-    inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
+    0 16px 56px rgb(0 0 0 / 0.52),
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    inset 0 0 0 1px rgb(255 255 255 / 0.045) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay > .app-card {
-  border-color: rgb(148 163 184 / 0.48) !important;
+  border-color: rgb(255 255 255 / 0.26) !important;
+}
+
+/** Solo pannello principale sopra overlay (non annidamento nel viewer bolla/pdf). */
+body:has([data-deep-aurora-integration])
+  .app-aurora-modal-overlay > .app-workspace-surface-elevated {
+  border: 1px solid rgb(255 255 255 / 0.2) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgb(255 255 255 / 0.12) 0%,
+      rgb(255 255 255 / 0.04) 45%,
+      rgb(30 41 59 / 0.72) 100%
+    ) !important;
+  backdrop-filter: blur(44px) saturate(188%) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(188%) !important;
+  box-shadow:
+    0 16px 48px rgb(0 0 0 / 0.46),
+    inset 0 1px 0 rgb(255 255 255 / 0.11),
+    inset 0 0 0 1px rgb(255 255 255 / 0.035) !important;
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  body:has([data-deep-aurora-integration])
+    .app-aurora-modal-overlay > .app-workspace-surface-elevated {
+    background: rgb(30 41 59 / 0.96) !important;
+    background-image: linear-gradient(to bottom right, rgb(51 65 85), rgb(15 23 42)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }
 
 /** Anteprima documento duplicati: superficie sempre opaca (`app-card` generica resta soggetta a override tema). */
@@ -1411,22 +1478,11 @@ body:has([data-deep-aurora-integration])
 }
 
 /**
- * Pannello fullscreen documenti (`PublicPdfOpenMenu`, `OpenDocumentInAppButton`).
+ * Pannello fullscreen documenti (viewer in-app `PublicPdfOpenMenu`, `OpenDocumentInAppButton`, `GmailSetupModal`,
+ * sheet bolla/fornitore, `AppSheet`, …): vetro satinato unificato.
  */
 body:has([data-deep-aurora-integration]) .app-aurora-doc-modal-shell {
-  background: rgb(255 255 255 / 0.06) !important;
-  background-image: none !important;
-  backdrop-filter: blur(22px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(160%) !important;
-  border: 1px solid rgb(148 163 184 / 0.28) !important;
-  box-shadow:
-    0 24px 48px -12px rgb(0 0 0 / 0.48),
-    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
-}
-
-/** Dettaglio bolla / consegna: guscio vetro satinato (traslucido + blur sullo scrim). */
-body:has([data-deep-aurora-integration])
-  .app-fornitore-doc-detail-scrim .app-aurora-doc-modal-shell {
+  border: 1px solid rgb(255 255 255 / 0.22) !important;
   background:
     linear-gradient(
       145deg,
@@ -1436,7 +1492,6 @@ body:has([data-deep-aurora-integration])
     ) !important;
   backdrop-filter: blur(44px) saturate(188%) !important;
   -webkit-backdrop-filter: blur(44px) saturate(188%) !important;
-  border: 1px solid rgb(255 255 255 / 0.22) !important;
   box-shadow:
     0 28px 64px -14px rgb(0 0 0 / 0.52),
     inset 0 1px 0 rgb(255 255 255 / 0.14),
@@ -1444,14 +1499,26 @@ body:has([data-deep-aurora-integration])
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  body:has([data-deep-aurora-integration])
-    .app-fornitore-doc-detail-scrim .app-aurora-doc-modal-shell {
+  body:has([data-deep-aurora-integration]) .app-aurora-doc-modal-shell {
     background: rgb(15 23 42 / 0.94) !important;
+    background-image: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     box-shadow:
       0 24px 48px -12px rgb(0 0 0 / 0.48),
       inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+  }
+
+  body:has([data-deep-aurora-integration]) .app-duplicate-manager-shell,
+  body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgb(15 23 42 / 0.94) !important;
+    background-image: linear-gradient(
+      to bottom right,
+      rgb(30 41 59 / 0.95),
+      rgb(15 23 42 / 0.93)
+    ) !important;
   }
 }
 
@@ -1461,14 +1528,20 @@ body:has([data-deep-aurora-integration]) .app-aurora-viewer-fill {
 }
 
 body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet {
-  border: 1px solid rgb(148 163 184 / 0.26) !important;
-  background: rgb(255 255 255 / 0.07) !important;
-  background-image: none !important;
-  backdrop-filter: blur(20px) saturate(155%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(155%) !important;
+  border: 1px solid rgb(255 255 255 / 0.22) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgb(255 255 255 / 0.16) 0%,
+      rgb(255 255 255 / 0.05) 42%,
+      rgb(15 23 42 / 0.22) 100%
+    ) !important;
+  backdrop-filter: blur(44px) saturate(188%) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(188%) !important;
   box-shadow:
-    0 4px 36px rgb(0 0 0 / 0.4),
-    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+    0 24px 48px -12px rgb(0 0 0 / 0.48),
+    inset 0 1px 0 rgb(255 255 255 / 0.13),
+    inset 0 0 0 1px rgb(255 255 255 / 0.04) !important;
 }
 
 body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet-header {
