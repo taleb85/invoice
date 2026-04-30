@@ -30,6 +30,8 @@ export type EmailActivityRow = {
   mittenteRaw?: string | null
   /** Email canonica estratta da `mittenteRaw`, se presente. */
   mittenteEmail?: string | null
+  /** Sede della riga coda — per blacklist e creazione fornitore. */
+  sedeId?: string | null
 }
 
 function joinNome(fornitore: unknown): string | null {
@@ -293,6 +295,7 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
         docOpen: { kind: 'documento', id: docId, fileUrl },
         mittenteRaw: mitt || null,
         mittenteEmail,
+        sedeId,
       })
       continue
     }
@@ -308,6 +311,7 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
       docOpen: { kind: 'documento', id: docId, fileUrl },
       mittenteRaw: mitt || null,
       mittenteEmail,
+      sedeId,
     })
   }
 

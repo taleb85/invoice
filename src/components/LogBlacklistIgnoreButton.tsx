@@ -9,13 +9,21 @@ import { useLocale } from '@/lib/locale-context'
 type Props = {
   mittente: string
   sedeId: string | null | undefined
+  /** Se valorizzato, dopo la blacklist il documento viene scartato (`POST /api/documenti-da-processare`). */
+  documentoId?: string | null
   /** Messaggio toast successo (default: testo blacklist dal catalogo UI). */
   successMessage?: string
   /** Mostra etichetta accanto all’icona (es. tabella attività email). */
   showLabel?: boolean
 }
 
-export default function LogBlacklistIgnoreButton({ mittente, sedeId, successMessage, showLabel }: Props) {
+export default function LogBlacklistIgnoreButton({
+  mittente,
+  sedeId,
+  documentoId,
+  successMessage,
+  showLabel,
+}: Props) {
   const { showToast } = useToast()
   const { t } = useLocale()
   const router = useRouter()
@@ -41,7 +49,30 @@ export default function LogBlacklistIgnoreButton({ mittente, sedeId, successMess
         showToast(j.error ?? t.log.blacklistError, 'error')
         return
       }
-      showToast(successMessage?.trim() ? successMessage : t.log.activityBlacklistConfirmToast, 'success')
+
+      const doc = documentoId?.trim()
+      if (doc) {
+        const sc = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: doc, azione: 'scarta' }),
+        })
+        if (!sc.ok) {
+          const sj = (await sc.json().catch(() => ({}))) as { error?: string }
+          showToast(sj.error ?? t.log.blacklistError, 'error')
+          return
+        }
+      }
+
+      showToast(
+        successMessage?.trim()
+          ? successMessage
+          : documentoId?.trim()
+            ? t.log.activityIgnoreSenderDoneToast
+            : t.log.activityBlacklistConfirmToast,
+        'success',
+      )
       router.refresh()
     } catch {
       showToast(t.log.blacklistError, 'error')

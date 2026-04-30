@@ -40,8 +40,11 @@ interface DocumentoInCoda {
   created_at: string
   data_documento: string | null
   file_url: string | null
-  stato: 'in_attesa' | 'da_associare' | 'da_revisionare'
+  stato: 'in_attesa' | 'da_processare' | 'da_associare' | 'da_revisionare'
   fornitore_id: string | null
+  mittente?: string | null
+  sede_id?: string | null
+  metadata?: unknown
 }
 
 interface Fornitore {
@@ -70,7 +73,7 @@ export default async function ArchivioPage() {
     supabase.from('fatture').select('*').order('data', { ascending: false }),
     service
       .from('documenti_da_processare')
-      .select('id, created_at, data_documento, file_url, stato, fornitore_id')
+      .select('id, created_at, data_documento, file_url, stato, fornitore_id, mittente, sede_id, metadata')
       .in('stato', ['in_attesa', 'da_processare', 'da_associare', 'da_revisionare'])
       .order('created_at', { ascending: false }),
   ])
@@ -94,6 +97,15 @@ export default async function ArchivioPage() {
   const formattedDates: Record<string, string> = {}
   for (const d of allDates) {
     formattedDates[d] = formatDate(d)
+  }
+
+  const queueDocActions = {
+    ignoreDoneToast: t.log.activityIgnoreSenderDoneToast,
+    addSupplier: t.log.activityInboxAddSupplier,
+    discard: t.log.activityInboxDiscard,
+    discardedToast: t.log.activityDocDiscardedToast,
+    needEmail: t.log.activityNeedEmailOnRow,
+    apiError: t.log.blacklistError,
   }
 
   const queueLabels = {
@@ -146,6 +158,7 @@ export default async function ArchivioPage() {
             fornitori={(fornitori ?? []).map((f) => ({ id: f.id, nome: f.nome }))}
             formattedDates={formattedDates}
             labels={queueLabels}
+            queueDocActions={queueDocActions}
           />
         </ErrorBoundary>
       )}

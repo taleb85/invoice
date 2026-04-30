@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
+import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 
 /**
  * Salva l'email del mittente come alias del fornitore (scansione IMAP futura).
@@ -48,5 +49,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true })
+  let retroactive: { processed: number; scanned: number; errors: string[] } | null = null
+  try {
+    retroactive = await autoProcessAfterFornitoreEmailAdded(service, fornitoreId, emailRaw)
+  } catch (e) {
+    console.warn('[POST /api/fornitore-emails/remember] retroactive', e)
+    retroactive = { processed: 0, scanned: 0, errors: [e instanceof Error ? e.message : String(e)] }
+  }
+
+  return NextResponse.json({ ok: true, retroactive })
 }

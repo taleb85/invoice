@@ -165,6 +165,16 @@ export default async function LogPage() {
     activityProcessDocumentsApiError: t.log.activityProcessDocumentsApiError,
     activityProcessToastDetail: t.log.activityProcessToastDetail,
     activityQueueEmptyCelebrate: t.log.activityQueueEmptyCelebrate,
+    activityProcessDocumentsSummary: t.log.activityProcessDocumentsSummary,
+    activityInboxIgnoreSender: t.log.activityInboxIgnoreSender,
+    activityInboxAddSupplier: t.log.activityInboxAddSupplier,
+    activityInboxDiscard: t.log.activityInboxDiscard,
+    activityDocDiscardedToast: t.log.activityDocDiscardedToast,
+    activityNeedEmailOnRow: t.log.activityNeedEmailOnRow,
+    activityIgnoreSenderDoneToast: t.log.activityIgnoreSenderDoneToast,
+    activitySupplierAddedReprocessedToast: t.log.activitySupplierAddedReprocessedToast,
+    blacklistError: t.log.blacklistError,
+    activityLogRowActions: t.log.activityLogRowActions,
   }
 
   const procLabels = {
@@ -249,6 +259,7 @@ export default async function LogPage() {
                 summaryLine={summaryLine}
                 documentoIds={documentoIdsForProcess}
                 sedeId={sedeForProcessApi}
+                blacklistSedeFallback={blacklistSedeId ?? sedeForProcessApi ?? profile?.sede_id ?? null}
                 tLog={tLogPanel}
                 procLabels={procLabels}
               />

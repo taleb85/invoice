@@ -4,8 +4,11 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
 import { LogActivityDocumentLink } from '@/components/LogActivityDocumentLink'
 import LogBlacklistIgnoreButton from '@/components/LogBlacklistIgnoreButton'
+import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { actionButtonClassName } from '@/components/ui/ActionButton'
 import { useToast } from '@/lib/toast-context'
+import { buildNewFornitorePrefillHref } from '@/lib/new-fornitore-prefill-href'
+import { extractEmailFromSenderHeader } from '@/lib/sender-email'
 import type { EmailActivityRow } from '@/lib/email-activity-day'
 import {
   APP_SECTION_MOBILE_LIST,
@@ -198,11 +201,101 @@ function TableSupplierWithElab({
   )
 }
 
+function NeedsSupplierRowActions({
+  row,
+  blacklistSedeFallback,
+  tLog,
+}: {
+  row: LogRowView
+  blacklistSedeFallback: string | null
+  tLog: {
+    activityInboxAddSupplier: string
+    activityInboxDiscard: string
+    activityDocDiscardedToast: string
+    activityNeedEmailOnRow: string
+    activityIgnoreSenderDoneToast: string
+    blacklistError: string
+  }
+}) {
+  const id = docId(row)
+  const router = useRouter()
+  const { showToast } = useToast()
+  const [discarding, setDiscarding] = useState(false)
+
+  if (row.statusKey !== 'needs_supplier' || !id || !row.mittenteRaw?.trim()) return null
+
+  const sede = row.sedeId?.trim() || blacklistSedeFallback?.trim() || null
+  const mitt = row.mittenteRaw.trim()
+  const emailOk = (extractEmailFromSenderHeader(mitt) ?? '').includes('@')
+  const prefillNome =
+    row.docDetectedHint?.trim() ||
+    (row.fornitoreNome.trim() && row.fornitoreNome !== '—' ? row.fornitoreNome.trim() : null)
+
+  const newHref = buildNewFornitorePrefillHref({
+    prefillNome,
+    mittenteHeader: mitt,
+    sedeId: sede,
+  })
+
+  const discard = async () => {
+    setDiscarding(true)
+    try {
+      const sc = await fetch('/api/documenti-da-processare', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, azione: 'scarta' }),
+      })
+      const sj = (await sc.json().catch(() => ({}))) as { error?: string }
+      if (!sc.ok) {
+        showToast(sj.error ?? tLog.blacklistError, 'error')
+        return
+      }
+      showToast(tLog.activityDocDiscardedToast, 'success')
+      router.refresh()
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : tLog.blacklistError, 'error')
+    } finally {
+      setDiscarding(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {sede && emailOk ? (
+        <LogBlacklistIgnoreButton
+          mittente={mitt}
+          sedeId={sede}
+          documentoId={id}
+          showLabel
+          successMessage={tLog.activityIgnoreSenderDoneToast}
+        />
+      ) : null}
+      {!emailOk ? <p className="text-[10px] text-amber-200/90">{tLog.activityNeedEmailOnRow}</p> : null}
+      <NewFornitoreLink
+        href={newHref}
+        className="inline-flex w-fit items-center rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1 text-[11px] font-bold text-teal-100 hover:border-teal-400/50 hover:bg-teal-500/25"
+      >
+        {tLog.activityInboxAddSupplier}
+      </NewFornitoreLink>
+      <button
+        type="button"
+        disabled={discarding}
+        onClick={() => void discard()}
+        className="w-fit rounded-md border border-app-line-28 bg-white/[0.04] px-2 py-1 text-[11px] font-bold text-app-fg-muted hover:bg-white/[0.07] disabled:opacity-40"
+      >
+        {tLog.activityInboxDiscard}
+      </button>
+    </div>
+  )
+}
+
 export function EmailActivityLogPanel({
   rows,
   summaryLine,
   documentoIds,
   sedeId,
+  blacklistSedeFallback,
   tLog,
   procLabels,
 }: {
@@ -210,6 +303,8 @@ export function EmailActivityLogPanel({
   summaryLine: string
   documentoIds: string[]
   sedeId: string | null
+  /** Se `row.sedeId` manca (documento senza sede), usa questo per blacklist «Ignora». */
+  blacklistSedeFallback: string | null
   tLog: {
     activityColSupplier: string
     activityPdfDetectedLine: string
@@ -225,6 +320,14 @@ export function EmailActivityLogPanel({
     activityProcessDocumentsSummary: string
     activityProcessToastDetail: string
     activityQueueEmptyCelebrate: string
+    activityLogRowActions: string
+    activityInboxIgnoreSender: string
+    activityInboxAddSupplier: string
+    activityInboxDiscard: string
+    activityDocDiscardedToast: string
+    activityNeedEmailOnRow: string
+    activityIgnoreSenderDoneToast: string
+    blacklistError: string
   }
   procLabels: ProcLabels
 }) {
@@ -387,6 +490,7 @@ export function EmailActivityLogPanel({
                   variant="mobile"
                 />
               ) : null}
+              <NeedsSupplierRowActions row={row} blacklistSedeFallback={blacklistSedeFallback} tLog={tLog} />
             </div>
           ))}
         </div>
@@ -395,19 +499,20 @@ export function EmailActivityLogPanel({
           <table className="w-full table-fixed border-collapse text-left text-sm">
             <thead>
               <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                <th className={`${APP_SECTION_TABLE_TH} w-[46%] min-w-0`}>{tLog.activityColSupplier}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[9%] min-w-0`}>{tLog.activityColTipo}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[10%] min-w-0 tabular-nums`}>{tLog.activityColAmount}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[18%] min-w-0`}>{tLog.activityColStatus}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[17%] min-w-0 whitespace-nowrap`}>
+                <th className={`${APP_SECTION_TABLE_TH} w-[36%] min-w-0`}>{tLog.activityColSupplier}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[8%] min-w-0`}>{tLog.activityColTipo}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[9%] min-w-0 tabular-nums`}>{tLog.activityColAmount}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[13%] min-w-0`}>{tLog.activityColStatus}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[14%] min-w-0 whitespace-nowrap`}>
                   {tLog.activityColDocument}
                 </th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[20%] min-w-0`}>{tLog.activityLogRowActions}</th>
               </tr>
             </thead>
             <tbody className={APP_SECTION_TABLE_TBODY}>
               {rows.map((row, idx) => (
                 <tr key={`${row.atIso}-t-${idx}`} className={`align-top ${APP_SECTION_TABLE_TR}`}>
-                  <td className="w-[46%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
+                  <td className="w-[36%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <TableSupplierWithElab
                       row={row}
                       elab={elabFor(row)}
@@ -415,18 +520,23 @@ export function EmailActivityLogPanel({
                       pdfLineTemplate={tLog.activityPdfDetectedLine}
                     />
                   </td>
-                  <td className="w-[9%] min-w-0 px-4 py-2.5 text-app-fg-muted md:px-5 md:py-3 lg:py-2">{row.tipoDisplay}</td>
-                  <td className="w-[10%] min-w-0 whitespace-nowrap px-4 py-2.5 tabular-nums text-app-fg md:px-5 md:py-3 lg:py-2">
+                  <td className="w-[8%] min-w-0 px-4 py-2.5 text-app-fg-muted md:px-5 md:py-3 lg:py-2">{row.tipoDisplay}</td>
+                  <td className="w-[9%] min-w-0 whitespace-nowrap px-4 py-2.5 tabular-nums text-app-fg md:px-5 md:py-3 lg:py-2">
                     {row.amountDisplay}
                   </td>
-                  <td className="w-[18%] min-w-0 px-4 py-2.5 text-app-fg md:px-5 md:py-3 lg:py-2">{row.statusDisplay}</td>
-                  <td className="w-[17%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
+                  <td className="w-[13%] min-w-0 px-4 py-2.5 text-app-fg md:px-5 md:py-3 lg:py-2">
+                    {row.statusDisplay}
+                  </td>
+                  <td className="w-[14%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <LogActivityDocumentLink
                       label={tLog.activityOpenDocument}
                       href={row.href}
                       docOpen={row.docOpen}
                       variant="table"
                     />
+                  </td>
+                  <td className="w-[20%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
+                    <NeedsSupplierRowActions row={row} blacklistSedeFallback={blacklistSedeFallback} tLog={tLog} />
                   </td>
                 </tr>
               ))}
