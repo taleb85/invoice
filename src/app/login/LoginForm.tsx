@@ -17,6 +17,7 @@ import {
 import LoginBrandedHero from '@/components/LoginBrandedHero'
 import { PinNumpad } from '@/components/PinNumpad'
 import { SmartPairLogo } from '@/components/smart-pair-logo'
+import { formatAppVersionLabel } from '@/lib/app-build-info'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -1229,8 +1230,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
         {accessoTopBar}
         {/* Logo above the card */}
-        <div className="mb-6 flex justify-center">
+        <div className="mb-6 flex flex-col items-center gap-1.5">
           <SmartPairLogo variant="full" size="md" />
+          <p className="text-center text-[10px] font-medium tabular-nums tracking-widest text-app-fg-muted opacity-70">
+            {formatAppVersionLabel()}
+          </p>
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
         <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
