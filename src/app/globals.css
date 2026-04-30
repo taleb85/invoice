@@ -1020,39 +1020,46 @@ select.app-fiscal-year-header-select {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * Deep Aurora — tema mock / estensioni (solo sotto `[data-deep-aurora-shell]`,
- * così `:root` Fluxo non viene sovrascritto).
+ * Deep Aurora Intelligence — solo mock `[data-deep-aurora-shell]` (+ body quando
+ * è montata questa pagina), senza alterare Fluxo sul resto del sito.
  * ═══════════════════════════════════════════════════════════════════════════ */
+body:has([data-deep-aurora-shell]) {
+  background-color: #020617;
+  background-image:
+    radial-gradient(circle at 20% 20%, #1e40af 0%, transparent 52%),
+    radial-gradient(circle at 80% 80%, #3730a3 0%, transparent 52%),
+    radial-gradient(circle at 50% 50%, #1e3a8a 0%, #020617 62%);
+  background-attachment: fixed;
+  background-size: auto;
+  min-height: 100vh;
+}
+
 [data-deep-aurora-shell] {
-  /* Tavolozza Deep Aurora */
   --bg-base: #020617;
-  --bg-gradient-1: #1e40af;
-  --bg-gradient-2: #3730a3;
-  --bg-gradient-3: #1e3a8a;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
   --accent-color: #38bdf8;
-  --glass-bg: rgba(255, 255, 255, 0.04);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-blur: 20px;
+  --glass-bg: rgb(255 255 255 / 0.03);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-blur: 16px;
+  --da-heading: #ffffff;
+  --da-muted: #94a3b8;
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
 }
 
 [data-deep-aurora-shell].app-background {
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background-color: var(--bg-base);
-  background-image:
-    radial-gradient(circle at 10% 20%, var(--bg-gradient-1) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, var(--bg-gradient-2) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, var(--bg-gradient-3) 0%, var(--bg-base) 100%);
-  background-attachment: fixed;
+  background-color: transparent;
   display: flex;
   flex-direction: column;
-  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  color: var(--text-main);
+  color: var(--da-muted);
+}
+
+[data-deep-aurora-shell] :where(h1, h2, h3) {
+  color: var(--da-heading);
 }
 
 [data-deep-aurora-shell] .glass-card {
@@ -1061,10 +1068,18 @@ select.app-fiscal-year-header-select {
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: 16px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 30px rgb(0 0 0 / 0.45);
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 [data-deep-aurora-shell] .glass-card:hover {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-color: rgb(255 255 255 / 0.16);
+}
+
+/* Pannello vetro compatto + chip mock (equiv. Tailwind bg-white/[0.03] backdrop-blur-lg border-white/10) */
+[data-deep-aurora-shell] .glass-surface {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
 }

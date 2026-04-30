@@ -251,8 +251,8 @@ const DESKTOP_KPIS = [
     title: 'Fatturato ricevuto',
     value: '€ 482k',
     sub: 'FY selezionata',
-    accent: 'text-[#22d3ee]',
-    bar: 'from-[#22d3ee]/80 to-transparent',
+    accent: 'text-[#38bdf8]',
+    bar: 'from-[#38bdf8]/80 to-transparent',
   },
   {
     title: 'Da revisionare',
@@ -275,7 +275,7 @@ function BottomNavDockIconWrap({
       className={
         active
           ? 'text-[#38bdf8] [filter:drop-shadow(0_0_10px_rgba(56,189,248,.75))_drop-shadow(0_0_3px_rgba(56,189,248,.95))]'
-          : 'text-[#cbd5e1]/75'
+          : 'text-slate-400'
       }
     >
       {children}
@@ -328,8 +328,7 @@ function BottomNav() {
   return (
     <nav
       aria-label="Navigazione inferiore (mock Deep Aurora)"
-      className="mx-5 mb-[max(0.65rem,env(safe-area-inset-bottom))] flex shrink-0 items-center justify-evenly gap-1 border border-white/[0.12] bg-[rgba(15,23,42,0.42)] px-1 shadow-[0_12px_40px_-14px_rgba(0,0,0,.6),inset_0_1px_0_0_rgba(255,255,255,0.05)] backdrop-blur-[28px]"
-      style={{ borderRadius: '1.875rem', WebkitBackdropFilter: 'blur(28px)' }}
+      className="mx-5 mb-[max(0.65rem,env(safe-area-inset-bottom))] flex shrink-0 items-center justify-evenly gap-1 rounded-[1.875rem] border border-white/10 bg-white/[0.03] px-1 shadow-[0_12px_40px_-14px_rgba(0,0,0,.55),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-lg"
     >
       <DeepAuroraDockTab active ariaLabel="Home">
         <HomeDockIcon className="h-[26px] w-[26px]" />
@@ -423,8 +422,8 @@ function DesktopSidebarRail() {
   return (
     <nav
       aria-label="Navigazione principale workspace (mock Deep Aurora)"
-      className="flex w-[76px] shrink-0 flex-col gap-1 border-r border-white/[0.12] bg-[rgba(15,23,42,0.42)] px-2 py-4 shadow-[inset_-1px_0_0_0_rgba(255,255,255,0.04)] backdrop-blur-[28px]"
-      style={{ WebkitBackdropFilter: 'blur(28px)' }}
+      className="flex w-[76px] shrink-0 flex-col gap-1 border-r border-white/10 bg-white/[0.03] px-2 py-4 shadow-inner shadow-black/20 backdrop-blur-lg"
+      style={{ WebkitBackdropFilter: 'blur(16px)' }}
     >
       <DeepAuroraDockTab active ariaLabel="Home" placement="left">
         <HomeDockIcon className="h-[26px] w-[26px]" />
@@ -447,46 +446,43 @@ function DesktopWorkspaceMock() {
     <section aria-labelledby="mockup-desktop-title" className="mx-auto mb-16 max-w-[1280px]">
       <h2
         id="mockup-desktop-title"
-        className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.2em] text-white/90"
+        className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.2em] text-white"
       >
         Versione desktop (workspace)
       </h2>
-      <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-white/70">
+      <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-slate-400">
         Stesso set di icone della versione mobile, in colonna a sinistra: Home (attiva), Attività, Alert, Impostazioni.
         L’indicatore attivo è un segmento verticale sul bordo sinistro dell’icona (sotto la barra resta solo su mobile).
       </p>
       <div className="overflow-x-auto pb-4">
         <div className="mx-auto inline-block min-w-[min(1160px,100%)] lg:min-w-[1080px]">
-          <div className="overflow-hidden rounded-2xl border border-cyan-400/40 bg-[#020617]/92 shadow-[0_8px_32px_rgba(0,0,0,.5),0_0_72px_-12px_rgba(34,211,238,.28)]">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] shadow-[0_16px_48px_-12px_rgba(0,0,0,.55)] backdrop-blur-md">
             <div
               aria-hidden
-              className="flex items-center gap-2 border-b border-white/10 bg-[#020617]/75 px-4 py-2.5 backdrop-blur-[20px]"
+              className="glass-surface flex items-center gap-2 border-b border-white/10 px-4 py-2.5"
             >
               <span className="inline-flex gap-2">
                 <span className="h-3 w-3 rounded-full bg-red-400/85" />
                 <span className="h-3 w-3 rounded-full bg-amber-300/85" />
                 <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
               </span>
-              <span className="ml-2 flex-1 rounded-md bg-white/[0.06] px-3 py-1 text-center text-[11px] text-white/70">
+              <span className="glass-surface ml-2 flex-1 rounded-md px-3 py-1 text-center text-[11px] text-slate-400">
                 app · mockup aurora desktop
               </span>
             </div>
             <div className="flex min-h-[560px]">
               <DesktopSidebarRail />
               <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <header className="flex flex-wrap items-start justify-between gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-4 backdrop-blur-md sm:px-6">
+                <header className="glass-surface flex flex-wrap items-start justify-between gap-3 border-b border-white/10 px-4 py-4 sm:px-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-white/90 sm:text-xl">Dashboard · Sede Nord demo</h3>
-                    <p className="mt-1 text-sm text-white/70">FY 2026 · Eur · fuso CET</p>
+                    <h3 className="text-lg font-semibold text-white sm:text-xl">Dashboard · Sede Nord demo</h3>
+                    <p className="mt-1 text-sm text-slate-400">FY 2026 · Eur · fuso CET</p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className="rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-[12px] text-white/70 backdrop-blur-[20px]"
-                      style={{ WebkitBackdropFilter: 'blur(20px)' }}
-                    >
+                    <span className="glass-surface rounded-xl px-3 py-2 text-[12px] text-slate-400">
                       Cerca ovunque… ⌘K
                     </span>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#3730A3]/40 text-sm font-semibold text-white/90">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#3730A3]/40 text-sm font-semibold text-white">
                       TB
                     </span>
                   </div>
@@ -498,14 +494,14 @@ function DesktopWorkspaceMock() {
                   <div className="relative z-[1] flex flex-1 flex-col gap-5 p-4 sm:p-6">
                     <GlassPanel className="p-5 sm:p-6">
                       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-[13px] font-semibold uppercase tracking-wider text-white/90">
+                        <span className="text-[13px] font-semibold uppercase tracking-wider text-white">
                           Andamento mensile
                         </span>
                         <div className="flex flex-wrap gap-2">
-                          <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] text-white/70">
+                          <span className="glass-surface rounded-lg px-2.5 py-1 text-[11px] text-slate-400">
                             Bolle vs fatture
                           </span>
-                          <span className="rounded-lg border border-[#22d3ee]/35 bg-[#22d3ee]/10 px-2.5 py-1 text-[11px] text-[#67e8f9]">
+                          <span className="rounded-lg bg-[#38bdf8] px-2.5 py-1 text-[11px] font-semibold text-slate-950">
                             Esporta (mockup)
                           </span>
                         </div>
@@ -513,7 +509,7 @@ function DesktopWorkspaceMock() {
                       <div className="flex flex-row items-end gap-4">
                         <div className="min-w-0 flex-1">
                           <FakeLineChartWide uid="desk" />
-                          <div className="mt-1 flex justify-between text-[11px] text-white/70">
+                          <div className="mt-1 flex justify-between text-[11px] text-slate-400">
                             {['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'].map((m) => (
                               <span key={m}>{m}</span>
                             ))}
@@ -538,7 +534,7 @@ function DesktopWorkspaceMock() {
                     </GlassPanel>
                     <div className="grid gap-5 lg:grid-cols-12 lg:gap-6">
                       <div className="lg:col-span-8">
-                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/90">
+                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white">
                           KPI operatore
                         </p>
                         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -548,22 +544,22 @@ function DesktopWorkspaceMock() {
                                 aria-hidden
                                 className={`absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r ${k.bar}`}
                               />
-                              <p className="text-[11px] font-medium text-white/90">{k.title}</p>
+                              <p className="text-[11px] font-medium text-white">{k.title}</p>
                               <p className={`mt-2 text-2xl font-semibold tracking-tight tabular-nums ${k.accent}`}>
                                 {k.value}
                               </p>
-                              <p className="mt-1.5 text-[12px] text-white/70">{k.sub}</p>
+                              <p className="mt-1.5 text-[12px] text-slate-400">{k.sub}</p>
                             </GlassPanel>
                           ))}
                         </div>
                         <GlassPanel className="mt-5 p-5">
-                          <p className="text-[13px] font-semibold uppercase tracking-wide text-white/90">
+                          <p className="text-[13px] font-semibold uppercase tracking-wide text-white">
                             Fluxo scanner · score anomalie
                           </p>
                           <div className="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
-                              <p className="text-[11px] text-white/70">Coda elaborata &lt; 24 h</p>
-                              <p className="mt-1 text-3xl font-semibold tabular-nums text-white/90">78%</p>
+                              <p className="text-[11px] text-slate-400">Coda elaborata &lt; 24 h</p>
+                              <p className="mt-1 text-3xl font-semibold tabular-nums text-white">78%</p>
                               <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
                                 <div
                                   className="h-full w-[78%] rounded-full"
@@ -573,16 +569,16 @@ function DesktopWorkspaceMock() {
                                 />
                               </div>
                             </div>
-                            <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                              <p className="text-[11px] text-white/70">Risk score sintetico</p>
+                            <div className="glass-surface flex flex-col justify-center rounded-xl px-4 py-3">
+                              <p className="text-[11px] text-slate-400">Risk score sintetico</p>
                               <p className="mt-2 text-xl font-semibold uppercase tracking-wide text-[#a3e635]">Basso</p>
-                              <p className="mt-1 text-[12px] text-white/70">rekki · duplicati · listino</p>
+                              <p className="mt-1 text-[12px] text-slate-400">rekki · duplicati · listino</p>
                             </div>
                           </div>
                         </GlassPanel>
                       </div>
                       <div className="lg:col-span-4">
-                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/90">
+                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white">
                           Priorità
                         </p>
                         <GlassPanel className="divide-y divide-white/10">
@@ -597,25 +593,25 @@ function DesktopWorkspaceMock() {
                               type="button"
                               className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.06]"
                             >
-                              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#22d3ee]/30 bg-[#22d3ee]/10 text-[#e0f2fe]">
+                              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#38bdf8]/35 bg-[#38bdf8]/12 text-[#38bdf8]">
                                 ◈
                               </span>
                               <div className="min-w-0">
-                                <p className="text-[13px] font-medium leading-snug text-white/90">{row.t}</p>
-                                <p className="mt-0.5 text-[12px] leading-snug text-white/70">{row.d}</p>
+                                <p className="text-[13px] font-medium leading-snug text-white">{row.t}</p>
+                                <p className="mt-0.5 text-[12px] leading-snug text-slate-400">{row.d}</p>
                               </div>
                             </button>
                           ))}
                         </GlassPanel>
                         <GlassPanel className="mt-4 p-4">
-                          <p className="text-[11px] font-medium uppercase tracking-wide text-white/90">Suggerimento</p>
-                          <p className="mt-2 text-[13px] leading-relaxed text-white/70">
+                          <p className="text-[11px] font-medium uppercase tracking-wide text-white">Suggerimento</p>
+                          <p className="mt-2 text-[13px] leading-relaxed text-slate-400">
                             Allinea i fornitori mancanti in coda Scanner prima del closing mensile — meno mismatch in
                             listino e nelle approvazioni.
                           </p>
                           <button
                             type="button"
-                            className="mt-3 w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-left text-[12px] font-medium text-white/90 hover:bg-white/[0.12]"
+                            className="mt-3 w-full rounded-xl bg-[#38bdf8] px-3 py-2.5 text-left text-[12px] font-semibold text-slate-950 transition hover:brightness-110 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#38bdf8]/50"
                           >
                             Apri coda Scanner (mockup)
                           </button>
@@ -636,10 +632,10 @@ function DesktopWorkspaceMock() {
 function DeepAuroraFloatingTitle(props: { subtitle?: string }) {
   return (
     <div className="px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-center">
-      <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.30em] text-white [text-shadow:0_0_18px_rgba(34,211,238,.4),0_0_40px_rgba(124,58,237,.25)] sm:text-[10px] sm:tracking-[0.26em]">
+      <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.30em] text-white [text-shadow:0_0_18px_rgba(56,189,248,.35),0_0_36px_rgba(124,58,237,.22)] sm:text-[10px] sm:tracking-[0.26em]">
         Deep Aurora Intelligence
       </p>
-      {props.subtitle ? <p className="mt-2 text-[11px] text-white/70">{props.subtitle}</p> : null}
+      {props.subtitle ? <p className="mt-2 text-[11px] text-slate-400">{props.subtitle}</p> : null}
     </div>
   )
 }
@@ -686,19 +682,19 @@ function PhoneOpportunityStrip() {
   ]
   return (
     <GlassPanel className="p-3">
-      <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">
+      <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-white">
         Opportunità top
       </p>
       <div className="grid grid-cols-4 gap-2">
         {cells.map(({ Icon, label }) => (
           <div
             key={label}
-            className="flex flex-col items-center gap-2 rounded-xl border border-cyan-400/30 bg-black/30 px-1 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,.05),0_0_24px_-10px_rgba(34,211,238,.3)] backdrop-blur-sm"
+            className="glass-surface flex flex-col items-center gap-2 rounded-xl px-1 py-3 shadow-inner shadow-black/20"
           >
-            <div className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-cyan-300/35 bg-black/35 text-[#d2f9ff] shadow-[0_0_14px_-2px_rgba(34,211,238,.45)]">
+            <div className="glass-surface flex h-[34px] w-[34px] items-center justify-center rounded-lg text-[#38bdf8] shadow-[0_0_12px_-2px_rgba(56,189,248,.35)]">
               <Icon />
             </div>
-            <span className="hyphens-auto text-center text-[7.5px] font-semibold uppercase leading-snug tracking-wide text-white/80">
+            <span className="hyphens-auto text-center text-[7.5px] font-semibold uppercase leading-snug tracking-wide text-white">
               {label}
             </span>
           </div>
@@ -711,9 +707,9 @@ function PhoneOpportunityStrip() {
 function PhoneShell(props: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex w-full max-w-[360px] shrink-0 flex-col">
-      <p className="mb-3 text-center text-xs font-medium tracking-wide text-white/70">{props.label}</p>
+      <p className="mb-3 text-center text-xs font-medium tracking-wide text-slate-400">{props.label}</p>
       <div
-        className="relative flex max-h-[min(720px,calc(100vh-160px))] min-h-[560px] flex-col overflow-hidden rounded-[2.45rem] border border-cyan-400/45 shadow-[0_0_48px_-12px_rgba(34,211,238,.35),0_24px_80px_-20px_rgba(0,0,0,.85)]"
+        className="relative flex max-h-[min(720px,calc(100vh-160px))] min-h-[560px] flex-col overflow-hidden rounded-[2.45rem] border border-white/10 shadow-[0_24px_80px_-20px_rgba(0,0,0,.75)]"
       >
         <AuroraWallpaper />
         <div className="relative z-[2] flex flex-1 flex-col overflow-y-auto">{props.children}</div>
@@ -732,17 +728,16 @@ export default function MockupAuroraPage() {
       />
       <div className="relative z-[1] mx-auto min-h-dvh w-full max-w-[1600px] flex-1 px-4 py-8 pb-16 font-[family-name:var(--font-outfit)] sm:px-6 lg:py-12">
         <GlassPanel className="mx-auto mb-10 max-w-3xl px-5 py-4 text-center sm:px-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#67e8f9]">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#38bdf8]">
             Deep Aurora · Asset Guide
           </p>
-          <h1 className="mt-1 text-lg font-semibold text-white/90 sm:text-xl">
+          <h1 className="mt-1 text-lg font-semibold text-white sm:text-xl">
             Dashboard Purchase Intelligence — mockup
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-white/70">
-            Aggiornato per avvicinarsi al render promozionale: aurora fluida dentro ogni cornice telefono, vetro con bordo
-            cyan luminoso, tre serie color (verde / giallo / blu) con glow, card opportunità a griglia come nel concept,
-            barra inferiore con tratto brillante sulla tab attiva. URL:{' '}
-            <code className="rounded-md border border-white/10 bg-black/35 px-1.5 py-0.5 text-[#67e8f9]">
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            Palette navy / royal blue / indaco, vetro 3&nbsp;% + blur 16px, tipografia titoli bianco (#fff) e testo
+            secondario #94a3b8 (slate‑400); CTA accent #38bdf8 con testo scuro per contrasto. URL:{' '}
+            <code className="glass-surface rounded-md px-1.5 py-0.5 font-mono text-[12px] text-[#38bdf8]">
               /mockup/aurora
             </code>
           </p>
@@ -750,7 +745,7 @@ export default function MockupAuroraPage() {
 
         <DesktopWorkspaceMock />
 
-        <h2 className="mx-auto mb-8 max-w-2xl text-center text-xs font-semibold uppercase tracking-[0.2em] text-white/90">
+        <h2 className="mx-auto mb-8 max-w-2xl text-center text-xs font-semibold uppercase tracking-[0.2em] text-white">
           Versione smartphone (cornici tipo device)
         </h2>
 
@@ -761,19 +756,19 @@ export default function MockupAuroraPage() {
               <GlassPanel className="p-4">
                 <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/95">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
                       Insight mensili
                     </span>
-                    <p className="mt-1 text-[10px] text-white/70">Trend di risparmio</p>
+                    <p className="mt-1 text-[10px] text-slate-400">Trend di risparmio</p>
                   </div>
-                  <span className="shrink-0 rounded-lg border border-cyan-400/35 bg-black/35 px-2 py-1 text-[10px] font-medium text-[#93f8ff]/95">
+                  <span className="glass-surface shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold text-[#38bdf8]">
                     Grafico ▾
                   </span>
                 </div>
                 <div className="mt-3 flex gap-2">
                   <div className="min-w-0 flex-1 pt-1">
                     <FakeLineChart uid="ph1-line" />
-                    <div className="mt-2 flex justify-between text-[10px] text-white/70">
+                    <div className="mt-2 flex justify-between text-[10px] text-slate-400">
                       {['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'].map((m) => (
                         <span key={m}>{m}</span>
                       ))}
@@ -798,20 +793,20 @@ export default function MockupAuroraPage() {
               </GlassPanel>
               <div className="grid grid-cols-2 gap-2">
                 <GlassPanel className="p-3">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/85">
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white">
                     Velocità acquisti
                   </p>
-                  <p className="mt-2 text-2xl font-bold tabular-nums text-white/95 drop-shadow-[0_0_12px_rgba(255,255,255,.35)]">
+                  <p className="mt-2 text-2xl font-bold tabular-nums text-white drop-shadow-[0_0_12px_rgba(255,255,255,.35)]">
                     78%
                   </p>
-                  <p className="mt-1 text-[10px] text-white/70">vs obiettivo FY</p>
+                  <p className="mt-1 text-[10px] text-slate-400">vs obiettivo FY</p>
                 </GlassPanel>
                 <GlassPanel className="p-3">
-                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/85">Risk score</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white">Risk score</p>
                   <p className="mt-2 text-xl font-bold uppercase tracking-wide text-[#4ade80] drop-shadow-[0_0_14px_rgba(74,222,128,.75)]">
                     Low
                   </p>
-                  <p className="mt-1 text-[10px] text-white/70">portfolio sicuro</p>
+                  <p className="mt-1 text-[10px] text-slate-400">portfolio sicuro</p>
                 </GlassPanel>
               </div>
             </div>
@@ -820,7 +815,7 @@ export default function MockupAuroraPage() {
 
           <PhoneShell label="Schermata 2 · KPI in vetro affiancati">
             <DeepAuroraFloatingTitle />
-            <p className="px-4 pb-1 text-center text-xs font-semibold text-white/90">Riepilogo operativo</p>
+            <p className="px-4 pb-1 text-center text-xs font-semibold text-white">Riepilogo operativo</p>
             <div className="flex-1 space-y-2.5 px-4 pb-2">
               {DESKTOP_KPIS.map((k) => (
                 <GlassPanel key={k.title} className="relative overflow-hidden p-3.5">
@@ -830,11 +825,11 @@ export default function MockupAuroraPage() {
                   />
                   <div className="relative flex justify-between gap-3">
                     <div>
-                      <p className="text-[11px] font-medium text-white/90">{k.title}</p>
+                      <p className="text-[11px] font-medium text-white">{k.title}</p>
                       <p className={`mt-1 text-2xl font-semibold tabular-nums ${k.accent}`}>{k.value}</p>
-                      <p className="mt-1 text-[11px] text-white/70">{k.sub}</p>
+                      <p className="mt-1 text-[11px] text-slate-400">{k.sub}</p>
                     </div>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]">
+                    <div className="glass-surface flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
                       <span className={`text-lg font-light ${k.accent}`}>→</span>
                     </div>
                   </div>
@@ -849,15 +844,14 @@ export default function MockupAuroraPage() {
             <div className="flex flex-1 flex-col gap-3 px-4 pb-2 pt-2">
               <PhoneOpportunityStrip />
               <GlassPanel className="p-4">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">Azioni consigliate</p>
-                <p className="mt-3 text-[12px] leading-relaxed text-white/70">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white">Azioni consigliate</p>
+                <p className="mt-3 text-[12px] leading-relaxed text-slate-400">
                   Verifica prima i contratti vendor in scadenza e allinea gli alert sicurezza: massimo impatto sul
                   benchmark di risparmio.
                 </p>
                 <button
                   type="button"
-                  className="mt-4 w-full rounded-xl border border-cyan-400/40 bg-[#22d3ee]/15 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-[#b6faff] shadow-[0_0_22px_-6px_rgba(34,211,238,.6)] backdrop-blur-sm"
-                  style={{ WebkitBackdropFilter: 'blur(12px)' }}
+                  className="mt-4 w-full rounded-xl bg-[#38bdf8] py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-slate-950 shadow-md transition hover:brightness-110 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#38bdf8]/50"
                 >
                   Apri workflow demo
                 </button>
