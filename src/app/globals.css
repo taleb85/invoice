@@ -1221,23 +1221,14 @@ body:has([data-deep-aurora-integration]) .app-workspace-scrim > .app-card {
   }
 }
 
-/** Card/sezioni tipo `SUMMARY_HIGHLIGHT_SURFACE_CLASS` (marker `.app-summary-highlight-surface`). */
+/** Card/sezioni `SUMMARY_HIGHLIGHT_SURFACE_CLASS`: bordo Aurora, niente fill sul canvas. */
 body:has([data-deep-aurora-integration]) .app-summary-highlight-surface,
 body:has([data-deep-aurora-public-shell]) .app-summary-highlight-surface {
   border: 1px solid rgb(148 163 184 / 0.28) !important;
-  background: rgb(255 255 255 / 0.045) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow:
-    0 4px 28px rgb(0 0 0 / 0.28),
-    inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
-}
-
-/** Solo strip header pagina (`SUMMARY_HIGHLIGHT_HEADER_STRIP_SURFACE_CLASS`): niente fill sul canvas Aurora. */
-body:has([data-deep-aurora-integration]) .app-summary-highlight-header-strip-surface,
-body:has([data-deep-aurora-public-shell]) .app-summary-highlight-header-strip-surface {
-  background: transparent !important;
   box-shadow: none !important;
 }
 
