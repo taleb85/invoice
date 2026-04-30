@@ -40,6 +40,7 @@ import { checkResultMatchesVerificaProdotto } from '@/lib/listino-display'
 import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fattura'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
+import { DOCUMENTI_PENDING_STATI_API_DEFAULT } from '@/lib/documenti-queue-stato'
 
 async function parsePendingQueueMutationError(res: Response): Promise<string> {
   try {
@@ -1096,11 +1097,7 @@ export function PendingMatchesTab({
     autoPendingKindTriedRef.current = new Set()
     try {
       const params = new URLSearchParams()
-      if (filter === 'in_attesa') {
-        params.set('stati', 'da_revisionare')
-      } else {
-        params.set('stati', 'in_attesa,da_associare,bozza_creata,da_revisionare')
-      }
+      params.set('stati', DOCUMENTI_PENDING_STATI_API_DEFAULT)
       if (sedeId) params.set('sede_id', sedeId)
       if (fornitoreId) params.set('fornitore_id', fornitoreId)
       if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
@@ -1233,7 +1230,7 @@ export function PendingMatchesTab({
           if (postErrCount && firstPostErr) {
             showToast(firstPostErr, 'error')
           } else if (!bolleFetchErr) {
-            showToast(t.statements.bulkAutoMatchNone, 'success')
+            showToast(t.statements.bulkAutoMatchNone, 'info')
           }
         } else {
           showToast(
@@ -1251,7 +1248,6 @@ export function PendingMatchesTab({
       setBulkAnalyzing(false)
     }
   }, [
-    filter,
     sedeId,
     fornitoreId,
     year,

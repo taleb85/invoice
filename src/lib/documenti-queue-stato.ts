@@ -41,3 +41,6 @@ export const DOCUMENTI_PENDING_FILTER_STATES: DocumentoDaProcessareStato[] = [
   'da_revisionare',
   'bozza_creata',
 ]
+
+/** Comma `stati` per GET `/api/documenti-da-processare` uguale al default API (GET senza `stati`). */
+export const DOCUMENTI_PENDING_STATI_API_DEFAULT = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa'].join(',')
