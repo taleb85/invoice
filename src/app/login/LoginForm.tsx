@@ -282,9 +282,60 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     setGateUiReady(true)
   }, [sessionGateNext, meLoading, me?.user, me?.role, router])
 
+  const handleDeviceWelcomeAccedi = useCallback(async () => {
+    const devId = readSpDeviceId()
+    const prof = deviceRestoreGateProfileRef.current
+    if (!devId || !prof?.id || !prof.email) {
+      setMessage({ type: 'error', text: t.ui.networkError })
+      return
+    }
+    setAccessoDevicePhase('restoring')
+    setMessage(null)
+    try {
+      const rs = await fetch('/api/auth/device-restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: devId }),
+        credentials: 'same-origin',
+      })
+      if (!rs.ok) {
+        setAccessoDevicePhase('bentornato')
+        setMessage({ type: 'error', text: t.login.notFound })
+        return
+      }
+      markClientSessionJustEstablished()
+      revalidateMe()
+      suppressAccessoOperatorGridRef.current = true
+      deviceFromBentornatoRef.current = true
+      deviceAutoDoneRef.current = true
+      setNetflixSelected({
+        id: prof.id,
+        full_name: (prof.full_name?.trim() || prof.email) as string,
+      })
+      resolvedEmail.current = prof.email
+      setNameReady(true)
+      setSedeNome(prof.sedeNome)
+      try {
+        if (prof.sedeNome) localStorage.setItem('fluxo-last-sede-nome', prof.sedeNome)
+      } catch {
+        /* ignore */
+      }
+      setNetflixSedeName(prof.sedeNome)
+      setSedeLocale(localeFromCountryCode(prof.countryCode))
+      setPin(Array(PIN_LENGTH).fill(''))
+      setNetflixStep('pin')
+      setAccessoDevicePhase('idle')
+      setAccessoContentReady(true)
+      router.refresh()
+    } catch {
+      setAccessoDevicePhase('bentornato')
+      setMessage({ type: 'error', text: t.ui.networkError })
+    }
+  }, [revalidateMe, router, t.login.notFound, t.ui.networkError])
+
   /**
-   * /accesso: con `sp_device_id` registrato, mostra Bentornato + «Accedi» (niente sessione automatica).
-   * Il ripristino JWT e il PIN avvengono solo dopo il tap.
+   * /accesso: con `sp_device_id` presente in localStorage, se il server riconosce il dispositivo
+   * ripristina la sessione e mostra subito il PIN (stesso flusso di «Accedi», senza schermata Bentornato).
    */
   useEffect(() => {
     if (!sessionGateNext) return
@@ -338,7 +389,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           sedeNome: j.sede?.nome ?? null,
           countryCode: j.sede?.country_code ?? null,
         }
-        setAccessoDevicePhase('bentornato')
+        if (cancelled) return
+        await handleDeviceWelcomeAccedi()
       } catch {
         if (!cancelled) {
           deviceAutoDoneRef.current = true
@@ -351,58 +403,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     return () => {
       cancelled = true
     }
-  }, [sessionGateNext, gateUiReady, meLoading, me?.user, me?.role])
-
-  const handleDeviceWelcomeAccedi = useCallback(async () => {
-    const devId = readSpDeviceId()
-    const prof = deviceRestoreGateProfileRef.current
-    if (!devId || !prof?.id || !prof.email) {
-      setMessage({ type: 'error', text: t.ui.networkError })
-      return
-    }
-    setAccessoDevicePhase('restoring')
-    setMessage(null)
-    try {
-      const rs = await fetch('/api/auth/device-restore', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deviceId: devId }),
-        credentials: 'same-origin',
-      })
-      if (!rs.ok) {
-        setAccessoDevicePhase('bentornato')
-        setMessage({ type: 'error', text: t.login.notFound })
-        return
-      }
-      markClientSessionJustEstablished()
-      revalidateMe()
-      suppressAccessoOperatorGridRef.current = true
-      deviceFromBentornatoRef.current = true
-      deviceAutoDoneRef.current = true
-      setNetflixSelected({
-        id: prof.id,
-        full_name: (prof.full_name?.trim() || prof.email) as string,
-      })
-      resolvedEmail.current = prof.email
-      setNameReady(true)
-      setSedeNome(prof.sedeNome)
-      try {
-        if (prof.sedeNome) localStorage.setItem('fluxo-last-sede-nome', prof.sedeNome)
-      } catch {
-        /* ignore */
-      }
-      setNetflixSedeName(prof.sedeNome)
-      setSedeLocale(localeFromCountryCode(prof.countryCode))
-      setPin(Array(PIN_LENGTH).fill(''))
-      setNetflixStep('pin')
-      setAccessoDevicePhase('idle')
-      setAccessoContentReady(true)
-      router.refresh()
-    } catch {
-      setAccessoDevicePhase('bentornato')
-      setMessage({ type: 'error', text: t.ui.networkError })
-    }
-  }, [revalidateMe, router, t.login.notFound, t.ui.networkError])
+  }, [sessionGateNext, gateUiReady, meLoading, me?.user, me?.role, handleDeviceWelcomeAccedi])
 
   const loadAccessoOperatorGrid = useCallback(async () => {
     if (!sessionGateNext) return
@@ -1178,7 +1179,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       '{name}',
       accessoWelcomeName && accessoWelcomeName.length > 0 ? accessoWelcomeName : '—',
     )
-    const showBentornatoCta = accessoDevicePhase === 'bentornato' || accessoDevicePhase === 'restoring'
+    const showBentornatoCta = accessoDevicePhase === 'bentornato'
     return (
       <div className="mx-auto flex min-h-[50vh] w-full max-w-sm flex-col items-center justify-center gap-4 px-4 text-center">
         {showBentornatoCta ? (
