@@ -1220,7 +1220,8 @@ body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear
 }
 
 /**
- * Menu lingua (rail): slate solido di default (tablet / stacking). Con Aurora autenticata → trasparenza sotto.
+ * Menu lingua (rail): pannello **sufficientemente opaco** così, aprendosi sopra la lista fornitori,
+ * il testo sotto non interferisce con le voci (Aurora inclusa — stesso trattamento).
  */
 .app-sidebar-aside .app-sidebar-locale-menu.app-workspace-surface-elevated {
   border-color: rgb(148 163 184 / 0.42) !important;
@@ -1237,15 +1238,24 @@ body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear
     inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
 }
 
-body:has([data-deep-aurora-integration]) .app-sidebar-aside .app-sidebar-locale-menu.app-workspace-surface-elevated {
-  border-color: rgb(148 163 184 / 0.32) !important;
-  background-color: rgb(255 255 255 / 0.08) !important;
-  background-image: none !important;
+/**
+ * Stesso riempimento del blocco precedente, con selettori più forti così vince sempre su
+ * `body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated` (stessa classe sul nodo).
+ */
+body:has([data-deep-aurora-integration]) .app-sidebar-aside .app-sidebar-locale-menu.app-workspace-surface-elevated,
+[data-deep-aurora-integration] .app-sidebar-aside .app-sidebar-locale-menu.app-workspace-surface-elevated {
+  border-color: rgb(148 163 184 / 0.42) !important;
+  background-color: rgb(15 23 42) !important;
+  background-image: linear-gradient(
+    to bottom right,
+    rgb(51 65 85),
+    rgb(15 23 42)
+  ) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow:
-    0 16px 40px -8px rgb(0 0 0 / 0.38),
-    inset 0 1px 0 rgb(255 255 255 / 0.09) !important;
+    0 18px 52px rgb(0 0 0 / 0.55),
+    inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
 }
 
 body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {

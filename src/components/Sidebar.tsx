@@ -594,7 +594,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </nav>
 
         {/* ── Footer espandibile: riga contesto + pannello opzionale + riga icone ── */}
-        <div className="app-shell-rail-panel relative z-0 mt-auto flex shrink-0 flex-col border-t border-app-line-22 -mx-2.5 px-2.5 py-1.5 text-app-fg lg:-mx-3 lg:px-3">
+        <div className="app-shell-rail-panel relative z-20 mt-auto flex shrink-0 flex-col border-t border-app-line-22 -mx-2.5 px-2.5 py-1.5 text-app-fg lg:-mx-3 lg:px-3">
 
           {/* Riga 1 — contesto + chevron espandi */}
           <div className="flex items-center gap-1">
@@ -710,7 +710,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {/* Riga 2 — icone azioni in fila (nascosta quando il pannello è espanso) */}
           <div className={`flex items-center gap-0.5 pt-0.5 ${footerOpen ? 'hidden' : ''}`}>
             {/* Lingua */}
-            <div className="relative z-10">
+            <div className="relative z-[80]">
               <button
                 onClick={() => setLangOpen(o => !o)}
                 title={LOCALES.find(l => l.code === locale)?.label ?? locale}
@@ -723,7 +723,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 )}
               </button>
               {langOpen && (
-                <div className="app-sidebar-locale-menu absolute bottom-full left-0 z-20 mb-1 w-40 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-lg border border-app-line-28 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15">
+                <div className="app-sidebar-locale-menu absolute bottom-full left-0 z-[120] mb-1 w-40 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-lg border border-app-line-28 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15">
                   {LOCALES.map(l => (
                     <button
                       key={l.code}

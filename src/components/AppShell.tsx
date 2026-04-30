@@ -434,6 +434,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           (2) colonna destra unica: `#app-desktop-header-nav-progress` + `main` nello stesso contenitore flex.
         */}
         <div className="app-shell-workspace-canvas flex min-h-0 min-w-0 flex-1 flex-col md:grid md:min-h-0 md:grid-cols-[minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <DeepAuroraIntegration>
           <SidebarController />
 
           {/* ── Tablet sidebar overlay (md only, auto-close on navigate) ── */}
@@ -508,24 +509,23 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                   : 'pt-[calc(3.25rem+env(safe-area-inset-top,0px))]'
               } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
             >
-              <DeepAuroraIntegration>
-                <Suspense fallback={null}>
-                  <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
-                </Suspense>
-                <ErrorBoundary sectionName="barra di sincronizzazione" fallback={null}>
-                  <EmailSyncProgressBar />
-                </ErrorBoundary>
-                <ErrorBoundary sectionName="questa pagina">
-                  <BranchSessionGate>
-                    <Suspense fallback={null}>
-                      <AppMainScrollRestoration />
-                    </Suspense>
-                    {children}
-                  </BranchSessionGate>
-                </ErrorBoundary>
-              </DeepAuroraIntegration>
+              <Suspense fallback={null}>
+                <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
+              </Suspense>
+              <ErrorBoundary sectionName="barra di sincronizzazione" fallback={null}>
+                <EmailSyncProgressBar />
+              </ErrorBoundary>
+              <ErrorBoundary sectionName="questa pagina">
+                <BranchSessionGate>
+                  <Suspense fallback={null}>
+                    <AppMainScrollRestoration />
+                  </Suspense>
+                  {children}
+                </BranchSessionGate>
+              </ErrorBoundary>
             </main>
           </div>
+          </DeepAuroraIntegration>
         </div>
       </div>
       </DesktopHeaderPageActionsProvider>
