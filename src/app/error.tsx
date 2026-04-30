@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
+import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 import { getTranslations } from '@/lib/translations'
 import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
 
@@ -40,8 +41,7 @@ export default function RootErrorBoundary({
           </div>
         </div>
 
-        <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
+        <AuroraPanelShell tone="soft">
           <div className="space-y-4 px-8 py-8">
             <h1 className="app-page-title text-xl font-bold">{t.appStrings.errorGenericTitle}</h1>
             <p className="text-sm leading-relaxed text-app-fg-muted">{t.appStrings.errorGenericBody}</p>
@@ -68,7 +68,7 @@ export default function RootErrorBoundary({
               </Link>
             </div>
           </div>
-        </div>
+        </AuroraPanelShell>
 
         <p className="text-xs text-app-fg-muted">{t.appStrings.brandFooter}</p>
       </div>

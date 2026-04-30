@@ -8,6 +8,7 @@ import {
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
   AURORA_GLASS_CARD_TOP_BAR_CLASS,
+  AURORA_GLASS_PANEL_LAYOUT_CLASS,
 } from '@/lib/summary-highlight-accent'
 import ScannerFlowKpiButtons from '@/components/ScannerFlowKpiButtons'
 
@@ -286,7 +287,7 @@ export default function DashboardScannerFlowCard({
   if (glassShell) {
     return (
       <section
-        className="glass-card flex flex-col overflow-hidden"
+        className={AURORA_GLASS_PANEL_LAYOUT_CLASS}
         aria-label={t.dashboard.scannerFlowCardTitle}
       >
         <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />

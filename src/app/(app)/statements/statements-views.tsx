@@ -1015,6 +1015,9 @@ export function PendingMatchesTab({
   /** Una sola corsa «Abbina tutto» silenziosa dopo il caricamento elenco (per filtro/sede attuali). */
   const pendingSilentBulkRanRef = useRef(false)
   const prevSilentBulkPendingIdsKeyRef = useRef<string>('')
+  /** Ignora risposte più vecchie della richiesta più recente (bulk + evento layout sovrapposti). */
+  const docsFetchSeqRef = useRef(0)
+  const bolleFetchSeqRef = useRef(0)
   const [autoRegisterSetting, setAutoRegisterSetting] = useState(false)
   const [emailAutoSavedToday, setEmailAutoSavedToday] = useState<number | null>(null)
 
@@ -1075,6 +1078,7 @@ export function PendingMatchesTab({
   )
 
   const fetchDocs = useCallback(async () => {
+    const seq = ++docsFetchSeqRef.current
     setLoading(true)
     // Use the server-side API (service client) to bypass RLS so that documents
     // with sede_id = NULL (global IMAP / unknown sender) are visible to all users.
@@ -1095,11 +1099,14 @@ export function PendingMatchesTab({
     }
     const res = await fetch(`/api/documenti-da-processare?${params.toString()}`)
     const data = res.ok ? await res.json() : []
+    if (docsFetchSeqRef.current !== seq) return
     setDocs((data ?? []).map((d: Record<string, unknown>) => ({ ...d, is_statement: (d.is_statement as boolean | null) ?? false })) as Documento[])
+    if (docsFetchSeqRef.current !== seq) return
     setLoading(false)
   }, [filter, sedeId, fornitoreId, year, month, ledgerDateFrom, ledgerDateToExclusive])
 
   const fetchBolleAperte = useCallback(async () => {
+    const seq = ++bolleFetchSeqRef.current
     const parts: string[] = []
     if (sedeId) parts.push(`sede_id=${sedeId}`)
     if (fornitoreId) parts.push(`fornitore_id=${fornitoreId}`)
@@ -1107,6 +1114,7 @@ export function PendingMatchesTab({
     const res = await fetch(url)
     if (!res.ok) return
     const data = await res.json()
+    if (bolleFetchSeqRef.current !== seq) return
     setBolleAperte(
       (data ?? []).map((b: { id: string; data: string; importo: number | null; numero_bolla: string | null; fornitore_id: string; fornitori: { nome: string } | { nome: string }[] | null }) => ({
         id: b.id, data: b.data, importo: b.importo ?? null, numero_bolla: b.numero_bolla ?? null,
@@ -1317,8 +1325,10 @@ export function PendingMatchesTab({
       await fetchDocs()
       await fetchBolleAperte()
       await fetchFornitori()
-      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
-      router.refresh()
+      if (!silent) {
+        window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+        router.refresh()
+      }
 
       if (docFetchErr) {
         showToast(docFetchErr, 'error')

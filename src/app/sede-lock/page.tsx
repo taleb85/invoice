@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
+import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 import { LocaleProvider, useLocale } from '@/lib/locale-context'
 import { markSessionOperatorGateOk } from '@/lib/session-operator-gate'
 
@@ -138,19 +139,18 @@ function SedeLockPageInner() {
 
   if (fatalError) {
     return shell(
-      <div className="app-card-login flex flex-col overflow-hidden text-center">
-        <div className="app-card-bar shrink-0" aria-hidden />
+      <AuroraPanelShell className="text-center">
         <div className="space-y-4 p-8">
-        <p className="text-sm font-medium text-red-300">{fatalError}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="w-full rounded-lg bg-app-cyan-500 py-2.5 text-sm font-semibold text-cyan-950 transition-colors hover:bg-app-cyan-400"
-        >
-          {t.statements.btnRefresh}
-        </button>
+          <p className="text-sm font-medium text-red-300">{fatalError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="w-full rounded-lg bg-app-cyan-500 py-2.5 text-sm font-semibold text-cyan-950 transition-colors hover:bg-app-cyan-400"
+          >
+            {t.statements.btnRefresh}
+          </button>
         </div>
-      </div>,
+      </AuroraPanelShell>,
     )
   }
 
@@ -166,8 +166,8 @@ function SedeLockPageInner() {
         <p className="mt-1 text-center text-sm leading-snug">{lockDescription}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="app-card-login flex flex-col overflow-hidden">
-        <div className="app-card-bar shrink-0" aria-hidden />
+      <AuroraPanelShell>
+      <form onSubmit={handleSubmit} className="flex flex-col">
         <div className="space-y-4 p-8">
         <div>
           <label htmlFor="sede-access-code" className="mb-1.5 block text-sm font-medium text-app-fg-muted">
@@ -213,6 +213,7 @@ function SedeLockPageInner() {
         </button>
         </div>
       </form>
+      </AuroraPanelShell>
     </>,
   )
 }

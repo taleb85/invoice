@@ -18,7 +18,7 @@ import LoginBrandedHero from '@/components/LoginBrandedHero'
 import { PinNumpad } from '@/components/PinNumpad'
 import { SmartPairLogo } from '@/components/smart-pair-logo'
 import { formatAppVersionLabel } from '@/lib/app-build-info'
-import { AURORA_GLASS_CARD_TOP_BAR_CLASS } from '@/lib/summary-highlight-accent'
+import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -1238,11 +1238,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           </p>
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
-        <section
-          className="glass-card flex flex-col overflow-hidden"
-          aria-label={sedeT.netflixTitle}
-        >
-          <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
+        <AuroraPanelShell aria-label={sedeT.netflixTitle}>
           <div className="px-4 pb-2 pt-4 sm:px-6">
             <AvatarGrid
               operators={netflixOperators}
@@ -1272,13 +1268,12 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             </div>
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
-        </section>
+        </AuroraPanelShell>
         </div>
       </>
     )
   }
 
-  // ── Netflix: PIN step ──
   if (netflixStep === 'pin' && netflixSelected) {
     const sedeT = getTranslations(sedeLocale).login
     const [fg, bg] = avatarColors(netflixSelected.full_name)
@@ -1288,8 +1283,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         {deviceTrustUi}
         <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
         {accessoTopBar}
-        <section className="glass-card flex flex-col overflow-hidden" aria-labelledby="login-pin-heading">
-          <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
+        <AuroraPanelShell aria-labelledby="login-pin-heading">
           <div className="flex flex-col items-center gap-5 p-6 text-center">
             {/* Avatar selezionato */}
             <div className="flex flex-col items-center gap-3">
@@ -1430,7 +1424,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-2.5">
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
-        </section>
+        </AuroraPanelShell>
         </div>
       </>
     )
@@ -1461,9 +1455,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         remembered={!sedeNome && !!rememberedSede}
       />
 
-      {/* Stesso guscio `glass-card` della card Scanner in dashboard (Deep Aurora). */}
-      <section className="glass-card flex flex-col overflow-hidden">
-        <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
+      {/* Stesso guscio Aurora della card Scanner / KPI dashboard. */}
+      <AuroraPanelShell>
 
         <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
 
@@ -1853,7 +1846,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
           <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} sessionGateNext={sessionGateNext} />
         </div>
-      </section>
+      </AuroraPanelShell>
     </div>
     </>
   )

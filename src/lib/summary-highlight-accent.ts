@@ -126,6 +126,12 @@ export const AURORA_GLASS_CARD_TOP_BAR_CLASS =
   'h-1 shrink-0 bg-gradient-to-r from-sky-400/45 via-violet-500/35 to-cyan-400/40 md:h-1.5'
 
 /**
+ * Layout esterno delle card vetro Aurora (scanner, KPI, `AuroraPanelShell`): un solo look.
+ */
+export const AURORA_GLASS_PANEL_LAYOUT_CLASS =
+  'glass-card relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl'
+
+/**
  * Guscio esterno card/sezione: bordo top cyan unificato, sfondo semi-trasparente neutro.
  */
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =

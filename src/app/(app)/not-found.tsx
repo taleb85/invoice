@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cookies } from 'next/headers'
+import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 import { getTranslations, type Locale } from '@/lib/translations'
 
 const SUPPORTED: Locale[] = ['it', 'en', 'fr', 'de', 'es']
@@ -30,8 +31,7 @@ export default async function AppNotFound() {
           <span className="text-lg font-bold tracking-tight text-app-fg-muted">Smart Pair</span>
         </Link>
 
-        <div className="app-card-login flex flex-col overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
+        <AuroraPanelShell>
           <div className="space-y-5 px-8 py-8">
           <div className="space-y-1">
             <p className="select-none text-7xl font-black leading-none text-app-line-35">404</p>
@@ -65,8 +65,8 @@ export default async function AppNotFound() {
               {t.nav.fatture}
             </Link>
           </div>
-          </div>
         </div>
+        </AuroraPanelShell>
 
         <p className="text-xs text-app-fg-muted">{t.appStrings.brandFooter}</p>
       </div>

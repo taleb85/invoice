@@ -14,6 +14,7 @@ import { useActiveOperator } from '@/lib/active-operator-context'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { BackButton } from '@/components/BackButton'
+import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 import { navigateAfterDetailAction } from '@/lib/return-navigation-client'
 
 type OcrStatus = 'idle' | 'scanning' | 'done' | 'error'
@@ -283,8 +284,7 @@ export default function NuovaFatturaForm() {
 
         {/* Multi-bolla selector */}
         {fornitoreIdParam && (
-          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-app-soft-border">
-            <div className="app-card-bar shrink-0" aria-hidden />
+          <AuroraPanelShell className="relative border border-app-soft-border">
             <div className="p-5">
               <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
                 Bolle da coprire con questa fattura
@@ -328,12 +328,11 @@ export default function NuovaFatturaForm() {
                 </div>
               )}
             </div>
-          </div>
+          </AuroraPanelShell>
         )}
 
         {/* Numero fattura + importo */}
-        <div className="app-card-login overflow-hidden rounded-2xl">
-          <div className="app-card-bar" aria-hidden />
+        <AuroraPanelShell>
           <div className="border-b border-app-line-22 p-5">
             <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
               N° Fattura <span className="font-normal normal-case text-app-fg-muted">(opzionale)</span>
@@ -367,11 +366,10 @@ export default function NuovaFatturaForm() {
               </div>
             )}
           </div>
-        </div>
+        </AuroraPanelShell>
 
         {/* File fattura */}
-        <div className="app-card-login flex flex-col overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
+        <AuroraPanelShell>
           <div className="p-5">
           <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
             {t.fatture.fileFattura} <span className="text-red-400">*</span>
@@ -409,12 +407,11 @@ export default function NuovaFatturaForm() {
 
           <input ref={fileRef} type="file" accept="application/pdf" onChange={handleFile} className="hidden" />
           </div>
-        </div>
+        </AuroraPanelShell>
 
         {/* Registrato da */}
         {file && (
-          <div className="app-card-login relative flex flex-col overflow-hidden rounded-2xl border border-app-soft-border">
-            <div className="app-card-bar shrink-0" aria-hidden />
+          <AuroraPanelShell className="relative border border-app-soft-border">
             <div className="p-5">
             <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
               Registrato da
@@ -424,12 +421,11 @@ export default function NuovaFatturaForm() {
               className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-muted focus:outline-none focus:ring-0"
             />
             </div>
-          </div>
+          </AuroraPanelShell>
         )}
 
         {/* Data fattura */}
-        <div className="app-card-login overflow-hidden rounded-2xl">
-          <div className="app-card-bar" aria-hidden />
+        <AuroraPanelShell>
           <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : ''}`}>
             <div className="mb-2 flex items-center justify-between">
               <label className="block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
@@ -464,7 +460,7 @@ export default function NuovaFatturaForm() {
               {new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} — automatica
             </span>
           </div>
-        </div>
+        </AuroraPanelShell>
 
         {error && (
           <div className="flex items-start gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">

@@ -1067,9 +1067,10 @@ body:has([data-deep-aurora-public-shell]) {
 :is([data-deep-aurora-shell], [data-deep-aurora-integration], [data-deep-aurora-public-shell]) {
   --bg-base: #020617;
   --accent-color: #38bdf8;
-  --glass-bg: rgb(255 255 255 / 0.03);
-  --glass-border: rgb(255 255 255 / 0.1);
-  --glass-blur: 16px;
+  /** Pannelli vetro: stesso linguaggio visivo app (KPI, scanner, login, modali leggeri). */
+  --glass-bg: rgb(255 255 255 / 0.08);
+  --glass-border: rgb(56 189 248 / 0.26);
+  --glass-blur: 22px;
   --da-heading: #ffffff;
   --da-muted: #94a3b8;
   --app-fg-body: #ffffff;
@@ -1106,11 +1107,13 @@ body:has([data-deep-aurora-public-shell]) {
 
 :is([data-deep-aurora-shell], [data-deep-aurora-integration], [data-deep-aurora-public-shell]) .glass-card {
   background: var(--glass-bg) !important;
-  backdrop-filter: blur(var(--glass-blur)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%) !important;
   border: 1px solid var(--glass-border) !important;
   border-radius: 16px;
-  box-shadow: 0 4px 30px rgb(0 0 0 / 0.45);
+  box-shadow:
+    0 4px 28px rgb(0 0 0 / 0.34),
+    inset 0 1px 0 rgb(255 255 255 / 0.07);
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -1120,8 +1123,8 @@ body:has([data-deep-aurora-public-shell]) {
 
 :is([data-deep-aurora-shell], [data-deep-aurora-integration], [data-deep-aurora-public-shell]) .glass-surface {
   background: var(--glass-bg) !important;
-  backdrop-filter: blur(var(--glass-blur)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(165%) !important;
   border: 1px solid var(--glass-border) !important;
 }
 
@@ -1155,12 +1158,22 @@ body:has([data-deep-aurora-integration]) .app-workspace-scrim {
 }
 
 /** Card/sezioni tipo `SUMMARY_HIGHLIGHT_SURFACE_CLASS` (marker `.app-summary-highlight-surface`). */
-body:has([data-deep-aurora-integration]) .app-summary-highlight-surface:not(.glass-card) {
-  border-top-color: rgb(56 189 248 / 0.5) !important;
-  background: rgb(255 255 255 / 0.03) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  box-shadow: 0 4px 30px rgb(0 0 0 / 0.35) !important;
+body:has([data-deep-aurora-integration]) .app-summary-highlight-surface:not(.glass-card),
+body:has([data-deep-aurora-public-shell]) .app-summary-highlight-surface:not(.glass-card) {
+  border-color: rgb(56 189 248 / 0.28) !important;
+  border-top-color: rgb(56 189 248 / 0.52) !important;
+  border-left-color: rgb(56 189 248 / 0.2) !important;
+  border-right-color: rgb(56 189 248 / 0.2) !important;
+  border-bottom-color: rgb(255 255 255 / 0.06) !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  background: rgb(255 255 255 / 0.08) !important;
+  background-image: none !important;
+  backdrop-filter: blur(22px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
+  box-shadow:
+    0 4px 28px rgb(0 0 0 / 0.34),
+    inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
 }
 
 body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear {
@@ -1333,7 +1346,9 @@ body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet-header {
     inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
 }
 
-[data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent {
+/** Vetro più pieno: ex `.app-card-login-transparent`; `AuroraPanelShell tone="soft"`. */
+[data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent,
+[data-deep-aurora-public-shell] .glass-card.aurora-public-panel-soft {
   border-color: rgb(56 189 248 / 0.32) !important;
   border-top-color: rgb(56 189 248 / 0.58) !important;
   background-color: rgb(2 6 23 / 0.68) !important;
@@ -1351,7 +1366,6 @@ body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet-header {
     0 0 64px -18px rgb(56 189 248 / 0.24),
     inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
 }
-
 /* Pulsanti primari: se combina bg-app-cyan-500 + text-white, forza contrasto scuro (palette Aurora). */
 body:has([data-deep-aurora-shell]) .bg-app-cyan-500.text-white,
 body:has([data-deep-aurora-integration]) .bg-app-cyan-500.text-white,
@@ -1374,7 +1388,8 @@ body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
   }
 
   [data-deep-aurora-public-shell] .app-card-login,
-  [data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent {
+  [data-deep-aurora-public-shell] .app-card-login.app-card-login-transparent,
+  [data-deep-aurora-public-shell] .glass-card.aurora-public-panel-soft {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background-image: linear-gradient(

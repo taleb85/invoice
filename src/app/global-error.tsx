@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import './globals.css'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
+import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 import { getTranslations } from '@/lib/translations'
 import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
 
@@ -43,8 +44,7 @@ export default function GlobalError({
               </div>
             </div>
 
-            <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden text-left">
-              <div className="app-card-bar shrink-0" aria-hidden />
+            <AuroraPanelShell tone="soft" className="text-left">
               <div className="space-y-4 px-8 py-8">
                 <h1 className="app-page-title text-xl font-bold">{t.appStrings.errorFatalTitle}</h1>
                 <p className="text-sm leading-relaxed text-app-fg-muted">
@@ -72,7 +72,7 @@ export default function GlobalError({
                   </Link>
                 </div>
               </div>
-            </div>
+            </AuroraPanelShell>
 
             <p className="text-xs text-app-fg-muted">{t.appStrings.brandFooter}</p>
           </div>

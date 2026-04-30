@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
 import { useT } from '@/lib/use-t'
 
 export default function AppError({
@@ -29,8 +30,7 @@ export default function AppError({
           </div>
         </div>
 
-        <div className="app-card app-card-transparent overflow-hidden text-left">
-          <div className="app-card-bar" aria-hidden />
+        <AuroraPanelShell className="text-center">
           <div className="space-y-4 px-8 py-7 text-center">
           <h2 className="text-lg font-semibold text-app-fg">
             {t.appStrings.errorSegmentTitle}
@@ -80,7 +80,7 @@ export default function AppError({
             </Link>
           </div>
           </div>
-        </div>
+        </AuroraPanelShell>
       </div>
     </div>
   )
