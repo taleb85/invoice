@@ -5,10 +5,10 @@
 export const APP_SHELL_SECTION_PAGE_CLASS = 'w-full min-w-0 app-shell-page-padding'
 
 /**
- * Contenitore modifica / nuovo fornitore: stesso canale orizzontale della scheda fornitore (`max-w-[83rem]` + `fornitore-desktop-main-x`).
+ * Contenitore modifica / nuovo fornitore: stesso canale orizzontale della scheda fornitore (`fornitore-desktop-main-x`, senza cap interno).
  */
 export const APP_FORNITORE_FORM_PAGE_SHELL_CLASS =
-  'fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-[83rem] flex-col gap-3 pb-8 pt-2 md:gap-4 md:pb-10'
+  'fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-none flex-col gap-3 pb-8 pt-2 md:gap-4 md:pb-10'
 
 /** Stack verticale (header strip → contenuto) come la dashboard KPI; corpo trasparente sul canvas workspace. */
 export const APP_SHELL_SECTION_PAGE_STACK_CLASS =

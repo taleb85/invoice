@@ -5290,9 +5290,10 @@ function FornitoreDetailClient({
       <div className="hidden min-w-0 text-app-fg md:mx-4 md:mb-4 md:mt-2 md:block lg:mx-6 xl:mx-10">
         {/*
           Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
+          Nessun `max-w-*` interno: su schermi larghi usa tutta la colonna main (oltre al padding della classe).
         */}
         <div
-          className="fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-7xl flex-col md:pt-2 lg:pt-3"
+          className="fornitore-desktop-main-x mx-auto flex w-full min-w-0 max-w-none flex-col md:pt-2 lg:pt-3"
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
