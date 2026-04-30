@@ -606,7 +606,7 @@ export default function NuovaBollaForm() {
       ) : null}
       {/*
         Mobile: `fixed` sotto topbar (o sotto topbar+sync). Desktop: sticky in cima al contenuto.
-        Stessa forma della strip dashboard (`AppPageHeaderStrip`: card + app-card-bar + padding interno).
+        Stessa forma della strip dashboard (`AppPageHeaderStrip`: card + padding interno).
       */}
       <div
         className={`nuova-bolla-scanner-mobile-header app-shell-page-padding-x z-10 max-md:fixed max-md:left-0 max-md:right-0 md:sticky md:top-0 max-md:mt-2 md:mt-2 ${
@@ -623,7 +623,7 @@ export default function NuovaBollaForm() {
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
       </div>
-      {/* Riserva altezza strip + barra neon + padding (allineato a `AppPageHeaderStrip`). */}
+      {/* Riserva altezza strip + padding (allineato a `AppPageHeaderStrip`). */}
       <div className="h-[5.125rem] shrink-0 md:hidden" aria-hidden />
 
       <form
@@ -632,7 +632,6 @@ export default function NuovaBollaForm() {
       >
 
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="space-y-2 border-t border-app-line-10 app-workspace-inset-bg p-4">
             <p className={fieldLabelCls}>{t.bolle.scannerWhatLabel}</p>
             <div className="flex flex-wrap gap-1.5">
@@ -653,7 +652,6 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
           <label className={fieldLabelCls}>
             {t.bolle.fotoLabel}
@@ -745,7 +743,6 @@ export default function NuovaBollaForm() {
 
         {file && (
           <div className="app-card overflow-hidden ring-1 ring-app-a-30">
-            <div className="app-card-bar shrink-0" aria-hidden />
             <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
             <label className={fieldLabelCls}>
               Registrato da
@@ -766,7 +763,6 @@ export default function NuovaBollaForm() {
         )}
 
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
           <div className="mb-1.5 flex items-center justify-between">
             <label className={`min-w-0 shrink ${fieldLabelTextCls}`}>
@@ -849,7 +845,6 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="border-b border-app-line-15 app-workspace-inset-bg-soft p-4">
             <label className={fieldLabelCls}>
               {registrationTarget === 'fattura' ? t.fatture.colNumFattura : `N° Bolla / DDT`}{' '}
@@ -884,7 +879,6 @@ export default function NuovaBollaForm() {
         </div>
 
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className={`border-t border-app-line-10 p-4 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : 'app-workspace-inset-bg-soft'}`}>
             <div className="mb-1.5 flex items-center justify-between">
               <label className={`min-w-0 shrink ${fieldLabelTextCls}`}>

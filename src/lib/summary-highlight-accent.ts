@@ -120,10 +120,10 @@ export const SUMMARY_HIGHLIGHT_ACCENTS = {
 export type SummaryHighlightAccent = keyof typeof SUMMARY_HIGHLIGHT_ACCENTS
 
 /**
- * Layout esterno delle card vetro Aurora (scanner, KPI, `AuroraPanelShell`): un solo look.
+ * Layout esterno a tutta larghezza (KPI `glassShell`, scanner, `AuroraPanelShell`): solo struttura flex, senza classe `.glass-card`.
  */
 export const AURORA_GLASS_PANEL_LAYOUT_CLASS =
-  'glass-card relative flex w-full min-w-0 flex-col overflow-hidden rounded-2xl'
+  'relative flex w-full min-w-0 flex-col min-h-0'
 
 /**
  * Guscio esterno card/sezione: bordo neutro, sfondo semi-trasparente.

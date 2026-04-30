@@ -20,7 +20,7 @@ export type DataCardProps = {
 }
 
 /**
- * Card KPI unificata: bordo + barra glow (`StandardCard`) con icona ancorata in alto a destra.
+ * Card KPI: bordo + barra tema + icona in alto a destra.
  */
 export function DataCard({ accent, label, value, metadata, icon, className = '', padded = true }: DataCardProps) {
   const theme = SUMMARY_HIGHLIGHT_ACCENTS[accent]

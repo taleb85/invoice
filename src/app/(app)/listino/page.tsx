@@ -18,7 +18,6 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import { StandardCard } from '@/components/ui/StandardCard'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import {
@@ -113,7 +112,7 @@ export default async function ListinoOverviewPage(props: {
           {t.dashboard.operatorNoSede}
         </div>
       ) : rows.length === 0 ? (
-        <StandardCard accent="fuchsia">
+        <div className="min-w-0">
           <AppSectionEmptyState
             message={t.dashboard.listinoOverviewEmpty}
             icon={
@@ -137,7 +136,7 @@ export default async function ListinoOverviewPage(props: {
               {t.nav.fornitori} →
             </Link>
           </AppSectionEmptyState>
-        </StandardCard>
+        </div>
       ) : (
         <>
           {/* ── Vista card mobile ─────────────────────────────────── */}
@@ -176,7 +175,7 @@ export default async function ListinoOverviewPage(props: {
           </div>
 
           {/* ── Vista tabella desktop ─────────────────────────────── */}
-          <StandardCard accent="fuchsia" className="hidden md:block">
+          <div className="min-w-0 hidden md:block">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
@@ -216,7 +215,7 @@ export default async function ListinoOverviewPage(props: {
                 </tbody>
               </table>
             </div>
-          </StandardCard>
+          </div>
         </>
       )}
     </div>

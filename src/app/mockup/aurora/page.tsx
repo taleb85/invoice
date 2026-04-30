@@ -4,7 +4,7 @@ import { AURORA_GLASS_PANEL_LAYOUT_CLASS } from '@/lib/summary-highlight-accent'
 export const metadata: Metadata = {
   title: 'Mockup Aurora · anteprima',
   description:
-    'Mockup visivo con Deep Aurora Intelligence Asset Guide: navy, royal blue, indaco, glass-card e neon chart.',
+    'Mockup visivo con Deep Aurora Intelligence Asset Guide: navy, royal blue, indaco e neon chart.',
   robots: 'noindex, nofollow',
 }
 

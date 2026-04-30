@@ -5,7 +5,6 @@ import { useMemo, useState } from 'react'
 import type { Fornitore } from '@/types'
 import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import FornitoriCardsGrid from '@/components/FornitoriCardsGrid'
-import { StandardCard } from '@/components/ui/StandardCard'
 import { useT } from '@/lib/use-t'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
 
@@ -115,7 +114,7 @@ export default function FornitoriListSection({
         </NewFornitoreLink>
       </AppSectionFiltersBar>
 
-      <StandardCard accent="sky" className="!mb-0">
+      <div className="min-w-0 !mb-0">
         <FornitoriCardsGrid
           fornitori={filtered}
           cacheSourceFornitori={fornitori}
@@ -124,7 +123,7 @@ export default function FornitoriListSection({
           addFirstLabel={t.fornitori.addFirst}
           showAddWhenEmpty={!isSearchEmpty}
         />
-      </StandardCard>
+      </div>
     </div>
   )
 }

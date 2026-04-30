@@ -14,7 +14,6 @@ import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHe
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { PublicPdfOpenMenu } from '@/components/PublicPdfOpenMenu'
 import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
-import { StandardCard } from '@/components/ui/StandardCard'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { ActionLink } from '@/components/ui/ActionButton'
@@ -134,15 +133,15 @@ export default async function OrdiniOverviewPage(props: {
           {t.dashboard.operatorNoSede}
         </div>
       ) : rows.length === 0 ? (
-        <StandardCard accent="cyan">
+        <div className="min-w-0">
           <AppSectionEmptyState message={t.dashboard.ordiniOverviewEmpty}>
             <ActionLink href="/fornitori" intent="nav" size="sm" className="mt-4">
               {t.nav.fornitori} →
             </ActionLink>
           </AppSectionEmptyState>
-        </StandardCard>
+        </div>
       ) : (
-        <StandardCard accent="cyan">
+        <div className="min-w-0">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-sm">
               <thead>
@@ -199,7 +198,7 @@ export default async function OrdiniOverviewPage(props: {
               </tbody>
             </table>
           </div>
-        </StandardCard>
+        </div>
       )}
     </div>
   )

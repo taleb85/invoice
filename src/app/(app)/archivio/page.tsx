@@ -152,7 +152,6 @@ export default async function ArchivioPage() {
 
       {archivio.length === 0 ? (
         <div className="app-card overflow-hidden">
-          <div className="app-card-bar" aria-hidden />
           <AppSectionEmptyState message={t.fornitori.noSuppliers} messageClassName="text-app-fg-muted" density="comfortable">
             <NewFornitoreLink href="/fornitori/new" className={APP_SECTION_EMPTY_LINK_CLASS_COMPACT}>
               {t.fornitori.addFirst}
@@ -163,7 +162,6 @@ export default async function ArchivioPage() {
         <div className="space-y-4">
           {archivio.map((f) => (
             <div key={f.id} className="app-card overflow-hidden">
-              <div className="app-card-bar" aria-hidden />
 
               {/* Header fornitore */}
               <div className={`flex items-center gap-3 px-4 py-3 ${APP_SECTION_TABLE_HEAD_ROW}`}>

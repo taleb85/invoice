@@ -161,7 +161,6 @@ export default async function SedeProfilePage(props: {
         const loc = getLocale(sede.country_code)
         return (
           <div className="app-card mb-6 flex flex-col overflow-hidden">
-            <div className="app-card-bar shrink-0" aria-hidden />
             <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:gap-6">
             <div className="flex shrink-0 items-center gap-2 text-sm text-app-fg-muted">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,7 +210,6 @@ export default async function SedeProfilePage(props: {
           href={`/sedi/${sede_id}/statements`}
           className="app-card group flex flex-col overflow-hidden transition-all hover:border-app-line-40"
         >
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="flex flex-1 flex-col gap-3 p-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-app-line-15 transition-colors group-hover:bg-app-line-25">
             <svg className="h-5 w-5 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +230,6 @@ export default async function SedeProfilePage(props: {
           href={`/sedi/${sede_id}/discovery`}
           className="app-card group flex flex-col overflow-hidden transition-all hover:border-[rgba(34,211,238,0.15)]"
         >
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="flex flex-1 flex-col gap-3 p-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 transition-colors group-hover:bg-emerald-500/25">
             <svg className="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,7 +250,6 @@ export default async function SedeProfilePage(props: {
           href={`/sedi/${sede_id}/fornitori`}
           className="app-card group flex flex-col overflow-hidden transition-all hover:border-[rgba(34,211,238,0.15)]"
         >
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="flex flex-1 flex-col gap-3 p-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 transition-colors group-hover:bg-violet-500/25">
             <svg className="h-5 w-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

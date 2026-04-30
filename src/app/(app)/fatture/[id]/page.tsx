@@ -34,7 +34,6 @@ export default async function FatturaDetailPage(props: { params: Promise<{ id: s
 
       <div className="space-y-4">
         <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-6">
           <h2 className="mb-4 text-sm font-semibold text-app-fg">{t.fatture.dettaglio}</h2>
           <dl className="space-y-2 text-sm">
@@ -76,7 +75,6 @@ export default async function FatturaDetailPage(props: { params: Promise<{ id: s
         </div>
 
         <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-6">
           <h2 className="mb-3 text-sm font-semibold text-app-fg">{t.common.attachment}</h2>
           {fattura.file_url ? (

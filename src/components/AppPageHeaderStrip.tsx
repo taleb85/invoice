@@ -33,7 +33,7 @@ const innerRightClsDenseBase =
   'flex min-h-0 min-w-0 max-w-full shrink flex-wrap content-end justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
 
 /**
- * Titolo pagina con stesso effetto di `.app-card` (vetro, ring cyan, ombre neon) + barra (`.app-card-bar-accent` se tema).
+ * Titolo pagina con stesso effetto di `.app-card` + barra `.app-card-bar-accent` solo se `accent` è impostato.
  * Con `accent`, barra e bordo seguono la tinta della sezione (come `AppSummaryHighlightCard`).
  */
 export default function AppPageHeaderStrip({
@@ -85,7 +85,6 @@ export default function AppPageHeaderStrip({
         ? 'app-card flex flex-col overflow-hidden p-0'
         : 'app-card mb-6 flex flex-col overflow-hidden p-0 md:mb-8'
   const outer = [shell, className].filter(Boolean).join(' ')
-  const barClassName = theme ? `app-card-bar-accent shrink-0 ${theme.bar}` : 'app-card-bar shrink-0'
   const items = Children.toArray(children)
   const [first, ...rest] = items.length > 0 ? items : [null]
   const showMerged = accent != null && mergedSummary != null
@@ -125,7 +124,7 @@ export default function AppPageHeaderStrip({
 
   return (
     <div className={outer}>
-      <div className={barClassName} aria-hidden />
+      {theme ? <div className={`app-card-bar-accent shrink-0 ${theme.bar}`} aria-hidden /> : null}
       {showMerged ? (
         <>
           {headerRow}

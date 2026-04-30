@@ -71,7 +71,7 @@ type Props = {
 }
 
 const chartCardClass =
-  'relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-5 pt-5 pb-4'
+  'relative overflow-hidden rounded-xl border border-white/[0.1] bg-white/[0.045] px-5 pt-5 pb-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] backdrop-blur-md [-webkit-backdrop-filter:blur(16px)]'
 
 export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
   const t = useT()
@@ -98,24 +98,24 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        {/* KPI skeleton */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-24 animate-pulse rounded-2xl border border-[rgba(34,211,238,0.15)] bg-sky-500/5"
-            />
-          ))}
-        </div>
-        {/* Chart skeletons */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className={`h-[280px] animate-pulse rounded-2xl border border-[rgba(34,211,238,0.15)] bg-sky-500/5 ${i === 0 ? 'lg:col-span-2' : ''}`}
-            />
-          ))}
+      <div className="app-card-unified overflow-hidden rounded-2xl px-4 py-5 sm:p-6">
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]"
+              />
+            ))}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className={`h-[280px] animate-pulse rounded-xl border border-white/10 bg-white/[0.04] ${i === 0 ? 'lg:col-span-2' : ''}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -123,7 +123,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="app-card-unified flex min-h-[12rem] items-center justify-center overflow-hidden rounded-2xl px-4 py-12 sm:p-8">
         <p className="text-white/85">{error ?? t.appStrings.analyticsNoData}</p>
       </div>
     )
@@ -344,20 +344,17 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
         </div>
       </div>
 
-      {/* Summary row */}
+      {/* Summary row — sotto-capo vetro slate come i grafici */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5">
-          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
+        <div className={chartCardClass}>
           <p className="text-[11px] uppercase tracking-wider text-white/85">{t.appStrings.analyticsSummaryPendingDocs}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-white">{data.documentiPendenti}</p>
         </div>
-        <div className="relative overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5">
-          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
+        <div className={chartCardClass}>
           <p className="text-[11px] uppercase tracking-wider text-white/85">{t.appStrings.analyticsSummaryPendingNotes}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-white">{data.riconciliazione.inAttesa}</p>
         </div>
-        <div className="relative col-span-2 overflow-hidden rounded-2xl border border-[rgba(34,211,238,0.15)] bg-transparent px-4 pb-3 pt-3.5 lg:col-span-1">
-          <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-sky-500 via-sky-400 to-sky-600" aria-hidden />
+        <div className={`col-span-2 lg:col-span-1 ${chartCardClass}`}>
           <p className="text-[11px] uppercase tracking-wider text-white/85">{t.appStrings.analyticsSummaryArchivedInvoices}</p>
           <p className="mt-1 text-xl font-bold tabular-nums text-white">
             {data.spesaMensile.reduce((s, m) => s + m.fatture, 0)}

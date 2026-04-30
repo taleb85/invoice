@@ -17,7 +17,6 @@ import DashboardDuplicateFattureButton from '@/components/DashboardDuplicateFatt
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
-import { StandardCard } from '@/components/ui/StandardCard'
 import {
   APP_SECTION_AMOUNT_POSITIVE_CLASS,
   APP_PAGE_HEADER_STRIP_H1_CLASS,
@@ -182,7 +181,7 @@ export default async function FatturePage(props: {
         </div>
       ) : null}
 
-      <StandardCard accent="emerald">
+      <div className="min-w-0">
         {fatture.length === 0 ? (
           <AppSectionEmptyState message={t.fatture.noInvoices}>
             <ActionLink href="/fatture/new" intent="confirm" size="sm" className="mt-4">
@@ -194,7 +193,7 @@ export default async function FatturePage(props: {
             <FattureListWithDuplicates rows={fattureRowsClient} duplicatePayload={duplicatePayload} />
           </ErrorBoundary>
         )}
-      </StandardCard>
+      </div>
     </div>
   )
 }

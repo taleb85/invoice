@@ -185,7 +185,6 @@ export default function EditFornitore() {
       </AppPageHeaderStrip>
 
       <form onSubmit={handleSubmit} className={`${editSectionShellCls} mb-6`}>
-        <div className="app-card-bar" aria-hidden />
         <div className={editSectionBodyCls}>
           <div>
             <label className={labelCls}>{t.fornitori.nome} *</label>
@@ -312,7 +311,6 @@ export default function EditFornitore() {
       </form>
 
       <div className={editSectionShellCls}>
-        <div className="app-card-bar" aria-hidden />
         <div className={editSectionBodyCls}>
           <div>
             <h2 className="text-sm font-semibold text-app-fg">{t.fornitori.recognizedEmailsTitle}</h2>

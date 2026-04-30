@@ -228,7 +228,6 @@ export function EmailActivityLogPanel({
 
   return (
     <div className="app-card flex flex-col overflow-hidden">
-      <div className="app-card-bar" aria-hidden />
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">
         <p className="min-w-0 flex-1 text-sm text-app-fg">{summaryLine}</p>
         <button

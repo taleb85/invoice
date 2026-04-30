@@ -68,7 +68,6 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
       <div className="space-y-4">
         {/* Info + stato */}
         <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-app-fg">{t.bolle.dettaglio}</h2>
@@ -128,7 +127,6 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
         {/* Allegato */}
         {bolla.file_url && (
           <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-            <div className="app-card-bar shrink-0" aria-hidden />
             <div className="p-6">
             <h2 className="mb-3 text-sm font-semibold text-app-fg">{t.common.attachment}</h2>
             <OpenDocumentInAppButton
@@ -147,7 +145,6 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
 
         {fornitoreRekkiId && (
           <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-            <div className="app-card-bar shrink-0" aria-hidden />
             <div className="p-6">
             <h2 className="mb-2 text-sm font-semibold text-app-fg">{t.bolle.listinoRekkiRefTitle}</h2>
             <p className="mb-3 text-[11px] leading-snug text-app-fg-muted">{t.bolle.listinoRekkiRefHint}</p>
@@ -167,7 +164,6 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
 
         {/* Fatture collegate */}
         <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
-          <div className="app-card-bar shrink-0" aria-hidden />
           <div className="p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-app-fg">{t.bolle.fattureCollegate}</h2>

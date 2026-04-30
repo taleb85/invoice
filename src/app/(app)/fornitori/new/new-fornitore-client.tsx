@@ -121,7 +121,6 @@ export default function NewFornitoreForm() {
       </AppPageHeaderStrip>
 
       <form onSubmit={handleSubmit} className="app-card">
-        <div className="app-card-bar" aria-hidden />
         <div className="space-y-4 p-6">
           <div>
             <label className={labelCls}>{t.fornitori.nome} *</label>

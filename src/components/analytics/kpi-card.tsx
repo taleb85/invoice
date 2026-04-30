@@ -12,28 +12,28 @@ export type KpiCardProps = {
 
 const colorMap = {
   cyan: {
-    border: 'border-app-soft-border',
-    bar: 'bg-gradient-to-r from-cyan-400 via-cyan-500 to-teal-700 shadow-[0_0_16px_rgba(34,211,238,0.35)]',
+    border: 'border-white/10',
+    bar: 'bg-gradient-to-r from-cyan-400/90 via-cyan-500/85 to-teal-800/70',
     badge: 'bg-[#22d3ee]/10 text-[#22d3ee]',
   },
   purple: {
-    border: 'border-[rgba(34,211,238,0.15)]',
-    bar: 'bg-gradient-to-r from-violet-500 via-violet-400 to-violet-800 shadow-[0_0_16px_rgba(139,92,246,0.4)]',
+    border: 'border-white/10',
+    bar: 'bg-gradient-to-r from-violet-500/90 via-violet-400/80 to-violet-800/75',
     badge: 'bg-violet-400/10 text-violet-300',
   },
   green: {
-    border: 'border-[rgba(34,211,238,0.15)]',
-    bar: 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-700 shadow-[0_0_16px_rgba(16,185,129,0.4)]',
+    border: 'border-white/10',
+    bar: 'bg-gradient-to-r from-emerald-500/90 via-emerald-400/85 to-emerald-800/72',
     badge: 'bg-emerald-400/10 text-emerald-400',
   },
   red: {
-    border: 'border-[rgba(34,211,238,0.15)]',
-    bar: 'bg-gradient-to-r from-rose-500 via-rose-400 to-rose-700 shadow-[0_0_16px_rgba(244,63,94,0.4)]',
+    border: 'border-white/10',
+    bar: 'bg-gradient-to-r from-rose-500/88 via-rose-400/82 to-rose-800/72',
     badge: 'bg-rose-400/10 text-rose-400',
   },
   amber: {
-    border: 'border-[rgba(34,211,238,0.15)]',
-    bar: 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-700 shadow-[0_0_16px_rgba(245,158,11,0.4)]',
+    border: 'border-white/10',
+    bar: 'bg-gradient-to-r from-amber-500/90 via-amber-400/82 to-amber-800/70',
     badge: 'bg-amber-400/10 text-amber-300',
   },
 }
@@ -54,7 +54,7 @@ export function KpiCard({
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={`relative overflow-hidden rounded-2xl border ${c.border} bg-transparent transition-all ${onClick ? 'cursor-pointer hover:brightness-110 active:scale-[0.99]' : ''}`}
+      className={`relative overflow-hidden rounded-2xl border ${c.border} bg-white/[0.05] shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-md [-webkit-backdrop-filter:blur(14px)] transition-all ${onClick ? 'cursor-pointer hover:bg-white/[0.07] active:scale-[0.99]' : ''}`}
     >
       <div className={`h-0.5 w-full shrink-0 ${c.bar}`} aria-hidden />
       <div className="px-5 py-4">

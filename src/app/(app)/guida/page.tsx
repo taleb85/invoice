@@ -124,7 +124,6 @@ export default function GuidaPage() {
           <div className="space-y-3">
             {current.items.map((item, i) => (
               <div key={i} className="app-card overflow-hidden">
-                <div className="app-card-bar" aria-hidden />
                 <div className="px-5 py-4">
                   <div className="flex items-start gap-3">
                     <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${c.dot}`}>

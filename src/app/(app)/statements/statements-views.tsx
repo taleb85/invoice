@@ -514,7 +514,6 @@ function EditSupplierPopup({
 
   return (
     <div ref={ref} className="absolute left-0 top-full z-30 mt-1 w-64 overflow-hidden rounded-xl border border-slate-600/50 bg-slate-700/95 shadow-lg backdrop-blur-md">
-      <div className="app-card-bar" aria-hidden />
       <div className="border-b border-slate-700/50 p-2">
         <input
           autoFocus value={search} onChange={e => setSearch(e.target.value)}

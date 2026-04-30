@@ -18,7 +18,6 @@ import { formatCurrency } from '@/lib/locale-shared'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import { StandardCard } from '@/components/ui/StandardCard'
 import { resolveFiscalFilterForSede } from '@/lib/fiscal-year-page'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { BackButton } from '@/components/BackButton'
@@ -121,13 +120,13 @@ export default async function FattureRiepilogoPage(props: {
           {t.dashboard.operatorNoSede}
         </div>
       ) : summary.fattureCount === 0 ? (
-        <StandardCard accent="emerald">
+        <div className="min-w-0">
           <AppSectionEmptyState message={t.dashboard.fattureRiepilogoEmpty}>
             <Link href="/fatture" className={`${APP_SECTION_EMPTY_LINK_CLASS} hover:underline`}>
               {t.dashboard.fattureRiepilogoLinkAll}
             </Link>
           </AppSectionEmptyState>
-        </StandardCard>
+        </div>
       ) : (
         <>
           {summary.duplicateFatturaSurplusCount > 0 ? (
@@ -142,7 +141,7 @@ export default async function FattureRiepilogoPage(props: {
           <p className="mb-3 text-xs leading-relaxed text-app-fg-muted">
             {t.dashboard.fattureRiepilogoLimitNote.replace(/\{n\}/g, String(rows.length))}
           </p>
-          <StandardCard accent="emerald">
+          <div className="min-w-0">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
@@ -182,7 +181,7 @@ export default async function FattureRiepilogoPage(props: {
                 </tbody>
               </table>
             </div>
-          </StandardCard>
+          </div>
 
           <div className="mt-4 text-center md:text-left">
             <Link

@@ -11,7 +11,6 @@ import AppSectionFiltersBar from '@/components/AppSectionFiltersBar'
 import DashboardFiscalYearHeaderForSede from '@/components/DashboardFiscalYearHeaderForSede'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { StandardBadge } from '@/components/ui/StandardBadge'
-import { StandardCard } from '@/components/ui/StandardCard'
 import { standardLinkButtonClassName } from '@/components/ui/StandardButton'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { fornitoreDisplayLabel } from '@/lib/fornitore-display'
@@ -258,7 +257,7 @@ export default async function BollePage(props: {
         )}
       </AppSectionFiltersBar>
 
-      <StandardCard accent="violet">
+      <div className="min-w-0">
           {bolle.length === 0 ? (
             <AppSectionEmptyState message={emptyMessage}>
               {!showAll ? (
@@ -467,7 +466,7 @@ export default async function BollePage(props: {
               </table>
             </>
           )}
-      </StandardCard>
+      </div>
     </div>
   )
 }

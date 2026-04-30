@@ -78,8 +78,8 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
 
-      {/* Period selector — stesso accento teal della strip Analitiche */}
-      <div className="relative mb-5 overflow-hidden rounded-2xl border border-app-line-28 bg-transparent">
+      {/* Periodo — stesso vetro slate delle card app (`app-card-unified` sotto Aurora). */}
+      <div className="relative mb-5 overflow-hidden rounded-2xl app-card-unified">
         <div className="flex min-h-10 flex-wrap items-center gap-x-2 gap-y-2 px-4 py-2.5 sm:px-5 sm:py-3">
           {[3, 6, 12].map((value) => (
             <a
@@ -87,14 +87,14 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
               href={`/analytics?months=${value}&fy=${fiscalYear}`}
               className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} ${
                 months === value
-                  ? 'bg-teal-500/15 text-teal-200 ring-1 ring-teal-500/35'
-                  : 'text-teal-300/55 hover:bg-teal-500/12 hover:text-teal-200/90'
+                  ? 'bg-white/[0.1] text-white ring-1 ring-white/18'
+                  : 'text-white/65 hover:bg-white/[0.08] hover:text-white'
               }`}
             >
               {periodLabels[value]}
             </a>
           ))}
-          <span className="ms-1 shrink-0 text-[10px] font-medium uppercase tracking-wider text-teal-400/50 sm:ms-2">
+          <span className="ms-1 shrink-0 text-[10px] font-medium uppercase tracking-wider text-white/45 sm:ms-2">
             {t.appStrings.analyticsSinceFY}
           </span>
         </div>

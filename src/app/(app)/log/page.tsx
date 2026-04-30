@@ -205,14 +205,12 @@ export default async function LogPage() {
         blacklistPanel={
           blacklistSedeId ? (
             <div className="app-card overflow-hidden">
-              <div className="app-card-bar" aria-hidden />
               <div className="min-w-0 flex-1 p-4 md:p-5">
                 <EmailBlacklistPanel sedeId={blacklistSedeId} />
               </div>
             </div>
           ) : (
             <div className="app-card overflow-hidden">
-              <div className="app-card-bar" aria-hidden />
               <div className="p-8 text-center text-sm text-app-fg-muted">{t.log.blacklistError}</div>
             </div>
           )
@@ -221,7 +219,6 @@ export default async function LogPage() {
           <>
             {rows.length === 0 ? (
               <div className="app-card overflow-hidden">
-                <div className="app-card-bar" aria-hidden />
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">{toolbarEmpty}</div>
                 <div className="p-16 text-center">
                   <svg

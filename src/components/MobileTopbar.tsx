@@ -170,7 +170,6 @@ export default function MobileTopbar() {
                     className="app-card pointer-events-auto flex w-full max-w-sm flex-col overflow-hidden p-0 text-app-fg"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="app-card-bar shrink-0" aria-hidden />
                     <div className="flex shrink-0 items-center justify-between border-b border-app-line-15 app-workspace-inset-bg-soft px-3 py-2.5 sm:px-4 sm:py-3">
                       <p id={langTitleId} className="text-base font-semibold tracking-tight text-app-fg">
                         {t.ui.languageTooltip}
