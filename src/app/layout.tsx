@@ -97,13 +97,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" className={`${geistSans.variable} ${outfit.variable} h-full antialiased`}>
-      <body
-        className="h-dvh min-h-dvh text-app-fg-muted antialiased"
-        style={{
-          backgroundColor: "#0a192f",
-          color: "#ffffff"
-        }}
-      >
+      <body className="app-body-root h-dvh min-h-dvh text-app-fg-muted antialiased">
         <Script
           id="fluxo-app-locale-bootstrap"
           strategy="beforeInteractive"
