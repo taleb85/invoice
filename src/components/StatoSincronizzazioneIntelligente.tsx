@@ -253,15 +253,15 @@ export default function StatoSincronizzazioneIntelligente({
           </div>
           {imapReady && (
             <div className="flex shrink-0 items-center gap-1.5">
-              <div className="flex items-center gap-1 rounded-lg border border-app-line-25 bg-app-line-10/60 px-2 py-1.5">
-                <svg className="h-3 w-3 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-[2.125rem] shrink-0 items-center gap-1 rounded-lg border border-app-line-25 bg-app-line-10/60 px-2.5">
+                <svg className="h-3.5 w-3.5 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <select
                   value={lookbackDays}
                   onChange={e => setLookbackDays(Number(e.target.value))}
                   disabled={syncing}
-                  className="bg-transparent text-[11px] font-semibold text-app-fg-muted focus:outline-none disabled:opacity-50 [color-scheme:dark] cursor-pointer"
+                  className="h-full min-h-0 max-w-[7rem] cursor-pointer bg-transparent py-0 text-xs font-semibold leading-none text-app-fg-muted focus:outline-none disabled:opacity-50 [color-scheme:dark]"
                 >
                   {[7, 14, 30, 60, 90, 180, 365].map(d => (
                     <option key={d} value={d}>{t.appStrings.rekkiSyncDays.replace('{n}', String(d))}</option>
