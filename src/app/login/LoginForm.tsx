@@ -18,6 +18,7 @@ import LoginBrandedHero from '@/components/LoginBrandedHero'
 import { PinNumpad } from '@/components/PinNumpad'
 import { SmartPairLogo } from '@/components/smart-pair-logo'
 import { formatAppVersionLabel } from '@/lib/app-build-info'
+import { AURORA_GLASS_CARD_TOP_BAR_CLASS } from '@/lib/summary-highlight-accent'
 
 type Message = { type: 'error' | 'success'; text: string }
 
@@ -1237,12 +1238,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           </p>
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
-        <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
-          {/* Barra accento come le KPI dashboard Aurora */}
-          <div
-            aria-hidden
-            className="h-0.5 w-full shrink-0 bg-gradient-to-r from-[#38bdf8]/70 via-indigo-400/45 to-transparent"
-          />
+        <section
+          className="glass-card flex flex-col overflow-hidden"
+          aria-label={sedeT.netflixTitle}
+        >
+          <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
           <div className="px-4 pb-2 pt-4 sm:px-6">
             <AvatarGrid
               operators={netflixOperators}
@@ -1272,7 +1272,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             </div>
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
-        </div>
+        </section>
         </div>
       </>
     )
@@ -1288,13 +1288,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         {deviceTrustUi}
         <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
         {accessoTopBar}
-        <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
-          <div
-            aria-hidden
-            className="h-0.5 w-full shrink-0 bg-gradient-to-r from-[#38bdf8]/70 via-indigo-400/45 to-transparent"
-          />
+        <section className="glass-card flex flex-col overflow-hidden" aria-labelledby="login-pin-heading">
+          <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
           <div className="flex flex-col items-center gap-5 p-6 text-center">
-
             {/* Avatar selezionato */}
             <div className="flex flex-col items-center gap-3">
               <div
@@ -1324,7 +1320,10 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
             {/* PIN */}
             <div className="w-full text-center">
-              <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
+              <label
+                id="login-pin-heading"
+                className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted"
+              >
                 {t.login.pinLabel}
                 <span className="font-normal normal-case"> {t.login.pinDigits}</span>
               </label>
@@ -1431,7 +1430,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-2.5">
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
-        </div>
+        </section>
         </div>
       </>
     )
@@ -1462,12 +1461,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         remembered={!sedeNome && !!rememberedSede}
       />
 
-      {/* Card: bordo leggero su canvas gradient (`LoginBrandedShell`); vetro pieno disattivato */}
-      <div className="app-card-login app-card-login-transparent flex flex-col overflow-hidden">
-        <div
-          aria-hidden
-          className="h-0.5 w-full shrink-0 bg-gradient-to-r from-[#38bdf8]/70 via-indigo-400/45 to-transparent"
-        />
+      {/* Stesso guscio `glass-card` della card Scanner in dashboard (Deep Aurora). */}
+      <section className="glass-card flex flex-col overflow-hidden">
+        <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
 
         <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
 
@@ -1857,7 +1853,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
           <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} sessionGateNext={sessionGateNext} />
         </div>
-      </div>
+      </section>
     </div>
     </>
   )

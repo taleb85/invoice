@@ -120,6 +120,12 @@ export const SUMMARY_HIGHLIGHT_ACCENTS = {
 export type SummaryHighlightAccent = keyof typeof SUMMARY_HIGHLIGHT_ACCENTS
 
 /**
+ * Striscia gradiente sulla card vetro Aurora (dashboard Scanner `glassShell`, login pubblico).
+ */
+export const AURORA_GLASS_CARD_TOP_BAR_CLASS =
+  'h-1 shrink-0 bg-gradient-to-r from-sky-400/45 via-violet-500/35 to-cyan-400/40 md:h-1.5'
+
+/**
  * Guscio esterno card/sezione: bordo top cyan unificato, sfondo semi-trasparente neutro.
  */
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =

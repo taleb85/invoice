@@ -7,6 +7,7 @@ import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+  AURORA_GLASS_CARD_TOP_BAR_CLASS,
 } from '@/lib/summary-highlight-accent'
 import ScannerFlowKpiButtons from '@/components/ScannerFlowKpiButtons'
 
@@ -67,9 +68,6 @@ export type DashboardScannerFlowHeaderLinks = {
   newScanHref: string
   eventsHref?: string
 }
-
-const scannerFlowGlassShellTopBar =
-  'h-1 shrink-0 bg-gradient-to-r from-sky-400/45 via-violet-500/35 to-cyan-400/40 md:h-1.5'
 
 function ScannerFlowCardIntro({
   summary,
@@ -291,7 +289,7 @@ export default function DashboardScannerFlowCard({
         className="glass-card flex flex-col overflow-hidden"
         aria-label={t.dashboard.scannerFlowCardTitle}
       >
-        <div className={scannerFlowGlassShellTopBar} aria-hidden />
+        <div className={AURORA_GLASS_CARD_TOP_BAR_CLASS} aria-hidden />
         <div className={`w-full min-w-0 ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
           <ScannerFlowCardIntro
             summary={summary}

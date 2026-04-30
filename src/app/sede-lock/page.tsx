@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
 import { LocaleProvider, useLocale } from '@/lib/locale-context'
 import { markSessionOperatorGateOk } from '@/lib/session-operator-gate'
@@ -25,6 +25,8 @@ function SedeLockPageInner() {
   const [sedeName, setSedeName] = useState('')
   const [checking, setChecking] = useState(true)
   const [fatalError, setFatalError] = useState('')
+  /** Evita POST doppio (paste / auto-submit + pulsante mentre `loading` non è ancora true). */
+  const verifyingRef = useRef(false)
 
   useEffect(() => {
     let active = true
@@ -61,35 +63,48 @@ function SedeLockPageInner() {
     return () => { active = false }
   }, [t.ui.networkError])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const digits = code.replace(/\D/g, '').slice(0, SEDE_ACCESS_PIN_LEN)
+  const verifySedePin = async (rawDigits: string) => {
+    if (verifyingRef.current) return
+    const digits = rawDigits.replace(/\D/g, '').slice(0, SEDE_ACCESS_PIN_LEN)
     if (digits.length !== SEDE_ACCESS_PIN_LEN) {
       setError(a.sedeLockPinLengthError)
       return
     }
 
+    verifyingRef.current = true
     setLoading(true)
     setError('')
 
-    const res = await fetch('/api/sede-lock', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: digits }),
-    })
-    const data = await res.json()
+    try {
+      const res = await fetch('/api/sede-lock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: digits }),
+      })
+      const data = (await res.json()) as { error?: string; sede_id?: string }
 
-    if (!res.ok) {
-      setError(data.error ?? 'Codice non corretto. Riprova.')
-      setCode('')
+      if (!res.ok) {
+        setError(data.error ?? 'Codice non corretto. Riprova.')
+        setCode('')
+        setLoading(false)
+        verifyingRef.current = false
+        return
+      }
+
+      /* Stesso “gate” del login PIN: sblocca la shell senza passare di nuovo da /accesso. */
+      markSessionOperatorGateOk()
+      document.cookie = `sede-verified=${data.sede_id}; path=/; Max-Age=86400; SameSite=Lax`
+      window.location.assign('/')
+    } catch {
+      setError(t.ui.networkError)
       setLoading(false)
-      return
+      verifyingRef.current = false
     }
+  }
 
-    /* Stesso “gate” del login PIN: sblocca la shell senza passare di nuovo da /accesso. */
-    markSessionOperatorGateOk()
-    document.cookie = `sede-verified=${data.sede_id}; path=/; Max-Age=86400; SameSite=Lax`
-    window.location.assign('/')
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    void verifySedePin(code)
   }
 
   const shell = (children: ReactNode) => (
@@ -170,6 +185,9 @@ function SedeLockPageInner() {
             onChange={(e) => {
               const digits = e.target.value.replace(/\D/g, '').slice(0, SEDE_ACCESS_PIN_LEN)
               setCode(digits)
+              if (digits.length === SEDE_ACCESS_PIN_LEN) {
+                void verifySedePin(digits)
+              }
             }}
             placeholder={a.sedeLockPlaceholder}
             autoFocus
