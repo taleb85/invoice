@@ -31,11 +31,7 @@ const kpiTileSubLine =
 
 /** Alone KPI: neutro, senza anello colorato. */
 function operatorKpiCardShadow() {
-  return [
-    '0 0 0 1px rgba(34,211,238,0.12)',
-    '0 0 44px -12px rgba(0,0,0,0.4)',
-    '0 20px 44px -12px rgba(0,0,0,0.5)',
-  ].join(', ')
+  return '0 0 0 1px rgba(34,211,238,0.14)'
 }
 
 /** Guscio come strip dashboard: bordo sky + barra; corpo trasparente con padding come `AppPageHeaderStrip` dense. */
@@ -56,9 +52,9 @@ const kpiGlassInnerClass =
 /** Guscio unico scheda riepilogo operatore in dashboard Aurora. */
 const OPERATOR_KPI_GLASS_SECTION_SHELL_CLASS = `${AURORA_GLASS_PANEL_LAYOUT_CLASS} app-card-unified overflow-hidden rounded-2xl`
 
-/** Ombra hover colorata (variabile `--supplier-kpi-rgb`) come `supplier-desktop-kpi-card`. */
+/** Hover glass KPI: alone leggero senza “piattone” scuro che copre il canvas. */
 const GLASS_KPI_TILE_HOVER_SHADOW =
-  'transition-[transform,box-shadow] duration-200 hover:shadow-[0_16px_48px_-12px_rgba(var(--supplier-kpi-rgb),0.32)]'
+  'transition-[transform,box-shadow] duration-200 hover:shadow-[0_0_24px_-8px_rgba(var(--supplier-kpi-rgb),0.22)]'
 
 /** Corpo tile: griglia interna; l’altezza uniforme delle tile è sul guscio `.operator-kpi-card`. */
 const kpiTileInnerGridClass =
@@ -450,7 +446,7 @@ export default function DashboardOperatorKpiGrid({
               `operator-kpi-card relative z-[1] group flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden rounded-2xl touch-manipulation ${OPERATOR_KPI_CARD_MIN_H}`,
               glassShell ? `ring-0 ${GLASS_KPI_TILE_HOVER_SHADOW}` : 'transition-[transform,border-color,background-color] duration-200',
               glassShell ? '' : `${item.borderClass} ${item.ringClass} ${item.hoverClass}`,
-              glassShell ? '' : online ? 'hover:bg-white/[0.07]' : '',
+              glassShell ? '' : online ? 'hover:bg-white/[0.04]' : '',
               cardInteractive,
             ]
               .filter(Boolean)

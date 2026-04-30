@@ -293,7 +293,7 @@
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
     border: 1px solid rgb(148 163 184 / 0.22) !important;
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: transparent !important;
     background-image: none !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
@@ -305,7 +305,7 @@
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
     border: 1px solid rgb(148 163 184 / 0.22) !important;
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: transparent !important;
     background-image: none !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
@@ -623,7 +623,7 @@
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
     border: 1px solid rgb(148 163 184 / 0.22) !important;
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: transparent !important;
     background-image: none !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
@@ -1032,7 +1032,7 @@ body,
 .app-card-unified {
   border: 1px solid rgb(148 163 184 / 0.22) !important;
   border-radius: 10px !important;
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
@@ -1297,24 +1297,24 @@ body:has([data-deep-aurora-integration]) .app-card {
     inset 0 1px 0 rgb(255 255 255 / 0.09) !important;
 }
 
-/** Pannelli sezione Aurora: bordo slate, niente fascia cyan superiore. */
+/** Pannelli sezione Aurora: solo contorno — sfondo trasparente sul gradiente body. */
 body:has([data-deep-aurora-integration]) .app-card-unified {
   border: 1px solid rgb(148 163 184 / 0.28) !important;
-  background: rgb(255 255 255 / 0.045) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow: 0 4px 28px rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+  box-shadow: none !important;
 }
 
 /** Guscio tab fornitore sotto Aurora: allineato a `.supplier-detail-tab-shell` (layer components). */
 body:has([data-deep-aurora-integration]) .supplier-detail-tab-shell {
   border: 1px solid rgb(148 163 184 / 0.28) !important;
-  background: rgb(255 255 255 / 0.045) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow: 0 4px 24px rgb(0 0 0 / 0.22) !important;
+  box-shadow: none !important;
 }
 
 /** Tab orizzontale fornitore (mobile Aurora): vetro sulla striscia sotto nome/KPI. */
@@ -1328,35 +1328,29 @@ body:has([data-deep-aurora-integration]) .fornitore-mobile-tab-nav {
 
 body:has([data-deep-aurora-integration]) .supplier-desktop-kpi-card {
   border: 1px solid rgb(148 163 184 / 0.26) !important;
-  background: rgb(255 255 255 / 0.045) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow:
-    0 0 0 1px rgb(15 23 42 / 0.2),
-    0 12px 40px -14px rgb(0 0 0 / 0.35) !important;
+  box-shadow: none !important;
 }
 
 /**
- * KPI dashboard operatore (`.operator-kpi-card`) sotto Aurora: vetro + angoli larghi come mock KPI OPERATORE.
- * Copre quanto definito nel layer components (piatto / senza blur).
+ * KPI dashboard operatore (`.operator-kpi-card`) sotto Aurora: bordo leggero, niente fill né ombra pesante.
  */
 body:has([data-deep-aurora-integration]) .operator-kpi-card {
   border-radius: 1rem !important;
   border: 1px solid rgb(255 255 255 / 0.1) !important;
-  background: rgb(255 255 255 / 0.045) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow:
-    0 0 0 1px rgb(15 23 42 / 0.22),
-    0 10px 36px -12px rgb(0 0 0 / 0.34),
-    inset 0 1px 0 rgb(255 255 255 / 0.05) !important;
+  box-shadow: none !important;
 }
 
 body:has([data-deep-aurora-integration]) .operator-kpi-card:hover {
   border-color: rgb(255 255 255 / 0.16) !important;
-  background: rgb(255 255 255 / 0.075) !important;
+  background: rgb(255 255 255 / 0.035) !important;
 }
 
 /** Calendario / date nativi: tema scuro coerente con Aurora (Chrome/Safari). */

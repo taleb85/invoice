@@ -105,13 +105,9 @@ export function hexToRgbTuple(hex: string): string {
   return `${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)}`
 }
 
-/** Ombra tile KPI scheda fornitore: bordo slate Aura (icone restano tinte tramite `--supplier-kpi-rgb`). */
+/** Contorno tile KPI glass (dashboard `glassShell`): niente alone scuro sul canvas. */
 export function supplierDesktopKpiOuterShadow(): string {
-  return [
-    '0 0 0 1px rgb(148 163 184 / 0.2)',
-    '0 10px 36px -10px rgb(0 0 0 / 0.45)',
-    'inset 0 1px 0 rgb(255 255 255 / 0.05)',
-  ].join(', ')
+  return '0 0 0 1px rgb(148 163 184 / 0.22)'
 }
 
 /** Stessi accenti delle card KPI fornitore (`buildSupplierKpiItems`): conferme → documenti / coda. */
