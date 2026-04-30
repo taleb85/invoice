@@ -1364,6 +1364,14 @@ body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay > .app-card {
   border-color: rgb(148 163 184 / 0.48) !important;
 }
 
+/** Anteprima documento duplicati: superficie sempre opaca (`app-card` generica resta soggetta a override tema). */
+.app-aurora-modal-overlay > .document-preview-modal-shell {
+  background-color: #0f172a !important;
+  background-image: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /**
  * Full-viewport con `app-workspace-inset-bg` ma senza marca esplicita `app-aurora-modal-overlay`
  * (es. `FornitoreDocDetailLayer`): stesso scrim documenti.

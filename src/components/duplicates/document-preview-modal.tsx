@@ -393,7 +393,7 @@ export default function DocumentPreviewModal({
       aria-labelledby={titleId}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="app-card flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden shadow-[0_0_52px_-12px_rgba(56,189,248,0.22)]">
+      <div className="document-preview-modal-shell relative flex max-h-[80vh] w-full max-w-[600px] flex-col overflow-hidden rounded-2xl border border-slate-500/40 bg-[#0f172a] shadow-[0_0_52px_-12px_rgba(56,189,248,0.22)] isolate">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-sky-400/15 px-5 py-4">
           <h2 id={titleId} className="text-sm font-bold text-app-fg">
