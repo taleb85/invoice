@@ -1240,7 +1240,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
         <AuroraPanelShell aria-label={sedeT.netflixTitle}>
-          <div className="px-4 pb-2 pt-4 sm:px-6">
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 px-4 pb-2 pt-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:px-6">
             <AvatarGrid
               operators={netflixOperators}
               onSelect={handleNetflixSelect}
@@ -1459,7 +1459,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       {/* Stesso guscio Aurora della card Scanner / KPI dashboard. */}
       <AuroraPanelShell>
 
-        <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
+        <div className="space-y-4 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-5 text-center text-app-fg shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:p-6">
 
         {mode === 'name' ? (
           /* ── OPERATORE: Nome + PIN a 4 cifre — niente autofill / salvataggio credenziali browser ── */
