@@ -352,11 +352,11 @@ export function EmailActivityLogPanel({
           <table className="w-full table-fixed border-collapse text-left text-sm">
             <thead>
               <tr className={APP_SECTION_TABLE_HEAD_ROW}>
-                <th className={`${APP_SECTION_TABLE_TH} min-w-0`}>{tLog.activityColSupplier}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[11%] min-w-0`}>{tLog.activityColTipo}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[12%] min-w-0 tabular-nums`}>{tLog.activityColAmount}</th>
-                <th className={`${APP_SECTION_TABLE_TH} min-w-0`}>{tLog.activityColStatus}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[min(14rem,18%)] min-w-0 whitespace-nowrap`}>
+                <th className={`${APP_SECTION_TABLE_TH} w-[46%] min-w-0`}>{tLog.activityColSupplier}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[9%] min-w-0`}>{tLog.activityColTipo}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[10%] min-w-0 tabular-nums`}>{tLog.activityColAmount}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[18%] min-w-0`}>{tLog.activityColStatus}</th>
+                <th className={`${APP_SECTION_TABLE_TH} w-[17%] min-w-0 whitespace-nowrap`}>
                   {tLog.activityOpenDocument}
                 </th>
               </tr>
@@ -364,20 +364,19 @@ export function EmailActivityLogPanel({
             <tbody className={APP_SECTION_TABLE_TBODY}>
               {rows.map((row, idx) => (
                 <tr key={`${row.atIso}-t-${idx}`} className={`align-top ${APP_SECTION_TABLE_TR}`}>
-                  <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
-                    <TableSupplierWithElab
+                  <td className="w-[46%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                       row={row}
                       elab={elabFor(row)}
                       procLabels={procLabels}
                       pdfLineTemplate={tLog.activityPdfDetectedLine}
                     />
                   </td>
-                  <td className="min-w-0 px-4 py-2.5 text-app-fg-muted md:px-5 md:py-3 lg:py-2">{row.tipoDisplay}</td>
-                  <td className="min-w-0 whitespace-nowrap px-4 py-2.5 tabular-nums text-app-fg md:px-5 md:py-3 lg:py-2">
+                  <td className="w-[9%] min-w-0 px-4 py-2.5 text-app-fg-muted md:px-5 md:py-3 lg:py-2">{row.tipoDisplay}</td>
+                  <td className="w-[10%] min-w-0 whitespace-nowrap px-4 py-2.5 tabular-nums text-app-fg md:px-5 md:py-3 lg:py-2">
                     {row.amountDisplay}
                   </td>
-                  <td className="min-w-0 px-4 py-2.5 text-app-fg md:px-5 md:py-3 lg:py-2">{row.statusDisplay}</td>
-                  <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
+                  <td className="w-[18%] min-w-0 px-4 py-2.5 text-app-fg md:px-5 md:py-3 lg:py-2">{row.statusDisplay}</td>
+                  <td className="w-[17%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <LogActivityDocumentLink
                       label={tLog.activityOpenDocument}
                       href={row.href}
