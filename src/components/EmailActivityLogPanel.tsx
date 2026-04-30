@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useCallback, useState } from 'react'
+import { CircleCheck, Forward, UserPlus } from 'lucide-react'
 import { LogActivityDocumentLink } from '@/components/LogActivityDocumentLink'
 import LogBlacklistIgnoreButton from '@/components/LogBlacklistIgnoreButton'
 import { NewFornitoreLink } from '@/components/NewFornitoreLink'
@@ -92,6 +93,37 @@ function labelForOutcome(code: ProcOutcomeCode, detail: string | undefined, L: P
     default:
       return L.dash
   }
+}
+
+function ActivityLogStatusCell({ row }: { row: LogRowView }) {
+  const k = row.statusKey
+  const label = row.statusDisplay
+  const iconBase = 'h-4 w-4 shrink-0'
+  if (k === 'saved') {
+    return (
+      <span className="inline-flex items-center gap-2 text-sm text-app-fg">
+        <CircleCheck className={`${iconBase} text-emerald-200/90`} strokeWidth={2} aria-hidden />
+        <span className="min-w-0">{label}</span>
+      </span>
+    )
+  }
+  if (k === 'needs_supplier') {
+    return (
+      <span className="inline-flex items-center gap-2 text-sm text-app-fg">
+        <UserPlus className={`${iconBase} text-amber-200/90`} strokeWidth={2} aria-hidden />
+        <span className="min-w-0">{label}</span>
+      </span>
+    )
+  }
+  if (k === 'ignored') {
+    return (
+      <span className="inline-flex items-center gap-2 text-sm text-app-fg">
+        <Forward className={`${iconBase} text-app-fg-muted`} strokeWidth={2} aria-hidden />
+        <span className="min-w-0">{label}</span>
+      </span>
+    )
+  }
+  return <span className="text-sm text-app-fg">{label}</span>
 }
 
 function ActivityLogSupplierCell({
@@ -274,8 +306,9 @@ function NeedsSupplierRowActions({
       {!emailOk ? <p className="text-[10px] text-amber-200/90">{tLog.activityNeedEmailOnRow}</p> : null}
       <NewFornitoreLink
         href={newHref}
-        className="inline-flex w-fit items-center rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1 text-[11px] font-bold text-teal-100 hover:border-teal-400/50 hover:bg-teal-500/25"
+        className="inline-flex w-fit items-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1 text-[11px] font-bold text-teal-100 hover:border-teal-400/50 hover:bg-teal-500/25"
       >
+        <UserPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
         {tLog.activityInboxAddSupplier}
       </NewFornitoreLink>
       <button
@@ -472,7 +505,7 @@ export function EmailActivityLogPanel({
                 <span className="text-app-fg-muted">
                   {tLog.activityColAmount}: <span className="font-medium text-app-fg">{row.amountDisplay}</span>
                 </span>
-                <span className="text-app-fg">{row.statusDisplay}</span>
+                <ActivityLogStatusCell row={row} />
               </div>
               {shouldShowElabInline(row, elabFor(row)) ? (
                 <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-2 text-sm">
@@ -525,7 +558,7 @@ export function EmailActivityLogPanel({
                     {row.amountDisplay}
                   </td>
                   <td className="w-[13%] min-w-0 px-4 py-2.5 text-app-fg md:px-5 md:py-3 lg:py-2">
-                    {row.statusDisplay}
+                    <ActivityLogStatusCell row={row} />
                   </td>
                   <td className="w-[14%] min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <LogActivityDocumentLink

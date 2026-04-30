@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 import { useT } from '@/lib/use-t'
+import { Ban, UserPlus } from 'lucide-react'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
 import { extractEmailFromSenderHeader } from '@/lib/sender-email'
 import { useToast } from '@/lib/toast-context'
@@ -839,16 +840,18 @@ export default function InboxAiClient(props: {
                                 type="button"
                                 disabled={busyRow}
                                 onClick={() => void ignoreSenderAndDiscard(d)}
-                                className="rounded-md border border-rose-500/40 bg-rose-950/35 px-2 py-1 text-[11px] font-bold text-rose-100 disabled:opacity-35"
+                                className="inline-flex items-center gap-1 rounded-md border border-rose-500/40 bg-rose-950/35 px-2 py-1 text-[11px] font-bold text-rose-100 disabled:opacity-35"
                               >
+                                <Ban className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
                                 {t.log.activityInboxIgnoreSender}
                               </button>
                               <button
                                 type="button"
                                 disabled={busyRow}
                                 onClick={() => openSupplierModal(d)}
-                                className="rounded-md border border-teal-500/45 bg-teal-500/15 px-2 py-1 text-[11px] font-bold text-teal-100 disabled:opacity-35"
+                                className="inline-flex items-center gap-1 rounded-md border border-teal-500/45 bg-teal-500/15 px-2 py-1 text-[11px] font-bold text-teal-100 disabled:opacity-35"
                               >
+                                <UserPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />
                                 {t.log.activityInboxAddSupplier}
                               </button>
                             </>

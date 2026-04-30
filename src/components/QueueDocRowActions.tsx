@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { UserPlus } from 'lucide-react'
 import LogBlacklistIgnoreButton from '@/components/LogBlacklistIgnoreButton'
 import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { buildNewFornitorePrefillHref } from '@/lib/new-fornitore-prefill-href'
@@ -106,8 +107,9 @@ export function QueueDocRowActions({
       {sede ? (
         <NewFornitoreLink
           href={newHref}
-          className="inline-flex items-center rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1 text-[10px] font-bold text-teal-100 hover:border-teal-400/50 hover:bg-teal-500/25"
+          className="inline-flex items-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/15 px-2 py-1 text-[10px] font-bold text-teal-100 hover:border-teal-400/50 hover:bg-teal-500/25"
         >
+          <UserPlus className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
           {labels.addSupplier}
         </NewFornitoreLink>
       ) : (
