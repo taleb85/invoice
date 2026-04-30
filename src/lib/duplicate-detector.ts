@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
+import { refineDuplicateGroupsByIdenticalStoredFiles } from '@/lib/duplicate-file-content-refine'
 
 export type DuplicateItem = {
   id: string
@@ -54,6 +55,7 @@ type FatturaRow = {
   fornitore_id: string | null
   importo: number | null
   data: string | null
+  file_url: string | null
   fornitori: { nome: string | null } | null
 }
 
@@ -65,7 +67,7 @@ export async function detectDuplicateFatture(
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('fatture')
-      .select('id, numero_fattura, fornitore_id, importo, data, fornitori(nome)')
+      .select('id, numero_fattura, fornitore_id, importo, data, file_url, fornitori(nome)')
       .eq('sede_id', sedeId)
       .order('data', { ascending: true })
       .order('id', { ascending: true })
@@ -130,8 +132,10 @@ export async function detectDuplicateFatture(
     }
   }
 
-  const total = groups.reduce((s, g) => s + g.items.length, 0)
-  return { groups, total }
+  const fileUrlById = new Map(all.map((r) => [r.id, r.file_url]))
+  const refined = await refineDuplicateGroupsByIdenticalStoredFiles(supabase, groups, fileUrlById)
+  const total = refined.reduce((s, g) => s + g.items.length, 0)
+  return { groups: refined, total }
 }
 
 type BollaRow = {
@@ -140,6 +144,7 @@ type BollaRow = {
   fornitore_id: string | null
   importo: number | null
   data: string | null
+  file_url: string | null
   fornitori: { nome: string | null } | null
 }
 
@@ -151,7 +156,7 @@ export async function detectDuplicateBolle(
   for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('bolle')
-      .select('id, numero_bolla, fornitore_id, importo, data, fornitori(nome)')
+      .select('id, numero_bolla, fornitore_id, importo, data, file_url, fornitori(nome)')
       .eq('sede_id', sedeId)
       .order('data', { ascending: true })
       .order('id', { ascending: true })
@@ -216,8 +221,10 @@ export async function detectDuplicateBolle(
     }
   }
 
-  const total = groups.reduce((s, g) => s + g.items.length, 0)
-  return { groups, total }
+  const fileUrlById = new Map(all.map((r) => [r.id, r.file_url]))
+  const refined = await refineDuplicateGroupsByIdenticalStoredFiles(supabase, groups, fileUrlById)
+  const total = refined.reduce((s, g) => s + g.items.length, 0)
+  return { groups: refined, total }
 }
 
 type FornitoreRow = {
