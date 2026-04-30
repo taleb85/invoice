@@ -57,8 +57,8 @@ export function SidebarRailBrand() {
         }}
       >
         {/* Icon — Deep Aurora (stesso family di login) */}
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-[#38bdf8]/35 shadow-[0_0_16px_rgba(56,189,248,0.15)]">
-          <svg width="16" height="16" viewBox="0 0 40 40" fill="none" aria-hidden>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-[#38bdf8]/35 shadow-[0_0_16px_rgba(56,189,248,0.15)]">
+          <svg width="20" height="20" viewBox="0 0 40 40" fill="none" aria-hidden>
             <path
               d="M4 20 L16 8 L16 15 L28 15 L28 20"
               stroke="#38bdf8"
