@@ -2,10 +2,9 @@ import Link from 'next/link'
 import type { ScannerFlowDaySummary, ScannerFlowEventRow, ScannerFlowEventStep } from '@/lib/dashboard-operator-kpis'
 import type { Translations } from '@/lib/translations'
 import HubScannerIcon from '@/components/HubScannerIcon'
-import { SCANNER_FLOW_MOBILE_TITLE_FRAME } from '@/lib/scanner-flow-title-frame'
+import { SCANNER_FLOW_CARD_INNER_PADDING_CLASS, SCANNER_FLOW_MOBILE_TITLE_FRAME } from '@/lib/scanner-flow-title-frame'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
-  SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
   AURORA_GLASS_PANEL_LAYOUT_CLASS,
 } from '@/lib/summary-highlight-accent'
@@ -133,7 +132,7 @@ function ScannerFlowCardIntro({
           <p className="mt-2 text-xs font-medium text-app-fg-muted">{todayLine}</p>
         </>
       ) : (
-        <div className="flex w-full flex-col gap-3 border-b border-app-line-15 pb-3 md:flex-row md:items-start md:justify-between md:pb-4">
+        <div className="flex w-full flex-col gap-2 border-b border-app-line-15 pb-2 md:flex-row md:items-start md:justify-between md:gap-3 md:pb-3">
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex w-full justify-start">
               <h2
@@ -184,7 +183,7 @@ function ScannerFlowCardIntro({
           ) : null}
         </div>
       )}
-      <div className="mt-3 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 md:gap-3">
+      <div className="mt-2 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 md:mt-2.5 md:gap-2.5">
         <ScannerFlowKpiButtons
           aiElaborate={summary.aiElaborate}
           archiviate={summary.archiviate}
@@ -198,7 +197,7 @@ function ScannerFlowCardIntro({
         />
       </div>
       {!embedded && showFooterEventsLink && allEventsHref ? (
-        <div className="mt-3 flex justify-center border-t border-app-line-15 pt-3">
+        <div className="mt-2 flex justify-center border-t border-app-line-15 pt-2">
           <Link href={allEventsHref} className={scannerEventsLinkClass}>
             {eventsLinkLabel}
           </Link>
@@ -263,7 +262,7 @@ export default function DashboardScannerFlowCard({
 
   if (embedded) {
     return (
-      <div className={SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS} aria-label={t.dashboard.scannerFlowCardTitle}>
+      <div className={SCANNER_FLOW_CARD_INNER_PADDING_CLASS} aria-label={t.dashboard.scannerFlowCardTitle}>
         <ScannerFlowCardIntro
           summary={summary}
           t={t}
@@ -289,7 +288,7 @@ export default function DashboardScannerFlowCard({
         className={`${AURORA_GLASS_PANEL_LAYOUT_CLASS} app-card-unified overflow-hidden rounded-2xl`}
         aria-label={t.dashboard.scannerFlowCardTitle}
       >
-        <div className={`w-full min-w-0 ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
+        <div className={`w-full min-w-0 ${SCANNER_FLOW_CARD_INNER_PADDING_CLASS}`}>
           <ScannerFlowCardIntro
             summary={summary}
             t={t}
@@ -311,7 +310,7 @@ export default function DashboardScannerFlowCard({
   return (
     <section className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} ${scannerShellTheme.border}`}>
       <div className={`app-card-bar-accent shrink-0 ${scannerShellTheme.bar}`} aria-hidden />
-      <div className={`w-full min-w-0 ${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS}`}>
+      <div className={`w-full min-w-0 ${SCANNER_FLOW_CARD_INNER_PADDING_CLASS}`}>
         <ScannerFlowCardIntro
           summary={summary}
           t={t}
