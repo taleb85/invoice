@@ -1235,10 +1235,6 @@ function DashboardTab({
   )
   const t = useT()
   const { locale, timezone } = useLocale()
-  const fornitoreNomeVisual = useMemo(
-    () => fornitoreDisplayLabelUppercase(fornitore),
-    [fornitore],
-  )
 
   // Contacts state
   const [contatti, setContatti]           = useState<ContattoRow[]>([])
