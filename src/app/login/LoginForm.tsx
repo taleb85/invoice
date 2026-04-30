@@ -1189,16 +1189,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             <button
               type="button"
               onClick={() => void handleDeviceWelcomeAccedi()}
-              disabled={accessoDevicePhase === 'restoring'}
               className="app-glow-cyan mt-2 flex min-h-[3rem] w-full max-w-xs items-center justify-center gap-2 rounded-full bg-app-cyan-500 px-6 py-3 text-sm font-bold uppercase tracking-wide text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 disabled:opacity-60"
             >
-              {accessoDevicePhase === 'restoring' ? (
-                <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-              ) : null}
-              {accessoDevicePhase === 'restoring' ? t.common.loading : t.login.loginBtn}
+              {t.login.loginBtn}
             </button>
           </>
         ) : (
