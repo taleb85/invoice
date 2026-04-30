@@ -28,7 +28,12 @@ export interface OcrResult {
    * Model classification: delivery note vs tax invoice vs other commercial PDF.
    * Used by email scan to choose bolla vs fattura bozza without misrouting DDT numbers.
    */
-  tipo_documento: 'fattura' | 'bolla' | 'altro' | 'curriculum' | null
+  tipo_documento: 'fattura' | 'bolla' | 'altro' | 'curriculum' | 'comunicazione_cliente' | null
+  /**
+   * Email body promises a fiscal document soon while no PDF/fiscal attachment is in this extraction.
+   * Set by the model per prompt rules; used for follow-up / reminder workflows.
+   */
+  promessa_invio_documento?: boolean | null
   /** Total amount as a pure float (no currency symbols) */
   totale_iva_inclusa: number | null
 
@@ -73,6 +78,7 @@ export const EMPTY_OCR: OcrResult = {
   data_fattura: null,
   numero_fattura: null,
   tipo_documento: null,
+  promessa_invio_documento: false,
   totale_iva_inclusa: null,
   note_corpo_mail: null,
   estrazione_utile: undefined,
@@ -303,7 +309,8 @@ Return ONLY valid JSON — no markdown, no explanation:
   "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
   "numero_fattura": "Document reference: invoice number, DDT/bolla number, credit note number — or null if none visible",
-  "tipo_documento": "Exactly one of: fattura | ddt | bolla | ordine | estratto_conto | altro | curriculum | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
+  "tipo_documento": "Exactly one of: fattura | ddt | bolla | ordine | estratto_conto | comunicazione_cliente | altro | curriculum | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
+  "promessa_invio_documento": false,
   "totale_iva_inclusa": "The gross total amount — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format",
   "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",
   "estrazione_utile": true
@@ -312,6 +319,8 @@ ${ignoreBlock}
 Rules:
 ${DOCUMENT_EXTRACTION_PROMPT}
 
+- **promessa_invio_documento:** boolean per the shared rules in the system prompt (email promises a document soon + no fiscal PDF in this extraction). When this request is **attachment PDF/image only** with no email body section, use **false**. Default **false** when absent from model output (caller coerces). If **true**, set **estrazione_utile** to **true** (follow-up is needed).
+- **comunicazione_cliente:** for **email-only** or **no usable attachment** threads that are purely conversational without fiscal data; usually set **estrazione_utile** to **false** unless there are still useful references (PO numbers, dates) worth keeping.
 - **curriculum (CV / résumé):** If the PDF is a **personal résumé / curriculum vitae / CV** (education, work experience, skills — not a commercial purchase document), set **tipo_documento** to **curriculum** — never fattura or altro. Do not invent supplier VAT for private CVs.
 - ragione_sociale: the party **ISSUING** the document (seller), **never** the recipient/buyer. Look for labels such as Vendor, Supplier, Fornitore, Mittente, Absender, Fournisseur, Proveedor, **Cedente**, **Prestatore**, Seller — the SELLER, not the buyer.
 - **EU / Italian layout (PDF and scans):** Fiscal PDFs often split the page: **buyer/customer** (*Cessionario / Committente / Bill to / Ship to*) tends to appear **top-left** or in a left column; the **issuer/seller** (*Cedente / Prestatore / Supplier*) with **seller VAT (P.IVA)** is commonly in the **upper-right** block. **ragione_sociale** must match the legal entity shown next to the seller/issuer VAT, in that issuer block — **not** the customer block, **not** a marketplace "deliver to" line, **not** a carrier.
@@ -327,6 +336,7 @@ ${estrazioneRule}- note_corpo_mail: never copy long generic email signatures or 
 
 /** Heuristic: should we create a synthetic documenti_da_processare row from email text only? */
 export function ocrBodyOnlyWorthInserting(ocr: OcrResult): boolean {
+  if (ocr.promessa_invio_documento === true) return true
   if (ocr.estrazione_utile === false) return false
   const pivaOk = !!(ocr.p_iva && ocr.p_iva.replace(/\D/g, '').length >= 7)
   const noteOk = !!(ocr.note_corpo_mail && ocr.note_corpo_mail.trim().length >= 20)
@@ -386,6 +396,11 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
     const numero_fattura = parsed.numero_fattura ? String(parsed.numero_fattura) : null
     const tipo_documento = normalizeTipoDocumento(parsed.tipo_documento)
 
+    const promessa_invio_documento =
+      typeof parsed.promessa_invio_documento === 'boolean'
+        ? parsed.promessa_invio_documento
+        : false
+
     const noteRaw = parsed.note_corpo_mail
     const note_corpo_mail =
       typeof noteRaw === 'string' && noteRaw.trim() ? noteRaw.trim() : null
@@ -413,6 +428,7 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
         data_fattura,
         numero_fattura,
         tipo_documento,
+        promessa_invio_documento,
         totale_iva_inclusa,
         importo_raw,
         formato_importo,

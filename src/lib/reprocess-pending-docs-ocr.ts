@@ -63,6 +63,8 @@ function buildMetadata(
     data_fattura: ocr.data_fattura,
     numero_fattura: ocr.numero_fattura,
     tipo_documento: ocr.tipo_documento ?? null,
+    promessa_invio_documento:
+      ocr.promessa_invio_documento === true ? true : undefined,
     totale_iva_inclusa: ocr.totale_iva_inclusa,
     importo_raw: ocr.importo_raw ?? null,
     formato_importo: ocr.formato_importo ?? null,

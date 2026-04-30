@@ -8,6 +8,7 @@ export type NormalizedTipoDocumento =
   | 'bolla'
   | 'altro'
   | 'curriculum'
+  | 'comunicazione_cliente'
   | null
 
 export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
@@ -30,6 +31,16 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     /\blebenslauf\b/.test(s)
   ) {
     return 'curriculum'
+  }
+
+  if (
+    s === 'comunicazione_cliente' ||
+    s === 'comunicazione-cliente' ||
+    s === 'customer_communication' ||
+    s === 'client_communication' ||
+    /\bcomunicazione\s+cliente\b/.test(s)
+  ) {
+    return 'comunicazione_cliente'
   }
 
   if (

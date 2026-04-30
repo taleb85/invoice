@@ -111,6 +111,7 @@ function tipoFromQueueRow(opts: {
 
   if (m) {
     const fromTipoDoc = normalizeTipoDocumento(m.tipo_documento)
+    if (fromTipoDoc === 'comunicazione_cliente') return 'queue'
     if (fromTipoDoc === 'fattura') return 'invoice'
     if (fromTipoDoc === 'bolla') return 'ddt'
 

@@ -128,6 +128,8 @@ function buildMetadata(
     data_fattura:       ocr.data_fattura,
     numero_fattura:     ocr.numero_fattura,
     tipo_documento:     ocr.tipo_documento ?? null,
+    promessa_invio_documento:
+      ocr.promessa_invio_documento === true ? true : undefined,
     // Stored as a pure float — no formatting at rest
     totale_iva_inclusa: ocr.totale_iva_inclusa,
     // Preserved for UI validation badge ("Parsed as UK format £1,234.56")

@@ -37,7 +37,13 @@ export function numeroReferenceLooksLikeDdt(num: string | null | undefined): boo
  */
 export function shouldMigrateBollaRowToFattura(params: {
   ocr: {
-    tipo_documento: 'fattura' | 'bolla' | 'altro' | 'curriculum' | null
+    tipo_documento:
+      | 'fattura'
+      | 'bolla'
+      | 'altro'
+      | 'curriculum'
+      | 'comunicazione_cliente'
+      | null
     numero_fattura: string | null
     totale_iva_inclusa: number | null
   }
@@ -52,7 +58,7 @@ export function shouldMigrateBollaRowToFattura(params: {
   const t = ocr.tipo_documento
   if (!allowTipoMigrate) return t === 'fattura'
   if (t === 'fattura') return true
-  if (t === 'curriculum') return false
+  if (t === 'curriculum' || t === 'comunicazione_cliente') return false
   if (!bollaIdForce) return false
 
   const fname = fileNameFromStorageUrl(fileUrl)

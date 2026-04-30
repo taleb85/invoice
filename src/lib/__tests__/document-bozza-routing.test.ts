@@ -34,6 +34,11 @@ describe('normalizeTipoDocumento', () => {
     expect(normalizeTipoDocumento('statement')).toBe('altro')
   })
 
+  it('preserva comunicazione_cliente dal modello', () => {
+    expect(normalizeTipoDocumento('comunicazione_cliente')).toBe('comunicazione_cliente')
+    expect(normalizeTipoDocumento('customer_communication')).toBe('comunicazione_cliente')
+  })
+
   it('riconosce curriculum / CV / résumé', () => {
     expect(normalizeTipoDocumento('curriculum vitae')).toBe('curriculum')
     expect(normalizeTipoDocumento('Resume')).toBe('curriculum')
@@ -130,6 +135,16 @@ describe('inferPendingDocumentKindForQueueRow', () => {
         oggetto_mail: null,
         file_name: 'invoice_resume.pdf',
         metadata: { tipo_documento: 'curriculum' },
+      }),
+    ).toBeNull()
+  })
+
+  it('restituisce null per comunicazione_cliente (solo discorsivo, senza bozza)', () => {
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: null,
+        file_name: null,
+        metadata: { tipo_documento: 'comunicazione_cliente' },
       }),
     ).toBeNull()
   })
