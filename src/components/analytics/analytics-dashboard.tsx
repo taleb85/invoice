@@ -71,7 +71,7 @@ type Props = {
 }
 
 const chartCardClass =
-  'relative overflow-hidden rounded-xl border border-white/[0.1] bg-white/[0.045] px-5 pt-5 pb-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)] backdrop-blur-md [-webkit-backdrop-filter:blur(16px)]'
+  'relative overflow-hidden rounded-xl border border-white/[0.1] bg-transparent px-5 pt-5 pb-4 shadow-none backdrop-blur-none [-webkit-backdrop-filter:none]'
 
 export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
   const t = useT()

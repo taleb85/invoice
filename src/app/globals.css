@@ -450,7 +450,7 @@
     @apply relative overflow-hidden text-app-fg-muted;
     border-radius: 10px !important;
     border: 1px solid rgb(148 163 184 / 0.22) !important;
-    background: rgba(255, 255, 255, 0.04) !important;
+    background: transparent !important;
     background-image: none !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
@@ -535,19 +535,19 @@
    * Pannelli interni / liste sopra il canvas.
    */
   .app-workspace-inset-bg {
-    background: rgba(255, 255, 255, 0.04);
+    background: transparent;
     background-image: none;
     box-shadow: none;
   }
   .app-workspace-inset-bg-soft {
-    background: rgba(255, 255, 255, 0.025);
+    background: transparent;
     background-image: none;
     box-shadow: none;
   }
   /** Riga meta / footer dentro card (data caricamento, totali). */
   .app-workspace-inset-footer-row {
     @apply flex items-center justify-between border-t border-app-line-15 px-4 py-2;
-    background: rgba(255, 255, 255, 0.02);
+    background: transparent;
     background-image: none;
   }
   /* ── Standardised table ─────────────────────────────────────────────── */
@@ -1151,7 +1151,8 @@ body:has([data-deep-aurora-integration])
   .glass-surface {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  background: rgb(255 255 255 / 0.045) !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -1164,21 +1165,19 @@ body:has([data-deep-aurora-integration]) .app-workspace-inset-footer-row,
 body:has([data-deep-aurora-public-shell]) .app-workspace-inset-bg,
 body:has([data-deep-aurora-public-shell]) .app-workspace-inset-bg-soft,
 body:has([data-deep-aurora-public-shell]) .app-workspace-inset-footer-row {
-  background: rgb(255 255 255 / 0.025) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05) !important;
+  box-shadow: none !important;
 }
 
 body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated {
-  background: rgb(255 255 255 / 0.06) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow:
-    0 6px 28px rgb(0 0 0 / 0.28),
-    inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
+  box-shadow: none !important;
 }
 
 /** Scrim modali (`.app-workspace-scrim`): velatura leggera senza blur. */
@@ -1283,18 +1282,16 @@ body:has([data-deep-aurora-integration]) .app-table tbody tr:hover {
 }
 
 /**
- * Card standard (modali `.app-card`, ecc.): vetro Aurora leggero — gradiente body visibile.
+ * Card standard (modali `.app-card`, ecc.): bordo visibile, canvas dietro.
  */
 body:has([data-deep-aurora-integration]) .app-card {
   border-radius: 16px !important;
   border: 1px solid rgb(148 163 184 / 0.38) !important;
-  background: rgb(255 255 255 / 0.065) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow:
-    0 12px 48px rgb(0 0 0 / 0.35),
-    inset 0 1px 0 rgb(255 255 255 / 0.09) !important;
+  box-shadow: none !important;
 }
 
 /** Pannelli sezione Aurora: solo contorno — sfondo trasparente sul gradiente body. */
@@ -1317,10 +1314,10 @@ body:has([data-deep-aurora-integration]) .supplier-detail-tab-shell {
   box-shadow: none !important;
 }
 
-/** Tab orizzontale fornitore (mobile Aurora): vetro sulla striscia sotto nome/KPI. */
+/** Tab orizzontale fornitore (mobile Aurora): striscia leggibile senza fill opaco. */
 body:has([data-deep-aurora-integration]) .fornitore-mobile-tab-nav {
   border-bottom-color: rgb(148 163 184 / 0.28) !important;
-  background: rgb(255 255 255 / 0.04) !important;
+  background: transparent !important;
   background-image: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -1359,15 +1356,13 @@ body:has([data-deep-aurora-integration]) input[type='datetime-local'] {
   color-scheme: dark;
 }
 
-/** Dock mobile: leggero sul gradiente Aurora (niente blur). */
+/** Dock mobile: trasparente sul gradiente (solo bordo / ombra esterna leggera). */
 body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
   background-image: none !important;
-  background-color: rgb(255 255 255 / 0.045) !important;
+  background-color: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  box-shadow:
-    0 -8px 32px -8px rgb(0 0 0 / 0.35),
-    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+  box-shadow: 0 -8px 32px -8px rgb(0 0 0 / 0.35) !important;
 }
 
 body:has([data-deep-aurora-integration]) nav.app-glass-dock.border-t-2 {

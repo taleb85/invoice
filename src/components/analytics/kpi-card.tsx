@@ -54,7 +54,7 @@ export function KpiCard({
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={`relative overflow-hidden rounded-2xl border ${c.border} bg-white/[0.05] shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-md [-webkit-backdrop-filter:blur(14px)] transition-all ${onClick ? 'cursor-pointer hover:bg-white/[0.07] active:scale-[0.99]' : ''}`}
+      className={`relative overflow-hidden rounded-2xl border ${c.border} bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] transition-all ${onClick ? 'cursor-pointer hover:bg-white/[0.04] active:scale-[0.99]' : ''}`}
     >
       <div className={`h-0.5 w-full shrink-0 ${c.bar}`} aria-hidden />
       <div className="px-5 py-4">
