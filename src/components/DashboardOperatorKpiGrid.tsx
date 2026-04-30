@@ -58,7 +58,7 @@ const OPERATOR_KPI_GLASS_VALUE_ACCENT: readonly string[] = [
   'text-lime-300 [text-shadow:0_0_20px_rgba(190,242,100,0.5)]',
   'text-cyan-300 [text-shadow:0_0_22px_rgba(103,232,249,0.52)]',
   'text-amber-200 [text-shadow:0_0_18px_rgba(253,230,138,0.42)]',
-  'text-orange-300 [text-shadow:0_0_20px_rgba(253,186,116,0.48)]',
+  'text-red-300 [text-shadow:0_0_22px_rgba(252,165,165,0.55)]',
 ]
 
 /** Corpo tile: griglia interna; l’altezza uniforme delle card è sul guscio `.operator-kpi-card`. */
