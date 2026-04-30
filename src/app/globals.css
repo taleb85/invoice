@@ -1216,6 +1216,17 @@ body:has([data-deep-aurora-integration]) .app-shell-main-stack {
   }
 }
 
+/**
+ * Schede lunghe (`FornitoreDetailClient` desktop): stesso vetro Aurora ma altezza = flusso del contenuto,
+ * senza espansione `flex`/clip `min-height:0` nel genitore a colonna.
+ */
+body:has([data-deep-aurora-integration]) .app-shell-main-stack.app-shell-main-stack-fit {
+  flex: none !important;
+  align-self: stretch !important;
+  min-height: unset !important;
+  height: auto !important;
+}
+
 body:has([data-deep-aurora-integration]) .app-sidebar-aside.app-shell-rail-clear {
   background-color: rgb(255 255 255 / 0.04) !important;
   backdrop-filter: blur(26px) saturate(150%) !important;
