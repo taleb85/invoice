@@ -161,6 +161,41 @@ function ElabCell({ row, elab, procLabels }: { row: EmailActivityRow; elab: RowE
   )
 }
 
+function shouldShowElabInline(row: EmailActivityRow, elab: RowElab): boolean {
+  return docId(row) != null && (elab.phase === 'loading' || elab.phase === 'done')
+}
+
+function TableSupplierWithElab({
+  row,
+  elab,
+  procLabels,
+  pdfLineTemplate,
+}: {
+  row: EmailActivityRow
+  elab: RowElab
+  procLabels: ProcLabels
+  pdfLineTemplate: string
+}) {
+  const showElab = shouldShowElabInline(row, elab)
+  return (
+    <div className="min-w-0 space-y-2">
+      <ActivityLogSupplierCell
+        primary={row.fornitoreNome}
+        docHint={row.docDetectedHint}
+        pdfLineTemplate={pdfLineTemplate}
+      />
+      {showElab ? (
+        <div className="border-t border-white/[0.06] pt-2">
+          <span className="sr-only">
+            {procLabels.column}:{' '}
+          </span>
+          <ElabCell row={row} elab={elab} procLabels={procLabels} />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function EmailActivityLogPanel({
   rows,
   summaryLine,
@@ -293,9 +328,11 @@ export function EmailActivityLogPanel({
                 </span>
                 <span className="text-app-fg">{row.statusDisplay}</span>
               </div>
-              {docId(row) ? (
+              {shouldShowElabInline(row, elabFor(row)) ? (
                 <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-2 text-sm">
-                  <span className="shrink-0 font-medium text-app-fg-muted">{procLabels.column}:</span>
+                  <span className="sr-only">
+                    {procLabels.column}:{' '}
+                  </span>
                   <ElabCell row={row} elab={elabFor(row)} procLabels={procLabels} />
                 </div>
               ) : null}
@@ -319,8 +356,7 @@ export function EmailActivityLogPanel({
                 <th className={`${APP_SECTION_TABLE_TH} w-[11%] min-w-0`}>{tLog.activityColTipo}</th>
                 <th className={`${APP_SECTION_TABLE_TH} w-[12%] min-w-0 tabular-nums`}>{tLog.activityColAmount}</th>
                 <th className={`${APP_SECTION_TABLE_TH} min-w-0`}>{tLog.activityColStatus}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[min(18rem,22%)] min-w-0`}>{procLabels.column}</th>
-                <th className={`${APP_SECTION_TABLE_TH} w-[14%] min-w-0 whitespace-nowrap`}>
+                <th className={`${APP_SECTION_TABLE_TH} w-[min(14rem,18%)] min-w-0 whitespace-nowrap`}>
                   {tLog.activityOpenDocument}
                 </th>
               </tr>
@@ -329,9 +365,10 @@ export function EmailActivityLogPanel({
               {rows.map((row, idx) => (
                 <tr key={`${row.atIso}-t-${idx}`} className={`align-top ${APP_SECTION_TABLE_TR}`}>
                   <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
-                    <ActivityLogSupplierCell
-                      primary={row.fornitoreNome}
-                      docHint={row.docDetectedHint}
+                    <TableSupplierWithElab
+                      row={row}
+                      elab={elabFor(row)}
+                      procLabels={procLabels}
                       pdfLineTemplate={tLog.activityPdfDetectedLine}
                     />
                   </td>
@@ -340,9 +377,6 @@ export function EmailActivityLogPanel({
                     {row.amountDisplay}
                   </td>
                   <td className="min-w-0 px-4 py-2.5 text-app-fg md:px-5 md:py-3 lg:py-2">{row.statusDisplay}</td>
-                  <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
-                    <ElabCell row={row} elab={elabFor(row)} procLabels={procLabels} />
-                  </td>
                   <td className="min-w-0 px-4 py-2.5 md:px-5 md:py-3 lg:py-2">
                     <LogActivityDocumentLink
                       label={tLog.activityOpenDocument}
