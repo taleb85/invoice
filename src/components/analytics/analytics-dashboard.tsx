@@ -18,7 +18,19 @@ import {
 import { KpiCard } from './kpi-card'
 import type { AnalyticsOverview } from '@/app/api/analytics/overview/route'
 
-const AXIS_COLOR = 'rgba(255,255,255,0.58)'
+/** Tick assi — contrasto alto (SVG `<text>`: niente classe Tailwind). */
+const CHART_AXIS_TICK_FONT_FAMILY =
+  'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+
+const chartAxisTick = (
+  fontSize: number,
+): { fill: string; fontSize: number; fontWeight: number; fontFamily: string } => ({
+  fill: 'rgba(255,255,255,0.86)',
+  fontSize,
+  fontWeight: 600,
+  fontFamily: CHART_AXIS_TICK_FONT_FAMILY,
+})
+
 const GRID_COLOR = 'rgba(255,255,255,0.06)'
 const CYAN = '#22d3ee'
 const PURPLE = '#818cf8'
@@ -177,16 +189,16 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
             <XAxis
               dataKey="mese"
-              tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+              tick={chartAxisTick(12)}
               axisLine={false}
               tickLine={false}
             />
             <YAxis
               tickFormatter={fmtShort}
-              tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+              tick={chartAxisTick(12)}
               axisLine={false}
               tickLine={false}
-              width={48}
+              width={52}
             />
             <Tooltip
               formatter={(value, name) => [
@@ -212,7 +224,7 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
         <div className={chartCardClass}>
           <h3 className="mb-4 text-sm font-semibold text-white">{t.appStrings.analyticsChartTopSuppliers}</h3>
           {data.topFornitori.length === 0 ? (
-            <div className="flex h-[220px] items-center justify-center text-xs text-app-fg-muted">
+            <div className="flex h-[220px] items-center justify-center text-xs text-white/82">
               {t.appStrings.analyticsChartNoData}
             </div>
           ) : (
@@ -226,15 +238,15 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
                 <XAxis
                   type="number"
                   tickFormatter={fmtShort}
-                  tick={{ fill: AXIS_COLOR, fontSize: 10 }}
+                  tick={chartAxisTick(12)}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   type="category"
                   dataKey="nome"
-                  width={90}
-                  tick={{ fill: AXIS_COLOR, fontSize: 10 }}
+                  width={92}
+                  tick={chartAxisTick(11)}
                   axisLine={false}
                   tickLine={false}
                   tickFormatter={(v: string) => (v.length > 14 ? v.slice(0, 13) + '…' : v)}
@@ -261,15 +273,15 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
               <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
               <XAxis
                 dataKey="mese"
-                tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+                tick={chartAxisTick(12)}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fill: AXIS_COLOR, fontSize: 11 }}
+                tick={chartAxisTick(12)}
                 axisLine={false}
                 tickLine={false}
-                width={28}
+                width={32}
                 allowDecimals={false}
               />
               <Tooltip
@@ -277,7 +289,12 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
                 contentStyle={tooltipStyle}
               />
               <Legend
-                wrapperStyle={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.78)' }}
+                wrapperStyle={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: CHART_AXIS_TICK_FONT_FAMILY,
+                  color: 'rgba(255,255,255,0.88)',
+                }}
                 formatter={(v) => (v === 'bolle' ? t.appStrings.analyticsChartDeliveryNotes : t.appStrings.analyticsChartInvoices)}
               />
               <Line
