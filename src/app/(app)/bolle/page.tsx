@@ -37,6 +37,7 @@ import { analyzeBolleDuplicatesForDeletion, serializeFatturaDuplicateDeletionPay
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { ExportButton } from '@/components/export-button'
 import type { ExportRow } from '@/lib/export-report'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -134,7 +135,7 @@ async function getBolleAll(
 export default async function BollePage(props: {
   searchParams?: Promise<{ tutte?: string; pending?: string; fy?: string }>
 }) {
-  const sp = props.searchParams != null ? await props.searchParams : {}
+  const sp = await unwrapSearchParams(props.searchParams)
   const showAll = sp.tutte === '1' || sp.tutte === 'true'
   const pendingOnly = sp.pending === '1' || sp.pending === 'true'
   const bolleReturn = bolleListReturnPath(sp)

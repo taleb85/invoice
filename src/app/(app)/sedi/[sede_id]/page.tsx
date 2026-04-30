@@ -17,6 +17,7 @@ import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHea
 import { ApprovalSettingsForm } from '@/components/approval/approval-settings-form'
 import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
 import SedeOcrIgnoreNamesEditor from '@/components/SedeOcrIgnoreNamesEditor'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 interface SedeProfile {
   id: string
@@ -72,8 +73,7 @@ export default async function SedeProfilePage(props: {
   if (!user) redirect('/login')
 
   const { sede_id } = await props.params
-  const searchParams =
-    props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const sede = await fetchSedeProfile(sede_id)
   if (!sede) redirect('/sedi')
 

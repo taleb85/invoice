@@ -34,6 +34,7 @@ import {
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 const dupBadgeCls =
   'ml-1.5 inline-flex shrink-0 align-middle rounded border border-[rgba(34,211,238,0.15)] bg-orange-950/45 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-orange-200 shadow-[0_0_10px_rgba(251,146,60,0.35)]'
@@ -43,8 +44,7 @@ export const dynamic = 'force-dynamic'
 export default async function FattureRiepilogoPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams =
-    props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const [t, locale, tz, currency, cookieStore] = await Promise.all([
     getT(),
     getLocale(),

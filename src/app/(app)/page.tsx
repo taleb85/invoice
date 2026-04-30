@@ -25,14 +25,14 @@ import { APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLAS
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams =
-    props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const cookieStore = await getCookieStore()
   const [t, locale, tz, profile, currency] = await Promise.all([
     getT(),

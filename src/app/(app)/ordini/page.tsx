@@ -34,14 +34,14 @@ import {
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import { analyzeOrdineDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
 
 export default async function OrdiniOverviewPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams =
-    props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const [t, locale, tz, cookieStore] = await Promise.all([
     getT(),
     getLocale(),

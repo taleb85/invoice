@@ -11,11 +11,12 @@ import {
 } from '@/lib/app-shell-layout'
 import InboxAiClient from './inbox-ai-client'
 import { BackButton } from '@/components/BackButton'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
 
 export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?: string; tab?: string }> }) {
-  const searchParams = props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const [cookieStore, profile, { supabase }, t] = await Promise.all([
     getCookieStore(),
     getProfile(),

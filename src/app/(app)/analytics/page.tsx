@@ -12,19 +12,20 @@ import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 import { parseFiscalYearQueryParam, formatFiscalYearShort } from '@/lib/fiscal-year'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
 
-type SearchParams = Promise<{ fy?: string; months?: string }>
+type SearchParamsShape = { fy?: string; months?: string }
 
-export default async function AnalyticsPage(props: { searchParams: SearchParams }) {
+export default async function AnalyticsPage(props: { searchParams: Promise<SearchParamsShape> }) {
   const profile = await getProfile()
   if (!profile || !['admin', 'admin_sede'].includes(profile.role ?? '')) {
     redirect('/')
   }
 
   const [sp, cookieStore, t, supabase] = await Promise.all([
-    props.searchParams,
+    unwrapSearchParams(props.searchParams),
     getCookieStore(),
     getT(),
     createClient(),

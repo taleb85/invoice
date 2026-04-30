@@ -33,14 +33,14 @@ import {
   APP_SECTION_TABLE_THEAD_STICKY,
   APP_SECTION_TABLE_TR,
 } from '@/lib/app-shell-layout'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ListinoOverviewPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams =
-    props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const [t, locale, tz, currency, cookieStore] = await Promise.all([
     getT(),
     getLocale(),

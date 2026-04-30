@@ -18,14 +18,14 @@ import {
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
 import { BackButton } from '@/components/BackButton'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
 
 export default async function RevisioneInboxPage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams =
-    props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const [t, cookieStore, profile, { supabase }] = await Promise.all([
     getT(),
     getCookieStore(),

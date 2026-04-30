@@ -12,6 +12,7 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,7 +37,7 @@ export default async function ScannerEventiPage(props: {
   const sedeId = await getListSedeId()
   if (!sedeId) redirect('/')
 
-  const sp = props.searchParams != null ? await props.searchParams : {}
+  const sp = await unwrapSearchParams(props.searchParams)
   const raw = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1
   const requestedPage = Number.isFinite(raw) && raw >= 1 ? raw : 1
 

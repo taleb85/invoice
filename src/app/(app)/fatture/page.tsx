@@ -32,6 +32,7 @@ import { ActionLink } from '@/components/ui/ActionButton'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ExportButton } from '@/components/export-button'
 import type { ExportRow } from '@/lib/export-report'
+import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 type FatturaListRow = {
   id: string
@@ -68,8 +69,7 @@ async function getFatture(
 export default async function FatturePage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
-  const searchParams =
-    props.searchParams != null ? await props.searchParams : {}
+  const searchParams = await unwrapSearchParams(props.searchParams)
   const [t, locale, tz, currency, cookieStore, profile, { supabase }] = await Promise.all([
     getT(),
     getLocale(),
