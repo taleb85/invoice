@@ -89,18 +89,6 @@ export function DashboardMonthlyTrendGlassCard({
           >
             {t.dashboard.homeMonthlyTrendCompareAnalytics}
           </Link>
-          <span
-            role="button"
-            tabIndex={0}
-            aria-disabled
-            title={t.dashboard.homeMonthlyTrendExportDemoAria}
-            className="cursor-not-allowed rounded-lg bg-[#38bdf8] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-950 opacity-75 shadow-[0_0_22px_-4px_rgba(34,211,238,0.55)]"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') e.preventDefault()
-            }}
-          >
-            {t.dashboard.homeMonthlyTrendExportDemo}
-          </span>
         </div>
       </div>
       <div className="flex min-h-[220px] flex-col gap-3 p-3 sm:min-h-[240px] md:flex-row md:p-4 lg:min-h-[260px] lg:gap-4">
