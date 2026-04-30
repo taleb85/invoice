@@ -554,7 +554,7 @@ function DesktopWorkspaceMock() {
                         </div>
                         <GlassPanel className="mt-5 p-5">
                           <p className="text-[13px] font-semibold uppercase tracking-wide text-white">
-                            Fluxo scanner · score anomalie
+                            Smart Pair scanner · score anomalie
                           </p>
                           <div className="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
@@ -606,14 +606,14 @@ function DesktopWorkspaceMock() {
                         <GlassPanel className="mt-4 p-4">
                           <p className="text-[11px] font-medium uppercase tracking-wide text-white">Suggerimento</p>
                           <p className="mt-2 text-[13px] leading-relaxed text-slate-400">
-                            Allinea i fornitori mancanti in coda Scanner prima del closing mensile — meno mismatch in
+                            Allinea i fornitori mancanti nella coda Smart Pair prima del closing mensile — meno mismatch in
                             listino e nelle approvazioni.
                           </p>
                           <button
                             type="button"
                             className="mt-3 w-full rounded-xl bg-[#38bdf8] px-3 py-2.5 text-left text-[12px] font-semibold text-slate-950 transition hover:brightness-110 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#38bdf8]/50"
                           >
-                            Apri coda Scanner (mockup)
+                            Apri Smart Pair (mockup)
                           </button>
                         </GlassPanel>
                       </div>
