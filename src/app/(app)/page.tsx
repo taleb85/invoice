@@ -16,7 +16,6 @@ import {
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
-import { DashboardBolleWorkloadGlass } from '@/components/DashboardAuroraHomeWidgets'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
@@ -317,27 +316,22 @@ export default async function DashboardPage(props: {
                 />
               </Suspense>
             </div>
-            <div className="flex min-h-0 w-full min-w-0 flex-col gap-3 md:flex-row md:items-stretch md:gap-4">
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <DashboardBolleWorkloadGlass kpis={kpis} scanner={scannerFlowDetail.summary} t={t} />
-              </div>
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <DashboardScannerFlowCard
-                  glassShell
-                  summary={scannerFlowDetail.summary}
-                  events={scannerFlowDetail.events}
-                  formatEventTime={formatScannerEventTime}
-                  t={t}
-                  headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
-                  tz={tz}
-                  fiscalYearLabel={kpiFiscal ? formatFiscalYearShort(kpiFiscal.countryCode, kpiFiscal.labelYear) : undefined}
-                  detailTimeRange={
-                    scannerFiscalBounds
-                      ? { from: scannerFiscalBounds.tsFrom, toExclusive: scannerFiscalBounds.tsToExclusive }
-                      : undefined
-                  }
-                />
-              </div>
+            <div className="dashboard-operator-aurora-area-scan min-w-0">
+              <DashboardScannerFlowCard
+                glassShell
+                summary={scannerFlowDetail.summary}
+                events={scannerFlowDetail.events}
+                formatEventTime={formatScannerEventTime}
+                t={t}
+                headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
+                tz={tz}
+                fiscalYearLabel={kpiFiscal ? formatFiscalYearShort(kpiFiscal.countryCode, kpiFiscal.labelYear) : undefined}
+                detailTimeRange={
+                  scannerFiscalBounds
+                    ? { from: scannerFiscalBounds.tsFrom, toExclusive: scannerFiscalBounds.tsToExclusive }
+                    : undefined
+                }
+              />
             </div>
           </div>
           {/* Stesso contenuto Scanner su viewport strette (<md il blocco sopra è nascosto). */}
