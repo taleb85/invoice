@@ -2,15 +2,13 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import DuplicateDashboardBanner from '@/components/duplicates/duplicate-dashboard-banner'
-import DashboardScannerFlowCard from '@/components/DashboardScannerFlowCard'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
-import { getT, getLocale, getTimezone, getCurrency, getCookieStore, formatDate as fmtDate } from '@/lib/locale-server'
+import { getT, getLocale, getCurrency, getCookieStore } from '@/lib/locale-server'
 import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
   DEFAULT_OPERATOR_DASHBOARD_KPIS,
   fetchOperatorDashboardKpis,
-  fetchTodayScannerFlowDetail,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
@@ -35,10 +33,9 @@ export default async function DashboardPage(props: {
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
   const cookieStore = await getCookieStore()
-  const [t, locale, tz, profile, currency] = await Promise.all([
+  const [t, locale, profile, currency] = await Promise.all([
     getT(),
     getLocale(),
-    getTimezone(),
     getProfile(),
     getCurrency(),
   ])
@@ -237,35 +234,15 @@ export default async function DashboardPage(props: {
     !!profile?.role &&
     (profile.role === 'admin' || profile.role === 'admin_sede')
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
-  const scannerFiscalBounds = kpiFiscal ? getFiscalYearPgBounds(kpiFiscal.countryCode, kpiFiscal.labelYear) : null
 
   let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
-  let scannerFlowDetail: Awaited<ReturnType<typeof fetchTodayScannerFlowDetail>> = {
-    summary: { aiElaborate: 0, archiviate: 0 },
-    events: [],
-  }
   try {
-    const bundle = await Promise.all([
-      operatorScoped
-        ? fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
-        : Promise.resolve({ ...DEFAULT_OPERATOR_DASHBOARD_KPIS }),
-      operatorScoped && sedeId
-        ? fetchTodayScannerFlowDetail(
-            supabase,
-            sedeId,
-            tz,
-            scannerFiscalBounds
-              ? { summaryRange: { start: scannerFiscalBounds.tsFrom, endExclusive: scannerFiscalBounds.tsToExclusive } }
-              : undefined,
-          )
-        : Promise.resolve({ summary: { aiElaborate: 0, archiviate: 0 }, events: [] }),
-    ])
-    kpis = bundle[0]
-    scannerFlowDetail = bundle[1]
+    if (operatorScoped) {
+      kpis = await fetchOperatorDashboardKpis(supabase, sedeId, fornitoreIds, kpiFiscal)
+    }
   } catch (err) {
     console.error('[DashboardPage] KPI/fetch', err)
   }
-  const formatScannerEventTime = (iso: string) => fmtDate(iso, locale, tz, { hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -329,41 +306,6 @@ export default async function DashboardPage(props: {
                 />
               </Suspense>
             </div>
-            <div className="dashboard-operator-aurora-area-scan min-w-0">
-              <DashboardScannerFlowCard
-                glassShell
-                summary={scannerFlowDetail.summary}
-                events={scannerFlowDetail.events}
-                formatEventTime={formatScannerEventTime}
-                t={t}
-                headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
-                tz={tz}
-                fiscalYearLabel={kpiFiscal ? formatFiscalYearShort(kpiFiscal.countryCode, kpiFiscal.labelYear) : undefined}
-                detailTimeRange={
-                  scannerFiscalBounds
-                    ? { from: scannerFiscalBounds.tsFrom, toExclusive: scannerFiscalBounds.tsToExclusive }
-                    : undefined
-                }
-              />
-            </div>
-          </div>
-          {/* Stesso contenuto Scanner su viewport strette (<md il blocco sopra è nascosto). */}
-          <div className="dashboard-operator-scanner-mobile-only">
-            <DashboardScannerFlowCard
-              glassShell
-              summary={scannerFlowDetail.summary}
-              events={scannerFlowDetail.events}
-              formatEventTime={formatScannerEventTime}
-              t={t}
-              headerLinks={{ newScanHref: '/bolle/new', eventsHref: '/scanner/eventi' }}
-              tz={tz}
-              fiscalYearLabel={kpiFiscal ? formatFiscalYearShort(kpiFiscal.countryCode, kpiFiscal.labelYear) : undefined}
-              detailTimeRange={
-                scannerFiscalBounds
-                  ? { from: scannerFiscalBounds.tsFrom, toExclusive: scannerFiscalBounds.tsToExclusive }
-                  : undefined
-              }
-            />
           </div>
           {canViewEmbeddedAnalytics && sedeId ? (
             <div className="min-h-0 w-full min-w-0 mt-5 md:mt-6 pt-6 border-t border-app-line-15">
