@@ -1,9 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import type { OperatorDashboardKpis, ScannerFlowDaySummary } from '@/lib/dashboard-operator-kpis'
 import type { Translations } from '@/lib/translations'
-import { withFiscalYearQuery } from '@/lib/fiscal-link'
 
 const AURORA_HOME_SECTION_CLASS =
   'relative flex w-full min-w-0 flex-col min-h-0 app-card-unified overflow-hidden rounded-2xl'
@@ -72,105 +70,5 @@ export function DashboardSmartPairRiskGlass({ kpis, scanner, t }: SmartProps) {
         </div>
       </div>
     </section>
-  )
-}
-
-function DiamondIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 3l8 10-8 8-8-8 8-10z"
-        fill="currentColor"
-        opacity={0.9}
-      />
-      <path
-        d="M12 7l5 7-5 6-5-6 5-7z"
-        fill="#38bdf8"
-        opacity={0.9}
-      />
-    </svg>
-  )
-}
-
-type PriorityProps = {
-  kpis: OperatorDashboardKpis
-  fiscalYear: number
-  t: Translations
-}
-
-export function DashboardPrioritaGlassPanel({ kpis, fiscalYear, t }: PriorityProps) {
-  const anomalyParams = kpis.statementsWithIssues > 0 ? ({ stato: 'anomalia' as const }) : undefined
-  const items: Array<{
-    title: string
-    sub: string
-    href: string
-    muted: boolean
-  }> = [
-    {
-      title: t.dashboard.homePriorityDupInvoices,
-      href: '/impostazioni',
-      muted: kpis.duplicatiCount === 0,
-      sub:
-        kpis.duplicatiCount === 0
-          ? t.dashboard.homePriorityAllClearSubtitle
-          : t.dashboard.homePrioritySubtitleWithCount.replace('{n}', String(kpis.duplicatiCount)),
-    },
-    {
-      title: t.dashboard.homePriorityDupBolle,
-      href: withFiscalYearQuery('/bolle', fiscalYear, { tutte: '1' }),
-      muted: kpis.duplicatiBolleCount === 0,
-      sub:
-        kpis.duplicatiBolleCount === 0
-          ? t.dashboard.homePriorityAllClearSubtitle
-          : t.dashboard.homePrioritySubtitleWithCount.replace('{n}', String(kpis.duplicatiBolleCount)),
-    },
-    {
-      title: t.dashboard.homePriorityRevision,
-      href: withFiscalYearQuery('/revisione', fiscalYear),
-      muted: kpis.documentiDaRevisionare === 0,
-      sub:
-        kpis.documentiDaRevisionare === 0
-          ? t.dashboard.homePriorityAllClearSubtitle
-          : t.dashboard.homePrioritySubtitleWithCount.replace('{n}', String(kpis.documentiDaRevisionare)),
-    },
-    {
-      title: t.dashboard.homePriorityStatements,
-      href: withFiscalYearQuery('/statements/verifica', fiscalYear, anomalyParams),
-      muted: kpis.statementsWithIssues === 0,
-      sub:
-        kpis.statementsWithIssues === 0
-          ? t.dashboard.homePriorityAllClearSubtitle
-          : t.dashboard.homePrioritySubtitleWithCount.replace('{n}', String(kpis.statementsWithIssues)),
-    },
-  ]
-
-  return (
-    <aside className={AURORA_HOME_SECTION_CLASS}>
-      <div className="border-b border-white/10 px-4 py-3.5 md:px-5">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/55">
-          {t.dashboard.homePrioritiesTitle}
-        </h2>
-      </div>
-      <ul className="divide-y divide-white/[0.07] px-3 py-1 md:px-4 md:py-2">
-        {items.map((it) => (
-          <li key={it.title}>
-            <Link
-              href={it.href}
-              className={`group flex gap-3 px-2 py-3 transition md:rounded-xl md:py-3.5 ${
-                it.muted
-                  ? 'opacity-[0.72] hover:bg-white/[0.03]'
-                  : 'hover:bg-white/[0.06] active:bg-white/[0.08]'
-              }`}
-            >
-              <DiamondIcon className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300 drop-shadow-[0_0_10px_rgba(56,189,248,0.55)]" />
-              <div className="min-w-0">
-                <p className="font-semibold text-white">{it.title}</p>
-                <p className="mt-0.5 text-[11px] leading-snug text-white/42 group-hover:text-white/55">{it.sub}</p>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </aside>
   )
 }

@@ -856,9 +856,7 @@ body {
   }
 }
 
-/**
- * Tablet/desktop (md+): colonna; da xl: griglia come mock (Priorità affiancata a KPI+Smart+Scanner).
- */
+/** Tablet/desktop Aurora: KPI, SmartPair, Scanner in colonna. */
 .dashboard-operator-aurora-grid {
   display: flex;
   flex-direction: column;
@@ -867,41 +865,6 @@ body {
 @media (min-width: 768px) {
   .dashboard-operator-aurora-grid {
     gap: 1rem;
-  }
-}
-@media (min-width: 1024px) {
-  .dashboard-operator-aurora-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(272px, min(26vw, 320px));
-    grid-template-rows: auto auto auto;
-    gap: 1rem 1.25rem;
-    align-items: start;
-    grid-template-areas:
-      'aur-kpi aur-prio'
-      'aur-smart aur-prio'
-      'aur-scan aur-prio';
-  }
-  .dashboard-operator-aurora-area-kpi {
-    grid-area: aur-kpi;
-    min-width: 0;
-  }
-  .dashboard-operator-aurora-area-smart {
-    grid-area: aur-smart;
-    min-width: 0;
-  }
-  .dashboard-operator-aurora-area-scan {
-    grid-area: aur-scan;
-    min-width: 0;
-  }
-  .dashboard-operator-aurora-area-prio {
-    grid-area: aur-prio;
-    min-width: 0;
-    align-self: stretch;
-    position: sticky;
-    top: 0.75rem;
-    max-height: min(calc(100dvh - 5.5rem), 100%);
-    overflow-y: auto;
-    overflow-x: hidden;
   }
 }
 .dashboard-operator-empty-shell-desktop {
