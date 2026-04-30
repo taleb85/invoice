@@ -12,6 +12,21 @@ import {
   wholeDaysSinceUtc,
 } from '@/lib/sollecito-aging'
 
+function mockSupabaseConfigMerge(opts: {
+  app?: { data: unknown; error: { message: string } | null }
+  legacy?: { data: unknown; error: { message: string } | null }
+}) {
+  return {
+    from: vi.fn((table: string) => ({
+      select: vi.fn().mockResolvedValue(
+        table === 'configurazioni_app'
+          ? opts.app ?? { data: null, error: { message: 'missing' } }
+          : opts.legacy ?? { data: null, error: { message: 'missing' } },
+      ),
+    })),
+  }
+}
+
 describe('wholeDaysSinceUtc / parseDateOnlyOrIso', () => {
   it('conteggia giorni calendario UTC', () => {
     const from = parseDateOnlyOrIso('2026-01-01')!
@@ -141,33 +156,47 @@ describe('statementCheckIsMismatch / isStatementMismatchOverdue', () => {
 })
 
 describe('fetchSollecitiToleranceConfig', () => {
-  it('fallback ai default quando la query segnala errore', async () => {
-    const supabase = {
-      from: vi.fn(() => ({
-        select: vi.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'relation configurazioni_solleciti does not exist' },
-        }),
-      })),
-    }
+  it('fallback ai default quando entrambe le query falliscono', async () => {
+    const supabase = mockSupabaseConfigMerge({
+      app: { data: null, error: { message: 'relation configurazioni_app does not exist' } },
+      legacy: { data: null, error: { message: 'relation configurazioni_solleciti does not exist' } },
+    })
     await expect(fetchSollecitiToleranceConfig(supabase as never)).resolves.toEqual(
       DEFAULT_SOLLECITI_TOLERANCE,
     )
   })
 
-  it('interpreta righe dalla tabella', async () => {
-    const supabase = {
-      from: vi.fn(() => ({
-        select: vi.fn().mockResolvedValue({
-          data: [
-            { chiave: 'giorni_tolleranza_bolla', valore: '7' },
-            { chiave: 'giorni_tolleranza_promessa_documento', valore: '1' },
-            { chiave: 'giorni_tolleranza_estratto_mismatch', valore: '4' },
-          ],
-          error: null,
-        }),
-      })),
-    }
+  it('interpreta righe dalla tabella app (chiavi italiane)', async () => {
+    const supabase = mockSupabaseConfigMerge({
+      legacy: { data: [], error: null },
+      app: {
+        data: [
+          { chiave: 'giorni_attesa_bolla', valore: '7' },
+          { chiave: 'giorni_attesa_promessa', valore: '1' },
+          { chiave: 'giorni_attesa_mismatch_estratto', valore: '4' },
+        ],
+        error: null,
+      },
+    })
+    await expect(fetchSollecitiToleranceConfig(supabase as never)).resolves.toEqual({
+      giorniTolBolla: 7,
+      giorniTolPromessa: 1,
+      giorniTolEstrattoMismatch: 4,
+    })
+  })
+
+  it('interpreta chiavi legacy se app vuota', async () => {
+    const supabase = mockSupabaseConfigMerge({
+      app: { data: [], error: null },
+      legacy: {
+        data: [
+          { chiave: 'giorni_tolleranza_bolla', valore: '7' },
+          { chiave: 'giorni_tolleranza_promessa_documento', valore: '1' },
+          { chiave: 'giorni_tolleranza_estratto_mismatch', valore: '4' },
+        ],
+        error: null,
+      },
+    })
     await expect(fetchSollecitiToleranceConfig(supabase as never)).resolves.toEqual({
       giorniTolBolla: 7,
       giorniTolPromessa: 1,
@@ -178,32 +207,58 @@ describe('fetchSollecitiToleranceConfig', () => {
 
 describe('fetchSollecitiReminderSettings', () => {
   it('autoSollecitiEnabled true quando la chiave manca', async () => {
-    const supabase = {
-      from: vi.fn(() => ({
-        select: vi.fn().mockResolvedValue({
-          data: [
-            { chiave: 'giorni_tolleranza_bolla', valore: '5' },
-            { chiave: 'giorni_tolleranza_promessa_documento', valore: '2' },
-            { chiave: 'giorni_tolleranza_estratto_mismatch', valore: '3' },
-          ],
-          error: null,
-        }),
-      })),
-    }
+    const supabase = mockSupabaseConfigMerge({
+      legacy: {
+        data: [
+          { chiave: 'giorni_tolleranza_bolla', valore: '5' },
+          { chiave: 'giorni_tolleranza_promessa_documento', valore: '2' },
+          { chiave: 'giorni_tolleranza_estratto_mismatch', valore: '3' },
+        ],
+        error: null,
+      },
+      app: { data: [], error: null },
+    })
     const r = await fetchSollecitiReminderSettings(supabase as never)
     expect(r.autoSollecitiEnabled).toBe(true)
     expect(r.giorniTolBolla).toBe(5)
   })
 
-  it('legge auto_solleciti_enabled false', async () => {
-    const supabase = {
-      from: vi.fn(() => ({
-        select: vi.fn().mockResolvedValue({
-          data: [{ chiave: 'auto_solleciti_enabled', valore: 'false' }],
-          error: null,
-        }),
-      })),
-    }
+  it('preferisce chiavi italiane su configurazioni_app rispetto alle legacy', async () => {
+    const supabase = mockSupabaseConfigMerge({
+      legacy: {
+        data: [{ chiave: 'giorni_tolleranza_bolla', valore: '1' }],
+        error: null,
+      },
+      app: {
+        data: [{ chiave: 'giorni_attesa_bolla', valore: '9' }],
+        error: null,
+      },
+    })
+    const r = await fetchSollecitiReminderSettings(supabase as never)
+    expect(r.giorniTolBolla).toBe(9)
+  })
+
+  it('legge solleciti_automatici_attivi false', async () => {
+    const supabase = mockSupabaseConfigMerge({
+      legacy: { data: [], error: null },
+      app: {
+        data: [{ chiave: 'solleciti_automatici_attivi', valore: 'false' }],
+        error: null,
+      },
+    })
+    await expect(fetchSollecitiReminderSettings(supabase as never)).resolves.toMatchObject({
+      autoSollecitiEnabled: false,
+    })
+  })
+
+  it('legge auto_solleciti_enabled false (legacy)', async () => {
+    const supabase = mockSupabaseConfigMerge({
+      legacy: {
+        data: [{ chiave: 'auto_solleciti_enabled', valore: 'false' }],
+        error: null,
+      },
+      app: { data: [], error: null },
+    })
     await expect(fetchSollecitiReminderSettings(supabase as never)).resolves.toMatchObject({
       autoSollecitiEnabled: false,
     })

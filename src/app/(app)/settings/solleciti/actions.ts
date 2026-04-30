@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
   DEFAULT_SOLLECITI_TOLERANCE,
+  SOLLECITI_APP_DESCRIZIONI,
   SOLLECITI_CONFIG_CHIAVI,
 } from '@/lib/sollecito-aging'
 
@@ -40,18 +41,21 @@ export async function saveSollecitiSettingsAction(
     {
       chiave: SOLLECITI_CONFIG_CHIAVI.autoEnabled,
       valore: input.autoSollecitiEnabled ? 'true' : 'false',
+      descrizione: SOLLECITI_APP_DESCRIZIONI[SOLLECITI_CONFIG_CHIAVI.autoEnabled],
     },
     {
       chiave: SOLLECITI_CONFIG_CHIAVI.bolla,
       valore: String(
         clampDay(input.giorniTolBolla, DEFAULT_SOLLECITI_TOLERANCE.giorniTolBolla),
       ),
+      descrizione: SOLLECITI_APP_DESCRIZIONI[SOLLECITI_CONFIG_CHIAVI.bolla],
     },
     {
       chiave: SOLLECITI_CONFIG_CHIAVI.promessa,
       valore: String(
         clampDay(input.giorniTolPromessa, DEFAULT_SOLLECITI_TOLERANCE.giorniTolPromessa),
       ),
+      descrizione: SOLLECITI_APP_DESCRIZIONI[SOLLECITI_CONFIG_CHIAVI.promessa],
     },
     {
       chiave: SOLLECITI_CONFIG_CHIAVI.estratto,
@@ -61,10 +65,11 @@ export async function saveSollecitiSettingsAction(
           DEFAULT_SOLLECITI_TOLERANCE.giorniTolEstrattoMismatch,
         ),
       ),
+      descrizione: SOLLECITI_APP_DESCRIZIONI[SOLLECITI_CONFIG_CHIAVI.estratto],
     },
   ]
 
-  const { error } = await supabase.from('configurazioni_solleciti').upsert(rows, {
+  const { error } = await supabase.from('configurazioni_app').upsert(rows, {
     onConflict: 'chiave',
   })
 

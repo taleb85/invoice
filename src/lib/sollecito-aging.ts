@@ -1,16 +1,37 @@
 /**
  * Aging / soglie giorni per solleciti documenti mancanti.
- * Tolleranze da tabella `configurazioni_solleciti`; fallback statici se la tabella manca o la query fallisce.
+ * Legge da `configurazioni_app` (chiavi italiane); compatibilità con `configurazioni_solleciti` (chiavi legacy).
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-/** Chiavi riga in `public.configurazioni_solleciti` (colonna chiave). */
+/** Chiavi correnti in `public.configurazioni_app` (scrittura UI / upsert). */
 export const SOLLECITI_CONFIG_CHIAVI = {
-  bolla: 'giorni_tolleranza_bolla',
-  promessa: 'giorni_tolleranza_promessa_documento',
-  estratto: 'giorni_tolleranza_estratto_mismatch',
-  autoEnabled: 'auto_solleciti_enabled',
+  bolla: 'giorni_attesa_bolla',
+  promessa: 'giorni_attesa_promessa',
+  estratto: 'giorni_attesa_mismatch_estratto',
+  autoEnabled: 'solleciti_automatici_attivi',
 } as const
+
+/** Ordine di lettura: prima la chiave in `configurazioni_app`, poi legacy `configurazioni_solleciti`. */
+export const SOLLECITI_CONFIG_KEY_READ_ORDER = {
+  autoEnabled: ['solleciti_automatici_attivi', 'auto_solleciti_enabled'] as const,
+  bolla: ['giorni_attesa_bolla', 'giorni_tolleranza_bolla'] as const,
+  promessa: ['giorni_attesa_promessa', 'giorni_tolleranza_promessa_documento'] as const,
+  estratto: ['giorni_attesa_mismatch_estratto', 'giorni_tolleranza_estratto_mismatch'] as const,
+} as const
+
+/** Testi descrittivi salvati in DB insieme al valore (upsert). */
+export const SOLLECITI_APP_DESCRIZIONI: Record<(typeof SOLLECITI_CONFIG_CHIAVI)[keyof typeof SOLLECITI_CONFIG_CHIAVI], string> =
+  {
+    [SOLLECITI_CONFIG_CHIAVI.autoEnabled]:
+      'Abilita o disabilita l\'invio automatico dei solleciti.',
+    [SOLLECITI_CONFIG_CHIAVI.bolla]:
+      'Giorni dalla data documento (bolla in attesa) prima di considerare il caso per i solleciti.',
+    [SOLLECITI_CONFIG_CHIAVI.promessa]:
+      'Giorni dalla creazione del record quando metadata.promessa_invio_documento è true, prima del sollecito documento promesso.',
+    [SOLLECITI_CONFIG_CHIAVI.estratto]:
+      'Giorni di attesa per righe estratto con stato mismatch / errore sul triple-check.',
+  }
 
 export type SollecitiToleranceConfig = {
   /** Da documento/bolla (`bolle.data`) per righe ancora senza chiusura fiscale prevista */
@@ -64,6 +85,17 @@ function parseToleranceInt(raw: string | undefined | null, fallback: number): nu
   return n
 }
 
+function pickByKeys(
+  byKey: Map<string, string>,
+  keys: readonly string[],
+): string | undefined {
+  for (const k of keys) {
+    const v = byKey.get(k)
+    if (v !== undefined && String(v).trim() !== '') return v
+  }
+  return undefined
+}
+
 function mapRowsToReminderSettings(rows: { chiave: string; valore: string }[] | null | undefined): SollecitiReminderSettings {
   const byKey = new Map<string, string>()
   for (const r of rows ?? []) {
@@ -71,18 +103,20 @@ function mapRowsToReminderSettings(rows: { chiave: string; valore: string }[] | 
   }
   return {
     giorniTolBolla: parseToleranceInt(
-      byKey.get(SOLLECITI_CONFIG_CHIAVI.bolla),
+      pickByKeys(byKey, SOLLECITI_CONFIG_KEY_READ_ORDER.bolla),
       DEFAULT_SOLLECITI_TOLERANCE.giorniTolBolla,
     ),
     giorniTolPromessa: parseToleranceInt(
-      byKey.get(SOLLECITI_CONFIG_CHIAVI.promessa),
+      pickByKeys(byKey, SOLLECITI_CONFIG_KEY_READ_ORDER.promessa),
       DEFAULT_SOLLECITI_TOLERANCE.giorniTolPromessa,
     ),
     giorniTolEstrattoMismatch: parseToleranceInt(
-      byKey.get(SOLLECITI_CONFIG_CHIAVI.estratto),
+      pickByKeys(byKey, SOLLECITI_CONFIG_KEY_READ_ORDER.estratto),
       DEFAULT_SOLLECITI_TOLERANCE.giorniTolEstrattoMismatch,
     ),
-    autoSollecitiEnabled: parseAutoSollecitiEnabled(byKey.get(SOLLECITI_CONFIG_CHIAVI.autoEnabled)),
+    autoSollecitiEnabled: parseAutoSollecitiEnabled(
+      pickByKeys(byKey, SOLLECITI_CONFIG_KEY_READ_ORDER.autoEnabled),
+    ),
   }
 }
 
@@ -91,17 +125,32 @@ export async function fetchSollecitiReminderSettings(
   supabase: Pick<SupabaseClient, 'from'>,
 ): Promise<SollecitiReminderSettings> {
   try {
-    const { data, error } = await supabase.from('configurazioni_solleciti').select('chiave, valore')
-    if (error) {
-      console.warn('[sollecito-aging] configurazioni_solleciti:', error.message)
+    const [appRes, legRes] = await Promise.all([
+      supabase.from('configurazioni_app').select('chiave, valore'),
+      supabase.from('configurazioni_solleciti').select('chiave, valore'),
+    ])
+    if (appRes.error) {
+      console.warn('[sollecito-aging] configurazioni_app:', appRes.error.message)
+    }
+    if (legRes.error) {
+      console.warn('[sollecito-aging] configurazioni_solleciti:', legRes.error.message)
+    }
+    if (appRes.error && legRes.error) {
       return {
         ...DEFAULT_SOLLECITI_TOLERANCE,
         autoSollecitiEnabled: DEFAULT_AUTO_SOLLECITI_ENABLED,
       }
     }
-    return mapRowsToReminderSettings(data as { chiave: string; valore: string }[])
+    const merged: { chiave: string; valore: string }[] = []
+    if (!legRes.error && legRes.data?.length) {
+      merged.push(...(legRes.data as { chiave: string; valore: string }[]))
+    }
+    if (!appRes.error && appRes.data?.length) {
+      merged.push(...(appRes.data as { chiave: string; valore: string }[]))
+    }
+    return mapRowsToReminderSettings(merged)
   } catch (e) {
-    console.warn('[sollecito-aging] configurazioni_solleciti read failed:', e)
+    console.warn('[sollecito-aging] configurazioni solleciti read failed:', e)
     return {
       ...DEFAULT_SOLLECITI_TOLERANCE,
       autoSollecitiEnabled: DEFAULT_AUTO_SOLLECITI_ENABLED,
