@@ -3,8 +3,9 @@
 import type { OperatorDashboardKpis, ScannerFlowDaySummary } from '@/lib/dashboard-operator-kpis'
 import type { Translations } from '@/lib/translations'
 
+/** `shrink-0` evita che la colonna aurora comprima questa scheda sotto l’altezza del contenuto. */
 const AURORA_HOME_SECTION_CLASS =
-  'relative flex w-full min-w-0 flex-col min-h-0 app-card-unified overflow-hidden rounded-2xl'
+  'relative flex w-full min-w-0 shrink-0 flex-col min-h-[min-content] app-card-unified overflow-hidden rounded-2xl'
 
 type SmartProps = {
   kpis: OperatorDashboardKpis
@@ -39,16 +40,16 @@ export function DashboardBolleWorkloadGlass({ kpis, scanner, t }: SmartProps) {
 
   return (
     <section className={AURORA_HOME_SECTION_CLASS} aria-label={t.dashboard.homeSmartPairTitle}>
-      <div className="flex flex-col gap-4 p-4 md:flex-row md:items-stretch md:gap-5 md:p-5">
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-3">
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/60">
+      <div className="flex flex-col gap-5 p-5 sm:p-6 md:flex-row md:items-stretch md:gap-7 md:py-6 lg:gap-8 lg:px-7 lg:py-7">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-3 sm:gap-3.5">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/65 sm:text-[11px]">
             {t.dashboard.homeSmartPairTitle}
           </h2>
-          <p className="text-4xl font-bold tabular-nums text-white [text-shadow:0_0_24px_rgba(255,255,255,0.12)] md:text-5xl">
+          <p className="text-4xl font-bold tabular-nums leading-none tracking-tight text-white [text-shadow:0_0_24px_rgba(255,255,255,0.12)] sm:text-5xl lg:text-[3.25rem]">
             {matchedPct}%
           </p>
-          <p className="text-xs text-white/55">{subtitle}</p>
-          <div className="relative h-3 w-full overflow-hidden rounded-full bg-white/[0.08] ring-1 ring-white/10">
+          <p className="max-w-xl text-[13px] leading-relaxed text-white/60 sm:text-sm">{subtitle}</p>
+          <div className="relative h-3.5 min-h-[0.875rem] w-full shrink-0 overflow-hidden rounded-full bg-white/[0.08] ring-1 ring-white/10">
             <div
               className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-emerald-400 to-lime-400"
               style={{
@@ -57,16 +58,20 @@ export function DashboardBolleWorkloadGlass({ kpis, scanner, t }: SmartProps) {
               }}
             />
           </div>
-          <p className="text-[11px] text-white/40">
+          <p className="max-w-xl text-[11px] leading-relaxed text-white/45 sm:text-xs">
             {t.dashboard.scannerFlowAiElaborate}: {scanner.aiElaborate} · {t.dashboard.scannerFlowArchived}:{' '}
             {scanner.archiviate}
           </p>
         </div>
-        <div className="flex w-full shrink-0 flex-col justify-center rounded-xl border border-white/10 bg-black/[0.26] px-4 py-4 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-md md:w-[13.5rem]">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">
+        <div className="flex w-full shrink-0 flex-col justify-center gap-2 rounded-xl border border-white/10 bg-black/[0.26] px-4 py-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-md sm:px-5 sm:py-6 md:min-h-[9.5rem] md:w-56 md:justify-between md:py-6">
+          <p className="text-center text-[10px] font-semibold uppercase tracking-wider text-white/50 md:text-left">
             {t.dashboard.homeRiskSynthTitle}
           </p>
-          <p className={`mt-2 text-center text-xl font-black uppercase md:text-2xl ${riskClass}`}>{riskLabel}</p>
+          <p
+            className={`text-center text-xl font-black uppercase leading-snug tracking-tight [overflow-wrap:anywhere] sm:text-2xl md:py-1 ${riskClass}`}
+          >
+            {riskLabel}
+          </p>
         </div>
       </div>
     </section>
