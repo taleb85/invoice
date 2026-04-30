@@ -41,6 +41,7 @@ import { shouldAutoRegisterPendingFattura } from '@/lib/pending-auto-register-fa
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS } from '@/lib/app-shell-layout'
 import { DOCUMENTI_PENDING_STATI_API_DEFAULT } from '@/lib/documenti-queue-stato'
+import { safeDate } from '@/lib/safe-date'
 
 async function parsePendingQueueMutationError(res: Response): Promise<string> {
   try {
@@ -988,6 +989,7 @@ export function PendingMatchesTab({
   const autoAssocTriedRef = useRef(new Set<string>())
   const autoPendingKindTriedRef = useRef(new Set<string>())
   const autoRegisterFatturaTriedRef = useRef(new Set<string>())
+  const dataDocOcrSyncAttemptedRef = useRef(new Set<string>())
   const [autoRegisterSetting, setAutoRegisterSetting] = useState(false)
   const [emailAutoSavedToday, setEmailAutoSavedToday] = useState<number | null>(null)
 
@@ -1080,6 +1082,37 @@ export function PendingMatchesTab({
     const { data } = await q
     setFornitori(data ?? [])
   }, [sedeId, fornitoreId])
+
+  useEffect(() => {
+    if (loading || docs.length === 0) return
+    void (async () => {
+      for (const doc of docs) {
+        if (!docNeedsManualProcessing(doc.stato)) continue
+        const raw = typeof doc.metadata?.data_fattura === 'string' ? doc.metadata.data_fattura.trim() : ''
+        if (!raw) continue
+        const target = safeDate(raw)
+        if (!target) continue
+        const cur = (doc.data_documento ?? '').trim()
+        if (cur === target) continue
+        if (dataDocOcrSyncAttemptedRef.current.has(doc.id)) continue
+        dataDocOcrSyncAttemptedRef.current.add(doc.id)
+        try {
+          const res = await fetch('/api/documenti-da-processare', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: doc.id, azione: 'sync_data_documento_da_ocr' }),
+          })
+          if (!res.ok) {
+            dataDocOcrSyncAttemptedRef.current.delete(doc.id)
+            continue
+          }
+          setDocs((prev) => prev.map((d) => (d.id !== doc.id ? d : { ...d, data_documento: target })))
+        } catch {
+          dataDocOcrSyncAttemptedRef.current.delete(doc.id)
+        }
+      }
+    })()
+  }, [loading, docs])
 
   useEffect(() => {
     if (!sedeId) {
@@ -1293,6 +1326,7 @@ export function PendingMatchesTab({
   useEffect(() => {
     autoPendingKindTriedRef.current = new Set()
     autoRegisterFatturaTriedRef.current = new Set()
+    dataDocOcrSyncAttemptedRef.current = new Set()
   }, [filter, sedeId, fornitoreId, year, month, ledgerDateFrom, ledgerDateToExclusive])
 
   useEffect(() => {

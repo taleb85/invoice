@@ -16,6 +16,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reprocess-pending-docs-ocr'
+import { safeDate } from '@/lib/safe-date'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -404,6 +405,8 @@ export async function POST(req: NextRequest) {
       | 'set_pending_kind'
       | 'finalizza_tipo'
       | 'rianalizza_ocr'
+      /** Allinea `data_documento` a `metadata.data_fattura` (stessa data mostrata nella card OCR). */
+      | 'sync_data_documento_da_ocr'
     bolla_id?: string          // legacy single-bolla
     bolla_ids?: string[]       // new multi-bolla
     fornitore_id?: string
@@ -544,6 +547,61 @@ export async function POST(req: NextRequest) {
       suggestRememberAssociation,
       mittenteEmail,
     })
+  }
+
+  // ── sync_data_documento_da_ocr — persist `data_documento` dalla data OCR in metadata ──────────
+  if (azioneNorm === 'sync_data_documento_da_ocr') {
+    const pendingLikeStatiSync = [
+      ...DOCUMENTI_PENDING_FILTER_STATES,
+      'in_attesa',
+      'mittente_sconosciuto',
+    ] as string[]
+
+    const { data: docRow, error: readErr } = await supabase
+      .from('documenti_da_processare')
+      .select('metadata, data_documento, sede_id, stato')
+      .eq('id', id)
+      .maybeSingle()
+    if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 })
+    if (!docRow) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
+    const st = docRow.stato as string | null
+    if (!st || !pendingLikeStatiSync.includes(st)) {
+      return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
+    }
+
+    const { data: profileS } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+    const isMasterSync = profileS?.role === 'admin'
+    if (!isMasterSync && profileS?.sede_id) {
+      const ds = docRow.sede_id as string | null
+      if (ds != null && ds !== profileS.sede_id) {
+        return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
+      }
+    }
+
+    const meta =
+      docRow.metadata && typeof docRow.metadata === 'object' && !Array.isArray(docRow.metadata)
+        ? (docRow.metadata as Record<string, unknown>)
+        : {}
+    const rawDf = typeof meta.data_fattura === 'string' ? meta.data_fattura.trim() : ''
+    if (!rawDf) {
+      return NextResponse.json({ error: 'Nessuna data documento nell’estrazione OCR' }, { status: 400 })
+    }
+    const target = safeDate(rawDf)
+    if (!target) {
+      return NextResponse.json({ error: 'Data OCR non leggibile nel formato atteso' }, { status: 400 })
+    }
+
+    const current = typeof docRow.data_documento === 'string' ? docRow.data_documento.trim() : ''
+    if (current === target) {
+      return NextResponse.json({ ok: true, unchanged: true, data_documento: target })
+    }
+
+    const { error: syncErr } = await supabase
+      .from('documenti_da_processare')
+      .update({ data_documento: target })
+      .eq('id', id)
+    if (syncErr) return NextResponse.json({ error: syncErr.message }, { status: 500 })
+    return NextResponse.json({ ok: true, data_documento: target })
   }
 
   // ── rianalizza_ocr — riesegue OCR + abbinamento fornitore (mittente, P.IV.A, nome) ──
