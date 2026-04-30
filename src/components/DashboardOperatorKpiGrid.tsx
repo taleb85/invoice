@@ -57,7 +57,7 @@ const OPERATOR_KPI_GLASS_VALUE_ACCENT: readonly string[] = [
   'text-violet-300 [text-shadow:0_0_22px_rgba(196,181,253,0.5)]',
   'text-emerald-300 [text-shadow:0_0_22px_rgba(110,231,183,0.5)]',
   'text-amber-200 [text-shadow:0_0_20px_rgba(253,230,138,0.45)]',
-  'text-red-300 [text-shadow:0_0_22px_rgba(252,165,165,0.55)]',
+  'text-white [text-shadow:0_0_20px_rgba(255,255,255,0.14)]',
 ]
 
 /** Corpo tile: griglia interna; l’altezza uniforme delle card è sul guscio `.operator-kpi-card`. */
@@ -80,7 +80,7 @@ const DASHBOARD_OPERATOR_KPI_ICON_TEXT = [
   'text-violet-400',
   'text-emerald-400',
   'text-amber-400',
-  'text-red-400',
+  'text-white/85',
 ] as const
 
 const DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS = [
@@ -88,7 +88,7 @@ const DASHBOARD_OPERATOR_KPI_ICON_TEXT_GLASS = [
   'text-violet-300',
   'text-emerald-300',
   'text-amber-300',
-  'text-red-300',
+  'text-white/80',
 ] as const
 
 function dashboardKpiIconTextClass(index: number, glassShell: boolean) {
