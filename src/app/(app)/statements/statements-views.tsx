@@ -1064,6 +1064,16 @@ export function PendingMatchesTab({
     [docs],
   )
 
+  /** Più stabile di `bolleAperte.length`: evita riarmi del bulk silenzioso se l’API restituisce lo stesso insieme con conteggi transitori. */
+  const bolleAperteStableKey = useMemo(
+    () =>
+      bolleAperte
+        .map((b) => b.id)
+        .sort()
+        .join(','),
+    [bolleAperte],
+  )
+
   const fetchDocs = useCallback(async () => {
     setLoading(true)
     // Use the server-side API (service client) to bypass RLS so that documents
@@ -1120,7 +1130,7 @@ export function PendingMatchesTab({
   }, [sedeId, fornitoreId])
 
   useEffect(() => {
-    if (loading || docs.length === 0) return
+    if (loading || bulkAnalyzing || docs.length === 0) return
     void (async () => {
       for (const doc of docs) {
         if (!docNeedsManualProcessing(doc.stato)) continue
@@ -1148,7 +1158,7 @@ export function PendingMatchesTab({
         }
       }
     })()
-  }, [loading, docs])
+  }, [loading, bulkAnalyzing, docs])
 
   useEffect(() => {
     if (!sedeId) {
@@ -1181,9 +1191,6 @@ export function PendingMatchesTab({
   const runRefreshAndBulkAutoMatch = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true
     setBulkAnalyzing(true)
-    autoLinkTriedRef.current = new Set()
-    autoAssocTriedRef.current = new Set()
-    autoPendingKindTriedRef.current = new Set()
     try {
       const params = new URLSearchParams()
       params.set('stati', DOCUMENTI_PENDING_STATI_API_DEFAULT)
@@ -1363,12 +1370,12 @@ export function PendingMatchesTab({
 
   useEffect(() => { fetchDocs(); fetchBolleAperte(); fetchFornitori() }, [fetchDocs, fetchBolleAperte, fetchFornitori])
 
-  /** Dopo il caricamento elenco: un passaggio «Abbina tutto» senza toast (ripetuto quando cambia l’insieme doc in lavorazione o il numero di bolle aperte). */
+  /** Dopo il caricamento elenco: un passaggio «Abbina tutto» senza toast (ripetuto quando cambia l’insieme doc in lavorazione o l’insieme delle bolle aperte). */
   useEffect(() => {
     /** `window.setTimeout` returns `number` in DOM; bundled Node timer typings disagree — treat as numeric id here. */
     let timerId: number | undefined
     if (!(loading || bulkAnalyzing)) {
-      const key = `${pendingDocIdsStableKey}|${bolleAperte.length}`
+      const key = `${pendingDocIdsStableKey}|${bolleAperteStableKey}`
       if (prevSilentBulkPendingIdsKeyRef.current !== key) {
         prevSilentBulkPendingIdsKeyRef.current = key
         pendingSilentBulkRanRef.current = false
@@ -1384,7 +1391,7 @@ export function PendingMatchesTab({
     return () => {
       if (timerId !== undefined) window.clearTimeout(timerId)
     }
-  }, [loading, bulkAnalyzing, pendingDocIdsStableKey, bolleAperte.length, runRefreshAndBulkAutoMatch])
+  }, [loading, bulkAnalyzing, pendingDocIdsStableKey, bolleAperteStableKey, runRefreshAndBulkAutoMatch])
 
   useEffect(() => {
     pendingSilentBulkRanRef.current = false
@@ -1421,7 +1428,7 @@ export function PendingMatchesTab({
 
   // Auto-link fornitore from OCR / mittente when unambiguous in sede scope
   useEffect(() => {
-    if (loading || !docs.length) return
+    if (loading || bulkAnalyzing || !docs.length) return
     void (async () => {
       const supabase = createClient()
       const linkedSupplierNames: string[] = []
@@ -1466,11 +1473,11 @@ export function PendingMatchesTab({
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run when queue changes; avoid re-running on every callback identity
-  }, [loading, docs, sedeId, fornitoreId, me?.sede_id])
+  }, [loading, bulkAnalyzing, docs, sedeId, fornitoreId, me?.sede_id])
 
   // Pre-seleziona chip tipo documento (stesse euristiche della scan email + OCR) se manca pending_kind; conferma utente con Finalizza.
   useEffect(() => {
-    if (loading || !docs.length) return
+    if (loading || bulkAnalyzing || !docs.length) return
     void (async () => {
       for (const doc of docs) {
         if (!docNeedsManualProcessing(doc.stato)) continue
@@ -1519,11 +1526,11 @@ export function PendingMatchesTab({
         }
       }
     })()
-  }, [loading, docs, statementDocs])
+  }, [loading, bulkAnalyzing, docs, statementDocs])
 
   // Auto-associa bolle: stesso fornitore; finestra ±30 giorni rispetto a data doc **o** giorno ricezione in coda (se diverso); somma OCR = subset bolle (esatto o univoco entro tol. ~5%, come suggerimento checkbox).
   useEffect(() => {
-    if (loading || !bolleAperte.length || !docs.length) return
+    if (loading || bulkAnalyzing || !bolleAperte.length || !docs.length) return
     void (async () => {
       let didAssoc = false
       for (const doc of docs) {
@@ -1574,12 +1581,12 @@ export function PendingMatchesTab({
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, bolleAperte, docs])
+  }, [loading, bulkAnalyzing, bolleAperte, docs])
 
   // Auto-finalizza ordini Rekki: se pending_kind=ordine e fornitore già collegato, registra senza input manuale
   const autoFinalizeOrdineTriedRef = useRef(new Set<string>())
   useEffect(() => {
-    if (loading || !docs.length) return
+    if (loading || bulkAnalyzing || !docs.length) return
     void (async () => {
       let anyDone = false
       for (const doc of docs) {
@@ -1604,11 +1611,11 @@ export function PendingMatchesTab({
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, docs])
+  }, [loading, bulkAnalyzing, docs])
 
   // Registrazione automatica fattura (solo se sede ha flag + criteri AI/sede)
   useEffect(() => {
-    if (loading || !autoRegisterSetting || !docs.length) return
+    if (loading || bulkAnalyzing || !autoRegisterSetting || !docs.length) return
     void (async () => {
       let anyDone = false
       for (const doc of docs) {
@@ -1662,11 +1669,11 @@ export function PendingMatchesTab({
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, docs, bolleAperte, autoRegisterSetting, statementDocs])
+  }, [loading, bulkAnalyzing, docs, bolleAperte, autoRegisterSetting, statementDocs])
 
   // Auto-suggest when both docs and bolle are loaded
   useEffect(() => {
-    if (loading || !bolleAperte.length || !docs.length) return
+    if (loading || bulkAnalyzing || !bolleAperte.length || !docs.length) return
     docs.forEach(doc => {
       if (doc.metadata?.pending_kind === 'ordine') return
       const ocrTotal = doc.metadata?.totale_iva_inclusa ?? null
@@ -1677,7 +1684,7 @@ export function PendingMatchesTab({
       autoSuggest(doc, relevant, ocrTotal)
     })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, bolleAperte, docs])
+  }, [loading, bulkAnalyzing, bolleAperte, docs])
 
   async function associa(docId: string) {
     const bollaIds = selezione[docId] ?? []

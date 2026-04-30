@@ -107,15 +107,7 @@ function GroupSection({
                 <button
                   type="button"
                   onClick={() => onPreview(item.id)}
-                  className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded transition-colors"
-                  style={{
-                    background: 'rgba(34, 211, 238, 0.08)',
-                    border: '1px solid rgba(34, 211, 238, 0.2)',
-                    color: '#22d3ee',
-                    borderRadius: 6,
-                    padding: '3px 10px',
-                    fontSize: 11,
-                  }}
+                  className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-md border border-sky-400/25 bg-sky-400/[0.08] px-2.5 py-[3px] text-[11px] font-semibold text-sky-400 transition-colors hover:bg-sky-400/[0.14]"
                   aria-label={`Visualizza documento ${item.id.slice(0, 8)}`}
                 >
                   <svg className={`h-3 w-3 shrink-0 ${icon.duplicateAlert}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -160,7 +152,7 @@ function EntityPanel({
   if (groups.length === 0) return null
 
   return (
-    <div className="rounded-xl border border-white/10">
+    <div className="rounded-xl border border-white/10 app-workspace-inset-bg-soft backdrop-blur-md [-webkit-backdrop-filter:blur(12px)]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -250,7 +242,7 @@ function ConfirmModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[290] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -519,7 +511,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
         }}
       />
       <div
-        className="fixed inset-0 z-[90] flex items-end justify-center p-3 app-aurora-modal-overlay sm:items-center sm:p-6"
+        className="fixed inset-0 z-[280] isolate flex items-end justify-center p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] max-md:pb-[calc(5.75rem+env(safe-area-inset-bottom,0px)+0.75rem)] app-aurora-modal-overlay sm:items-center sm:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -527,7 +519,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
       >
         <div
           ref={panelRef}
-          className="flex max-h-[min(92vh,780px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-sky-400/22 app-workspace-surface-elevated shadow-[0_0_50px_-15px_rgba(249,156,0,0.28)]"
+          className="app-duplicate-manager-shell flex max-h-[min(92vh,780px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-sky-400/22 shadow-[0_0_50px_-15px_rgba(249,156,0,0.28)]"
         >
           {/* Header */}
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3.5 sm:px-5">
@@ -616,7 +608,7 @@ export default function DuplicateManager({ open, onOpenChange, onDeleted }: Prop
 
           {/* Footer */}
           {fetchState.status === 'done' && totalGroups > 0 && (
-            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-white/10 bg-red-950/10 px-4 py-3 sm:px-5">
+            <div className="app-duplicate-manager-footer relative z-[2] flex shrink-0 items-center justify-between gap-3 border-t border-red-500/25 bg-[rgb(10_17_34/0.97)] px-4 py-3 backdrop-blur-md shadow-[0_-12px_40px_-4px_rgb(0,0,0,0.55)] sm:px-5 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
               <p className="text-xs text-app-fg-muted">
                 {selected.size === 0
                   ? 'Seleziona gli elementi da eliminare'

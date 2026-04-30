@@ -387,7 +387,7 @@ export default function DocumentPreviewModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 app-aurora-modal-overlay"
+      className="fixed inset-0 z-[285] flex items-center justify-center p-4 app-aurora-modal-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}

@@ -5192,7 +5192,7 @@ function FornitoreDetailClient({
       <div className="grid grid-cols-1 min-w-0 gap-4 px-4 pb-6 text-app-fg md:hidden">
         <div className={`supplier-detail-tab-shell mt-2 overflow-hidden ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].border}`}>
           <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT[displayTab].bar}`} aria-hidden />
-          <div className="flex items-start gap-3 border-t border-app-line-10 bg-transparent px-3 py-2.5 text-app-fg">
+          <div className="flex items-start gap-3 border-t border-app-line-10 px-3 py-2.5 text-app-fg app-workspace-inset-bg-soft backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)]">
             <FornitoreAvatar nome={fornitoreLabelAvatar} logoUrl={fornitore.logo_url} sizeClass="h-11 w-11" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
               <h1 className="app-page-title text-sm font-semibold leading-snug">{fornitoreNomeVisual}</h1>
@@ -5215,7 +5215,7 @@ function FornitoreDetailClient({
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} hiddenTabs={MOBILE_READONLY_HIDDEN_TABS} />
           ) : (
             <div
-              className="-mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              className="fornitore-mobile-tab-nav -mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden supports-[backdrop-filter:blur(0px)]:bg-white/[0.03]"
               role="navigation"
               aria-label={fornitoreNomeVisual}
             >
@@ -5250,7 +5250,7 @@ function FornitoreDetailClient({
           )}
         </div>
 
-        <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border bg-transparent px-4 py-3">
+        <header className="sticky top-0 z-[5] -mx-4 border-b border-app-soft-border app-workspace-inset-bg-soft px-4 py-3 backdrop-blur-xl [-webkit-backdrop-filter:blur(18px)]">
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="mobile-supplier-tab-title" className="text-lg font-bold leading-tight tracking-tight text-app-fg">
               {activeTabInfo.label}
@@ -5263,7 +5263,7 @@ function FornitoreDetailClient({
           </div>
         </header>
 
-        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-lg border border-app-line-15 bg-white/[0.04] p-3 outline-none sm:p-4">
+        <div className="fornitore-tab-panel min-w-0 scroll-mt-4 rounded-lg border border-app-line-15 bg-white/[0.04] p-3 outline-none backdrop-blur-md [-webkit-backdrop-filter:blur(12px)] sm:p-4">
           <ErrorBoundary sectionName="dettaglio fornitore">
             <TabContent variant="mobile" />
           </ErrorBoundary>

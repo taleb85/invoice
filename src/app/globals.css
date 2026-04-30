@@ -589,6 +589,11 @@
     box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(6, 182, 212, 0.08);
   }
 
+  /** Gestione Duplicati: guscio coprente di default (Aurora lo intensifica dopo). */
+  .app-duplicate-manager-shell {
+    background: linear-gradient(to bottom right, rgb(15 23 42 / 0.94), rgb(30 27 75 / 0.82));
+  }
+
   /** Backdrop modali centrati (click fuori, loading). */
   .app-workspace-scrim {
     @apply backdrop-blur-md;
@@ -997,7 +1002,6 @@ body,
  * Questa regola è fuori dai @layer per avere precedenza sulle utility Tailwind.
  */
 .app-card-unified,
-[class*="fornitore-tab-panel"],
 [class*="supplier-detail-tab"],
 [class*="app-workspace-inset"] {
   border-top: 2px solid #22d3ee !important;
@@ -1186,14 +1190,26 @@ body:has([data-deep-aurora-integration]) .app-card {
 
 /** Stesso trattamento di `.app-card-unified` (impostazioni, sezioni, tab fornitore). */
 body:has([data-deep-aurora-integration]) .app-card-unified,
+body:has([data-deep-aurora-integration]) .fornitore-tab-panel,
 body:has([data-deep-aurora-integration]) [class*='fornitore-tab-panel'],
 body:has([data-deep-aurora-integration]) [class*='supplier-detail-tab'] {
   border-top-color: rgb(56 189 248 / 0.5) !important;
-  background: rgb(255 255 255 / 0.055) !important;
+  border-right-color: rgb(255 255 255 / 0.08) !important;
+  border-bottom-color: rgb(255 255 255 / 0.06) !important;
+  border-left-color: rgb(255 255 255 / 0.08) !important;
+  background: rgb(255 255 255 / 0.08) !important;
   background-image: none !important;
-  backdrop-filter: blur(16px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(150%) !important;
-  box-shadow: 0 4px 26px rgb(0 0 0 / 0.32), inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+  backdrop-filter: blur(22px) saturate(165%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(165%) !important;
+  box-shadow: 0 4px 28px rgb(0 0 0 / 0.34), inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
+}
+
+/** Tab orizzontale fornitore (mobile Aurora): vetro sulla striscia sotto nome/KPI. */
+body:has([data-deep-aurora-integration]) .fornitore-mobile-tab-nav {
+  border-bottom-color: rgb(56 189 248 / 0.22) !important;
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.06), rgb(255 255 255 / 0.02)) !important;
+  backdrop-filter: blur(14px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(155%) !important;
 }
 
 body:has([data-deep-aurora-integration]) .supplier-detail-tab-shell,
@@ -1234,6 +1250,25 @@ body:has([data-deep-aurora-integration]) nav.app-glass-dock.border-t-2 {
 /**
  * Overlay modali liste / anteprima: scrim Aurora (elimina rgba hardcoded nei portal).
  */
+body:has([data-deep-aurora-integration]) .app-duplicate-manager-shell {
+  background-image: linear-gradient(to bottom right, rgb(15 23 42 / 0.94), rgb(15 23 42 / 0.88)) !important;
+  background-color: rgb(2 6 23 / 0.92) !important;
+  backdrop-filter: blur(22px) saturate(155%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(155%) !important;
+  box-shadow:
+    0 0 56px -12px rgb(249 156 0 / 0.22),
+    0 24px 52px -12px rgb(0 0 0 / 0.52),
+    inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
+}
+
+/** Barra azioni Gestione Duplicati: sopra vetro contenuto senza bleed del dock mobile. */
+body:has([data-deep-aurora-integration]) .app-duplicate-manager-footer {
+  background: rgb(15 23 42 / 0.98) !important;
+  box-shadow:
+    0 -12px 40px -4px rgb(0 0 0 / 0.62),
+    inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+}
+
 body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay {
   background: rgb(2 6 23 / 0.55) !important;
   backdrop-filter: blur(12px) saturate(140%) !important;
