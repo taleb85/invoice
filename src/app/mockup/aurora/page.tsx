@@ -7,134 +7,170 @@ export const metadata: Metadata = {
   robots: 'noindex, nofollow',
 }
 
-/** Deep Aurora Intelligence — Asset Guide (Purchase Intelligence App, Design System 2026) */
+/** Deep Aurora Intelligence — Asset Guide + reference UI (aurora ribbon, neon charts) */
 const DA = {
   navy: '#020617',
   royalBlue: '#1E40AF',
   indigo: '#3730A3',
   neonCyan: '#22d3ee',
   neonLime: '#a3e635',
+  auroraPurple: '#7c3aed',
+  auroraTeal: '#14b8a6',
+  /** Tre linee grafico come sul reference promo */
+  lineGreen: '#4ade80',
+  lineYellow: '#facc15',
+  lineBlue: '#38bdf8',
 } as const
 
-function AuroraBackdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
-      <div className="absolute inset-0" style={{ backgroundColor: DA.navy }} />
-      <div
-        className="absolute -top-40 -left-24 h-[520px] w-[520px] rounded-full blur-[110px]"
-        style={{ backgroundColor: `${DA.royalBlue}55` }}
-      />
-      <div
-        className="absolute top-24 -right-16 h-[440px] w-[440px] rounded-full blur-[100px]"
-        style={{ backgroundColor: `${DA.indigo}4d` }}
-      />
-      <div
-        className="absolute bottom-[-10%] left-1/4 h-[380px] w-[520px] -translate-x-1/2 rounded-full blur-[105px]"
-        style={{ backgroundColor: `${DA.royalBlue}40` }}
-      />
-      <div
-        className="absolute bottom-[-15%] right-[-5%] h-[360px] w-[400px] rounded-full blur-[95px]"
-        style={{ backgroundColor: `${DA.indigo}38` }}
-      />
-    </div>
-  )
-}
-
-/** Allinea a `.glass-card` della guida: rgba(255,255,255,0.05), blur 20px, bordo 10%, raggio 16px, ombra fissa. */
-function GlassPanel(props: { className?: string; children: React.ReactNode }) {
+/** Sfondo fluido navy → viola → cyan dentro cornice telefono / viewport. */
+function AuroraWallpaper({ className }: { className?: string }) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-white/[0.05] shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-[20px] ${props.className ?? ''}`}
-      style={{ WebkitBackdropFilter: 'blur(20px)' }}
+      aria-hidden
+      className={`pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] ${className ?? ''}`}
     >
-      {props.children}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(165deg, ${DA.navy} 0%, #0f172a 35%, #1e1b4b 55%, ${DA.navy} 100%)`,
+        }}
+      />
+      {/* Fascia aurora */}
+      <div className="absolute -left-[20%] top-[-10%] h-[58%] w-[140%] rotate-[-6deg] bg-gradient-to-r from-violet-600/55 via-indigo-500/35 via-40% to-cyan-500/30 blur-[46px]" />
+      <div className="absolute -right-[30%] bottom-[-5%] h-[45%] w-[130%] rotate-[8deg] bg-gradient-to-l from-teal-500/40 via-purple-600/35 to-transparent blur-[50px]" />
+      <div className="absolute left-[10%] top-[35%] h-[40%] w-[90%] rounded-full bg-[#06b6d4]/14 blur-[40px]" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.07] to-transparent" />
     </div>
   )
 }
 
-function FakeLineChart() {
+/** Pannello vetro: usa `.glass-card` definita in `globals.css` sotto `[data-deep-aurora-shell]`. */
+function GlassPanel(props: { className?: string; children: React.ReactNode }) {
+  return <div className={`glass-card ${props.className ?? ''}`}>{props.children}</div>
+}
+
+function FakeLineChart({ uid }: { uid: string }) {
+  const f = `f-${uid}-blur`
   return (
     <svg viewBox="0 0 320 140" className="h-auto w-full" aria-hidden>
       <defs>
-        <linearGradient id="lg1" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={DA.neonLime} stopOpacity="0.22" />
-          <stop offset="100%" stopColor={DA.neonLime} stopOpacity="0" />
+        <linearGradient id={`lg1-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={DA.lineGreen} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={DA.lineGreen} stopOpacity="0" />
         </linearGradient>
+        <filter id={f} x="-50%" y="-40%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.2" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       <path
         d="M16 112 L76 76 L136 94 L196 52 L256 62 L306 44"
         fill="none"
-        stroke={DA.neonLime}
-        strokeWidth="2.5"
+        stroke={DA.lineGreen}
+        strokeWidth="2.75"
         strokeLinecap="round"
+        filter={`url(#${f})`}
       />
       <path
         d="M16 112 L76 76 L136 94 L196 52 L256 62 L306 44 L306 130 L16 130 Z"
-        fill="url(#lg1)"
+        fill={`url(#lg1-${uid})`}
       />
       <path
         d="M16 118 L76 98 L136 104 L196 82 L256 88 L306 74"
         fill="none"
-        stroke={DA.neonCyan}
-        strokeWidth={2}
+        stroke={DA.lineYellow}
+        strokeWidth="2.25"
         strokeLinecap="round"
         opacity={0.95}
       />
       <path
         d="M16 124 L76 108 L136 118 L196 94 L256 102 L306 94"
         fill="none"
-        stroke={DA.neonLime}
-        strokeWidth="1.75"
+        stroke={DA.lineBlue}
+        strokeWidth="2.25"
         strokeLinecap="round"
-        opacity={0.65}
+        opacity={0.95}
       />
       {[16, 76, 136, 196, 256, 306].map((x, i) => (
-        <circle key={i} cx={x} cy={110 - i * 8} r="3" fill="rgb(226 232 240 / 0.55)" />
+        <circle key={i} cx={x} cy={110 - i * 8} r="2.5" fill="rgb(226 232 240 / 0.65)" />
       ))}
     </svg>
   )
 }
 
-function FakeBars() {
+function FakeBars({ uid }: { uid: string }) {
   const bars = [
-    { h: 68, fill: DA.neonLime },
-    { h: 44, fill: DA.neonCyan },
-    { h: 82, fill: DA.neonLime },
-    { h: 56, fill: DA.indigo },
+    { h: 68, fill: DA.lineGreen },
+    { h: 44, fill: DA.lineYellow },
+    { h: 82, fill: DA.lineBlue },
+    { h: 56, fill: DA.auroraPurple },
     { h: 72, fill: DA.neonCyan },
   ]
   return (
     <svg viewBox="0 0 120 140" className="h-auto w-[38%] shrink-0 min-w-[5rem]" aria-hidden>
+      <defs>
+        <filter id={`bar-glow-${uid}`} x="-40%" y="-20%" width="180%" height="140%">
+          <feGaussianBlur stdDeviation="1.5" result="g" />
+          <feMerge>
+            <feMergeNode in="g" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
       {bars.map((b, i) => {
         const x = 14 + i * 20
         const y = 120 - b.h
-        return <rect key={i} x={x} y={y} width="14" height={b.h} rx="3" fill={b.fill} opacity={0.9} />
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width="14"
+            height={b.h}
+            rx="3"
+            fill={b.fill}
+            opacity={0.92}
+            filter={`url(#bar-glow-${uid})`}
+          />
+        )
       })}
     </svg>
   )
 }
 
-function FakeLineChartWide() {
+function FakeLineChartWide({ uid }: { uid: string }) {
+  const f = `fw-${uid}-blur`
   return (
     <svg viewBox="0 0 560 148" className="h-36 min-h-[7rem] w-full sm:h-40" aria-hidden>
       <defs>
-        <linearGradient id="lg1w" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={DA.neonLime} stopOpacity="0.2" />
-          <stop offset="100%" stopColor={DA.neonLime} stopOpacity="0" />
+        <linearGradient id={`lg1w-${uid}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={DA.lineGreen} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={DA.lineGreen} stopOpacity="0" />
         </linearGradient>
+        <filter id={f} x="-50%" y="-40%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.2" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
       <path
         d="M12 118 L112 74 L212 94 L312 52 L412 62 L548 42"
         fill="none"
-        stroke={DA.neonLime}
-        strokeWidth="2.5"
+        stroke={DA.lineGreen}
+        strokeWidth="2.75"
         strokeLinecap="round"
+        filter={`url(#${f})`}
       />
-      <path d="M12 118 L112 74 L212 94 L312 52 L412 62 L548 42 L548 136 L12 136 Z" fill="url(#lg1w)" />
+      <path d="M12 118 L112 74 L212 94 L312 52 L412 62 L548 42 L548 136 L12 136 Z" fill={`url(#lg1w-${uid})`} />
       <path
         d="M12 122 L112 98 L212 106 L312 82 L412 88 L548 74"
         fill="none"
-        stroke={DA.neonCyan}
+        stroke={DA.lineYellow}
         strokeWidth={2}
         strokeLinecap="round"
         opacity={0.95}
@@ -142,34 +178,55 @@ function FakeLineChartWide() {
       <path
         d="M12 128 L112 112 L212 118 L312 94 L412 102 L548 94"
         fill="none"
-        stroke="#93c5fd"
-        strokeWidth="1.75"
+        stroke={DA.lineBlue}
+        strokeWidth={2}
         strokeLinecap="round"
-        opacity={0.65}
+        opacity={0.92}
       />
       {[12, 112, 212, 312, 412, 548].map((x, i) => (
-        <circle key={i} cx={x} cy={118 - i * 6} r="3" fill="rgb(226 232 240 / 0.5)" />
+        <circle key={i} cx={x} cy={118 - i * 6} r="2.75" fill="rgb(226 232 240 / 0.55)" />
       ))}
     </svg>
   )
 }
 
-function FakeBarsWide() {
+function FakeBarsWide({ uid }: { uid: string }) {
   const bars = [
-    { h: 74, fill: DA.neonLime },
-    { h: 46, fill: DA.neonCyan },
-    { h: 88, fill: DA.neonLime },
-    { h: 52, fill: DA.indigo },
+    { h: 74, fill: DA.lineGreen },
+    { h: 46, fill: DA.lineYellow },
+    { h: 88, fill: DA.lineBlue },
+    { h: 52, fill: DA.auroraPurple },
     { h: 70, fill: DA.neonCyan },
-    { h: 58, fill: DA.neonLime },
-    { h: 80, fill: DA.royalBlue },
+    { h: 58, fill: DA.lineGreen },
+    { h: 80, fill: DA.lineYellow },
   ]
   return (
     <svg viewBox="0 0 200 148" className="h-36 w-[22%] min-w-[8rem] shrink-0 sm:h-40" aria-hidden>
+      <defs>
+        <filter id={`barw-${uid}`} x="-35%" y="-15%" width="170%" height="130%">
+          <feGaussianBlur stdDeviation="1.5" result="g" />
+          <feMerge>
+            <feMergeNode in="g" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
       {bars.map((b, i) => {
         const x = 10 + i * 25
         const y = 128 - b.h
-        return <rect key={i} x={x} y={y} width="17" height={b.h} rx="4" fill={b.fill} opacity={0.9} />
+        return (
+          <rect
+            key={i}
+            x={x}
+            y={y}
+            width="17"
+            height={b.h}
+            rx="4"
+            fill={b.fill}
+            opacity={0.9}
+            filter={`url(#barw-${uid})`}
+          />
+        )
       })}
     </svg>
   )
@@ -231,7 +288,7 @@ function DesktopWorkspaceMock() {
       </p>
       <div className="overflow-x-auto pb-4">
         <div className="mx-auto inline-block min-w-[min(1160px,100%)] lg:min-w-[1080px]">
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#020617]/85 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+          <div className="overflow-hidden rounded-2xl border border-cyan-400/40 bg-[#020617]/92 shadow-[0_8px_32px_rgba(0,0,0,.5),0_0_72px_-12px_rgba(34,211,238,.28)]">
             <div
               aria-hidden
               className="flex items-center gap-2 border-b border-white/10 bg-[#020617]/75 px-4 py-2.5 backdrop-blur-[20px]"
@@ -248,7 +305,7 @@ function DesktopWorkspaceMock() {
             <div className="flex min-h-[560px]">
               <aside className="hidden w-[220px] shrink-0 flex-col border-r border-white/10 bg-white/[0.03] backdrop-blur-xl sm:flex">
                 <div className="border-b border-white/[0.08] px-5 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">Smart Pair</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">Deep Aurora</p>
                   <p className="mt-1 text-[11px] text-white/70">Intelligence · demo</p>
                 </div>
                 <nav className="flex flex-1 flex-col gap-0.5 p-3">
@@ -277,7 +334,11 @@ function DesktopWorkspaceMock() {
                     </span>
                   </div>
                 </header>
-                <div className="flex flex-1 flex-col gap-5 p-4 sm:p-6">
+                <div className="relative flex min-h-0 flex-1 flex-col">
+                  <div className="pointer-events-none absolute inset-0 opacity-[0.42]">
+                    <AuroraWallpaper />
+                  </div>
+                  <div className="relative z-[1] flex flex-1 flex-col gap-5 p-4 sm:p-6">
                   <GlassPanel className="p-5 sm:p-6">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                       <span className="text-[13px] font-semibold uppercase tracking-wider text-white/90">
@@ -294,27 +355,27 @@ function DesktopWorkspaceMock() {
                     </div>
                     <div className="flex flex-row items-end gap-4">
                       <div className="min-w-0 flex-1">
-                        <FakeLineChartWide />
+                        <FakeLineChartWide uid="desk" />
                         <div className="mt-1 flex justify-between text-[11px] text-white/70">
                           {['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'].map((m) => (
                             <span key={m}>{m}</span>
                           ))}
                         </div>
                       </div>
-                      <FakeBarsWide />
+                      <FakeBarsWide uid="desk" />
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-4 border-t border-white/10 pt-4 text-[11px]">
-                      <span className="flex items-center gap-2 text-[#a3e635]">
-                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm" style={{ backgroundColor: DA.neonLime }} />
-                        <span>Bolle in ingresso</span>
+                    <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/10 pt-4 text-[11px]">
+                      <span className="flex items-center gap-2 text-[#4ade80]">
+                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#4ade80]" />
+                        <span>Trend risparmi (serie A)</span>
                       </span>
-                      <span className="flex items-center gap-2 text-[#22d3ee]">
-                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm" style={{ backgroundColor: DA.neonCyan }} />
-                        <span>Fatture registrate</span>
+                      <span className="flex items-center gap-2 text-[#facc15]">
+                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#facc15]" />
+                        <span>Serie B</span>
                       </span>
-                      <span className="flex items-center gap-2 text-[#93c5fd]">
-                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#93c5fd]" />
-                        <span>Importi cumulativi</span>
+                      <span className="flex items-center gap-2 text-[#38bdf8]">
+                        <span className="inline-block h-2 w-4 shrink-0 rounded-sm bg-[#38bdf8]" />
+                        <span>Serie C</span>
                       </span>
                     </div>
                   </GlassPanel>
@@ -410,34 +471,75 @@ function DesktopWorkspaceMock() {
           </div>
         </div>
       </div>
+      </div>
     </section>
   )
 }
 
-function BottomNav() {
-  const inactive =
-    'flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium tracking-wide uppercase text-white/70'
-  const active =
-    'flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium tracking-wide uppercase text-[#22d3ee]'
+function BottomNavTab({
+  active,
+  children,
+  label,
+}: {
+  active?: boolean
+  children: React.ReactNode
+  label: string
+}) {
+  const base =
+    'relative flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-1 pb-3 pt-2 text-[9px] font-semibold uppercase tracking-[0.12em]'
   return (
-    <GlassPanel className="mx-3 mb-4 flex shrink-0 items-stretch px-2">
-      <div className={active}>
+    <div className={`${base} ${active ? 'text-cyan-300' : 'text-white/60'}`}>
+      {children}
+      <span className="leading-none">{label}</span>
+      {active ? (
+        <span className="pointer-events-none absolute bottom-1 left-1/2 h-[3px] w-10 -translate-x-1/2 rounded-full bg-gradient-to-r from-cyan-400 via-sky-300 to-cyan-400 shadow-[0_0_14px_rgba(34,211,238,.9),0_0_28px_rgba(34,211,238,.45)]" />
+      ) : null}
+    </div>
+  )
+}
+
+function BottomNav() {
+  const barGlass =
+    'mx-3 mb-[max(0.75rem,env(safe-area-inset-bottom))] flex shrink-0 items-stretch overflow-hidden rounded-2xl border border-cyan-400/35 bg-black/35 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_0_36px_-8px_rgba(34,211,238,0.25)] backdrop-blur-[24px]'
+  return (
+    <div className={barGlass} style={{ WebkitBackdropFilter: 'blur(24px)' }}>
+      <BottomNavTab active label="Home">
         <HomeIcon />
-        Home
-      </div>
-      <div className={inactive}>
-        <DocIcon />
-        Doc.
-      </div>
-      <div className={inactive}>
+      </BottomNavTab>
+      <BottomNavTab label="Attività">
+        <ChecklistIcon />
+      </BottomNavTab>
+      <BottomNavTab label="Alert">
         <BellIcon />
-        Avvisi
-      </div>
-      <div className={inactive}>
+      </BottomNavTab>
+      <BottomNavTab label="Impostazioni">
         <GearIcon />
-        Altro
-      </div>
-    </GlassPanel>
+      </BottomNavTab>
+    </div>
+  )
+}
+
+function DeepAuroraFloatingTitle(props: { subtitle?: string }) {
+  return (
+    <div className="px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))] text-center">
+      <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.30em] text-white [text-shadow:0_0_18px_rgba(34,211,238,.4),0_0_40px_rgba(124,58,237,.25)] sm:text-[10px] sm:tracking-[0.26em]">
+        Deep Aurora Intelligence
+      </p>
+      {props.subtitle ? <p className="mt-2 text-[11px] text-white/70">{props.subtitle}</p> : null}
+    </div>
+  )
+}
+
+function ChecklistIcon() {
+  return (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M8 7h13M8 12h13M8 17h13M4.5 7h2v2h-2V7zm0 5h2v2h-2v-2zm0 5h2v2h-2v-2z"
+      />
+    </svg>
   )
 }
 
@@ -445,13 +547,6 @@ function HomeIcon() {
   return (
     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  )
-}
-function DocIcon() {
-  return (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
     </svg>
   )
 }
@@ -471,12 +566,79 @@ function GearIcon() {
   )
 }
 
+function OppServerIcon() {
+  return (
+    <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.35} viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 11h14M8 7h8v4H8V7zm0 8h8v4H8v-4z" />
+      <circle cx="8" cy="9" r="0.9" fill="currentColor" />
+      <circle cx="8" cy="17" r="0.9" fill="currentColor" />
+    </svg>
+  )
+}
+function OppDocIcon() {
+  return (
+    <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.35} viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v4h4M7 21h10a2 2 0 002-2V9l-5-5H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+      <path strokeLinecap="round" d="M9 17h6M9 13h6" />
+    </svg>
+  )
+}
+function OppKeyIcon() {
+  return (
+    <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.35} viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 13a4 4 0 01-8 0 4 4 0 018 0zM12 21l-2-2v-5M12 12l8-8 2 2-8 8" />
+    </svg>
+  )
+}
+function OppSparkIcon() {
+  return (
+    <svg className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.35} viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 3L5 21l8-10-8 2 8-10z" />
+    </svg>
+  )
+}
+
+/** Riga compatta ispirata a «Top savings opportunities». */
+function PhoneOpportunityStrip() {
+  const cells = [
+    { Icon: OppServerIcon, label: 'Alert server' },
+    { Icon: OppDocIcon, label: 'Contratti' },
+    { Icon: OppKeyIcon, label: 'Risparmi chiave' },
+    { Icon: OppSparkIcon, label: 'Azioni smart' },
+  ]
+  return (
+    <GlassPanel className="p-3">
+      <p className="mb-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90">
+        Opportunità top
+      </p>
+      <div className="grid grid-cols-4 gap-2">
+        {cells.map(({ Icon, label }) => (
+          <div
+            key={label}
+            className="flex flex-col items-center gap-2 rounded-xl border border-cyan-400/30 bg-black/30 px-1 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,.05),0_0_24px_-10px_rgba(34,211,238,.3)] backdrop-blur-sm"
+          >
+            <div className="flex h-[34px] w-[34px] items-center justify-center rounded-lg border border-cyan-300/35 bg-black/35 text-[#d2f9ff] shadow-[0_0_14px_-2px_rgba(34,211,238,.45)]">
+              <Icon />
+            </div>
+            <span className="hyphens-auto text-center text-[7.5px] font-semibold uppercase leading-snug tracking-wide text-white/80">
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </GlassPanel>
+  )
+}
+
 function PhoneShell(props: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex w-full max-w-[360px] shrink-0 flex-col">
       <p className="mb-3 text-center text-xs font-medium tracking-wide text-white/70">{props.label}</p>
-      <div className="flex max-h-[min(720px,calc(100vh-160px))] min-h-[560px] flex-col overflow-hidden rounded-[2.35rem] border border-white/10 bg-[#020617]/82 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
-        <div className="relative z-[1] flex flex-1 flex-col overflow-y-auto">{props.children}</div>
+      <div
+        className="relative flex max-h-[min(720px,calc(100vh-160px))] min-h-[560px] flex-col overflow-hidden rounded-[2.45rem] border border-cyan-400/45 shadow-[0_0_48px_-12px_rgba(34,211,238,.35),0_24px_80px_-20px_rgba(0,0,0,.85)]"
+      >
+        <AuroraWallpaper />
+        <div className="relative z-[2] flex flex-1 flex-col overflow-y-auto">{props.children}</div>
       </div>
     </div>
   )
@@ -484,9 +646,13 @@ function PhoneShell(props: { label: string; children: React.ReactNode }) {
 
 export default function MockupAuroraPage() {
   return (
-    <>
-      <AuroraBackdrop />
-      <div className="relative z-[1] mx-auto min-h-dvh max-w-[1600px] px-4 py-8 pb-16 font-[family-name:var(--font-outfit)] sm:px-6 lg:py-12">
+    <div data-deep-aurora-shell className="app-background relative min-h-dvh">
+      {/* Accento alto sottile sopra ai radial gradient */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-[var(--accent-color)]/50 to-transparent"
+      />
+      <div className="relative z-[1] mx-auto min-h-dvh w-full max-w-[1600px] flex-1 px-4 py-8 pb-16 font-[family-name:var(--font-outfit)] sm:px-6 lg:py-12">
         <GlassPanel className="mx-auto mb-10 max-w-3xl px-5 py-4 text-center sm:px-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#67e8f9]">
             Deep Aurora · Asset Guide
@@ -495,8 +661,9 @@ export default function MockupAuroraPage() {
             Dashboard Purchase Intelligence — mockup
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-white/70">
-            Navy #020617, royal blue #1E40AF, indaco #3730A3; card glass blur 20px; titoli ~90%; secondari ~70%; grafici
-            neon cyan e lime (#22d3ee, #a3e635). Apri mentre il dev server è in esecuzione:{' '}
+            Aggiornato per avvicinarsi al render promozionale: aurora fluida dentro ogni cornice telefono, vetro con bordo
+            cyan luminoso, tre serie color (verde / giallo / blu) con glow, card opportunità a griglia come nel concept,
+            barra inferiore con tratto brillante sulla tab attiva. URL:{' '}
             <code className="rounded-md border border-white/10 bg-black/35 px-1.5 py-0.5 text-[#67e8f9]">
               /mockup/aurora
             </code>
@@ -510,71 +677,72 @@ export default function MockupAuroraPage() {
         </h2>
 
         <div className="flex flex-wrap items-start justify-center gap-10 xl:gap-14">
-          <PhoneShell label="Schermata 1 · insight e trend">
-            <div className="px-4 pb-3 pt-[max(0.875rem,env(safe-area-inset-top))]">
-              <p className="text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-white/90">
-                Smart Pair Intelligence
-              </p>
-              <p className="mt-3 text-xs text-white/70">Sede · Nord demo</p>
-            </div>
+          <PhoneShell label="Schermata 1 · come il promo (grafici + KPI)">
+            <DeepAuroraFloatingTitle subtitle="Insight mensili · demo" />
             <div className="flex-1 space-y-3 px-4 pb-2">
               <GlassPanel className="p-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-white/90">
-                    Andamento mensile
+                <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/95">
+                      Insight mensili
+                    </span>
+                    <p className="mt-1 text-[10px] text-white/70">Trend di risparmio</p>
+                  </div>
+                  <span className="shrink-0 rounded-lg border border-cyan-400/35 bg-black/35 px-2 py-1 text-[10px] font-medium text-[#93f8ff]/95">
+                    Grafico ▾
                   </span>
-                  <span className="rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-[11px] text-white/70">
-                  Periodo FY ▾
-                </span>
                 </div>
-                <div className="flex gap-2">
-                  <div className="min-w-0 flex-1 pt-2">
-                    <FakeLineChart />
+                <div className="mt-3 flex gap-2">
+                  <div className="min-w-0 flex-1 pt-1">
+                    <FakeLineChart uid="ph1-line" />
                     <div className="mt-2 flex justify-between text-[10px] text-white/70">
                       {['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'].map((m) => (
                         <span key={m}>{m}</span>
                       ))}
                     </div>
                   </div>
-                  <FakeBars />
+                  <FakeBars uid="ph1-bar" />
                 </div>
-                <div className="mt-4 flex flex-wrap gap-3 text-[10px]">
-                  <span className="flex items-center gap-1.5 text-[#a3e635]">
-                    <span className="inline-block h-1.5 w-3 rounded-sm bg-[#a3e635]" /> Bolle
+                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-white/10 pt-3 text-[9px]">
+                  <span className="flex items-center gap-1.5 font-medium uppercase tracking-wide text-[#4ade80]">
+                    <span className="inline-block h-1.5 w-3.5 shrink-0 rounded-sm bg-[#4ade80] shadow-[0_0_8px_#4ade80]" />{' '}
+                    Serie verde
                   </span>
-                  <span className="flex items-center gap-1.5 text-[#22d3ee]">
-                    <span className="inline-block h-1.5 w-3 rounded-sm bg-[#22d3ee]" /> Fatture
+                  <span className="flex items-center gap-1.5 font-medium uppercase tracking-wide text-[#facc15]">
+                    <span className="inline-block h-1.5 w-3.5 shrink-0 rounded-sm bg-[#facc15] shadow-[0_0_8px_rgba(250,204,21,.6)]" />{' '}
+                    Serie giallo
                   </span>
-                  <span className="flex items-center gap-1.5 text-[#93c5fd]">
-                    <span className="inline-block h-1.5 w-3 rounded-sm bg-[#93c5fd]" /> Importi
+                  <span className="flex items-center gap-1.5 font-medium uppercase tracking-wide text-[#38bdf8]">
+                    <span className="inline-block h-1.5 w-3.5 shrink-0 rounded-sm bg-[#38bdf8] shadow-[0_0_8px_#38bdf8]" />{' '}
+                    Serie blu
                   </span>
                 </div>
               </GlassPanel>
               <div className="grid grid-cols-2 gap-2">
                 <GlassPanel className="p-3">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-white/90">Fluxo scanner</p>
-                  <p className="mt-2 text-2xl font-semibold tabular-nums text-white/90">78%</p>
-                  <p className="mt-1 text-[11px] text-[#a3e635]">in coda elaborati &lt; 24h</p>
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/85">
+                    Velocità acquisti
+                  </p>
+                  <p className="mt-2 text-2xl font-bold tabular-nums text-white/95 drop-shadow-[0_0_12px_rgba(255,255,255,.35)]">
+                    78%
+                  </p>
+                  <p className="mt-1 text-[10px] text-white/70">vs obiettivo FY</p>
                 </GlassPanel>
                 <GlassPanel className="p-3">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-white/90">
-                    Score anomalie
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-white/85">Risk score</p>
+                  <p className="mt-2 text-xl font-bold uppercase tracking-wide text-[#4ade80] drop-shadow-[0_0_14px_rgba(74,222,128,.75)]">
+                    Low
                   </p>
-                  <p className="mt-2 text-xl font-semibold uppercase tracking-wide text-[#22d3ee]">Basso</p>
-                  <p className="mt-1 text-[11px] text-white/70">rekki · duplicati</p>
+                  <p className="mt-1 text-[10px] text-white/70">portfolio sicuro</p>
                 </GlassPanel>
               </div>
             </div>
             <BottomNav />
           </PhoneShell>
 
-          <PhoneShell label="Schermata 2 · KPI stile tessere">
-            <div className="px-4 pb-3 pt-[max(0.875rem,env(safe-area-inset-top))]">
-              <p className="text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-white/90">
-                Smart Pair Intelligence
-              </p>
-              <p className="mt-4 text-xs font-semibold text-white/90">Riepilogo operatore</p>
-            </div>
+          <PhoneShell label="Schermata 2 · KPI in vetro affiancati">
+            <DeepAuroraFloatingTitle />
+            <p className="px-4 pb-1 text-center text-xs font-semibold text-white/90">Riepilogo operativo</p>
             <div className="flex-1 space-y-2.5 px-4 pb-2">
               {DESKTOP_KPIS.map((k) => (
                 <GlassPanel key={k.title} className="relative overflow-hidden p-3.5">
@@ -598,51 +766,29 @@ export default function MockupAuroraPage() {
             <BottomNav />
           </PhoneShell>
 
-          <PhoneShell label="Schermata 3 · priorità e azioni">
-            <div className="px-4 pb-3 pt-[max(0.875rem,env(safe-area-inset-top))]">
-              <p className="text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-white/90">
-                Smart Pair Intelligence
-              </p>
-              <p className="mt-4 text-xs font-semibold text-white/90">Cose da fare adesso</p>
-            </div>
-            <div className="flex-1 px-4 pb-2">
-              <GlassPanel className="divide-y divide-white/10">
-                {[
-                  { t: 'Gruppi duplicati', d: '2 possibili doppioni fatture', icon: '◇' },
-                  { t: 'Fornitori incompleti', d: 'P.IVA o SDI da completare', icon: '◇' },
-                  { t: 'Estratti in bilanciamento', d: '4 movimenti non abbinati', icon: '◇' },
-                  { t: 'Errori sincronizzazione log', d: 'Ultimo sync email · vedere log', icon: '◇' },
-                ].map((row) => (
-                  <button
-                    key={row.t}
-                    type="button"
-                    className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.06]"
-                  >
-                    <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#22d3ee]/30 bg-[#22d3ee]/10 text-[#e0f2fe]">
-                      {row.icon}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-white/90">{row.t}</p>
-                      <p className="mt-0.5 text-[12px] text-white/70">{row.d}</p>
-                    </div>
-                  </button>
-                ))}
-              </GlassPanel>
-              <GlassPanel className="mt-3 p-4">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-white/90">azione consigliata</p>
-                <p className="mt-2 text-sm leading-snug text-white/70">
-                  Apri la coda Scanner e associa il fornitore mancante sui PDF in attesa — riduce il rischio mismatch
-                  in listino.
+          <PhoneShell label="Schermata 3 · striscia opportunità (reference)">
+            <DeepAuroraFloatingTitle subtitle="Purchase intelligence" />
+            <div className="flex flex-1 flex-col gap-3 px-4 pb-2 pt-2">
+              <PhoneOpportunityStrip />
+              <GlassPanel className="p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/90">Azioni consigliate</p>
+                <p className="mt-3 text-[12px] leading-relaxed text-white/70">
+                  Verifica prima i contratti vendor in scadenza e allinea gli alert sicurezza: massimo impatto sul
+                  benchmark di risparmio.
                 </p>
-                <span className="mt-3 inline-flex rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-xs font-medium text-white/90">
-                  Vai allo scanner (mockup)
-                </span>
+                <button
+                  type="button"
+                  className="mt-4 w-full rounded-xl border border-cyan-400/40 bg-[#22d3ee]/15 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wide text-[#b6faff] shadow-[0_0_22px_-6px_rgba(34,211,238,.6)] backdrop-blur-sm"
+                  style={{ WebkitBackdropFilter: 'blur(12px)' }}
+                >
+                  Apri workflow demo
+                </button>
               </GlassPanel>
             </div>
             <BottomNav />
           </PhoneShell>
         </div>
       </div>
-    </>
+    </div>
   )
 }

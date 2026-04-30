@@ -1018,3 +1018,53 @@ select.app-fiscal-year-header-select {
   font-size: 0.6875rem !important;
   line-height: 1.1 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Deep Aurora — tema mock / estensioni (solo sotto `[data-deep-aurora-shell]`,
+ * così `:root` Fluxo non viene sovrascritto).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+[data-deep-aurora-shell] {
+  /* Tavolozza Deep Aurora */
+  --bg-base: #020617;
+  --bg-gradient-1: #1e40af;
+  --bg-gradient-2: #3730a3;
+  --bg-gradient-3: #1e3a8a;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --accent-color: #38bdf8;
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 20px;
+}
+
+[data-deep-aurora-shell].app-background {
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(circle at 10% 20%, var(--bg-gradient-1) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, var(--bg-gradient-2) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, var(--bg-gradient-3) 0%, var(--bg-base) 100%);
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  color: var(--text-main);
+}
+
+[data-deep-aurora-shell] .glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+[data-deep-aurora-shell] .glass-card:hover {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
