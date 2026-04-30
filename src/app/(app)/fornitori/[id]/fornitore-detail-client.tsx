@@ -5679,7 +5679,7 @@ function FornitoreDetailClient({
                   }}
                 />
                 {/* Mini activity feed for this fornitore */}
-                <div className={`mt-4 relative overflow-hidden rounded-lg border border-app-line-28 bg-white/[0.025]`}>
+                <div className={`mt-4 relative overflow-hidden rounded-lg border border-app-line-35 bg-white/[0.025]`}>
                   <div className={`app-card-bar-accent shrink-0 ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
                   <div className="p-4">
                     <div className="mb-3 flex items-center gap-2">
