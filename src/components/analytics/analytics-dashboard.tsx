@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Cell,
   LineChart,
   Line,
   Legend,
@@ -34,6 +35,20 @@ const chartAxisTick = (
 const GRID_COLOR = 'rgba(255,255,255,0.06)'
 const CYAN = '#22d3ee'
 const PURPLE = '#818cf8'
+
+/** Colori diversi per ogni barra del grafico „Top fornitori“ (ciclo se ci sono più righe del palette). */
+const ANALYTICS_TOP_SUPPLIER_BAR_COLORS = [
+  '#22d3ee',
+  '#818cf8',
+  '#34d399',
+  '#fbbf24',
+  '#f472b6',
+  '#38bdf8',
+  '#c084fc',
+  '#2dd4bf',
+  '#fb923c',
+  '#a5b4fc',
+] as const
 
 function fmt(n: number, currency = 'GBP') {
   return new Intl.NumberFormat('en-GB', {
@@ -254,9 +269,20 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
                 <Tooltip
                   formatter={(value) => [fmt(Number(value ?? 0)), t.appStrings.analyticsChartAmount]}
                   contentStyle={tooltipStyle}
-                  cursor={{ fill: 'rgba(129,140,248,0.08)' }}
+                  cursor={{ fill: 'rgba(255,255,255,0.06)' }}
                 />
-                <Bar dataKey="importo" fill={PURPLE} radius={[0, 4, 4, 0]} />
+                <Bar
+                  dataKey="importo"
+                  radius={[0, 4, 4, 0]}
+                  name={t.appStrings.analyticsChartAmount}
+                >
+                  {data.topFornitori.map((_, idx) => (
+                    <Cell
+                      key={`top-fornitore-${idx}`}
+                      fill={ANALYTICS_TOP_SUPPLIER_BAR_COLORS[idx % ANALYTICS_TOP_SUPPLIER_BAR_COLORS.length]}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
