@@ -164,6 +164,10 @@ const EMAIL_DOMAINS = [
 
 const PIN_LENGTH = 4
 
+/** Colonna gate /accesso: pannello vetro su Deep Aurora (leggibilità dietro hero + form). */
+const ACCESSO_COLUMN_CLASS =
+  'mx-auto w-full max-w-sm rounded-3xl border border-white/10 bg-slate-950/50 p-4 shadow-[0_12px_48px_rgba(0,0,0,0.38)] ring-1 ring-white/[0.05] backdrop-blur-md sm:p-5'
+
 type LoginFormProps = { sessionGateNext?: string }
 
 export default function LoginForm({ sessionGateNext }: LoginFormProps) {
@@ -1210,7 +1214,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   if (sessionGateNext && (!gateUiReady || meLoading)) {
     return (
-      <div className="mx-auto flex min-h-[50vh] w-full max-w-sm flex-col items-center justify-center gap-3 px-1">
+      <div className={`${ACCESSO_COLUMN_CLASS} flex min-h-[50vh] flex-col items-center justify-center gap-3`}>
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
         <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
       </div>
@@ -1224,7 +1228,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     )
     const showBentornatoCta = accessoDevicePhase === 'bentornato'
     return (
-      <div className="mx-auto flex min-h-[50vh] w-full max-w-sm flex-col items-center justify-center gap-4 px-4 text-center">
+      <div className={`${ACCESSO_COLUMN_CLASS} flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center`}>
         {showBentornatoCta ? (
           <>
             <p className="text-balance text-xl font-semibold text-app-fg sm:text-2xl">{welcomeText}</p>
@@ -1252,7 +1256,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     return (
       <>
         {deviceTrustUi}
-        <div className={sessionGateNext ? 'mx-auto w-full max-w-sm' : 'w-full'}>
+        <div className={sessionGateNext ? ACCESSO_COLUMN_CLASS : 'w-full'}>
           {accessoTopBar}
           <div className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-3">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-app-cyan-400 border-t-transparent" />
@@ -1269,7 +1273,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     return (
       <>
         {deviceTrustUi}
-        <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
+        <div className={sessionGateNext ? ACCESSO_COLUMN_CLASS : 'w-full'}>
         {accessoTopBar}
         {/* Logo above the card */}
         <div className="mb-6 flex flex-col items-center gap-1.5">
@@ -1322,7 +1326,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     return (
       <>
         {deviceTrustUi}
-        <div className={sessionGateNext ? 'w-full max-w-sm' : 'w-full'}>
+        <div className={sessionGateNext ? ACCESSO_COLUMN_CLASS : 'w-full'}>
         {accessoTopBar}
         <AuroraPanelShell aria-labelledby="login-pin-heading">
           <div className="flex flex-col items-center gap-5 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-6 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
@@ -1474,7 +1478,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   return (
   <>
   {deviceTrustUi}
-  <div className={sessionGateNext ? 'mx-auto w-full max-w-sm' : 'w-full'}>
+  <div className={sessionGateNext ? ACCESSO_COLUMN_CLASS : 'w-full'}>
   {accessoTopBar}
 
       {(expiredReason || sessionBootStuck) && (
