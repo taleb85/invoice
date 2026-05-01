@@ -5436,27 +5436,40 @@ function FornitoreDetailClient({
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
-          <div className="flex min-w-0 items-center gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
+          <div className="flex min-w-0 items-start gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
             {/* Identità fornitore */}
-            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+            <div className="flex min-w-0 flex-1 items-start gap-2 overflow-hidden">
               <FornitoreAvatar
                 nome={fornitoreLabelAvatar}
                 logoUrl={fornitore.logo_url}
                 sizeClass="h-8 w-8 shrink-0"
               />
-              <div className="min-w-0 flex-1">
-                <h1 className="app-page-title truncate text-[13px] font-bold leading-tight text-app-fg">
-                  {fornitoreNomeVisual}
-                </h1>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <div className="flex min-h-8 min-w-0 items-center gap-1.5">
+                  <h1 className="app-page-title min-w-0 flex-1 truncate text-[13px] font-bold leading-none text-app-fg">
+                    {fornitoreNomeVisual}
+                  </h1>
+                  <Link
+                    href={hrefWithReturnTo(`/fornitori/${fornitore.id}/edit`, supplierReturnPath)}
+                    onClick={() => saveScrollForListPath(supplierReturnPath)}
+                    title={t.fornitori.editTitle}
+                    aria-label={t.fornitori.editTitle}
+                    className="box-border inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-app-soft-border p-0 leading-none text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                  >
+                    <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </Link>
+                </div>
                 {fornitore.email && (
-                  <p className="truncate text-[11px] leading-snug text-app-fg-subtle">
+                  <p className="truncate text-[11px] leading-tight text-app-fg-subtle">
                     {fornitore.email}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex min-h-8 shrink-0 items-center gap-1.5">
+            <div className="flex min-h-8 shrink-0 items-center gap-1.5 self-start">
               <ScanEmailButton
                 placement="desktopHeader"
                 fornitoreId={fornitore.id}
@@ -5504,16 +5517,6 @@ function FornitoreDetailClient({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 {t.nav.nuovaBolla}
-              </Link>
-              <Link
-                href={hrefWithReturnTo(`/fornitori/${fornitore.id}/edit`, supplierReturnPath)}
-                onClick={() => saveScrollForListPath(supplierReturnPath)}
-                title={t.fornitori.editTitle}
-                className="box-border inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-app-soft-border p-0 leading-none text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
-              >
-                <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
               </Link>
               <AppPageHeaderDesktopTray className="ms-0.5 flex h-8 min-h-8 items-center" />
             </div>
