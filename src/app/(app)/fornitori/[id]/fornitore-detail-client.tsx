@@ -4967,10 +4967,12 @@ function FornitoreDetailClient({
     }
 
     sync()
+    const postLayout = requestAnimationFrame(() => sync())
     const ro = new ResizeObserver(sync)
     ro.observe(header)
     window.addEventListener('resize', sync)
     return () => {
+      cancelAnimationFrame(postLayout)
       ro.disconnect()
       window.removeEventListener('resize', sync)
     }
@@ -5775,6 +5777,20 @@ function FornitoreDetailClient({
             </div>
           </div>
         </div>
+
+        {mdUp && supplierDesktopHeaderDock != null ? (
+          <div
+            aria-hidden
+            className="w-full shrink-0"
+            style={{
+              height:
+                supplierDesktopHeaderDock.height > 0
+                  ? supplierDesktopHeaderDock.height
+                  : undefined,
+              minHeight: supplierDesktopHeaderDock.height > 0 ? undefined : '5.5rem',
+            }}
+          />
+        ) : null}
 
         {/* Tab content — altezza = contenuto; niente viewport min‑h che taglia il pannello vetro. */}
         <div className="w-full min-w-0">
