@@ -164,8 +164,8 @@ const EMAIL_DOMAINS = [
 
 const PIN_LENGTH = 4
 
-/** Colonna gate /accesso: solo larghezza/padding; niente `app-card-login` (altrimenti doppio vetro + poco “aria”). */
-const ACCESSO_COLUMN_CLASS = 'mx-auto w-full max-w-sm p-4 sm:p-5'
+/** Colonna gate /accesso: bordo + opacità/vetro come le schede login (`app-card-login` su public shell). */
+const ACCESSO_COLUMN_CLASS = 'app-card-login mx-auto w-full max-w-sm p-4 sm:p-5'
 
 /** Contenitore unico corpo + footer: vetro come `.glass-surface` su `[data-deep-aurora-public-shell]`. */
 const LOGIN_GLASS_PANEL_SHELL =
