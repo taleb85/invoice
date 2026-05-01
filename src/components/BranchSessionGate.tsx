@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useLocale } from '@/lib/locale-context'
 import {
+  branchAccessoLoginInFlightRef,
   branchSessionGateRequiredRole,
   clearSessionOperatorGate,
   isSessionOperatorGateOk,
@@ -114,6 +115,7 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
     function onVisibility() {
       if (typeof document === 'undefined') return
       if (document.visibilityState === 'hidden') {
+        if (branchAccessoLoginInFlightRef.current) return
         clearSessionOperatorGate()
       }
     }

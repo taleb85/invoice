@@ -9,6 +9,7 @@ import { clearSpDeviceId, getOrCreateSpDeviceId, readSpDeviceId } from '@/lib/sp
 import { normalizeOperatorLoginName } from '@/lib/operator-login-name'
 import { LOCALES, type Locale, getTranslations, localeFromCountryCode } from '@/lib/translations'
 import {
+  branchAccessoLoginInFlightRef,
   branchSessionGateRequiredRole,
   clearSessionOperatorGate,
   isSessionOperatorGateOk,
@@ -184,6 +185,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   >('idle')
   const [accessoWelcomeName, setAccessoWelcomeName] = useState<string>('')
   const deviceAutoDoneRef = useRef(false)
+  /** Su /accesso: transizione sessione presente → assente (scadenza) per resettare il pipeline device. */
+  const accessoHadUserRef = useRef(false)
   /** Dopo «Accedi» su dispositivo registrato: non far partire la griglia «Who’s on shift» (restiamo sul PIN). */
   const suppressAccessoOperatorGridRef = useRef(false)
   /** True se siamo nel flusso Bentornato → PIN senza passare dalla griglia (serve al «indietro»). */
@@ -264,6 +267,22 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   useEffect(() => {
     if (!sessionGateNext) return
+    if (expiredReason || sessionBootStuck) {
+      deviceAutoDoneRef.current = false
+    }
+  }, [sessionGateNext, expiredReason, sessionBootStuck])
+
+  useEffect(() => {
+    if (!sessionGateNext || meLoading) return
+    const hasUser = Boolean(me?.user)
+    if (accessoHadUserRef.current && !hasUser) {
+      deviceAutoDoneRef.current = false
+    }
+    accessoHadUserRef.current = hasUser
+  }, [sessionGateNext, meLoading, me?.user])
+
+  useEffect(() => {
+    if (!sessionGateNext) return
     if (meLoading) return
     if (!me?.user) {
       if (readSpDeviceId() && !deviceAutoDoneRef.current) {
@@ -294,6 +313,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     }
     setAccessoDevicePhase('restoring')
     setMessage(null)
+    branchAccessoLoginInFlightRef.current = true
     try {
       const rs = await fetch('/api/auth/device-restore', {
         method: 'POST',
@@ -333,6 +353,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     } catch {
       setAccessoDevicePhase('bentornato')
       setMessage({ type: 'error', text: t.ui.networkError })
+    } finally {
+      branchAccessoLoginInFlightRef.current = false
     }
   }, [router, t.login.notFound, t.ui.networkError])
 
@@ -363,44 +385,49 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
     let cancelled = false
     void (async () => {
-      setAccessoDevicePhase('checking')
+      branchAccessoLoginInFlightRef.current = true
       try {
-        const r = await fetch(`/api/device-sessions?deviceId=${encodeURIComponent(devId)}`, { cache: 'no-store' })
-        const j = (await r.json().catch(() => ({ notFound: true }))) as {
-          notFound?: boolean
-          profile?: {
-            id: string
-            full_name: string | null
-            email?: string | null
+        setAccessoDevicePhase('checking')
+        try {
+          const r = await fetch(`/api/device-sessions?deviceId=${encodeURIComponent(devId)}`, { cache: 'no-store' })
+          const j = (await r.json().catch(() => ({ notFound: true }))) as {
+            notFound?: boolean
+            profile?: {
+              id: string
+              full_name: string | null
+              email?: string | null
+            }
+            sede?: { nome?: string | null; country_code?: string | null }
           }
-          sede?: { nome?: string | null; country_code?: string | null }
+          if (cancelled) return
+          if (j.notFound) {
+            deviceAutoDoneRef.current = true
+            deviceRestoreGateProfileRef.current = null
+            setAccessoDevicePhase('idle')
+            setAccessoContentReady(true)
+            return
+          }
+          const fn = String(j.profile?.full_name ?? '').trim().split(/\s+/)[0] ?? '—'
+          setAccessoWelcomeName(fn)
+          deviceRestoreGateProfileRef.current = {
+            id: String(j.profile?.id ?? ''),
+            email: String(j.profile?.email ?? '').trim(),
+            full_name: j.profile?.full_name ?? null,
+            sedeNome: j.sede?.nome ?? null,
+            countryCode: j.sede?.country_code ?? null,
+          }
+          if (cancelled) return
+          await handleDeviceWelcomeAccedi()
+        } catch {
+          if (!cancelled) {
+            deviceAutoDoneRef.current = true
+            deviceRestoreGateProfileRef.current = null
+            setAccessoDevicePhase('idle')
+            setAccessoContentReady(true)
+          }
         }
-        if (cancelled) return
-        if (j.notFound) {
-          deviceAutoDoneRef.current = true
-          deviceRestoreGateProfileRef.current = null
-          setAccessoDevicePhase('idle')
-          setAccessoContentReady(true)
-          return
-        }
-        const fn = String(j.profile?.full_name ?? '').trim().split(/\s+/)[0] ?? '—'
-        setAccessoWelcomeName(fn)
-        deviceRestoreGateProfileRef.current = {
-          id: String(j.profile?.id ?? ''),
-          email: String(j.profile?.email ?? '').trim(),
-          full_name: j.profile?.full_name ?? null,
-          sedeNome: j.sede?.nome ?? null,
-          countryCode: j.sede?.country_code ?? null,
-        }
-        if (cancelled) return
-        await handleDeviceWelcomeAccedi()
-      } catch {
-        if (!cancelled) {
-          deviceAutoDoneRef.current = true
-          deviceRestoreGateProfileRef.current = null
-          setAccessoDevicePhase('idle')
-          setAccessoContentReady(true)
-        }
+      } finally {
+        branchAccessoLoginInFlightRef.current = false
       }
     })()
     return () => {
@@ -636,70 +663,75 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   /* ─── login operatore ─────────────────────────────── */
   const doLoginByName = useCallback(async (internalEmail: string, pinStr: string) => {
     if (loading) return
+    branchAccessoLoginInFlightRef.current = true
     setLoading(true); setMessage(null)
-    const { error } = await supabase.auth.signInWithPassword({ email: internalEmail, password: pinStr })
-    if (error) {
-      setMessage({ type: 'error', text: t.login.pinIncorrect })
-      setLoading(false)
-      /* svuota e rimetti focus sul primo campo */
-      setPin(Array(PIN_LENGTH).fill(''))
-      setTimeout(() => pinRefs.current[0]?.focus(), 50)
-      return
-    }
-    const { data: { session: sess0 } } = await supabase.auth.getSession()
-    if (!sess0) {
-      setMessage({ type: 'error', text: t.login.pinIncorrect })
-      setLoading(false)
-      return
-    }
     try {
-      localStorage.removeItem('fluxo-active-operator')
-      localStorage.removeItem('fluxo-active-operator-user')
-      /* salva ultima sede per pre-popolare il logo al prossimo accesso */
-      if (sedeNome) localStorage.setItem('fluxo-last-sede-nome', sedeNome)
-    } catch {
-      /* ignore */
-    }
-    markClientSessionJustEstablished()
-    revalidateMe()
+      const { error } = await supabase.auth.signInWithPassword({ email: internalEmail, password: pinStr })
+      if (error) {
+        setMessage({ type: 'error', text: t.login.pinIncorrect })
+        setLoading(false)
+        /* svuota e rimetti focus sul primo campo */
+        setPin(Array(PIN_LENGTH).fill(''))
+        setTimeout(() => pinRefs.current[0]?.focus(), 50)
+        return
+      }
+      const { data: { session: sess0 } } = await supabase.auth.getSession()
+      if (!sess0) {
+        setMessage({ type: 'error', text: t.login.pinIncorrect })
+        setLoading(false)
+        return
+      }
+      try {
+        localStorage.removeItem('fluxo-active-operator')
+        localStorage.removeItem('fluxo-active-operator-user')
+        /* salva ultima sede per pre-popolare il logo al prossimo accesso */
+        if (sedeNome) localStorage.setItem('fluxo-last-sede-nome', sedeNome)
+      } catch {
+        /* ignore */
+      }
+      markClientSessionJustEstablished()
+      revalidateMe()
 
-    if (sessionGateNext) {
-      const uid = (await supabase.auth.getUser()).data.user?.id
-      if (uid) {
-        const devId = readSpDeviceId()
-        if (!devId) {
-          markSessionOperatorGateOk()
-          setLoading(false)
-          setPendingAfterPinNav(sessionGateNext)
-          setShowDeviceTrustSheet(true)
-          return
-        }
-        const chk = await fetch(`/api/device-sessions?deviceId=${encodeURIComponent(devId)}`, {
-          cache: 'no-store',
-        })
-        const j = (await chk.json().catch(() => ({ notFound: true }))) as {
-          notFound?: boolean
-          profile?: { id: string }
-        }
-        const needTrust =
-          Boolean(j.notFound) || (j.profile && String(j.profile.id) !== String(uid))
-        if (needTrust) {
-          markSessionOperatorGateOk()
-          setLoading(false)
-          setPendingAfterPinNav(sessionGateNext)
-          setShowDeviceTrustSheet(true)
-          return
+      if (sessionGateNext) {
+        const uid = (await supabase.auth.getUser()).data.user?.id
+        if (uid) {
+          const devId = readSpDeviceId()
+          if (!devId) {
+            markSessionOperatorGateOk()
+            setLoading(false)
+            setPendingAfterPinNav(sessionGateNext)
+            setShowDeviceTrustSheet(true)
+            return
+          }
+          const chk = await fetch(`/api/device-sessions?deviceId=${encodeURIComponent(devId)}`, {
+            cache: 'no-store',
+          })
+          const j = (await chk.json().catch(() => ({ notFound: true }))) as {
+            notFound?: boolean
+            profile?: { id: string }
+          }
+          const needTrust =
+            Boolean(j.notFound) || (j.profile && String(j.profile.id) !== String(uid))
+          if (needTrust) {
+            markSessionOperatorGateOk()
+            setLoading(false)
+            setPendingAfterPinNav(sessionGateNext)
+            setShowDeviceTrustSheet(true)
+            return
+          }
         }
       }
-    }
 
-    markSessionOperatorGateOk()
-    if (sessionGateNext) {
-      router.replace(sessionGateNext)
-    } else {
-      router.push('/')
+      markSessionOperatorGateOk()
+      if (sessionGateNext) {
+        router.replace(sessionGateNext)
+      } else {
+        router.push('/')
+      }
+      router.refresh()
+    } finally {
+      branchAccessoLoginInFlightRef.current = false
     }
-    router.refresh()
   }, [loading, sedeNome, sessionGateNext, supabase, router, t.login.pinIncorrect])
 
   /* ─── lookup nome → email interna ─────────────────── */
