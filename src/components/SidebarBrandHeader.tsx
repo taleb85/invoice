@@ -1,32 +1,8 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
-import useSWR from 'swr'
-import { normalizeAppPath } from '@/lib/mobile-hub-routes'
-import EmailSyncToolbarStatus from '@/components/EmailSyncToolbarStatus'
-import type { OperatorWorkspaceHeaderPayload } from '@/types/operator-workspace-header'
+import { useRouter } from 'next/navigation'
 import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
 import AppBuildInfo from '@/components/AppBuildInfo'
-
-const operatorHeaderFetcher = (url: string): Promise<OperatorWorkspaceHeaderPayload | null> =>
-  fetch(url).then((r) => (r.ok ? r.json() : null))
-
-/**
- * Su `/fornitori/...` la strip operatore desktop è nascosta: mostra solo stato sync IMAP (cron).
- */
-function FornitoreStripEmailSyncStatus() {
-  const { data } = useSWR<OperatorWorkspaceHeaderPayload | null>('/api/operator-workspace-header', operatorHeaderFetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 20_000,
-    refreshInterval: 60_000,
-  })
-  if (!data?.operatorScoped) return null
-  return (
-    <span className="inline-flex max-w-[min(100%,300px)] items-center rounded-md border border-app-line-35 app-workspace-inset-bg px-2 py-1 shadow-sm">
-      <EmailSyncToolbarStatus lastImapSyncAt={data.lastImapSyncAt ?? null} lastImapSyncError={data.lastImapSyncError ?? null} />
-    </span>
-  )
-}
 
 /** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop sopra il main. */
 export const DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID = 'desktop-header-page-actions'
@@ -88,17 +64,11 @@ export function SidebarRailBrand() {
 }
 
 /**
- * Fascia desktop sopra il main: portal azioni pagina + stato sync email (cron).
+ * Fascia desktop sopra il main: portal azioni pagina.
  * Host per `NavigationTopProgress` (`desktopHost` in AppShell).
  */
 export function DesktopHeaderActionsStrip() {
   const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
-  const pathname = usePathname()
-  /**
-   * Host flex-1 per azioni di pagina (portal). Solleciti / sync / strumenti sede: riga sotto in `AppShell` (`OperatorDesktopWorkspaceHeader`).
-   * Solo sotto `/fornitori` la strip operatore è nascosta lì: qui si mostra lo stato IMAP.
-   */
-  const showHeaderScanEmail = normalizeAppPath(pathname ?? '').startsWith('/fornitori')
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 items-center justify-end gap-1.5 self-stretch bg-transparent ps-1.5 pe-2 text-app-fg sm:gap-2 sm:pe-2.5">
@@ -108,7 +78,6 @@ export function DesktopHeaderActionsStrip() {
         data-fluxo-desktop-header-actions-host
         className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-1.5 bg-transparent sm:gap-2"
       />
-      {showHeaderScanEmail ? <FornitoreStripEmailSyncStatus /> : null}
     </div>
   )
 }

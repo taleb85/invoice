@@ -62,27 +62,3 @@ function OperatorWorkspaceToolsToolbarInner({ className }: { className?: string 
     </div>
   )
 }
-
-/** Fascia sotto la toolbar desktop (md+): usata fuori dalla home dashboard. */
-function OperatorDesktopWorkspaceHeaderInner() {
-  const { data, visible } = useOperatorWorkspaceToolsPayload()
-  if (!visible || !data) return null
-
-  return (
-    <div className="relative isolate z-20 hidden w-full min-w-0 shrink-0 items-center justify-end border-b border-app-line-25 px-2 py-1.5 sm:px-2.5 lg:px-3 md:flex">
-      <DashboardHeaderSedeToolsMenu
-        fornitoriInScadenza={data.sollecitiFornitori}
-        lastImapSyncAt={data.lastImapSyncAt ?? null}
-        lastImapSyncError={data.lastImapSyncError ?? null}
-      />
-    </div>
-  )
-}
-
-export default function OperatorDesktopWorkspaceHeader() {
-  return (
-    <Suspense fallback={null}>
-      <OperatorDesktopWorkspaceHeaderInner />
-    </Suspense>
-  )
-}

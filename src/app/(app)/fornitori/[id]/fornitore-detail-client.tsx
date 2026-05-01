@@ -173,6 +173,23 @@ function supplierMonthCalendarBounds(year: number, month1: number): SupplierLedg
   return { from, toIncl: localYmd(last) }
 }
 
+/** Periodo = un solo mese calendario (dal 1 all’ultimo giorno, clampato a oggi). */
+function normalizeLedgerPeriodToSingleCalendarMonthIfNeeded(
+  p: SupplierLedgerPeriod,
+  todayYmd: string,
+): SupplierLedgerPeriod {
+  /** Sentinella «tutto lo storico» usata da expand fatture: non toccare. */
+  if (p.from === '2000-01-01') return p
+  const { y, m } = ymdYearMonth(p.from)
+  const b = supplierMonthCalendarBounds(y, m)
+  const full = clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd)
+  const ty = ymdYearMonth(p.toIncl)
+  const sameMonth = ty.y === y && ty.m === m
+  if (!sameMonth) return p
+  if (p.from === full.from && p.toIncl === full.toIncl) return p
+  return full
+}
+
 function ymdYearMonth(ymd: string): { y: number; m: number } {
   const [ys, ms] = ymd.split('-')
   return { y: Number(ys), m: Number(ms) }
@@ -183,11 +200,10 @@ function shiftLedgerPeriodByMonths(
   deltaMonths: number,
   todayYmd: string,
 ): SupplierLedgerPeriod {
-  const df = parseYmdLocal(p.from)
-  df.setMonth(df.getMonth() + deltaMonths)
-  const dt = parseYmdLocal(p.toIncl)
-  dt.setMonth(dt.getMonth() + deltaMonths)
-  return clampLedgerPeriodToToday(localYmd(df), localYmd(dt), todayYmd)
+  const { y, m } = ymdYearMonth(p.from)
+  const anchor = new Date(y, m - 1 + deltaMonths, 1)
+  const b = supplierMonthCalendarBounds(anchor.getFullYear(), anchor.getMonth() + 1)
+  return clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd)
 }
 
 const SUPPLIER_DESKTOP_LEDGER_STORAGE_PREFIX = 'supplier-desktop-ledger:'
@@ -207,7 +223,10 @@ function loadLedgerPeriodForSupplier(fornitoreId: string): SupplierLedgerPeriod 
           /^\d{4}-\d{2}-\d{2}$/.test(parsed.toIncl) &&
           compareYmd(parsed.from, parsed.toIncl) <= 0
         ) {
-          return clampLedgerPeriodToToday(parsed.from, parsed.toIncl, todayYmd)
+          return normalizeLedgerPeriodToSingleCalendarMonthIfNeeded(
+            clampLedgerPeriodToToday(parsed.from, parsed.toIncl, todayYmd),
+            todayYmd,
+          )
         }
       }
     } catch {
@@ -216,7 +235,10 @@ function loadLedgerPeriodForSupplier(fornitoreId: string): SupplierLedgerPeriod 
   }
   const d = new Date()
   const b = supplierMonthCalendarBounds(d.getFullYear(), d.getMonth() + 1)
-  return clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd)
+  return normalizeLedgerPeriodToSingleCalendarMonthIfNeeded(
+    clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd),
+    todayYmd,
+  )
 }
 
 /**
@@ -5563,44 +5585,45 @@ function FornitoreDetailClient({
                   >
                     {t.appStrings.supplierDesktopPeriodPickerTitle}
                   </p>
-                  <div className="mb-2 flex flex-col gap-2">
+                  <div className="mb-2">
                     <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                      {t.appStrings.supplierDesktopPeriodFromLabel}
+                      {t.appStrings.supplierDesktopPeriodMonthLabel}
                       <input
-                        type="date"
-                        value={periodPickerDraft.from}
-                        max={todayYmd}
+                        type="month"
+                        value={periodPickerDraft.from.slice(0, 7)}
+                        max={todayYmd.slice(0, 7)}
                         onChange={(e) => {
                           const v = e.target.value
-                          if (!v) return
-                          setPeriodPickerDraft((d) => ({ ...d, from: v }))
+                          if (!v || !/^\d{4}-\d{2}$/.test(v)) return
+                          const [ys, ms] = v.split('-').map((x) => Number(x))
+                          if (!Number.isFinite(ys) || !Number.isFinite(ms)) return
+                          const b = supplierMonthCalendarBounds(ys, ms)
+                          setPeriodPickerDraft(clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd))
                         }}
                         className="mt-1 w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
                       />
                     </label>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                      {t.appStrings.supplierDesktopPeriodToLabel}
-                      <input
-                        type="date"
-                        value={periodPickerDraft.toIncl}
-                        max={todayYmd}
-                        onChange={(e) => {
-                          const v = e.target.value
-                          if (!v) return
-                          setPeriodPickerDraft((d) => ({ ...d, toIncl: v }))
-                        }}
-                        className="mt-1 w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-                      />
-                    </label>
+                    <p className="mt-1.5 text-[10px] text-app-fg-subtle">
+                      {formatDateLib(periodPickerDraft.from, locale, timezone, {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                      {' — '}
+                      {formatDateLib(periodPickerDraft.toIncl, locale, timezone, {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      const a = periodPickerDraft.from
-                      const b = periodPickerDraft.toIncl
-                      const ordered =
-                        compareYmd(a, b) > 0 ? { from: b, toIncl: a } : { from: a, toIncl: b }
-                      setLedgerPeriod(clampLedgerPeriodToToday(ordered.from, ordered.toIncl, localYmd(new Date())))
+                      const today = localYmd(new Date())
+                      setLedgerPeriod(
+                        clampLedgerPeriodToToday(periodPickerDraft.from, periodPickerDraft.toIncl, today),
+                      )
                       setPeriodPickerOpen(false)
                     }}
                     className="w-full rounded-md bg-app-cyan-500 px-2 py-2 text-center text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400"

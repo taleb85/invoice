@@ -1684,9 +1684,10 @@ type Translations = {
     monthNavNextMonthTitle: string
     monthNavPrevYearTitle: string
     monthNavNextYearTitle: string
-    /** Desktop scheda fornitore — popover selettore periodo (date Da / A per KPI e tab). */
+    /** Desktop scheda fornitore — popover mese calendario (KPI e tab). */
     supplierDesktopPeriodPickerTitle: string
     supplierDesktopPeriodPickerButtonAria: string
+    supplierDesktopPeriodMonthLabel: string
     supplierDesktopPeriodFromLabel: string
     supplierDesktopPeriodToLabel: string
     supplierDesktopPeriodApply: string
@@ -3300,8 +3301,9 @@ const it: Translations = {
     monthNavNextMonthTitle: 'Mese successivo',
     monthNavPrevYearTitle: 'Anno precedente',
     monthNavNextYearTitle: 'Anno successivo',
-    supplierDesktopPeriodPickerTitle: 'Periodo (date)',
-    supplierDesktopPeriodPickerButtonAria: 'Apri per impostare le date Da / A del periodo',
+    supplierDesktopPeriodPickerTitle: 'Periodo (mese calendario)',
+    supplierDesktopPeriodPickerButtonAria: 'Apri per scegliere il mese del periodo (dal 1° all’ultimo giorno)',
+    supplierDesktopPeriodMonthLabel: 'Mese',
     supplierDesktopPeriodFromLabel: 'Da',
     supplierDesktopPeriodToLabel: 'A',
     supplierDesktopPeriodApply: 'Applica',
@@ -4102,8 +4104,9 @@ const en: Translations = {
     monthNavNextMonthTitle: 'Next month',
     monthNavPrevYearTitle: 'Previous year',
     monthNavNextYearTitle: 'Next year',
-    supplierDesktopPeriodPickerTitle: 'Period (dates)',
-    supplierDesktopPeriodPickerButtonAria: 'Open to set the From / To dates for the period',
+    supplierDesktopPeriodPickerTitle: 'Period (calendar month)',
+    supplierDesktopPeriodPickerButtonAria: 'Open to choose the calendar month for the period (1st through last day)',
+    supplierDesktopPeriodMonthLabel: 'Month',
     supplierDesktopPeriodFromLabel: 'From',
     supplierDesktopPeriodToLabel: 'To',
     supplierDesktopPeriodApply: 'Apply',
@@ -4853,8 +4856,9 @@ const es: Translations = {
     monthNavNextMonthTitle: 'Mes siguiente',
     monthNavPrevYearTitle: 'Año anterior',
     monthNavNextYearTitle: 'Año siguiente',
-    supplierDesktopPeriodPickerTitle: 'Periodo (fechas)',
-    supplierDesktopPeriodPickerButtonAria: 'Abrir para definir las fechas Desde / Hasta del periodo',
+    supplierDesktopPeriodPickerTitle: 'Periodo (mes calendario)',
+    supplierDesktopPeriodPickerButtonAria: 'Abrir para elegir el mes del periodo (del 1 al último día)',
+    supplierDesktopPeriodMonthLabel: 'Mes',
     supplierDesktopPeriodFromLabel: 'Desde',
     supplierDesktopPeriodToLabel: 'Hasta',
     supplierDesktopPeriodApply: 'Aplicar',
@@ -5601,8 +5605,9 @@ const fr: Translations = {
     monthNavNextMonthTitle: 'Mois suivant',
     monthNavPrevYearTitle: 'Année précédente',
     monthNavNextYearTitle: 'Année suivante',
-    supplierDesktopPeriodPickerTitle: 'Période (dates)',
-    supplierDesktopPeriodPickerButtonAria: 'Ouvrir pour définir les dates Du / Au de la période',
+    supplierDesktopPeriodPickerTitle: 'Période (mois calendaire)',
+    supplierDesktopPeriodPickerButtonAria: 'Ouvrir pour choisir le mois calendaire (du 1er au dernier jour)',
+    supplierDesktopPeriodMonthLabel: 'Mois',
     supplierDesktopPeriodFromLabel: 'Du',
     supplierDesktopPeriodToLabel: 'Au',
     supplierDesktopPeriodApply: 'Appliquer',
@@ -6348,8 +6353,9 @@ const de: Translations = {
     monthNavNextMonthTitle: 'Nächster Monat',
     monthNavPrevYearTitle: 'Vorheriges Jahr',
     monthNavNextYearTitle: 'Nächstes Jahr',
-    supplierDesktopPeriodPickerTitle: 'Zeitraum (Daten)',
-    supplierDesktopPeriodPickerButtonAria: 'Öffnen, um Von- und Bis-Datum des Zeitraums festzulegen',
+    supplierDesktopPeriodPickerTitle: 'Zeitraum (Kalendermonat)',
+    supplierDesktopPeriodPickerButtonAria: 'Öffnen, um den Kalendermonat zu wählen (vom 1. bis zum letzten Tag)',
+    supplierDesktopPeriodMonthLabel: 'Monat',
     supplierDesktopPeriodFromLabel: 'Von',
     supplierDesktopPeriodToLabel: 'Bis',
     supplierDesktopPeriodApply: 'Übernehmen',

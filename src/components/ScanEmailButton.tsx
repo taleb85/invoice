@@ -21,6 +21,9 @@ import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 /** Giorni predefiniti per l’override lookback (oltre al default sede). */
 const LOOKBACK_DAY_PRESETS = [3, 7, 14, 30, 60, 90] as const
 
+/** Portal popover «Sincronizza email» (header): sopra sticky/toolbar, sotto overlay fullscreen. */
+const HEADER_EMAIL_SYNC_POPOVER_Z_INDEX = 620
+
 function revalidateActivityLogSwr() {
   void swrMutate(
     (key) => typeof key === 'string' && key.startsWith('/api/activity-log'),
@@ -188,7 +191,7 @@ export default function ScanEmailButton({
   const isSupplierVariant = variant === 'supplier' && !isHeaderPlacement
 
   useLayoutEffect(() => {
-    if (!isHeaderPlacement || !headerMenuOpen || !stackedHeaderTrigger) {
+    if (!isHeaderPlacement || !headerMenuOpen) {
       setHeaderMenuRect(null)
       return
     }
@@ -196,10 +199,16 @@ export default function ScanEmailButton({
       const el = headerTriggerRef.current
       if (!el) return
       const r = el.getBoundingClientRect()
-      const width = Math.min(320, Math.max(200, r.width))
       const pad = 8
-      const left = Math.min(Math.max(pad, r.left), window.innerWidth - width - pad)
-      setHeaderMenuRect({ top: r.bottom + 8, left, width })
+      if (stackedHeaderTrigger) {
+        const width = Math.min(320, Math.max(200, r.width))
+        const left = Math.min(Math.max(pad, r.left), window.innerWidth - width - pad)
+        setHeaderMenuRect({ top: r.bottom + pad, left, width })
+      } else {
+        const width = Math.min(19 * 16, window.innerWidth - pad * 2)
+        const left = Math.min(Math.max(pad, r.right - width), window.innerWidth - width - pad)
+        setHeaderMenuRect({ top: r.bottom + pad, left, width })
+      }
     }
     measure()
     window.addEventListener('resize', measure)
@@ -215,7 +224,7 @@ export default function ScanEmailButton({
     const onDoc = (e: MouseEvent) => {
       const node = e.target as Node
       if (headerWrapRef.current?.contains(node)) return
-      if (stackedHeaderTrigger && headerMenuPanelRef.current?.contains(node)) return
+      if (headerMenuPanelRef.current?.contains(node)) return
       setHeaderMenuOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
@@ -227,7 +236,7 @@ export default function ScanEmailButton({
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
     }
-  }, [isHeaderPlacement, headerMenuOpen, stackedHeaderTrigger])
+  }, [isHeaderPlacement, headerMenuOpen])
 
   const selectSize =
     'h-9 py-0 pl-2.5 pr-8 text-left text-xs font-medium leading-9'
@@ -453,17 +462,7 @@ export default function ScanEmailButton({
           </svg>
         </button>
 
-        {headerMenuOpen && !stackedHeaderTrigger ? (
-          <div
-            id={headerMenuId}
-            role="dialog"
-            aria-label={t.dashboard.syncEmail}
-            className="absolute right-0 top-[calc(100%+8px)] z-[200] w-[min(calc(100vw-2rem),19rem)] rounded-xl border border-app-line-25 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
-          >
-            {headerMenuInner}
-          </div>
-        ) : null}
-        {headerMenuOpen && stackedHeaderTrigger && headerMenuRect != null && typeof document !== 'undefined'
+        {headerMenuOpen && headerMenuRect != null && typeof document !== 'undefined'
           ? createPortal(
               <div
                 ref={headerMenuPanelRef}
@@ -476,9 +475,11 @@ export default function ScanEmailButton({
                   top: headerMenuRect.top,
                   left: headerMenuRect.left,
                   width: headerMenuRect.width,
-                  zIndex: 560,
+                  zIndex: HEADER_EMAIL_SYNC_POPOVER_Z_INDEX,
                 }}
-                className="rounded-lg border border-app-line-28 app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md"
+                className={`app-workspace-surface-elevated p-3 shadow-[0_16px_48px_-12px_rgba(0,0,0,0.65)] backdrop-blur-md ${
+                  stackedHeaderTrigger ? 'rounded-lg border border-app-line-28' : 'rounded-xl border border-app-line-25'
+                }`}
               >
                 {headerMenuInner}
               </div>,

@@ -34,7 +34,6 @@ import NavigationTopProgress, {
   APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
 import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/SidebarBrandHeader'
-import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
 import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
 import BranchSessionGate from '@/components/BranchSessionGate'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -413,8 +412,6 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     isFornitoreProfileRoute(normalized)
   const homeScannerDockCta =
     hub && (normalized === '/' || normalized === '') && homeScannerDockCtaVisible
-  /** Home dashboard: solleciti/sync sono nella `AppPageHeaderStrip` (non nella fascia sotto header). */
-  const workspaceToolsInDashboardHeader = normalized === '/' || normalized === ''
   /**
    * Padding sotto `#app-main`: deve coprire solo altezza dock + offset `bottom` (~1rem sopra safe area).
    * Valori ~19–22rem erano troppo alti: fascia vuota scura enorme e `useGlassDockOverContent` vedeva sempre
@@ -514,7 +511,6 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 <DesktopHeaderActionsStrip />
               </div>
             </div>
-            {!workspaceToolsInDashboardHeader ? <OperatorDesktopWorkspaceHeader /> : null}
             <main
               id="app-main"
               data-app-main-scroll

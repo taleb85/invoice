@@ -601,6 +601,18 @@
     box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
+  /** Popup «Sincronizza email»: fill più coprente del default elevated. */
+  .app-workspace-surface-elevated[data-fluxo-email-sync-popover] {
+    background: linear-gradient(
+      to bottom right,
+      rgb(15 23 42 / 0.97),
+      rgb(30 27 75 / 0.93)
+    );
+    box-shadow:
+      0 16px 48px -12px rgba(0, 0, 0, 0.68),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
   /** Gestione Duplicati: guscio coprente di default (Aurora lo intensifica dopo). */
   .app-duplicate-manager-shell {
     background: linear-gradient(to bottom right, rgb(15 23 42 / 0.94), rgb(30 27 75 / 0.82));
@@ -1195,6 +1207,26 @@ body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: none !important;
+}
+
+/** Popup sync email: superficie coprente (l’override sopra azzera gli altri elevated). */
+body:has([data-deep-aurora-integration]) .app-workspace-surface-elevated[data-fluxo-email-sync-popover],
+[data-deep-aurora-integration] .app-workspace-surface-elevated[data-fluxo-email-sync-popover] {
+  background: linear-gradient(
+    to bottom right,
+    rgb(15 23 42 / 0.97),
+    rgb(30 27 75 / 0.93)
+  ) !important;
+  background-image: linear-gradient(
+    to bottom right,
+    rgb(15 23 42 / 0.97),
+    rgb(30 27 75 / 0.93)
+  ) !important;
+  backdrop-filter: blur(14px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.12) !important;
+  box-shadow:
+    0 16px 48px -12px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09) !important;
 }
 
 /** Scrim modali (`.app-workspace-scrim`): velatura leggera senza blur. */
