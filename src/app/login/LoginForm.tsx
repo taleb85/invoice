@@ -260,8 +260,6 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   /* ── operatore ─────────────────────────────────────── */
   const [name, setName]         = useState('')
   const [sedeNome, setSedeNome] = useState<string | null>(null)
-  /** Ultima sede ricordata da localStorage (mostrata al ritorno dell'utente) */
-  const [rememberedSede, setRememberedSede] = useState<string | null>(null)
   const [lookingUp, setLookingUp] = useState(false)
   const [nameReady, setNameReady] = useState(false) // nome trovato nel DB
   const resolvedEmail = useRef<string | null>(null)  // email interna → usata per signIn
@@ -633,17 +631,6 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
     }
   }, [sessionGateNext, accessoContentReady, netflixStep])
 
-  /* ─── ripristina ultima sede da localStorage ─────── */
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('fluxo-last-sede-nome')
-      if (stored) setRememberedSede(stored)
-    } catch {
-      /* storage non disponibile (es. navigazione privata) */
-    }
-  }, [])
-
-  /* ─── Netflix: carica operatori se sede-verified è presente ─────── */
   useEffect(() => {
     if (sessionGateNext) return // gate mode: show manual login
     const hasCookie = document.cookie.split(';').some(c => c.trim().startsWith('sede-verified='))
@@ -1521,11 +1508,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         </div>
       )}
 
-      <LoginBrandedHero
-        mode={mode}
-        sedeNome={sessionGateNext ? undefined : (sedeNome ?? rememberedSede)}
-        remembered={sessionGateNext ? false : (!sedeNome && !!rememberedSede)}
-      />
+      <LoginBrandedHero mode={mode} sedeNome={undefined} remembered={false} />
 
       {/* Stesso guscio Aurora della card Scanner / KPI dashboard. */}
       <AuroraPanelShell>
@@ -1938,8 +1921,7 @@ function LangPicker({
         aria-expanded={langOpen}
         aria-haspopup="listbox"
       >
-        <LocaleCodeChip code={LOCALES.find(l => l.code === locale)?.code ?? 'en'} className="h-5 min-w-[1.5rem] text-[9px]" />
-        <span className="max-w-[5.5rem] truncate text-left font-medium">
+        <span className="max-w-[8rem] truncate text-left font-medium">
           {LOCALES.find(l => l.code === locale)?.label}
         </span>
         <svg

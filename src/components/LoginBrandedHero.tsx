@@ -44,10 +44,10 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
               Pair
             </span>
           </div>
-          <span className="text-[10px] uppercase tracking-[3px] text-[#94a3b8]">
+          <span className="text-[10px] uppercase tracking-[3px] text-white">
             Invoice Management
           </span>
-          <span className="text-[10px] font-medium tabular-nums tracking-widest text-[#94a3b8]/80">
+          <span className="text-[10px] font-medium tabular-nums tracking-widest text-white">
             {formatAppVersionLabel()}
           </span>
         </div>
@@ -76,7 +76,7 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
 
       {/* Sottotitolo dinamico — nascosto su mobile per risparmiare spazio */}
       {mode === 'name' ? (
-        <p className="hidden max-w-xs px-1 text-xs leading-relaxed text-[#94a3b8] text-balance sm:mt-4 sm:block">
+        <p className="hidden max-w-xs px-1 text-xs leading-relaxed text-white text-balance sm:mt-4 sm:block">
           {t.login.subtitle}
         </p>
       ) : (
@@ -84,7 +84,7 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
           <p className="text-[0.8125rem] font-semibold leading-snug text-white text-balance">
             {t.login.adminSubtitle}
           </p>
-          <p className="text-[11px] leading-relaxed text-[#94a3b8] text-balance">
+          <p className="text-[11px] leading-relaxed text-white text-balance">
             {t.login.adminSubtitleHint}
           </p>
         </div>
