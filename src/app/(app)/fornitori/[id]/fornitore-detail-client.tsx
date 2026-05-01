@@ -5437,8 +5437,13 @@ function FornitoreDetailClient({
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
           <div className="flex min-w-0 items-start gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
-            {/* Identità fornitore */}
-            <div className="flex min-w-0 flex-1 items-start gap-2 overflow-hidden">
+            {/* Identità fornitore — blocco unico (avatar + anagrafica + modifica) */}
+            <div
+              className="flex min-w-0 flex-1 items-start gap-2 overflow-hidden rounded-lg border border-app-line-35 bg-white/[0.04] px-2 py-1 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
+              role="group"
+              aria-labelledby="supplier-desktop-identity-heading"
+              aria-describedby={fornitore.email ? 'supplier-desktop-identity-email' : undefined}
+            >
               <FornitoreAvatar
                 nome={fornitoreLabelAvatar}
                 logoUrl={fornitore.logo_url}
@@ -5446,7 +5451,10 @@ function FornitoreDetailClient({
               />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <div className="flex min-h-8 min-w-0 items-center gap-1.5">
-                  <h1 className="app-page-title min-w-0 flex-1 truncate text-[13px] font-bold leading-none text-app-fg">
+                  <h1
+                    id="supplier-desktop-identity-heading"
+                    className="app-page-title min-w-0 flex-1 truncate text-[13px] font-bold leading-none text-app-fg"
+                  >
                     {fornitoreNomeVisual}
                   </h1>
                   <Link
@@ -5454,7 +5462,7 @@ function FornitoreDetailClient({
                     onClick={() => saveScrollForListPath(supplierReturnPath)}
                     title={t.fornitori.editTitle}
                     aria-label={t.fornitori.editTitle}
-                    className="box-border inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-app-soft-border p-0 leading-none text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                    className="box-border inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-app-line-28 bg-white/[0.03] p-0 leading-none text-app-fg-muted transition-colors hover:border-app-soft-border hover:bg-app-line-10 hover:text-app-fg"
                   >
                     <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -5462,7 +5470,10 @@ function FornitoreDetailClient({
                   </Link>
                 </div>
                 {fornitore.email && (
-                  <p className="truncate text-[11px] leading-tight text-app-fg-subtle">
+                  <p
+                    id="supplier-desktop-identity-email"
+                    className="truncate text-[11px] leading-tight text-app-fg-subtle"
+                  >
                     {fornitore.email}
                   </p>
                 )}
