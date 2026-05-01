@@ -216,7 +216,7 @@ export default function AttivitaPage() {
               setDateFrom(from)
               setDateTo(to)
             }}
-            className="min-w-[12.5rem] min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+            className="min-h-8 min-w-[9.5rem] rounded-lg border border-app-line-28 bg-transparent px-2 py-1 text-[11px] font-semibold leading-tight text-app-fg focus:border-[#22d3ee]/40 focus:outline-none sm:min-w-[10rem] sm:text-xs"
           >
             <option value="">{t.appStrings.attivitaPeriodAll}</option>
             <option value="today">{t.appStrings.attivitaPeriodToday}</option>
