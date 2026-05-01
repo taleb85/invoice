@@ -24,6 +24,7 @@ import { APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLAS
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileActions'
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
+import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 export const dynamic = 'force-dynamic'
@@ -268,6 +269,7 @@ export default async function DashboardPage(props: {
             ) : null}
           </div>
         </AppPageHeaderTitleWithDashboardShortcut>
+        <OperatorWorkspaceToolsToolbar className="hidden w-full min-w-0 shrink-0 justify-end md:flex md:max-w-[min(100%,42rem)]" />
       </AppPageHeaderStrip>
 
       {!operatorScoped && (

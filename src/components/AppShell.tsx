@@ -408,6 +408,8 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
     isFornitoreProfileRoute(normalized)
   const homeScannerDockCta =
     hub && (normalized === '/' || normalized === '') && homeScannerDockCtaVisible
+  /** Home dashboard: solleciti/sync sono nella `AppPageHeaderStrip` (non nella fascia sotto header). */
+  const workspaceToolsInDashboardHeader = normalized === '/' || normalized === ''
   /**
    * Padding sotto `#app-main`: deve coprire solo altezza dock + offset `bottom` (~1rem sopra safe area).
    * Valori ~19–22rem erano troppo alti: fascia vuota scura enorme e `useGlassDockOverContent` vedeva sempre
@@ -501,7 +503,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 <DesktopHeaderActionsStrip />
               </div>
             </div>
-            <OperatorDesktopWorkspaceHeader />
+            {!workspaceToolsInDashboardHeader ? <OperatorDesktopWorkspaceHeader /> : null}
             <main
               id="app-main"
               data-app-main-scroll
