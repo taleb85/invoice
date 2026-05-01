@@ -14,9 +14,17 @@ type Props = {
    * Fascia in cima resa sticky assieme ai tab (stesso scroll di `#app-main`), es. strip titolo `/log`.
    */
   stickyHeader?: ReactNode
+  /** Fascia aggiuntiva sticky sotto i tab, solo con `tab === 'log'` (es. riepilogo + Elabora su `/log`). */
+  stickyAfterLogTab?: ReactNode
 }
 
-export default function EmailLogTabs({ labels, logPanel, blacklistPanel, stickyHeader }: Props) {
+export default function EmailLogTabs({
+  labels,
+  logPanel,
+  blacklistPanel,
+  stickyHeader,
+  stickyAfterLogTab,
+}: Props) {
   const [tab, setTab] = useState<'log' | 'blacklist'>('log')
 
   const tabBar = (
@@ -58,6 +66,9 @@ export default function EmailLogTabs({ labels, logPanel, blacklistPanel, stickyH
         >
           <div className={APP_SECTION_STICKY_TOP_INNER_X_CLASS}>{stickyHeader}</div>
           <div className={APP_SECTION_STICKY_TOP_INNER_X_CLASS}>{tabBar}</div>
+          {tab === 'log' && stickyAfterLogTab ? (
+            <div className={APP_SECTION_STICKY_TOP_INNER_X_CLASS}>{stickyAfterLogTab}</div>
+          ) : null}
         </div>
         {tab === 'log' ? logPanel : blacklistPanel}
       </>

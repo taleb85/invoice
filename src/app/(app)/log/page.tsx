@@ -1,12 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import EmailLogTabs from '@/components/EmailLogTabs'
+import { LogEmailActivityTabs } from '@/components/LogEmailActivityTabs'
 import EmailBlacklistPanel from '@/components/EmailBlacklistPanel'
-import {
-  EmailActivityLogPanel,
-  type LogRowView,
-} from '@/components/EmailActivityLogPanel'
-import { LogProcessDocumentsButton } from '@/components/LogProcessDocumentsButton'
+import { type LogRowView } from '@/components/EmailActivityLogPanel'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
   getT,
@@ -147,25 +143,6 @@ export default async function LogPage(props: {
     statusDisplay: statusLabelFromKey(t.log, row),
   }))
 
-  const toolbarEmpty = (
-    <>
-      <p className={`min-w-0 flex-1 text-sm ${queueTotal === 0 ? 'text-app-fg-muted' : 'text-app-fg'}`}>{summaryLine}</p>
-      <LogProcessDocumentsButton
-        documentoIds={documentoIdsForProcess}
-        sedeId={sedeForProcessApi}
-        labels={{
-          cta: t.log.activityProcessDocumentsCta,
-          busy: t.log.activityProcessDocumentsBusy,
-          noEligibleInLog: t.log.activityProcessDocumentsNoEligibleInLog,
-          summary: t.log.activityProcessDocumentsSummary,
-          apiError: t.log.activityProcessDocumentsApiError,
-          toastDetail: t.log.activityProcessToastDetail,
-          queueEmpty: t.log.activityQueueEmptyCelebrate,
-        }}
-      />
-    </>
-  )
-
   const tLogPanel = {
     activityColSupplier: t.log.activityColSupplier,
     activityPdfDetectedLine: t.log.activityPdfDetectedLine,
@@ -249,7 +226,7 @@ export default async function LogPage(props: {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <EmailLogTabs
+      <LogEmailActivityTabs
         stickyHeader={
           <AppPageHeaderStrip
             accent="sky"
@@ -286,44 +263,18 @@ export default async function LogPage(props: {
             </div>
           )
         }
-        logPanel={
-          <>
-            {queueTotal === 0 ? (
-              <div className="app-card overflow-hidden">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">{toolbarEmpty}</div>
-                <div className="p-16 text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 text-app-fg-muted"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <p className="mt-4 font-medium text-app-fg-muted">
-                    {autoProcessedToday > 0 ? t.log.activityEmptySavedHidden : t.log.activityEmpty}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <EmailActivityLogPanel
-                rows={logRowViews}
-                summaryLine={summaryLine}
-                documentoIds={documentoIdsForProcess}
-                sedeId={sedeForProcessApi}
-                blacklistSedeFallback={blacklistSedeId ?? sedeForProcessApi ?? profile?.sede_id ?? null}
-                tLog={tLogPanel}
-                procLabels={procLabels}
-                paginationFooter={logPagination}
-              />
-            )}
-          </>
-        }
+        queueTotal={queueTotal}
+        autoProcessedToday={autoProcessedToday}
+        logRowViews={logRowViews}
+        summaryLine={summaryLine}
+        documentoIdsForProcess={documentoIdsForProcess}
+        sedeForProcessApi={sedeForProcessApi}
+        blacklistSedeFallback={blacklistSedeId ?? sedeForProcessApi ?? profile?.sede_id ?? null}
+        tLogPanel={tLogPanel}
+        procLabels={procLabels}
+        logPagination={logPagination}
+        activityEmpty={t.log.activityEmpty}
+        activityEmptySavedHidden={t.log.activityEmptySavedHidden}
       />
     </div>
   )
