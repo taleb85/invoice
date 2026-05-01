@@ -39,7 +39,7 @@ const COLOR_BADGE: Record<ReturnType<typeof activityColor>, string> = {
   blue: 'bg-blue-400/10 text-blue-400',
   amber: 'bg-amber-400/10 text-amber-400',
   purple: 'bg-violet-400/10 text-violet-400',
-  gray: 'bg-app-line-15 text-app-fg-muted',
+  gray: 'border border-app-line-35 bg-app-line-22 text-app-fg',
 }
 
 type FilterChip = 'all' | 'bolle' | 'fatture' | 'documenti' | 'operatori'
@@ -249,29 +249,42 @@ export function ActivityFeed({
           {displayedRows.map((row, idx) => {
             const color = activityColor(row.action as ActivityAction)
             return (
-              <div key={row.id} className={`relative flex gap-3 ${idx > 0 ? 'pt-3' : ''}`}>
+              <div
+                key={row.id}
+                className={`relative flex gap-3 ${idx > 0 ? 'pt-3' : ''} ${compact ? '' : 'sm:items-center'}`}
+              >
                 {/* Dot */}
-                <div className={`relative z-10 mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-[#0f172b] ${COLOR_DOT[color]}`} />
+                <div className={`relative z-10 shrink-0 rounded-full border-2 border-[#0f172b] ${COLOR_DOT[color]} ${compact ? 'mt-1 h-3.5 w-3.5' : 'mt-0 h-3.5 w-3.5 sm:mt-0'}`} />
 
                 {/* Content */}
-                <div className="min-w-0 flex-1 pb-0">
-                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-0.5">
-                    <div className="min-w-0">
+                <div
+                  className={`min-w-0 flex-1 pb-0 ${compact ? '' : 'text-center sm:text-left'}`}
+                >
+                  <div
+                    className={`flex flex-wrap gap-x-3 gap-y-1 ${compact ? 'items-start justify-between' : 'flex-col items-center sm:flex-row sm:items-center sm:justify-between'}`}
+                  >
+                    <div className={`min-w-0 ${compact ? '' : 'flex flex-col items-center gap-1 sm:flex-1 sm:flex-row sm:flex-wrap sm:justify-start sm:gap-x-2'}`}>
                       <span
-                        className={`${APP_SEGMENT_CHIP_LABEL_CLASS} ${COLOR_BADGE[color]}`}
+                        className={`${APP_SEGMENT_CHIP_LABEL_CLASS} justify-center ${COLOR_BADGE[color]}`}
                       >
-                        <ActivityGlyph id={row.actionGlyph} className="h-3 w-3 opacity-95" aria-hidden />
+                        <ActivityGlyph id={row.actionGlyph} className="h-3 w-3 shrink-0 opacity-95" aria-hidden />
                         {row.actionLabel}
                       </span>
                       {row.entityLabel && !compact && (
-                        <span className="text-xs text-app-fg-muted">· {row.entityLabel}</span>
+                        <span className="block max-w-prose text-xs font-medium leading-snug text-app-fg-subtle sm:inline">
+                          · {row.entityLabel}
+                        </span>
                       )}
                     </div>
-                    <time className="shrink-0 text-[10px] text-app-fg-muted">{timeAgo(row.createdAt)}</time>
+                    <time className={`shrink-0 font-medium tabular-nums text-app-fg-subtle ${compact ? 'text-[10px]' : 'text-[11px] sm:text-xs'}`}>
+                      {timeAgo(row.createdAt)}
+                    </time>
                   </div>
-                  <div className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-app-fg-muted">
-                    {row.actorName && <span className="font-medium text-app-fg">{row.actorName}</span>}
-                    {row.sedeNome && !compact && <span>· {row.sedeNome}</span>}
+                  <div
+                    className={`mt-0.5 flex flex-wrap gap-x-2 text-xs text-app-fg-subtle ${compact ? 'text-[11px]' : 'justify-center sm:justify-start'}`}
+                  >
+                    {row.actorName && <span className="font-semibold text-app-fg">{row.actorName}</span>}
+                    {row.sedeNome && !compact && <span className="text-app-fg-subtle">· {row.sedeNome}</span>}
                   </div>
                 </div>
               </div>

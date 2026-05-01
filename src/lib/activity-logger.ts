@@ -112,5 +112,6 @@ export function activityColor(action: ActivityAction): 'green' | 'red' | 'blue' 
   if (action.endsWith('.approved') || action === 'price_anomaly.resolved') return 'blue'
   if (action.endsWith('.updated') || action.endsWith('.pin_changed')) return 'amber'
   if (action.startsWith('operatore') || action.startsWith('fornitore')) return 'purple'
+  if (action.startsWith('email.scan')) return 'blue'
   return 'gray'
 }
