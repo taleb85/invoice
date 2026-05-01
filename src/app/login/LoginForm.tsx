@@ -164,9 +164,8 @@ const EMAIL_DOMAINS = [
 
 const PIN_LENGTH = 4
 
-/** Colonna gate /accesso: pannello vetro su Deep Aurora (leggibilità dietro hero + form). */
-const ACCESSO_COLUMN_CLASS =
-  'mx-auto w-full max-w-sm rounded-3xl border border-white/10 bg-slate-950/50 p-4 shadow-[0_12px_48px_rgba(0,0,0,0.38)] ring-1 ring-white/[0.05] backdrop-blur-md sm:p-5'
+/** Colonna gate /accesso: stesso vetro/bordo delle schede login (`globals.css` → `app-card-login` su public shell). */
+const ACCESSO_COLUMN_CLASS = 'app-card-login mx-auto w-full max-w-sm p-4 sm:p-5'
 
 type LoginFormProps = { sessionGateNext?: string }
 
