@@ -60,6 +60,8 @@ export default function AppPageHeaderStrip({
    * `start` allinea cuffie, icona strip e primo rigo titolo sulla stessa base (evita “centro” sulla colonna a due righe).
    */
   rowAlign = 'center',
+  /** Se false, non mostra tray desktop (es. stato rete spostato altrove). Default: true. */
+  showDesktopTray = true,
 }: {
   children: ReactNode
   embedded?: boolean
@@ -74,6 +76,7 @@ export default function AppPageHeaderStrip({
   leadingAccessory?: ReactNode
   mergedSlot?: ReactNode
   rowAlign?: 'center' | 'start'
+  showDesktopTray?: boolean
 }) {
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
@@ -117,7 +120,7 @@ export default function AppPageHeaderStrip({
       </div>
       <div className={rightCls}>
         {rest}
-        <AppPageHeaderDesktopTray />
+        {showDesktopTray ? <AppPageHeaderDesktopTray /> : null}
       </div>
     </div>
   )

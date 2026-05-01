@@ -9,14 +9,18 @@ const FY_OPTIONS_OLDEST = 2020
 const FY_OPTIONS_MAX = 2100
 
 /**
- * Select compatto per la riga `AppPageHeaderStrip` (accanto a rete / notifiche).
+ * Select compatto per la riga `AppPageHeaderStrip` (accanto a rete / notifiche)
+ * o per la toolbar `AnalyticsPeriodStrip` sulla dashboard.
  */
 export default function DashboardFiscalYearHeaderSelect({
   countryCode,
   selectedFiscalYear,
+  layout = 'pageHeader',
 }: {
   countryCode: string
   selectedFiscalYear: number
+  /** `pageHeader`: nascosto su viewport stretti come nello header. `periodToolbar`: sempre visibile nella riga periodi. */
+  layout?: 'pageHeader' | 'periodToolbar'
 }) {
   const t = useT()
   const router = useRouter()
@@ -41,8 +45,13 @@ export default function DashboardFiscalYearHeaderSelect({
     router.push(q ? `${pathname}?${q}` : pathname)
   }
 
+  const shellCls =
+    layout === 'periodToolbar'
+      ? 'flex min-w-0 w-full max-w-full flex-[1_1_auto] flex-row flex-wrap items-center justify-end gap-x-2 gap-y-2 sm:w-auto sm:flex-nowrap sm:justify-end md:gap-3'
+      : 'hidden min-w-0 max-w-[min(100%,22rem)] flex-[1_1_auto] flex-row flex-wrap items-center justify-end gap-x-2 gap-y-2 sm:flex sm:max-w-[min(28rem,calc(100vw-21rem))] sm:flex-nowrap md:gap-3 lg:max-w-none'
+
   return (
-    <label className="hidden min-w-0 max-w-[min(100%,22rem)] flex-[1_1_auto] flex-row flex-wrap items-center justify-end gap-x-2 gap-y-2 sm:flex sm:max-w-[min(28rem,calc(100vw-21rem))] sm:flex-nowrap md:gap-3 lg:max-w-none">
+    <label className={shellCls}>
       <span className="min-w-0 max-w-[14rem] text-end text-[10px] font-semibold uppercase leading-tight tracking-wide text-app-fg-muted sm:text-start md:max-w-none md:text-[11px]">
         {t.dashboard.kpiFiscalYearFilter}
       </span>

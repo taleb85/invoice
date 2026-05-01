@@ -53,6 +53,7 @@ const VerificationStatusTab = dynamic(
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib, formatCurrency, formatMonthYearUppercase } from '@/lib/locale'
+import type { Locale } from '@/lib/translations'
 import {
   defaultFiscalYearLabel,
   formatFiscalYearShort,
@@ -224,7 +225,7 @@ function loadLedgerPeriodForSupplier(fornitoreId: string): SupplierLedgerPeriod 
  */
 function formatSupplierLedgerPeriodTriggerLabel(
   period: SupplierLedgerPeriod,
-  locale: string,
+  locale: Locale,
   timezone: string | undefined,
   formatDate: typeof formatDateLib,
 ): string {
@@ -5295,7 +5296,7 @@ function FornitoreDetailClient({
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} hiddenTabs={MOBILE_READONLY_HIDDEN_TABS} />
           ) : (
             <div
-              className="fornitore-mobile-tab-nav -mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-15 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden supports-[backdrop-filter:blur(0px)]:bg-white/[0.03]"
+              className="fornitore-mobile-tab-nav -mx-1 flex min-w-0 gap-px overflow-x-auto border-b border-app-line-35 pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden supports-[backdrop-filter:blur(0px)]:bg-white/[0.03]"
               role="navigation"
               aria-label={fornitoreNomeVisual}
             >
@@ -5372,8 +5373,8 @@ function FornitoreDetailClient({
           role="region"
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
-        {/* Intestazione + tab — bordo visibile allineato alle card dashboard (app-line-15). */}
-        <div className="sticky top-0 z-[1] w-full rounded-lg border border-app-line-15 bg-white/[0.025] pb-0.5 pt-1">
+        {/* Intestazione + tab — bordo/fill allineati alla card «Attività recente». */}
+        <div className="sticky top-0 z-[1] w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
@@ -5478,7 +5479,7 @@ function FornitoreDetailClient({
           ) : null}
 
           {/* Tab bar + navigatore mese: tab e mese ancorati in basso (self-end sul mese, stessa h delle tab) */}
-          <div className="flex w-full min-w-0 items-stretch gap-2 border-t border-app-soft-border pt-0.5 pb-0 xl:gap-2.5 xl:pt-0.5 xl:pb-0">
+          <div className="flex w-full min-w-0 items-stretch gap-2 border-t border-app-line-35 pt-0.5 pb-0 xl:gap-2.5 xl:pt-0.5 xl:pb-0">
             <div className="flex min-h-6 min-w-0 flex-1 items-end gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-8">
               {tabs.map((tb) => (
                 <button
@@ -5511,7 +5512,7 @@ function FornitoreDetailClient({
 
             <div
               ref={periodPickerRef}
-              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-white/10 bg-white/[0.03] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:px-1"
+              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-app-line-35 bg-white/[0.025] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:px-1"
             >
               <button
                 type="button"

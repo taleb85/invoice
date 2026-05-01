@@ -18,7 +18,7 @@ import { DashboardEmbeddedAnalytics } from '@/components/analytics/dashboard-emb
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import DashboardRecentBolleCard from '@/components/DashboardRecentBolleCard'
-import { getFiscalYearPgBounds, formatFiscalYearShort, parseFiscalYearQueryParam } from '@/lib/fiscal-year'
+import { formatFiscalYearShort, parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
 import { APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
@@ -233,6 +233,7 @@ export default async function DashboardPage(props: {
     !!sedeId &&
     !!profile?.role &&
     (profile.role === 'admin' || profile.role === 'admin_sede')
+  const dashboardAnalyticsPeriodToolbar = canViewEmbeddedAnalytics
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
 
   let kpis = DEFAULT_OPERATOR_DASHBOARD_KPIS
@@ -249,13 +250,18 @@ export default async function DashboardPage(props: {
       {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
         <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
       ) : null}
-      <AppPageHeaderStrip dense accent="sky" flushBottom>
+      <AppPageHeaderStrip
+        dense
+        accent="sky"
+        flushBottom
+        showDesktopTray={!dashboardAnalyticsPeriodToolbar}
+      >
         <AppPageHeaderTitleWithDashboardShortcut>
           <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto sm:gap-x-3">
             <h1 className="app-page-title min-w-0 flex-1 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl md:leading-tight">
               {dashboardSedeNome ?? t.dashboard.title}
             </h1>
-            {operatorScoped ? (
+            {operatorScoped && !dashboardAnalyticsPeriodToolbar ? (
               <Suspense fallback={null}>
                 <DashboardFiscalYearHeaderSelect countryCode={sedeCountryCode} selectedFiscalYear={fiscalYear} />
               </Suspense>
@@ -314,6 +320,7 @@ export default async function DashboardPage(props: {
                 fiscalYear={fiscalYear}
                 months={dashboardAnalyticsMonths}
                 fyLabel={analyticsFyLabelEmbedded}
+                dashboardPeriodToolbar={{ countryCode: sedeCountryCode }}
               />
             </div>
           ) : null}

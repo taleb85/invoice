@@ -7,7 +7,7 @@ import { iconAccentClass } from '@/lib/icon-accent-classes'
 
 const NEUTRAL_BAR = ''
 const NEUTRAL_LABEL = 'text-app-fg-muted'
-const NEUTRAL_BORDER = 'border-app-line-28'
+const NEUTRAL_BORDER = 'border-app-line-35'
 
 /** Allineamento icone strip alle voci correlati nella sidebar (`Sidebar.tsx`). */
 const HEADER_ICON = {
