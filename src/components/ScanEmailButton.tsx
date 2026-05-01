@@ -246,7 +246,7 @@ export default function ScanEmailButton({
     'h-6 py-0 pl-0.5 pr-4 text-left text-[10px] font-medium leading-6 md:pl-1 md:pr-5 md:text-[11px] xl:h-9 xl:pl-1.5 xl:pr-7 xl:text-[11px] xl:leading-9'
 
   const headerTriggerBtnCls =
-    'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
+    'inline-flex h-8 min-h-8 max-h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-app-line-35 app-workspace-inset-bg px-2.5 text-[11px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap'
 
   const selectOptionSurface = 'app-workspace-surface-elevated text-app-fg-muted'
   const controlsDisabled = loading || emailSync?.progress.active || !!disabledProp
