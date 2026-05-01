@@ -45,7 +45,7 @@ export default function LoginBrandedHero({ mode, sedeNome, remembered }: Props) 
             </span>
           </div>
           <span className="text-[10px] uppercase tracking-[3px] text-white">
-            Invoice Management
+            {t.login.brandTagline}
           </span>
           <span className="text-[10px] font-medium tabular-nums tracking-widest text-white">
             {formatAppVersionLabel()}

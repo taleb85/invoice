@@ -681,14 +681,14 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         setSedeNome(data.sede_nome ?? null)
         setNameReady(true)
       } else {
-        setMessage({ type: 'error', text: 'Operatore non trovato. Accedi manualmente.' })
+        setMessage({ type: 'error', text: t.login.netflixOperatorLookupFailed })
       }
     } catch {
-      setMessage({ type: 'error', text: 'Errore di rete. Riprova.' })
+      setMessage({ type: 'error', text: t.ui.networkError })
     } finally {
       setLookingUp(false)
     }
-  }, [])
+  }, [t.login.netflixOperatorLookupFailed, t.ui.networkError])
 
   /* ─── login operatore ─────────────────────────────── */
   const doLoginByName = useCallback(async (internalEmail: string, pinStr: string) => {
@@ -1373,7 +1373,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
                   </svg>
-                  Verifica in corso…
+                  {t.login.lookingUp}
                 </span>
               )}
             </div>
@@ -1842,7 +1842,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                   }}
                   className="text-left text-[11px] text-app-fg-muted transition-colors hover:text-app-fg"
                 >
-                  ← Scegli operatore
+                  {t.login.netflixBackToPicker}
                 </button>
               )}
               {mode === 'name' ? (

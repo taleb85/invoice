@@ -167,6 +167,10 @@ type Translations = {
     netflixSubtitle: string
     netflixManualLogin: string
     netflixChangeOperator: string
+    /** Da form manuale → torna alla griglia operatori */
+    netflixBackToPicker: string
+    /** Lookup operatore dalla griglia fallito */
+    netflixOperatorLookupFailed: string
     /** PWA /accesso: fiducia dispositivo */
     deviceTrustTitle: string
     deviceTrustYes: string
@@ -2055,6 +2059,8 @@ const it: Translations = {
     netflixSubtitle: 'Tocca il tuo nome per accedere',
     netflixManualLogin: 'Non trovi il tuo nome? Accedi manualmente →',
     netflixChangeOperator: '← Cambia operatore',
+    netflixBackToPicker: '← Scegli operatore',
+    netflixOperatorLookupFailed: 'Operatore non trovato. Accedi manualmente.',
     deviceTrustTitle: 'Accedere automaticamente su questo dispositivo la prossima volta?',
     deviceTrustYes: 'Sì, ricordami',
     deviceTrustNo: 'No grazie',
@@ -3659,6 +3665,8 @@ const en: Translations = {
     netflixSubtitle: 'Tap your name to sign in',
     netflixManualLogin: "Can't find your name? Sign in manually →",
     netflixChangeOperator: '← Change operator',
+    netflixBackToPicker: '← Choose operator',
+    netflixOperatorLookupFailed: 'Staff member not found. Sign in manually.',
     deviceTrustTitle: 'Sign in automatically on this device next time?',
     deviceTrustYes: 'Yes, remember me',
     deviceTrustNo: 'No thanks',
@@ -4470,6 +4478,8 @@ const es: Translations = {
     netflixSubtitle: 'Toca tu nombre para entrar',
     netflixManualLogin: '¿No encuentras tu nombre? Accede manualmente →',
     netflixChangeOperator: '← Cambiar operador',
+    netflixBackToPicker: '← Elegir operador',
+    netflixOperatorLookupFailed: 'Operador no encontrado. Accede manualmente.',
     deviceTrustTitle: '¿Acceder automáticamente en este dispositivo la próxima vez?',
     deviceTrustYes: 'Sí, recordarme',
     deviceTrustNo: 'No, gracias',
@@ -5227,6 +5237,8 @@ const fr: Translations = {
     netflixSubtitle: 'Appuyez sur votre nom pour vous connecter',
     netflixManualLogin: 'Nom introuvable ? Connexion manuelle →',
     netflixChangeOperator: '← Changer d’opérateur',
+    netflixBackToPicker: '← Choisir un opérateur',
+    netflixOperatorLookupFailed: 'Opérateur introuvable. Connexion manuelle.',
     deviceTrustTitle: 'Se connecter automatiquement sur cet appareil la prochaine fois ?',
     deviceTrustYes: 'Oui, se souvenir de moi',
     deviceTrustNo: 'Non merci',
@@ -5984,6 +5996,8 @@ const de: Translations = {
     netflixSubtitle: 'Tippe deinen Namen zum Einloggen',
     netflixManualLogin: 'Namen nicht gefunden? Manuell einloggen →',
     netflixChangeOperator: '← Operator wechseln',
+    netflixBackToPicker: '← Operator wählen',
+    netflixOperatorLookupFailed: 'Mitarbeiter nicht gefunden. Bitte manuell anmelden.',
     deviceTrustTitle: 'Beim nächsten Mal automatisch auf diesem Gerät anmelden?',
     deviceTrustYes: 'Ja, merken',
     deviceTrustNo: 'Nein danke',
