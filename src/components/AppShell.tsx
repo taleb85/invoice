@@ -33,8 +33,7 @@ import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
   APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
-import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/SidebarBrandHeader'
-import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
+import { SidebarRailBrand } from '@/components/SidebarBrandHeader'
 import BranchSessionGate from '@/components/BranchSessionGate'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DeepAuroraIntegration } from '@/components/deep-aurora/DeepAuroraIntegration'
@@ -432,7 +431,6 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-transparent max-md:min-h-dvh max-md:overflow-x-hidden">
-      <DesktopHeaderPageActionsProvider>
       <div className="mx-auto flex h-full min-h-0 w-full max-w-[var(--app-layout-max-width)] flex-1 flex-col max-md:min-h-dvh">
         {/*
           Desktop: griglia a una riga — (1) `aside` unico: brand + `Sidebar`;
@@ -508,7 +506,6 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
                   </svg>
                 </button>
-                <DesktopHeaderActionsStrip />
               </div>
             </div>
             <main
@@ -543,7 +540,6 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
           </DeepAuroraIntegration>
         </div>
       </div>
-      </DesktopHeaderPageActionsProvider>
     </div>
   )
 }

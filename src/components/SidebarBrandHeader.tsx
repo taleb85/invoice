@@ -1,11 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useDesktopHeaderPageActionsRegisterHost } from '@/components/DesktopHeaderPageActions'
 import AppBuildInfo from '@/components/AppBuildInfo'
-
-/** Bersaglio portal per azioni pagina (es. dashboard) nella barra desktop sopra il main. */
-export const DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID = 'desktop-header-page-actions'
 
 /**
  * Fascia brand 40px (md+): logo, tagline (tap → home).
@@ -59,25 +55,6 @@ export function SidebarRailBrand() {
           <AppBuildInfo variant="rail" className="m-0 shrink-0" />
         </div>
       </div>
-    </div>
-  )
-}
-
-/**
- * Fascia desktop sopra il main: portal azioni pagina.
- * Host per `NavigationTopProgress` (`desktopHost` in AppShell).
- */
-export function DesktopHeaderActionsStrip() {
-  const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
-
-  return (
-    <div className="flex min-h-0 min-w-0 flex-1 items-center justify-end gap-1.5 self-stretch bg-transparent ps-1.5 pe-2 text-app-fg sm:gap-2 sm:pe-2.5">
-      <div
-        ref={registerPageActionsHost}
-        id={DESKTOP_HEADER_PAGE_ACTIONS_ANCHOR_ID}
-        data-fluxo-desktop-header-actions-host
-        className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-1.5 bg-transparent sm:gap-2"
-      />
     </div>
   )
 }
