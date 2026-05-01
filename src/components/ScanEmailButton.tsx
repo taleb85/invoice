@@ -246,7 +246,7 @@ export default function ScanEmailButton({
     'h-6 py-0 pl-0.5 pr-4 text-left text-[10px] font-medium leading-6 md:pl-1 md:pr-5 md:text-[11px] xl:h-9 xl:pl-1.5 xl:pr-7 xl:text-[11px] xl:leading-9'
 
   const headerTriggerBtnCls =
-    'inline-flex h-8 min-h-8 max-h-8 shrink-0 items-center justify-center gap-1 rounded-lg border border-app-line-35 app-workspace-inset-bg px-2.5 text-[11px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap'
+    'box-border inline-flex h-8 min-h-8 max-h-8 w-max shrink-0 items-center justify-center gap-1.5 rounded-lg border border-app-line-35 app-workspace-inset-bg px-2.5 py-0 text-[11px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap [&_svg]:pointer-events-none'
 
   const selectOptionSurface = 'app-workspace-surface-elevated text-app-fg-muted'
   const controlsDisabled = loading || emailSync?.progress.active || !!disabledProp
@@ -434,7 +434,13 @@ export default function ScanEmailButton({
       <div
         ref={headerWrapRef}
         title={disabledProp && disabledReasonTitle ? disabledReasonTitle : undefined}
-        className={['relative shrink-0', stackedHeaderTrigger ? 'w-full min-w-0' : '', classNameProp].filter(Boolean).join(' ')}
+        className={[
+          'relative flex shrink-0 flex-col items-center justify-start',
+          stackedHeaderTrigger ? 'w-full min-w-0' : '',
+          classNameProp,
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
         <button
           ref={headerTriggerRef}
@@ -446,13 +452,13 @@ export default function ScanEmailButton({
           aria-controls={headerMenuId}
           onClick={() => setHeaderMenuOpen((o) => !o)}
         >
-          <svg className={`h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg className={`h-3.5 w-3.5 shrink-0 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
           <span className="hidden md:inline">{t.dashboard.syncEmail}</span>
           <span className="inline md:hidden">{t.dashboard.syncEmailToolbarShort}</span>
           <svg
-            className={`h-3 w-3 shrink-0 text-app-fg-muted transition-transform ${headerMenuOpen ? 'rotate-180' : ''}`}
+            className={`h-3.5 w-3.5 shrink-0 text-app-fg-muted transition-transform ${headerMenuOpen ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
