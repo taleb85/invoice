@@ -3,13 +3,69 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
-import { ActivityFeed } from '@/components/activity/activity-feed'
+import { ActivityFeed, ACTIVITY_FEED_CATEGORY_ORDER, type ActivityFeedCategoryFilter } from '@/components/activity/activity-feed'
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SEGMENT_CHIP_CONTROL_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 type Operatore = { id: string; full_name: string | null }
+
+type AttivitaPeriodPreset =
+  | ''
+  | 'today'
+  | 'last7'
+  | 'last30'
+  | 'thisMonth'
+  | 'lastMonth'
+  | 'thisYear'
+  | 'custom'
+
+function toISODateLocal(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+function rangeForAttivitaPeriodPreset(preset: AttivitaPeriodPreset): { from: string; to: string } {
+  const today = startOfLocalDay(new Date())
+  switch (preset) {
+    case 'today':
+      return { from: toISODateLocal(today), to: toISODateLocal(today) }
+    case 'last7': {
+      const from = new Date(today)
+      from.setDate(from.getDate() - 6)
+      return { from: toISODateLocal(from), to: toISODateLocal(today) }
+    }
+    case 'last30': {
+      const from = new Date(today)
+      from.setDate(from.getDate() - 29)
+      return { from: toISODateLocal(from), to: toISODateLocal(today) }
+    }
+    case 'thisMonth': {
+      const from = new Date(today.getFullYear(), today.getMonth(), 1)
+      return { from: toISODateLocal(from), to: toISODateLocal(today) }
+    }
+    case 'lastMonth': {
+      const firstThis = new Date(today.getFullYear(), today.getMonth(), 1)
+      const lastPrev = new Date(firstThis)
+      lastPrev.setDate(0)
+      const firstPrev = new Date(lastPrev.getFullYear(), lastPrev.getMonth(), 1)
+      return { from: toISODateLocal(firstPrev), to: toISODateLocal(lastPrev) }
+    }
+    case 'thisYear': {
+      const from = new Date(today.getFullYear(), 0, 1)
+      return { from: toISODateLocal(from), to: toISODateLocal(today) }
+    }
+    default:
+      return { from: '', to: '' }
+  }
+}
 
 function downloadCsv(rows: ActivityLogRow[]) {
   const header = ['Data', 'Azione', 'Attore', 'Tipo entità', 'Etichetta', 'Sede']
@@ -38,6 +94,8 @@ export default function AttivitaPage() {
   const [userId, setUserId] = useState<string>('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [periodPreset, setPeriodPreset] = useState<AttivitaPeriodPreset>('')
+  const [categoryFilter, setCategoryFilter] = useState<ActivityFeedCategoryFilter>('all')
   const [operatori, setOperatori] = useState<Operatore[]>([])
   const [exporting, setExporting] = useState(false)
 
@@ -92,6 +150,14 @@ export default function AttivitaPage() {
     )
   }
 
+  const categoryLabels: Record<ActivityFeedCategoryFilter, string> = {
+    all: t.appStrings.attivitaFilterAll,
+    bolle: t.appStrings.attivitaFilterBolle,
+    fatture: t.appStrings.attivitaFilterFatture,
+    documenti: t.appStrings.attivitaFilterDocumenti,
+    operatori: t.appStrings.attivitaFilterOperatori,
+  }
+
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
       <AppPageHeaderStrip
@@ -120,14 +186,14 @@ export default function AttivitaPage() {
         </button>
       </AppPageHeaderStrip>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 border-b border-app-line-15 px-4 py-3 sm:px-6">
+      {/* Filters — ritmo verticale e altezze allineate ai chip segment */}
+      <div className="mt-1 flex flex-wrap items-center gap-3 border-b border-app-line-15 px-4 py-3.5 sm:mt-1.5 sm:gap-3.5 sm:px-6 sm:py-4 md:gap-4">
         {/* Operatore filter */}
         {operatori.length > 0 && (
           <select
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            className="rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+            className="min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
           >
             <option value="">{t.appStrings.attivitaAllOperators}</option>
             {operatori.map((op) => (
@@ -138,28 +204,71 @@ export default function AttivitaPage() {
           </select>
         )}
 
-        {/* Date range */}
-        <div className="flex items-center gap-1.5">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
-          />
-          <span className="text-xs text-app-fg-muted">→</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
-          />
+        {/* Date range — preset or custom */}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={periodPreset}
+            onChange={(e) => {
+              const v = e.target.value as AttivitaPeriodPreset
+              setPeriodPreset(v)
+              if (v === 'custom') return
+              const { from, to } = rangeForAttivitaPeriodPreset(v)
+              setDateFrom(from)
+              setDateTo(to)
+            }}
+            className="min-w-[12.5rem] min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+          >
+            <option value="">{t.appStrings.attivitaPeriodAll}</option>
+            <option value="today">{t.appStrings.attivitaPeriodToday}</option>
+            <option value="last7">{t.appStrings.attivitaPeriodLast7Days}</option>
+            <option value="last30">{t.appStrings.attivitaPeriodLast30Days}</option>
+            <option value="thisMonth">{t.appStrings.attivitaPeriodThisMonth}</option>
+            <option value="lastMonth">{t.appStrings.attivitaPeriodLastMonth}</option>
+            <option value="thisYear">{t.appStrings.attivitaPeriodThisYear}</option>
+            <option value="custom">{t.appStrings.attivitaPeriodCustom}</option>
+          </select>
+          {periodPreset === 'custom' && (
+            <>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+              />
+              <span className="self-center text-sm text-app-fg-muted">–</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+              />
+            </>
+          )}
         </div>
 
-        {(userId || dateFrom || dateTo) && (
+        {/* Categoria attività */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          {ACTIVITY_FEED_CATEGORY_ORDER.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setCategoryFilter(id)}
+              className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} min-h-10 px-3.5 py-2 text-sm ${
+                categoryFilter === id
+                  ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
+                  : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
+              }`}
+            >
+              {categoryLabels[id]}
+            </button>
+          ))}
+        </div>
+
+        {(userId || periodPreset !== '' || categoryFilter !== 'all') && (
           <button
             type="button"
-            onClick={() => { setUserId(''); setDateFrom(''); setDateTo('') }}
-            className="text-xs text-app-fg-muted hover:text-rose-400"
+            onClick={() => { setUserId(''); setDateFrom(''); setDateTo(''); setPeriodPreset(''); setCategoryFilter('all') }}
+            className="min-h-10 shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-rose-400"
           >
             {t.appStrings.attivitaRemoveFilters}
           </button>
@@ -172,8 +281,9 @@ export default function AttivitaPage() {
         userId={userId || undefined}
         dateFrom={dateFrom || undefined}
         dateTo={dateTo || undefined}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
         limit={30}
-        showFilters={true}
       />
     </div>
   )

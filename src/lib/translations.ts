@@ -1764,6 +1764,15 @@ type Translations = {
     attivitaAllOperators: string
     /** Activity log — clear filters button */
     attivitaRemoveFilters: string
+    /** Activity log — date preset: all time */
+    attivitaPeriodAll: string
+    attivitaPeriodToday: string
+    attivitaPeriodLast7Days: string
+    attivitaPeriodLast30Days: string
+    attivitaPeriodThisMonth: string
+    attivitaPeriodLastMonth: string
+    attivitaPeriodThisYear: string
+    attivitaPeriodCustom: string
     // Analytics
     analyticsErrorLoading: string
     analyticsNoData: string
@@ -3375,6 +3384,14 @@ const it: Translations = {
     attivitaExportCsv: 'Esporta CSV',
     attivitaAllOperators: 'Tutti gli operatori',
     attivitaRemoveFilters: 'Rimuovi filtri',
+    attivitaPeriodAll: 'Tutto il periodo',
+    attivitaPeriodToday: 'Oggi',
+    attivitaPeriodLast7Days: 'Ultimi 7 giorni',
+    attivitaPeriodLast30Days: 'Ultimi 30 giorni',
+    attivitaPeriodThisMonth: 'Questo mese',
+    attivitaPeriodLastMonth: 'Mese scorso',
+    attivitaPeriodThisYear: 'Quest’anno',
+    attivitaPeriodCustom: 'Intervallo personalizzato',
     analyticsErrorLoading: 'Errore caricamento dati',
     analyticsNoData: 'Nessun dato disponibile.',
     analyticsKpiTotalInvoiced: 'Totale fatturato',
@@ -4178,6 +4195,14 @@ const en: Translations = {
     attivitaExportCsv: 'Export CSV',
     attivitaAllOperators: 'All operators',
     attivitaRemoveFilters: 'Remove filters',
+    attivitaPeriodAll: 'All time',
+    attivitaPeriodToday: 'Today',
+    attivitaPeriodLast7Days: 'Last 7 days',
+    attivitaPeriodLast30Days: 'Last 30 days',
+    attivitaPeriodThisMonth: 'This month',
+    attivitaPeriodLastMonth: 'Last month',
+    attivitaPeriodThisYear: 'This year',
+    attivitaPeriodCustom: 'Custom range',
     analyticsErrorLoading: 'Error loading data',
     analyticsNoData: 'No data available.',
     analyticsKpiTotalInvoiced: 'Total invoiced',
@@ -4927,6 +4952,14 @@ const es: Translations = {
     attivitaExportCsv: 'Exportar CSV',
     attivitaAllOperators: 'Todos los operadores',
     attivitaRemoveFilters: 'Quitar filtros',
+    attivitaPeriodAll: 'Todo el período',
+    attivitaPeriodToday: 'Hoy',
+    attivitaPeriodLast7Days: 'Últimos 7 días',
+    attivitaPeriodLast30Days: 'Últimos 30 días',
+    attivitaPeriodThisMonth: 'Este mes',
+    attivitaPeriodLastMonth: 'Mes pasado',
+    attivitaPeriodThisYear: 'Este año',
+    attivitaPeriodCustom: 'Intervalo personalizado',
     analyticsErrorLoading: 'Error al cargar datos',
     analyticsNoData: 'Sin datos disponibles.',
     analyticsKpiTotalInvoiced: 'Total facturado',
@@ -5676,6 +5709,14 @@ const fr: Translations = {
     attivitaExportCsv: 'Exporter CSV',
     attivitaAllOperators: 'Tous les opérateurs',
     attivitaRemoveFilters: 'Supprimer les filtres',
+    attivitaPeriodAll: 'Toute la période',
+    attivitaPeriodToday: 'Aujourd’hui',
+    attivitaPeriodLast7Days: '7 derniers jours',
+    attivitaPeriodLast30Days: '30 derniers jours',
+    attivitaPeriodThisMonth: 'Ce mois-ci',
+    attivitaPeriodLastMonth: 'Mois dernier',
+    attivitaPeriodThisYear: 'Cette année',
+    attivitaPeriodCustom: 'Plage personnalisée',
     analyticsErrorLoading: 'Erreur de chargement des données',
     analyticsNoData: 'Aucune donnée disponible.',
     analyticsKpiTotalInvoiced: 'Total facturé',
@@ -6424,6 +6465,14 @@ const de: Translations = {
     attivitaExportCsv: 'CSV exportieren',
     attivitaAllOperators: 'Alle Operatoren',
     attivitaRemoveFilters: 'Filter entfernen',
+    attivitaPeriodAll: 'Gesamter Zeitraum',
+    attivitaPeriodToday: 'Heute',
+    attivitaPeriodLast7Days: 'Letzte 7 Tage',
+    attivitaPeriodLast30Days: 'Letzte 30 Tage',
+    attivitaPeriodThisMonth: 'Dieser Monat',
+    attivitaPeriodLastMonth: 'Letzter Monat',
+    attivitaPeriodThisYear: 'Dieses Jahr',
+    attivitaPeriodCustom: 'Eigener Zeitraum',
     analyticsErrorLoading: 'Fehler beim Laden der Daten',
     analyticsNoData: 'Keine Daten verfügbar.',
     analyticsKpiTotalInvoiced: 'Gesamt fakturiert',

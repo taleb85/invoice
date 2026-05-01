@@ -43,6 +43,18 @@ const COLOR_BADGE: Record<ReturnType<typeof activityColor>, string> = {
 }
 
 type FilterChip = 'all' | 'bolle' | 'fatture' | 'documenti' | 'operatori'
+
+export type ActivityFeedCategoryFilter = FilterChip
+
+/** Order of category chips (matches `FILTER_CHIP_ACTIONS` keys). */
+export const ACTIVITY_FEED_CATEGORY_ORDER: ActivityFeedCategoryFilter[] = [
+  'all',
+  'bolle',
+  'fatture',
+  'documenti',
+  'operatori',
+]
+
 const FILTER_CHIP_ACTIONS: Record<FilterChip, string[]> = {
   all: [],
   bolle: ['bolla.created', 'bolla.deleted'],
@@ -60,6 +72,9 @@ type Props = {
   limit?: number
   showFilters?: boolean
   compact?: boolean
+  /** Toolbar chips rendered by parent (e.g. Attività page). */
+  categoryFilter?: ActivityFeedCategoryFilter
+  onCategoryFilterChange?: (filter: ActivityFeedCategoryFilter) => void
 }
 
 type FeedResponse = {
@@ -79,9 +94,21 @@ export function ActivityFeed({
   limit = 20,
   showFilters = false,
   compact = false,
+  categoryFilter: categoryFilterProp,
+  onCategoryFilterChange,
 }: Props) {
   const t = useT()
-  const [activeFilter, setActiveFilter] = useState<FilterChip>('all')
+  const categoryRemote = onCategoryFilterChange != null
+  const [internalCategory, setInternalCategory] = useState<FilterChip>('all')
+  const activeFilter = categoryRemote ? (categoryFilterProp ?? 'all') : internalCategory
+
+  const setCategory = useCallback(
+    (id: FilterChip) => {
+      if (categoryRemote) onCategoryFilterChange(id)
+      else setInternalCategory(id)
+    },
+    [categoryRemote, onCategoryFilterChange],
+  )
   const [page, setPage] = useState(1)
   const [allRows, setAllRows] = useState<ActivityLogRow[]>([])
   const [hasMore, setHasMore] = useState(false)
@@ -162,13 +189,13 @@ export function ActivityFeed({
   return (
     <div className="flex flex-col gap-3">
       {/* Filter chips */}
-      {showFilters && (
+      {showFilters && !categoryRemote && (
         <div className="flex flex-wrap items-center gap-2">
-          {(Object.keys(FILTER_CHIP_ACTIONS) as FilterChip[]).map((id) => (
+          {ACTIVITY_FEED_CATEGORY_ORDER.map((id) => (
             <button
               key={id}
               type="button"
-              onClick={() => setActiveFilter(id)}
+              onClick={() => setCategory(id)}
               className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} ${
                 activeFilter === id
                   ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
