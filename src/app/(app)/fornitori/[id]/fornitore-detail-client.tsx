@@ -5431,56 +5431,33 @@ function FornitoreDetailClient({
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
         {/* Intestazione + tab — bordo/fill allineati alla card «Attività recente». */}
-        <div className="sticky top-0 z-30 w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1 backdrop-blur-md">
+        <div className="sticky top-0 z-[1] w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
-          <div className="flex min-w-0 items-center gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
-            {/* Identità fornitore — blocco unico (avatar + anagrafica + modifica) */}
-            <div
-              className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-lg border border-app-line-35 bg-white/[0.04] px-2 py-1.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
-              role="group"
-              aria-labelledby="supplier-desktop-identity-heading"
-              aria-describedby={fornitore.email ? 'supplier-desktop-identity-email' : undefined}
-            >
+          <div className="flex min-w-0 items-center gap-2 px-2 py-1 sm:gap-2.5 sm:px-2.5 lg:py-0.5">
+            {/* Identità fornitore */}
+            <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
               <FornitoreAvatar
                 nome={fornitoreLabelAvatar}
                 logoUrl={fornitore.logo_url}
-                sizeClass="h-8 w-8 shrink-0"
+                sizeClass="h-8 w-8 shrink-0 lg:h-7 lg:w-7"
               />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <div className="flex min-h-8 min-w-0 items-center gap-1.5">
-                  <h1
-                    id="supplier-desktop-identity-heading"
-                    className="app-page-title min-w-0 flex-1 truncate text-[13px] font-bold leading-none text-app-fg"
-                  >
-                    {fornitoreNomeVisual}
-                  </h1>
-                  <Link
-                    href={hrefWithReturnTo(`/fornitori/${fornitore.id}/edit`, supplierReturnPath)}
-                    onClick={() => saveScrollForListPath(supplierReturnPath)}
-                    title={t.fornitori.editTitle}
-                    aria-label={t.fornitori.editTitle}
-                    className="box-border inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-app-line-28 bg-white/[0.03] p-0 leading-none text-app-fg-muted transition-colors hover:border-app-soft-border hover:bg-app-line-10 hover:text-app-fg"
-                  >
-                    <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  </Link>
-                </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="app-page-title truncate text-[13px] font-bold leading-tight text-app-fg">
+                  {fornitoreNomeVisual}
+                </h1>
                 {fornitore.email && (
-                  <p
-                    id="supplier-desktop-identity-email"
-                    className="truncate text-[11px] leading-tight text-app-fg-subtle"
-                  >
+                  <p className="truncate text-[11px] leading-snug text-app-fg-subtle">
                     {fornitore.email}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex min-h-8 shrink-0 items-center gap-1.5">
+            {/* Sincronizza email — compatto nella sticky header */}
+            <div className="shrink-0">
               <ScanEmailButton
                 placement="desktopHeader"
                 fornitoreId={fornitore.id}
@@ -5488,14 +5465,16 @@ function FornitoreDetailClient({
                 disabled={!fornitore.sede_id}
                 disabledReasonTitle={!fornitore.sede_id ? t.fornitori.syncEmailNeedSede : undefined}
               />
+            </div>
 
-              {canRunOcrFornitore ? (
+            {canRunOcrFornitore ? (
+              <div className="shrink-0">
                 <button
                   type="button"
                   onClick={() => void runAnalisiCompletaFornitore()}
                   disabled={analisiCompletaBusy}
                   title="OCR documenti, controllo duplicati, correzione date, import listino da fatture"
-                  className="box-border inline-flex h-8 min-h-8 max-h-8 max-w-[11rem] shrink-0 items-center justify-center gap-1.5 rounded-md border border-teal-500/40 bg-teal-500/10 px-2.5 py-0 text-[11px] font-bold leading-none text-teal-100 transition-colors hover:bg-teal-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-none"
+                  className="inline-flex h-7 max-w-[11rem] shrink-0 items-center justify-center gap-1 rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold leading-tight text-teal-100 transition-colors hover:bg-teal-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:max-w-none sm:px-2.5 sm:text-[11px]"
                 >
                   {analisiCompletaBusy ? (
                     <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-teal-200 border-t-transparent" />
@@ -5517,19 +5496,32 @@ function FornitoreDetailClient({
                   )}
                   <span className="min-w-0 truncate">Analisi completa</span>
                 </button>
-              ) : null}
+              </div>
+            ) : null}
 
+            {/* CTA */}
+            <div className="flex shrink-0 items-center gap-1">
               <Link
                 href={hrefWithReturnTo(`/bolle/new?fornitore_id=${fornitore.id}`, supplierReturnPath)}
                 onClick={() => saveScrollForListPath(supplierReturnPath)}
-                className="app-glow-cyan box-border inline-flex h-8 min-h-8 max-h-8 shrink-0 items-center justify-center gap-1.5 rounded-md bg-app-cyan-500 px-3 py-0 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600"
+                className="app-glow-cyan inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-app-cyan-500 px-2.5 text-[11px] font-bold leading-none text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600 sm:h-8 sm:gap-1.5 sm:px-3"
               >
                 <svg className="h-3.5 w-3.5 shrink-0 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 {t.nav.nuovaBolla}
               </Link>
-              <AppPageHeaderDesktopTray className="ms-0.5 flex h-8 min-h-8 items-center" />
+              <Link
+                href={hrefWithReturnTo(`/fornitori/${fornitore.id}/edit`, supplierReturnPath)}
+                onClick={() => saveScrollForListPath(supplierReturnPath)}
+                title={t.fornitori.editTitle}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-app-soft-border text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg sm:h-8 sm:w-8"
+              >
+                <svg className={`h-3.5 w-3.5 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </Link>
+              <AppPageHeaderDesktopTray className="ms-0.5" />
             </div>
           </div>
           {analisiCompletaFlash ? (
