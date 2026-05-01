@@ -171,9 +171,8 @@ const LOGIN_FORM_COLUMN_CLASS = [
   'mx-auto w-full max-w-sm p-4 sm:p-5',
 ].join(' ')
 
-/** Contenitore unico corpo + footer: vetro come `.glass-surface` su `[data-deep-aurora-public-shell]`. */
-const LOGIN_GLASS_PANEL_SHELL =
-  'glass-surface overflow-hidden rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
+/** Stesso guscio della colonna / strip in app (`app-summary-highlight-surface`), non un secondo `glass-surface`. */
+const LOGIN_GLASS_PANEL_SHELL = SUMMARY_HIGHLIGHT_SURFACE_CLASS
 
 /** Fascia / cluster: stesso linguaggio di `DashboardScannerFlowCard` (vetro + inner shadow). */
 const LOGIN_GLASS_INSET_CLUSTER = 'glass-surface rounded-xl shadow-inner shadow-black/15'
