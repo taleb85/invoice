@@ -249,27 +249,29 @@ export default async function LogPage(props: {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <AppPageHeaderStrip
-        accent="sky"
-        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
-        icon={
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-            />
-          </svg>
-        }
-      >
-        <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
-          <h1 className={`pr-1 ${APP_PAGE_HEADER_STRIP_H1_CLASS}`}>{t.log.title}</h1>
-          <p className="text-xs leading-tight text-app-fg-muted">{t.log.subtitle}</p>
-        </AppPageHeaderTitleWithDashboardShortcut>
-      </AppPageHeaderStrip>
-
       <EmailLogTabs
+        stickyHeader={
+          <AppPageHeaderStrip
+            accent="sky"
+            flushBottom
+            leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+            icon={
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+            }
+          >
+            <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 flex-1 items-start gap-3">
+              <h1 className={`pr-1 ${APP_PAGE_HEADER_STRIP_H1_CLASS}`}>{t.log.title}</h1>
+              <p className="text-xs leading-tight text-app-fg-muted">{t.log.subtitle}</p>
+            </AppPageHeaderTitleWithDashboardShortcut>
+          </AppPageHeaderStrip>
+        }
         labels={{ log: t.log.tabEmailLog, blacklist: t.log.tabBlacklist }}
         blacklistPanel={
           blacklistSedeId ? (

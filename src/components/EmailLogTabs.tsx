@@ -1,19 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import {
+  APP_SECTION_STICKY_TOP_INNER_X_CLASS,
+  APP_SECTION_STICKY_TOP_STACK_CLASS,
+} from '@/lib/app-shell-layout'
 
 type Props = {
   labels: { log: string; blacklist: string }
   logPanel: React.ReactNode
   blacklistPanel: React.ReactNode
+  /**
+   * Fascia in cima resa sticky assieme ai tab (stesso scroll di `#app-main`), es. strip titolo `/log`.
+   */
+  stickyHeader?: ReactNode
 }
 
-export default function EmailLogTabs({ labels, logPanel, blacklistPanel }: Props) {
+export default function EmailLogTabs({ labels, logPanel, blacklistPanel, stickyHeader }: Props) {
   const [tab, setTab] = useState<'log' | 'blacklist'>('log')
 
-  return (
-    <>
-      <div className="mb-4 flex gap-1 rounded-lg border border-app-soft-border bg-black/20 p-1">
+  const tabBar = (
+    <div
+      className={`flex gap-1 rounded-lg border border-app-soft-border bg-black/20 p-1 ${
+        stickyHeader ? '' : 'mb-4'
+      }`}
+    >
         <button
           type="button"
           onClick={() => setTab('log')}
@@ -36,7 +47,26 @@ export default function EmailLogTabs({ labels, logPanel, blacklistPanel }: Props
         >
           {labels.blacklist}
         </button>
-      </div>
+    </div>
+  )
+
+  if (stickyHeader) {
+    return (
+      <>
+        <div
+          className={`${APP_SECTION_STICKY_TOP_STACK_CLASS} flex flex-col gap-3 md:gap-4 pb-3 md:pb-4`}
+        >
+          <div className={APP_SECTION_STICKY_TOP_INNER_X_CLASS}>{stickyHeader}</div>
+          <div className={APP_SECTION_STICKY_TOP_INNER_X_CLASS}>{tabBar}</div>
+        </div>
+        {tab === 'log' ? logPanel : blacklistPanel}
+      </>
+    )
+  }
+
+  return (
+    <>
+      {tabBar}
       {tab === 'log' ? logPanel : blacklistPanel}
     </>
   )

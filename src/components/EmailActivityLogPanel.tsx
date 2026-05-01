@@ -479,12 +479,8 @@ export function EmailActivityLogPanel({
   const btnDisabled = documentoIds.length === 0 || busy
 
   return (
-    <div className="app-card relative flex flex-col !overflow-visible">
-      <div
-        className={
-          'sticky top-0 z-20 flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 backdrop-blur-md [-webkit-backdrop-filter:blur(12px)] app-workspace-inset-bg-soft md:px-5'
-        }
-      >
+    <div className="app-card flex flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] px-4 py-3 md:px-5">
         <p className="min-w-0 flex-1 text-sm text-app-fg">{summaryLine}</p>
         <button
           type="button"

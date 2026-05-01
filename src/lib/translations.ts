@@ -2949,7 +2949,7 @@ const it: Translations = {
     activityTipoOrdine: 'Ordine',
     activityTipoResume: 'CV / curriculum',
     activityStatusSaved: 'Salvato',
-    activityStatusNeedsSupplier: 'Fornitore da aggiungere',
+    activityStatusNeedsSupplier: 'Senza fornitore',
     activityStatusIgnored: 'Ignorato',
     activityProcessDocumentsCta: 'Elabora documenti in coda',
     activityProcessDocumentsBusy: 'Elaborazione…',
