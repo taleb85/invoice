@@ -5592,10 +5592,10 @@ function FornitoreDetailClient({
             </p>
           ) : null}
 
-          {/* Tab bar + navigatore mese: tab scroll-orizzontale; mese sticky a destra nel viewport delle tab. */}
+          {/* Tab bar + navigatore mese: solo le tab scrollano; periodo a destra a larghezza intrinseca (pulsanti sempre visibili). */}
           <div className="w-full min-w-0 border-t border-app-line-35 pt-0.5 pb-0 xl:pt-0.5 xl:pb-0">
-            <div className="flex min-h-6 min-w-0 w-full items-end gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-8">
-              <div className="flex min-w-0 flex-1 items-end gap-px ps-0">
+            <div className="flex w-full min-w-0 items-end gap-2 xl:gap-2.5">
+              <div className="flex min-h-6 min-w-0 flex-1 items-end gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-8">
                 {tabs.map((tb) => (
                   <button
                     key={tb.id}
@@ -5627,7 +5627,7 @@ function FornitoreDetailClient({
 
               <div
                 ref={periodPickerRef}
-                className="sticky right-0 z-10 -mr-px flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-app-line-35 bg-[rgb(11_21_36/0.92)] px-0.5 shadow-[-10px_0_14px_-6px_rgba(0,0,0,0.55)] backdrop-blur-md supports-[backdrop-filter]:bg-[rgb(11_21_36/0.78)] xl:h-8 xl:px-1"
+                className="-mb-px relative flex h-6 w-max min-w-max shrink-0 flex-nowrap items-center gap-px self-end rounded-lg border border-app-line-35 bg-white/[0.025] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:px-1"
               >
               <button
                 type="button"
@@ -5660,7 +5660,7 @@ function FornitoreDetailClient({
                 title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
                 onClick={() => setPeriodPickerOpen((o) => !o)}
-                className="min-w-0 max-w-[min(22rem,calc(100vw-10rem))] truncate whitespace-nowrap rounded px-1 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:leading-8"
+                className="shrink-0 whitespace-nowrap rounded px-2 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:leading-8"
               >
                 {periodTriggerLabel}
               </button>
