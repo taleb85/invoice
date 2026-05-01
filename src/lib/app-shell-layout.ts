@@ -15,6 +15,15 @@ export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
   'flex w-full min-w-0 flex-col gap-3 md:gap-4 app-shell-page-padding'
 
 /**
+ * Fascia sticky in cima al contenuto scrollabile (`#app-main`): header (+ eventuali filtri).
+ * `z-[24]` sotto `EmailSyncProgressBar` (`z-25`). Margini negativi allineati al padding orizzontale di `app-shell-page-padding`.
+ */
+export const APP_SECTION_STICKY_TOP_STACK_CLASS =
+  'sticky top-0 z-[24] -mx-4 border-b border-app-line-25 app-workspace-inset-bg-soft backdrop-blur-md md:-mx-6 lg:-mx-8 xl:-mx-10'
+
+export const APP_SECTION_STICKY_TOP_INNER_X_CLASS = 'px-4 md:px-6 lg:px-8 xl:px-10'
+
+/**
  * Padding della riga interna `AppPageHeaderStrip` con `dense` (corpo trasparente sul canvas).
  * Stesso filo per griglia KPI e card Scanner sulla dashboard.
  */

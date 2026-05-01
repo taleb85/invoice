@@ -7,17 +7,13 @@ import { ActivityFeed, ACTIVITY_FEED_CATEGORY_ORDER, type ActivityFeedCategoryFi
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SECTION_STICKY_TOP_INNER_X_CLASS, APP_SECTION_STICKY_TOP_STACK_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 
 /** Altezza e tipo comuni per filtri Attività (select periodo, chip, ecc.). */
 const ATTIVITA_FILTER_SIZE_CLASS =
   'min-h-8 rounded-lg px-2 py-1 text-[11px] leading-tight sm:text-xs'
 const ATTIVITA_FILTER_CONTROL_CLASS = `${ATTIVITA_FILTER_SIZE_CLASS} font-semibold`
 
-/** Header + filtri: sticky in `#app-main`, sotto `EmailSyncProgressBar` (z-25). */
-const ATTIVITA_STICKY_TOP_STACK_CLASS =
-  'sticky top-0 z-[24] -mx-4 border-b border-app-line-25 app-workspace-inset-bg-soft backdrop-blur-md md:-mx-6 lg:-mx-8 xl:-mx-10'
-const ATTIVITA_STICKY_TOP_INNER_X_CLASS = 'px-4 md:px-6 lg:px-8 xl:px-10'
 /** Stesso allineamento orizzontale della riga titolo in `AppPageHeaderStrip` (`innerClsBaseLeading`). */
 const ATTIVITA_FILTER_ROW_ALIGN_CLASS = 'pl-0 pr-2 sm:pr-2 md:pr-2.5 lg:pr-3 xl:pr-3'
 
@@ -172,8 +168,8 @@ export default function AttivitaPage() {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      <div className={ATTIVITA_STICKY_TOP_STACK_CLASS}>
-        <div className={`${ATTIVITA_STICKY_TOP_INNER_X_CLASS} pt-1 pb-0`}>
+      <div className={APP_SECTION_STICKY_TOP_STACK_CLASS}>
+        <div className={`${APP_SECTION_STICKY_TOP_INNER_X_CLASS} pt-1 pb-0`}>
           <AppPageHeaderStrip
             accent="teal"
             flushBottom

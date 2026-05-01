@@ -42,6 +42,17 @@ const COLOR_BADGE: Record<ReturnType<typeof activityColor>, string> = {
   gray: 'border border-app-line-35 bg-app-line-22 text-app-fg',
 }
 
+/** Pagina Attività (`!compact`): testo bianco e riempimenti più pieni sul canvas. */
+const COLOR_BADGE_PAGE: Record<ReturnType<typeof activityColor>, string> = {
+  green:
+    'bg-emerald-600/45 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] ring-1 ring-emerald-300/25',
+  red: 'bg-rose-600/45 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] ring-1 ring-rose-300/25',
+  blue: 'bg-blue-600/45 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] ring-1 ring-blue-300/25',
+  amber: 'bg-amber-600/45 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] ring-1 ring-amber-300/25',
+  purple: 'bg-violet-600/45 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.14)] ring-1 ring-violet-300/25',
+  gray: 'border border-white/25 bg-white/12 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]',
+}
+
 type FilterChip = 'all' | 'bolle' | 'fatture' | 'documenti' | 'operatori'
 
 export type ActivityFeedCategoryFilter = FilterChip
@@ -188,7 +199,7 @@ export function ActivityFeed({
 
   return (
     <div
-      className={`flex flex-col gap-3${compact ? '' : ' mx-auto w-full min-w-0 max-w-2xl'}`}
+      className={`flex flex-col gap-3${compact ? '' : ' w-full min-w-0 max-w-2xl'}`}
     >
       {/* Filter chips */}
       {showFilters && !categoryRemote && (
@@ -257,34 +268,40 @@ export function ActivityFeed({
                 <div className={`relative z-10 shrink-0 rounded-full border-2 border-[#0f172b] ${COLOR_DOT[color]} ${compact ? 'mt-1 h-3.5 w-3.5' : 'mt-0 h-3.5 w-3.5 sm:mt-0'}`} />
 
                 {/* Content */}
-                <div
-                  className={`min-w-0 flex-1 pb-0 ${compact ? '' : 'text-center sm:text-left'}`}
-                >
+                <div className={`min-w-0 flex-1 pb-0${compact ? '' : ' text-left'}`}>
                   <div
-                    className={`flex flex-wrap gap-x-3 gap-y-1 ${compact ? 'items-start justify-between' : 'flex-col items-center sm:flex-row sm:items-center sm:justify-between'}`}
+                    className={`flex flex-wrap justify-between gap-x-3 gap-y-1 ${compact ? 'items-start' : 'items-center'}`}
                   >
-                    <div className={`min-w-0 ${compact ? '' : 'flex flex-col items-center gap-1 sm:flex-1 sm:flex-row sm:flex-wrap sm:justify-start sm:gap-x-2'}`}>
+                    <div className="flex min-w-0 flex-1 flex-row flex-wrap items-center gap-x-2 gap-y-1">
                       <span
-                        className={`${APP_SEGMENT_CHIP_LABEL_CLASS} justify-center ${COLOR_BADGE[color]}`}
+                        className={`${APP_SEGMENT_CHIP_LABEL_CLASS} justify-center ${compact ? COLOR_BADGE[color] : COLOR_BADGE_PAGE[color]}`}
                       >
                         <ActivityGlyph id={row.actionGlyph} className="h-3 w-3 shrink-0 opacity-95" aria-hidden />
                         {row.actionLabel}
                       </span>
                       {row.entityLabel && !compact && (
-                        <span className="block max-w-prose text-xs font-medium leading-snug text-app-fg-subtle sm:inline">
+                        <span className="inline max-w-prose text-xs font-medium leading-snug text-white/90">
                           · {row.entityLabel}
                         </span>
                       )}
                     </div>
-                    <time className={`shrink-0 font-medium tabular-nums text-app-fg-subtle ${compact ? 'text-[10px]' : 'text-[11px] sm:text-xs'}`}>
+                    <time
+                      className={`shrink-0 font-medium tabular-nums ${compact ? 'text-[10px] text-app-fg-subtle' : 'text-[11px] text-white/85 sm:text-xs'}`}
+                    >
                       {timeAgo(row.createdAt)}
                     </time>
                   </div>
                   <div
-                    className={`mt-0.5 flex flex-wrap gap-x-2 text-xs text-app-fg-subtle ${compact ? 'text-[11px]' : 'justify-center sm:justify-start'}`}
+                    className={
+                      compact
+                        ? 'mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-app-fg-subtle'
+                        : 'mt-0.5 flex flex-wrap gap-x-2 text-xs text-white/80'
+                    }
                   >
-                    {row.actorName && <span className="font-semibold text-app-fg">{row.actorName}</span>}
-                    {row.sedeNome && !compact && <span className="text-app-fg-subtle">· {row.sedeNome}</span>}
+                    {row.actorName && (
+                      <span className={`font-semibold ${compact ? 'text-app-fg' : 'text-white'}`}>{row.actorName}</span>
+                    )}
+                    {row.sedeNome && !compact && <span className="text-white/75">· {row.sedeNome}</span>}
                   </div>
                 </div>
               </div>
