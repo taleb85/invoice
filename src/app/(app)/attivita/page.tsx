@@ -186,14 +186,14 @@ export default function AttivitaPage() {
         </button>
       </AppPageHeaderStrip>
 
-      {/* Filters — ritmo verticale e altezze allineate ai chip segment */}
-      <div className="-mt-2 flex flex-wrap items-center gap-3 border-b border-app-line-15 px-4 py-3.5 sm:-mt-2.5 sm:gap-3.5 sm:px-6 sm:py-4 md:-mt-3 md:gap-4">
+      {/* Filters */}
+      <div className="-mt-2 flex flex-wrap items-center gap-2 border-b border-app-line-15 px-4 py-2 sm:-mt-2.5 sm:gap-3 sm:px-6 sm:py-2.5 md:-mt-3">
         {/* Operatore filter */}
         {operatori.length > 0 && (
           <select
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            className="min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+            className="min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
           >
             <option value="">{t.appStrings.attivitaAllOperators}</option>
             {operatori.map((op) => (
@@ -216,7 +216,7 @@ export default function AttivitaPage() {
               setDateFrom(from)
               setDateTo(to)
             }}
-            className="min-w-[12.5rem] min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+            className="min-w-[12.5rem] min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
           >
             <option value="">{t.appStrings.attivitaPeriodAll}</option>
             <option value="today">{t.appStrings.attivitaPeriodToday}</option>
@@ -233,27 +233,27 @@ export default function AttivitaPage() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+                className="min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
               />
-              <span className="self-center text-sm text-app-fg-muted">–</span>
+              <span className="self-center text-xs text-app-fg-muted">–</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="min-h-10 rounded-xl border border-app-line-28 bg-transparent px-3 py-2 text-sm text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+                className="min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
               />
             </>
           )}
         </div>
 
         {/* Categoria attività */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {ACTIVITY_FEED_CATEGORY_ORDER.map((id) => (
             <button
               key={id}
               type="button"
               onClick={() => setCategoryFilter(id)}
-              className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} min-h-10 px-3.5 py-2 text-sm ${
+              className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} ${
                 categoryFilter === id
                   ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
                   : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
@@ -268,7 +268,7 @@ export default function AttivitaPage() {
           <button
             type="button"
             onClick={() => { setUserId(''); setDateFrom(''); setDateTo(''); setPeriodPreset(''); setCategoryFilter('all') }}
-            className="min-h-10 shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-rose-400"
+            className="min-h-9 shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-rose-400"
           >
             {t.appStrings.attivitaRemoveFilters}
           </button>
