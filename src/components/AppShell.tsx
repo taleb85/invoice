@@ -228,8 +228,22 @@ function getDesktopNavProgressHost(): HTMLElement | null {
 }
 
 /**
- * Toast sopra `#app-desktop-header-nav-progress`: contenitori grid/flex tagliano gli overflow fuori dall’anchor.
- * Portale `fixed` + `#app-desktop-header-nav-progress`; la toolbar non si sposta.
+ * Rettangolo per il toast desktop (`md+`): strip `#app-desktop-header-nav-progress` se ha altezza (tablet),
+ * altrimenti bordo superiore di `#app-main` (lg+ senza riga hamburger).
+ */
+function getDesktopHeaderToastMeasureEl(): HTMLElement | null {
+  if (typeof document === 'undefined') return null
+  const header = getDesktopNavProgressHost()
+  if (header) {
+    const r = header.getBoundingClientRect()
+    if (r.height >= 1 && r.width >= 1) return header
+  }
+  return document.getElementById('app-main')
+}
+
+/**
+ * Toast desktop (`md+`): sopra la strip `#app-desktop-header-nav-progress` (tablet) o sopra `#app-main` (lg+ strip collassata).
+ * Portale `fixed` in `document.body`; la toolbar non si sposta.
  */
 function DesktopHeaderBannerPortal({ banner }: { banner: DesktopHeaderToastBanner }) {
   const measureElRef = useRef<HTMLDivElement | null>(null)
@@ -252,14 +266,14 @@ function DesktopHeaderBannerPortal({ banner }: { banner: DesktopHeaderToastBanne
         return
       }
 
-      const anchorEl = getDesktopNavProgressHost()
+      const anchorEl = getDesktopHeaderToastMeasureEl()
       if (!anchorEl) {
         setPos(null)
         return
       }
 
       const r = anchorEl.getBoundingClientRect()
-      if (r.height < 1 && r.width < 1) {
+      if (r.height < 1 || r.width < 1) {
         setPos(null)
         return
       }
@@ -282,10 +296,12 @@ function DesktopHeaderBannerPortal({ banner }: { banner: DesktopHeaderToastBanne
     mq.addEventListener('change', onMq)
 
     let roAnchor: ResizeObserver | undefined
-    const host = getDesktopNavProgressHost()
-    if (host) {
+    const headerHost = getDesktopNavProgressHost()
+    const mainEl = typeof document !== 'undefined' ? document.getElementById('app-main') : null
+    if (headerHost || mainEl) {
       roAnchor = new ResizeObserver(sync)
-      roAnchor.observe(host)
+      if (headerHost) roAnchor.observe(headerHost)
+      if (mainEl) roAnchor.observe(mainEl)
     }
 
     let roInner: ResizeObserver | undefined
@@ -490,10 +506,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             <div
               ref={bindDesktopNavHost}
               id={APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID}
-              className="relative isolate z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[52px] md:w-full md:items-stretch"
+              className="relative isolate z-30 hidden min-h-0 min-w-0 shrink-0 overflow-visible border-b border-app-line-25 transition-[background,box-shadow] duration-300 md:flex md:min-h-[52px] md:w-full md:items-stretch lg:min-h-0 lg:h-0 lg:max-h-0 lg:flex-none lg:overflow-hidden lg:border-b-0"
             >
               <div
-                className={`relative z-30 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible md:w-full ${desktopToolbarOnlySurface}`}
+                className={`relative z-30 flex min-h-[52px] min-w-0 flex-1 items-stretch overflow-visible md:w-full lg:min-h-0 lg:h-0 lg:max-h-0 lg:flex-none lg:overflow-hidden ${desktopToolbarOnlySurface}`}
               >
                 {/* Hamburger: visible on md (tablet), hidden on lg (desktop with sidebar) */}
                 <button

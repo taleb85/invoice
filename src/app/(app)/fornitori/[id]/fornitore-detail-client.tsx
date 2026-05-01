@@ -5431,7 +5431,7 @@ function FornitoreDetailClient({
           aria-label={t.fornitori.supplierDesktopRegionAria}
         >
         {/* Intestazione + tab — bordo/fill allineati alla card «Attività recente». */}
-        <div className="sticky top-0 z-[1] w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1">
+        <div className="sticky top-0 z-30 w-full rounded-lg border border-app-line-35 bg-white/[0.025] pb-0.5 pt-1 backdrop-blur-md">
           {/*
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
