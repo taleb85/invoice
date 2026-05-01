@@ -10,13 +10,13 @@ import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const BATCH = 5
+const BATCH = 20
 const FETCH_CAP = 120
 
 type Body = { sede_id?: string }
 
 /**
- * POST — Documenti `da_associare` con fornitore già collegato e file: OCR + auto fattura/bolla (batch 5).
+ * POST — Documenti `da_associare` con fornitore già collegato e file: OCR + auto fattura/bolla (batch 20).
  * Storicamente restati senza `metadata.ocr_tipo` o con OCR incompleto.
  */
 export async function POST(req: NextRequest) {
