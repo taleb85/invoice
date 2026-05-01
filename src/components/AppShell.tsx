@@ -33,6 +33,7 @@ import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
 import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/SidebarBrandHeader'
+import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
 import { DesktopHeaderPageActionsProvider } from '@/components/DesktopHeaderPageActions'
 import BranchSessionGate from '@/components/BranchSessionGate'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -500,6 +501,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
                 <DesktopHeaderActionsStrip />
               </div>
             </div>
+            <OperatorDesktopWorkspaceHeader />
             <main
               id="app-main"
               data-app-main-scroll

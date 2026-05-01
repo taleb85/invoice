@@ -2,7 +2,6 @@
 
 import { usePathname, useRouter } from 'next/navigation'
 import useSWR from 'swr'
-import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
 import { normalizeAppPath } from '@/lib/mobile-hub-routes'
 import EmailSyncToolbarStatus from '@/components/EmailSyncToolbarStatus'
 import type { OperatorWorkspaceHeaderPayload } from '@/types/operator-workspace-header'
@@ -96,8 +95,8 @@ export function DesktopHeaderActionsStrip() {
   const registerPageActionsHost = useDesktopHeaderPageActionsRegisterHost()
   const pathname = usePathname()
   /**
-   * Host flex-1 per eventuali azioni di pagina (portal); duplicati / solleciti / sync email sono sulla strip come sibling fuori dall’host.
-   * Solo sotto `/fornitori` la strip operatore è nascosta: qui si mostra lo stato IMAP.
+   * Host flex-1 per azioni di pagina (portal). Solleciti / sync / strumenti sede: riga sotto in `AppShell` (`OperatorDesktopWorkspaceHeader`).
+   * Solo sotto `/fornitori` la strip operatore è nascosta lì: qui si mostra lo stato IMAP.
    */
   const showHeaderScanEmail = normalizeAppPath(pathname ?? '').startsWith('/fornitori')
 
@@ -109,7 +108,6 @@ export function DesktopHeaderActionsStrip() {
         data-fluxo-desktop-header-actions-host
         className="flex min-h-0 min-w-0 max-w-full flex-1 items-center justify-end gap-1.5 bg-transparent sm:gap-2"
       />
-      <OperatorDesktopWorkspaceHeader />
       {showHeaderScanEmail ? <FornitoreStripEmailSyncStatus /> : null}
     </div>
   )
