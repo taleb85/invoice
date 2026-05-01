@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from 'react'
 import Link from 'next/link'
+import { createPortal } from 'react-dom'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { GlyphCheck, GlyphWarningTriangle, GlyphXMark } from '@/components/ui/glyph-icons'
 import { useParams, usePathname, useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation'
@@ -5038,6 +5039,38 @@ function FornitoreDetailClient({
   const [periodPickerOpen, setPeriodPickerOpen] = useState(false)
   const [periodPickerDraft, setPeriodPickerDraft] = useState<SupplierLedgerPeriod>(ledgerPeriod)
   const periodPickerRef = useRef<HTMLDivElement>(null)
+  const periodPickerPopoverRef = useRef<HTMLDivElement>(null)
+  const [periodPopoverRect, setPeriodPopoverRect] = useState<{
+    top: number
+    left: number
+    width: number
+  } | null>(null)
+
+  /** Allineato al popover «Sincronizza email» (sopra sticky/header). */
+  const SUPPLIER_PERIOD_POPOVER_Z = 620
+
+  useLayoutEffect(() => {
+    if (!periodPickerOpen) {
+      setPeriodPopoverRect(null)
+      return
+    }
+    const measure = () => {
+      const el = periodPickerRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const pad = 8
+      const width = Math.min(20 * 16, window.innerWidth - pad * 2)
+      const left = Math.min(Math.max(pad, r.right - width), window.innerWidth - width - pad)
+      setPeriodPopoverRect({ top: r.bottom + 6, left, width })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    window.addEventListener('scroll', measure, true)
+    return () => {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('scroll', measure, true)
+    }
+  }, [periodPickerOpen])
 
   useEffect(() => {
     if (!periodPickerOpen) return
@@ -5047,8 +5080,10 @@ function FornitoreDetailClient({
   useEffect(() => {
     if (!periodPickerOpen) return
     const onPointerDown = (e: PointerEvent) => {
-      const el = periodPickerRef.current
-      if (el && !el.contains(e.target as Node)) setPeriodPickerOpen(false)
+      const node = e.target as Node
+      if (periodPickerRef.current?.contains(node)) return
+      if (periodPickerPopoverRef.current?.contains(node)) return
+      setPeriodPickerOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setPeriodPickerOpen(false)
@@ -5571,67 +5606,78 @@ function FornitoreDetailClient({
               >
                 {periodTriggerLabel}
               </button>
-              {periodPickerOpen ? (
-                <div
-                  id="supplier-desktop-period-month-dialog"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="supplier-desktop-period-picker-title"
-                  className="absolute right-0 top-[calc(100%+6px)] z-[60] w-[min(100vw-2rem,20rem)] rounded-lg border border-app-soft-border bg-[#0b1524] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/5"
-                >
-                  <p
-                    id="supplier-desktop-period-picker-title"
-                    className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted"
-                  >
-                    {t.appStrings.supplierDesktopPeriodPickerTitle}
-                  </p>
-                  <div className="mb-2">
-                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                      {t.appStrings.supplierDesktopPeriodMonthLabel}
-                      <input
-                        type="month"
-                        value={periodPickerDraft.from.slice(0, 7)}
-                        max={todayYmd.slice(0, 7)}
-                        onChange={(e) => {
-                          const v = e.target.value
-                          if (!v || !/^\d{4}-\d{2}$/.test(v)) return
-                          const [ys, ms] = v.split('-').map((x) => Number(x))
-                          if (!Number.isFinite(ys) || !Number.isFinite(ms)) return
-                          const b = supplierMonthCalendarBounds(ys, ms)
-                          setPeriodPickerDraft(clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd))
+              {periodPickerOpen && periodPopoverRect != null && typeof document !== 'undefined'
+                ? createPortal(
+                    <div
+                      ref={periodPickerPopoverRef}
+                      id="supplier-desktop-period-month-dialog"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="supplier-desktop-period-picker-title"
+                      style={{
+                        position: 'fixed',
+                        top: periodPopoverRect.top,
+                        left: periodPopoverRect.left,
+                        width: periodPopoverRect.width,
+                        zIndex: SUPPLIER_PERIOD_POPOVER_Z,
+                      }}
+                      className="rounded-lg border border-app-soft-border bg-[#0b1524]/82 p-3 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ring-1 ring-white/5 backdrop-blur-2xl backdrop-saturate-150 [-webkit-backdrop-filter:blur(40px)_saturate(1.15)]"
+                    >
+                      <p
+                        id="supplier-desktop-period-picker-title"
+                        className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted"
+                      >
+                        {t.appStrings.supplierDesktopPeriodPickerTitle}
+                      </p>
+                      <div className="mb-2">
+                        <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                          {t.appStrings.supplierDesktopPeriodMonthLabel}
+                          <input
+                            type="month"
+                            value={periodPickerDraft.from.slice(0, 7)}
+                            max={todayYmd.slice(0, 7)}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              if (!v || !/^\d{4}-\d{2}$/.test(v)) return
+                              const [ys, ms] = v.split('-').map((x) => Number(x))
+                              if (!Number.isFinite(ys) || !Number.isFinite(ms)) return
+                              const b = supplierMonthCalendarBounds(ys, ms)
+                              setPeriodPickerDraft(clampLedgerPeriodToToday(b.from, b.toIncl, todayYmd))
+                            }}
+                            className="mt-1 w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                          />
+                        </label>
+                        <p className="mt-1.5 text-[10px] text-app-fg-subtle">
+                          {formatDateLib(periodPickerDraft.from, locale, timezone, {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                          {' — '}
+                          {formatDateLib(periodPickerDraft.toIncl, locale, timezone, {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const today = localYmd(new Date())
+                          setLedgerPeriod(
+                            clampLedgerPeriodToToday(periodPickerDraft.from, periodPickerDraft.toIncl, today),
+                          )
+                          setPeriodPickerOpen(false)
                         }}
-                        className="mt-1 w-full rounded-md border border-app-line-28 bg-app-line-10/90 px-2 py-2 text-sm tabular-nums text-app-fg [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-                      />
-                    </label>
-                    <p className="mt-1.5 text-[10px] text-app-fg-subtle">
-                      {formatDateLib(periodPickerDraft.from, locale, timezone, {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                      {' — '}
-                      {formatDateLib(periodPickerDraft.toIncl, locale, timezone, {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const today = localYmd(new Date())
-                      setLedgerPeriod(
-                        clampLedgerPeriodToToday(periodPickerDraft.from, periodPickerDraft.toIncl, today),
-                      )
-                      setPeriodPickerOpen(false)
-                    }}
-                    className="w-full rounded-md bg-app-cyan-500 px-2 py-2 text-center text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400"
-                  >
-                    {t.appStrings.supplierDesktopPeriodApply}
-                  </button>
-                </div>
-              ) : null}
+                        className="w-full rounded-md bg-app-cyan-500 px-2 py-2 text-center text-xs font-bold text-cyan-950 transition-colors hover:bg-app-cyan-400"
+                      >
+                        {t.appStrings.supplierDesktopPeriodApply}
+                      </button>
+                    </div>,
+                    document.body,
+                  )
+                : null}
               <button
                 type="button"
                 onClick={() => shiftLedgerMonth(1)}
