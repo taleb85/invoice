@@ -41,8 +41,7 @@ export async function POST(req: NextRequest) {
   const { data: rows, error: lookupErr } = await adminClient
     .from('profiles')
     .select('id, email, full_name, role, sede_id, sedi(nome)')
-    .ilike('full_name', `${token}%`)
-    .limit(50)
+    .limit(2000)
 
   if (lookupErr) {
     return NextResponse.json({ error: 'Errore del server.' }, { status: 500 })

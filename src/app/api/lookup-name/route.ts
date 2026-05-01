@@ -11,23 +11,17 @@ export async function POST(req: NextRequest) {
   if (!token) {
     return NextResponse.json({ error: 'Nome obbligatorio.' }, { status: 400 })
   }
-  /* `%` e `_` sono wildcard in ILIKE: togliamoli dal pattern per evitare match errati / errori. */
-  const likePrefix = token.replace(/[%_\\]/g, '')
-  if (!likePrefix) {
-    return NextResponse.json({ error: 'Nome obbligatorio.' }, { status: 400 })
-  }
-
   const adminClient = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Prima parola del nome (come in login), prefisso su full_name poi filtro rigoroso
+  // Nessun ILIKE sul prefisso: con nomi accentati (es. José) non matcherebbe "JOSE%".
+  // Carichiamo un bound ragionevole di profili e filtriamo in app con diacritici piegati.
   const { data: rows, error } = await adminClient
     .from('profiles')
     .select('email, full_name, role, sedi(nome)')
-    .ilike('full_name', `${likePrefix}%`)
-    .limit(50)
+    .limit(2000)
 
   if (error) {
     return NextResponse.json({ error: 'Errore del server.' }, { status: 500 })
