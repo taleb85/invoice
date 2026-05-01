@@ -1492,8 +1492,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
       <LoginBrandedHero
         mode={mode}
-        sedeNome={sedeNome ?? rememberedSede}
-        remembered={!sedeNome && !!rememberedSede}
+        sedeNome={sessionGateNext ? undefined : (sedeNome ?? rememberedSede)}
+        remembered={sessionGateNext ? false : (!sedeNome && !!rememberedSede)}
       />
 
       {/* Stesso guscio Aurora della card Scanner / KPI dashboard. */}
