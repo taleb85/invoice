@@ -70,8 +70,7 @@ type Props = {
   months?: number
 }
 
-const chartCardClass =
-  'relative overflow-hidden rounded-xl border border-white/[0.1] bg-transparent px-5 pt-5 pb-4 shadow-none backdrop-blur-none [-webkit-backdrop-filter:none]'
+const chartCardClass = 'relative overflow-hidden app-card-unified px-5 pt-5 pb-4'
 
 /** Stesso guscio di `AnalyticsPeriodStrip` (card unificata canvas). */
 const analyticsDashboardShellClass = 'relative mb-0 overflow-hidden rounded-2xl app-card-unified'
@@ -108,17 +107,14 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
         <div className={analyticsDashboardShellBodyClass}>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]"
-              />
+              <div key={i} className="h-24 animate-pulse app-card-unified" />
             ))}
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className={`h-[280px] animate-pulse rounded-xl border border-white/10 bg-white/[0.04] ${i === 0 ? 'lg:col-span-2' : ''}`}
+                className={`h-[280px] animate-pulse app-card-unified ${i === 0 ? 'lg:col-span-2' : ''}`}
               />
             ))}
           </div>

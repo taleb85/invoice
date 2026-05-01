@@ -12,27 +12,22 @@ export type KpiCardProps = {
 
 const colorMap = {
   cyan: {
-    border: 'border-white/10',
     bar: 'bg-gradient-to-r from-cyan-400/90 via-cyan-500/85 to-teal-800/70',
     badge: 'bg-[#22d3ee]/10 text-[#22d3ee]',
   },
   purple: {
-    border: 'border-white/10',
     bar: 'bg-gradient-to-r from-violet-500/90 via-violet-400/80 to-violet-800/75',
     badge: 'bg-violet-400/10 text-violet-300',
   },
   green: {
-    border: 'border-white/10',
     bar: 'bg-gradient-to-r from-emerald-500/90 via-emerald-400/85 to-emerald-800/72',
     badge: 'bg-emerald-400/10 text-emerald-400',
   },
   red: {
-    border: 'border-white/10',
     bar: 'bg-gradient-to-r from-rose-500/88 via-rose-400/82 to-rose-800/72',
     badge: 'bg-rose-400/10 text-rose-400',
   },
   amber: {
-    border: 'border-white/10',
     bar: 'bg-gradient-to-r from-amber-500/90 via-amber-400/82 to-amber-800/70',
     badge: 'bg-amber-400/10 text-amber-300',
   },
@@ -54,7 +49,7 @@ export function KpiCard({
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
-      className={`relative overflow-hidden rounded-2xl border ${c.border} bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] transition-all ${onClick ? 'cursor-pointer hover:bg-white/[0.04] active:scale-[0.99]' : ''}`}
+      className={`relative overflow-hidden app-card-unified transition-all ${onClick ? 'cursor-pointer active:scale-[0.99] hover:brightness-[1.06]' : ''}`}
     >
       <div className={`h-0.5 w-full shrink-0 ${c.bar}`} aria-hidden />
       <div className="px-5 py-4">
