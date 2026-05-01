@@ -2,12 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import LoginForm from '@/app/login/LoginForm'
-
-function safeNextPath(raw: string | null): string {
-  const p = (raw ?? '/').trim() || '/'
-  if (!p.startsWith('/') || p.startsWith('//')) return '/'
-  return p
-}
+import { safeNextPath } from '@/lib/safe-next-path'
 
 export default function AccessoLoginClient() {
   const searchParams = useSearchParams()

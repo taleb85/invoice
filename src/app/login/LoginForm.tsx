@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useLocale } from '@/lib/locale-context'
 import { markClientSessionJustEstablished, revalidateMe, useMe } from '@/lib/me-context'
@@ -172,6 +172,7 @@ export default function LoginForm({ sessionGateNext }: LoginFormProps) {
 
 function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const router       = useRouter()
+  const pathname     = usePathname()
   const searchParams = useSearchParams()
   const supabase = createClient()
   const { locale, t, setLocale } = useLocale()
@@ -289,7 +290,14 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         setGateUiReady(true)
         return
       }
-      router.replace('/login')
+      const loginWithNext = sessionGateNext
+        ? `/login?next=${encodeURIComponent(sessionGateNext)}`
+        : '/login'
+      if (pathname === '/login') {
+        setGateUiReady(true)
+        return
+      }
+      router.replace(loginWithNext)
       return
     }
     if (!branchSessionGateRequiredRole(me.role)) {
@@ -302,7 +310,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       return
     }
     setGateUiReady(true)
-  }, [sessionGateNext, meLoading, me?.user, me?.role, router])
+  }, [sessionGateNext, meLoading, me?.user, me?.role, pathname, router])
 
   const handleDeviceWelcomeAccedi = useCallback(async () => {
     const devId = readSpDeviceId()

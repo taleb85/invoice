@@ -10,14 +10,9 @@ import {
   clearSessionOperatorGate,
   isSessionOperatorGateOk,
 } from '@/lib/session-operator-gate'
+import { safeNextPath } from '@/lib/safe-next-path'
 
 const ACCESSO_PATH = '/accesso'
-
-function safeNextPath(raw: string | null | undefined): string {
-  const p = (raw ?? '/').trim() || '/'
-  if (!p.startsWith('/') || p.startsWith('//')) return '/'
-  return p
-}
 
 function isAccessoPath(pathname: string | null | undefined): boolean {
   return pathname === ACCESSO_PATH || (pathname?.startsWith(`${ACCESSO_PATH}/`) ?? false)
