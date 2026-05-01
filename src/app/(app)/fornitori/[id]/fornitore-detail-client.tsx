@@ -5436,10 +5436,10 @@ function FornitoreDetailClient({
             Sotto xl: identità, poi sync, poi CTA. Mese/anno nella fascia tab sotto.
             Da xl in su: identità | sync (verso destra) | CTA; mese/anno accanto alle tab.
           */}
-          <div className="flex min-w-0 items-start gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
+          <div className="flex min-w-0 items-center gap-2 px-2 py-1.5 sm:gap-2.5 sm:px-2.5">
             {/* Identità fornitore — blocco unico (avatar + anagrafica + modifica) */}
             <div
-              className="flex min-w-0 flex-1 items-start gap-2 overflow-hidden rounded-lg border border-app-line-35 bg-white/[0.04] px-2 py-1 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
+              className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-lg border border-app-line-35 bg-white/[0.04] px-2 py-1.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]"
               role="group"
               aria-labelledby="supplier-desktop-identity-heading"
               aria-describedby={fornitore.email ? 'supplier-desktop-identity-email' : undefined}
@@ -5480,7 +5480,7 @@ function FornitoreDetailClient({
               </div>
             </div>
 
-            <div className="flex min-h-8 shrink-0 items-center gap-1.5 self-start">
+            <div className="flex min-h-8 shrink-0 items-center gap-1.5">
               <ScanEmailButton
                 placement="desktopHeader"
                 fornitoreId={fornitore.id}
