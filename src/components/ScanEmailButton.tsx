@@ -4,7 +4,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useMemo, useId } from 're
 import { createPortal } from 'react-dom'
 import { mutate as swrMutate } from 'swr'
 import { useT } from '@/lib/use-t'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useMe } from '@/lib/me-context'
 import { useEmailSyncProgressOptional } from '@/components/EmailSyncProgressProvider'
 import { getEmailSyncProgressSnapshot } from '@/lib/email-sync-run-store'
@@ -82,6 +82,7 @@ export default function ScanEmailButton({
   const fallbackSedeIdRef = useRef<string | null>(null)
   const t = useT()
   const router = useRouter()
+  const pathname = usePathname()
   const { me } = useMe()
   const emailSync = useEmailSyncProgressOptional()
   /** Stringa stabile: evita dipendenze `useEffect` di lunghezza incoerente (strict / HMR). */
@@ -237,6 +238,10 @@ export default function ScanEmailButton({
       document.removeEventListener('keydown', onKey)
     }
   }, [isHeaderPlacement, headerMenuOpen])
+
+  useEffect(() => {
+    setHeaderMenuOpen(false)
+  }, [pathname])
 
   const selectSize =
     'h-9 py-0 pl-2.5 pr-8 text-left text-xs font-medium leading-9'

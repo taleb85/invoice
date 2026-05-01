@@ -178,7 +178,7 @@ export default function EmailSyncProgressBar() {
       aria-live="polite"
       aria-busy={progress.active}
     >
-      <div className="flex w-full min-w-0 flex-col gap-2.5 overflow-x-visible">
+      <div className="flex max-h-[min(65dvh,28rem)] w-full min-w-0 flex-col gap-2.5 overflow-x-visible overflow-y-auto overscroll-contain">
         <div className="flex min-w-0 items-start justify-between gap-3 text-sm sm:items-center sm:text-base">
           <span
             className={`min-w-0 flex-1 font-semibold leading-snug ${

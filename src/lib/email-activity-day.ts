@@ -152,17 +152,6 @@ function tipoFromQueueRow(opts: {
   return 'queue'
 }
 
-function sedeVisibleForRow(
-  sedeId: string | null,
-  scopeId: string | null,
-  masterSeesAllSedi: boolean,
-): boolean {
-  if (masterSeesAllSedi) return true
-  if (!scopeId) return true
-  if (sedeId === null) return true
-  return sedeId === scopeId
-}
-
 export type LoadEmailActivityClients = {
   /** Client utente (RLS) per fatture/bolle */
   user: SupabaseClient
@@ -173,25 +162,212 @@ export type LoadEmailActivityClients = {
   masterSeesAllSedi: boolean
 }
 
+/** Filtro stati documenti in coda mostrati nel log attività (come query storica). */
+export const EMAIL_ACTIVITY_QUEUE_STATO_OR =
+  'and(fornitore_id.is.null,stato.in.(da_revisionare,da_associare,da_processare,in_attesa)),and(stato.eq.da_revisionare,fornitore_id.not.is.null),stato.eq.scartato'
+
+/** Righe per pagina SSR (payload DOM). */
+export const EMAIL_ACTIVITY_QUEUE_PAGE_SIZE = 100
+
+/** Allineato a `reprocess-log-documents`: max ID per richiesta. */
+export const EMAIL_ACTIVITY_QUEUE_PROCESS_ID_CAP = 120
+
+/** Evita `?p=999999` e URL assurdi. */
+export const EMAIL_ACTIVITY_QUEUE_MAX_PAGE = 500
+
+function queueDayBounds(timeZone: string) {
+  const tz = timeZone.trim() || 'UTC'
+  return utcBoundsForZonedCalendarDay(tz)
+}
+
+function applyQueueSede<Q extends { or: (s: string) => Q }>(q: Q, opts: LoadEmailActivityClients): Q {
+  if (!opts.masterSeesAllSedi && opts.sedeScopeId) {
+    return q.or(`sede_id.eq.${opts.sedeScopeId},sede_id.is.null`) as Q
+  }
+  return q
+}
+
+function mapDocRowToActivity(d: Record<string, unknown>): EmailActivityRow {
+  const sedeId = (d.sede_id as string | null | undefined) ?? null
+  const iso = String((d.created_at as string | undefined) ?? '')
+  const stato = String((d.stato as string | undefined) ?? '')
+  const meta = d.metadata
+  const isStatement = !!(d.is_statement as boolean | undefined)
+  const nomeForn = joinNome(d.fornitore)
+  const rs = metaRagioneSociale(meta)
+  const mitt = String((d.mittente as string | null | undefined) ?? '').trim()
+  const mittenteEmail = extractEmailFromSenderHeader(mitt)
+  const { primary: displayNome, docDetectedHint } = queueSupplierCell({
+    nomeFornitoreCollegato: nomeForn,
+    mittente: mitt,
+    ragioneSocialeOcr: rs,
+  })
+
+  const tot =
+    meta && typeof meta === 'object' ? (meta as { totale_iva_inclusa?: number | null }).totale_iva_inclusa : null
+  const importo = typeof tot === 'number' && Number.isFinite(tot) ? tot : null
+
+  const tipoLabelKey = tipoFromQueueRow({
+    isStatement,
+    oggettoMail: (d.oggetto_mail as string | null | undefined) ?? null,
+    fileName: (d.file_name as string | null | undefined) ?? null,
+    metadata: meta,
+  })
+
+  const docId = String((d.id as string | undefined) ?? '')
+  const fileUrl = (d.file_url as string | null | undefined) ?? null
+
+  if (stato === 'scartato') {
+    return {
+      atIso: iso,
+      tipoLabelKey,
+      fornitoreNome: displayNome,
+      docDetectedHint,
+      importo,
+      statusKey: 'ignored',
+      href: openDocumentUrl({ documentoId: docId }),
+      docOpen: { kind: 'documento', id: docId, fileUrl },
+      mittenteRaw: mitt || null,
+      mittenteEmail,
+      sedeId,
+    }
+  }
+
+  return {
+    atIso: iso,
+    tipoLabelKey,
+    fornitoreNome: displayNome,
+    docDetectedHint,
+    importo,
+    statusKey: 'needs_supplier',
+    href: openDocumentUrl({ documentoId: docId }),
+    docOpen: { kind: 'documento', id: docId, fileUrl },
+    mittenteRaw: mitt || null,
+    mittenteEmail,
+    sedeId,
+  }
+}
+
 /**
- * Vista “Attività email”: auto-save oggi (fattura/bolla) + voci coda rilevanti
- * (fornitore da aggiungere, ignorato) senza messaggi tecnici.
+ * Conteggio righe coda nel giorno locale (stessi filtri della lista paginata).
  */
-export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): Promise<EmailActivityRow[]> {
-  const tz = opts.timeZone.trim() || 'UTC'
-  const { start, endExclusive } = utcBoundsForZonedCalendarDay(tz)
-  const rows: EmailActivityRow[] = []
+export async function countEmailActivityQueueToday(opts: LoadEmailActivityClients): Promise<number> {
+  const { start, endExclusive } = queueDayBounds(opts.timeZone)
+  let q = opts.service
+    .from('documenti_da_processare')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', start)
+    .lt('created_at', endExclusive)
+    .or(EMAIL_ACTIVITY_QUEUE_STATO_OR)
+  q = applyQueueSede(q, opts)
+
+  const { count, error } = await q
+  if (error) {
+    console.error('[email-activity-day] count coda', error.message)
+    return 0
+  }
+  return count ?? 0
+}
+
+export type EmailActivityDayPageResult = {
+  rows: EmailActivityRow[]
+  queueTotal: number
+  page: number
+  pageSize: number
+  pageCount: number
+}
+
+/**
+ * Una pagina della coda «Attività email» (solo `documenti_da_processare`), ordinata come prima (più recenti prima).
+ */
+export async function loadEmailActivityDayRowsPage(
+  opts: LoadEmailActivityClients,
+  requestedPage: number,
+): Promise<EmailActivityDayPageResult> {
+  const pageSize = EMAIL_ACTIVITY_QUEUE_PAGE_SIZE
+  const queueTotal = await countEmailActivityQueueToday(opts)
+  const pageCount = Math.max(1, Math.ceil(queueTotal / pageSize))
+
+  let page = Number.isFinite(requestedPage) && requestedPage >= 1 ? Math.floor(requestedPage) : 1
+  page = Math.min(page, EMAIL_ACTIVITY_QUEUE_MAX_PAGE, pageCount)
+  page = Math.max(1, page)
+
+  const offset = (page - 1) * pageSize
+  const { start, endExclusive } = queueDayBounds(opts.timeZone)
+
+  let q = opts.service
+    .from('documenti_da_processare')
+    .select(
+      'id, created_at, file_url, file_name, stato, metadata, mittente, oggetto_mail, is_statement, sede_id, fornitore:fornitori(nome)',
+    )
+    .gte('created_at', start)
+    .lt('created_at', endExclusive)
+    .or(EMAIL_ACTIVITY_QUEUE_STATO_OR)
+  q = applyQueueSede(q, opts)
+  q = q
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(offset, offset + pageSize - 1)
+
+  const { data: docRows, error: docErr } = await q
+  if (docErr) {
+    console.error('[email-activity-day] documenti query', docErr.message)
+  }
+
+  const rows = (docRows ?? []).map((d) => mapDocRowToActivity(d as Record<string, unknown>))
+
+  return {
+    rows,
+    queueTotal,
+    page,
+    pageSize,
+    pageCount,
+  }
+}
+
+/**
+ * ID documento più recenti ammissibili alla pipeline (stessi filtri del log), per il POST reprocess (max {@link EMAIL_ACTIVITY_QUEUE_PROCESS_ID_CAP}).
+ */
+export async function loadEmailActivityQueueProcessDocIdsPeek(opts: LoadEmailActivityClients): Promise<string[]> {
+  const { start, endExclusive } = queueDayBounds(opts.timeZone)
+
+  let q = opts.service
+    .from('documenti_da_processare')
+    .select('id')
+    .gte('created_at', start)
+    .lt('created_at', endExclusive)
+    .or(EMAIL_ACTIVITY_QUEUE_STATO_OR)
+  q = applyQueueSede(q, opts)
+  q = q
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(EMAIL_ACTIVITY_QUEUE_PROCESS_ID_CAP)
+
+  const { data, error } = await q
+  if (error) {
+    console.error('[email-activity-day] peek doc ids', error.message)
+    return []
+  }
+
+  return (data ?? [])
+    .map((r) => String((r as { id?: string }).id ?? '').trim())
+    .filter(Boolean)
+}
+
+/** Fatture + bolle con `email_sync_auto_saved_at` nel giorno locale (stessi filtri sede della pagina log). */
+export async function countEmailActivityAutoSavedToday(opts: LoadEmailActivityClients): Promise<number> {
+  const { start, endExclusive } = queueDayBounds(opts.timeZone)
 
   let fattureQ = opts.user
     .from('fatture')
-    .select('id, importo, file_url, email_sync_auto_saved_at, fornitore:fornitori(nome)')
+    .select('*', { count: 'exact', head: true })
     .gte('email_sync_auto_saved_at', start)
     .lt('email_sync_auto_saved_at', endExclusive)
     .not('email_sync_auto_saved_at', 'is', null)
 
   let bolleQ = opts.user
     .from('bolle')
-    .select('id, importo, file_url, email_sync_auto_saved_at, fornitore:fornitori(nome)')
+    .select('*', { count: 'exact', head: true })
     .gte('email_sync_auto_saved_at', start)
     .lt('email_sync_auto_saved_at', endExclusive)
     .not('email_sync_auto_saved_at', 'is', null)
@@ -203,122 +379,14 @@ export async function loadEmailActivityDayRows(opts: LoadEmailActivityClients): 
 
   const [fattureRes, bolleRes] = await Promise.all([fattureQ, bolleQ])
 
-  for (const f of fattureRes.data ?? []) {
-    const id = String((f as { id?: string }).id ?? '')
-    const iso = String((f as { email_sync_auto_saved_at?: string }).email_sync_auto_saved_at ?? '')
-    const fileUrl = (f as { file_url?: string | null }).file_url ?? null
-    rows.push({
-      atIso: iso,
-      tipoLabelKey: 'invoice',
-      fornitoreNome: joinNome((f as { fornitore?: unknown }).fornitore) ?? '—',
-      importo: (f as { importo?: number | null }).importo ?? null,
-      statusKey: 'saved',
-      href: openDocumentUrl({ fatturaId: id }),
-      docOpen: { kind: 'fattura', id, fileUrl },
-    })
+  if (fattureRes.error) {
+    console.error('[email-activity-day] count fatture', fattureRes.error.message)
+  }
+  if (bolleRes.error) {
+    console.error('[email-activity-day] count bolle', bolleRes.error.message)
   }
 
-  for (const b of bolleRes.data ?? []) {
-    const id = String((b as { id?: string }).id ?? '')
-    const iso = String((b as { email_sync_auto_saved_at?: string }).email_sync_auto_saved_at ?? '')
-    const fileUrl = (b as { file_url?: string | null }).file_url ?? null
-    rows.push({
-      atIso: iso,
-      tipoLabelKey: 'ddt',
-      fornitoreNome: joinNome((b as { fornitore?: unknown }).fornitore) ?? '—',
-      importo: (b as { importo?: number | null }).importo ?? null,
-      statusKey: 'saved',
-      href: openDocumentUrl({ bollaId: id }),
-      docOpen: { kind: 'bolla', id, fileUrl },
-    })
-  }
-
-  const docQ = opts.service
-    .from('documenti_da_processare')
-    .select(
-      'id, created_at, file_url, file_name, stato, metadata, mittente, oggetto_mail, is_statement, sede_id, fornitore:fornitori(nome)',
-    )
-    .gte('created_at', start)
-    .lt('created_at', endExclusive)
-    .or(
-      'and(fornitore_id.is.null,stato.in.(da_revisionare,da_associare,da_processare,in_attesa)),and(stato.eq.da_revisionare,fornitore_id.not.is.null),stato.eq.scartato',
-    )
-
-  const { data: docRows, error: docErr } = await docQ
-  if (docErr) {
-    console.error('[email-activity-day] documenti query', docErr.message)
-  }
-
-  for (const d of docRows ?? []) {
-    const sedeId = (d as { sede_id?: string | null }).sede_id ?? null
-    if (!sedeVisibleForRow(sedeId, opts.sedeScopeId, opts.masterSeesAllSedi)) continue
-
-    const iso = String((d as { created_at?: string }).created_at ?? '')
-    const stato = String((d as { stato?: string }).stato ?? '')
-    const meta = (d as { metadata?: unknown }).metadata
-    const isStatement = !!(d as { is_statement?: boolean }).is_statement
-    const nomeForn = joinNome((d as { fornitore?: unknown }).fornitore)
-    const rs = metaRagioneSociale(meta)
-    const mitt = String((d as { mittente?: string | null }).mittente ?? '').trim()
-    const mittenteEmail = extractEmailFromSenderHeader(mitt)
-    const { primary: displayNome, docDetectedHint } = queueSupplierCell({
-      nomeFornitoreCollegato: nomeForn,
-      mittente: mitt,
-      ragioneSocialeOcr: rs,
-    })
-
-    const tot =
-      meta && typeof meta === 'object'
-        ? (meta as { totale_iva_inclusa?: number | null }).totale_iva_inclusa
-        : null
-    const importo = typeof tot === 'number' && Number.isFinite(tot) ? tot : null
-
-    const tipoLabelKey = tipoFromQueueRow({
-      isStatement,
-      oggettoMail: (d as { oggetto_mail?: string | null }).oggetto_mail ?? null,
-      fileName: (d as { file_name?: string | null }).file_name ?? null,
-      metadata: meta,
-    })
-
-    const docId = String((d as { id?: string }).id ?? '')
-    const fileUrl = (d as { file_url?: string | null }).file_url ?? null
-
-    if (stato === 'scartato') {
-      rows.push({
-        atIso: iso,
-        tipoLabelKey,
-        fornitoreNome: displayNome,
-        docDetectedHint,
-        importo,
-        statusKey: 'ignored',
-        href: openDocumentUrl({ documentoId: docId }),
-        docOpen: { kind: 'documento', id: docId, fileUrl },
-        mittenteRaw: mitt || null,
-        mittenteEmail,
-        sedeId,
-      })
-      continue
-    }
-
-    rows.push({
-      atIso: iso,
-      tipoLabelKey,
-      fornitoreNome: displayNome,
-      docDetectedHint,
-      importo,
-      statusKey: 'needs_supplier',
-      href: openDocumentUrl({ documentoId: docId }),
-      docOpen: { kind: 'documento', id: docId, fileUrl },
-      mittenteRaw: mitt || null,
-      mittenteEmail,
-      sedeId,
-    })
-  }
-
-  rows.sort((a, b) => (a.atIso < b.atIso ? 1 : a.atIso > b.atIso ? -1 : 0))
-  return rows
-}
-
-export function countAutoSavedTodayFromRows(rows: EmailActivityRow[]): number {
-  return rows.filter((r) => r.statusKey === 'saved').length
+  const cf = fattureRes.error ? 0 : (fattureRes.count ?? 0)
+  const cb = bolleRes.error ? 0 : (bolleRes.count ?? 0)
+  return cf + cb
 }

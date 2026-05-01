@@ -36,6 +36,9 @@ import {
 
 export type { EmailSyncRequestBody } from '@/lib/email-sync-run-store'
 
+/** Ok/warn post-sync: senza auto-chiusura la fascia resta alta (soprattutto mobile) e sembra «bloccare» la pagina. */
+const EMAIL_SYNC_COMPLETION_AUTO_DISMISS_MS = 25_000
+
 type Ctx = {
   progress: EmailSyncProgressState
   runEmailSync: (body: EmailSyncRequestBody, opts?: { resumed?: boolean }) => Promise<void>
@@ -102,6 +105,21 @@ export function EmailSyncProgressProvider({ children }: { children: ReactNode })
   const dismissEmailSyncCompletion = useCallback(() => {
     dismissEmailSyncCompletionBanner()
   }, [])
+
+  useEffect(() => {
+    if (
+      progress.active ||
+      progress.phase !== 'complete' ||
+      progress.toast === null ||
+      progress.toast.type === 'error'
+    ) {
+      return
+    }
+    const id = window.setTimeout(() => {
+      dismissEmailSyncCompletionBanner()
+    }, EMAIL_SYNC_COMPLETION_AUTO_DISMISS_MS)
+    return () => window.clearTimeout(id)
+  }, [progress.active, progress.phase, progress.toast?.type, progress.toast?.text])
 
   const runEmailSyncRef = useRef(runEmailSync)
   runEmailSyncRef.current = runEmailSync
