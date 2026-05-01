@@ -5627,43 +5627,88 @@ function FornitoreDetailClient({
 
               <div
                 ref={periodPickerRef}
-                className="-mb-px relative flex h-6 w-max min-w-max shrink-0 flex-nowrap items-center gap-px self-end rounded-lg border border-app-line-35 bg-white/[0.025] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:px-1"
+                className="-mb-px relative flex h-6 min-h-6 w-[22.5rem] max-w-full shrink-0 flex-col self-end rounded-lg border border-app-line-35 bg-white/[0.025] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:min-h-8 xl:w-[24.5rem]"
               >
-              <button
-                type="button"
-                onClick={() => shiftLedgerYear(-1)}
-                title={t.appStrings.monthNavPrevYearTitle}
-                aria-label={t.appStrings.monthNavPrevYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
-              >
-                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => shiftLedgerMonth(-1)}
-                title={t.appStrings.monthNavPrevMonthTitle}
-                aria-label={t.appStrings.monthNavPrevMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
-              >
-                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                id="supplier-desktop-period-month-trigger"
-                aria-haspopup="dialog"
-                aria-expanded={periodPickerOpen}
-                aria-controls={periodPickerOpen ? 'supplier-desktop-period-month-dialog' : undefined}
-                title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
-                aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
-                onClick={() => setPeriodPickerOpen((o) => !o)}
-                className="shrink-0 whitespace-nowrap rounded px-2 text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:leading-8"
-              >
-                {periodTriggerLabel}
-              </button>
+                <div className="grid w-full min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-0.5">
+                  <div className="flex shrink-0 items-center gap-px">
+                    <button
+                      type="button"
+                      onClick={() => shiftLedgerYear(-1)}
+                      title={t.appStrings.monthNavPrevYearTitle}
+                      aria-label={t.appStrings.monthNavPrevYearTitle}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                    >
+                      <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-9-9 9-9m9 18l-9-9 9-9" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => shiftLedgerMonth(-1)}
+                      title={t.appStrings.monthNavPrevMonthTitle}
+                      aria-label={t.appStrings.monthNavPrevMonthTitle}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                    >
+                      <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    id="supplier-desktop-period-month-trigger"
+                    aria-haspopup="dialog"
+                    aria-expanded={periodPickerOpen}
+                    aria-controls={periodPickerOpen ? 'supplier-desktop-period-month-dialog' : undefined}
+                    title={t.appStrings.supplierDesktopPeriodPickerButtonAria}
+                    aria-label={t.appStrings.supplierDesktopPeriodPickerButtonAria}
+                    onClick={() => setPeriodPickerOpen((o) => !o)}
+                    className="min-w-0 justify-self-stretch truncate text-center text-[11px] font-semibold tabular-nums leading-none text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:leading-8"
+                  >
+                    {periodTriggerLabel}
+                  </button>
+                  <div className="flex min-w-[5.5rem] shrink-0 items-center justify-end gap-px">
+                    <button
+                      type="button"
+                      onClick={() => shiftLedgerMonth(1)}
+                      disabled={!canShiftLedgerMonthForward}
+                      title={t.appStrings.monthNavNextMonthTitle}
+                      aria-label={t.appStrings.monthNavNextMonthTitle}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
+                    >
+                      <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => shiftLedgerYear(1)}
+                      disabled={!canShiftLedgerYearForward}
+                      title={t.appStrings.monthNavNextYearTitle}
+                      aria-label={t.appStrings.monthNavNextYearTitle}
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
+                    >
+                      <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
+                      </svg>
+                    </button>
+                    {!isLedgerAtCurrentMonthBounds ? (
+                      <button
+                        type="button"
+                        onClick={() => setLedgerPeriod(currentMonthBounds)}
+                        title={t.appStrings.monthNavResetTitle}
+                        aria-label={t.appStrings.monthNavResetTitle}
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
+                      >
+                        <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <span className="inline-flex h-5 w-5 shrink-0 xl:h-6 xl:w-6" aria-hidden />
+                    )}
+                  </div>
+                </div>
               {periodPickerOpen && periodPopoverRect != null && typeof document !== 'undefined'
                 ? createPortal(
                     <div
@@ -5736,43 +5781,6 @@ function FornitoreDetailClient({
                     document.body,
                   )
                 : null}
-              <button
-                type="button"
-                onClick={() => shiftLedgerMonth(1)}
-                disabled={!canShiftLedgerMonthForward}
-                title={t.appStrings.monthNavNextMonthTitle}
-                aria-label={t.appStrings.monthNavNextMonthTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
-              >
-                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => shiftLedgerYear(1)}
-                disabled={!canShiftLedgerYearForward}
-                title={t.appStrings.monthNavNextYearTitle}
-                aria-label={t.appStrings.monthNavNextYearTitle}
-                className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg disabled:cursor-not-allowed disabled:opacity-50 xl:h-6 xl:w-6"
-              >
-                <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l9 9-9 9M4 5l9 9-9 9" />
-                </svg>
-              </button>
-              {!isLedgerAtCurrentMonthBounds && (
-                <button
-                  type="button"
-                  onClick={() => setLedgerPeriod(currentMonthBounds)}
-                  title={t.appStrings.monthNavResetTitle}
-                  aria-label={t.appStrings.monthNavResetTitle}
-                  className="flex h-5 w-5 items-center justify-center rounded-sm text-app-fg-muted transition-colors hover:bg-white/10 hover:text-app-fg xl:h-6 xl:w-6"
-                >
-                  <svg className="h-3 w-3 text-app-fg-muted xl:h-3 xl:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 12a9 9 0 1018 0 9 9 0 00-18 0m9-4v4l3 3" />
-                  </svg>
-                </button>
-              )}
             </div>
             </div>
           </div>
