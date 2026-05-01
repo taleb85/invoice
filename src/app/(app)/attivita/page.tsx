@@ -18,6 +18,8 @@ const ATTIVITA_FILTER_CONTROL_CLASS = `${ATTIVITA_FILTER_SIZE_CLASS} font-semibo
 const ATTIVITA_STICKY_TOP_STACK_CLASS =
   'sticky top-0 z-[24] -mx-4 border-b border-app-line-25 app-workspace-inset-bg-soft backdrop-blur-md md:-mx-6 lg:-mx-8 xl:-mx-10'
 const ATTIVITA_STICKY_TOP_INNER_X_CLASS = 'px-4 md:px-6 lg:px-8 xl:px-10'
+/** Stesso allineamento orizzontale della riga titolo in `AppPageHeaderStrip` (`innerClsBaseLeading`). */
+const ATTIVITA_FILTER_ROW_ALIGN_CLASS = 'pl-0 pr-2 sm:pr-2 md:pr-2.5 lg:pr-3 xl:pr-3'
 
 type Operatore = { id: string; full_name: string | null }
 
@@ -198,12 +200,11 @@ export default function AttivitaPage() {
               {t.appStrings.attivitaExportCsv}
             </button>
           </AppPageHeaderStrip>
-        </div>
 
-        {/* Filters */}
-        <div
-          className={`flex flex-wrap items-center gap-2 border-t border-app-line-15 py-2 sm:gap-3 sm:py-2.5 ${ATTIVITA_STICKY_TOP_INNER_X_CLASS}`}
-        >
+          {/* Filters — stessa colonna dello strip + stessi inset della riga header */}
+          <div
+            className={`flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 border-t border-app-line-15 py-2 sm:gap-3 sm:py-2.5 ${ATTIVITA_FILTER_ROW_ALIGN_CLASS}`}
+          >
         {/* Operatore filter */}
         {operatori.length > 0 && (
           <select
@@ -290,6 +291,7 @@ export default function AttivitaPage() {
           </button>
         )}
       </div>
+        </div>
       </div>
 
       {/* Feed */}

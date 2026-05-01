@@ -187,7 +187,9 @@ export function ActivityFeed({
   })()
 
   return (
-    <div className="flex flex-col gap-3">
+    <div
+      className={`flex flex-col gap-3${compact ? '' : ' mx-auto w-full min-w-0 max-w-2xl'}`}
+    >
       {/* Filter chips */}
       {showFilters && !categoryRemote && (
         <div className="flex flex-wrap items-center gap-2">
