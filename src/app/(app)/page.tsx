@@ -283,10 +283,7 @@ export default async function DashboardPage(props: {
       {operatorScoped ? (
         <>
           {dashboardAdminSedeUi && sedeId ? (
-            <DashboardAdminMobileActions
-              sedeId={sedeId}
-              sedeOperatoriHref={`/sedi/${sedeId}#sede-operatori`}
-            />
+            <DashboardAdminMobileActions sedeOperatoriHref={`/sedi/${sedeId}#sede-operatori`} />
           ) : null}
         </>
       ) : null}

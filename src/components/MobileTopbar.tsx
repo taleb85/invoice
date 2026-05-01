@@ -75,8 +75,13 @@ export default function MobileTopbar() {
   }
 
   return (
-    <header className="app-desktop-header-glass fixed top-0 left-1/2 z-30 w-[min(100vw-1rem,var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 pt-[env(safe-area-inset-top,0px)] md:hidden">
-      <div className="flex h-[52px] min-h-[52px] items-center gap-1.5 px-2.5 ps-[max(0.625rem,env(safe-area-inset-left,0px))] pe-[max(0.625rem,env(safe-area-inset-right,0px))] sm:gap-2 sm:px-3">
+    <header className="fixed top-0 left-1/2 z-30 w-[min(100vw-1rem,var(--app-layout-max-width))] max-w-[var(--app-layout-max-width)] -translate-x-1/2 pt-[env(safe-area-inset-top,0px)] md:hidden px-2 pb-1.5 sm:px-2.5 sm:pb-2">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-0 right-0 top-0 app-desktop-header-glass"
+        style={{ height: 'env(safe-area-inset-top, 0px)' }}
+      />
+      <div className="app-card-unified relative flex h-[52px] min-h-[52px] items-center gap-1.5 px-2.5 ps-[max(0.625rem,env(safe-area-inset-left,0px))] pe-[max(0.625rem,env(safe-area-inset-right,0px))] sm:gap-2 sm:px-3">
         <div
           className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 sm:gap-2.5 pl-0.5 touch-manipulation"
           onClick={goLogoHome}

@@ -506,7 +506,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               className={`app-main-workspace-scroll relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto ps-[env(safe-area-inset-left,0px)] pe-[env(safe-area-inset-right,0px)] md:pt-0 ${
                 normalized === '/bolle/new'
                   ? 'pt-0'
-                  : 'pt-[calc(3.25rem+env(safe-area-inset-top,0px))]'
+                  : 'pt-[calc(3.25rem+0.375rem+env(safe-area-inset-top,0px))] sm:pt-[calc(3.25rem+0.5rem+env(safe-area-inset-top,0px))]'
               } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
             >
               <Suspense fallback={null}>
