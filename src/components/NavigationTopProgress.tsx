@@ -24,8 +24,8 @@ function isModifiedClick(e: MouseEvent): boolean {
  * poi completa al 100% e scompare.
  *
  * Su **mobile** (`< md`): posizione da `placement` (default: bordo inferiore viewport).
- * Su **desktop** (`md+`): tratto solo su **bordo superiore** (↦) e **inferiore** (↤), senza lati verticali;
- * il `progress` è lo stesso della barra mobile (click → cambio rotta, con cap simil-NProgress).
+ * Su **desktop** (`md+`): una sola linea orizzontale sul **bordo inferiore** dell’host (`#app-desktop-header-nav-progress`),
+ * così non incornicia la toolbar su due lati e resta sul margine tra header e contenuto.
  */
 export type NavigationProgressPlacement = 'viewportTop' | 'belowMobileTopbar' | 'viewportBottom'
 
@@ -226,8 +226,8 @@ export default function NavigationTopProgress({
 
   const inset = 1
   const dashOffset = 1 - progress
-  /** Solo orizzontali: sopra L→R, sotto R→L; `M` salta i lati verticali. */
-  const desktopPerimeterD = `M ${inset} ${inset} L ${100 - inset} ${inset} M ${100 - inset} ${100 - inset} L ${inset} ${100 - inset}`
+  /** Solo bordo basso host: L→R (stesso easing del tratto mobile). */
+  const desktopPerimeterD = `M ${inset} ${100 - inset} L ${100 - inset} ${100 - inset}`
 
   const desktopTrack = (
     <div

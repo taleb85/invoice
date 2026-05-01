@@ -794,7 +794,7 @@ body {
   box-shadow: 0 -2px 12px rgba(6, 182, 212, 0.35);
 }
 
-/* Desktop: contorno che “disegna” tutto il perimetro della strip (SVG stroke-dash) */
+/* Desktop: una linea sul bordo inferiore della strip header (SVG stroke-dash) */
 .navigation-top-progress--desktop-perimeter {
   position: absolute;
   inset: 0;
