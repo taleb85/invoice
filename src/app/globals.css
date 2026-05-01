@@ -770,7 +770,7 @@ body {
   left: 0;
   right: 0;
   z-index: 200;
-  height: 2px;
+  height: 1px;
   pointer-events: none;
   overflow: hidden;
   opacity: 0;
@@ -791,7 +791,7 @@ body {
 .navigation-top-progress--viewport-bottom {
   top: auto;
   bottom: env(safe-area-inset-bottom, 0px);
-  box-shadow: 0 -2px 12px rgba(6, 182, 212, 0.35);
+  box-shadow: 0 -1px 8px rgba(6, 182, 212, 0.28);
 }
 
 /* Desktop: barra in fondo alla strip header (stesso `__fill` del mobile), sopra la toolbar */
@@ -800,7 +800,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 2px;
+  height: 1px;
   z-index: 40;
   pointer-events: none;
   overflow: hidden;
@@ -812,6 +812,30 @@ body {
   opacity: 1;
 }
 
+/* Desktop lg+: due tratti verticali sul perimetro sidebar (sinistra/destra del rail) */
+.navigation-top-progress--desktop-sidebar-perimeter {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.navigation-top-progress--desktop-sidebar-perimeter.navigation-top-progress--visible {
+  opacity: 1;
+}
+
+.navigation-top-progress__sidebar-perimeter-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 3px rgba(6, 182, 212, 0.32));
+}
+
 .navigation-top-progress--visible {
   opacity: 1;
 }
@@ -821,7 +845,7 @@ body {
   width: 100%;
   transform-origin: left center;
   background: linear-gradient(90deg, #06b6d4, #34d399);
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.45);
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.32);
   transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

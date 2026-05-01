@@ -31,6 +31,7 @@ import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { NetworkProvider } from '@/lib/network-context'
 import NavigationTopProgress, {
   APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID,
+  APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID,
 } from '@/components/NavigationTopProgress'
 import { DesktopHeaderActionsStrip, SidebarRailBrand } from '@/components/SidebarBrandHeader'
 import OperatorDesktopWorkspaceHeader from '@/components/OperatorDesktopWorkspaceHeader'
@@ -386,6 +387,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
   const bindDesktopNavHost = useCallback((el: HTMLDivElement | null) => {
     setDesktopNavHost(el)
   }, [])
+  const [desktopSidebarNavHost, setDesktopSidebarNavHost] = useState<HTMLDivElement | null>(null)
+  const bindDesktopSidebarNavHost = useCallback((el: HTMLDivElement | null) => {
+    setDesktopSidebarNavHost(el)
+  }, [])
   const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false)
   // Close tablet sidebar on genuine navigation (not on router.refresh() which re-emits the same path).
   const sidebarNavPathRef = useRef(pathname ?? '')
@@ -475,6 +480,12 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             <ErrorBoundary sectionName="navigazione">
               <Sidebar />
             </ErrorBoundary>
+            <div
+              ref={bindDesktopSidebarNavHost}
+              id={APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID}
+              className="pointer-events-none absolute inset-0 z-[60] hidden min-h-0 overflow-visible lg:block"
+              aria-hidden
+            />
           </aside>
           <div
             data-app-desktop-canvas
@@ -514,7 +525,11 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
               } ${hub ? `${hubBottomPad} md:pb-0` : ''}`}
             >
               <Suspense fallback={null}>
-                <NavigationTopProgress placement="belowMobileTopbar" desktopHost={desktopNavHost} />
+                <NavigationTopProgress
+                  placement="belowMobileTopbar"
+                  desktopHost={desktopNavHost}
+                  desktopSidebarHost={desktopSidebarNavHost}
+                />
               </Suspense>
               <ErrorBoundary sectionName="barra di sincronizzazione" fallback={null}>
                 <EmailSyncProgressBar />

@@ -1,11 +1,38 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-/** Host: `#app-desktop-header-nav-progress` — barra desktop in basso alla strip. */
+/** Host barra navigazione: strip header (tablet / fallback). */
 export const APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID = 'app-desktop-header-nav-progress'
+/** Host barra navigazione: bordi sidebar (desktop lg+). */
+export const APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID = 'app-desktop-sidebar-nav-progress'
+
+const LG_MIN_PX = 1024
+
+function subscribeDesktopLgMedia(cb: () => void) {
+  if (typeof window === 'undefined') return () => {}
+  const mq = window.matchMedia(`(min-width: ${LG_MIN_PX}px)`)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+
+function desktopLgMediaMatches() {
+  return typeof window !== 'undefined' && window.matchMedia(`(min-width: ${LG_MIN_PX}px)`).matches
+}
+
+function desktopLgMediaMatchesServerSnapshot() {
+  return false
+}
 
 const BUSY_CLEAR_MS = 14_000
 const PROGRESS_TICK_MS = 280
@@ -24,8 +51,8 @@ function isModifiedClick(e: MouseEvent): boolean {
  * poi completa al 100% e scompare.
  *
  * Su **mobile** (`< md`): posizione da `placement` (default: bordo inferiore viewport).
- * Su **desktop** (`md+`): barra **2px** come il mobile, incollata al **bordo inferiore** di `#app-desktop-header-nav-progress`,
- * con `z-index` sopra la toolbar così il gradiente resta visibile.
+ * Su **desktop** `lg+`: tratto **verticale** su **bordo sinistro e destro della sidebar** (rail sempre visibile).
+ * Su **md** (sidebar overlay): barra **2px** sul bordo basso di `#app-desktop-header-nav-progress`.
  */
 export type NavigationProgressPlacement = 'viewportTop' | 'belowMobileTopbar' | 'viewportBottom'
 
@@ -38,11 +65,20 @@ const placementClassName: Record<NavigationProgressPlacement, string> = {
 export default function NavigationTopProgress({
   placement = 'viewportBottom',
   desktopHost,
+  desktopSidebarHost,
 }: {
   placement?: NavigationProgressPlacement
-  /** Desktop (`AppShellMain`): host = `#app-desktop-header-nav-progress` (dentro `[data-app-desktop-canvas]`). */
+  /** Desktop tablet: `#app-desktop-header-nav-progress`. */
   desktopHost: HTMLElement | null
+  /** Desktop lg+: `#app-desktop-sidebar-nav-progress` (overlay sui bordi della sidebar). */
+  desktopSidebarHost?: HTMLElement | null
 }) {
+  const perimeterGradId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
+  const useSidebarDesktopHost = useSyncExternalStore(
+    subscribeDesktopLgMedia,
+    desktopLgMediaMatches,
+    desktopLgMediaMatchesServerSnapshot
+  )
   const pathname = usePathname() ?? ''
   const searchParams = useSearchParams()
   const routeKey = `${pathname}?${searchParams?.toString() ?? ''}`
@@ -211,6 +247,11 @@ export default function NavigationTopProgress({
   const visCls = visible ? ' navigation-top-progress--visible' : ''
   const fillStyle = { transform: `scaleX(${progress})` } as const
 
+  const sidebarAsDesktopHost =
+    useSidebarDesktopHost && desktopSidebarHost != null ? desktopSidebarHost : null
+  const headerAsDesktopHost = desktopHost
+  const desktopPortalTarget = sidebarAsDesktopHost ?? headerAsDesktopHost
+
   const mobileTrack = (
     <div
       className={`navigation-top-progress${mobilePlaceCls ? ` ${mobilePlaceCls}` : ''} md:hidden${visCls}`}
@@ -221,8 +262,7 @@ export default function NavigationTopProgress({
     </div>
   )
 
-  /** Stessa barra del mobile: `z-index` sopra la toolbar trasparente così il tratto resta visibile. */
-  const desktopTrack = (
+  const desktopHeaderTrack = (
     <div
       className={`navigation-top-progress--desktop-bar${visCls}`}
       aria-hidden
@@ -232,10 +272,49 @@ export default function NavigationTopProgress({
     </div>
   )
 
+  const inset = 1
+  const dashOffset = 1 - progress
+  /** Due verticali: sinistra alto→basso, destra basso→alto. */
+  const desktopSidebarPerimeterD = `M ${inset} ${inset} L ${inset} ${100 - inset} M ${100 - inset} ${100 - inset} L ${100 - inset} ${inset}`
+
+  const desktopSidebarTrack = (
+    <div
+      className={`navigation-top-progress--desktop-sidebar-perimeter${visCls}`}
+      aria-hidden
+      role="presentation"
+    >
+      <svg
+        className="navigation-top-progress__sidebar-perimeter-svg"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id={perimeterGradId} x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#06b6d4" />
+            <stop offset="100%" stopColor="#34d399" />
+          </linearGradient>
+        </defs>
+        <path
+          d={desktopSidebarPerimeterD}
+          fill="none"
+          stroke={`url(#${perimeterGradId})`}
+          strokeWidth={1}
+          vectorEffect="nonScalingStroke"
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="butt"
+        />
+      </svg>
+    </div>
+  )
+
+  const desktopTrack = sidebarAsDesktopHost ? desktopSidebarTrack : desktopHeaderTrack
+
   return (
     <>
       {createPortal(mobileTrack, document.body)}
-      {desktopHost ? createPortal(desktopTrack, desktopHost) : null}
+      {desktopPortalTarget ? createPortal(desktopTrack, desktopPortalTarget) : null}
     </>
   )
 }
