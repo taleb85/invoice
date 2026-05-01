@@ -298,7 +298,7 @@ export default function NavigationTopProgress({
           d={desktopSidebarPerimeterD}
           fill="none"
           stroke={`url(#${perimeterGradId})`}
-          strokeWidth={1}
+          strokeWidth={0.5}
           vectorEffect="nonScalingStroke"
           pathLength={1}
           strokeDasharray={1}
