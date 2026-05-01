@@ -187,7 +187,7 @@ export default function AttivitaPage() {
       </AppPageHeaderStrip>
 
       {/* Filters — ritmo verticale e altezze allineate ai chip segment */}
-      <div className="mt-1 flex flex-wrap items-center gap-3 border-b border-app-line-15 px-4 py-3.5 sm:mt-1.5 sm:gap-3.5 sm:px-6 sm:py-4 md:gap-4">
+      <div className="-mt-1 flex flex-wrap items-center gap-3 border-b border-app-line-15 px-4 py-3.5 sm:gap-3.5 sm:px-6 sm:py-4 md:gap-4">
         {/* Operatore filter */}
         {operatori.length > 0 && (
           <select
