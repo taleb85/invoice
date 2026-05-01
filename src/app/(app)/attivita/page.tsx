@@ -7,7 +7,12 @@ import { ActivityFeed, ACTIVITY_FEED_CATEGORY_ORDER, type ActivityFeedCategoryFi
 import type { ActivityLogRow } from '@/app/api/activity-log/route'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SEGMENT_CHIP_CONTROL_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
+
+/** Altezza e tipo comuni per filtri Attività (select periodo, chip, ecc.). */
+const ATTIVITA_FILTER_SIZE_CLASS =
+  'min-h-8 rounded-lg px-2 py-1 text-[11px] leading-tight sm:text-xs'
+const ATTIVITA_FILTER_CONTROL_CLASS = `${ATTIVITA_FILTER_SIZE_CLASS} font-semibold`
 
 type Operatore = { id: string; full_name: string | null }
 
@@ -193,7 +198,7 @@ export default function AttivitaPage() {
           <select
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            className="min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs font-semibold text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+            className={`${ATTIVITA_FILTER_CONTROL_CLASS} border border-app-line-28 bg-transparent text-app-fg focus:border-[#22d3ee]/40 focus:outline-none`}
           >
             <option value="">{t.appStrings.attivitaAllOperators}</option>
             {operatori.map((op) => (
@@ -216,7 +221,7 @@ export default function AttivitaPage() {
               setDateFrom(from)
               setDateTo(to)
             }}
-            className="min-h-8 min-w-[9.5rem] rounded-lg border border-app-line-28 bg-transparent px-2 py-1 text-[11px] font-semibold leading-tight text-app-fg focus:border-[#22d3ee]/40 focus:outline-none sm:min-w-[10rem] sm:text-xs"
+            className={`min-w-[9.5rem] sm:min-w-[10rem] ${ATTIVITA_FILTER_CONTROL_CLASS} border border-app-line-28 bg-transparent text-app-fg focus:border-[#22d3ee]/40 focus:outline-none`}
           >
             <option value="">{t.appStrings.attivitaPeriodAll}</option>
             <option value="today">{t.appStrings.attivitaPeriodToday}</option>
@@ -233,14 +238,14 @@ export default function AttivitaPage() {
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+                className={`${ATTIVITA_FILTER_SIZE_CLASS} border border-app-line-28 bg-transparent font-normal text-app-fg focus:border-[#22d3ee]/40 focus:outline-none`}
               />
-              <span className="self-center text-xs text-app-fg-muted">–</span>
+              <span className="self-center text-[11px] leading-tight text-app-fg-muted sm:text-xs">–</span>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="min-h-9 rounded-xl border border-app-line-28 bg-transparent px-3 py-1.5 text-xs text-app-fg focus:border-[#22d3ee]/40 focus:outline-none"
+                className={`${ATTIVITA_FILTER_SIZE_CLASS} border border-app-line-28 bg-transparent font-normal text-app-fg focus:border-[#22d3ee]/40 focus:outline-none`}
               />
             </>
           )}
@@ -253,7 +258,7 @@ export default function AttivitaPage() {
               key={id}
               type="button"
               onClick={() => setCategoryFilter(id)}
-              className={`${APP_SEGMENT_CHIP_CONTROL_CLASS} ${
+              className={`inline-flex shrink-0 items-center justify-center ${ATTIVITA_FILTER_CONTROL_CLASS} transition-colors touch-manipulation ${
                 categoryFilter === id
                   ? 'bg-[#22d3ee]/15 text-[#22d3ee] ring-1 ring-[#22d3ee]/30'
                   : 'bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
@@ -268,7 +273,7 @@ export default function AttivitaPage() {
           <button
             type="button"
             onClick={() => { setUserId(''); setDateFrom(''); setDateTo(''); setPeriodPreset(''); setCategoryFilter('all') }}
-            className="min-h-9 shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-rose-400"
+            className={`${ATTIVITA_FILTER_CONTROL_CLASS} shrink-0 font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-rose-400`}
           >
             {t.appStrings.attivitaRemoveFilters}
           </button>
