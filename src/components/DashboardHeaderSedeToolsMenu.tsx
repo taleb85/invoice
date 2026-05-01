@@ -375,8 +375,14 @@ export default function DashboardHeaderSedeToolsMenu({
         <SollecitiButton fornitoriInScadenza={fornitoriInScadenza} toolbarStrip />
       ) : null}
       <WorkspaceEmailStrumentiMenu />
-      <span className={`${TOOLBAR_ICON_BTN_CLS} max-w-[min(100%,280px)] cursor-default hover:brightness-100`}>
-        <EmailSyncToolbarStatus lastImapSyncAt={lastImapSyncAt ?? null} lastImapSyncError={lastImapSyncError ?? null} />
+      <span
+        className={`${TOOLBAR_ICON_BTN_CLS} max-w-[5.5rem] cursor-default px-1.5 hover:brightness-100 sm:max-w-[6.25rem] sm:px-2`}
+      >
+        <EmailSyncToolbarStatus
+          variant="compact"
+          lastImapSyncAt={lastImapSyncAt ?? null}
+          lastImapSyncError={lastImapSyncError ?? null}
+        />
       </span>
     </div>
   )

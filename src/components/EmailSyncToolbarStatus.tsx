@@ -21,6 +21,21 @@ function formatImapRelative(iso: string, t: DashboardT): string {
   }
 }
 
+/** Chip toolbar: solo numero + suffisso breve; dettaglio nel `title`. */
+function formatImapRelativeCompact(iso: string, t: DashboardT): string {
+  const d = new Date(iso).getTime()
+  const mins = Math.floor((Date.now() - d) / 60000)
+  if (mins < 1) return t.emailSyncCronJustNow
+  if (mins < 60) return `${mins}m`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 72) return `${hrs}h`
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })
+  } catch {
+    return `${hrs}h`
+  }
+}
+
 type HealthTier = 'stopped' | 'late' | 'ok'
 
 function markerTierForImap(health: HealthTier): 'ok' | 'late' | 'stopped' {
@@ -47,10 +62,13 @@ export default function EmailSyncToolbarStatus({
   lastImapSyncAt,
   lastImapSyncError,
   className,
+  variant = 'default',
 }: {
   lastImapSyncAt?: string | null
   lastImapSyncError?: string | null
   className?: string
+  /** `compact`: marker + tempo breve; frase completa e errori nel `title`. */
+  variant?: 'default' | 'compact'
 }) {
   const tFull = useT()
   const t = tFull.dashboard
@@ -60,14 +78,17 @@ export default function EmailSyncToolbarStatus({
     return () => clearInterval(id)
   }, [])
 
-  const { label, title, markerTier } = useMemo(() => {
+  const { label, title, markerTier, compactLabel } = useMemo(() => {
     void tick
     const iso = lastImapSyncAt?.trim()
     const rel = !iso ? t.emailSyncCronNever : formatImapRelative(iso, t)
+    const relCompact = !iso ? t.emailSyncCronNever : formatImapRelativeCompact(iso, t)
     if (lastImapSyncError?.trim()) {
+      const full = t.emailSyncCronIssueLine.replace('{relative}', rel)
       return {
-        label: t.emailSyncCronIssueLine.replace('{relative}', rel),
-        title: lastImapSyncError.trim(),
+        label: full,
+        compactLabel: relCompact === t.emailSyncCronNever ? '—' : relCompact,
+        title: `${full}\n${lastImapSyncError.trim()}`,
         markerTier: 'issue' as const,
       }
     }
@@ -80,18 +101,23 @@ export default function EmailSyncToolbarStatus({
           : t.emailSyncCronLine.replace('{relative}', rel)
     return {
       label: line,
-      title: undefined as string | undefined,
+      compactLabel: relCompact,
+      title: line,
       markerTier: markerTierForImap(tier),
     }
   }, [lastImapSyncAt, lastImapSyncError, t, tick])
 
+  const displayLabel = variant === 'compact' ? compactLabel : label
+
   return (
     <span
-      className={`inline-flex items-start gap-1.5 whitespace-normal break-words text-left text-[10px] font-semibold leading-snug text-app-fg-muted sm:text-[11px] ${className ?? ''}`}
+      className={`inline-flex items-center gap-1 text-left text-[10px] font-semibold leading-none text-app-fg-muted sm:text-[11px] ${
+        variant === 'compact' ? 'min-w-0 max-w-full whitespace-nowrap' : 'items-start gap-1.5 whitespace-normal break-words leading-snug'
+      } ${className ?? ''}`}
       title={title}
     >
-      <EmailSyncHealthMarker tier={markerTier} className="mt-0.5" />
-      <span>{label}</span>
+      <EmailSyncHealthMarker tier={markerTier} className={variant === 'compact' ? 'shrink-0' : 'mt-0.5'} />
+      <span className={variant === 'compact' ? 'min-w-0 truncate tabular-nums' : ''}>{displayLabel}</span>
     </span>
   )
 }
