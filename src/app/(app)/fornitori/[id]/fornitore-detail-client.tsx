@@ -5590,42 +5590,43 @@ function FornitoreDetailClient({
             </p>
           ) : null}
 
-          {/* Tab bar + navigatore mese: tab e mese ancorati in basso (self-end sul mese, stessa h delle tab) */}
-          <div className="flex w-full min-w-0 items-stretch gap-2 border-t border-app-line-35 pt-0.5 pb-0 xl:gap-2.5 xl:pt-0.5 xl:pb-0">
-            <div className="flex min-h-6 min-w-0 flex-1 items-end gap-px overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-8">
-              {tabs.map((tb) => (
-                <button
-                  key={tb.id}
-                  type="button"
-                  onClick={() => setTab(tb.id)}
-                  className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[10px] font-semibold leading-none transition-colors border-b-2 -mb-px lg:min-h-7 lg:text-[11px] xl:min-h-8 xl:px-2.5 ${
-                    tab === tb.id
-                      ? `${SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE[tb.id]} bg-transparent text-app-fg`
-                      : 'border-b-transparent bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
-                  }`}
-                >
-                  {tb.label}
-                  {tb.badge !== undefined && tb.badge > 0 && (
-                    <span
-                      className={`rounded-full px-1 py-0.5 text-[9px] font-bold lg:px-1.5 lg:text-[10px] ${
-                        tab === tb.id
-                          ? tb.id === 'documenti'
-                            ? 'bg-amber-400/20 text-amber-300'
-                            : 'bg-app-a-20 text-app-fg-muted'
-                          : 'bg-white/10 text-app-fg-muted'
-                      }`}
-                    >
-                      {tb.badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
+          {/* Tab bar + navigatore mese: tab scroll-orizzontale; mese sticky a destra nel viewport delle tab. */}
+          <div className="w-full min-w-0 border-t border-app-line-35 pt-0.5 pb-0 xl:pt-0.5 xl:pb-0">
+            <div className="flex min-h-6 min-w-0 w-full items-end gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden xl:min-h-8">
+              <div className="flex min-w-0 flex-1 items-end gap-px ps-0">
+                {tabs.map((tb) => (
+                  <button
+                    key={tb.id}
+                    type="button"
+                    onClick={() => setTab(tb.id)}
+                    className={`box-border flex min-h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-t px-2 py-0 text-[10px] font-semibold leading-none transition-colors border-b-2 -mb-px lg:min-h-7 lg:text-[11px] xl:min-h-8 xl:px-2.5 ${
+                      tab === tb.id
+                        ? `${SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE[tb.id]} bg-transparent text-app-fg`
+                        : 'border-b-transparent bg-transparent text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+                    }`}
+                  >
+                    {tb.label}
+                    {tb.badge !== undefined && tb.badge > 0 && (
+                      <span
+                        className={`rounded-full px-1 py-0.5 text-[9px] font-bold lg:px-1.5 lg:text-[10px] ${
+                          tab === tb.id
+                            ? tb.id === 'documenti'
+                              ? 'bg-amber-400/20 text-amber-300'
+                              : 'bg-app-a-20 text-app-fg-muted'
+                            : 'bg-white/10 text-app-fg-muted'
+                        }`}
+                      >
+                        {tb.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
 
-            <div
-              ref={periodPickerRef}
-              className="-mb-px relative flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-app-line-35 bg-white/[0.025] px-0.5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] xl:h-8 xl:px-1"
-            >
+              <div
+                ref={periodPickerRef}
+                className="sticky right-0 z-10 -mr-px flex h-6 w-max shrink-0 items-center gap-px self-end rounded-lg border border-app-line-35 bg-[rgb(11_21_36/0.92)] px-0.5 shadow-[-10px_0_14px_-6px_rgba(0,0,0,0.55)] backdrop-blur-md supports-[backdrop-filter]:bg-[rgb(11_21_36/0.78)] xl:h-8 xl:px-1"
+              >
               <button
                 type="button"
                 onClick={() => shiftLedgerYear(-1)}
@@ -5770,6 +5771,7 @@ function FornitoreDetailClient({
                   </svg>
                 </button>
               )}
+            </div>
             </div>
           </div>
         </div>
