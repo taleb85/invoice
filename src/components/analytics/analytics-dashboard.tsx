@@ -73,9 +73,11 @@ type Props = {
 const chartCardClass =
   'relative overflow-hidden rounded-xl border border-white/[0.1] bg-transparent px-5 pt-5 pb-4 shadow-none backdrop-blur-none [-webkit-backdrop-filter:none]'
 
-/** Contorno + alone/sfumature leggere attorno al blocco KPI + grafici. */
-const dashboardShellClass =
-  'relative overflow-hidden rounded-2xl border border-app-line-15 bg-slate-950/30 p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.07)] backdrop-blur-[2px] sm:p-6'
+/** Stesso guscio di `AnalyticsPeriodStrip` (card unificata canvas). */
+const analyticsDashboardShellClass = 'relative mb-0 overflow-hidden rounded-2xl app-card-unified'
+/** Padding interno allineato alla strip periodi. */
+const analyticsDashboardShellBodyClass =
+  'space-y-6 px-4 py-2.5 sm:px-5 sm:py-3'
 
 export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
   const t = useT()
@@ -102,10 +104,8 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
 
   if (loading) {
     return (
-      <div className={dashboardShellClass}>
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_-12%,rgba(34,211,238,0.14),transparent_60%)]" aria-hidden />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-950/55 to-transparent" aria-hidden />
-        <div className="relative space-y-6">
+      <div className={analyticsDashboardShellClass}>
+        <div className={analyticsDashboardShellBodyClass}>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[...Array(4)].map((_, i) => (
               <div
@@ -147,10 +147,8 @@ export function AnalyticsDashboard({ sedeId, fiscalYear, months = 6 }: Props) {
   }
 
   return (
-    <div className={dashboardShellClass}>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_75%_55%_at_50%_-12%,rgba(34,211,238,0.14),transparent_60%)]" aria-hidden />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/50 via-slate-950/15 to-transparent" aria-hidden />
-      <div className="relative space-y-6">
+    <div className={analyticsDashboardShellClass}>
+      <div className={analyticsDashboardShellBodyClass}>
       {/* ── KPI Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard

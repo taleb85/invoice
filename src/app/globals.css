@@ -409,14 +409,14 @@
 
   /**
    * Barra header app (desktop strip + mobile topbar):
-   * tinta leggera + blur forte — si vede attraverso (sfondo / contenuto dietro quando c’è overlap).
+   * tinta più piena + blur — ancora vetro ma leggibile sopra il canvas.
    */
   .app-desktop-header-glass {
     background: linear-gradient(
       to bottom,
-      rgba(15, 23, 42, 0.25) 0%,
-      rgba(49, 46, 129, 0.15) 50%,
-      rgba(30, 27, 75, 0.2) 100%
+      rgba(15, 23, 42, 0.72) 0%,
+      rgba(30, 27, 75, 0.58) 55%,
+      rgba(30, 27, 75, 0.68) 100%
     );
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -1355,13 +1355,20 @@ body:has([data-deep-aurora-integration]) input[type='datetime-local'] {
   color-scheme: dark;
 }
 
-/** Dock mobile: trasparente sul gradiente (solo bordo / ombra esterna leggera). */
+/** Dock mobile: riempimento solido-vetro (Aurora — prima troppo trasparente sul canvas). */
 body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
-  background-image: none !important;
-  background-color: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: 0 -8px 32px -8px rgb(0 0 0 / 0.35) !important;
+  background-image: linear-gradient(
+    to top,
+    rgb(15 23 42 / 0.98),
+    rgb(30 41 59 / 0.96),
+    rgb(15 23 42 / 0.94)
+  ) !important;
+  background-color: rgb(15 23 42 / 0.96) !important;
+  backdrop-filter: blur(18px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.15) !important;
+  box-shadow:
+    0 -8px 32px -8px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
 }
 
 body:has([data-deep-aurora-integration]) nav.app-glass-dock.border-t-2 {
@@ -1545,23 +1552,29 @@ body:has([data-deep-aurora-integration]) .app-aurora-kpi-sheet-header {
   border-color: var(--app-surface-border) !important;
 }
 
-/** Topbar mobile / header locale: trasparenza Aurora (niente blur). */
+/** Topbar mobile / header locale: pannello leggibile sopra Aurora. */
 body:has([data-deep-aurora-integration]) .app-desktop-header-glass {
-  background: rgb(255 255 255 / 0.045) !important;
-  background-image: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: linear-gradient(
+    to bottom,
+    rgb(15 23 42 / 0.94),
+    rgb(15 23 42 / 0.88)
+  ) !important;
+  backdrop-filter: blur(20px) saturate(1.12) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(1.12) !important;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
-    0 6px 24px -12px rgb(0 0 0 / 0.32) !important;
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 6px 24px -12px rgb(0 0 0 / 0.4) !important;
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   body:has([data-deep-aurora-integration]) .app-desktop-header-glass {
-    background: rgb(15 23 42 / 0.92) !important;
+    background: rgb(15 23 42 / 0.96) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.06),
-      0 6px 24px -12px rgb(0 0 0 / 0.35) !important;
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 6px 24px -12px rgb(0 0 0 / 0.4) !important;
   }
 }
 
@@ -1612,13 +1625,16 @@ body:has([data-deep-aurora-public-shell]) .bg-app-cyan-500.text-white {
   body:has([data-deep-aurora-integration]) .app-glass-dock.app-glass-dock-opaque {
     background-image: linear-gradient(
       to top,
-      rgb(15 23 42 / 0.96),
-      rgb(30 41 59 / 0.93),
-      rgb(30 27 75 / 0.9)
+      rgb(15 23 42 / 0.99),
+      rgb(30 41 59 / 0.97),
+      rgb(15 23 42 / 0.95)
     ) !important;
-    background-color: rgb(15 23 42 / 0.94) !important;
+    background-color: rgb(15 23 42 / 0.98) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     box-shadow:
-      0 -8px 28px -8px rgb(0 0 0 / 0.42) !important;
+      0 -8px 32px -8px rgb(0 0 0 / 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.07) !important;
   }
 
   [data-deep-aurora-public-shell] .app-card-login,
