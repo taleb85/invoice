@@ -1101,6 +1101,12 @@ body:has([data-deep-aurora-public-shell]) {
   min-height: 100vh;
 }
 
+/** Login/accesso: shell `fixed` a tutta altezza — evita scroll doppio su documento. */
+body:has([data-deep-aurora-public-shell]) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 @media (min-width: 768px) {
   body:has([data-deep-aurora-integration]) .app-shell-workspace-canvas {
     background-image: none !important;

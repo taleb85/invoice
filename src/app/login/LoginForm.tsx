@@ -167,6 +167,35 @@ const PIN_LENGTH = 4
 /** Colonna gate /accesso: stesso vetro/bordo delle schede login (`globals.css` → `app-card-login` su public shell). */
 const ACCESSO_COLUMN_CLASS = 'app-card-login mx-auto w-full max-w-sm p-4 sm:p-5'
 
+/** Contenitore unico corpo + footer: vetro come `.glass-surface` su `[data-deep-aurora-public-shell]`. */
+const LOGIN_GLASS_PANEL_SHELL =
+  'glass-surface overflow-hidden rounded-2xl shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]'
+
+/** Fascia / cluster: stesso linguaggio di `DashboardScannerFlowCard` (vetro + inner shadow). */
+const LOGIN_GLASS_INSET_CLUSTER = 'glass-surface rounded-xl shadow-inner shadow-black/15'
+
+const PIN_DIGIT_BASE =
+  'glass-surface rounded-xl text-center font-bold transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500/30'
+
+function loginPinDigitShellClasses(
+  loading: boolean,
+  filled: boolean,
+  ready: boolean,
+): string {
+  const size = 'h-12 w-12 text-lg sm:h-14 sm:w-14 sm:text-xl'
+  if (loading) return [PIN_DIGIT_BASE, size, 'opacity-50'].join(' ')
+  if (filled) return [PIN_DIGIT_BASE, size, 'ring-2 ring-app-cyan-400/45'].join(' ')
+  if (ready) return [PIN_DIGIT_BASE, size, 'hover:brightness-110'].join(' ')
+  return [PIN_DIGIT_BASE, size, 'cursor-not-allowed opacity-45'].join(' ')
+}
+
+function loginAdminGateDigitClasses(verifying: boolean, filled: boolean, narrow: boolean): string {
+  const size = narrow ? 'h-10 w-9 text-base' : 'h-14 w-14 text-xl'
+  if (verifying) return [PIN_DIGIT_BASE, size, 'opacity-50'].join(' ')
+  if (filled) return [PIN_DIGIT_BASE, size, 'ring-2 ring-app-cyan-400/45'].join(' ')
+  return [PIN_DIGIT_BASE, size, 'hover:brightness-110'].join(' ')
+}
+
 type LoginFormProps = { sessionGateNext?: string }
 
 export default function LoginForm({ sessionGateNext }: LoginFormProps) {
@@ -1283,7 +1312,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
         <AuroraPanelShell aria-label={sedeT.netflixTitle}>
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-900/40 px-4 pb-2 pt-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:px-6">
+          <div className={LOGIN_GLASS_PANEL_SHELL}>
+            <div className="px-4 pb-2 pt-4 sm:px-6">
             <AvatarGrid
               operators={netflixOperators}
               onSelect={handleNetflixSelect}
@@ -1291,9 +1321,9 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               title={sedeT.netflixTitle}
               subtitle={sedeT.netflixSubtitle}
             />
-          </div>
+            </div>
           {/* Footer links */}
-          <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
             <div className="flex flex-col gap-1">
               <button
                 type="button"
@@ -1312,6 +1342,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             </div>
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
+          </div>
         </AuroraPanelShell>
         </div>
       </>
@@ -1328,7 +1359,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         <div className={sessionGateNext ? ACCESSO_COLUMN_CLASS : 'w-full'}>
         {accessoTopBar}
         <AuroraPanelShell aria-labelledby="login-pin-heading">
-          <div className="flex flex-col items-center gap-5 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-6 text-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-sm">
+          <div className={LOGIN_GLASS_PANEL_SHELL}>
+            <div className="flex flex-col items-center gap-5 p-6 text-center">
             {/* Avatar selezionato */}
             <div className="flex flex-col items-center gap-3">
               <div
@@ -1366,7 +1398,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 <span className="font-normal normal-case"> {t.login.pinDigits}</span>
               </label>
               <div
-                className="flex justify-center gap-2 rounded-xl bg-transparent px-2 py-2.5 sm:gap-3 sm:px-3 sm:py-3"
+                className={`flex justify-center gap-2 px-2 py-2.5 sm:gap-3 sm:px-3 sm:py-3 ${LOGIN_GLASS_INSET_CLUSTER}`}
                 onPaste={handlePinPaste}
               >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -1382,15 +1414,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     onChange={e => handlePinChange(idx, e.target.value)}
                     onKeyDown={e => handlePinKeyDown(idx, e)}
                     disabled={loading || lookingUp}
-                    className={[
-                      'h-12 w-12 rounded-xl border-2 text-center text-lg font-bold transition-all sm:h-14 sm:w-14 sm:text-xl',
-                      'focus:outline-none focus:ring-2 focus:ring-cyan-500/30',
-                      loading || lookingUp
-                        ? 'border-slate-700 bg-slate-800/50 text-app-fg-muted'
-                        : pin[idx]
-                          ? 'border-cyan-500/70 bg-slate-800/60 text-app-fg shadow-sm shadow-cyan-500/10'
-                          : 'border-slate-600 bg-slate-800/50 text-app-fg hover:border-slate-500 focus:border-cyan-500',
-                    ].join(' ')}
+                    className={loginPinDigitShellClasses(loading || lookingUp, Boolean(pin[idx]), true)}
                   />
                 ))}
               </div>
@@ -1462,11 +1486,12 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             >
               {sedeT.netflixChangeOperator}
             </button>
-          </div>
+            </div>
 
           {/* Footer lingua */}
-          <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-2.5">
+          <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/10 px-4 py-2.5">
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
+          </div>
           </div>
         </AuroraPanelShell>
         </div>
@@ -1502,7 +1527,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       {/* Stesso guscio Aurora della card Scanner / KPI dashboard. */}
       <AuroraPanelShell>
 
-        <div className="space-y-4 rounded-2xl border border-slate-700/60 bg-slate-900/40 p-5 text-center text-app-fg shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:p-6">
+        <div className={LOGIN_GLASS_PANEL_SHELL}>
+        <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
 
         {mode === 'name' ? (
           /* ── OPERATORE: Nome + PIN a 4 cifre — niente autofill / salvataggio credenziali browser ── */
@@ -1599,7 +1625,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 <span className="font-normal normal-case text-app-fg-muted"> {t.login.pinDigits}</span>
               </label>
               <div
-                className="flex justify-center gap-2 rounded-xl bg-transparent px-2 py-2.5 sm:gap-3 sm:px-3 sm:py-3"
+                className={`flex justify-center gap-2 px-2 py-2.5 sm:gap-3 sm:px-3 sm:py-3 ${LOGIN_GLASS_INSET_CLUSTER}`}
                 onPaste={handlePinPaste}
               >
                 {Array.from({ length: PIN_LENGTH }).map((_, idx) => (
@@ -1615,17 +1641,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                     onChange={e => handlePinChange(idx, e.target.value)}
                     onKeyDown={e => handlePinKeyDown(idx, e)}
                     disabled={loading || (!nameReady && idx === 0 ? false : !nameReady)}
-                    className={[
-                      'h-12 w-12 rounded-xl border-2 text-center text-lg font-bold transition-all sm:h-14 sm:w-14 sm:text-xl',
-                      'focus:outline-none focus:ring-2 focus:ring-cyan-500/30',
-                      loading
-                        ? 'border-slate-700 bg-slate-800/50 text-app-fg-muted'
-                        : pin[idx]
-                          ? 'border-cyan-500/70 bg-slate-800/60 text-app-fg shadow-sm shadow-cyan-500/10'
-                          : nameReady
-                            ? 'border-slate-600 bg-slate-800/50 text-app-fg hover:border-slate-500 focus:border-cyan-500'
-                            : 'border-slate-700/60 bg-slate-800/40 text-app-fg-muted cursor-not-allowed',
-                    ].join(' ')}
+                    className={loginPinDigitShellClasses(
+                      loading || (idx > 0 && !nameReady),
+                      Boolean(pin[idx]),
+                      nameReady || idx === 0,
+                    )}
                   />
                 ))}
               </div>
@@ -1698,7 +1718,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 </label>
                 <p className="px-0.5 text-[11px] leading-relaxed text-app-fg-muted">{t.login.adminGateHint}</p>
                 <div
-                  className="flex flex-wrap justify-center gap-2 rounded-xl border border-slate-700/60 bg-slate-900/40 px-3 py-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]"
+                  className={`flex flex-wrap justify-center gap-2 px-3 py-3 ${LOGIN_GLASS_INSET_CLUSTER}`}
                   onPaste={handleAdminGatePinPaste}
                 >
                   {Array.from({ length: adminGatePinLen }).map((_, idx) => {
@@ -1716,16 +1736,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                         onChange={e => handleAdminGatePinChange(idx, e.target.value)}
                         onKeyDown={e => handleAdminGatePinKeyDown(idx, e)}
                         disabled={adminGateVerifying}
-                        className={[
-                          narrow ? 'h-10 w-9 text-base' : 'h-14 w-14 text-xl',
-                          'border-2 text-center font-bold transition-all',
-                          'rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/30',
-                          adminGateVerifying
-                            ? 'border-slate-700 bg-slate-800/50 text-app-fg-muted'
-                            : adminGatePin[idx]
-                              ? 'border-cyan-500/70 bg-slate-800/60 text-app-fg shadow-sm shadow-cyan-500/10'
-                              : 'border-slate-600 bg-slate-800/50 text-app-fg hover:border-slate-500 focus:border-cyan-500',
-                        ].join(' ')}
+                        className={loginAdminGateDigitClasses(
+                          adminGateVerifying,
+                          Boolean(adminGatePin[idx]),
+                          narrow,
+                        )}
                       />
                     )
                   })}
@@ -1819,7 +1834,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
         {/* Barra inferiore: stessa larghezza della card (link admin + lingua) */}
         <div
-          className={`flex min-h-[3rem] items-center gap-3 border-t border-white/10 bg-white/[0.03] px-4 py-2.5 ${
+          className={`flex min-h-[3rem] items-center gap-3 border-t border-white/10 px-4 py-2.5 ${
             sessionGateNext ? 'justify-center' : 'justify-between'
           }`}
         >
@@ -1889,6 +1904,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
           )}
 
           <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} sessionGateNext={sessionGateNext} />
+        </div>
         </div>
       </AuroraPanelShell>
     </div>
