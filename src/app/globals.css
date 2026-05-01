@@ -794,29 +794,22 @@ body {
   box-shadow: 0 -2px 12px rgba(6, 182, 212, 0.35);
 }
 
-/* Desktop: una linea sul bordo inferiore della strip header (SVG stroke-dash) */
-.navigation-top-progress--desktop-perimeter {
+/* Desktop: barra in fondo alla strip header (stesso `__fill` del mobile), sopra la toolbar */
+.navigation-top-progress--desktop-bar {
   position: absolute;
-  inset: 0;
-  /* Sotto la striscia azioni (z-20): altrimenti il tratto copre menu / portal anche con pointer-events: none */
-  z-index: 10;
-  width: 100%;
-  height: 100%;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  z-index: 40;
   pointer-events: none;
-  overflow: visible;
+  overflow: hidden;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
 
-.navigation-top-progress--desktop-perimeter.navigation-top-progress--visible {
+.navigation-top-progress--desktop-bar.navigation-top-progress--visible {
   opacity: 1;
-}
-
-.navigation-top-progress__perimeter-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.45));
 }
 
 .navigation-top-progress--visible {

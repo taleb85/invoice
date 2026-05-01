@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname, useSearchParams } from 'next/navigation'
 
-/** Host: strip desktop sticky in `AppShellMain` (tratto sup./inf. senza lati verticali). */
+/** Host: `#app-desktop-header-nav-progress` — barra desktop in basso alla strip. */
 export const APP_DESKTOP_HEADER_NAV_PROGRESS_ANCHOR_ID = 'app-desktop-header-nav-progress'
 
 const BUSY_CLEAR_MS = 14_000
@@ -24,8 +24,8 @@ function isModifiedClick(e: MouseEvent): boolean {
  * poi completa al 100% e scompare.
  *
  * Su **mobile** (`< md`): posizione da `placement` (default: bordo inferiore viewport).
- * Su **desktop** (`md+`): una sola linea orizzontale sul **bordo inferiore** dell’host (`#app-desktop-header-nav-progress`),
- * così non incornicia la toolbar su due lati e resta sul margine tra header e contenuto.
+ * Su **desktop** (`md+`): barra **2px** come il mobile, incollata al **bordo inferiore** di `#app-desktop-header-nav-progress`,
+ * con `z-index` sopra la toolbar così il gradiente resta visibile.
  */
 export type NavigationProgressPlacement = 'viewportTop' | 'belowMobileTopbar' | 'viewportBottom'
 
@@ -43,7 +43,6 @@ export default function NavigationTopProgress({
   /** Desktop (`AppShellMain`): host = `#app-desktop-header-nav-progress` (dentro `[data-app-desktop-canvas]`). */
   desktopHost: HTMLElement | null
 }) {
-  const perimeterGradId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const pathname = usePathname() ?? ''
   const searchParams = useSearchParams()
   const routeKey = `${pathname}?${searchParams?.toString() ?? ''}`
@@ -210,6 +209,7 @@ export default function NavigationTopProgress({
 
   const mobilePlaceCls = placementClassName[placement]
   const visCls = visible ? ' navigation-top-progress--visible' : ''
+  const fillStyle = { transform: `scaleX(${progress})` } as const
 
   const mobileTrack = (
     <div
@@ -217,47 +217,18 @@ export default function NavigationTopProgress({
       aria-hidden
       role="presentation"
     >
-      <div
-        className="navigation-top-progress__fill"
-        style={{ transform: `scaleX(${progress})` }}
-      />
+      <div className="navigation-top-progress__fill" style={fillStyle} />
     </div>
   )
 
-  const inset = 1
-  const dashOffset = 1 - progress
-  /** Solo bordo basso host: L→R (stesso easing del tratto mobile). */
-  const desktopPerimeterD = `M ${inset} ${100 - inset} L ${100 - inset} ${100 - inset}`
-
+  /** Stessa barra del mobile: `z-index` sopra la toolbar trasparente così il tratto resta visibile. */
   const desktopTrack = (
     <div
-      className={`navigation-top-progress--desktop-perimeter${visCls}`}
+      className={`navigation-top-progress--desktop-bar${visCls}`}
       aria-hidden
       role="presentation"
     >
-      <svg
-        className="navigation-top-progress__perimeter-svg"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id={perimeterGradId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#06b6d4" />
-            <stop offset="100%" stopColor="#34d399" />
-          </linearGradient>
-        </defs>
-        <path
-          d={desktopPerimeterD}
-          fill="none"
-          stroke={`url(#${perimeterGradId})`}
-          strokeWidth={2}
-          vectorEffect="nonScalingStroke"
-          pathLength={1}
-          strokeDasharray={1}
-          strokeDashoffset={dashOffset}
-          strokeLinecap="butt"
-        />
-      </svg>
+      <div className="navigation-top-progress__fill" style={fillStyle} />
     </div>
   )
 
