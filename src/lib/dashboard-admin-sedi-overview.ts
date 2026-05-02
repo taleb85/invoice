@@ -106,13 +106,67 @@ export async function fetchAdminDashboardSediWithStats(
   })
 }
 
-/** Solo anagrafica sedi per il portale master globale — niente conteggi operativi (fornitori, bolle, fatture). */
-export async function fetchSediBasicForAdminGlobalPortal(
+const LOG_ERROR_STATI = ['fornitore_non_trovato', 'bolla_non_trovata'] as const
+
+function since24hIso(): string {
+  return new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+}
+
+async function countSyncLogErrorsBySede24h(
   supabase: SupabaseClient,
-): Promise<Pick<Sede, 'id' | 'nome' | 'country_code' | 'imap_host' | 'imap_user'>[]> {
+  sedeIds: string[]
+): Promise<Record<string, number>> {
+  if (sedeIds.length === 0) return {}
   const { data } = await supabase
-    .from('sedi')
-    .select('id, nome, country_code, imap_host, imap_user')
-    .order('nome')
-  return (data ?? []) as Pick<Sede, 'id' | 'nome' | 'country_code' | 'imap_host' | 'imap_user'>[]
+    .from('log_sincronizzazione')
+    .select('sede_id')
+    .in('stato', [...LOG_ERROR_STATI])
+    .gte('data', since24hIso())
+    .in('sede_id', sedeIds)
+  return countBySedeId(data ?? [])
+}
+
+export type SedeAdminGlobalOverviewRow = Pick<Sede, 'id' | 'nome' | 'country_code' | 'imap_host' | 'imap_user'> & {
+  /** Ultimo errore IMAP persistito su `sedi` (se presente). */
+  hasLastImapSyncError: boolean
+  ocrFailures48h: number
+  syncLogErrors24h: number
+}
+
+/**
+ * Panoramica portale master: sedi + solo indicatori tecnici (IMAP, log sync, OCR).
+ * Nessun conteggio fornitori/bolle/fatture.
+ */
+export async function fetchSediHealthOverviewForAdminGlobalPortal(
+  supabase: SupabaseClient,
+): Promise<SedeAdminGlobalOverviewRow[]> {
+  const [{ data: sediRows }, ocrMap] = await Promise.all([
+    supabase
+      .from('sedi')
+      .select('id, nome, country_code, imap_host, imap_user, last_imap_sync_error')
+      .order('nome'),
+    countOcrFailuresBySedeLast48h(supabase),
+  ])
+
+  const list = (sediRows ?? []) as (Pick<Sede, 'id' | 'nome' | 'country_code' | 'imap_host' | 'imap_user'> & {
+    last_imap_sync_error?: string | null
+  })[]
+  if (list.length === 0) return []
+
+  const ids = list.map((s) => s.id)
+  const errMap = await countSyncLogErrorsBySede24h(supabase, ids)
+
+  return list.map((sede) => {
+    const lastErr = sede.last_imap_sync_error
+    return {
+      id: sede.id,
+      nome: sede.nome,
+      country_code: sede.country_code,
+      imap_host: sede.imap_host,
+      imap_user: sede.imap_user,
+      hasLastImapSyncError: !!(typeof lastErr === 'string' && lastErr.trim() !== ''),
+      ocrFailures48h: ocrMap[sede.id] ?? 0,
+      syncLogErrors24h: errMap[sede.id] ?? 0,
+    }
+  })
 }

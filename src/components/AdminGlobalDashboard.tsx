@@ -6,17 +6,12 @@ import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import { dashboardManageSediLabel } from '@/lib/gestisci-sede-label'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import type { SedeAdminGlobalOverviewRow } from '@/lib/dashboard-admin-sedi-overview'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT } from '@/lib/app-shell-layout'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
-export type AdminGlobalSedeCard = {
-  id: string
-  nome: string
-  country_code?: string | null
-  imap_host?: string | null
-  imap_user?: string | null
-}
+export type AdminGlobalSedeCard = SedeAdminGlobalOverviewRow
 
 export function AdminGlobalDashboard({
   t,
@@ -120,10 +115,17 @@ export function AdminGlobalDashboard({
                 ? badgeCode
                 : 'UK'
             const imapOk = !!(sede.imap_host?.trim() && sede.imap_user?.trim())
+            const hasIssues =
+              !imapOk ||
+              sede.hasLastImapSyncError ||
+              sede.syncLogErrors24h > 0 ||
+              sede.ocrFailures48h > 0
             return (
               <div
                 key={sede.id}
-                className="flex flex-col overflow-hidden rounded-xl border border-app-soft-border app-workspace-inset-bg shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] transition-colors hover:border-app-line-35"
+                className={`flex flex-col overflow-hidden rounded-xl border app-workspace-inset-bg shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] transition-colors hover:border-app-line-35 ${
+                  hasIssues ? 'border-amber-500/35' : 'border-app-soft-border'
+                }`}
               >
                 <div className="h-1 shrink-0 bg-gradient-to-r from-app-line-50 via-app-a-25 to-transparent" aria-hidden />
                 <div className="flex flex-1 flex-col p-5">
@@ -135,9 +137,18 @@ export function AdminGlobalDashboard({
                         <span>{loc.name}</span>
                       </p>
                     </div>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                        hasIssues
+                          ? 'bg-amber-500/20 text-amber-200 ring-1 ring-amber-500/35'
+                          : 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/25'
+                      }`}
+                    >
+                      {hasIssues ? t.dashboard.adminGlobalHealthAttention : t.dashboard.adminGlobalHealthOk}
+                    </span>
                   </div>
 
-                  <div className="mb-4 flex flex-wrap gap-2">
+                  <div className="mb-3 flex flex-wrap gap-2">
                     <span
                       className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-semibold ${
                         imapOk ? 'bg-green-500/15 text-green-300' : 'app-workspace-inset-bg text-app-fg-muted'
@@ -146,6 +157,29 @@ export function AdminGlobalDashboard({
                       {imapOk ? t.dashboard.sedeImapOn : t.sedi.notConfigured}
                     </span>
                   </div>
+
+                  {hasIssues ? (
+                    <ul className="mb-4 list-inside list-disc space-y-1.5 text-xs leading-snug text-app-fg-muted marker:text-amber-400/90">
+                      {!imapOk ? <li>{t.dashboard.adminGlobalHealthImapNotConfigured}</li> : null}
+                      {sede.hasLastImapSyncError ? <li>{t.dashboard.adminGlobalHealthLastImapError}</li> : null}
+                      {sede.syncLogErrors24h > 0 ? (
+                        <li>
+                          {t.dashboard.adminGlobalHealthSyncLogErrors.replace(
+                            '{n}',
+                            String(sede.syncLogErrors24h),
+                          )}
+                        </li>
+                      ) : null}
+                      {sede.ocrFailures48h > 0 ? (
+                        <li>
+                          {t.dashboard.adminGlobalHealthOcrFailures.replace(
+                            '{n}',
+                            String(sede.ocrFailures48h),
+                          )}
+                        </li>
+                      ) : null}
+                    </ul>
+                  ) : null}
 
                   <div className="mt-auto flex flex-wrap gap-2 border-t border-app-line-22 pt-4">
                     <AdminSelectSedeButton

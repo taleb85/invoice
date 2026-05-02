@@ -25,7 +25,7 @@ import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupp
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { resolveOperationalSedeIdForAdminPortal } from '@/lib/admin-portal-operational-sede'
-import { fetchSediBasicForAdminGlobalPortal } from '@/lib/dashboard-admin-sedi-overview'
+import { fetchSediHealthOverviewForAdminGlobalPortal } from '@/lib/dashboard-admin-sedi-overview'
 import { AdminGlobalDashboard } from '@/components/AdminGlobalDashboard'
 import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
@@ -64,20 +64,13 @@ export default async function DashboardPage(props: {
 
   /** Master senza sede nel cookie: dashboard globale se ci sono sedi, altrimenti onboarding. */
   if (isMasterAdmin && operationalSedeId === null) {
-    const [erroriRecenti, emailBodySupplierHints, sediBasic] = await Promise.all([
+    const [erroriRecenti, emailBodySupplierHints, sediHealth] = await Promise.all([
       countSyncLogErrors24h(supabase),
       fetchRecurringEmailBodySupplierHints(supabase),
-      fetchSediBasicForAdminGlobalPortal(supabase),
+      fetchSediHealthOverviewForAdminGlobalPortal(supabase),
     ])
 
-    if (sediBasic.length > 0) {
-      const sediCards = sediBasic.map((r) => ({
-        id: r.id,
-        nome: r.nome,
-        country_code: r.country_code,
-        imap_host: r.imap_host,
-        imap_user: r.imap_user,
-      }))
+    if (sediHealth.length > 0) {
       return (
         <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
           {emailBodySupplierHints.length > 0 ? (
@@ -89,7 +82,7 @@ export default async function DashboardPage(props: {
           ) : null}
           <AdminGlobalDashboard
             t={t}
-            sediCards={sediCards}
+            sediCards={sediHealth}
             erroriRecenti={erroriRecenti}
             associatedSedeNome=""
           />
