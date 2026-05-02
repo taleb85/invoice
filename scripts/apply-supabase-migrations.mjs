@@ -73,6 +73,9 @@ const MIGRATIONS = [
   'supabase/migrations/20260428193000_log_stato_documento_non_fiscale.sql',
   'supabase/migrations/20260502120000_profiles_sede_id_on_delete_restrict.sql',
   'supabase/migrations/20260502143000_profiles_select_colleagues_branch_desk.sql',
+  'supabase/migrations/20260502180000_sedi_file_retention.sql',
+  'supabase/migrations/20260503120000_sedi_file_retention_default_delete.sql',
+  'supabase/migrations/20260503140000_sedi_file_retention_days.sql',
 ]
 
 function loadEnvLocal() {

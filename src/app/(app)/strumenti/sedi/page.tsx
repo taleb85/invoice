@@ -44,6 +44,12 @@ async function detectCountryByIp(): Promise<{ code: string; detected: boolean }>
   }
 }
 
+/** Errore PostgREST/Supabase quando mancano colonne `file_retention_*` su `sedi`. */
+function isFileRetentionSchemaCacheError(message: string): boolean {
+  const m = message.toLowerCase()
+  return m.includes('file_retention') && m.includes('schema cache')
+}
+
 interface SedeWithCounts extends Sede {
   fornitori_count: number
   users_count: number
@@ -557,12 +563,24 @@ export default function SediPage() {
   const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35'
 
   const isSedeScopedAdmin = adminListScope === 'sede'
+  const showRetentionSchemaHint = !!error && isFileRetentionSchemaCacheError(error)
 
   return (
     <div className="w-full min-w-0 app-shell-page-padding">
       <div className="app-card min-w-0 space-y-6 p-4 sm:p-5 md:space-y-8 md:p-6">
 
-      {error && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+      {error && (
+        <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {showRetentionSchemaHint ? (
+            <>
+              <p className="font-medium text-red-200">{t.sedi.fileRetentionDbSchemaMissing}</p>
+              <p className="mt-2 text-xs text-red-200/90">{t.sedi.fileRetentionDbSchemaMissingHint}</p>
+            </>
+          ) : (
+            error
+          )}
+        </div>
+      )}
       {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
 
       {FILE_ATTACHMENT_RETENTION_UI_ENABLED && sedi.length > 0 && (

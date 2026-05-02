@@ -110,15 +110,6 @@ export function AdminGlobalDashboard({
         </AppPageHeaderStrip>
       </div>
 
-      <div
-        className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-6 flex flex-col border-app-line-35 p-0`}
-        role="note"
-      >
-        <p className="px-4 py-3 text-sm leading-snug text-app-fg-muted">
-          {t.dashboard.adminPortalGlobalNavHint}
-        </p>
-      </div>
-
       <section
         className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-8 flex flex-col border-app-line-35 p-0`}
         aria-label={t.dashboard.adminGlobalConsoleAria}
