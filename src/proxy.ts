@@ -1,32 +1,68 @@
 import { createServerClient } from '@supabase/ssr'
-import { createClient as createSupabaseServiceClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseServiceClient, type SupabaseClient } from '@supabase/supabase-js'
 import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
-/** Stesso motivo di `getProfile()` lato server: RLS sulla sessione utente può non esporre `profiles` (es. master senza `sede_id`). */
-async function fetchProfileRoleAndSedeIdForMiddleware(userId: string): Promise<{
-  role: string | null
-  sede_id: string | null
-} | null> {
+type ProxyProfile = { role: string | null; sede_id: string | null }
+
+function mapProfileRow(data: unknown): ProxyProfile {
+  const d = data as { role?: string | null; sede_id?: string | null }
+  return {
+    role: d.role ?? null,
+    sede_id: d.sede_id ?? null,
+  }
+}
+
+/**
+ * Risolve `profiles` per i guard nel proxy. Se la lettura fallisce (service/anon/DB/eccezione),
+ * `applyRouteGuards === false`: si lascia passare la richiesta e le pagine/API applicano i controlli.
+ * Mai redirect a /login da qui per errori sul profilo.
+ */
+async function resolveProfileForProxy(
+  userId: string,
+  supabase: SupabaseClient,
+): Promise<{ profile: ProxyProfile | null; applyRouteGuards: boolean }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !serviceKey) {
-    console.error('[middleware] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
-    return Promise.resolve(null)
-  }
-  const service = createSupabaseServiceClient(url, serviceKey)
-  const { data } = await service
-    .from('profiles')
-    .select('role, sede_id')
-    .eq('id', userId)
-    .maybeSingle()
-  return data
-    ? {
-        role: (data as { role?: string | null }).role ?? null,
-        sede_id: (data as { sede_id?: string | null }).sede_id ?? null,
+
+  if (url && serviceKey) {
+    try {
+      const service = createSupabaseServiceClient(url, serviceKey)
+      const { data, error } = await service
+        .from('profiles')
+        .select('role, sede_id')
+        .eq('id', userId)
+        .maybeSingle()
+      if (error) {
+        console.warn('[proxy] profiles (service):', error.message)
+        return { profile: null, applyRouteGuards: false }
       }
-    : null
+      if (data) return { profile: mapProfileRow(data), applyRouteGuards: true }
+    } catch (e) {
+      console.warn('[proxy] profiles (service) exception:', e)
+      return { profile: null, applyRouteGuards: false }
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role, sede_id')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) {
+      console.warn('[proxy] profiles (anon):', error.message)
+      return { profile: null, applyRouteGuards: false }
+    }
+    return {
+      profile: data ? mapProfileRow(data) : null,
+      applyRouteGuards: true,
+    }
+  } catch (e) {
+    console.warn('[proxy] profiles (anon) exception:', e)
+    return { profile: null, applyRouteGuards: false }
+  }
 }
 
 /** Rotte accessibili senza autenticazione */
@@ -106,13 +142,20 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data, error: getUserError } = await supabase.auth.getUser()
-  if (getUserError && isInvalidRefreshTokenError(getUserError)) {
-    await supabase.auth.signOut()
-  }
-  const user =
-    getUserError && isInvalidRefreshTokenError(getUserError) ? null : (data.user ?? null)
+  const { data: authData, error: getUserError } = await supabase.auth.getUser()
+  let user = authData?.user ?? null
 
+  /** Solo refresh token invalido → signOut; altri errori non forzano logout. */
+  if (getUserError && isInvalidRefreshTokenError(getUserError)) {
+    try {
+      await supabase.auth.signOut()
+    } catch {
+      /* ignore */
+    }
+    user = null
+  }
+
+  /** Redirect /login solo senza utente autenticato; mai per errori sul profilo. */
   if (!user) {
     if (isApi) return supabaseResponse
     const loginUrl = request.nextUrl.clone()
@@ -126,91 +169,83 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(homeUrl)
   }
 
-  let profile: { role: string | null; sede_id: string | null } | null =
-    await fetchProfileRoleAndSedeIdForMiddleware(user.id)
-  if (!profile) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('role, sede_id')
-      .eq('id', user.id)
-      .maybeSingle()
-    profile = data
-      ? {
-          role: (data as { role?: string | null }).role ?? null,
-          sede_id: (data as { sede_id?: string | null }).sede_id ?? null,
+  const { profile, applyRouteGuards } = await resolveProfileForProxy(user.id, supabase)
+
+  if (applyRouteGuards) {
+    const role = profile?.role ?? ''
+    const isMasterAdmin = isMasterAdminRole(role)
+    const isBranchStaff = isBranchSedeStaffRole(role)
+
+    if (isMasterAdminOnlyPath(pathname)) {
+      if (!isMasterAdmin) {
+        if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        const homeUrl = request.nextUrl.clone()
+        homeUrl.pathname = '/'
+        return NextResponse.redirect(homeUrl)
+      }
+    }
+
+    /** Lista `/sedi`: master (tutte) oppure admin_sede con sede assegnata (solo la propria, via API). */
+    if (pathname === '/sedi') {
+      const allowed = isMasterAdmin || (isBranchStaff && !!profile?.sede_id)
+      if (!allowed) {
+        if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        const homeUrl = request.nextUrl.clone()
+        homeUrl.pathname = '/'
+        return NextResponse.redirect(homeUrl)
+      }
+    }
+
+    const sedeFromPath = sedeDetailPathSedeId(pathname)
+    if (sedeFromPath) {
+      if (isMasterAdmin) {
+        // ok
+      } else if (isBranchStaff && profile?.sede_id && sedeFromPath === profile.sede_id) {
+        // ok: responsabile/tecnico solo della propria sede
+      } else {
+        if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        const homeUrl = request.nextUrl.clone()
+        homeUrl.pathname = '/'
+        return NextResponse.redirect(homeUrl)
+      }
+    }
+
+    if (isLogPath(pathname)) {
+      if (!isMasterAdmin && !isBranchStaff) {
+        if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        const homeUrl = request.nextUrl.clone()
+        homeUrl.pathname = '/'
+        return NextResponse.redirect(homeUrl)
+      }
+    }
+
+    const isSedeExempt = SEDE_LOCK_EXEMPT.some((p) => pathname.startsWith(p))
+    /** Gate nome+PIN in sessione: deve essere raggiungibile prima del blocco codice sede (navigazione full-page). */
+    const isBranchSessionPath = pathname === '/accesso' || pathname.startsWith('/accesso/')
+    if (
+      !isSedeExempt &&
+      !isMasterAdmin &&
+      profile?.sede_id &&
+      pathname !== '/sede-lock' &&
+      !isBranchSessionPath
+    ) {
+      const verifiedCookie = request.cookies.get('sede-verified')?.value
+      if (verifiedCookie !== profile.sede_id) {
+        try {
+          const { data: sede } = await supabase
+            .from('sedi')
+            .select('access_password')
+            .eq('id', profile.sede_id)
+            .single()
+
+          if (sede?.access_password) {
+            const lockUrl = request.nextUrl.clone()
+            lockUrl.pathname = '/sede-lock'
+            return NextResponse.redirect(lockUrl)
+          }
+        } catch (e) {
+          console.warn('[proxy] sede-lock lookup exception:', e)
         }
-      : null
-  }
-
-  const role = profile?.role ?? ''
-  const isMasterAdmin = isMasterAdminRole(role)
-  const isBranchStaff = isBranchSedeStaffRole(role)
-
-  if (isMasterAdminOnlyPath(pathname)) {
-    if (!isMasterAdmin) {
-      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      const homeUrl = request.nextUrl.clone()
-      homeUrl.pathname = '/'
-      return NextResponse.redirect(homeUrl)
-    }
-  }
-
-  /** Lista `/sedi`: master (tutte) oppure admin_sede con sede assegnata (solo la propria, via API). */
-  if (pathname === '/sedi') {
-    const allowed = isMasterAdmin || (isBranchStaff && !!profile?.sede_id)
-    if (!allowed) {
-      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      const homeUrl = request.nextUrl.clone()
-      homeUrl.pathname = '/'
-      return NextResponse.redirect(homeUrl)
-    }
-  }
-
-  const sedeFromPath = sedeDetailPathSedeId(pathname)
-  if (sedeFromPath) {
-    if (isMasterAdmin) {
-      // ok
-    } else if (isBranchStaff && profile?.sede_id && sedeFromPath === profile.sede_id) {
-      // ok: responsabile/tecnico solo della propria sede
-    } else {
-      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      const homeUrl = request.nextUrl.clone()
-      homeUrl.pathname = '/'
-      return NextResponse.redirect(homeUrl)
-    }
-  }
-
-  if (isLogPath(pathname)) {
-    if (!isMasterAdmin && !isBranchStaff) {
-      if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      const homeUrl = request.nextUrl.clone()
-      homeUrl.pathname = '/'
-      return NextResponse.redirect(homeUrl)
-    }
-  }
-
-  const isSedeExempt = SEDE_LOCK_EXEMPT.some((p) => pathname.startsWith(p))
-  /** Gate nome+PIN in sessione: deve essere raggiungibile prima del blocco codice sede (navigazione full-page). */
-  const isBranchSessionPath = pathname === '/accesso' || pathname.startsWith('/accesso/')
-  if (
-    !isSedeExempt &&
-    !isMasterAdmin &&
-    profile?.sede_id &&
-    pathname !== '/sede-lock' &&
-    !isBranchSessionPath
-  ) {
-    const verifiedCookie = request.cookies.get('sede-verified')?.value
-    if (verifiedCookie !== profile.sede_id) {
-      const { data: sede } = await supabase
-        .from('sedi')
-        .select('access_password')
-        .eq('id', profile.sede_id)
-        .single()
-
-      if (sede?.access_password) {
-        const lockUrl = request.nextUrl.clone()
-        lockUrl.pathname = '/sede-lock'
-        return NextResponse.redirect(lockUrl)
       }
     }
   }
