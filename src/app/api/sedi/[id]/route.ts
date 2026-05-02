@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
+import type { SedeFileRetentionPolicy } from '@/types'
 
 const ALLOWED_COUNTRIES = ['UK', 'IT', 'FR', 'DE', 'ES']
 const ALLOWED_CURRENCIES = ['GBP', 'EUR', 'USD', 'CHF', 'CAD', 'AUD', 'JPY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF']
@@ -84,6 +85,9 @@ export async function PATCH(
     imap_lookback_days?: number | null
     /** Nomi cliente/destinatario da non usare come fornitore in OCR (merge con default in app). */
     nomi_cliente_da_ignorare?: string[] | null
+    file_retention_policy?: SedeFileRetentionPolicy
+    file_retention_months?: number | null
+    file_retention_run_day?: number | null
   }
 
   const update: Record<string, string | number | string[] | null> = {}
@@ -161,6 +165,36 @@ export async function PATCH(
       update.nomi_cliente_da_ignorare = names
     } else {
       return NextResponse.json({ error: 'Invalid nomi_cliente_da_ignorare' }, { status: 400 })
+    }
+  }
+
+  if (body.file_retention_policy !== undefined) {
+    const pol = body.file_retention_policy
+    if (pol !== 'keep' && pol !== 'delete_only' && pol !== 'archive_then_delete') {
+      return NextResponse.json({ error: 'Invalid file_retention_policy' }, { status: 400 })
+    }
+    update.file_retention_policy = pol
+    if (pol === 'keep') {
+      update.file_retention_months = null
+      update.file_retention_run_day = null
+    }
+  }
+
+  if (body.file_retention_months !== undefined) {
+    const n = Number(body.file_retention_months)
+    if (body.file_retention_months == null || Number.isNaN(n)) {
+      update.file_retention_months = null
+    } else {
+      update.file_retention_months = Math.min(120, Math.max(1, Math.floor(n)))
+    }
+  }
+
+  if (body.file_retention_run_day !== undefined) {
+    const d = Number(body.file_retention_run_day)
+    if (body.file_retention_run_day == null || Number.isNaN(d)) {
+      update.file_retention_run_day = null
+    } else {
+      update.file_retention_run_day = Math.min(28, Math.max(1, Math.floor(d)))
     }
   }
 

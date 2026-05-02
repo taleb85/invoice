@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import type { Sede, Profile } from '@/types'
+import type { Sede, Profile, SedeFileRetentionPolicy } from '@/types'
 import { useT } from '@/lib/use-t'
 import { useMe } from '@/lib/me-context'
 import { getLocale, COUNTRY_OPTIONS } from '@/lib/localization'
@@ -79,8 +79,11 @@ export default function SediPage() {
 
   // ── Wizard nuova sede ──
   const [showWizard, setShowWizard] = useState(false)
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1)
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1)
   const [wizardSedeName, setWizardSedeName] = useState('')
+  const [wizardFileRetention, setWizardFileRetention] = useState<SedeFileRetentionPolicy>('keep')
+  const [wizardRetentionMonths, setWizardRetentionMonths] = useState('12')
+  const [wizardRetentionRunDay, setWizardRetentionRunDay] = useState('1')
   const [wizardImap, setWizardImap] = useState<ImapForm>({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
   const [wizardOperators, setWizardOperators] = useState<{ name: string; pin: string }[]>([])
   const [wizardNewOpName, setWizardNewOpName] = useState('')
@@ -97,6 +100,9 @@ export default function SediPage() {
   const openWizard = () => {
     if (adminListScope === 'sede') return
     setWizardStep(1); setWizardSedeName(''); setWizardError(null)
+    setWizardFileRetention('keep')
+    setWizardRetentionMonths('12')
+    setWizardRetentionRunDay('1')
     setWizardImap({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
     setWizardOperators([]); setWizardNewOpName(''); setWizardNewOpPin('')
     setWizardShowImap(false); setWizardShowPin(false)
@@ -121,13 +127,31 @@ export default function SediPage() {
       .from('sedi').insert([{ nome: wizardSedeName.trim(), country_code: wizardCountryCode }]).select().single()
     if (sedeErr || !newSede) { setWizardError(sedeErr?.message ?? t.appStrings.sedeErrCreating); setCreatingWizard(false); return }
 
+    const patch: Record<string, unknown> = {
+      file_retention_policy: wizardFileRetention,
+      file_retention_months:
+        wizardFileRetention === 'keep' ? null : Math.min(120, Math.max(1, parseInt(wizardRetentionMonths, 10) || 12)),
+      file_retention_run_day:
+        wizardFileRetention === 'keep' ? null : Math.min(28, Math.max(1, parseInt(wizardRetentionRunDay, 10) || 1)),
+    }
     if (wizardImap.imap_host.trim() && wizardImap.imap_user.trim()) {
-      await supabase.from('sedi').update({
-        imap_host: wizardImap.imap_host.trim(),
-        imap_port: parseInt(wizardImap.imap_port) || 993,
-        imap_user: wizardImap.imap_user.trim(),
-        imap_password: wizardImap.imap_password || null,
-      }).eq('id', newSede.id)
+      patch.imap_host = wizardImap.imap_host.trim()
+      patch.imap_port = parseInt(wizardImap.imap_port, 10) || 993
+      patch.imap_user = wizardImap.imap_user.trim()
+      patch.imap_password = wizardImap.imap_password || null
+      const lb = parseInt(wizardImap.imap_lookback_days, 10)
+      patch.imap_lookback_days = !wizardImap.imap_lookback_days.trim() || Number.isNaN(lb) || lb <= 0 ? null : lb
+    }
+    const patchRes = await fetch(`/api/sedi/${newSede.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    if (!patchRes.ok) {
+      const d = await patchRes.json().catch(() => ({}))
+      setWizardError(typeof d.error === 'string' ? d.error : t.appStrings.sedeErrUpdating)
+      setCreatingWizard(false)
+      return
     }
 
     for (const op of wizardOperators) {
@@ -292,6 +316,12 @@ export default function SediPage() {
   const [locTimezone, setLocTimezone] = useState('Europe/London')
   const [savingLoc, setSavingLoc]     = useState(false)
 
+  const [retentionOpen, setRetentionOpen] = useState<string | null>(null)
+  const [retentionPolicy, setRetentionPolicy] = useState<SedeFileRetentionPolicy>('keep')
+  const [retentionMonths, setRetentionMonths] = useState('12')
+  const [retentionRunDay, setRetentionRunDay] = useState('1')
+  const [savingRetention, setSavingRetention] = useState(false)
+
   const openLocForm = (sede: SedeWithCounts) => {
     setLocOpen(sede.id)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -342,6 +372,41 @@ export default function SediPage() {
     setSedi(data.sedi ?? [])
     setProfiles((data.profiles ?? []) as ProfileWithSede[])
     setLoading(false)
+  }
+
+  const openRetentionForm = (sede: SedeWithCounts) => {
+    setRetentionOpen(sede.id)
+    const pol = sede.file_retention_policy
+    setRetentionPolicy(pol === 'delete_only' || pol === 'archive_then_delete' ? pol : 'keep')
+    setRetentionMonths(String(sede.file_retention_months ?? 12))
+    setRetentionRunDay(String(sede.file_retention_run_day ?? 1))
+  }
+
+  const handleSaveRetention = async (sedeId: string) => {
+    setSavingRetention(true)
+    setError(null)
+    const body: Record<string, unknown> = {
+      file_retention_policy: retentionPolicy,
+      file_retention_months:
+        retentionPolicy === 'keep' ? null : Math.min(120, Math.max(1, parseInt(retentionMonths, 10) || 12)),
+      file_retention_run_day:
+        retentionPolicy === 'keep' ? null : Math.min(28, Math.max(1, parseInt(retentionRunDay, 10) || 1)),
+    }
+    const res = await fetch(`/api/sedi/${sedeId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setSavingRetention(false)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setError(typeof d.error === 'string' ? d.error : t.appStrings.sedeErrUpdating)
+      return
+    }
+    setRetentionOpen(null)
+    setSuccessMsg(t.sedi.fileRetentionSaved)
+    setTimeout(() => setSuccessMsg(null), 3000)
+    await loadData()
   }
 
   useEffect(() => { loadData() }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -516,7 +581,7 @@ export default function SediPage() {
               <div>
                 <h2 className="font-semibold text-app-fg">{t.sedi.newSede}</h2>
                 <div className="flex items-center gap-1.5 mt-1.5">
-                  {[1,2,3].map((s) => (
+                  {[1, 2, 3, 4].map((s) => (
                     <div key={s} className={`h-1 rounded-full transition-all ${s <= wizardStep ? 'w-8 bg-app-cyan-500' : 'w-4 bg-cyan-950/50'}`} />
                   ))}
                   <span className="text-xs text-app-fg-muted ml-1">{t.appStrings.sedeWizardStepOf.replace('{step}', String(wizardStep))}</span>
@@ -621,8 +686,77 @@ export default function SediPage() {
                 )
               })()}
 
-              {/* Step 2 — Configurazione email IMAP */}
+              {/* Step 2 — Conservazione allegati */}
               {wizardStep === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-app-fg mb-1">{t.sedi.fileRetentionSectionTitle}</p>
+                    <p className="text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-app-fg-muted">{t.sedi.fileRetentionPolicyLabel}</p>
+                    {(['keep', 'delete_only', 'archive_then_delete'] as const).map((pol) => (
+                      <label key={pol} className="flex items-start gap-2 rounded-lg border border-app-line-25 px-3 py-2 cursor-pointer hover:bg-black/10">
+                        <input
+                          type="radio"
+                          name="wizard-retention"
+                          className="mt-1"
+                          checked={wizardFileRetention === pol}
+                          onChange={() => setWizardFileRetention(pol)}
+                        />
+                        <span className="text-sm text-app-fg">
+                          {pol === 'keep' ? t.sedi.fileRetentionKeep : pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {wizardFileRetention !== 'keep' && (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionMonthsLabel}</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={120}
+                          value={wizardRetentionMonths}
+                          onChange={(e) => setWizardRetentionMonths(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-surface-elevated"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={28}
+                          value={wizardRetentionRunDay}
+                          onChange={(e) => setWizardRetentionRunDay(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-surface-elevated"
+                        />
+                        <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <button type="button" onClick={() => setWizardStep(1)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
+                      {t.appStrings.sedeWizardBack}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWizardStep(3)}
+                      className="px-5 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                    >
+                      {t.appStrings.sedeWizardNext}
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3 — Configurazione email IMAP */}
+              {wizardStep === 3 && (
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardEmailConfigTitle}</p>
@@ -713,15 +847,15 @@ export default function SediPage() {
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <button onClick={() => setWizardStep(1)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
+                    <button onClick={() => setWizardStep(2)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
                       {t.appStrings.sedeWizardBack}
                     </button>
                     <div className="flex gap-2">
-                      <button onClick={() => { setWizardImap({ imap_host:'', imap_port:'993', imap_user:'', imap_password:'', imap_lookback_days: '30' }); setWizardStep(3) }}
+                      <button onClick={() => { setWizardImap({ imap_host:'', imap_port:'993', imap_user:'', imap_password:'', imap_lookback_days: '30' }); setWizardStep(4) }}
                         className="px-4 py-2 text-sm text-app-fg-muted hover:text-app-fg rounded-xl hover:bg-black/12">
                         {t.appStrings.sedeWizardSkip}
                       </button>
-                      <button onClick={() => setWizardStep(3)}
+                      <button onClick={() => setWizardStep(4)}
                         className="px-5 py-2 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
                         {t.appStrings.sedeWizardNext}
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -733,8 +867,8 @@ export default function SediPage() {
                 </div>
               )}
 
-              {/* Step 3 — Operatori */}
-              {wizardStep === 3 && (
+              {/* Step 4 — Operatori */}
+              {wizardStep === 4 && (
                 <div className="space-y-4">
                   <div>
                     <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardAddOperatorsTitle}</p>
@@ -817,7 +951,7 @@ export default function SediPage() {
                   )}
 
                   <div className="flex justify-between pt-1">
-                    <button onClick={() => setWizardStep(2)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
+                    <button onClick={() => setWizardStep(3)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
                       {t.appStrings.sedeWizardBack}
                     </button>
                     <button onClick={handleWizardCreate} disabled={creatingWizard}
@@ -1359,6 +1493,79 @@ export default function SediPage() {
                         <button type="button" onClick={() => handleSaveLoc(sede.id)} disabled={savingLoc}
                           className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
                           {savingLoc ? t.common.loading : t.common.save}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Conservazione allegati */}
+                  <button type="button"
+                    onClick={() => { if (retentionOpen === sede.id) { setRetentionOpen(null) } else { openRetentionForm(sede) } }}
+                    className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-app-fg-muted hover:bg-black/12 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                      </svg>
+                      {t.sedi.fileRetentionEditLink}
+                    </span>
+                    <svg className={`w-3.5 h-3.5 transition-transform ${retentionOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+                  {retentionOpen === sede.id && (
+                    <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
+                      <p className="text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-medium text-app-fg-muted">{t.sedi.fileRetentionPolicyLabel}</p>
+                        {(['keep', 'delete_only', 'archive_then_delete'] as const).map((pol) => (
+                          <label key={pol} className="flex items-start gap-2 rounded-lg border border-app-line-25 px-3 py-2 cursor-pointer hover:bg-black/10">
+                            <input
+                              type="radio"
+                              name={`retention-${sede.id}`}
+                              className="mt-1"
+                              checked={retentionPolicy === pol}
+                              onChange={() => setRetentionPolicy(pol)}
+                            />
+                            <span className="text-sm text-app-fg">
+                              {pol === 'keep' ? t.sedi.fileRetentionKeep : pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      {retentionPolicy !== 'keep' && (
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionMonthsLabel}</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={120}
+                              value={retentionMonths}
+                              onChange={(e) => setRetentionMonths(e.target.value)}
+                              className={inputCls}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={28}
+                              value={retentionRunDay}
+                              onChange={(e) => setRetentionRunDay(e.target.value)}
+                              className={inputCls}
+                            />
+                            <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setRetentionOpen(null)}
+                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
+                        <button type="button" onClick={() => handleSaveRetention(sede.id)} disabled={savingRetention}
+                          className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
+                          {savingRetention ? t.common.loading : t.common.save}
                         </button>
                       </div>
                     </div>

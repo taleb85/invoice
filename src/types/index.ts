@@ -1,3 +1,5 @@
+export type SedeFileRetentionPolicy = 'keep' | 'delete_only' | 'archive_then_delete'
+
 export interface Sede {
   id: string
   nome: string
@@ -5,6 +7,10 @@ export interface Sede {
   country_code?: string | null
   imap_host?: string | null
   imap_user?: string | null
+  /** Allegati: policy di retention (job purge da configurare lato server). */
+  file_retention_policy?: SedeFileRetentionPolicy | null
+  file_retention_months?: number | null
+  file_retention_run_day?: number | null
 }
 
 export interface Profile {
