@@ -373,7 +373,7 @@ export default function SediPage() {
 
     setIsAdmin(true)
     const data = await res.json()
-    setAdminListScope('sede')
+    setAdminListScope(data.adminListScope ?? 'sede')
     setSedi(data.sedi ?? [])
     setProfiles((data.profiles ?? []) as ProfileWithSede[])
     setLoading(false)
@@ -583,7 +583,7 @@ export default function SediPage() {
       )}
       {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
 
-      {FILE_ATTACHMENT_RETENTION_UI_ENABLED && sedi.length > 0 && (
+      {adminListScope === 'global' && FILE_ATTACHMENT_RETENTION_UI_ENABLED && sedi.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-app-line-28">
           <div className="px-4 py-3 border-b border-app-line-22 app-workspace-inset-bg-soft">
             <p className="text-sm font-semibold text-app-fg">{t.sedi.fileRetentionSectionTitle}</p>
@@ -1141,7 +1141,7 @@ export default function SediPage() {
                     </div>
                   )}
 
-                  {FILE_ATTACHMENT_RETENTION_UI_ENABLED ? (
+                  {adminListScope === 'global' && FILE_ATTACHMENT_RETENTION_UI_ENABLED ? (
                     <>
                       {/* Conservazione allegati */}
                       <button type="button"
