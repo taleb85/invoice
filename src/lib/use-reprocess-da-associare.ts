@@ -15,6 +15,8 @@ type ReprocessResponse = {
 type Strings = {
   resultTemplate: string
   moreHint: string
+  /** Chiarisce durante la POST che il server sta lavorando (OCR ecc.). */
+  runningStatus: string
 }
 
 /**
@@ -81,5 +83,5 @@ export function useReprocessDaAssociare(opts: {
     }
   }, [effectiveSedeId, onSuccess, strings.moreHint, strings.resultTemplate])
 
-  return { loading, error, result, run }
+  return { loading, error, result, run, runningStatus: strings.runningStatus }
 }

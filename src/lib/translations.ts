@@ -1172,6 +1172,7 @@ type Translations = {
     reprocessDaAssociareCta: string
     reprocessDaAssociareResult: string
     reprocessDaAssociareMoreHint: string
+    reprocessDaAssociareRunning: string
     hintContextualShortcuts: string
   }
   log: {
@@ -2181,6 +2182,8 @@ const it: Translations = {
     reprocessDaAssociareResult:
       'Ultimo batch: OCR ok su {processed} file — con registrazione automatica di bolla o fattura {auto_saved}, marchiati come da revisionare {da_revisionare}, aggiornati in coda ma senza nuova bolla/fattura automatica {other_outcomes}, errori {errors}.{more}',
     reprocessDaAssociareMoreHint: 'Altri documenti in coda — ripeti l’operazione.',
+    reprocessDaAssociareRunning:
+      'Elaborazione sul server (OCR) in corso: attendere, non è un blocco. Può durare alcune decine di secondi.',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
   },
@@ -3789,6 +3792,8 @@ const en: Translations = {
     reprocessDaAssociareResult:
       'Last batch: OCR ok for {processed} — registered as invoice or delivery doc {auto_saved}, needs review {da_revisionare}, updated in queue without auto-registration {other_outcomes}, errors {errors}.{more}',
     reprocessDaAssociareMoreHint: 'More items may remain — run again.',
+    reprocessDaAssociareRunning:
+      'Server is processing (OCR) — please wait; this may take tens of seconds. The app is busy.',
     hintContextualShortcuts:
       'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
   },
@@ -4554,6 +4559,8 @@ const es: Translations = {
     reprocessDaAssociareResult:
       'Último lote: OCR ok para {processed} — guardados como albarán/factura {auto_saved}, en revisión {da_revisionare}, solo cola sin registro automático {other_outcomes}, errores {errors}.{more}',
     reprocessDaAssociareMoreHint: 'Puede quedar más cola — ejecuta de nuevo.',
+    reprocessDaAssociareRunning:
+      'Servidor procesando (OCR): espera; puede tardar decenas de segundos.',
     hintContextualShortcuts:
       'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
   },
@@ -5313,6 +5320,8 @@ const fr: Translations = {
     reprocessDaAssociareResult:
       'Dernier lot : OCR ok pour {processed} — enregistrés BL/facture {auto_saved}, à réviser {da_revisionare}, file mise à jour sans enregistrement auto {other_outcomes}, erreurs {errors}.{more}',
     reprocessDaAssociareMoreHint: 'D’autres éléments peuvent rester — relancer.',
+    reprocessDaAssociareRunning:
+      'Serveur en cours de traitement (OCR) — patientez encore quelques secondes.',
     hintContextualShortcuts:
       'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
   },
@@ -6072,6 +6081,8 @@ const de: Translations = {
     reprocessDaAssociareResult:
       'Letzter Batch: OCR ok für {processed} — als Lieferschein/Rechnung gespeichert {auto_saved}, zur Prüfung {da_revisionare}, nur Warteschlange ohne Auto-Eintrag {other_outcomes}, Fehler {errors}.{more}',
     reprocessDaAssociareMoreHint: 'Es können weitere Dokumente warten — erneut ausführen.',
+    reprocessDaAssociareRunning:
+      'Server arbeitet (OCR) — bitte warten (oft viele Sekunden bis ca. einer Minute).',
     hintContextualShortcuts:
       'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',
   },

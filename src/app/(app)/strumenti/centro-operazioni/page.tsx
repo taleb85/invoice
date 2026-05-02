@@ -155,8 +155,9 @@ export default function CentroOperazioniPage() {
     () => ({
       resultTemplate: s.reprocessDaAssociareResult,
       moreHint: s.reprocessDaAssociareMoreHint,
+      runningStatus: s.reprocessDaAssociareRunning,
     }),
-    [s.reprocessDaAssociareMoreHint, s.reprocessDaAssociareResult],
+    [s.reprocessDaAssociareMoreHint, s.reprocessDaAssociareResult, s.reprocessDaAssociareRunning],
   )
 
   const {
@@ -164,6 +165,7 @@ export default function CentroOperazioniPage() {
     error: reprocessError,
     result: reprocessResult,
     run: onReprocessDaAssociare,
+    runningStatus: reprocessRunningStatus,
   } = useReprocessDaAssociare({
     effectiveSedeId,
     strings: reprocessStrings,
@@ -395,8 +397,9 @@ export default function CentroOperazioniPage() {
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
                 type="button"
+                aria-busy={reprocessLoading}
                 disabled={reprocessLoading}
-                onClick={onReprocessDaAssociare}
+                onClick={() => void onReprocessDaAssociare()}
                 className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-emerald-500/45 bg-emerald-500/12 px-4 py-2.5 text-xs font-bold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {reprocessLoading ? (
@@ -410,6 +413,22 @@ export default function CentroOperazioniPage() {
               </button>
               {reprocessError ? <span className="text-xs text-rose-300">{reprocessError}</span> : null}
             </div>
+            {reprocessLoading ? (
+              <div
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-400/35 bg-emerald-500/[0.07] px-3 py-2.5 text-left"
+              >
+                <span
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-emerald-600/70 border-t-transparent dark:border-emerald-100 dark:border-t-transparent"
+                  aria-hidden
+                />
+                <span className="text-xs font-semibold leading-snug text-app-fg">
+                  {reprocessRunningStatus}
+                </span>
+              </div>
+            ) : null}
             {reprocessResult ? (
               <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
             ) : null}
