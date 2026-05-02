@@ -227,10 +227,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid file_retention_policy' }, { status: 400 })
     }
     update.file_retention_policy = pol
-    if (pol === 'keep') {
-      update.file_retention_months = null
-      update.file_retention_run_day = null
-    }
   }
 
   if (body.file_retention_months !== undefined) {
