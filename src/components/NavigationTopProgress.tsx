@@ -287,6 +287,7 @@ export default function NavigationTopProgress({
         className="navigation-top-progress__sidebar-perimeter-svg"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
+        pointerEvents="none"
       >
         <defs>
           <linearGradient id={perimeterGradId} x1="0%" y1="0%" x2="0%" y2="100%">

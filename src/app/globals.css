@@ -845,6 +845,9 @@ body {
   display: block;
   width: 100%;
   height: 100%;
+  /* Il wrapper ha già pointer-events: none ma i figli SVG possono essere target dei click di default —
+     coprono tutta la sidebar e bloccano Link nella rail (es. Gestisci …). */
+  pointer-events: none;
   filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.2));
 }
 
