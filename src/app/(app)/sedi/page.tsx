@@ -465,393 +465,11 @@ export default function SediPage() {
 
   const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35'
 
-  const isSedeScopedAdmin = adminListScope === 'sede'
+  /** Con una sede solo: la scheda configurazione viene prima della strip Gestione sedi (come richiesto dall’hub). */
+  const elevateSingleSedeCard = sedi.length === 1
 
-  return (
-    <div className="w-full min-w-0 app-shell-page-padding space-y-6 md:space-y-8">
-
-      <AppPageHeaderStrip
-        accent="teal"
-        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
-        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
-      >
-        <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 id="page-sedi-title" className={APP_PAGE_HEADER_STRIP_H1_CLASS} aria-describedby="page-sedi-desc">
-            {t.sedi.titleGlobalAdmin}
-          </h1>
-          <p id="page-sedi-desc" className={APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}>
-            {t.sedi.subtitleGlobalAdmin}
-          </p>
-        </AppPageHeaderTitleWithDashboardShortcut>
-        {!isSedeScopedAdmin ? (
-          <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-            <button
-              type="button"
-              onClick={openWizard}
-              className="flex shrink-0 items-center gap-2 rounded-lg bg-app-cyan-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-600 md:px-4 md:py-2.5"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="hidden sm:inline">{t.sedi.newSede}</span>
-              <span className="sm:hidden">Nuova</span>
-            </button>
-          </div>
-        ) : null}
-      </AppPageHeaderStrip>
-
-      {error && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
-      {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
-
-      {/* ── Wizard nuova sede ── */}
-      {showWizard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center app-workspace-scrim app-aurora-modal-overlay p-4 backdrop-blur-sm">
-          <div className="app-workspace-surface-elevated rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
-
-            {/* Wizard header */}
-            <div className="px-6 py-4 border-b border-app-line-22 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-app-fg">{t.sedi.newSede}</h2>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  {[1,2,3].map((s) => (
-                    <div key={s} className={`h-1 rounded-full transition-all ${s <= wizardStep ? 'w-8 bg-app-cyan-500' : 'w-4 bg-cyan-950/50'}`} />
-                  ))}
-                  <span className="text-xs text-app-fg-muted ml-1">{t.appStrings.sedeWizardStepOf.replace('{step}', String(wizardStep))}</span>
-                </div>
-              </div>
-              <button onClick={() => setShowWizard(false)} className="rounded-lg p-2 text-app-fg-muted transition-colors hover:bg-app-line-12 hover:text-app-fg">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-
-            <div className="px-6 py-5">
-
-              {/* Step 1 — Nome sede + Geo-detection */}
-              {wizardStep === 1 && (() => {
-                const loc = getLocale(wizardCountryCode)
-                return (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardNameLabel}</p>
-                      <p className="text-xs text-app-fg-muted mb-4">Es. &quot;Ristorante Roma&quot; o &quot;Magazzino Nord&quot;</p>
-                      <input
-                        type="text" autoFocus placeholder="Nome sede…"
-                        value={wizardSedeName}
-                        onChange={(e) => setWizardSedeName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && wizardSedeName.trim() && setWizardStep(2)}
-                        className="w-full rounded-xl border border-app-line-25 app-workspace-surface-elevated px-4 py-3 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35"
-                      />
-                    </div>
-
-                    {/* ── Geo-detection banner ── */}
-                    <div className={`rounded-xl border px-4 py-3 text-xs transition-colors ${
-                      wizardGeoStatus === 'detecting'
-                        ? 'app-workspace-inset-bg-soft border-app-line-25 text-app-fg-muted'
-                        : wizardGeoStatus === 'detected'
-                        ? 'border-app-line-35 bg-app-line-10 text-app-fg-muted'
-                        : 'border-[rgba(34,211,238,0.15)] bg-amber-500/10 text-amber-100'
-                    }`}>
-                      {/* Status row */}
-                      <div className="flex items-center gap-2 mb-2.5">
-                        {wizardGeoStatus === 'detecting' ? (
-                          <>
-                            <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                            </svg>
-                            <span>Rilevamento posizione in corso…</span>
-                          </>
-                        ) : wizardGeoStatus === 'detected' ? (
-                          <>
-                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
-                            <span className="font-semibold">Rilevata posizione: {loc.name}.</span>
-                            <span className="text-blue-600">Termini fiscali impostati su <strong>{loc.vat}</strong> · <strong>{loc.vatLabel}</strong>.</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span>Posizione non rilevata automaticamente. Termine predefinito: <strong>UK</strong>.</span>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Manual override — always visible */}
-                      <div className="flex items-center gap-2 pt-2 border-t border-current/10">
-                        <span className="text-[11px] opacity-70 shrink-0">Cambia manualmente:</span>
-                        <div className="relative">
-                          <select
-                            value={wizardCountryCode}
-                            onChange={e => { setWizardCountryCode(e.target.value); setWizardGeoStatus('failed') }}
-                            className="appearance-none pl-7 pr-6 py-1 text-xs border border-current/20 rounded-lg app-workspace-surface-elevated focus:outline-none focus:ring-2 focus:ring-app-line-30 cursor-pointer"
-                          >
-                            {COUNTRY_OPTIONS.map(o => (
-                              <option key={o.code} value={o.code}>{o.code} — {o.name}</option>
-                            ))}
-                          </select>
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 leading-none">
-                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
-                          </span>
-                          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => setWizardStep(2)}
-                        disabled={!wizardSedeName.trim()}
-                        className="px-5 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
-                      >
-                        {t.appStrings.sedeWizardNext}
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Step 2 — Configurazione email IMAP */}
-              {wizardStep === 2 && (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardEmailConfigTitle}</p>
-                    <p className="text-xs text-app-fg-muted mb-4">{t.appStrings.sedeWizardEmailConfigDesc}</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Server IMAP</label>
-                      <input type="text" list="wizard-imap-providers" placeholder="imap.gmail.com"
-                        value={wizardImap.imap_host}
-                        onChange={(e) => {
-                          const host = e.target.value
-                          const portMap: Record<string, string> = {
-                            'imap.gmail.com':'993','imap.googlemail.com':'993','outlook.office365.com':'993',
-                            'imap-mail.outlook.com':'993','imap.mail.yahoo.com':'993','imap.apple.com':'993',
-                            'imap.fastmail.com':'993','imap.libero.it':'993','imap.alice.it':'993',
-                            'imap.tim.it':'993','imap.virgilio.it':'993','imap.aruba.it':'993',
-                            'imapmail.aruba.it':'993','imap.tiscali.it':'993','imap.protonmail.ch':'993','imap.zoho.com':'993',
-                          }
-                          setWizardImap({ ...wizardImap, imap_host: host, imap_port: portMap[host] ?? wizardImap.imap_port })
-                        }}
-                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                      />
-                      <datalist id="wizard-imap-providers">
-                        <option value="imap.gmail.com">Gmail</option>
-                        <option value="imap.googlemail.com">Gmail (alt.)</option>
-                        <option value="outlook.office365.com">Outlook / M365</option>
-                        <option value="imap-mail.outlook.com">Outlook.com</option>
-                        <option value="imap.mail.yahoo.com">Yahoo</option>
-                        <option value="imap.apple.com">iCloud</option>
-                        <option value="imap.fastmail.com">Fastmail</option>
-                        <option value="imap.protonmail.ch">Proton</option>
-                        <option value="imap.zoho.com">Zoho</option>
-                        <option value="imap.libero.it">Libero</option>
-                        <option value="imap.alice.it">Alice/TIM</option>
-                        <option value="imap.virgilio.it">Virgilio</option>
-                        <option value="imap.aruba.it">Aruba</option>
-                        <option value="imapmail.aruba.it">Aruba PEC</option>
-                        <option value="imap.tiscali.it">Tiscali</option>
-                      </datalist>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Porta</label>
-                      <input type="number" placeholder="993" value={wizardImap.imap_port}
-                        onChange={(e) => setWizardImap({ ...wizardImap, imap_port: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Email account</label>
-                      <input type="email" placeholder="email@esempio.it" value={wizardImap.imap_user}
-                        onChange={(e) => setWizardImap({ ...wizardImap, imap_user: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Password / App Password</label>
-                      <div className="relative">
-                        <input type={wizardShowImap ? 'text' : 'password'} placeholder="Password…" value={wizardImap.imap_password}
-                          onChange={(e) => setWizardImap({ ...wizardImap, imap_password: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9"
-                        />
-                        <button type="button" onClick={() => setWizardShowImap(!wizardShowImap)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {wizardShowImap
-                              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                              : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
-                            }
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  {(wizardImap.imap_host.includes('gmail') || wizardImap.imap_host.includes('outlook') || wizardImap.imap_host.includes('office365')) && (
-                    <div className="flex gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                      <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                      <span>
-                        {wizardImap.imap_host.includes('gmail')
-                          ? <><strong>App Password richiesta.</strong> <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Google →</a></>
-                          : <><strong>App Password richiesta.</strong> <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Microsoft →</a></>
-                        }
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <button onClick={() => setWizardStep(1)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
-                      {t.appStrings.sedeWizardBack}
-                    </button>
-                    <div className="flex gap-2">
-                      <button onClick={() => { setWizardImap({ imap_host:'', imap_port:'993', imap_user:'', imap_password:'', imap_lookback_days: '30' }); setWizardStep(3) }}
-                        className="px-4 py-2 text-sm text-app-fg-muted hover:text-app-fg rounded-xl hover:bg-black/12">
-                        {t.appStrings.sedeWizardSkip}
-                      </button>
-                      <button onClick={() => setWizardStep(3)}
-                        className="px-5 py-2 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-                        {t.appStrings.sedeWizardNext}
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3 — Operatori */}
-              {wizardStep === 3 && (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardAddOperatorsTitle}</p>
-                    <p className="text-xs text-app-fg-muted mb-4">{t.sedi.wizardOperatorHint}</p>
-                  </div>
-
-                  {/* Lista operatori aggiunti */}
-                  {wizardOperators.length > 0 && (
-                    <div className="space-y-1.5 mb-2">
-                      {wizardOperators.map((op, i) => (
-                        <div key={i} className="flex items-center justify-between rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600">
-                              <span className="text-white text-[10px] font-bold">{op.name.charAt(0).toUpperCase()}</span>
-                            </div>
-                            <span className="text-sm font-medium text-app-fg">{op.name}</span>
-                            <span className="text-xs text-app-fg-muted">PIN: {'•'.repeat(op.pin.length)}</span>
-                          </div>
-                          <button onClick={() => setWizardOperators(wizardOperators.filter((_, j) => j !== i))}
-                            className="text-app-fg-muted hover:text-red-400 transition-colors">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Form nuovo operatore */}
-                  <div className="app-workspace-inset-bg-soft border border-app-line-25 rounded-xl p-3 space-y-2.5">
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-xs font-medium text-app-fg-muted mb-1">Nome operatore</label>
-                        <input
-                          type="text"
-                          placeholder="MARIO ROSSI"
-                          autoCapitalize="characters"
-                          value={wizardNewOpName}
-                          onChange={(e) => setWizardNewOpName(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
-                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-app-fg-muted mb-1">PIN (min. 4 cifre)</label>
-                        <div className="relative">
-                          <input
-                            type={wizardShowPin ? 'text' : 'password'}
-                            placeholder="es. 1234"
-                            value={wizardNewOpPin}
-                            onChange={(e) => setWizardNewOpPin(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
-                            className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9"
-                          />
-                          <button type="button" onClick={() => setWizardShowPin(!wizardShowPin)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              {wizardShowPin
-                                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
-                              }
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <button type="button" onClick={addWizardOperator}
-                      disabled={!wizardNewOpName.trim() || String(wizardNewOpPin).length < 4}
-                      className="w-full py-2 text-sm font-medium border-2 border-dashed border-app-line-25 hover:border-app-cyan-500 hover:text-app-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-app-fg-muted rounded-lg transition-colors flex items-center justify-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
-                      </svg>
-                      {t.appStrings.addOperatorBtn}
-                    </button>
-                  </div>
-
-                  {wizardError && (
-                    <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2 text-xs text-red-300">{wizardError}</div>
-                  )}
-
-                  <div className="flex justify-between pt-1">
-                    <button onClick={() => setWizardStep(2)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
-                      {t.appStrings.sedeWizardBack}
-                    </button>
-                    <button onClick={handleWizardCreate} disabled={creatingWizard}
-                      className="px-6 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
-                      {creatingWizard ? (
-                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> {t.appStrings.sedeWizardCreatingBtn}</>
-                      ) : (
-                        <>{t.appStrings.sedeWizardCreateBtn.replace('{n}', String(wizardOperators.length))}</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sedi list */}
-      <div>
-        <h2 className="text-base font-semibold text-app-fg mb-3">{t.sedi.titleGlobalAdmin} ({sedi.length})</h2>
-        {sedi.length === 0 ? (
-          <div className="app-workspace-inset-bg-soft border border-dashed border-app-line-25 rounded-xl p-8 text-center">
-            <p className="text-app-fg-muted text-sm mb-4">{t.sedi.noSedi}</p>
-            <a
-              href="/onboarding"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#22d3ee] px-5 py-2.5 text-sm font-bold text-[#0a192f] transition hover:opacity-90"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-              {t.appStrings.sedeWizardStartSetup}
-            </a>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sedi.map((sede) => (
+  const renderSediExpandedCards = () =>
+    sedi.map((sede) => (
               <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-app-line-28 bg-transparent">
                 {/* ── Header sede ── */}
                 <div className="flex items-center justify-between px-5 py-4">
@@ -1462,10 +1080,410 @@ export default function SediPage() {
                   )}
                 </div>
               </div>
-            ))}
+            ))
+
+
+  const isSedeScopedAdmin = adminListScope === 'sede'
+
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-6 md:gap-8 app-shell-page-padding">
+      {elevateSingleSedeCard ? (
+        <section className="order-1 min-w-0 space-y-3" aria-label={t.sedi.titleGlobalAdmin}>
+          {renderSediExpandedCards()}
+        </section>
+      ) : null}
+
+            <div className={elevateSingleSedeCard ? 'order-2 flex min-w-0 flex-col gap-6 md:gap-8' : ''}>
+<AppPageHeaderStrip
+        accent="teal"
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
+      >
+        <AppPageHeaderTitleWithDashboardShortcut>
+          <h1 id="page-sedi-title" className={APP_PAGE_HEADER_STRIP_H1_CLASS} aria-describedby="page-sedi-desc">
+            {t.sedi.titleGlobalAdmin}
+          </h1>
+          <p id="page-sedi-desc" className={APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}>
+            {t.sedi.subtitleGlobalAdmin}
+          </p>
+        </AppPageHeaderTitleWithDashboardShortcut>
+        {!isSedeScopedAdmin ? (
+          <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
+            <button
+              type="button"
+              onClick={openWizard}
+              className="flex shrink-0 items-center gap-2 rounded-lg bg-app-cyan-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-600 md:px-4 md:py-2.5"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">{t.sedi.newSede}</span>
+              <span className="sm:hidden">Nuova</span>
+            </button>
+          </div>
+        ) : null}
+      </AppPageHeaderStrip>
+
+      {error && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+      {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
+
+      {/* ── Wizard nuova sede ── */}
+      {showWizard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center app-workspace-scrim app-aurora-modal-overlay p-4 backdrop-blur-sm">
+          <div className="app-workspace-surface-elevated rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
+
+            {/* Wizard header */}
+            <div className="px-6 py-4 border-b border-app-line-22 flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-app-fg">{t.sedi.newSede}</h2>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  {[1,2,3].map((s) => (
+                    <div key={s} className={`h-1 rounded-full transition-all ${s <= wizardStep ? 'w-8 bg-app-cyan-500' : 'w-4 bg-cyan-950/50'}`} />
+                  ))}
+                  <span className="text-xs text-app-fg-muted ml-1">{t.appStrings.sedeWizardStepOf.replace('{step}', String(wizardStep))}</span>
+                </div>
+              </div>
+              <button onClick={() => setShowWizard(false)} className="rounded-lg p-2 text-app-fg-muted transition-colors hover:bg-app-line-12 hover:text-app-fg">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-5">
+
+              {/* Step 1 — Nome sede + Geo-detection */}
+              {wizardStep === 1 && (() => {
+                const loc = getLocale(wizardCountryCode)
+                return (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardNameLabel}</p>
+                      <p className="text-xs text-app-fg-muted mb-4">Es. &quot;Ristorante Roma&quot; o &quot;Magazzino Nord&quot;</p>
+                      <input
+                        type="text" autoFocus placeholder="Nome sede…"
+                        value={wizardSedeName}
+                        onChange={(e) => setWizardSedeName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && wizardSedeName.trim() && setWizardStep(2)}
+                        className="w-full rounded-xl border border-app-line-25 app-workspace-surface-elevated px-4 py-3 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35"
+                      />
+                    </div>
+
+                    {/* ── Geo-detection banner ── */}
+                    <div className={`rounded-xl border px-4 py-3 text-xs transition-colors ${
+                      wizardGeoStatus === 'detecting'
+                        ? 'app-workspace-inset-bg-soft border-app-line-25 text-app-fg-muted'
+                        : wizardGeoStatus === 'detected'
+                        ? 'border-app-line-35 bg-app-line-10 text-app-fg-muted'
+                        : 'border-[rgba(34,211,238,0.15)] bg-amber-500/10 text-amber-100'
+                    }`}>
+                      {/* Status row */}
+                      <div className="flex items-center gap-2 mb-2.5">
+                        {wizardGeoStatus === 'detecting' ? (
+                          <>
+                            <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                            </svg>
+                            <span>Rilevamento posizione in corso…</span>
+                          </>
+                        ) : wizardGeoStatus === 'detected' ? (
+                          <>
+                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
+                            <span className="font-semibold">Rilevata posizione: {loc.name}.</span>
+                            <span className="text-blue-600">Termini fiscali impostati su <strong>{loc.vat}</strong> · <strong>{loc.vatLabel}</strong>.</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span>Posizione non rilevata automaticamente. Termine predefinito: <strong>UK</strong>.</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Manual override — always visible */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-current/10">
+                        <span className="text-[11px] opacity-70 shrink-0">Cambia manualmente:</span>
+                        <div className="relative">
+                          <select
+                            value={wizardCountryCode}
+                            onChange={e => { setWizardCountryCode(e.target.value); setWizardGeoStatus('failed') }}
+                            className="appearance-none pl-7 pr-6 py-1 text-xs border border-current/20 rounded-lg app-workspace-surface-elevated focus:outline-none focus:ring-2 focus:ring-app-line-30 cursor-pointer"
+                          >
+                            {COUNTRY_OPTIONS.map(o => (
+                              <option key={o.code} value={o.code}>{o.code} — {o.name}</option>
+                            ))}
+                          </select>
+                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 leading-none">
+                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
+                          </span>
+                          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setWizardStep(2)}
+                        disabled={!wizardSedeName.trim()}
+                        className="px-5 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                      >
+                        {t.appStrings.sedeWizardNext}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Step 2 — Configurazione email IMAP */}
+              {wizardStep === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardEmailConfigTitle}</p>
+                    <p className="text-xs text-app-fg-muted mb-4">{t.appStrings.sedeWizardEmailConfigDesc}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Server IMAP</label>
+                      <input type="text" list="wizard-imap-providers" placeholder="imap.gmail.com"
+                        value={wizardImap.imap_host}
+                        onChange={(e) => {
+                          const host = e.target.value
+                          const portMap: Record<string, string> = {
+                            'imap.gmail.com':'993','imap.googlemail.com':'993','outlook.office365.com':'993',
+                            'imap-mail.outlook.com':'993','imap.mail.yahoo.com':'993','imap.apple.com':'993',
+                            'imap.fastmail.com':'993','imap.libero.it':'993','imap.alice.it':'993',
+                            'imap.tim.it':'993','imap.virgilio.it':'993','imap.aruba.it':'993',
+                            'imapmail.aruba.it':'993','imap.tiscali.it':'993','imap.protonmail.ch':'993','imap.zoho.com':'993',
+                          }
+                          setWizardImap({ ...wizardImap, imap_host: host, imap_port: portMap[host] ?? wizardImap.imap_port })
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                      />
+                      <datalist id="wizard-imap-providers">
+                        <option value="imap.gmail.com">Gmail</option>
+                        <option value="imap.googlemail.com">Gmail (alt.)</option>
+                        <option value="outlook.office365.com">Outlook / M365</option>
+                        <option value="imap-mail.outlook.com">Outlook.com</option>
+                        <option value="imap.mail.yahoo.com">Yahoo</option>
+                        <option value="imap.apple.com">iCloud</option>
+                        <option value="imap.fastmail.com">Fastmail</option>
+                        <option value="imap.protonmail.ch">Proton</option>
+                        <option value="imap.zoho.com">Zoho</option>
+                        <option value="imap.libero.it">Libero</option>
+                        <option value="imap.alice.it">Alice/TIM</option>
+                        <option value="imap.virgilio.it">Virgilio</option>
+                        <option value="imap.aruba.it">Aruba</option>
+                        <option value="imapmail.aruba.it">Aruba PEC</option>
+                        <option value="imap.tiscali.it">Tiscali</option>
+                      </datalist>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Porta</label>
+                      <input type="number" placeholder="993" value={wizardImap.imap_port}
+                        onChange={(e) => setWizardImap({ ...wizardImap, imap_port: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Email account</label>
+                      <input type="email" placeholder="email@esempio.it" value={wizardImap.imap_user}
+                        onChange={(e) => setWizardImap({ ...wizardImap, imap_user: e.target.value })}
+                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Password / App Password</label>
+                      <div className="relative">
+                        <input type={wizardShowImap ? 'text' : 'password'} placeholder="Password…" value={wizardImap.imap_password}
+                          onChange={(e) => setWizardImap({ ...wizardImap, imap_password: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9"
+                        />
+                        <button type="button" onClick={() => setWizardShowImap(!wizardShowImap)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {wizardShowImap
+                              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                              : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
+                            }
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {(wizardImap.imap_host.includes('gmail') || wizardImap.imap_host.includes('outlook') || wizardImap.imap_host.includes('office365')) && (
+                    <div className="flex gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                      <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span>
+                        {wizardImap.imap_host.includes('gmail')
+                          ? <><strong>App Password richiesta.</strong> <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Google →</a></>
+                          : <><strong>App Password richiesta.</strong> <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Microsoft →</a></>
+                        }
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <button onClick={() => setWizardStep(1)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
+                      {t.appStrings.sedeWizardBack}
+                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setWizardImap({ imap_host:'', imap_port:'993', imap_user:'', imap_password:'', imap_lookback_days: '30' }); setWizardStep(3) }}
+                        className="px-4 py-2 text-sm text-app-fg-muted hover:text-app-fg rounded-xl hover:bg-black/12">
+                        {t.appStrings.sedeWizardSkip}
+                      </button>
+                      <button onClick={() => setWizardStep(3)}
+                        className="px-5 py-2 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
+                        {t.appStrings.sedeWizardNext}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3 — Operatori */}
+              {wizardStep === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardAddOperatorsTitle}</p>
+                    <p className="text-xs text-app-fg-muted mb-4">{t.sedi.wizardOperatorHint}</p>
+                  </div>
+
+                  {/* Lista operatori aggiunti */}
+                  {wizardOperators.length > 0 && (
+                    <div className="space-y-1.5 mb-2">
+                      {wizardOperators.map((op, i) => (
+                        <div key={i} className="flex items-center justify-between rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600">
+                              <span className="text-white text-[10px] font-bold">{op.name.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <span className="text-sm font-medium text-app-fg">{op.name}</span>
+                            <span className="text-xs text-app-fg-muted">PIN: {'•'.repeat(op.pin.length)}</span>
+                          </div>
+                          <button onClick={() => setWizardOperators(wizardOperators.filter((_, j) => j !== i))}
+                            className="text-app-fg-muted hover:text-red-400 transition-colors">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Form nuovo operatore */}
+                  <div className="app-workspace-inset-bg-soft border border-app-line-25 rounded-xl p-3 space-y-2.5">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-xs font-medium text-app-fg-muted mb-1">Nome operatore</label>
+                        <input
+                          type="text"
+                          placeholder="MARIO ROSSI"
+                          autoCapitalize="characters"
+                          value={wizardNewOpName}
+                          onChange={(e) => setWizardNewOpName(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
+                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-app-fg-muted mb-1">PIN (min. 4 cifre)</label>
+                        <div className="relative">
+                          <input
+                            type={wizardShowPin ? 'text' : 'password'}
+                            placeholder="es. 1234"
+                            value={wizardNewOpPin}
+                            onChange={(e) => setWizardNewOpPin(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
+                            className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9"
+                          />
+                          <button type="button" onClick={() => setWizardShowPin(!wizardShowPin)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              {wizardShowPin
+                                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
+                              }
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" onClick={addWizardOperator}
+                      disabled={!wizardNewOpName.trim() || String(wizardNewOpPin).length < 4}
+                      className="w-full py-2 text-sm font-medium border-2 border-dashed border-app-line-25 hover:border-app-cyan-500 hover:text-app-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-app-fg-muted rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+                      </svg>
+                      {t.appStrings.addOperatorBtn}
+                    </button>
+                  </div>
+
+                  {wizardError && (
+                    <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2 text-xs text-red-300">{wizardError}</div>
+                  )}
+
+                  <div className="flex justify-between pt-1">
+                    <button onClick={() => setWizardStep(2)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
+                      {t.appStrings.sedeWizardBack}
+                    </button>
+                    <button onClick={handleWizardCreate} disabled={creatingWizard}
+                      className="px-6 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
+                      {creatingWizard ? (
+                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> {t.appStrings.sedeWizardCreatingBtn}</>
+                      ) : (
+                        <>{t.appStrings.sedeWizardCreateBtn.replace('{n}', String(wizardOperators.length))}</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sedi list — con più sedi sotto gli avvisi; con una sede la scheda è sopra */}
+      {!elevateSingleSedeCard ? (
+      <div>
+        <h2 className="text-base font-semibold text-app-fg mb-3">{t.sedi.titleGlobalAdmin} ({sedi.length})</h2>
+        {sedi.length === 0 ? (
+          <div className="app-workspace-inset-bg-soft border border-dashed border-app-line-25 rounded-xl p-8 text-center">
+            <p className="text-app-fg-muted text-sm mb-4">{t.sedi.noSedi}</p>
+            <a
+              href="/onboarding"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#22d3ee] px-5 py-2.5 text-sm font-bold text-[#0a192f] transition hover:opacity-90"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              {t.appStrings.sedeWizardStartSetup}
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {renderSediExpandedCards()}
+
           </div>
         )}
       </div>
+
+      </div>
+      ) : null}
 
       {/* Utenti senza sede — solo amministratore principale (admin senza sede sul profilo) */}
       {adminListScope === 'global'
