@@ -488,15 +488,19 @@ export default function ImpostazioniPage() {
               </div>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
-          <div className="mt-2 flex flex-col gap-6 lg:mt-3">
+          <div className="mt-2 flex flex-col gap-6 lg:mt-3 lg:gap-8">
             <div
               className={
                 showSedeOcrBlocks && sedeResolved
-                  ? 'grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start lg:gap-6'
+                  ? 'grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start lg:gap-8'
                   : ''
               }
             >
-              <div className="flex min-w-0 flex-col gap-6">
+              <div
+                className={`flex min-w-0 flex-col gap-4${
+                  showSedeOcrBlocks && sedeResolved ? ' lg:col-span-5' : ''
+                }`}
+              >
                 <div className="app-card overflow-hidden">
                   <div className="space-y-6 px-6 py-6 sm:px-8">
                     <FormBody />
@@ -541,7 +545,7 @@ export default function ImpostazioniPage() {
               </div>
 
               {showSedeOcrBlocks && sedeResolved ? (
-                <div className="min-w-0">
+                <div className="min-w-0 lg:col-span-7">
                   <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} />
                 </div>
               ) : null}
