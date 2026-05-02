@@ -325,9 +325,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
       ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
 
-  /** Rail footer: niente Strumenti / Guida nel solo portale gestionale globale (master senza sede nel cookie). */
-  const showStrumentiGuidaInRailFooter = !(isMasterAdmin && !activeSede)
-
   const handleLogout = async () => {
     try {
       localStorage.removeItem('fluxo-active-operator')
@@ -707,33 +704,30 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </svg>
                 <span className="truncate">{t.nav.impostazioni}</span>
               </Link>
-              {showStrumentiGuidaInRailFooter ? (
-                <>
-                  <Link
-                    href="/strumenti/centro-operazioni"
-                    title={t.strumentiCentroOperazioni.pageTitle}
-                    onClick={() => setFooterOpen(false)}
-                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
-                      pathname?.startsWith('/strumenti') ? 'text-app-fg bg-app-line-10' : 'text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'
-                    }`}
-                  >
-                    <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-                    </svg>
-                    <span className="truncate">{t.nav.strumenti}</span>
-                  </Link>
-                  <Link
-                    href="/guida"
-                    onClick={() => setFooterOpen(false)}
-                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${pathname === '/guida' ? 'text-app-fg bg-app-line-10' : 'text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'}`}
-                  >
-                    <svg className={`h-3.5 w-3.5 shrink-0 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="truncate">{t.nav.guida}</span>
-                  </Link>
-                </>
-              ) : null}
+              <Link
+                href="/strumenti/centro-operazioni"
+                title={t.strumentiCentroOperazioni.pageTitle}
+                onClick={() => setFooterOpen(false)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
+                  pathname?.startsWith('/strumenti') ? 'text-app-fg bg-app-line-10' : 'text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'
+                }`}
+              >
+                <svg className={`h-3.5 w-3.5 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+                </svg>
+                <span className="truncate">{t.nav.strumenti}</span>
+              </Link>
+              {/* Help */}
+              <Link
+                href="/guida"
+                onClick={() => setFooterOpen(false)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${pathname === '/guida' ? 'text-app-fg bg-app-line-10' : 'text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'}`}
+              >
+                <svg className={`h-3.5 w-3.5 shrink-0 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="truncate">{t.nav.guida}</span>
+              </Link>
               {/* Sign out */}
               <button
                 type="button"
@@ -804,28 +798,26 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </svg>
             </Link>
 
-            {showStrumentiGuidaInRailFooter ? (
-              <>
-                <Link
-                  href="/strumenti/centro-operazioni"
-                  title={t.strumentiCentroOperazioni.pageTitle}
-                  className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname?.startsWith('/strumenti') ? 'text-cyan-300' : 'text-app-fg-subtle hover:text-app-fg'}`}
-                >
-                  <svg className={`h-4 w-4 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
-                  </svg>
-                </Link>
-                <Link
-                  href="/guida"
-                  title={t.nav.guida}
-                  className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 text-app-fg-subtle hover:text-app-fg"
-                >
-                  <svg className={`h-4 w-4 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </Link>
-              </>
-            ) : null}
+            <Link
+              href="/strumenti/centro-operazioni"
+              title={t.strumentiCentroOperazioni.pageTitle}
+              className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname?.startsWith('/strumenti') ? 'text-cyan-300' : 'text-app-fg-subtle hover:text-app-fg'}`}
+            >
+              <svg className={`h-4 w-4 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
+              </svg>
+            </Link>
+
+            {/* Help */}
+            <Link
+              href="/guida"
+              title={t.nav.guida}
+              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 text-app-fg-subtle hover:text-app-fg"
+            >
+              <svg className={`h-4 w-4 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </Link>
 
             {/* Sign out */}
             <button

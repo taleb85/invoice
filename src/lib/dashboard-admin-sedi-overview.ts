@@ -133,25 +133,52 @@ export type SedeAdminGlobalOverviewRow = Pick<Sede, 'id' | 'nome' | 'country_cod
   syncLogErrors24h: number
 }
 
+/** Evento mostrato nella console globale (solo contesto tecnico, niente importi commerci). */
+export type AdminGlobalConsoleEvent = {
+  id: string
+  occurredAt: string
+  sedeId: string | null
+  sedeNome: string
+  channel: 'imap' | 'sync'
+  statoKey: string
+  detail: string
+  allegatoNome: string | null
+}
+
+const CONSOLE_LOG_SINCE_H = 72
+const CONSOLE_LOG_ROWS_CAP = 120
+const CONSOLE_EVENTS_MAX = 100
+
 /**
- * Dati portale master: sedi con stato tecnico (IMAP, log sync, OCR).
+ * Dati portale master: sedi con stato tecnico + feed console (log + IMAP).
  * Oggi una “azienda” nel deploy = filiale (`sedi`); in futuro si può filtrare per `organization_id`.
  */
-export async function fetchAdminGlobalPortalBundle(
-  supabase: SupabaseClient,
-): Promise<{ sediHealth: SedeAdminGlobalOverviewRow[] }> {
-  const [{ data: sediRows }, ocrMap] = await Promise.all([
+export async function fetchAdminGlobalPortalBundle(supabase: SupabaseClient): Promise<{
+  sediHealth: SedeAdminGlobalOverviewRow[]
+  consoleEvents: AdminGlobalConsoleEvent[]
+}> {
+  const sinceIso = new Date(Date.now() - CONSOLE_LOG_SINCE_H * 60 * 60 * 1000).toISOString()
+
+  const [{ data: sediRows }, ocrMap, { data: logRows }] = await Promise.all([
     supabase
       .from('sedi')
-      .select('id, nome, country_code, imap_host, imap_user, last_imap_sync_error')
+      .select('id, nome, country_code, imap_host, imap_user, last_imap_sync_error, last_imap_sync_at')
       .order('nome'),
     countOcrFailuresBySedeLast48h(supabase),
+    supabase
+      .from('log_sincronizzazione')
+      .select('id, data, sede_id, stato, errore_dettaglio, allegato_nome')
+      .in('stato', [...LOG_ERROR_STATI])
+      .gte('data', sinceIso)
+      .order('data', { ascending: false })
+      .limit(CONSOLE_LOG_ROWS_CAP),
   ])
 
   const list = (sediRows ?? []) as (Pick<Sede, 'id' | 'nome' | 'country_code' | 'imap_host' | 'imap_user'> & {
     last_imap_sync_error?: string | null
+    last_imap_sync_at?: string | null
   })[]
-  if (list.length === 0) return { sediHealth: [] }
+  if (list.length === 0) return { sediHealth: [], consoleEvents: [] }
 
   const ids = list.map((s) => s.id)
   const errMap = await countSyncLogErrorsBySede24h(supabase, ids)
@@ -170,7 +197,46 @@ export async function fetchAdminGlobalPortalBundle(
     }
   })
 
-  return { sediHealth }
+  const nameById: Record<string, string> = Object.fromEntries(list.map((s) => [s.id, s.nome]))
+
+  const consoleEvents: AdminGlobalConsoleEvent[] = []
+
+  for (const s of list) {
+    const err = typeof s.last_imap_sync_error === 'string' ? s.last_imap_sync_error.trim() : ''
+    if (err) {
+      const at =
+        typeof s.last_imap_sync_at === 'string' && s.last_imap_sync_at.trim() !== ''
+          ? s.last_imap_sync_at.trim()
+          : '1970-01-01T00:00:00.000Z'
+      consoleEvents.push({
+        id: `imap:${s.id}`,
+        occurredAt: at,
+        sedeId: s.id,
+        sedeNome: s.nome,
+        channel: 'imap',
+        statoKey: 'imap_error',
+        detail: err.slice(0, 400),
+        allegatoNome: null,
+      })
+    }
+  }
+
+  for (const row of logRows ?? []) {
+    const sid = (row.sede_id as string | null) ?? null
+    consoleEvents.push({
+      id: String(row.id),
+      occurredAt: String(row.data),
+      sedeId: sid,
+      sedeNome: sid && nameById[sid] ? nameById[sid] : '—',
+      channel: 'sync',
+      statoKey: String(row.stato ?? ''),
+      detail: String(row.errore_dettaglio ?? '').slice(0, 400),
+      allegatoNome: (row.allegato_nome as string | null) ?? null,
+    })
+  }
+
+  consoleEvents.sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+  return { sediHealth, consoleEvents: consoleEvents.slice(0, CONSOLE_EVENTS_MAX) }
 }
 
 /**
