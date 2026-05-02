@@ -1038,7 +1038,7 @@ export default function SediPage() {
                                             full_name: e.target.value.toUpperCase(),
                                           })
                                         }
-                                        className="min-h-[44px] w-full rounded-lg border border-app-line-25 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                                        className="h-9 w-full rounded-lg border border-app-line-25 px-2.5 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35 app-workspace-surface-elevated"
                                       />
                                     </div>
                                     <div className="min-w-0">
@@ -1046,7 +1046,7 @@ export default function SediPage() {
                                       <select
                                         value={editingProfile.role}
                                         onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
-                                        className="min-h-[44px] w-full rounded-lg border border-app-line-25 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                                        className="h-9 w-full rounded-lg border border-app-line-25 px-2.5 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35 app-workspace-surface-elevated"
                                       >
                                         <option value="operatore">Operatore</option>
                                         <option value="admin_sede">{t.sedi.adminSedeRole}</option>
@@ -1060,14 +1060,14 @@ export default function SediPage() {
                                     <button
                                       type="button"
                                       onClick={() => setEditingProfile(null)}
-                                      className="min-h-[44px] min-w-[5.5rem] flex-1 rounded-lg border border-app-line-25 px-4 py-2 text-sm text-app-fg-muted hover:bg-black/18 sm:flex-initial sm:min-w-0"
+                                      className="inline-flex h-9 min-w-[4.75rem] flex-1 items-center justify-center rounded-lg border border-app-line-25 px-2.5 text-xs font-semibold text-app-fg-muted hover:bg-black/18 sm:flex-initial sm:min-w-[5rem]"
                                     >
                                       {t.common.cancel}
                                     </button>
                                     <button
                                       type="submit"
                                       disabled={savingProfile}
-                                      className="min-h-[44px] min-w-[5.5rem] flex-1 rounded-lg bg-app-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 touch-manipulation sm:flex-initial sm:min-w-0"
+                                      className="inline-flex h-9 min-w-[4.75rem] flex-1 items-center justify-center rounded-lg bg-app-cyan-500 px-2.5 text-xs font-semibold text-white shadow-sm hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 touch-manipulation sm:flex-initial sm:min-w-[5rem]"
                                     >
                                       {savingProfile ? t.appStrings.savingShort : t.common.save}
                                     </button>
