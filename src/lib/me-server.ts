@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
+import { getRequestAuth } from '@/utils/supabase/server'
 import type { MeData } from '@/lib/me-context'
 import { isAdminSedeRole, isAdminTecnicoRole, isMasterAdminRole } from '@/lib/roles'
 import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
@@ -45,15 +45,13 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
   const isAdminSede = isAdminSedeRole(profile.role)
   const isAdminTecnico = isAdminTecnicoRole(profile.role)
 
-  const svc = createServiceClient()
-
   let effectiveSedeNome: string | null = null
   let countryCode = 'UK'
   let currency: string | null = 'GBP'
   let timezone: string | null = 'Europe/London'
 
   if (operationalSedeId) {
-    const { data: sedeFull } = await svc
+    const { data: sedeFull } = await supabase
       .from('sedi')
       .select('id, nome, country_code, currency, timezone')
       .eq('id', operationalSedeId)
@@ -68,7 +66,7 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
 
   let allSedi: { id: string; nome: string }[] = []
   if (isAdmin) {
-    const { data: rows } = await svc.from('sedi').select('id, nome').order('nome', { ascending: true })
+    const { data: rows } = await supabase.from('sedi').select('id, nome').order('nome', { ascending: true })
     allSedi = rows ?? []
   }
 

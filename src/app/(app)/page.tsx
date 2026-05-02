@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import DuplicateDashboardBanner from '@/components/duplicates/duplicate-dashboard-banner'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getCurrency, getCookieStore } from '@/lib/locale-server'
@@ -136,11 +136,10 @@ export default async function DashboardPage(props: {
 
   const sedeId = operationalSedeId
   let dashboardSedeNome: string | null = null
-  const service = sedeId ? createServiceClient() : null
   const [fornitoreIds, sedeMetaRow] = await Promise.all([
     sedeId ? fornitoreIdsForSede(supabase, sedeId) : Promise.resolve([] as string[]),
-    sedeId && service
-      ? service.from('sedi').select('nome, country_code').eq('id', sedeId).maybeSingle()
+    sedeId
+      ? supabase.from('sedi').select('nome, country_code').eq('id', sedeId).maybeSingle()
       : Promise.resolve({ data: null as { nome: string | null; country_code: string | null } | null }),
   ])
   if (sedeId && sedeMetaRow.data?.nome && dashboardSedeNome == null) {

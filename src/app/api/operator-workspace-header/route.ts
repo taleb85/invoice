@@ -6,7 +6,7 @@ import {
   fetchOperatorDashboardKpis,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
-import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 import type { OperatorWorkspaceHeaderPayload } from '@/types/operator-workspace-header'
 
@@ -46,10 +46,13 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  const service = createServiceClient()
   const [fornitoreIds, sedeMetaRow] = await Promise.all([
     fornitoreIdsForSede(supabase, sedeId),
-    service.from('sedi').select('country_code, last_imap_sync_at, last_imap_sync_error').eq('id', sedeId).maybeSingle(),
+    supabase
+      .from('sedi')
+      .select('country_code, last_imap_sync_at, last_imap_sync_error')
+      .eq('id', sedeId)
+      .maybeSingle(),
   ])
   const sedeCountryCode = (sedeMetaRow.data?.country_code ?? 'IT').trim() || 'IT'
   const fiscalYear = parseFiscalYearQueryParam(fyRaw, sedeCountryCode)
