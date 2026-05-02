@@ -126,7 +126,7 @@ export default function OcrScartoRulesPanel({
 
   const outerCls =
     variant === 'settingsPage'
-      ? 'space-y-6'
+      ? 'flex flex-col gap-0'
       : 'space-y-4 border-t border-white/10 pt-5'
 
   const fieldCls =
@@ -137,7 +137,7 @@ export default function OcrScartoRulesPanel({
 
   const composeForm =
     variant === 'settingsPage' ? (
-      <div className="rounded-xl border border-app-line-28 bg-black/[0.18] p-4 ring-1 ring-white/[0.04] sm:p-5">
+      <div className="rounded-xl border border-app-line-28 bg-black/[0.12] p-4 ring-1 ring-white/[0.04] sm:p-5">
         <div className="flex flex-col gap-4">
           <label className={labelCls}>
             {tg.ocrDiscardRulesColTipo}
@@ -340,11 +340,19 @@ export default function OcrScartoRulesPanel({
         </div>
       ) : null}
 
-      {composeForm}
-
-      <div className={variant === 'settingsPage' ? 'border-t border-app-line-20 pt-5' : undefined}>
-        {listBlock}
-      </div>
+      {variant === 'settingsPage' ? (
+        <>
+          {composeForm}
+          <div className="mt-8 border-t border-app-line-25 pt-6">
+            {listBlock}
+          </div>
+        </>
+      ) : (
+        <>
+          {composeForm}
+          <div>{listBlock}</div>
+        </>
+      )}
     </div>
   )
 }
