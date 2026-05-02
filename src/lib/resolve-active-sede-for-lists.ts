@@ -1,16 +1,24 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isMasterAdminRole } from '@/lib/roles'
+import { createServiceClient } from '@/utils/supabase/server'
 
 /** Lettura cookie come in `getCookieStore()` / `cookies()`. */
 export type ListPageCookieGet = (name: string) => { value?: string } | undefined
 
-async function firstSedeId(supabase: SupabaseClient): Promise<string | null> {
-  const { data } = await supabase
+async function firstSedeId(): Promise<string | null> {
+  const service = createServiceClient()
+  const { data } = await service
     .from('sedi')
     .select('id')
     .order('nome', { ascending: true })
     .limit(1)
     .maybeSingle()
+  return data?.id ?? null
+}
+
+async function sedeIdIfExists(id: string): Promise<string | null> {
+  const service = createServiceClient()
+  const { data } = await service.from('sedi').select('id').eq('id', id).maybeSingle()
   return data?.id ?? null
 }
 
@@ -53,11 +61,11 @@ export async function resolveActiveSedeIdForLists(
   if (isMasterAdminRole(p.role)) {
     const pick = getCookie('admin-sede-id')?.value?.trim() || null
     if (pick) {
-      const { data } = await supabase.from('sedi').select('id').eq('id', pick).maybeSingle()
-      if (data?.id) return data.id
+      const id = await sedeIdIfExists(pick)
+      if (id) return id
     }
     /* Cookie assente / non valido: mai lasciare il master senza sede quando ne esiste almeno una. */
-    return (await firstSedeId(supabase)) ?? null
+    return (await firstSedeId()) ?? null
   }
 
   const raw = p.sede_id
