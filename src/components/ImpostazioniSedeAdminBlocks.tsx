@@ -56,9 +56,10 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-5 lg:gap-6">
+    <div className="flex min-h-0 min-w-0 flex-col gap-8">
       <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit />
-      <div className="overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
+
+      <article className="min-h-0 min-w-0 overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
         <div className="border-b border-app-line-22 app-workspace-inset-bg-soft px-5 py-4 sm:px-6">
           <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/15">
@@ -80,27 +81,31 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
         <div className="px-5 py-5 sm:px-6 sm:pb-6">
           <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
         </div>
-      </div>
+      </article>
 
-      <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5 sm:p-6">
-        <div className="mb-5 flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15">
-            <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold leading-snug text-app-fg">{imp.approvalSectionTitle}</p>
-            <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.approvalSectionSubtitle}</p>
+      <article className="min-h-0 min-w-0 overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
+        <div className="border-b border-app-line-22 app-workspace-inset-bg-soft px-5 py-4 sm:px-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15">
+              <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold leading-snug text-app-fg">{imp.approvalSectionTitle}</p>
+              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.approvalSectionSubtitle}</p>
+            </div>
           </div>
         </div>
-        <ApprovalSettingsForm sedeId={sedeId} />
-      </div>
+        <div className="px-5 py-5 sm:px-6 sm:pb-6">
+          <ApprovalSettingsForm sedeId={sedeId} />
+        </div>
+      </article>
     </div>
   )
 }

@@ -61,8 +61,8 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
   }
 
   const header = (
-    <div className={`flex gap-3 ${embedded ? 'items-start' : 'items-center'}`}>
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 ${embedded ? 'mt-0.5' : ''}`}>
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15">
         <svg className="h-4 w-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
@@ -155,9 +155,9 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
   }
 
   return (
-    <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5">
-      <div className="mb-4">{header}</div>
-      {body}
-    </div>
+    <article className="min-h-0 min-w-0 overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
+      <div className="border-b border-app-line-22 app-workspace-inset-bg-soft px-5 py-4 sm:px-6">{header}</div>
+      <div className="space-y-4 px-5 py-5 sm:px-6 sm:pb-6">{body}</div>
+    </article>
   )
 }
