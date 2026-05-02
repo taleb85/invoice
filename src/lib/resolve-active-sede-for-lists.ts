@@ -10,7 +10,29 @@ function hasServiceRoleKey(): boolean {
   return typeof k === 'string' && k.trim() !== ''
 }
 
+/** Prima sede: client sessione (RLS `sedi` per tutti gli autenticati) — non richiede service role. */
+async function firstSedeIdFromUser(supabase: SupabaseClient): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('sedi')
+    .select('id')
+    .order('nome', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (error) {
+    console.warn('[resolveActiveSedeIdForLists] firstSedeIdFromUser', error)
+    return null
+  }
+  return data?.id ?? null
+}
+
+async function sedeIdIfExistsFromUser(supabase: SupabaseClient, id: string): Promise<string | null> {
+  const { data, error } = await supabase.from('sedi').select('id').eq('id', id).maybeSingle()
+  if (error) return null
+  return data?.id ?? null
+}
+
 async function firstSedeId(): Promise<string | null> {
+  if (!hasServiceRoleKey()) return null
   const service = createServiceClient()
   const { data } = await service
     .from('sedi')
@@ -22,6 +44,7 @@ async function firstSedeId(): Promise<string | null> {
 }
 
 async function sedeIdIfExists(id: string): Promise<string | null> {
+  if (!hasServiceRoleKey()) return null
   const service = createServiceClient()
   const { data } = await service.from('sedi').select('id').eq('id', id).maybeSingle()
   return data?.id ?? null
@@ -32,6 +55,7 @@ async function sedeIdIfExists(id: string): Promise<string | null> {
  * `profiles.sede_id` può riaverla senza intervento admin, anche con più sedi nel tenant.
  */
 async function healBranchStaffSedeFromLastDeviceSession(userId: string): Promise<string | null> {
+  if (!hasServiceRoleKey()) return null
   const service = createServiceClient()
   const { data, error } = await service
     .from('device_sessions')
@@ -60,10 +84,34 @@ async function healBranchStaffSedeFromLastDeviceSession(userId: string): Promise
 
 /**
  * Staff con `sede_id` null (es. dopo ON DELETE SET NULL sulla sede) ma tenant con **una sola**
- * filiale: riallinea il profilo via service role. Sicuro perimetro — non si assegna sede a caso
- * quando esistono più sedi.
+ * filiale: aggiorna il profilo con il client sessione (policy `profiles_update_own`).
+ * Funziona anche senza `SUPABASE_SERVICE_ROLE_KEY` su Vercel.
+ */
+async function healBranchStaffSedeIfSingleTenantWithUser(
+  userId: string,
+  supabase: SupabaseClient,
+): Promise<string | null> {
+  const { count, error: cntErr } = await supabase.from('sedi').select('id', { count: 'exact', head: true })
+  if (cntErr || count !== 1) return null
+  const onlySedeId = await firstSedeIdFromUser(supabase)
+  if (!onlySedeId) return null
+  const { error: upErr } = await supabase
+    .from('profiles')
+    .update({ sede_id: onlySedeId })
+    .eq('id', userId)
+    .is('sede_id', null)
+  if (upErr) {
+    console.warn('[resolveActiveSedeIdForLists] heal single-tenant (user)', upErr)
+    return null
+  }
+  return onlySedeId
+}
+
+/**
+ * Stesso perimetro di {@link healBranchStaffSedeIfSingleTenantWithUser}, via service (backup).
  */
 async function healBranchStaffSedeIfSingleTenant(userId: string): Promise<string | null> {
+  if (!hasServiceRoleKey()) return null
   const service = createServiceClient()
   const { count, error: cntErr } = await service.from('sedi').select('id', { count: 'exact', head: true })
   if (cntErr || count !== 1) return null
@@ -75,13 +123,15 @@ async function healBranchStaffSedeIfSingleTenant(userId: string): Promise<string
     .eq('id', userId)
     .is('sede_id', null)
   if (upErr) {
-    console.warn('[resolveActiveSedeIdForLists] heal branch sede_id failed', upErr)
+    console.warn('[resolveActiveSedeIdForLists] heal branch sede_id (service) failed', upErr)
     return null
   }
   return onlySedeId
 }
 
-async function healBranchStaffSedeOrphan(userId: string): Promise<string | null> {
+async function healBranchStaffSedeOrphan(userId: string, supabase: SupabaseClient): Promise<string | null> {
+  const fromUser = await healBranchStaffSedeIfSingleTenantWithUser(userId, supabase)
+  if (fromUser) return fromUser
   if (!hasServiceRoleKey()) return null
   return (
     (await healBranchStaffSedeFromLastDeviceSession(userId)) ?? (await healBranchStaffSedeIfSingleTenant(userId))
@@ -119,8 +169,8 @@ async function ensuredProfileBasics(
  * 3. `null` solo se non ci sono righe in `public.sedi`
  *
  * Staff sede (`admin_sede`, `admin_tecnico`, `operatore`): `profiles.sede_id` dalla riga utente — nessuna SELECT su `sedi` (evita RLS).
- * Eccezione senza `sede_id`: auto-riparazione (service role) da ultimo `device_sessions`, altrimenti se esiste una sola sede nel DB.
- * Master dopo eventuale `sede_id` sul profilo: cookie + SELECT `sedi` solo con service role.
+ * Eccezione senza `sede_id`: se c’è una sola sede → `UPDATE` profilo con client sessione; altrimenti (con service role) última `device_sessions` o heal service.
+ * Master: cookie + prima sede lette con **client sessione** su `sedi` (no service obbligatorio); fallback service se mancano permessi.
  */
 export async function resolveActiveSedeIdForLists(
   supabase: SupabaseClient,
@@ -140,14 +190,14 @@ export async function resolveActiveSedeIdForLists(
       data: { user },
     } = await supabase.auth.getUser()
     if (!user?.id) return null
-    return (await healBranchStaffSedeOrphan(user.id)) ?? null
+    return (await healBranchStaffSedeOrphan(user.id, supabase)) ?? null
   }
 
   const pick = getCookie('admin-sede-id')?.value?.trim() || null
   if (pick) {
-    const id = await sedeIdIfExists(pick)
+    const id = (await sedeIdIfExistsFromUser(supabase, pick)) ?? (await sedeIdIfExists(pick))
     if (id) return id
   }
-  /* Cookie assente / non valido: mai lasciare il master senza sede quando ne esiste almeno una. */
-  return (await firstSedeId()) ?? null
+  /* Cookie assente / non valido: prima sede con sessione utente (Vercel senza service role). */
+  return (await firstSedeIdFromUser(supabase)) ?? (await firstSedeId()) ?? null
 }
