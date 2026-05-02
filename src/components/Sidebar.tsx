@@ -325,6 +325,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
       ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
 
+  /** Portale globale: Portale + Consumi AI + Backup restano in testa (non scrollano con sedi/fornitori). */
+  const portaleLinksFixedBackup = isMasterAdmin && !activeSede
+
   const handleLogout = async () => {
     try {
       localStorage.removeItem('fluxo-active-operator')
@@ -352,7 +355,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       className="app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3"
     >
         <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
-          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden py-2 pb-3">
+          <div className="app-shell-rail-panel shrink-0 space-y-0.5 border-b border-app-line-22 bg-slate-950/75 py-2 backdrop-blur-md">
           {/* Dashboard / Portale Gestionale */}
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
@@ -395,6 +398,31 @@ export default function Sidebar({ onClose }: SidebarProps) {
             )
           })()}
 
+          {portaleLinksFixedBackup &&
+            (() => {
+              const item = backupNavItem
+              const isActive = pathname.startsWith(item.href)
+              const iconColor = item.iconColor
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => {
+                    onClose?.()
+                    router.push(item.href)
+                  }}
+                  className={`${navLink(isActive)} relative min-w-0`}
+                >
+                  <span className={`shrink-0 ${isActive ? (iconColor ?? 'text-app-cyan-300') : `${iconColor}/75`}`}>
+                    {item.icon}
+                  </span>
+                  <span className="truncate flex-1 min-w-0">{item.label}</span>
+                </Link>
+              )
+            })()}
+          </div>
+
+          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden py-2 pb-3">
           {/* Admin sede: stessa pagina gestione operatori / IMAP / PIN (vista solo propria sede). */}
           {isAdminSede &&
             !isMasterAdmin &&
@@ -412,7 +440,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
               In portale globale master le voci sono limitate da `masterOnlyItems`. */}
           {navItems
             .slice(1)
-            .filter((item) => isMasterAdmin || item.href !== '/fornitori')
+            .filter(
+              (item) =>
+                (isMasterAdmin || item.href !== '/fornitori') &&
+                !(portaleLinksFixedBackup && item.href === '/backup'),
+            )
             .map((item) => {
               const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
               const hasBadge = (item as { badge?: boolean }).badge
