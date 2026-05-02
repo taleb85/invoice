@@ -863,8 +863,13 @@ export default function SediPage() {
                         className="flex-1 px-3 py-1.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500"
                       />
                       <button type="submit" className="px-3 py-1.5 text-xs bg-app-cyan-500 text-white rounded-lg hover:bg-cyan-600">{t.common.save}</button>
-                      <button type="button" onClick={() => setEditingSede(null)} className="inline-flex items-center justify-center px-3 py-1.5 text-xs border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted" aria-label="Annulla">
-                        <GlyphXMark className="h-3.5 w-3.5" />
+                      <button
+                        type="button"
+                        onClick={() => setEditingSede(null)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-35 bg-black/14 px-2.5 py-1.5 text-xs font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-app-line-45 hover:bg-black/22 touch-manipulation"
+                      >
+                        <GlyphXMark className="h-3.5 w-3.5 shrink-0 text-app-fg" aria-hidden />
+                        <span>{t.common.cancel}</span>
                       </button>
                     </form>
                   ) : (
