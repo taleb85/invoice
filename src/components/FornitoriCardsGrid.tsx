@@ -71,7 +71,7 @@ export default function FornitoriCardsGrid({
     const fromCtx = activeOperator?.full_name?.trim()
     if (fromCtx) return fromCtx
     const n = me?.full_name?.trim()
-    if (n && (me?.role === 'operatore' || me?.role === 'admin_sede')) return n
+    if (n && (me?.role === 'operatore' || me?.role === 'admin_sede' || me?.role === 'admin_tecnico')) return n
     return undefined
   }, [activeOperator?.full_name, me?.full_name, me?.role])
   const net = useNetworkStatusOptional()

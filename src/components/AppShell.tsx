@@ -123,7 +123,12 @@ function AdminActingRoleCookieSync() {
   useEffect(() => {
     if (!me?.is_admin || !activeOperator?.sede_id) return
     if (readBrowserCookie('fluxo-acting-role')) return
-    const ar = activeOperator.role === 'admin_sede' ? 'admin_sede' : 'operatore'
+    const ar =
+      activeOperator.role === 'admin_sede'
+        ? 'admin_sede'
+        : activeOperator.role === 'admin_tecnico'
+          ? 'admin_tecnico'
+          : 'operatore'
     document.cookie = `admin-sede-id=${encodeURIComponent(activeOperator.sede_id)}; path=/; SameSite=Strict`
     document.cookie = `fluxo-acting-role=${encodeURIComponent(ar)}; path=/; SameSite=Strict`
     router.refresh()

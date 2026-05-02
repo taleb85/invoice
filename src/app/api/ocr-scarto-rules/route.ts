@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import {
   OCR_SCARTO_RULE_TIPOS,
   parseOcrScartoRuleTipo,
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
   const sedeParam = req.nextUrl.searchParams.get('sede_id')?.trim() || ''
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
   const sede_id = targetSedeId(profile as { role?: string | null; sede_id?: string | null }, body.sede_id)
@@ -123,7 +123,7 @@ export async function PATCH(req: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
   const service = createServiceClient()
@@ -163,7 +163,7 @@ export async function DELETE(req: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
   const service = createServiceClient()

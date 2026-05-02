@@ -10,8 +10,8 @@ export interface ActiveOperator {
   full_name: string
   sede_id:   string
   sede_nome: string | null
-  /** Profilo reale dopo verifica PIN (`operatore` | `admin_sede`). Assente = legacy → operatore. */
-  role?: 'operatore' | 'admin_sede' | null
+  /** Profilo reale dopo verifica PIN (`operatore` | privilegi sulla sede). Assente = legacy → operatore. */
+  role?: 'operatore' | 'admin_sede' | 'admin_tecnico' | null
 }
 
 interface ActiveOperatorContextValue {

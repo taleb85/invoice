@@ -19,7 +19,7 @@ async function jsonForSedeId(sedeId: string) {
       .from('profiles')
       .select('id, full_name, role')
       .eq('sede_id', sedeId)
-      .in('role', ['operatore', 'admin_sede'])
+      .in('role', ['operatore', 'admin_sede', 'admin_tecnico'])
       .order('full_name'),
     svc
       .from('sedi')
@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
     const r = String(p?.role ?? '').toLowerCase()
-    if (!p?.sede_id || (r !== 'operatore' && r !== 'admin_sede')) {
+    if (!p?.sede_id || (r !== 'operatore' && r !== 'admin_sede' && r !== 'admin_tecnico')) {
       return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
     }
     return jsonForSedeId(p.sede_id)

@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isSedePrivilegedRole } from '@/lib/roles'
 
 /** Rotte accessibili senza autenticazione */
 const PUBLIC_PATHS = [
@@ -91,7 +92,7 @@ export async function proxy(request: NextRequest) {
 
   const role = profile?.role ?? ''
   const isMasterAdmin = role === 'admin'
-  const isAdminSede = role === 'admin_sede'
+  const isPrivilegedSede = isSedePrivilegedRole(role)
 
   if (isMasterAdminOnlyPath(pathname)) {
     if (!isMasterAdmin) {
@@ -102,9 +103,9 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  /** Lista `/sedi`: master (tutte) oppure admin_sede con sede assegnata (solo la propria, via API). */
+  /** Lista `/sedi`: master (tutte) oppure ruolo privilegiato sulla propria sede (via API scope). */
   if (pathname === '/sedi') {
-    const allowed = isMasterAdmin || (isAdminSede && !!profile?.sede_id)
+    const allowed = isMasterAdmin || (isPrivilegedSede && !!profile?.sede_id)
     if (!allowed) {
       if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const homeUrl = request.nextUrl.clone()
@@ -117,8 +118,8 @@ export async function proxy(request: NextRequest) {
   if (sedeFromPath) {
     if (isMasterAdmin) {
       // ok
-    } else if (isAdminSede && profile?.sede_id && sedeFromPath === profile.sede_id) {
-      // ok: responsabile solo della propria sede
+    } else if (isPrivilegedSede && profile?.sede_id && sedeFromPath === profile.sede_id) {
+      // ok: staff sede sulla propria filiale
     } else {
       if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const homeUrl = request.nextUrl.clone()
@@ -128,7 +129,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isLogPath(pathname)) {
-    if (!isMasterAdmin && !isAdminSede) {
+    if (!isMasterAdmin && !isPrivilegedSede) {
       if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const homeUrl = request.nextUrl.clone()
       homeUrl.pathname = '/'

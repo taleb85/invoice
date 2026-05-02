@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import {
   emailSubjectLooksLikeStatement,
   inferAutoPendingKindFromEmailScan,
@@ -20,7 +20,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const prof = await getProfile()
   const master = isMasterAdminRole(prof?.role)
-  const sedeAdmin = isAdminSedeRole(prof?.role)
+  const sedeAdmin = isSedePrivilegedRole(prof?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Solo gli amministratori possono riprovare i log di sincronizzazione.' }, { status: 403 })
   }

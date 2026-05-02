@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export async function GET(
   _req: NextRequest,
@@ -18,7 +18,7 @@ export async function GET(
     .single()
 
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
+  const isAdminSede = isSedePrivilegedRole(profile?.role)
   if (!isMaster && !isAdminSede) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
@@ -57,7 +57,7 @@ export async function POST(
     .single()
 
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
+  const isAdminSede = isSedePrivilegedRole(profile?.role)
   if (!isMaster && !isAdminSede) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { isSedePrivilegedRole } from '@/lib/roles'
 
 /**
  * GET /api/bolle-aperte[?sede_id=xxx][&fornitore_id=yyy]
@@ -34,10 +35,10 @@ export async function GET(req: NextRequest) {
     .single()
 
   const isMasterAdmin = profile?.role === 'admin'
-  const isAdminSede = profile?.role === 'admin_sede'
+  const isPrivilegedSede = isSedePrivilegedRole(profile?.role)
   const profileSedeId = profile?.sede_id ?? null
 
-  if (isAdminSede && overrideSedeId && profileSedeId && overrideSedeId !== profileSedeId) {
+  if (isPrivilegedSede && overrideSedeId && profileSedeId && overrideSedeId !== profileSedeId) {
     return NextResponse.json({ error: 'sede_id non consentito' }, { status: 403 })
   }
 

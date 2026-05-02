@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { logActivity } from '@/lib/activity-logger'
 
 export async function POST(req: NextRequest) {
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
+  const isAdminSede = isSedePrivilegedRole(profile?.role)
   if (!isMaster && !isAdminSede) {
     return NextResponse.json({ error: 'Accesso negato — solo admin possono approvare' }, { status: 403 })
   }

@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { getRequestAuth } from '@/utils/supabase/server'
 import type { MeData } from '@/lib/me-context'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isCorporateSedeAdminRole, isMasterAdminRole, isAdminTecnicoRole } from '@/lib/roles'
 
 export type AppMeShellResult =
   | { ok: true; me: MeData }
@@ -34,7 +34,8 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
   if (profileErr || !profile) return { ok: false, kind: 'noprofile' }
 
   const isAdmin = isMasterAdminRole(profile.role)
-  const isAdminSede = isAdminSedeRole(profile.role)
+  const isCorporateSedeAdmin = isCorporateSedeAdminRole(profile.role)
+  const isTecnicoSede = isAdminTecnicoRole(profile.role)
   type SedeRow = { id: string; nome: string; country_code: string; currency: string | null; timezone: string | null }
   const sede = Array.isArray(profile.sedi)
     ? (profile.sedi[0] as SedeRow | null)
@@ -72,7 +73,15 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
 
   const rawRole = String(profile.role ?? '').toLowerCase()
   const role: MeData['role'] =
-    rawRole === 'admin' ? 'admin' : rawRole === 'admin_sede' ? 'admin_sede' : rawRole === 'operatore' ? 'operatore' : null
+    rawRole === 'admin'
+      ? 'admin'
+      : rawRole === 'admin_sede'
+        ? 'admin_sede'
+        : rawRole === 'admin_tecnico'
+          ? 'admin_tecnico'
+          : rawRole === 'operatore'
+            ? 'operatore'
+            : null
 
   const fn = typeof profile.full_name === 'string' ? profile.full_name.trim() : ''
   // Master admin without any sedi configured → onboarding not yet complete
@@ -90,7 +99,8 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
       currency: currency ?? 'GBP',
       timezone: timezone ?? 'Europe/London',
       is_admin: isAdmin,
-      is_admin_sede: isAdminSede,
+      is_admin_sede: isCorporateSedeAdmin,
+      is_admin_tecnico: isTecnicoSede,
       all_sedi: allSedi,
       onboarding_complete,
     },

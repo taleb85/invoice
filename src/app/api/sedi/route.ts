@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -56,7 +56,7 @@ export async function GET() {
     .single()
 
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export type PendingApprovalFattura = {
   id: string
@@ -19,7 +19,7 @@ export type PendingApprovalFattura = {
 export async function GET(req: NextRequest) {
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
+  const isAdminSede = isSedePrivilegedRole(profile?.role)
   if (!isMaster && !isAdminSede) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }

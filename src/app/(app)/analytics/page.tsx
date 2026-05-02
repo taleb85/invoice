@@ -14,6 +14,7 @@ import {
 } from '@/lib/app-shell-layout'
 import { parseFiscalYearQueryParam, formatFiscalYearShort } from '@/lib/fiscal-year'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +22,10 @@ type SearchParamsShape = { fy?: string; months?: string }
 
 export default async function AnalyticsPage(props: { searchParams: Promise<SearchParamsShape> }) {
   const profile = await getProfile()
-  if (!profile || !['admin', 'admin_sede'].includes(profile.role ?? '')) {
+  if (
+    !profile ||
+    (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role))
+  ) {
     redirect('/')
   }
 

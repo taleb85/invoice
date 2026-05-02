@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   const service = createServiceClient()
   const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }

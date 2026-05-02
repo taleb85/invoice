@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { checkPriceAnomalies } from '@/lib/price-anomaly-checker'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export async function POST(req: NextRequest) {
   // Accept either a valid admin/admin_sede session OR the CRON_SECRET bearer token
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
 
   if (!hasCronSecret) {
     const profile = await getProfile()
-    if (profile?.role !== 'admin' && profile?.role !== 'admin_sede') {
+    if (!isMasterAdminRole(profile?.role) && !isSedePrivilegedRole(profile?.role)) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
     }
   }

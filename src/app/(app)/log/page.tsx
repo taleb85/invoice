@@ -21,6 +21,7 @@ import {
 } from '@/lib/app-shell-layout'
 import type { Locale } from '@/lib/translations'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { isSedePrivilegedRole } from '@/lib/roles'
 import {
   loadEmailActivityDayRowsPage,
   countEmailActivityAutoSavedToday,
@@ -67,8 +68,7 @@ export default async function LogPage(props: {
 }) {
   const profile = await getProfile()
   const isMasterAdmin = profile?.role === 'admin'
-  const isAdminSede = profile?.role === 'admin_sede'
-  if (!isMasterAdmin && !isAdminSede) redirect('/')
+  if (!isMasterAdmin && !isSedePrivilegedRole(profile?.role)) redirect('/')
 
   const [t, locale, tz, currency, sedeScopeIdRaw] = await Promise.all([
     getT(),

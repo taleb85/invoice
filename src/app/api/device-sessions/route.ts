@@ -119,8 +119,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profilo non trovato' }, { status: 400 })
   }
   const r = String(prof.role ?? '').toLowerCase()
-  if (r !== 'operatore' && r !== 'admin_sede') {
-    return NextResponse.json({ error: 'Solo operatore o responsabile sede' }, { status: 403 })
+  if (r !== 'operatore' && r !== 'admin_sede' && r !== 'admin_tecnico') {
+    return NextResponse.json({ error: 'Solo operatore o staff sede (resp./tecnico)' }, { status: 403 })
   }
   if (String(prof.sede_id ?? '') !== sedeId) {
     return NextResponse.json({ error: 'sedeId non coerente con il profilo' }, { status: 400 })

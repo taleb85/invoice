@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { detectAllDuplicates, type AllDuplicatesReport } from '@/lib/duplicate-detector'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
 import { LISTINO_SRC_FATTURA_MARK } from '@/lib/listino-display'
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const profile = await getProfile()
   if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   const master = isMasterAdminRole(profile.role)
-  const sedeAdmin = isAdminSedeRole(profile.role)
+  const sedeAdmin = isSedePrivilegedRole(profile.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }

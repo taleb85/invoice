@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { ImapFlow } from 'imapflow'
 
 // ── MIME structure helper ─────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
 
   // Only admin and admin_sede can scan IMAP accounts (they expose credentials)
   const profile = await getProfile()
-  if (!isMasterAdminRole(profile?.role) && !isAdminSedeRole(profile?.role)) {
+  if (!isMasterAdminRole(profile?.role) && !isSedePrivilegedRole(profile?.role)) {
     return NextResponse.json({ error: 'Accesso riservato agli amministratori' }, { status: 403 })
   }
 
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
   // admin_sede is restricted to their own sede
   const callerSedeId = profile?.sede_id ?? null
   const requestedSedeId = searchParams.get('sede_id') ?? undefined
-  const filterSedeId = isAdminSedeRole(profile?.role) ? (callerSedeId ?? undefined) : requestedSedeId
+  const filterSedeId = isSedePrivilegedRole(profile?.role) ? (callerSedeId ?? undefined) : requestedSedeId
 
   const service = createServiceClient()
 
@@ -215,7 +215,7 @@ export async function POST(req: NextRequest) {
 
   // Only admin and admin_sede can create fornitori via discovery
   const profile = await getProfile()
-  if (!isMasterAdminRole(profile?.role) && !isAdminSedeRole(profile?.role)) {
+  if (!isMasterAdminRole(profile?.role) && !isSedePrivilegedRole(profile?.role)) {
     return NextResponse.json({ error: 'Accesso riservato agli amministratori' }, { status: 403 })
   }
 
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
   }
 
   // admin_sede can only create fornitori in their own sede
-  if (isAdminSedeRole(profile?.role) && sede_id && sede_id !== profile?.sede_id) {
+  if (isSedePrivilegedRole(profile?.role) && sede_id && sede_id !== profile?.sede_id) {
     return NextResponse.json({ error: 'Non puoi creare fornitori in un\'altra sede' }, { status: 403 })
   }
 

@@ -5,12 +5,16 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SECTION_STICKY_TOP_INNER_X_CLASS, APP_SECTION_STICKY_TOP_STACK_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import { ApprovalQueue } from '@/components/approval/approval-queue'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ApprovazioniPage() {
   const [profile, t] = await Promise.all([getProfile(), getT()])
-  if (!profile || !['admin', 'admin_sede'].includes(profile.role ?? '')) {
+  if (
+    !profile ||
+    (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role))
+  ) {
     redirect('/')
   }
 

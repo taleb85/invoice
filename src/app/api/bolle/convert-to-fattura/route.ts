@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   if (role === 'operatore') {
     return NextResponse.json({ error: 'Operatore: non autorizzato' }, { status: 403 })
   }
-  if (!isMasterAdminRole(profile.role) && !isAdminSedeRole(profile.role)) {
+  if (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role)) {
     return NextResponse.json({ error: 'Solo amministratore o responsabile sede' }, { status: 403 })
   }
 
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Bolla senza allegato' }, { status: 400 })
   }
 
-  if (isAdminSedeRole(profile.role) && b.sede_id !== profile.sede_id) {
+  if (isSedePrivilegedRole(profile.role) && b.sede_id !== profile.sede_id) {
     return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
   }
 

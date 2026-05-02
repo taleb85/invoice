@@ -42,10 +42,15 @@ export default async function DashboardPage(props: {
   ])
   const isMasterAdmin = profile?.role === 'admin'
   const isAdminSede = profile?.role === 'admin_sede'
+  const isAdminTecnico = profile?.role === 'admin_tecnico'
   const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
   const actingRoleCookie = cookieStore.get('fluxo-acting-role')?.value?.trim()
   const dashboardAdminSedeUi =
-    isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
+    isAdminSede ||
+    isAdminTecnico ||
+    (isMasterAdmin &&
+      !!adminPick &&
+      (actingRoleCookie === 'admin_sede' || actingRoleCookie === 'admin_tecnico'))
 
   const { supabase } = await getRequestAuth()
   let adminViewSedeId: string | null = null
@@ -233,7 +238,7 @@ export default async function DashboardPage(props: {
     !!operatorScoped &&
     !!sedeId &&
     !!profile?.role &&
-    (profile.role === 'admin' || profile.role === 'admin_sede')
+    (profile.role === 'admin' || profile.role === 'admin_sede' || profile.role === 'admin_tecnico')
   const dashboardAnalyticsPeriodToolbar = canViewEmbeddedAnalytics
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
 

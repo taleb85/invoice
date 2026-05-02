@@ -20,6 +20,10 @@ export const SESSION_POLICY = {
     maxAgeSeconds:      24 * 60 * 60,
     inactivitySeconds:   2 * 60 * 60,
   },
+  admin_tecnico: {
+    maxAgeSeconds:      24 * 60 * 60,
+    inactivitySeconds:   2 * 60 * 60,
+  },
 } as const
 
 export type UserRole = keyof typeof SESSION_POLICY

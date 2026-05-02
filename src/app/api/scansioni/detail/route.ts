@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { utcBoundsForZonedCalendarDay } from '@/lib/zoned-day-bounds'
 import { cookies } from 'next/headers'
 
@@ -33,7 +33,7 @@ function fileNomeFromUrl(url: string | null | undefined): string | null {
 export async function GET(req: NextRequest) {
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
+  const isAdminSede = isSedePrivilegedRole(profile?.role)
   const isOperatore = profile?.role === 'operatore'
 
   if (!isMaster && !isAdminSede && !isOperatore) {

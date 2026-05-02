@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profilo non trovato' }, { status: 404 })
   }
   const role = String(prof.role ?? '').toLowerCase()
-  if (role !== 'operatore' && role !== 'admin_sede') {
+  if (role !== 'operatore' && role !== 'admin_sede' && role !== 'admin_tecnico') {
     return NextResponse.json({ error: 'Profilo non valido per operatore' }, { status: 403 })
   }
 

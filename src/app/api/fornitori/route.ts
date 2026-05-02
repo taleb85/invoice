@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 
 // ── POST /api/fornitori ────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
@@ -89,7 +89,7 @@ export async function DELETE(req: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }

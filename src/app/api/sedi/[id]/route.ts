@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isSedePrivilegedRole, isMasterAdminRole, isAdminTecnicoRole } from '@/lib/roles'
 import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
 
 const ALLOWED_COUNTRIES = ['UK', 'IT', 'FR', 'DE', 'ES']
@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
 
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -65,7 +65,7 @@ export async function PATCH(
     .single()
 
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
+  const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -165,6 +165,18 @@ export async function PATCH(
       update.nomi_cliente_da_ignorare = names
     } else {
       return NextResponse.json({ error: 'Invalid nomi_cliente_da_ignorare' }, { status: 400 })
+    }
+  }
+
+  if (isAdminTecnicoRole(profile?.role)) {
+    const reserved = ['nome', 'country_code', 'currency', 'timezone', 'access_password', 'nomi_cliente_da_ignorare'] as const
+    for (const k of reserved) {
+      if (k in update) {
+        return NextResponse.json(
+          { error: 'Questo campo è riservato al responsabile di sede o all’admin principale.' },
+          { status: 403 },
+        )
+      }
     }
   }
 

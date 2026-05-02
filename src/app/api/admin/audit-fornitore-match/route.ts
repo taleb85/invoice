@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import type { Profile } from '@/types'
 import { cookies } from 'next/headers'
 
@@ -19,7 +19,7 @@ type AuditRow = {
 
 function resolveSedeId(profile: Profile, bodySede: string | undefined, cookieSede: string | null): string | null {
   const master = isMasterAdminRole(profile.role)
-  const isAdminSede = isAdminSedeRole(profile.role)
+  const isAdminSede = isSedePrivilegedRole(profile.role)
 
   if (isAdminSede && profile.sede_id) {
     const fromBody = bodySede?.trim()
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const master = isMasterAdminRole(profile.role)
-  const sedeAdmin = isAdminSedeRole(profile.role)
+  const sedeAdmin = isSedePrivilegedRole(profile.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }

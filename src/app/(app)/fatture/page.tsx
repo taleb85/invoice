@@ -32,6 +32,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ExportButton } from '@/components/export-button'
 import type { ExportRow } from '@/lib/export-report'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { isSedePrivilegedRole } from '@/lib/roles'
 
 type FatturaListRow = {
   id: string
@@ -138,8 +139,7 @@ export default async function FatturePage(props: {
     sede: null,
   }))
 
-  const isAdminSede = profile?.role === 'admin_sede'
-  const showApprovalBadge = isMasterAdmin || isAdminSede
+  const showApprovalBadge = isMasterAdmin || isSedePrivilegedRole(profile?.role)
 
   const fattureRowsClient = fatture.map((f) => ({
     id: f.id,

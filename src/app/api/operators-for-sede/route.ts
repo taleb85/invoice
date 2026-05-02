@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     .from('profiles')
     .select('id, full_name, role')
     .eq('sede_id', sedeId)
-    .in('role', ['operatore', 'admin_sede'])
+    .in('role', ['operatore', 'admin_sede', 'admin_tecnico'])
     .order('full_name')
 
   if (error) {

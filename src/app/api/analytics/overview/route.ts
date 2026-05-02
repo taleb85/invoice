@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, getProfile } from '@/utils/supabase/server'
 import { fiscalYearRangeUtc } from '@/lib/fiscal-year'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export type SpesaMensileItem = { mese: string; importo: number; fatture: number }
 export type TopFornitoreItem = { nome: string; importo: number; fatture: number }
@@ -44,7 +45,10 @@ type BollaRow = {
 
 export async function GET(req: NextRequest) {
   const profile = await getProfile()
-  if (!profile || !['admin', 'admin_sede'].includes(profile.role ?? '')) {
+  if (
+    !profile ||
+    (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role))
+  ) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 
