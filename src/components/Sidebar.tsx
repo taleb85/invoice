@@ -314,7 +314,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     backupNavItem,
   ]
 
-  // Gestionale senza cookie sede: in rail solo ciò che serve al portale (dashboard, backup).
+  // Gestionale senza cookie sede: in navItems compatti solo dashboard + backup (il backup è anche in striscia fissa).
   // Analytics, approvazioni, attività, log: solo con sede attiva (`admin-sede-id`).
   // consumiAiNavItem è renderizzato direttamente subito dopo Dashboard, non entra in navItems.
   const masterOnlyItems = [adminNavItems[0], adminNavItems[6]]
@@ -325,8 +325,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
       ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
 
-  /** Portale globale: Portale + Consumi AI + Backup restano in testa (non scrollano con sedi/fornitori). */
-  const portaleLinksFixedBackup = isMasterAdmin && !activeSede
+  /** Master: Backup sempre in striscia fissa (come Consumi AI), mai nella colonna scroll. */
+  const portaleLinksFixedBackup = isMasterAdmin
 
   const handleLogout = async () => {
     try {
