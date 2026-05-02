@@ -1131,6 +1131,11 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   /* ─── login admin (solo profilo role = admin) ─────── */
   const handleLoginByEmail = async () => {
+    console.log('[login] handleLoginByEmail called', {
+      adminGateUnlocked,
+      hasEmail: Boolean(email?.trim()),
+      hasPassword: Boolean(adminPw),
+    })
     if (!adminGateUnlocked || !email || !adminPw) return
     setLoading(true); setMessage(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password: adminPw })
@@ -1149,8 +1154,18 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       setLoading(false)
       return
     }
-    const { data: prof } = await supabase.from('profiles').select('role').eq('id', signedUser.id).maybeSingle()
-    if (String(prof?.role ?? '').toLowerCase() !== 'admin') {
+
+    /** Ruolo da server (service client in /api/me): la SELECT su `profiles` dal browser è spesso vuota per RLS. */
+    const meRes = await fetch('/api/me', { credentials: 'same-origin' })
+    if (!meRes.ok) {
+      console.warn('[login] /api/me after sign-in', meRes.status)
+      await supabase.auth.signOut()
+      setMessage({ type: 'error', text: t.login.invalidCredentials })
+      setLoading(false)
+      return
+    }
+    const meJson = (await meRes.json()) as { role?: string | null }
+    if (String(meJson?.role ?? '').toLowerCase() !== 'admin') {
       await supabase.auth.signOut()
       setMessage({ type: 'error', text: t.login.adminOnlyEmail })
       setLoading(false)
