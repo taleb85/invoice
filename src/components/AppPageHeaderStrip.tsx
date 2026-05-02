@@ -5,7 +5,7 @@ import AppSummaryHighlightMetrics, {
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS,
-  SUMMARY_HIGHLIGHT_SURFACE_CLASS,
+  SUMMARY_HIGHLIGHT_SURFACE_HEADER_CLASS,
   type SummaryHighlightAccent,
 } from '@/lib/summary-highlight-accent'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
@@ -33,8 +33,8 @@ const innerRightClsDenseBase =
   'flex min-h-0 min-w-0 max-w-full shrink flex-wrap content-end justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
 
 /**
- * Titolo pagina con stesso effetto di `.app-card` + barra `.app-card-bar-accent` solo se `accent` è impostato.
- * Con `accent`, barra e bordo seguono la tinta della sezione (come `AppSummaryHighlightCard`).
+ * Titolo pagina nello stesso guscio della strip KPI dashboard (`SUMMARY_HIGHLIGHT_SURFACE_HEADER_CLASS`: bordo, fill trasparente).
+ * Con `accent`, barra `.app-card-bar-accent` + sezione metriche merge (come `AppSummaryHighlightCard`).
  */
 export default function AppPageHeaderStrip({
   children,
@@ -80,13 +80,9 @@ export default function AppPageHeaderStrip({
 }) {
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
-  const shell = theme
-    ? `${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col p-0${skipMb ? '' : ' mb-6 md:mb-8'} ${theme.border}`
-    : embedded
-      ? 'app-card flex flex-col overflow-hidden p-0'
-      : flushBottom
-        ? 'app-card flex flex-col overflow-hidden p-0'
-        : 'app-card mb-6 flex flex-col overflow-hidden p-0 md:mb-8'
+  const shell = `${SUMMARY_HIGHLIGHT_SURFACE_HEADER_CLASS} flex flex-col p-0${
+    skipMb ? '' : ' mb-6 md:mb-8'
+  }${theme ? ` ${theme.border}` : ''}`
   const outer = [shell, className].filter(Boolean).join(' ')
   const items = Children.toArray(children)
   const [first, ...rest] = items.length > 0 ? items : [null]
