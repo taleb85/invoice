@@ -24,8 +24,10 @@ type Strings = {
 export function useReprocessDaAssociare(opts: {
   effectiveSedeId: string | null
   strings: Strings
+  /** Dopo POST ok (es. `router.refresh` per KPI dashboard SSR). */
+  onSuccess?: () => void
 }) {
-  const { effectiveSedeId, strings } = opts
+  const { effectiveSedeId, strings, onSuccess } = opts
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,12 +73,13 @@ export function useReprocessDaAssociare(opts: {
           .replace('{errors}', String(j.errors ?? 0))
           .replace('{more}', more),
       )
+      onSuccess?.()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Errore di rete')
     } finally {
       setLoading(false)
     }
-  }, [effectiveSedeId, strings.moreHint, strings.resultTemplate])
+  }, [effectiveSedeId, onSuccess, strings.moreHint, strings.resultTemplate])
 
   return { loading, error, result, run }
 }

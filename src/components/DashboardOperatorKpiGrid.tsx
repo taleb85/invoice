@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
-import { type CSSProperties, type ReactNode, useMemo } from 'react'
+import { type CSSProperties, type ReactNode, useMemo, useCallback } from 'react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
@@ -177,6 +177,9 @@ export default function DashboardOperatorKpiGrid({
   glassShell?: boolean
 }) {
   const router = useRouter()
+  const refreshDashboardKpis = useCallback(() => {
+    router.refresh()
+  }, [router])
   const network = useNetworkStatusOptional()
   const online = network?.online ?? true
   const { me } = useMe()
@@ -199,6 +202,7 @@ export default function DashboardOperatorKpiGrid({
   const historicReprocess = useReprocessDaAssociare({
     effectiveSedeId,
     strings: reprocessStrings,
+    onSuccess: refreshDashboardKpis,
   })
 
   const fy = fiscalYear
