@@ -308,6 +308,7 @@ export default async function DashboardPage(props: {
                   locale={locale}
                   currency={currency}
                   fiscalYear={fiscalYear}
+                  kpiRevisionFiscalCountryCode={sedeCountryCode}
                 />
               </Suspense>
             </div>

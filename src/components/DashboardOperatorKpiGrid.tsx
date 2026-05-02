@@ -19,6 +19,7 @@ import {
   supplierDesktopKpiOuterShadow,
 } from '@/lib/kpi-accent-palette'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
+import { formatFiscalYearShort } from '@/lib/fiscal-year'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
@@ -155,6 +156,8 @@ type KpiItem = {
   /** Tile Bolle: link secondario verso elenco solo `pending=1` (evita `<a>` annidato: gestito nel render). */
   bollePendingHref?: string
   bollePendingCta?: string
+  /** Solo tile vetro Aurora: chiarisce KPI composito revisione vs subset «da associare». */
+  glassExplainSub?: string
   /** Tile fatturato: avviso duplicati (arancio / neon). */
   duplicateInvoiceSub?: string
 }
@@ -166,6 +169,7 @@ export default function DashboardOperatorKpiGrid({
   currency,
   fiscalYear,
   glassShell = false,
+  kpiRevisionFiscalCountryCode,
 }: {
   kpis: OperatorDashboardKpis
   t: Translations
@@ -173,6 +177,8 @@ export default function DashboardOperatorKpiGrid({
   currency: string
   /** Se impostato, aggiunge `?fy=` (e `tutte=1` su Bolle) ai link delle schede. */
   fiscalYear?: number
+  /** Paese sede (anno fiscale): allinea «Riprocessa storici» alla finestra KPI. */
+  kpiRevisionFiscalCountryCode?: string
   /** Contenitore vetro Deep Aurora quando la dashboard è dentro `DeepAuroraIntegration`. */
   glassShell?: boolean
 }) {
@@ -204,10 +210,19 @@ export default function DashboardOperatorKpiGrid({
     ],
   )
 
+  const dashboardReprocessFiscal = useMemo(
+    () =>
+      glassShell && fiscalYear != null && kpiRevisionFiscalCountryCode
+        ? { countryCode: kpiRevisionFiscalCountryCode, labelYear: fiscalYear }
+        : null,
+    [glassShell, fiscalYear, kpiRevisionFiscalCountryCode],
+  )
+
   const historicReprocess = useReprocessDaAssociare({
     effectiveSedeId,
     strings: reprocessStrings,
     onSuccess: refreshDashboardKpis,
+    dashboardFiscal: dashboardReprocessFiscal,
   })
 
   const fy = fiscalYear
@@ -347,6 +362,10 @@ export default function DashboardOperatorKpiGrid({
       label: t.dashboard.kpiDocumentiDaRevisionareTitle,
       value: k.documentiDaRevisionare,
       sub: t.dashboard.kpiDocumentiDaRevisionareSub,
+      glassExplainSub:
+        glassShell && fy != null && kpiRevisionFiscalCountryCode
+          ? t.dashboard.kpiDocumentiDaRevisionareGlassExplain.replace('{fyLabel}', formatFiscalYearShort(kpiRevisionFiscalCountryCode, fy)).replace('{da_associare}', String(k.documentiDaAssociare)).replace('{total}', String(k.documentiDaRevisionare))
+          : undefined,
       accentHex: operatorKpiVisualAt(4).accentHex,
       glowRgb: operatorKpiVisualAt(4).glowRgb,
       borderClass: operatorKpiVisualAt(4).borderClass,
@@ -478,6 +497,11 @@ export default function DashboardOperatorKpiGrid({
                     </p>
                     {!glassShell ? (
                       <p className={kpiTileSubLine}>{item.sub}</p>
+                    ) : null}
+                    {glassShell && item.glassExplainSub ? (
+                      <p className="w-full min-w-0 pt-1 text-[11px] font-medium leading-snug text-white/82 sm:text-[12px] sm:leading-snug">
+                        {item.glassExplainSub}
+                      </p>
                     ) : null}
                     {item.bollePendingHref && item.bollePendingCta && k.bolleInAttesa > 0 ? (
                       <span

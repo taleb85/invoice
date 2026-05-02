@@ -22,14 +22,17 @@ type Strings = {
 /**
  * Stesso POST di Centro operazioni: `/api/admin/reprocess-da-associare`.
  * Master può omettere `sede_id` (tutta la base); admin_sede richiede sede sul server (`me`).
+ * Con `dashboardFiscal` la stessa finestra anni della KPI dashboard (filtro `created_at`).
  */
 export function useReprocessDaAssociare(opts: {
   effectiveSedeId: string | null
   strings: Strings
   /** Dopo POST ok (es. `router.refresh` per KPI dashboard SSR). */
   onSuccess?: () => void
+  /** Solo dashboard Aurora: anno fiscale sede ↔ filtro KPI / coda OCR. Centro operazioni: omettere. */
+  dashboardFiscal?: { countryCode: string; labelYear: number } | null
 }) {
-  const { effectiveSedeId, strings, onSuccess } = opts
+  const { effectiveSedeId, strings, onSuccess, dashboardFiscal } = opts
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,6 +48,12 @@ export function useReprocessDaAssociare(opts: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...(effectiveSedeId ? { sede_id: effectiveSedeId } : {}),
+          ...(dashboardFiscal
+            ? {
+                fiscal_country_code: dashboardFiscal.countryCode,
+                fiscal_label_year: dashboardFiscal.labelYear,
+              }
+            : {}),
         }),
       })
       const j = (await res.json().catch(() => ({}))) as ReprocessResponse
@@ -81,7 +90,7 @@ export function useReprocessDaAssociare(opts: {
     } finally {
       setLoading(false)
     }
-  }, [effectiveSedeId, onSuccess, strings.moreHint, strings.resultTemplate])
+  }, [effectiveSedeId, dashboardFiscal, onSuccess, strings.moreHint, strings.resultTemplate])
 
   return { loading, error, result, run, runningStatus: strings.runningStatus }
 }

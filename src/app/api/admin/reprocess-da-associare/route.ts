@@ -6,6 +6,7 @@ import {
   type LegacyPendingDocRow,
 } from '@/lib/reprocess-pending-docs-ocr'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
+import { getFiscalYearPgBounds, isValidFiscalYear } from '@/lib/fiscal-year'
 
 export const dynamic = 'force-dynamic'
 /** Allineato a cron/scan OCR pesanti; su Hobby Vercel resta comunque il tetto ~60s — batch piccolo sotto. */
@@ -15,7 +16,12 @@ export const maxDuration = 300
 const BATCH = 3
 const FETCH_CAP = 120
 
-type Body = { sede_id?: string }
+type Body = {
+  sede_id?: string
+  /** Allineamento alla KPI dashboard: solo documenti il cui `created_at` cade in questo anno fiscale sede */
+  fiscal_country_code?: string
+  fiscal_label_year?: number
+}
 
 /**
  * POST — Documenti `da_associare` con fornitore già collegato e file: OCR + auto fattura/bolla (piccolo batch per richiesta).
@@ -42,6 +48,16 @@ export async function POST(req: NextRequest) {
     body = {}
   }
   const sedeFromBody = typeof body?.sede_id === 'string' ? body.sede_id.trim() : ''
+
+  const fiscalCcRaw =
+    typeof body?.fiscal_country_code === 'string' ? body.fiscal_country_code.trim().toUpperCase() : ''
+  const fiscalYyRaw = body?.fiscal_label_year
+  const fiscalYy =
+    typeof fiscalYyRaw === 'number' && Number.isFinite(fiscalYyRaw) ? Math.floor(fiscalYyRaw) : NaN
+  let fiscalPgBounds: ReturnType<typeof getFiscalYearPgBounds> | null = null
+  if (fiscalCcRaw && isValidFiscalYear(fiscalYy)) {
+    fiscalPgBounds = getFiscalYearPgBounds(fiscalCcRaw, fiscalYy)
+  }
 
   if (isAdminSedeRole(profile.role)) {
     if (!sedeFromBody) {
@@ -76,6 +92,10 @@ export async function POST(req: NextRequest) {
     .not('file_url', 'is', null)
     .order('created_at', { ascending: true })
     .limit(FETCH_CAP)
+
+  if (fiscalPgBounds) {
+    q = q.gte('created_at', fiscalPgBounds.tsFrom).lt('created_at', fiscalPgBounds.tsToExclusive) as typeof q
+  }
 
   if (sedeFilterOrNull) {
     q = q.eq('sede_id', sedeFilterOrNull) as typeof q
