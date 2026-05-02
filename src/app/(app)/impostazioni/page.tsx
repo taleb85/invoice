@@ -488,60 +488,55 @@ export default function ImpostazioniPage() {
               </div>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
-          <div className="app-card overflow-hidden mt-2 md:mt-3">
-            <div className="space-y-6 px-6 py-6 sm:px-8">
-              <FormBody />
-              {saved && (
-                <div className="flex items-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
-                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span suppressHydrationWarning>{t.impostazioni.saved}</span>
+          <div className="mt-2 grid grid-cols-1 gap-4 lg:mt-3 lg:grid-cols-2 lg:gap-6 lg:items-start">
+            <div className="flex min-w-0 flex-col gap-4">
+              <div className="app-card overflow-hidden">
+                <div className="space-y-6 px-6 py-6 sm:px-8">
+                  <FormBody />
+                  {saved && (
+                    <div className="flex items-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
+                      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span suppressHydrationWarning>{t.impostazioni.saved}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
-              <button
-                type="button"
-                onClick={handleSave}
-                className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span suppressHydrationWarning>{t.common.save}</span>
-              </button>
-            </div>
-          </div>
-          <div className="mt-4">
-            <ImapConfigCard />
-          </div>
-          {canEditSolleciti ? (
-            <div className="mt-4">
-              <SollecitiSettingsLinkCard />
-            </div>
-          ) : null}
-          <div className="mt-4">
-            <NotificationSettings />
-          </div>
-          {showSedePickHint ? (
-            <div className="mt-4 app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
-              <div className="app-workspace-inset-bg-soft p-5">
-                <p className="text-xs leading-relaxed text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
-                <Link
-                  href="/sedi"
-                  className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3.5 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
-                >
-                  {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
-                </Link>
+                <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span suppressHydrationWarning>{t.common.save}</span>
+                  </button>
+                </div>
               </div>
+              {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
+              <NotificationSettings />
             </div>
-          ) : null}
-          {showSedeOcrBlocks && sedeResolved ? (
-            <div className="mt-4">
-              <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} />
+
+            <div className="flex min-w-0 flex-col gap-4">
+              <ImapConfigCard />
+              {showSedePickHint ? (
+                <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
+                  <div className="app-workspace-inset-bg-soft p-5">
+                    <p className="text-xs leading-relaxed text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
+                    <Link
+                      href="/sedi"
+                      className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3.5 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
+                    >
+                      {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+              {showSedeOcrBlocks && sedeResolved ? <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} /> : null}
             </div>
-          ) : null}
+          </div>
         </div>
       </div>
     </>
