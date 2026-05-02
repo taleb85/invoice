@@ -574,34 +574,44 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
           <div className="flex min-w-0 flex-col gap-4">
             {/* Period filter */}
             <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
-                  Periodo
-                </span>
-                {(
-                  [
-                    ['today', 'Oggi'],
-                    ['week', 'Settimana'],
-                    ['month', 'Mese'],
-                    ['last90', 'Ultimi 3 mesi'],
-                    ['fy_curr_uk', 'Anno fiscale UK (corrente)'],
-                    ['fy_prev_uk', 'Anno fiscale UK (precedente)'],
-                    ['custom', 'Personalizzato'],
-                  ] as const satisfies ReadonlyArray<readonly [PeriodPreset, string]>
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setPreset(key)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium leading-tight transition-colors sm:px-3 sm:text-[12px] ${
-                      preset === key
-                        ? 'border-app-cyan-400/45 bg-cyan-500/15 text-cyan-100'
-                        : 'border-app-line-28 bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+              <div className="flex min-w-0 flex-row flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
+                    Periodo
+                  </span>
+                  {(
+                    [
+                      ['today', 'Oggi'],
+                      ['week', 'Settimana'],
+                      ['month', 'Mese'],
+                      ['last90', 'Ultimi 3 mesi'],
+                      ['fy_curr_uk', 'Anno fiscale UK (corrente)'],
+                      ['fy_prev_uk', 'Anno fiscale UK (precedente)'],
+                      ['custom', 'Personalizzato'],
+                    ] as const satisfies ReadonlyArray<readonly [PeriodPreset, string]>
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setPreset(key)}
+                      className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium leading-tight transition-colors sm:px-3 sm:text-[12px] ${
+                        preset === key
+                          ? 'border-app-cyan-400/45 bg-cyan-500/15 text-cyan-100'
+                          : 'border-app-line-28 bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={clearAllHistory}
+                  disabled={clearing}
+                  className="shrink-0 rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-1.5 text-[11px] font-medium text-red-300 transition-opacity hover:bg-red-500/15 disabled:opacity-40"
+                >
+                  {clearing ? 'Azzeramento…' : 'Azzera storico'}
+                </button>
               </div>
 
               {preset === 'custom' && (
@@ -671,17 +681,6 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                 {data.pricing.outputPerMillion}/M token output
               </div>
             )}
-
-            <div className="flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                onClick={clearAllHistory}
-                disabled={clearing}
-                className="rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-1.5 text-[11px] font-medium text-red-300 transition-opacity hover:bg-red-500/15 disabled:opacity-40"
-              >
-                {clearing ? 'Azzeramento…' : 'Azzera storico'}
-              </button>
-            </div>
 
             {/* Empty state — nascosto se il periodo ha già una timeline (barre a zero) */}
             {data.totalCalls === 0 && chartSeries.length === 0 && (
