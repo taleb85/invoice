@@ -410,7 +410,7 @@ export default function SediPage() {
   }
 
   const handleToggleRetention = async (sede: SedeWithCounts) => {
-    const isEnabled = sede.file_retention_policy !== 'keep'
+    const isEnabled = sede.file_retention_policy === 'delete_only' || sede.file_retention_policy === 'archive_then_delete'
     const newPolicy = isEnabled ? 'keep' : 'delete_only'
     setSedi((prev) =>
       prev.map((s) => s.id === sede.id ? { ...s, file_retention_policy: newPolicy } : s)
@@ -580,7 +580,7 @@ export default function SediPage() {
           </div>
           <div className="divide-y divide-app-line-18">
             {sedi.map((sede) => {
-              const enabled = sede.file_retention_policy !== 'keep'
+              const enabled = sede.file_retention_policy === 'delete_only' || sede.file_retention_policy === 'archive_then_delete'
               return (
                 <div key={sede.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <span className="text-sm text-app-fg">{sede.nome}</span>
