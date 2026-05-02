@@ -211,56 +211,6 @@ function SollecitiSettingsLinkCard() {
   )
 }
 
-/** Scheda rapida per accedere alla configurazione IMAP della sede effettiva (JWT o contesto PIN/cookie). */
-function ImapConfigCard() {
-  const { me } = useMe()
-  const { t } = useLocale()
-  const { effectiveSedeId } = useManualDeliverySede()
-  const sedeId = effectiveSedeId ?? me?.sede_id ?? null
-  const im = t.impostazioni
-
-  const nameMatchesProfile = !!(sedeId && me?.sede_id?.trim() === sedeId)
-  const displayPart =
-    nameMatchesProfile && me?.sede_nome?.trim()
-      ? me.sede_nome.trim()
-      : sedeId
-        ? im.imapBranchSessionTitle
-        : null
-
-  if (!sedeId) return null
-
-  return (
-    <div className="app-card overflow-hidden">
-      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
-          <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{im.imapSection ?? 'Email IMAP'}</p>
-          <p className="mt-0.5 text-sm font-semibold text-app-fg">
-            {displayPart ? `${im.imapBranchSessionTitle}: ${displayPart}` : im.imapSection}
-          </p>
-          <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-            Configura host, porta, utente e password IMAP sulla scheda della sede.
-          </p>
-          <Link
-            href={`/sedi/${sedeId}`}
-            className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/18"
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Impostazioni IMAP sede
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function NotificationSettings() {
   const { supported, subscribed, loading, subscribe, unsubscribe } = usePushNotifications()
 
@@ -605,7 +555,6 @@ export default function ImpostazioniPage() {
             </button>
           </div>
         </div>
-        <ImapConfigCard />
         {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
         <NotificationSettings />
         {showSedePickHint ? (
@@ -706,7 +655,6 @@ export default function ImpostazioniPage() {
                 </div>
 
                 <div className="flex min-h-0 min-w-0 flex-col gap-4">
-                  <ImapConfigCard />
                   {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
                   <NotificationSettings />
                   {showSedePickHint ? (
