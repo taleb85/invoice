@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
@@ -14,25 +15,55 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const service = createServiceClient()
-  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const { data: profile, error: profileErr } = await service
+    .from('profiles')
+    .select('role, sede_id')
+    .eq('id', user.id)
+    .maybeSingle()
 
-  const master = isMasterAdminRole(profile?.role)
-  const branchStaff = isBranchSedeStaffRole(profile?.role)
+  if (profileErr) {
+    console.error('[GET /api/sedi/[id]] profiles', profileErr.message)
+    return NextResponse.json({ error: 'Profilo non disponibile' }, { status: 500 })
+  }
+  if (!profile) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id: rawId } = await params
+  const id = String(rawId ?? '').trim()
+  if (!id) {
+    return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+  }
+
+  const profileSedeId =
+    typeof profile.sede_id === 'string' && profile.sede_id.trim() !== '' ? profile.sede_id.trim() : null
+
+  const master = isMasterAdminRole(profile.role)
+  const branchStaff = isBranchSedeStaffRole(profile.role)
   if (!master && !branchStaff) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { id } = await params
-  if (branchStaff && profile?.sede_id !== id) {
+  let staffSede = profileSedeId
+  if (branchStaff && !staffSede) {
+    const jar = await cookies()
+    staffSede = jar.get('admin-sede-id')?.value?.trim() || null
+  }
+  if (branchStaff && staffSede !== id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  const { data: sede, error } = await service
+
+  const { data: sede, error: sedeErr } = await service
     .from('sedi')
     .select('id, nome, nomi_cliente_da_ignorare')
     .eq('id', id)
     .maybeSingle()
 
-  if (error || !sede) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (sedeErr) {
+    console.error('[GET /api/sedi/[id]] sedi', sedeErr.message)
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+  if (!sede) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const rawIgnored = (sede as { nomi_cliente_da_ignorare?: string[] | null }).nomi_cliente_da_ignorare
   const merged =
@@ -55,20 +86,41 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const service = createServiceClient()
-  const { data: profile } = await service
+  const { data: profile, error: profileErr } = await service
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  const master = isMasterAdminRole(profile?.role)
-  const branchStaff = isBranchSedeStaffRole(profile?.role)
+  if (profileErr) {
+    console.error('[PATCH /api/sedi/[id]] profiles', profileErr.message)
+    return NextResponse.json({ error: 'Profilo non disponibile' }, { status: 500 })
+  }
+  if (!profile) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id: rawId } = await params
+  const id = String(rawId ?? '').trim()
+  if (!id) {
+    return NextResponse.json({ error: 'Bad request' }, { status: 400 })
+  }
+
+  const profileSedeId =
+    typeof profile.sede_id === 'string' && profile.sede_id.trim() !== '' ? profile.sede_id.trim() : null
+
+  const master = isMasterAdminRole(profile.role)
+  const branchStaff = isBranchSedeStaffRole(profile.role)
   if (!master && !branchStaff) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { id } = await params
-  if (branchStaff && profile?.sede_id !== id) {
+  let staffSede = profileSedeId
+  if (branchStaff && !staffSede) {
+    const jar = await cookies()
+    staffSede = jar.get('admin-sede-id')?.value?.trim() || null
+  }
+  if (branchStaff && staffSede !== id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
