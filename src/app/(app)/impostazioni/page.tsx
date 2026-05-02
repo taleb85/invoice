@@ -124,25 +124,62 @@ function ProfileMobileHub() {
 /** Accesso rapido a soglie solleciti (admin / admin sede). */
 function SollecitiSettingsLinkCard() {
   const { t } = useLocale()
+  const imp = t.impostazioni
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const uid = useId()
+  const toggleId = `imp-solleciti-toggle-${uid}`
+  const panelId = `imp-solleciti-panel-${uid}`
+
   return (
-    <div className="app-card overflow-hidden">
-      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
-          <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+    <div className="app-card min-h-0 min-w-0 overflow-hidden">
+      <div className="app-workspace-inset-bg-soft p-5">
+        <button
+          type="button"
+          id={toggleId}
+          aria-expanded={drawerOpen}
+          aria-controls={drawerOpen ? panelId : undefined}
+          aria-label={drawerOpen ? imp.linkSollecitiDrawerAriaClose : imp.linkSollecitiDrawerAriaOpen}
+          onClick={() => setDrawerOpen((v) => !v)}
+          className="flex w-full min-w-0 touch-manipulation items-start gap-4 rounded-xl text-left outline-none ring-app-cyan-500/40 transition hover:bg-black/[0.06] focus-visible:ring-2"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
+            <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{imp.linkSolleciti}</p>
+            <p className="mt-1 text-xs leading-snug text-app-fg-muted">{imp.linkSollecitiDesc}</p>
+            {!drawerOpen ? (
+              <p className="mt-1.5 text-xs leading-snug text-app-fg-muted">{imp.linkSollecitiDrawerCollapsedHint}</p>
+            ) : null}
+          </div>
+          <svg
+            className={`mt-2 h-5 w-5 shrink-0 text-app-fg-muted transition-transform duration-200 ${drawerOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.impostazioni.linkSolleciti}</p>
-          <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.impostazioni.linkSollecitiDesc}</p>
+        </button>
+      </div>
+      {drawerOpen ? (
+        <div
+          id={panelId}
+          role="region"
+          aria-label={`${imp.linkSolleciti} — ${t.sollecitiSettingsPage.title}`}
+          className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5"
+        >
           <Link
             href="/settings/solleciti"
-            className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
+            className="flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18 sm:inline-flex sm:w-auto sm:justify-start"
           >
             {t.sollecitiSettingsPage.title} →
           </Link>
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }
