@@ -9,6 +9,7 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { createClient } from '@/utils/supabase/client'
+import { fetchSollecitiReminderSettings, type SollecitiReminderSettings } from '@/lib/sollecito-aging'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -20,6 +21,7 @@ import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 import ImpostazioniSedeAdminBlocks from '@/components/ImpostazioniSedeAdminBlocks'
+import SollecitiSettingsClient from '@/app/(app)/settings/solleciti/solleciti-settings-client'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 
 function ProfileMobileHub() {
@@ -121,14 +123,35 @@ function ProfileMobileHub() {
   )
 }
 
-/** Accesso rapido a soglie solleciti (admin / admin sede). */
+/** Soglie e automazione solleciti (admin / admin sede), inline nel cassetto. */
 function SollecitiSettingsLinkCard() {
   const { t } = useLocale()
   const imp = t.impostazioni
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [sollecitiInitial, setSollecitiInitial] = useState<SollecitiReminderSettings | null>(null)
+  const [embeddedSession, setEmbeddedSession] = useState(0)
   const uid = useId()
   const toggleId = `imp-solleciti-toggle-${uid}`
   const panelId = `imp-solleciti-panel-${uid}`
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const supabase = createClient()
+      const data = await fetchSollecitiReminderSettings(supabase)
+      if (!cancelled) setSollecitiInitial(data)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const reloadSollecitiAfterSave = async () => {
+    const supabase = createClient()
+    const data = await fetchSollecitiReminderSettings(supabase)
+    setSollecitiInitial(data)
+    setEmbeddedSession((n) => n + 1)
+  }
 
   return (
     <div className="app-card min-h-0 min-w-0 overflow-hidden">
@@ -170,14 +193,18 @@ function SollecitiSettingsLinkCard() {
           id={panelId}
           role="region"
           aria-label={`${imp.linkSolleciti} — ${t.sollecitiSettingsPage.title}`}
-          className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5"
+          className="border-t border-app-line-30 app-workspace-inset-bg-soft p-4 sm:p-5"
         >
-          <Link
-            href="/settings/solleciti"
-            className="flex w-full touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2.5 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18 sm:inline-flex sm:w-auto sm:justify-start"
-          >
-            {t.sollecitiSettingsPage.title} →
-          </Link>
+          {sollecitiInitial === null ? (
+            <p className="text-xs leading-relaxed text-app-fg-muted">{t.common.loading}</p>
+          ) : (
+            <SollecitiSettingsClient
+              key={`imp-sol-embed-${embeddedSession}`}
+              variant="embedded"
+              initial={sollecitiInitial}
+              onPersisted={reloadSollecitiAfterSave}
+            />
+          )}
         </div>
       ) : null}
     </div>

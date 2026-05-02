@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useId, useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useLocale } from '@/lib/locale-context'
 import { BackButton } from '@/components/BackButton'
@@ -14,6 +14,10 @@ import { saveSollecitiSettingsAction, type SaveSollecitiSettingsPayload } from '
 
 type Props = {
   initial: SollecitiReminderSettings
+  /** Solo form (pagina Impostazioni / cassetto); senza header full-page. */
+  variant?: 'page' | 'embedded'
+  /** Dopo salvataggio riuscito (es. ricarico dati lato contenitore). */
+  onPersisted?: () => void | Promise<void>
 }
 
 function numOrZero(v: string): number {
@@ -21,9 +25,10 @@ function numOrZero(v: string): number {
   return Number.isFinite(n) ? n : 0
 }
 
-export default function SollecitiSettingsClient({ initial }: Props) {
+export default function SollecitiSettingsClient({ initial, variant = 'page', onPersisted }: Props) {
   const { t } = useLocale()
   const lt = t.sollecitiSettingsPage
+  const embeddedUid = useId()
   const [autoOn, setAutoOn] = useState(initial.autoSollecitiEnabled)
   const [bolla, setBolla] = useState(String(initial.giorniTolBolla))
   const [prom, setProm] = useState(String(initial.giorniTolPromessa))
@@ -48,13 +53,121 @@ export default function SollecitiSettingsClient({ initial }: Props) {
     setErrorDetail(null)
     startTransition(async () => {
       const res = await saveSollecitiSettingsAction(payload)
-      if (res.ok) setMsg('saved')
-      else if (res.error === 'forbidden') setMsg('forbidden')
+      if (res.ok) {
+        setMsg('saved')
+        try {
+          await onPersisted?.()
+        } catch {
+          /* optional refetch failed */
+        }
+      } else if (res.error === 'forbidden') setMsg('forbidden')
       else {
         setMsg('error')
         setErrorDetail('details' in res && res.details ? res.details : null)
       }
     })
+  }
+
+  if (variant === 'embedded') {
+    const bId = `g-bolla-emb-${embeddedUid}`
+    const pId = `g-prom-emb-${embeddedUid}`
+    const sId = `g-stmt-emb-${embeddedUid}`
+    return (
+      <div className="space-y-5 sm:space-y-6">
+        <p className="text-sm leading-relaxed text-app-fg-muted">{lt.subtitle}</p>
+
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-app-line-30 bg-black/14 px-4 py-4">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-app-fg">{lt.automationLabel}</p>
+            <p className="mt-1 text-xs leading-snug text-app-fg-muted">{lt.automationHint}</p>
+          </div>
+          <Switch checked={autoOn} onCheckedChange={setAutoOn} aria-label={lt.automationLabel} />
+        </div>
+
+        <div
+          className={`rounded-xl px-3 py-2.5 text-xs leading-relaxed ${autoOn ? 'border border-emerald-500/20 bg-emerald-500/8 text-emerald-100/95' : 'border border-app-line-30 bg-black/22 text-app-fg-muted'}`}
+        >
+          {autoOn ? lt.hintAutomationOn : lt.hintAutomationOff}
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-1">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-app-fg-muted" htmlFor={bId}>
+              {lt.daysBollaLabel}
+            </label>
+            <Input
+              id={bId}
+              inputMode="numeric"
+              disabled={pending}
+              value={bolla}
+              onChange={(e) => setBolla(e.target.value.replace(/\D/g, '').slice(0, 3))}
+              aria-describedby={`${bId}-h`}
+              className="max-w-full sm:max-w-[10rem]"
+            />
+            <p id={`${bId}-h`} className="text-xs text-app-fg-muted">
+              {lt.daysBollaHint}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-app-fg-muted" htmlFor={pId}>
+              {lt.daysPromiseLabel}
+            </label>
+            <Input
+              id={pId}
+              inputMode="numeric"
+              disabled={pending}
+              value={prom}
+              onChange={(e) => setProm(e.target.value.replace(/\D/g, '').slice(0, 3))}
+              aria-describedby={`${pId}-h`}
+              className="max-w-full sm:max-w-[10rem]"
+            />
+            <p id={`${pId}-h`} className="text-xs text-app-fg-muted">
+              {lt.daysPromiseHint}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-app-fg-muted" htmlFor={sId}>
+              {lt.daysStmtLabel}
+            </label>
+            <Input
+              id={sId}
+              inputMode="numeric"
+              disabled={pending}
+              value={stmt}
+              onChange={(e) => setStmt(e.target.value.replace(/\D/g, '').slice(0, 3))}
+              aria-describedby={`${sId}-h`}
+              className="max-w-full sm:max-w-[10rem]"
+            />
+            <p id={`${sId}-h`} className="text-xs text-app-fg-muted">
+              {lt.daysStmtHint}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 border-t border-app-line-30 pt-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="min-h-[1.25rem] flex-1 space-y-1">
+            {msg === 'saved' ? <span className="text-sm font-semibold text-emerald-300">{lt.savedToast}</span> : null}
+            {msg === 'error' ? (
+              <span className="text-sm font-semibold text-red-300">
+                {lt.errorGeneric}
+                {errorDetail ? (
+                  <span className="mt-1 block font-mono text-[11px] font-normal text-red-200/90">{errorDetail}</span>
+                ) : null}
+              </span>
+            ) : null}
+            {msg === 'forbidden' ? <span className="text-sm font-semibold text-amber-200">{lt.forbidden}</span> : null}
+          </div>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={pending}
+            className="w-full shrink-0 rounded-xl bg-app-cyan-500 px-6 py-2.5 text-sm font-bold text-white hover:bg-app-cyan-400 disabled:opacity-50 sm:w-auto sm:px-8"
+          >
+            {pending ? t.common.saving : t.common.save}
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
