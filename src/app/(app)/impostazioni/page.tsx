@@ -515,12 +515,12 @@ export default function ImpostazioniPage() {
                   </button>
                 </div>
               </div>
-              {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
               <NotificationSettings />
             </div>
 
             <div className="flex min-w-0 flex-col gap-4">
               <ImapConfigCard />
+              {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
               {showSedePickHint ? (
                 <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
                   <div className="app-workspace-inset-bg-soft p-5">
