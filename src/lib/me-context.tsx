@@ -131,6 +131,7 @@ const meFetcher = async (url: string, isPostLoginRetry = false): Promise<MeData 
   try {
     res = await fetch(url, {
       cache: 'no-store',
+      credentials: 'include',
       signal: ac.signal,
     })
   } catch (e) {

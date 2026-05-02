@@ -24,7 +24,7 @@ import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileAc
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
-import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
+import { resolveActiveSedeIdForLists, firstSedeIdFromUser } from '@/lib/resolve-active-sede-for-lists'
 import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
@@ -54,11 +54,19 @@ export default async function DashboardPage(props: {
     isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
 
   /** Stessa sede attiva degli elenchi: master → cookie `admin-sede-id` validato, altrimenti prima sede (mai null se DB ha sedi). */
-  const operationalSedeId = await resolveActiveSedeIdForLists(
+  let operationalSedeId = await resolveActiveSedeIdForLists(
     supabase,
     profile ?? undefined,
     (n) => cookieStore.get(n),
   )
+  const profileSedeTrim =
+    profile?.sede_id && String(profile.sede_id).trim() !== '' ? String(profile.sede_id).trim() : null
+  if (!operationalSedeId && profileSedeTrim) {
+    operationalSedeId = profileSedeTrim
+  }
+  if (!operationalSedeId && isMasterAdmin) {
+    operationalSedeId = await firstSedeIdFromUser(supabase)
+  }
 
   /** Master ma non esiste alcuna sede in database → porta gestionale onboarding. */
   if (isMasterAdmin && operationalSedeId === null) {

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createClient as createServiceClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { isProfilesBranchDeskRole } from '@/lib/roles'
 
@@ -10,27 +10,26 @@ function serviceDb() {
   return createServiceClient(url, key)
 }
 
-async function jsonForSedeId(sedeId: string) {
-  const svc = serviceDb()
-  if (!svc) {
-    return NextResponse.json({ operators: [] })
-  }
+function canListOperatorsSessionScope(profile: { sede_id?: string | null; role?: string | null } | null): boolean {
+  if (!profile?.sede_id || String(profile.sede_id).trim() === '') return false
+  return isProfilesBranchDeskRole(profile.role)
+}
+
+/** Elenco operatori + country sede usando il client passato (sessione o service). */
+async function jsonForSedeIdWithClient(supabase: SupabaseClient, sedeId: string) {
   const [profilesRes, sedeRes] = await Promise.all([
-    svc
+    supabase
       .from('profiles')
       .select('id, full_name, role')
       .eq('sede_id', sedeId)
       .in('role', ['operatore', 'admin_sede', 'admin_tecnico'])
       .order('full_name'),
-    svc
-      .from('sedi')
-      .select('country_code')
-      .eq('id', sedeId)
-      .maybeSingle(),
+    supabase.from('sedi').select('country_code').eq('id', sedeId).maybeSingle(),
   ])
 
   if (profilesRes.error) {
-    return NextResponse.json({ operators: [] })
+    console.error('[sede-operators] profiles select', profilesRes.error.message)
+    return NextResponse.json({ sede_id: sedeId, country_code: null, operators: [] })
   }
 
   return NextResponse.json({
@@ -43,11 +42,20 @@ async function jsonForSedeId(sedeId: string) {
   })
 }
 
+/** Kiosk / cookie: nessun utente Auth → serve service role per bypass RLS. */
+async function jsonForSedeIdServiceOnly(sedeId: string) {
+  const svc = serviceDb()
+  if (!svc) {
+    return NextResponse.json({ operators: [] })
+  }
+  return jsonForSedeIdWithClient(svc, sedeId)
+}
+
 /**
  * GET /api/sede-operators
  *
- * - `?sedeScope=session`: elenco dalla sede del profilo autenticato (operatore / admin_sede) — usato su `/accesso` PWA.
- * - altrimenti: cookie `sede-verified` (kiosk / sede-lock).
+ * - `?sedeScope=session`: elenco dalla sede del profilo autenticato — client di sessione (funziona senza service role in locale).
+ * - altrimenti: cookie `sede-verified` (kiosk / sede-lock), richiede `SUPABASE_SERVICE_ROLE_KEY`.
  * Returns only { id, full_name } — no email or sensitive data.
  */
 export async function GET(req: NextRequest) {
@@ -64,16 +72,15 @@ export async function GET(req: NextRequest) {
       .select('sede_id, role')
       .eq('id', user.id)
       .maybeSingle()
-    const r = String(p?.role ?? '').toLowerCase()
-    if (!p?.sede_id || !isProfilesBranchDeskRole(r)) {
+    if (!canListOperatorsSessionScope(p)) {
       return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
     }
-    return jsonForSedeId(p.sede_id)
+    return jsonForSedeIdWithClient(supabase, String(p!.sede_id).trim())
   }
 
   const sedeId = req.cookies.get('sede-verified')?.value?.trim()
   if (!sedeId) {
     return NextResponse.json({ operators: [] })
   }
-  return jsonForSedeId(sedeId)
+  return jsonForSedeIdServiceOnly(sedeId)
 }

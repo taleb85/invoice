@@ -11,7 +11,7 @@ function hasServiceRoleKey(): boolean {
 }
 
 /** Prima sede: client sessione (RLS `sedi` per tutti gli autenticati) — non richiede service role. */
-async function firstSedeIdFromUser(supabase: SupabaseClient): Promise<string | null> {
+export async function firstSedeIdFromUser(supabase: SupabaseClient): Promise<string | null> {
   const { data, error } = await supabase
     .from('sedi')
     .select('id')
@@ -172,7 +172,7 @@ async function ensuredProfileBasics(
  * Eccezione senza `sede_id`: se c’è una sola sede → `UPDATE` profilo con client sessione; altrimenti (con service role) última `device_sessions` o heal service.
  * Master: cookie + prima sede lette con **client sessione** su `sedi` (no service obbligatorio); fallback service se mancano permessi.
  */
-export async function resolveActiveSedeIdForLists(
+async function resolveActiveSedeIdForListsImpl(
   supabase: SupabaseClient,
   profile: { role?: string | null; sede_id?: string | null } | null | undefined,
   getCookie: ListPageCookieGet,
@@ -200,4 +200,21 @@ export async function resolveActiveSedeIdForLists(
   }
   /* Cookie assente / non valido: prima sede con sessione utente (Vercel senza service role). */
   return (await firstSedeIdFromUser(supabase)) ?? (await firstSedeId()) ?? null
+}
+
+/**
+ * Non propagare eccezioni: altrimenti `getAppMeShellResult` finiva nel catch e `/api/me` rispondeva
+ * 404 «Profile not found» pur con sessione e riga `profiles` valide.
+ */
+export async function resolveActiveSedeIdForLists(
+  supabase: SupabaseClient,
+  profile: { role?: string | null; sede_id?: string | null } | null | undefined,
+  getCookie: ListPageCookieGet,
+): Promise<string | null> {
+  try {
+    return await resolveActiveSedeIdForListsImpl(supabase, profile, getCookie)
+  } catch (e) {
+    console.error('[resolveActiveSedeIdForLists]', e)
+    return null
+  }
 }

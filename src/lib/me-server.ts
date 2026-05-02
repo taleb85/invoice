@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { getRequestAuth } from '@/utils/supabase/server'
 import type { MeData } from '@/lib/me-context'
 import { isAdminSedeRole, isAdminTecnicoRole, isMasterAdminRole } from '@/lib/roles'
-import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
+import { resolveActiveSedeIdForLists, firstSedeIdFromUser } from '@/lib/resolve-active-sede-for-lists'
 
 export type AppMeShellResult =
   | { ok: true; me: MeData }
@@ -32,14 +32,26 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
     .eq('id', user.id)
     .maybeSingle()
 
-  if (profileErr || !profile) return { ok: false, kind: 'noprofile' }
+  if (profileErr) {
+    console.error('[loadAppMeShellResult] profiles select', profileErr.message, profileErr)
+    return { ok: false, kind: 'noprofile' }
+  }
+  if (!profile) return { ok: false, kind: 'noprofile' }
 
   const cookieStore = await cookies()
-  const operationalSedeId = await resolveActiveSedeIdForLists(
+  let operationalSedeId = await resolveActiveSedeIdForLists(
     supabase,
     { role: profile.role, sede_id: profile.sede_id },
     (name) => cookieStore.get(name),
   )
+  const trimmedOwnSede =
+    typeof profile.sede_id === 'string' && profile.sede_id.trim() !== '' ? profile.sede_id.trim() : null
+  if (!operationalSedeId && trimmedOwnSede) {
+    operationalSedeId = trimmedOwnSede
+  }
+  if (!operationalSedeId && isMasterAdminRole(profile.role)) {
+    operationalSedeId = await firstSedeIdFromUser(supabase)
+  }
 
   const isAdmin = isMasterAdminRole(profile.role)
   const isAdminSede = isAdminSedeRole(profile.role)

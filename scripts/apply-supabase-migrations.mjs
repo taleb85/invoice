@@ -72,6 +72,7 @@ const MIGRATIONS = [
   'supabase/migrations/20260429193000_ai_usage_delete_all_rpc.sql',
   'supabase/migrations/20260428193000_log_stato_documento_non_fiscale.sql',
   'supabase/migrations/20260502120000_profiles_sede_id_on_delete_restrict.sql',
+  'supabase/migrations/20260502143000_profiles_select_colleagues_branch_desk.sql',
 ]
 
 function loadEnvLocal() {

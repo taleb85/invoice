@@ -74,7 +74,12 @@ export function NetworkProvider({ children }: { children: ReactNode }) {
     try {
       const ac = new AbortController()
       const t = window.setTimeout(() => ac.abort(), 4000)
-      const r = await fetch('/api/me', { method: 'GET', cache: 'no-store', signal: ac.signal })
+      const r = await fetch('/api/me', {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'include',
+        signal: ac.signal,
+      })
       window.clearTimeout(t)
       const ok = r.ok || r.status === 401 || r.status === 404
       setOnline(ok)

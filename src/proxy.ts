@@ -88,7 +88,7 @@ export async function proxy(request: NextRequest) {
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   const role = profile?.role ?? ''
   const isMasterAdmin = isMasterAdminRole(role)
