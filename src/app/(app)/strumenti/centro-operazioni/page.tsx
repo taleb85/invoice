@@ -474,58 +474,68 @@ export default function CentroOperazioniPage() {
 
             </div>
             <div className="flex min-h-0 min-w-0 flex-col gap-y-10">
-          <section className="space-y-4" aria-labelledby="ops-section-ocr">
-            <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
-            <FixOcrDatesCard />
-            <div className="app-card overflow-hidden p-5">
-              <p className="text-sm text-app-fg-muted">{s.ocrAbbinamentiCardDesc}</p>
-              <Link
-                href="/inbox-ai?tab=audit"
-                className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-              >
-                {s.ocrAbbinamentiCta} →
-              </Link>
-            </div>
-            <p className="rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-balance text-app-fg-muted">
-              {s.hintContextualShortcuts}
-            </p>
-          </section>
+              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-ocr">
+                <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
 
-          <section className="space-y-4" aria-labelledby="ops-section-manutenzione">
-            <OpsSectionTitle id="ops-section-manutenzione">{s.sectionManutenzione}</OpsSectionTitle>
-            <div className="app-card overflow-hidden p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardDupScanTitle}</p>
-              <p className="mt-2 text-sm text-app-fg-muted">{s.cardDupScanDesc}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setDupOpen(true)}
-                  className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/45 bg-amber-500/12 px-4 py-2.5 text-xs font-bold text-amber-100 transition-colors hover:bg-amber-500/18"
+                <div className="flex min-h-0 min-w-0 flex-col gap-4">
+                  <FixOcrDatesCard anchorId="ops-fix-ocr-dates" />
+
+                  <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">
+                    <p className="text-sm text-app-fg-muted">{s.ocrAbbinamentiCardDesc}</p>
+                    <Link
+                      href="/inbox-ai?tab=audit"
+                      className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
+                    >
+                      {s.ocrAbbinamentiCta} →
+                    </Link>
+                  </article>
+                </div>
+
+                <aside
+                  role="note"
+                  className="min-w-0 rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3"
                 >
-                  {d.duplicateFattureScanButton}
-                </button>
-              </div>
-            </div>
+                  <p className="m-0 text-xs leading-relaxed text-pretty text-app-fg-muted">
+                    {s.hintContextualShortcuts}
+                  </p>
+                </aside>
+              </section>
 
-            <div className="app-card overflow-hidden p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardAuditTitle}</p>
-              <p className="mt-2 text-sm text-app-fg-muted">{s.cardAuditDesc}</p>
-              <Link
-                href="/inbox-ai?tab=audit"
-                className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-              >
-                {s.cardOpenAudit} →
-              </Link>
-            </div>
+              <section className="space-y-4" aria-labelledby="ops-section-manutenzione">
+                <OpsSectionTitle id="ops-section-manutenzione">{s.sectionManutenzione}</OpsSectionTitle>
+                <div className="app-card overflow-hidden p-5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardDupScanTitle}</p>
+                  <p className="mt-2 text-sm text-app-fg-muted">{s.cardDupScanDesc}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setDupOpen(true)}
+                      className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/45 bg-amber-500/12 px-4 py-2.5 text-xs font-bold text-amber-100 transition-colors hover:bg-amber-500/18"
+                    >
+                      {d.duplicateFattureScanButton}
+                    </button>
+                  </div>
+                </div>
 
-            <CentroOperazioniDashboard
-              data={data}
-              loadError={loadError}
-              forceLoading={forceLoading}
-              forceError={forceError}
-              onForce={onForce}
-            />
-          </section>
+                <div className="app-card overflow-hidden p-5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardAuditTitle}</p>
+                  <p className="mt-2 text-sm text-app-fg-muted">{s.cardAuditDesc}</p>
+                  <Link
+                    href="/inbox-ai?tab=audit"
+                    className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
+                  >
+                    {s.cardOpenAudit} →
+                  </Link>
+                </div>
+
+                <CentroOperazioniDashboard
+                  data={data}
+                  loadError={loadError}
+                  forceLoading={forceLoading}
+                  forceError={forceError}
+                  onForce={onForce}
+                />
+              </section>
 
             </div>
 
