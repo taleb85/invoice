@@ -38,7 +38,7 @@ Piano stack attuale confermato: **Supabase Free**, **Vercel Hobby**.
 
 ## Evoluzione futura (non avviata)
 
-Unificare più clienti in **un solo database** con `organization_id` e RLS richiede migrazione dati e revisione massiva del codice: **fuori scope** finché resti su “un DB per cliente”.
+Unificare più clienti in **un solo database** con `organization_id` e RLS richiede migrazione dati e revisione massiva del codice: **fuori scope** finché resti su “un DB per cliente”. Per estendere prima il modello dati, il punto d’aggancio lato app tra vista **portale globale** e **filiale** è `src/lib/admin-portal-operational-sede.ts` (per gli elenchi che defaultano sempre su una sede resta `src/lib/resolve-active-sede-for-lists.ts`).
 
 ## Riferimenti
 

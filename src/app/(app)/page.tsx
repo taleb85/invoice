@@ -24,7 +24,7 @@ import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileAc
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
-import { resolveActiveSedeIdForLists, firstSedeIdFromUser } from '@/lib/resolve-active-sede-for-lists'
+import { resolveOperationalSedeIdForAdminPortal } from '@/lib/admin-portal-operational-sede'
 import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import { AdminGlobalDashboard } from '@/components/AdminGlobalDashboard'
 import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
@@ -55,25 +55,12 @@ export default async function DashboardPage(props: {
   const dashboardAdminSedeUi =
     isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
 
-  /**
-   * Sede operativa dashboard: staff → profilo; master con cookie `admin-sede-id` validata da resolve.
-   * Senza cookie master la home resta **vista globale** (nessun fallback sulla prima sede).
-   */
-  let operationalSedeId = await resolveActiveSedeIdForLists(
+  /** Stessa logica di portale globale vs filiale di {@link resolveOperationalSedeIdForAdminPortal}. */
+  const operationalSedeId = await resolveOperationalSedeIdForAdminPortal(
     supabase,
     profile ?? undefined,
     (n) => cookieStore.get(n),
   )
-  const profileSedeTrim =
-    profile?.sede_id && String(profile.sede_id).trim() !== '' ? String(profile.sede_id).trim() : null
-  if (!operationalSedeId && profileSedeTrim) {
-    operationalSedeId = profileSedeTrim
-  }
-  if (isMasterAdmin && !adminPick) {
-    operationalSedeId = null
-  } else if (!operationalSedeId && isMasterAdmin) {
-    operationalSedeId = await firstSedeIdFromUser(supabase)
-  }
 
   /** Master senza sede nel cookie: dashboard globale se ci sono sedi, altrimenti onboarding. */
   if (isMasterAdmin && operationalSedeId === null) {

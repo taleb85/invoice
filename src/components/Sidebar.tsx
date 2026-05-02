@@ -314,8 +314,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
     backupNavItem,
   ]
 
-  // Gestionale senza sede: dashboard + voci rete / fallback prima sede (come `resolveActiveSedeIdForLists`).
-  // Con sede attiva: navigazione operativa completa (fornitori, …).
+  // Gestionale senza cookie sede: dashboard + voci «rete» (stesso modello di `resolveOperationalSedeIdForAdminPortal`).
+  // Con `admin-sede-id`: navigazione operativa completa (fornitori, …).
   // consumiAiNavItem è renderizzato direttamente subito dopo Dashboard, non entra in navItems.
   const masterOnlyItems = [
     adminNavItems[0],
