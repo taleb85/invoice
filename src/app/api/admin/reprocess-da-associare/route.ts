@@ -116,11 +116,13 @@ export async function POST(req: NextRequest) {
   }
 
   const totalFetched = candidates.length
+  const otherOutcomes = Math.max(0, processed - auto_saved - da_revisionare)
 
   return NextResponse.json({
     processed,
     auto_saved,
     da_revisionare,
+    other_outcomes: otherOutcomes,
     errors,
     batch_size: batch.length,
     fetched: totalFetched,

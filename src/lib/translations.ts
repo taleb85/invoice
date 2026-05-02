@@ -2176,10 +2176,10 @@ const it: Translations = {
     historicSyncCompleted: 'Completato!',
     reprocessDaAssociareTitle: 'Documenti «da associare» con fornitore già noto',
     reprocessDaAssociareDesc:
-      'OCR Gemini e registrazione automatica (fino a 20 documenti per richiesta) per le righe in coda con fornitore collegato e file presente, senza elaborazione OCR completa. Ripeti finché necessario.',
+      'OCR Gemini e registrazione automatica in piccoli batch (pochi file per richiesta, per ridurre timeout) per righe «da associare» con fornitore collegato e file. Ripeti finché necessario.',
     reprocessDaAssociareCta: 'Riprocessa documenti storici',
     reprocessDaAssociareResult:
-      'Ultimo batch: elaborati {processed}, auto-salvati {auto_saved}, in revisione {da_revisionare}, errori {errors}.{more}',
+      'Ultimo batch: OCR OK su {processed} file — registrazioni auto {auto_saved}, da revisionare {da_revisionare}, altri esiti di coda {other_outcomes}, errori {errors}.{more}',
     reprocessDaAssociareMoreHint: ' Altri documenti in coda — ripeti l’operazione.',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
@@ -3784,10 +3784,10 @@ const en: Translations = {
     historicSyncCompleted: 'Completed!',
     reprocessDaAssociareTitle: 'Queued documents with supplier already linked',
     reprocessDaAssociareDesc:
-      'Runs Gemini OCR and auto-registration (up to 20 per request) for rows stuck in “to match” with a linked supplier and a file. Repeat until the queue is clear.',
+      'Runs Gemini OCR and auto-registration in small batches per request (few files at a time — avoids gateway timeouts). For stuck “to match” rows with a linked supplier and file. Repeat until the queue is clear.',
     reprocessDaAssociareCta: 'Reprocess historical queue documents',
     reprocessDaAssociareResult:
-      'Last batch: processed {processed}, auto-saved {auto_saved}, needs review {da_revisionare}, errors {errors}.{more}',
+      'Last batch: OCR OK for {processed} — auto-saved {auto_saved}, needs review {da_revisionare}, other queue outcomes {other_outcomes}, errors {errors}.{more}',
     reprocessDaAssociareMoreHint: ' More items may remain — run again.',
     hintContextualShortcuts:
       'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
@@ -4549,10 +4549,10 @@ const es: Translations = {
     historicSyncCompleted: '¡Listo!',
     reprocessDaAssociareTitle: 'Documentos en cola con proveedor ya vinculado',
     reprocessDaAssociareDesc:
-      'OCR Gemini y registro automático (hasta 20 por solicitud) para filas «por asociar» con proveedor y archivo. Repite hasta vaciar la cola.',
+      'OCR Gemini y registro automático en lotes pequeños por solicitud (pocos archivos a la vez — evita timeouts) para filas «por asociar» con proveedor y archivo. Repite hasta vaciar la cola.',
     reprocessDaAssociareCta: 'Reprocesar documentos históricos en cola',
     reprocessDaAssociareResult:
-      'Último lote: procesados {processed}, auto-guardados {auto_saved}, en revisión {da_revisionare}, errores {errors}.{more}',
+      'Último lote: OCR OK en {processed} — auto-guardados {auto_saved}, en revisión {da_revisionare}, otros resultados en cola {other_outcomes}, errores {errors}.{more}',
     reprocessDaAssociareMoreHint: ' Puede quedar más cola — ejecuta de nuevo.',
     hintContextualShortcuts:
       'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
@@ -5308,10 +5308,10 @@ const fr: Translations = {
     historicSyncCompleted: 'Terminé !',
     reprocessDaAssociareTitle: 'Documents en file — fournisseur déjà lié',
     reprocessDaAssociareDesc:
-      'OCR Gemini et enregistrement auto (20 max par requête) pour les lignes « à associer » avec fournisseur et fichier. Répéter jusqu’à file vide.',
+      'OCR Gemini et enregistrement auto par petits lots (quelques fichiers par requête — limite timeouts) pour les lignes « à associer » avec fournisseur et fichier. Répéter jusqu’à file vide.',
     reprocessDaAssociareCta: 'Retraiter les documents historiques en file',
     reprocessDaAssociareResult:
-      'Dernier lot : traités {processed}, auto-enregistrés {auto_saved}, à réviser {da_revisionare}, erreurs {errors}.{more}',
+      'Dernier lot : OCR OK pour {processed} — auto-enregistrés {auto_saved}, à réviser {da_revisionare}, autres issues en file {other_outcomes}, erreurs {errors}.{more}',
     reprocessDaAssociareMoreHint: ' D’autres éléments peuvent rester — relancer.',
     hintContextualShortcuts:
       'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
@@ -6067,10 +6067,10 @@ const de: Translations = {
     historicSyncCompleted: 'Fertig!',
     reprocessDaAssociareTitle: 'Dokumente in Warteschlange — Lieferant bereits verknüpft',
     reprocessDaAssociareDesc:
-      'Gemini-OCR und automatische Erfassung (bis 20 pro Anfrage) für „zu verknüpfen“ mit Lieferant und Datei. Wiederholen, bis die Schlange leer ist.',
+      'Gemini-OCR und automatische Erfassung in kleinen Batches pro Anfrage (wenige Dateien — vermeidet Timeouts) für „zu verknüpfen“ mit Lieferant und Datei. Wiederholen, bis die Schlange leer ist.',
     reprocessDaAssociareCta: 'Historische Warteschlangen-Dokumente neu verarbeiten',
     reprocessDaAssociareResult:
-      'Letzter Batch: verarbeitet {processed}, auto-gespeichert {auto_saved}, zur Prüfung {da_revisionare}, Fehler {errors}.{more}',
+      'Letzter Batch: OCR OK für {processed} — auto-gespeichert {auto_saved}, zur Prüfung {da_revisionare}, andere Warteschlangen-Ergebnisse {other_outcomes}, Fehler {errors}.{more}',
     reprocessDaAssociareMoreHint: ' Es können weitere Dokumente warten — erneut ausführen.',
     hintContextualShortcuts:
       'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',

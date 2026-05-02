@@ -7,6 +7,7 @@ type ReprocessResponse = {
   processed?: number
   auto_saved?: number
   da_revisionare?: number
+  other_outcomes?: number
   errors?: number
   has_more_candidates?: boolean
 }
@@ -54,11 +55,16 @@ export function useReprocessDaAssociare(opts: {
       }
       const more =
         j.has_more_candidates === true ? strings.moreHint.trim() : ''
+      const otherOutcomes =
+        typeof j.other_outcomes === 'number' && Number.isFinite(j.other_outcomes)
+          ? j.other_outcomes
+          : Math.max(0, (j.processed ?? 0) - (j.auto_saved ?? 0) - (j.da_revisionare ?? 0))
       setResult(
         strings.resultTemplate
           .replace('{processed}', String(j.processed ?? 0))
           .replace('{auto_saved}', String(j.auto_saved ?? 0))
           .replace('{da_revisionare}', String(j.da_revisionare ?? 0))
+          .replace('{other_outcomes}', String(otherOutcomes))
           .replace('{errors}', String(j.errors ?? 0))
           .replace('{more}', more),
       )
