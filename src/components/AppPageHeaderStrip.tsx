@@ -81,12 +81,12 @@ export default function AppPageHeaderStrip({
   const theme = accent != null ? SUMMARY_HIGHLIGHT_ACCENTS[accent] : null
   const skipMb = embedded || flushBottom
   const shell = theme
-    ? `${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex min-h-0 min-w-0 w-full flex-col p-0${skipMb ? '' : ' mb-6 md:mb-8'} ${theme.border}`
+    ? `${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col p-0${skipMb ? '' : ' mb-6 md:mb-8'} ${theme.border}`
     : embedded
-      ? 'app-card flex min-h-0 min-w-0 w-full flex-col overflow-hidden p-0'
+      ? 'app-card flex flex-col overflow-hidden p-0'
       : flushBottom
-        ? 'app-card flex min-h-0 min-w-0 w-full flex-col overflow-hidden p-0'
-        : 'app-card mb-6 flex min-h-0 min-w-0 w-full flex-col overflow-hidden p-0 md:mb-8'
+        ? 'app-card flex flex-col overflow-hidden p-0'
+        : 'app-card mb-6 flex flex-col overflow-hidden p-0 md:mb-8'
   const outer = [shell, className].filter(Boolean).join(' ')
   const items = Children.toArray(children)
   const [first, ...rest] = items.length > 0 ? items : [null]
