@@ -133,18 +133,24 @@ export default function OcrScartoRulesPanel({
     'w-full rounded-lg border border-app-line-35 bg-black/30 px-3 py-2 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-black/25 placeholder:text-app-fg-muted focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
   const labelCls = 'flex flex-col gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted'
 
+  /** Etichette form Impostazioni: meno grid “tabella”, più leggibili del log tab */
+  const settingsFormLabelCls = 'flex flex-col gap-1.5 text-xs font-medium leading-snug text-app-fg-muted'
+
   const showIntroBlock = variant === 'embeddedInLogTab'
 
   const composeForm =
     variant === 'settingsPage' ? (
       <div className="rounded-xl border border-app-line-28 bg-black/[0.12] p-4 ring-1 ring-white/[0.04] sm:p-5">
-        <div className="flex flex-col gap-4">
-          <label className={labelCls}>
-            {tg.ocrDiscardRulesColTipo}
+        <div className="border-b border-app-line-22 pb-4">
+          <h3 className="text-sm font-semibold text-app-fg">{tg.ocrDiscardRulesAdd}</h3>
+        </div>
+        <div className="grid gap-6 pt-5 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-8 lg:grid-cols-[minmax(0,17rem)_1fr]">
+          <label className={settingsFormLabelCls}>
+            <span className="text-app-fg">{tg.ocrDiscardRulesColTipo}</span>
             <select
               value={tipo}
               onChange={(e) => setTipo(e.target.value as OcrScartoRuleTipo)}
-              className={`${fieldCls} max-w-md`}
+              className={`${fieldCls} min-h-[2.75rem] text-[13px] leading-snug`}
             >
               {OCR_SCARTO_RULE_TIPOS.map((k) => (
                 <option key={k} value={k}>
@@ -153,9 +159,9 @@ export default function OcrScartoRulesPanel({
               ))}
             </select>
           </label>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label className={labelCls}>
-              {tg.ocrDiscardRulesColValore}
+          <div className="flex min-w-0 flex-col gap-4">
+            <label className={settingsFormLabelCls}>
+              <span className="text-app-fg">{tg.ocrDiscardRulesColValore}</span>
               <input
                 value={valore}
                 onChange={(e) => setValore(e.target.value)}
@@ -163,28 +169,27 @@ export default function OcrScartoRulesPanel({
                 className={fieldCls}
               />
             </label>
-            <label className={labelCls}>
-              <span className="inline-flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span>{tg.ocrDiscardRulesColMotivo}</span>
-                <span className="sr-only">{tg.ocrDiscardRulesMotivoHint}</span>
-              </span>
+            <label className={`${settingsFormLabelCls} gap-1.5`}>
+              <span className="text-app-fg">{tg.ocrDiscardRulesColMotivo}</span>
               <input
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
                 placeholder={tg.ocrDiscardRulesMotivoPlaceholder}
                 className={fieldCls}
               />
-              <span className="text-[11px] font-normal normal-case leading-snug text-app-fg-muted">{tg.ocrDiscardRulesMotivoHint}</span>
+              <p className="text-[11px] font-normal leading-relaxed text-app-fg-muted">{tg.ocrDiscardRulesMotivoHint}</p>
             </label>
+            <div className="flex justify-end border-t border-app-line-20 pt-4">
+              <button
+                type="button"
+                disabled={busy || !valore.trim()}
+                onClick={() => void addRule()}
+                className="rounded-lg bg-teal-600/90 px-4 py-2.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-teal-600 disabled:opacity-35"
+              >
+                {tg.ocrDiscardRulesAdd}
+              </button>
+            </div>
           </div>
-          <button
-            type="button"
-            disabled={busy || !valore.trim()}
-            onClick={() => void addRule()}
-            className="w-full rounded-lg bg-teal-600/90 px-4 py-2.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-teal-600 disabled:opacity-35 sm:w-auto sm:self-start"
-          >
-            {tg.ocrDiscardRulesAdd}
-          </button>
         </div>
       </div>
     ) : (
@@ -240,7 +245,7 @@ export default function OcrScartoRulesPanel({
       <div className="space-y-2">
         {variant === 'settingsPage' ? (
           <div
-            className="hidden gap-3 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide text-app-fg-muted sm:grid sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,9rem)_auto]"
+            className="hidden gap-3 px-1 pb-2 text-[11px] font-semibold text-app-fg-muted sm:grid sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,9rem)_auto]"
             aria-hidden
           >
             <span>{tg.ocrDiscardRulesColTipo}</span>
