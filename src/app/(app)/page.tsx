@@ -25,6 +25,8 @@ import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupp
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { resolveActiveSedeIdForLists, firstSedeIdFromUser } from '@/lib/resolve-active-sede-for-lists'
+import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
+import { AdminGlobalDashboard } from '@/components/AdminGlobalDashboard'
 import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
@@ -53,7 +55,10 @@ export default async function DashboardPage(props: {
   const dashboardAdminSedeUi =
     isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
 
-  /** Stessa sede attiva degli elenchi: master → cookie `admin-sede-id` validato, altrimenti prima sede (mai null se DB ha sedi). */
+  /**
+   * Sede operativa dashboard: staff → profilo; master con cookie `admin-sede-id` validata da resolve.
+   * Senza cookie master la home resta **vista globale** (nessun fallback sulla prima sede).
+   */
   let operationalSedeId = await resolveActiveSedeIdForLists(
     supabase,
     profile ?? undefined,
@@ -64,16 +69,56 @@ export default async function DashboardPage(props: {
   if (!operationalSedeId && profileSedeTrim) {
     operationalSedeId = profileSedeTrim
   }
-  if (!operationalSedeId && isMasterAdmin) {
+  if (isMasterAdmin && !adminPick) {
+    operationalSedeId = null
+  } else if (!operationalSedeId && isMasterAdmin) {
     operationalSedeId = await firstSedeIdFromUser(supabase)
   }
 
-  /** Master ma non esiste alcuna sede in database → porta gestionale onboarding. */
+  /** Master senza sede nel cookie: dashboard globale se ci sono sedi, altrimenti onboarding. */
   if (isMasterAdmin && operationalSedeId === null) {
-    const [erroriRecenti, emailBodySupplierHints] = await Promise.all([
+    const [erroriRecenti, emailBodySupplierHints, sediOverview] = await Promise.all([
       countSyncLogErrors24h(supabase),
       fetchRecurringEmailBodySupplierHints(supabase),
+      fetchAdminDashboardSediWithStats(supabase),
     ])
+
+    if (sediOverview.length > 0) {
+      const { count: totBolle } = await supabase.from('bolle').select('*', { count: 'exact', head: true })
+      const globalTotals = {
+        totFornitori: sediOverview.reduce((a, r) => a + r.fornitori, 0),
+        totBolle: totBolle ?? 0,
+        bolleInAttesa: sediOverview.reduce((a, r) => a + r.bolleInAttesa, 0),
+        totFatture: sediOverview.reduce((a, r) => a + r.fatture + r.documentiInCoda, 0),
+      }
+      const sediCards = sediOverview.map((r) => ({
+        id: r.id,
+        nome: r.nome,
+        country_code: r.country_code,
+        imap_host: r.imap_host,
+        imap_user: r.imap_user,
+        bolleInAttesa: r.bolleInAttesa,
+        documentiInCoda: r.documentiInCoda,
+      }))
+      return (
+        <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
+          {emailBodySupplierHints.length > 0 ? (
+            <DashboardEmailBodySupplierHints
+              hints={emailBodySupplierHints}
+              bannerLineTemplate={t.dashboard.potentialSupplierFromEmailBodyBanner}
+              ctaLabel={t.dashboard.potentialSupplierFromEmailBodyCta}
+            />
+          ) : null}
+          <AdminGlobalDashboard
+            t={t}
+            sediCards={sediCards}
+            globalTotals={globalTotals}
+            erroriRecenti={erroriRecenti}
+            associatedSedeNome=""
+          />
+        </div>
+      )
+    }
 
     return (
       <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>

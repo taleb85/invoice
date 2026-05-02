@@ -2,6 +2,9 @@ export interface Sede {
   id: string
   nome: string
   created_at: string
+  country_code?: string | null
+  imap_host?: string | null
+  imap_user?: string | null
 }
 
 export interface Profile {

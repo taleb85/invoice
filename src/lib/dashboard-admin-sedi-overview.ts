@@ -34,7 +34,10 @@ async function fetchAllSedeIdRows(
 export type SedeAdminOverviewRow = Sede & {
   fornitori: number
   bolleInAttesa: number
+  /** Righe tabella `fatture` per sede */
   fatture: number
+  /** Documenti in coda (stati pendenti) per sede */
+  documentiInCoda: number
   ocrFailures48h: number
   syncUnhealthy: boolean
 }
@@ -89,11 +92,14 @@ export async function fetchAdminDashboardSediWithStats(
   return list.map((sede) => {
     const ext = sede as Sede & { last_imap_sync_error?: string | null }
     const ocrN = ocrMap[sede.id] ?? 0
+    const docN = docMap[sede.id] ?? 0
+    const fatN = fattureMap[sede.id] ?? 0
     return {
       ...sede,
       fornitori: fornitoriMap[sede.id] ?? 0,
       bolleInAttesa: bolleMap[sede.id] ?? 0,
-      fatture: (fattureMap[sede.id] ?? 0) + (docMap[sede.id] ?? 0),
+      fatture: fatN,
+      documentiInCoda: docN,
       ocrFailures48h: ocrN,
       syncUnhealthy: sedeSyncUnhealthy(ext.last_imap_sync_error, ocrN),
     }
