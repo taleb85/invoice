@@ -8,7 +8,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import type { SedeAdminGlobalOverviewRow } from '@/lib/dashboard-admin-sedi-overview'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
-import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT } from '@/lib/app-shell-layout'
+import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SHELL_SECTION_PAGE_CLASS } from '@/lib/app-shell-layout`
 export type AdminGlobalSedeCard = SedeAdminGlobalOverviewRow
 
 export function AdminGlobalDashboard({
@@ -24,7 +24,7 @@ export function AdminGlobalDashboard({
   const manageSediText = dashboardManageSediLabel(t, associatedSedeNome ?? '')
 
   return (
-    <div className="max-w-5xl app-shell-page-padding">
+    <div className={APP_SHELL_SECTION_PAGE_CLASS}>
       <div className="mb-8 w-full">
         <AppPageHeaderStrip embedded>
           <AppPageHeaderTitleWithDashboardShortcut>
@@ -63,7 +63,7 @@ export function AdminGlobalDashboard({
           </AppSectionEmptyState>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {sediCards.map((sede) => {
             const loc = getCountryLocale(sede.country_code)
             const badgeCode = sede.country_code?.trim()?.toUpperCase()
