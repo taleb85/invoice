@@ -11,6 +11,7 @@ import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT } from '@/lib/app-shell-layout'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { formatDate } from '@/lib/locale-shared'
+import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 
 export type AdminGlobalSedeCard = SedeAdminGlobalOverviewRow
 
@@ -104,7 +105,7 @@ export function AdminGlobalDashboard({
       </div>
 
       <section
-        className="mb-8 overflow-hidden rounded-xl border border-[rgba(34,211,238,0.18)] bg-[rgba(2,6,23,0.72)] shadow-[inset_0_1px_0_rgba(34,211,238,0.08)]"
+        className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-8 flex flex-col border-app-line-35 p-0`}
         aria-label={t.dashboard.adminGlobalConsoleAria}
       >
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-app-line-22 px-4 py-3">

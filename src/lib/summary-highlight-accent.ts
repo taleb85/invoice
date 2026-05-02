@@ -131,13 +131,6 @@ export const AURORA_GLASS_PANEL_LAYOUT_CLASS =
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =
   'app-summary-highlight-surface relative overflow-hidden rounded-[10px] border border-app-line-28 bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
 
-/**
- * Come {@link SUMMARY_HIGHLIGHT_SURFACE_CLASS} ma con `border-app-line-35`, allineato a `SUMMARY_HIGHLIGHT_ACCENTS.*.border`
- * e alla strip dashboard — usato da `AppPageHeaderStrip` per tutte le pagine gestionali.
- */
-export const SUMMARY_HIGHLIGHT_SURFACE_HEADER_CLASS =
-  'app-summary-highlight-surface relative overflow-hidden rounded-[10px] border border-app-line-35 bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
-
 /** @deprecated Usare `SUMMARY_HIGHLIGHT_SURFACE_CLASS` (stesso valore). */
 export const SUMMARY_HIGHLIGHT_HEADER_STRIP_SURFACE_CLASS = SUMMARY_HIGHLIGHT_SURFACE_CLASS
 
