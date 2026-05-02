@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -56,18 +56,18 @@ export async function GET() {
     .single()
 
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isSedePrivilegedRole(profile?.role)
-  if (!master && !sedeAdmin) {
+  const branchStaff = isBranchSedeStaffRole(profile?.role)
+
+  /* Master sempre lista globale; responsabile/tecnico di sede solo sulla propria `sede_id`. */
+  if (!master && !branchStaff) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
-  if (sedeAdmin && !profile?.sede_id?.trim()) {
+  if (branchStaff && !profile?.sede_id?.trim()) {
     return NextResponse.json({ error: 'Profilo sede non configurato.' }, { status: 403 })
   }
 
-  const scopedSedeId = sedeAdmin
-    ? profile!.sede_id!.trim()
-    : (profile?.sede_id?.trim() || null)
-  /** `global` = admin master senza sede; `sede` = vista limitata a una filiale. */
+  const scopedSedeId = branchStaff ? profile!.sede_id!.trim() : null
+  /** `global` = admin master (tutte le sedi); `sede` = staff legato alla filiale. */
   const adminListScope: 'global' | 'sede' = scopedSedeId ? 'sede' : 'global'
 
   /** RLS non espone l’elenco profili della sede agli admin_sede: usiamo service role dopo aver verificato il chiamante. */

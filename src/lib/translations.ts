@@ -2145,7 +2145,7 @@ const it: Translations = {
     accessing: 'Accesso in corso…',
     notFound: 'Utente non trovato.',
     adminOnlyEmail:
-      'Solo l\'Admin Master (ruolo «admin» sul profilo) può entrare qui. Responsabili di sede ed operatori: usa «Accesso Sede». Per ottenere il ruolo master contatta chi gestisce gli account.',
+      'Solo l\'Admin Master (ruolo «admin» sul profilo) può entrare qui. Responsabili di sede, amministratori tecnici («admin_tecnico») ed operatori: usa «Accesso Sede». Per ottenere il ruolo master contatta chi gestisce gli account.',
     adminGateLabel: 'Codice accesso schermata admin',
     adminGateHint: 'Inserisci il PIN per sbloccare email e password.',
     adminGateWrong: 'Codice non valido.',
@@ -3842,7 +3842,7 @@ const en: Translations = {
     verifying: 'Verifying…',
     accessing: 'Signing in…',
     notFound: 'Staff member not found.',
-    adminOnlyEmail: 'This login is only for Master Admin profiles (database role «admin»). Branch managers & operators should use Branch Access below. Ask your organization admin if you need master access.',
+    adminOnlyEmail: 'This login is only for Master Admin profiles (database role «admin»). Branch managers, technical branch admins («admin_tecnico»), and operators should use Branch Access below. Ask your organization admin if you need master access.',
     adminGateLabel: 'Admin Access Code',
     adminGateHint: 'Enter your access code to unlock the login fields.',
     adminGateWrong: 'Invalid code.',
