@@ -71,9 +71,9 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
 
   const { data } = await supabase
     .from('profiles')
-    .select('*, sedi(id, nome, created_at)')
+    .select('*')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   return (data as Profile) ?? null
 })

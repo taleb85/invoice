@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers'
-import { getRequestAuth } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import type { MeData } from '@/lib/me-context'
 import { isAdminSedeRole, isAdminTecnicoRole, isMasterAdminRole } from '@/lib/roles'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 
 export type AppMeShellResult =
   | { ok: true; me: MeData }
@@ -27,66 +28,48 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
 
   const { data: profile, error: profileErr } = await supabase
     .from('profiles')
-    .select('role, sede_id, full_name, sedi(id, nome, country_code, currency, timezone)')
+    .select('role, sede_id, full_name')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (profileErr || !profile) return { ok: false, kind: 'noprofile' }
+
+  const cookieStore = await cookies()
+  const operationalSedeId = await resolveActiveSedeIdForLists(
+    supabase,
+    { role: profile.role, sede_id: profile.sede_id },
+    (name) => cookieStore.get(name),
+  )
 
   const isAdmin = isMasterAdminRole(profile.role)
   const isAdminSede = isAdminSedeRole(profile.role)
   const isAdminTecnico = isAdminTecnicoRole(profile.role)
-  type SedeRow = { id: string; nome: string; country_code: string; currency: string | null; timezone: string | null }
-  const sede = Array.isArray(profile.sedi)
-    ? (profile.sedi[0] as SedeRow | null)
-    : (profile.sedi as SedeRow | null)
 
-  const profileSedeId =
-    typeof profile.sede_id === 'string' && profile.sede_id.trim() !== '' ? profile.sede_id.trim() : null
+  const svc = createServiceClient()
 
-  let effectiveSedeId: string | null = profileSedeId
-  let effectiveSedeNome: string | null = sede?.nome ?? null
-  let countryCode = sede?.country_code ?? 'UK'
-  let currency = sede?.currency ?? 'GBP'
-  let timezone = sede?.timezone ?? 'Europe/London'
+  let effectiveSedeNome: string | null = null
+  let countryCode = 'UK'
+  let currency: string | null = 'GBP'
+  let timezone: string | null = 'Europe/London'
 
-  /** Se il join embedded `profiles → sedi` non torna righe ma `sede_id` è impostato, carichiamo la sede a parte. */
-  if (profileSedeId && !(sede?.nome ?? '').trim()) {
-    const { data: row } = await supabase
+  if (operationalSedeId) {
+    const { data: sedeFull } = await svc
       .from('sedi')
       .select('id, nome, country_code, currency, timezone')
-      .eq('id', profileSedeId)
+      .eq('id', operationalSedeId)
       .maybeSingle()
-    if (row) {
-      effectiveSedeNome = row.nome ?? null
-      countryCode = row.country_code ?? countryCode
-      currency = row.currency ?? currency
-      timezone = row.timezone ?? timezone
+    if (sedeFull) {
+      effectiveSedeNome = sedeFull.nome ?? null
+      countryCode = sedeFull.country_code ?? countryCode
+      currency = sedeFull.currency ?? currency
+      timezone = sedeFull.timezone ?? timezone
     }
   }
 
   let allSedi: { id: string; nome: string }[] = []
   if (isAdmin) {
-    const pick = (await cookies()).get('admin-sede-id')?.value?.trim()
-    const [sediListRes, pickedRes] = await Promise.all([
-      supabase.from('sedi').select('id, nome').order('nome'),
-      pick
-        ? supabase
-            .from('sedi')
-            .select('id, nome, country_code, currency, timezone')
-            .eq('id', pick)
-            .maybeSingle()
-        : Promise.resolve({ data: null as SedeRow | null }),
-    ])
-    allSedi = sediListRes.data ?? []
-    const picked = pickedRes.data
-    if (pick && picked?.id) {
-      effectiveSedeId = picked.id
-      effectiveSedeNome = picked.nome ?? null
-      countryCode = picked.country_code ?? countryCode
-      currency = picked.currency ?? currency
-      timezone = picked.timezone ?? timezone
-    }
+    const { data: rows } = await svc.from('sedi').select('id, nome').order('nome', { ascending: true })
+    allSedi = rows ?? []
   }
 
   const rawRole = String(profile.role ?? '').toLowerCase()
@@ -102,7 +85,6 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
             : null
 
   const fn = typeof profile.full_name === 'string' ? profile.full_name.trim() : ''
-  // Master admin without any sedi configured → onboarding not yet complete
   const onboarding_complete = !isAdmin || allSedi.length > 0
 
   return {
@@ -111,7 +93,7 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
       user: { id: user.id, email: user.email ?? '' },
       full_name: fn || null,
       role,
-      sede_id: effectiveSedeId,
+      sede_id: operationalSedeId,
       sede_nome: effectiveSedeNome,
       country_code: countryCode,
       currency: currency ?? 'GBP',
@@ -124,4 +106,3 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
     },
   }
 }
-

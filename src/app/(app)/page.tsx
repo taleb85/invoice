@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import DuplicateDashboardBanner from '@/components/duplicates/duplicate-dashboard-banner'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getCurrency, getCookieStore } from '@/lib/locale-server'
@@ -34,20 +34,24 @@ export default async function DashboardPage(props: {
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
   const cookieStore = await getCookieStore()
+  const { supabase, user } = await getRequestAuth()
   const [t, locale, profile, currency] = await Promise.all([
     getT(),
     getLocale(),
     getProfile(),
     getCurrency(),
   ])
-  const isMasterAdmin = isMasterAdminRole(profile?.role)
-  const isAdminSede = isAdminSedeRole(profile?.role)
+  let effectiveRole = profile?.role ?? null
+  if ((!effectiveRole || String(effectiveRole).trim() === '') && user?.id) {
+    const { data } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+    effectiveRole = data?.role ?? null
+  }
+  const isMasterAdmin = isMasterAdminRole(effectiveRole)
+  const isAdminSede = isAdminSedeRole(effectiveRole)
   const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
   const actingRoleCookie = cookieStore.get('fluxo-acting-role')?.value?.trim()
   const dashboardAdminSedeUi =
     isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
-
-  const { supabase } = await getRequestAuth()
 
   /** Stessa sede attiva degli elenchi: master → cookie `admin-sede-id` validato, altrimenti prima sede (mai null se DB ha sedi). */
   const operationalSedeId = await resolveActiveSedeIdForLists(
@@ -132,10 +136,11 @@ export default async function DashboardPage(props: {
 
   const sedeId = operationalSedeId
   let dashboardSedeNome: string | null = null
+  const service = sedeId ? createServiceClient() : null
   const [fornitoreIds, sedeMetaRow] = await Promise.all([
     sedeId ? fornitoreIdsForSede(supabase, sedeId) : Promise.resolve([] as string[]),
-    sedeId
-      ? supabase.from('sedi').select('nome, country_code').eq('id', sedeId).maybeSingle()
+    sedeId && service
+      ? service.from('sedi').select('nome, country_code').eq('id', sedeId).maybeSingle()
       : Promise.resolve({ data: null as { nome: string | null; country_code: string | null } | null }),
   ])
   if (sedeId && sedeMetaRow.data?.nome && dashboardSedeNome == null) {
@@ -204,7 +209,7 @@ export default async function DashboardPage(props: {
           {t.dashboard.operatorNoSede}
         </div>
       )}
-      {operatorScoped && (isMasterAdmin || isBranchSedeStaffRole(profile?.role)) && (
+      {operatorScoped && (isMasterAdmin || isBranchSedeStaffRole(effectiveRole)) && (
         <Suspense fallback={null}>
           <DuplicateDashboardBanner />
         </Suspense>

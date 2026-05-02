@@ -12,6 +12,8 @@ import {
 import InboxAiClient from './inbox-ai-client'
 import { BackButton } from '@/components/BackButton'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
+import { isMasterAdminRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,16 +26,13 @@ export default async function InboxAiPage(props: { searchParams?: Promise<{ fy?:
     getT(),
   ])
 
-  const isMasterAdmin = profile?.role === 'admin'
-  const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
-  let adminViewSedeId: string | null = null
-  if (isMasterAdmin && adminPick) {
-    const { data } = await supabase.from('sedi').select('id').eq('id', adminPick).maybeSingle()
-    if (data?.id) adminViewSedeId = data.id
-  }
-
-  const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
-  const blockedNoSede = !isMasterAdmin && !profile?.sede_id
+  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  const sedeId = await resolveActiveSedeIdForLists(
+    supabase,
+    profile ? { role: profile.role, sede_id: profile.sede_id } : undefined,
+    (n) => cookieStore.get(n),
+  )
+  const blockedNoSede = !isMasterAdmin && !sedeId
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>

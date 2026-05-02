@@ -71,7 +71,7 @@ export default async function FatturePage(props: {
   searchParams?: Promise<{ fy?: string }>
 }) {
   const searchParams = await unwrapSearchParams(props.searchParams)
-  const [t, locale, tz, currency, cookieStore, profile, { supabase }] = await Promise.all([
+  const [t, locale, tz, currency, cookieStore, profile, { supabase, user }] = await Promise.all([
     getT(),
     getLocale(),
     getTimezone(),
@@ -81,7 +81,12 @@ export default async function FatturePage(props: {
     getRequestAuth(),
   ])
 
-  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  let effectiveRole = profile?.role ?? null
+  if ((!effectiveRole || String(effectiveRole).trim() === '') && user?.id) {
+    const { data } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+    effectiveRole = data?.role ?? null
+  }
+  const isMasterAdmin = isMasterAdminRole(effectiveRole)
   const sedeId = await resolveActiveSedeIdForLists(supabase, profile, (n) => cookieStore.get(n))
   const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
 
@@ -128,7 +133,7 @@ export default async function FatturePage(props: {
     sede: null,
   }))
 
-  const showApprovalBadge = isMasterAdmin || isBranchSedeStaffRole(profile?.role)
+  const showApprovalBadge = isMasterAdmin || isBranchSedeStaffRole(effectiveRole)
 
   const fattureRowsClient = fatture.map((f) => ({
     id: f.id,

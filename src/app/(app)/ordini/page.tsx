@@ -34,6 +34,8 @@ import { withFiscalYearQuery } from '@/lib/fiscal-link'
 import { analyzeOrdineDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
+import { isMasterAdminRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,15 +52,12 @@ export default async function OrdiniOverviewPage(props: {
   const profile = await getProfile()
   const { supabase } = await getRequestAuth()
 
-  const isMasterAdmin = profile?.role === 'admin'
-  const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
-  let adminViewSedeId: string | null = null
-  if (isMasterAdmin && adminPick) {
-    const { data } = await supabase.from('sedi').select('id').eq('id', adminPick).maybeSingle()
-    if (data?.id) adminViewSedeId = data.id
-  }
-
-  const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
+  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  const sedeId = await resolveActiveSedeIdForLists(
+    supabase,
+    profile ? { role: profile.role, sede_id: profile.sede_id } : undefined,
+    (n) => cookieStore.get(n),
+  )
   const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
 
   let rows: OrdineOverviewRow[] = []
