@@ -67,14 +67,23 @@ export default function Sidebar({ onClose }: SidebarProps) {
       setSedeNome(me.sede_nome)
     }
 
-    if (me.is_admin && me.all_sedi?.length > 0) {
-      setAllSedi(me.all_sedi)
-      const savedSede = getCookie('admin-sede-id')
-      if (savedSede && !me.all_sedi.some((s) => s.id === savedSede)) {
+    if (!me.is_admin) {
+      setAllSedi([])
+      setActiveSede(null)
+    } else {
+      const list = me.all_sedi ?? []
+      setAllSedi(list)
+      if (list.length === 0) {
         document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
         setActiveSede(null)
       } else {
-        setActiveSede(savedSede || null)
+        const savedSede = getCookie('admin-sede-id')
+        if (savedSede && !list.some((s) => s.id === savedSede)) {
+          document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
+          setActiveSede(null)
+        } else {
+          setActiveSede(savedSede || null)
+        }
       }
     }
   }, [me, activeOperator])

@@ -41,11 +41,29 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
     ? (profile.sedi[0] as SedeRow | null)
     : (profile.sedi as SedeRow | null)
 
-  let effectiveSedeId: string | null = profile.sede_id
+  const profileSedeId =
+    typeof profile.sede_id === 'string' && profile.sede_id.trim() !== '' ? profile.sede_id.trim() : null
+
+  let effectiveSedeId: string | null = profileSedeId
   let effectiveSedeNome: string | null = sede?.nome ?? null
   let countryCode = sede?.country_code ?? 'UK'
   let currency = sede?.currency ?? 'GBP'
   let timezone = sede?.timezone ?? 'Europe/London'
+
+  /** Se il join embedded `profiles → sedi` non torna righe ma `sede_id` è impostato, carichiamo la sede a parte. */
+  if (profileSedeId && !(sede?.nome ?? '').trim()) {
+    const { data: row } = await supabase
+      .from('sedi')
+      .select('id, nome, country_code, currency, timezone')
+      .eq('id', profileSedeId)
+      .maybeSingle()
+    if (row) {
+      effectiveSedeNome = row.nome ?? null
+      countryCode = row.country_code ?? countryCode
+      currency = row.currency ?? currency
+      timezone = row.timezone ?? timezone
+    }
+  }
 
   let allSedi: { id: string; nome: string }[] = []
   if (isAdmin) {
