@@ -538,7 +538,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
     }, [data])
 
     return (
-    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} min-w-0 flex flex-col border-app-line-35 p-0`}>
+    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}>
       <div className="px-4 py-5 sm:px-5">
         {loading && !data && (
           <div className="flex items-center justify-center py-10">

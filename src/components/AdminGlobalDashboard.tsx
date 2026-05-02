@@ -55,7 +55,7 @@ export function AdminGlobalDashboard({
   }
 
   return (
-    <div className="max-w-5xl app-shell-page-padding">
+    <div className="w-full min-w-0">
       <div className="mb-8 w-full">
         <AppPageHeaderStrip
           accent="slate"

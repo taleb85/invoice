@@ -83,10 +83,10 @@ export default function AppPageHeaderStrip({
   const shell = theme
     ? `${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col p-0${skipMb ? '' : ' mb-6 md:mb-8'} ${theme.border}`
     : embedded
-      ? 'app-card flex flex-col overflow-hidden p-0'
+      ? 'app-card flex w-full min-w-0 flex-col overflow-hidden p-0'
       : flushBottom
-        ? 'app-card flex flex-col overflow-hidden p-0'
-        : 'app-card mb-6 flex flex-col overflow-hidden p-0 md:mb-8'
+        ? 'app-card flex w-full min-w-0 flex-col overflow-hidden p-0'
+        : 'app-card mb-6 flex w-full min-w-0 flex-col overflow-hidden p-0 md:mb-8'
   const outer = [shell, className].filter(Boolean).join(' ')
   const items = Children.toArray(children)
   const [first, ...rest] = items.length > 0 ? items : [null]

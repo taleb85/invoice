@@ -129,7 +129,7 @@ export const AURORA_GLASS_PANEL_LAYOUT_CLASS =
  * Guscio esterno card/sezione: bordo neutro, sfondo trasparente sul canvas (KPI, strip FY, scanner, ecc.).
  */
 export const SUMMARY_HIGHLIGHT_SURFACE_CLASS =
-  'app-summary-highlight-surface relative overflow-hidden rounded-[10px] border border-app-line-28 bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
+  'app-summary-highlight-surface relative w-full min-w-0 overflow-hidden rounded-[10px] border border-app-line-28 bg-transparent shadow-none backdrop-blur-none [-webkit-backdrop-filter:none] [backdrop-filter:none]'
 
 /** @deprecated Usare `SUMMARY_HIGHLIGHT_SURFACE_CLASS` (stesso valore). */
 export const SUMMARY_HIGHLIGHT_HEADER_STRIP_SURFACE_CLASS = SUMMARY_HIGHLIGHT_SURFACE_CLASS
