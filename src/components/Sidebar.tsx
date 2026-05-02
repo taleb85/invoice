@@ -547,9 +547,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </div>
           )}
 
-          {/* ── Admin: Sede Switcher + Gestisci sedi — ultimo nella lista nav scrollabile ── */}
+          </div>
+
+          {/* ── Master: switcher sedi + Gestisci — fisso sopra il footer (non nella colonna scroll) ── */}
           {isMasterAdmin && (
-            <>
+            <div className="app-shell-rail-panel shrink-0 space-y-0.5 border-t border-app-line-22 py-2">
             <div className="bg-transparent">
               <button
                 type="button"
@@ -572,7 +574,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </button>
 
               {branchesOpen && (
-                <div className="app-shell-rail-panel ml-3 mt-0.5 overflow-x-hidden border-l border-app-line-22 pl-2">
+                <div className="app-shell-rail-panel ml-3 mt-0.5 max-h-[min(50vh,14rem)] overflow-y-auto overflow-x-hidden border-l border-app-line-22 pl-2">
                   <div className="space-y-0.5 pb-1">
                     {allSedi.map((s) => {
                       const isCurrent = s.id === activeSede
@@ -627,10 +629,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <span className="truncate">{gestisciSediLinkLabel}</span>
               </Link>
             </div>
-
-            </>
+            </div>
           )}
-          </div>
         </nav>
 
         {/* ── Footer espandibile: riga contesto + pannello opzionale + riga icone ── */}
