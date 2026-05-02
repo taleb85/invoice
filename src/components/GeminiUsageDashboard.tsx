@@ -218,13 +218,7 @@ function StatCard({
   accent?: string
 }) {
   return (
-    <div
-      className="flex min-w-0 flex-col gap-1 rounded-xl p-4"
-      style={{
-        background: 'rgba(15, 42, 74, 0.6)',
-        border: '1px solid rgba(34, 211, 238, 0.15)',
-      }}
-    >
+    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-app-line-28 bg-app-line-5 p-4">
       <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
         {label}
       </span>
@@ -327,13 +321,7 @@ function AiUsageStudioChart({ data }: { data: ChartPoint[] }) {
   if (data.length === 0) return null
 
   return (
-    <div
-      className="min-w-0 max-w-full rounded-xl p-4 pt-3"
-      style={{
-        background: 'rgba(15, 42, 74, 0.6)',
-        border: '1px solid rgba(34, 211, 238, 0.15)',
-      }}
-    >
+    <div className="min-w-0 max-w-full rounded-xl border border-app-line-28 bg-app-line-5 p-4 pt-3">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
         Richieste API e tasso di successo
       </p>
@@ -457,6 +445,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [clearing, setClearing] = useState(false)
+    const [recentScansioniOpen, setRecentScansioniOpen] = useState(false)
 
     const load = useCallback(async () => {
       setLoading(true)
@@ -576,14 +565,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
         )}
 
         {error && (
-          <div
-            className="rounded-lg px-4 py-3 text-[12px]"
-            style={{
-              background: 'rgba(239,68,68,0.08)',
-              border: '1px solid rgba(239,68,68,0.2)',
-              color: '#f87171',
-            }}
-          >
+          <div className="rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-[12px] text-red-400">
             {error}
           </div>
         )}
@@ -611,16 +593,11 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     key={key}
                     type="button"
                     onClick={() => setPreset(key)}
-                    className="rounded-lg px-2.5 py-1.5 text-[11px] font-medium leading-tight transition-colors sm:px-3 sm:text-[12px]"
-                    style={{
-                      background:
-                        preset === key ? 'rgba(34, 211, 238, 0.18)' : 'rgba(15, 42, 74, 0.5)',
-                      border:
-                        preset === key
-                          ? '1px solid rgba(34, 211, 238, 0.45)'
-                          : '1px solid rgba(34, 211, 238, 0.12)',
-                      color: preset === key ? '#e0f9ff' : 'rgba(148, 163, 184, 0.95)',
-                    }}
+                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-medium leading-tight transition-colors sm:px-3 sm:text-[12px] ${
+                      preset === key
+                        ? 'border-app-cyan-400/45 bg-cyan-500/15 text-cyan-100'
+                        : 'border-app-line-28 bg-app-line-10 text-app-fg-muted hover:bg-app-line-15 hover:text-app-fg'
+                    }`}
                   >
                     {label}
                   </button>
@@ -634,11 +611,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     <input
                       type="date"
                       value={customFrom}
-                      className="min-w-[10.5rem] rounded-md px-2 py-1 font-mono text-[12px] text-app-fg"
-                      style={{
-                        background: 'rgba(15, 42, 74, 0.85)',
-                        border: '1px solid rgba(34, 211, 238, 0.25)',
-                      }}
+                      className="min-w-[10.5rem] rounded-md border border-app-line-28 bg-app-line-10 px-2 py-1 font-mono text-[12px] text-app-fg"
                       onChange={(ev) => setCustomFrom(ev.target.value)}
                     />
                   </label>
@@ -647,11 +620,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     <input
                       type="date"
                       value={customTo}
-                      className="min-w-[10.5rem] rounded-md px-2 py-1 font-mono text-[12px] text-app-fg"
-                      style={{
-                        background: 'rgba(15, 42, 74, 0.85)',
-                        border: '1px solid rgba(34, 211, 238, 0.25)',
-                      }}
+                      className="min-w-[10.5rem] rounded-md border border-app-line-28 bg-app-line-10 px-2 py-1 font-mono text-[12px] text-app-fg"
                       onChange={(ev) => setCustomTo(ev.target.value)}
                     />
                   </label>
@@ -697,14 +666,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
 
             {/* Pricing info */}
             {data.pricing && (
-              <div
-                className="rounded-lg px-4 py-2.5 text-[11px]"
-                style={{
-                  background: 'rgba(34, 211, 238, 0.05)',
-                  border: '1px solid rgba(34, 211, 238, 0.12)',
-                  color: 'rgba(34,211,238,0.7)',
-                }}
-              >
+              <div className="rounded-lg border border-app-line-28 bg-app-line-5 px-4 py-2.5 text-[11px] text-app-fg-muted">
                 Prezzi {data.model}: ${data.pricing.inputPerMillion}/M token input &middot; $
                 {data.pricing.outputPerMillion}/M token output
               </div>
@@ -715,12 +677,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                 type="button"
                 onClick={clearAllHistory}
                 disabled={clearing}
-                className="rounded-lg px-3 py-1.5 text-[11px] font-medium transition-opacity disabled:opacity-40"
-                style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-                  border: '1px solid rgba(239, 68, 68, 0.35)',
-                  color: '#fca5a5',
-                }}
+                className="rounded-lg border border-red-500/35 bg-red-500/10 px-3 py-1.5 text-[11px] font-medium text-red-300 transition-opacity hover:bg-red-500/15 disabled:opacity-40"
               >
                 {clearing ? 'Azzeramento…' : 'Azzera storico'}
               </button>
@@ -728,13 +685,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
 
             {/* Empty state — nascosto se il periodo ha già una timeline (barre a zero) */}
             {data.totalCalls === 0 && chartSeries.length === 0 && (
-              <div
-                className="rounded-xl px-5 py-8 text-center"
-                style={{
-                  background: 'rgba(15, 42, 74, 0.4)',
-                  border: '1px solid rgba(34, 211, 238, 0.10)',
-                }}
-              >
+              <div className="rounded-xl border border-app-line-28 bg-app-line-5 px-5 py-8 text-center">
                 <p className="text-[13px] text-app-fg-muted">
                   Nessuna scansione registrata ancora.
                 </p>
@@ -746,14 +697,11 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
 
             {/* Per-sede breakdown */}
             {data.perSede && data.perSede.length > 0 && (
-              <div
-                className="overflow-hidden rounded-xl"
-                style={{
-                  background: 'rgba(15, 42, 74, 0.4)',
-                  border: '1px solid rgba(34, 211, 238, 0.12)',
-                }}
+              <section
+                className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
+                aria-label="Costi per sede"
               >
-                <div className="px-4 py-3">
+                <div className="border-b border-app-line-22 px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
                     Costi per sede
                   </p>
@@ -761,12 +709,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                 <div className="overflow-x-auto">
                   <table className="w-full text-[11px]">
                     <thead>
-                      <tr
-                        style={{
-                          borderTop: '1px solid rgba(34,211,238,0.08)',
-                          borderBottom: '1px solid rgba(34,211,238,0.08)',
-                        }}
-                      >
+                      <tr className="border-b border-app-line-22">
                         <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
                           Sede
                         </th>
@@ -785,8 +728,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                       {data.perSede.map((sede, i) => (
                         <tr
                           key={i}
-                          className="transition-colors hover:bg-white/5"
-                          style={{ borderBottom: '1px solid rgba(34,211,238,0.06)' }}
+                          className="border-b border-app-line-15 transition-colors last:border-b-0 hover:bg-white/5"
                         >
                           <td className="px-4 py-2 text-app-fg">{sede.nome}</td>
                           <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
@@ -795,10 +737,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                           <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
                             {fmt(sede.totalTokens)}
                           </td>
-                          <td
-                            className="px-4 py-2 text-right font-mono"
-                            style={{ color: '#34d399' }}
-                          >
+                          <td className="px-4 py-2 text-right font-mono text-emerald-400">
                             {fmtCost(sede.costUsd)}
                           </td>
                         </tr>
@@ -806,32 +745,40 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </section>
             )}
-
             {/* Recent calls table */}
             {data.recent.length > 0 && (
-              <div
-                className="overflow-hidden rounded-xl"
-                style={{
-                  background: 'rgba(15, 42, 74, 0.4)',
-                  border: '1px solid rgba(34, 211, 238, 0.12)',
-                }}
+              <section
+                className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
+                aria-label="Ultime scansioni"
               >
-                <div className="px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
+                <button
+                  type="button"
+                  onClick={() => setRecentScansioniOpen((o) => !o)}
+                  aria-expanded={recentScansioniOpen}
+                  className="flex w-full touch-manipulation items-center justify-between gap-2 border-b border-app-line-22 px-4 py-3 text-left transition-colors hover:bg-app-line-10"
+                >
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-app-fg-muted">
                     Ultime scansioni ({data.recent.length})
-                  </p>
-                </div>
-                <div className="overflow-x-auto">
+                  </span>
+                  <svg
+                    className={`h-4 w-4 shrink-0 text-app-fg-muted transition-transform ${
+                      recentScansioniOpen ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {recentScansioniOpen ? (
+                <div className="max-h-[min(70vh,36rem)] overflow-x-auto overflow-y-auto overscroll-y-contain">
                   <table className="w-full text-[11px]">
                     <thead>
-                      <tr
-                        style={{
-                          borderTop: '1px solid rgba(34,211,238,0.08)',
-                          borderBottom: '1px solid rgba(34,211,238,0.08)',
-                        }}
-                      >
+                      <tr className="border-b border-app-line-22">
                         <th className="px-4 py-2 text-left font-medium text-app-fg-muted">
                           Data
                         </th>
@@ -853,10 +800,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                       {data.recent.map((row, i) => (
                         <tr
                           key={i}
-                          className="transition-colors hover:bg-white/5"
-                          style={{
-                            borderBottom: '1px solid rgba(34,211,238,0.06)',
-                          }}
+                          className="border-b border-app-line-15 transition-colors last:border-b-0 hover:bg-white/5"
                         >
                           <td className="px-4 py-2 text-app-fg-muted">{fmtDate(row.created_at)}</td>
                           <td className="px-4 py-2 text-app-fg">
@@ -868,10 +812,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                           <td className="px-4 py-2 text-right font-mono text-app-fg-muted">
                             {fmt(row.outputTokens)}
                           </td>
-                          <td
-                            className="px-4 py-2 text-right font-mono"
-                            style={{ color: '#34d399' }}
-                          >
+                          <td className="px-4 py-2 text-right font-mono text-emerald-400">
                             {fmtCost(row.estimatedCostUsd)}
                           </td>
                         </tr>
@@ -879,7 +820,8 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                     </tbody>
                   </table>
                 </div>
-              </div>
+                ) : null}
+              </section>
             )}
           </div>
         )}
