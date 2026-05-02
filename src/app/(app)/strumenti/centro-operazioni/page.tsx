@@ -347,132 +347,136 @@ export default function CentroOperazioniPage() {
         <div className="mt-6 space-y-10">
           <div className="grid min-w-0 w-full grid-cols-1 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:gap-y-10 xl:gap-x-10">
             <div className="flex min-h-0 min-w-0 flex-col gap-y-10">
-          <section className="space-y-4" aria-labelledby="ops-section-sync">
-            <OpsSectionTitle id="ops-section-sync">{s.sectionSyncEmail}</OpsSectionTitle>
-            <div className="app-card overflow-hidden p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.manualImapSyncTitle}</p>
-              <p className="mt-2 text-sm text-app-fg-muted">{s.manualImapSyncDesc}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={emailSyncLoading}
-                  onClick={onForceEmailSync}
-                  className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {emailSyncLoading ? (
-                    <>
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-100 border-t-transparent" />
-                      {t.common.loading}
-                    </>
-                  ) : (
-                    d.emailSyncForceSync
-                  )}
-                </button>
-                {emailSyncError ? <span className="text-xs text-rose-300">{emailSyncError}</span> : null}
-              </div>
-            </div>
+              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-sync">
+                <OpsSectionTitle id="ops-section-sync">{s.sectionSyncEmail}</OpsSectionTitle>
+                <div className="flex min-h-0 min-w-0 flex-col gap-4">
+                  <div className="app-card overflow-hidden p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.manualImapSyncTitle}</p>
+                    <p className="mt-2 text-sm text-app-fg-muted">{s.manualImapSyncDesc}</p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={emailSyncLoading}
+                        onClick={onForceEmailSync}
+                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {emailSyncLoading ? (
+                          <>
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-100 border-t-transparent" />
+                            {t.common.loading}
+                          </>
+                        ) : (
+                          d.emailSyncForceSync
+                        )}
+                      </button>
+                      {emailSyncError ? <span className="text-xs text-rose-300">{emailSyncError}</span> : null}
+                    </div>
+                  </div>
 
-            <div className="app-card overflow-hidden p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.historicSyncSectionLabel}</p>
-              <p className="mt-2 text-base font-semibold text-app-fg">{s.historicSyncTitle}</p>
-              <p className="mt-2 text-sm text-app-fg-muted">{s.historicSyncDesc}</p>
-              <p className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
-                {s.historicSyncWarning}
-              </p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={historicSyncLoading}
-                  onClick={onHistoricEmailSync}
-                  className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-violet-500/45 bg-violet-500/12 px-4 py-2.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {historicSyncLoading ? (
-                    <>
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-violet-100 border-t-transparent" />
-                      {t.common.loading}
-                    </>
-                  ) : (
-                    s.historicSyncCta
-                  )}
-                </button>
-                {historicSyncError ? <span className="text-xs text-rose-300">{historicSyncError}</span> : null}
-              </div>
-              {historicProgressLine ? (
-                <p className="mt-3 text-xs text-app-fg-muted">{historicProgressLine}</p>
-              ) : null}
-              {historicSyncResult ? (
-                <p className="mt-3 whitespace-pre-line text-sm text-emerald-200/95">{historicSyncResult}</p>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="space-y-4" aria-labelledby="ops-section-documenti">
-            <OpsSectionTitle id="ops-section-documenti">{s.sectionDocumenti}</OpsSectionTitle>
-            <div className="app-card overflow-hidden p-5">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                {s.reprocessDaAssociareTitle}
-              </p>
-              <p className="mt-2 text-sm text-app-fg-muted">{s.reprocessDaAssociareDesc}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  aria-busy={reprocessLoading}
-                  disabled={reprocessLoading}
-                  onClick={() => void onReprocessDaAssociare()}
-                  className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-emerald-500/45 bg-emerald-500/12 px-4 py-2.5 text-xs font-bold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {reprocessLoading ? (
-                    <>
-                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100 border-t-transparent" />
-                      {t.common.loading}
-                    </>
-                  ) : (
-                    s.reprocessDaAssociareCta
-                  )}
-                </button>
-                {reprocessError ? <span className="text-xs text-rose-300">{reprocessError}</span> : null}
-              </div>
-              {reprocessLoading ? (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
-                  className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-400/35 bg-emerald-500/[0.07] px-3 py-2.5 text-left"
-                >
-                  <span
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-emerald-600/70 border-t-transparent dark:border-emerald-100 dark:border-t-transparent"
-                    aria-hidden
-                  />
-                  <span className="text-xs font-semibold leading-snug text-app-fg">
-                    {reprocessRunningStatus}
-                  </span>
+                  <div className="app-card overflow-hidden p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.historicSyncSectionLabel}</p>
+                    <p className="mt-2 text-base font-semibold text-app-fg">{s.historicSyncTitle}</p>
+                    <p className="mt-2 text-sm text-app-fg-muted">{s.historicSyncDesc}</p>
+                    <p className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
+                      {s.historicSyncWarning}
+                    </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={historicSyncLoading}
+                        onClick={onHistoricEmailSync}
+                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-violet-500/45 bg-violet-500/12 px-4 py-2.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {historicSyncLoading ? (
+                          <>
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-violet-100 border-t-transparent" />
+                            {t.common.loading}
+                          </>
+                        ) : (
+                          s.historicSyncCta
+                        )}
+                      </button>
+                      {historicSyncError ? <span className="text-xs text-rose-300">{historicSyncError}</span> : null}
+                    </div>
+                    {historicProgressLine ? (
+                      <p className="mt-3 text-xs text-app-fg-muted">{historicProgressLine}</p>
+                    ) : null}
+                    {historicSyncResult ? (
+                      <p className="mt-3 whitespace-pre-line text-sm text-emerald-200/95">{historicSyncResult}</p>
+                    ) : null}
+                  </div>
                 </div>
-              ) : null}
-              {reprocessResult ? (
-                <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
-              ) : null}
+              </section>
+
+              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-documenti">
+                <OpsSectionTitle id="ops-section-documenti">{s.sectionDocumenti}</OpsSectionTitle>
+                <div className="flex min-h-0 min-w-0 flex-col gap-4">
+                  <div className="app-card overflow-hidden p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                      {s.reprocessDaAssociareTitle}
+                    </p>
+                    <p className="mt-2 text-sm text-app-fg-muted">{s.reprocessDaAssociareDesc}</p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        aria-busy={reprocessLoading}
+                        disabled={reprocessLoading}
+                        onClick={() => void onReprocessDaAssociare()}
+                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-emerald-500/45 bg-emerald-500/12 px-4 py-2.5 text-xs font-bold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {reprocessLoading ? (
+                          <>
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100 border-t-transparent" />
+                            {t.common.loading}
+                          </>
+                        ) : (
+                          s.reprocessDaAssociareCta
+                        )}
+                      </button>
+                      {reprocessError ? <span className="text-xs text-rose-300">{reprocessError}</span> : null}
+                    </div>
+                    {reprocessLoading ? (
+                      <div
+                        role="status"
+                        aria-live="polite"
+                        aria-atomic="true"
+                        className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-400/35 bg-emerald-500/[0.07] px-3 py-2.5 text-left"
+                      >
+                        <span
+                          className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-emerald-600/70 border-t-transparent dark:border-emerald-100 dark:border-t-transparent"
+                          aria-hidden
+                        />
+                        <span className="text-xs font-semibold leading-snug text-app-fg">
+                          {reprocessRunningStatus}
+                        </span>
+                      </div>
+                    ) : null}
+                    {reprocessResult ? (
+                      <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
+                    ) : null}
+                  </div>
+
+                  <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">
+                    <p className="text-sm leading-relaxed text-app-fg-muted">{s.documentiAnalyCardDesc}</p>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
+                      <Link
+                        href="/inbox-ai"
+                        className="text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
+                      >
+                        {s.documentiAnalyInboxLink} →
+                      </Link>
+                      <Link
+                        href="/fornitori"
+                        className="text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
+                      >
+                        {s.documentiAnalyFornitoreLink} →
+                      </Link>
+                    </div>
+                  </article>
+                </div>
+              </section>
             </div>
 
-            <div className="app-card overflow-hidden p-5">
-              <p className="text-sm leading-relaxed text-app-fg-muted">{s.documentiAnalyCardDesc}</p>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
-                <Link
-                  href="/inbox-ai"
-                  className="text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-                >
-                  {s.documentiAnalyInboxLink} →
-                </Link>
-                <Link
-                  href="/fornitori"
-                  className="text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-                >
-                  {s.documentiAnalyFornitoreLink} →
-                </Link>
-              </div>
-            </div>
-          </section>
-
-            </div>
             <div className="flex min-h-0 min-w-0 flex-col gap-y-10">
               <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-ocr">
                 <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
@@ -501,40 +505,42 @@ export default function CentroOperazioniPage() {
                 </aside>
               </section>
 
-              <section className="space-y-4" aria-labelledby="ops-section-manutenzione">
+              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-manutenzione">
                 <OpsSectionTitle id="ops-section-manutenzione">{s.sectionManutenzione}</OpsSectionTitle>
-                <div className="app-card overflow-hidden p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardDupScanTitle}</p>
-                  <p className="mt-2 text-sm text-app-fg-muted">{s.cardDupScanDesc}</p>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setDupOpen(true)}
-                      className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/45 bg-amber-500/12 px-4 py-2.5 text-xs font-bold text-amber-100 transition-colors hover:bg-amber-500/18"
-                    >
-                      {d.duplicateFattureScanButton}
-                    </button>
+                <div className="flex min-h-0 min-w-0 flex-col gap-4">
+                  <div className="app-card overflow-hidden p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardDupScanTitle}</p>
+                    <p className="mt-2 text-sm text-app-fg-muted">{s.cardDupScanDesc}</p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setDupOpen(true)}
+                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/45 bg-amber-500/12 px-4 py-2.5 text-xs font-bold text-amber-100 transition-colors hover:bg-amber-500/18"
+                      >
+                        {d.duplicateFattureScanButton}
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                <div className="app-card overflow-hidden p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardAuditTitle}</p>
-                  <p className="mt-2 text-sm text-app-fg-muted">{s.cardAuditDesc}</p>
-                  <Link
-                    href="/inbox-ai?tab=audit"
-                    className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-                  >
-                    {s.cardOpenAudit} →
-                  </Link>
-                </div>
+                  <div className="app-card overflow-hidden p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardAuditTitle}</p>
+                    <p className="mt-2 text-sm text-app-fg-muted">{s.cardAuditDesc}</p>
+                    <Link
+                      href="/inbox-ai?tab=audit"
+                      className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
+                    >
+                      {s.cardOpenAudit} →
+                    </Link>
+                  </div>
 
-                <CentroOperazioniDashboard
-                  data={data}
-                  loadError={loadError}
-                  forceLoading={forceLoading}
-                  forceError={forceError}
-                  onForce={onForce}
-                />
+                  <CentroOperazioniDashboard
+                    data={data}
+                    loadError={loadError}
+                    forceLoading={forceLoading}
+                    forceError={forceError}
+                    onForce={onForce}
+                  />
+                </div>
               </section>
 
             </div>
