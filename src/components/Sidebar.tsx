@@ -355,7 +355,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       className="app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3"
     >
         <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
-          <div className="app-shell-rail-panel shrink-0 space-y-0.5 border-b border-app-line-22 bg-slate-950/75 py-2 backdrop-blur-md">
+          <div className="app-shell-rail-panel shrink-0 space-y-0.5 border-b border-app-line-22 py-2">
           {/* Dashboard / Portale Gestionale */}
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
