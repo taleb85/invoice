@@ -8,7 +8,7 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import type { SedeAdminGlobalOverviewRow } from '@/lib/dashboard-admin-sedi-overview'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
-import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SHELL_SECTION_PAGE_CLASS } from '@/lib/app-shell-layout`
+import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT, APP_SHELL_SECTION_PAGE_CLASS } from '@/lib/app-shell-layout'
 export type AdminGlobalSedeCard = SedeAdminGlobalOverviewRow
 
 export function AdminGlobalDashboard({
