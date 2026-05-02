@@ -66,14 +66,11 @@ export function createServiceClient() {
 
 /** Restituisce il profilo dell'utente corrente inclusa la sede. Memoised per request via cache(). */
 export const getProfile = cache(async (): Promise<Profile | null> => {
-  const { supabase, user } = await getRequestAuth()
+  const { user } = await getRequestAuth()
   if (!user) return null
 
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle()
+  const service = createServiceClient()
+  const { data } = await service.from('profiles').select('*').eq('id', user.id).maybeSingle()
 
   return (data as Profile) ?? null
 })

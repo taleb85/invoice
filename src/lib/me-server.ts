@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { getRequestAuth } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import type { MeData } from '@/lib/me-context'
 import { isAdminSedeRole, isAdminTecnicoRole, isMasterAdminRole } from '@/lib/roles'
 import { resolveActiveSedeIdForLists, firstSedeIdFromUser } from '@/lib/resolve-active-sede-for-lists'
@@ -26,7 +26,9 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
   const { supabase, user } = await getRequestAuth()
   if (!user) return { ok: false, kind: 'unauth' }
 
-  const { data: profile, error: profileErr } = await supabase
+  // Profilo letto col service role: la sessione user-scoped non garantisce SELECT su profiles (RLS / cookie propagation).
+  const service = createServiceClient()
+  const { data: profile, error: profileErr } = await service
     .from('profiles')
     .select('role, sede_id, full_name')
     .eq('id', user.id)
