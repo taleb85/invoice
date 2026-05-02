@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import {
   normalizeBlacklistMittente,
@@ -15,13 +15,11 @@ function targetSedeId(profile: { role?: string | null; sede_id?: string | null }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const service = createServiceClient()
+  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
   const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
@@ -50,7 +48,6 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const service = createServiceClient()
   let q = service
     .from('email_scan_blacklist')
     .select('id, sede_id, mittente, motivo, aggiunto_da, created_at')
@@ -69,11 +66,8 @@ export async function GET(req: NextRequest) {
 
 // ── POST ──────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = (await req.json()) as { mittente?: string; motivo?: string; sede_id?: string }
   const rawMitt = body.mittente?.trim()
@@ -89,7 +83,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const service = createServiceClient()
+  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
   const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
@@ -109,7 +104,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'mittente non valido' }, { status: 400 })
   }
 
-  const service = createServiceClient()
   const { data: row, error } = await service
     .from('email_scan_blacklist')
     .upsert(
@@ -130,18 +124,16 @@ export async function POST(req: NextRequest) {
 
 // ── DELETE ────────────────────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const mittente = req.nextUrl.searchParams.get('mittente')?.trim()
   if (!mittente) {
     return NextResponse.json({ error: 'mittente mancante' }, { status: 400 })
   }
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const service = createServiceClient()
+  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
   const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
@@ -160,7 +152,6 @@ export async function DELETE(req: NextRequest) {
 
   const key = normalizeBlacklistMittente(mittente)
 
-  const service = createServiceClient()
   const { error } = await service.from('email_scan_blacklist').delete().eq('sede_id', sedeId).eq('mittente', key)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

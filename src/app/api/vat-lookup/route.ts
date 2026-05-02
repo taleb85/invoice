@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 
 export type VatLookupResult = {
   found: boolean
@@ -19,7 +20,7 @@ function cleanPiva(raw: string, country: string): string {
   return s
 }
 
-async function checkCache(supabase: Awaited<ReturnType<typeof createClient>>, cacheKey: string): Promise<VatLookupResult | null> {
+async function checkCache(supabase: SupabaseClient, cacheKey: string): Promise<VatLookupResult | null> {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
     const { data } = await supabase
@@ -35,7 +36,7 @@ async function checkCache(supabase: Awaited<ReturnType<typeof createClient>>, ca
   return null
 }
 
-async function saveCache(supabase: Awaited<ReturnType<typeof createClient>>, cacheKey: string, result: VatLookupResult) {
+async function saveCache(supabase: SupabaseClient, cacheKey: string, result: VatLookupResult) {
   try {
     await supabase
       .from('vat_lookup_cache')
@@ -116,6 +117,9 @@ async function lookupCompaniesHouseGB(vatNumber: string): Promise<VatLookupResul
 }
 
 export async function GET(req: NextRequest) {
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { searchParams } = new URL(req.url)
   const rawPiva = searchParams.get('piva') ?? ''
   const country = (searchParams.get('country') ?? 'IT').toUpperCase()
@@ -130,7 +134,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ found: false, ragione_sociale: null, indirizzo: null, piva, paese: country })
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const cacheKey = `${country}:${piva}`
 
   // Check cache first

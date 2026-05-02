@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole } from '@/lib/roles'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
@@ -33,9 +33,9 @@ interface ImportResult {
 export async function POST(req: NextRequest) {
   try {
     // Auth check
-    const authClient = await createClient()
-    const { data: { user } } = await authClient.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+    const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
     const profile = await getProfile()
     if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })

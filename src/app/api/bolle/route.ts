@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 /**
@@ -8,9 +8,9 @@ import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
  * Fields: file (File), fornitore_id, sede_id, data, numero_bolla?, importo?, registrato_da?
  */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   let formData: FormData
   try {

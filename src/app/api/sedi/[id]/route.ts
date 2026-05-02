@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
 
@@ -9,13 +9,11 @@ const ALLOWED_LANGS = ['it', 'en', 'fr', 'de', 'es']
 
 /** Nome sede + elenco «nomi cliente da ignorare» (merge default se vuoto nel DB). */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const service = createServiceClient()
+  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
 
   const master = isMasterAdminRole(profile?.role)
   const sedeAdmin = isAdminSedeRole(profile?.role)
@@ -27,8 +25,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (sedeAdmin && profile?.sede_id !== id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-
-  const service = createServiceClient()
   const { data: sede, error } = await service
     .from('sedi')
     .select('id, nome, nomi_cliente_da_ignorare')
@@ -54,11 +50,11 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const service = createServiceClient()
+  const { data: profile } = await service
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
@@ -172,7 +168,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
   }
 
-  const service = createServiceClient()
   const { error } = await service
     .from('sedi')
     .update(update)
@@ -188,9 +183,8 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
   const body = await req.json() as { language?: string | null }

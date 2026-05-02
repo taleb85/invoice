@@ -1,13 +1,13 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient as createServiceClient, type SupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@/utils/supabase/server'
+import { createClient as createJsServiceClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isProfilesBranchDeskRole } from '@/lib/roles'
 
 function serviceDb() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return null
-  return createServiceClient(url, key)
+  return createJsServiceClient(url, key)
 }
 
 function canListOperatorsSessionScope(profile: { sede_id?: string | null; role?: string | null } | null): boolean {
@@ -54,20 +54,18 @@ async function jsonForSedeIdServiceOnly(sedeId: string) {
 /**
  * GET /api/sede-operators
  *
- * - `?sedeScope=session`: elenco dalla sede del profilo autenticato — client di sessione (funziona senza service role in locale).
+ * - `?sedeScope=session`: elenco dalla sede del profilo autenticato — service dopo auth.
  * - altrimenti: cookie `sede-verified` (kiosk / sede-lock), richiede `SUPABASE_SERVICE_ROLE_KEY`.
  * Returns only { id, full_name } — no email or sensitive data.
  */
 export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('sedeScope') === 'session') {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { user } = await getRequestAuth()
     if (!user) {
       return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
     }
-    const { data: p } = await supabase
+    const svc = createServiceClient()
+    const { data: p } = await svc
       .from('profiles')
       .select('sede_id, role')
       .eq('id', user.id)
@@ -75,7 +73,7 @@ export async function GET(req: NextRequest) {
     if (!canListOperatorsSessionScope(p)) {
       return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
     }
-    return jsonForSedeIdWithClient(supabase, String(p!.sede_id).trim())
+    return jsonForSedeIdWithClient(svc, String(p!.sede_id).trim())
   }
 
   const sedeId = req.cookies.get('sede-verified')?.value?.trim()

@@ -4,7 +4,7 @@
  * copia dell’ordine e della bolla di consegna relativi ai beni descritti.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { Resend } from 'resend'
 import { localeFromCountryCode, type Locale } from '@/lib/translations'
 
@@ -74,11 +74,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email non configurata (RESEND_API_KEY).' }, { status: 503 })
   }
 
-  const authClient = await createClient()
-  const {
-    data: { user },
-  } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   const profile = await getProfile()
   if (!profile) return NextResponse.json({ error: 'Profilo non trovato' }, { status: 401 })

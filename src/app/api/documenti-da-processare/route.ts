@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { logActivity } from '@/lib/activity-logger'
 import { recordManualSupplierAssociation } from '@/lib/mittente-fornitore-assoc'
 import { mergeFornitoreMissingFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
@@ -320,10 +320,12 @@ async function finalizePendingByTipo(
 //   total=1       add header `X-Total-Count` = rows matching filters (lista resta max 200)
 
 export async function GET(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+
+
+  const service = createServiceClient()
   const { searchParams } = new URL(req.url)
   const statiParam   = searchParams.get('stati')
   const sedeId       = searchParams.get('sede_id')
@@ -334,8 +336,6 @@ export async function GET(req: NextRequest) {
   const stati: string[] = statiParam
     ? statiParam.split(',').map(s => s.trim()).filter(Boolean)
     : [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa']
-
-  const service = createServiceClient()
 
   // Fetch user's profile to enforce per-sede access for non-admin operators
   const { data: profile } = await service
@@ -419,13 +419,15 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   // Auth check con il client cookie-based (rispetta sessione utente)
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+
+
+  const service = createServiceClient()
   // Tutte le operazioni DB usano il service client per bypassare RLS:
   // evita il blocco su record con sede_id = NULL (NULL = sede_utente → NULL, non TRUE).
-  const supabase = createServiceClient()
+  const supabase = service
 
   const body = await req.json()
   const { id, azione, bolla_id, bolla_ids, fornitore_id, is_statement, kind } = body as {

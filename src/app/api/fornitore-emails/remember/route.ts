@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 
@@ -8,9 +8,9 @@ import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-a
  * Usa service client per bypassare RLS su fornitore_emails dove necessario.
  */
 export async function POST(req: NextRequest) {
-  const auth = await createClient()
-  const { data: { user } } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   let body: { fornitore_id?: string; email?: string }
   try {

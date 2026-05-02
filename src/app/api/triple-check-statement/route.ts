@@ -11,7 +11,7 @@
  *   fornitore_id — optional: restrict to a single supplier
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { runTripleCheck, type StatementLine } from '@/lib/triple-check'
 
 // Re-export types so existing imports in statements/page.tsx still work
@@ -19,9 +19,9 @@ export type { CheckStatus, CheckResult } from '@/lib/triple-check'
 export type { StatementLine }
 
 export async function POST(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   const body = await req.json() as {
     lines:         StatementLine[]

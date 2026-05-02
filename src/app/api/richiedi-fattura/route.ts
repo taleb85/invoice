@@ -6,7 +6,7 @@
  *   UK/GB → English · IT → Italian · FR → French · DE → German · ES → Spanish
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { Resend } from 'resend'
 import { localeFromCountryCode, type Locale } from '@/lib/translations'
 
@@ -85,9 +85,9 @@ function buildInvoiceRequestEmail(opts: {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   const body = await req.json()
   const bollaIds: string[] = Array.isArray(body.bolla_ids) ? body.bolla_ids : body.bolla_id ? [body.bolla_id] : []
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { data: bolle, error: dbError } = await supabase
+  const { data: bolle, error: dbError } = await svc
     .from('bolle')
     .select('id, data, fornitori(id, nome, email, language)')
     .in('id', bollaIds)

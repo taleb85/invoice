@@ -1,24 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole } from '@/lib/roles'
 
 /**
  * Lista operatori di sede per dropdown / cambio operatore.
- * Usa il client di sessione (RLS); non richiede SUPABASE_SERVICE_ROLE_KEY.
+ * Service role dopo auth; non richiede RLS sul profilo in lettura.
  *
  * Query: `sedeId` o `sede_id` (stesso significato). Senza sede: master → tutti i profili
  * eligible; altrimenti → solo utenti della sede del profilo.
  */
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato.' }, { status: 401 })
-  }
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile, error: profileErr } = await supabase
+  const service = createServiceClient()
+  const { data: profile, error: profileErr } = await service
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
@@ -46,7 +42,7 @@ export async function GET(req: NextRequest) {
     targetSede = ownSede
   }
 
-  let q = supabase
+  let q = service
     .from('profiles')
     .select('id, full_name, role')
     .in('role', ['operatore', 'admin_sede', 'admin_tecnico'])

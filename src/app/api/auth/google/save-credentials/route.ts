@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole } from '@/lib/roles'
 
 /**
@@ -17,15 +17,12 @@ import { isMasterAdminRole } from '@/lib/roles'
  *    Supabase-stored values are read by gmail-service on every request instead.
  */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
-
+  const service = createServiceClient()
   // Only master admins may change app-level OAuth credentials
-  const { data: profile } = await createServiceClient()
+  const { data: profile } = await service
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -60,7 +57,6 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    const service = createServiceClient()
     const savedAt = new Date().toISOString()
 
     // Persist both values to Supabase — this is the sole source of truth

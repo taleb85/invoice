@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { safeDate } from '@/lib/safe-date'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
+  const supabase = createServiceClient()
 
   let formData: FormData
   try {

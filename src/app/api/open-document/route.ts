@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { parseSupabasePublicStorageUrl } from '@/lib/open-document-url'
 import type { Profile } from '@/types'
 
@@ -86,13 +86,8 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const profile = await getProfile()
   if (!profile) {
@@ -110,7 +105,7 @@ export async function GET(req: NextRequest) {
       const { data } = await service.from('bolle').select('file_url').eq('id', bollaId).maybeSingle()
       file_url = data?.file_url ?? null
     } else {
-      const { data } = await supabase.from('bolle').select('file_url').eq('id', bollaId).maybeSingle()
+      const { data } = await service.from('bolle').select('file_url').eq('id', bollaId).maybeSingle()
       file_url = data?.file_url ?? null
       if (!file_url?.trim() && userSedeId) {
         const { data: row } = await service
@@ -128,7 +123,7 @@ export async function GET(req: NextRequest) {
       const { data } = await service.from('fatture').select('file_url').eq('id', fatturaId).maybeSingle()
       file_url = data?.file_url ?? null
     } else {
-      const { data } = await supabase.from('fatture').select('file_url').eq('id', fatturaId).maybeSingle()
+      const { data } = await service.from('fatture').select('file_url').eq('id', fatturaId).maybeSingle()
       file_url = data?.file_url ?? null
       if (!file_url?.trim() && userSedeId) {
         const { data: row } = await service
@@ -146,7 +141,7 @@ export async function GET(req: NextRequest) {
       const { data } = await service.from('log_sincronizzazione').select('file_url').eq('id', logId).maybeSingle()
       file_url = data?.file_url ?? null
     } else {
-      const { data } = await supabase.from('log_sincronizzazione').select('file_url').eq('id', logId).maybeSingle()
+      const { data } = await service.from('log_sincronizzazione').select('file_url').eq('id', logId).maybeSingle()
       file_url = data?.file_url ?? null
       if (!file_url?.trim() && userSedeId) {
         const { data: row } = await service
@@ -164,7 +159,7 @@ export async function GET(req: NextRequest) {
       const { data } = await service.from('documenti_da_processare').select('file_url').eq('id', documentoId).maybeSingle()
       file_url = data?.file_url ?? null
     } else {
-      const { data } = await supabase.from('documenti_da_processare').select('file_url').eq('id', documentoId).maybeSingle()
+      const { data } = await service.from('documenti_da_processare').select('file_url').eq('id', documentoId).maybeSingle()
       file_url = data?.file_url ?? null
       if (!file_url?.trim() && userSedeId) {
         const { data: row } = await service
@@ -182,7 +177,7 @@ export async function GET(req: NextRequest) {
       const { data } = await service.from('statements').select('file_url').eq('id', statementId).maybeSingle()
       file_url = data?.file_url ?? null
     } else {
-      const { data } = await supabase.from('statements').select('file_url').eq('id', statementId).maybeSingle()
+      const { data } = await service.from('statements').select('file_url').eq('id', statementId).maybeSingle()
       file_url = data?.file_url ?? null
       if (!file_url?.trim() && userSedeId) {
         const { data: row } = await service
@@ -204,7 +199,7 @@ export async function GET(req: NextRequest) {
         .maybeSingle()
       file_url = data?.file_url ?? null
     } else {
-      const { data } = await supabase
+      const { data } = await service
         .from('conferme_ordine')
         .select('file_url')
         .eq('id', confermaOrdineId)

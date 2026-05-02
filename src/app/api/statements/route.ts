@@ -7,14 +7,16 @@
  * in supabase/migrations/add-statements.sql.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { runTripleCheck } from '@/lib/triple-check'
 
 export async function GET(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+
+
+  const service = createServiceClient()
   const supabase = createServiceClient()
   const { searchParams } = new URL(req.url)
   const sedeId      = searchParams.get('sede_id')
@@ -38,7 +40,7 @@ export async function GET(req: NextRequest) {
     const fIds = [...new Set((rows ?? []).map((r: { fornitore_id: string | null }) => r.fornitore_id).filter(Boolean))]
     const fMap: Record<string, { id: string; nome: string; email: string | null }> = {}
     if (fIds.length) {
-      const { data: fRows } = await supabase.from('fornitori').select('id, nome, email').in('id', fIds)
+      const { data: fRows } = await service.from('fornitori').select('id, nome, email').in('id', fIds)
       for (const f of fRows ?? []) fMap[f.id] = f
     }
 
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
 
     // Single upsert replaces R sequential UPDATE calls (N+1 pattern).
     // Conflict target: the (statement_id, numero_doc) unique constraint on statement_rows.
-    await supabase.from('statement_rows').upsert(
+    await service.from('statement_rows').upsert(
       results.map((r) => ({
         statement_id:   statementId,
         numero_doc:     r.numero,
@@ -87,7 +89,7 @@ export async function GET(req: NextRequest) {
     )
 
     const missingRows = results.filter(r => r.status !== 'ok').length
-    await supabase.from('statements').update({
+    await service.from('statements').update({
       status:       'done',
       missing_rows: missingRows,
     }).eq('id', statementId)

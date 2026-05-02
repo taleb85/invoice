@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { extractRekkiSupplierIdFromUrl } from '@/lib/rekki-extract-id'
 import { lookupRekkiSuppliersByVat } from '@/lib/rekki-supplier-lookup'
 
@@ -13,12 +13,12 @@ type Body =
     }
 
 export async function POST(req: Request) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+
+
+  const service = createServiceClient()
   let body: Body
   try {
     body = (await req.json()) as Body
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
     if (body.rekki_link !== undefined) {
       patch.rekki_link = body.rekki_link === null ? null : String(body.rekki_link).trim() || null
     }
-    const { data, error } = await supabase.from('fornitori').update(patch).eq('id', id).select('id')
+    const { data, error } = await service.from('fornitori').update(patch).eq('id', id).select('id')
     if (error) {
       console.error('[fornitore-rekki] Supabase update fornitori failed', {
         fornitore_id: id,

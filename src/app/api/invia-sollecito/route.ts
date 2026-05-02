@@ -16,7 +16,7 @@
  *   sede_id        — optional: branch UUID (used to detect language + reply-to)
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { Resend } from 'resend'
 import { localeFromCountryCode, type Locale } from '@/lib/translations'
 import { canSendSolleciti, fetchSollecitiReminderSettings } from '@/lib/sollecito-aging'
@@ -130,10 +130,12 @@ function buildEmail(opts: {
 }
 
 export async function POST(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+
+
+  const service = createServiceClient()
   const body = await req.json() as {
     fornitore_id:  string
     numero_doc:    string
@@ -223,7 +225,7 @@ export async function POST(req: NextRequest) {
   const sentAt = new Date().toISOString()
 
   try {
-    await supabase.from('log_sincronizzazione').insert([{
+    await service.from('log_sincronizzazione').insert([{
       mittente:         sedeReplyTo,
       oggetto_mail:     `[SOLLECITO] ${subject}`,
       stato:            'successo',
@@ -246,15 +248,16 @@ export async function POST(req: NextRequest) {
 
 /** GET /api/invia-sollecito?fornitore_id=xxx — returns recent solleciti for a supplier */
 export async function GET(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+
+
+  const service = createServiceClient()
   const { searchParams } = new URL(req.url)
   const fornitoreId = searchParams.get('fornitore_id')
 
-  const supabase = createServiceClient()
-  let q = supabase
+  let q = service
     .from('log_sincronizzazione')
     .select('id, data, oggetto_mail, fornitore_id')
     .ilike('oggetto_mail', '[SOLLECITO]%')

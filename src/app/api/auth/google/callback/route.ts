@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { gmailService } from '@/lib/gmail-service'
 
 /**
@@ -44,9 +44,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Get authenticated user as fallback
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
+    const { user } = await getRequestAuth()
     if (!user) {
       const redirectUrl = new URL('/login', req.nextUrl.origin)
       redirectUrl.searchParams.set('error', 'not_authenticated')
@@ -54,20 +52,20 @@ export async function GET(req: NextRequest) {
     }
 
     userId = userId || user.id
-    
+
+    const service = createServiceClient()
     // Get user's sede_id if not provided
     if (!sedeId) {
-      const { data: profile } = await supabase
+      const { data: profile } = await service
         .from('profiles')
         .select('sede_id')
         .eq('id', userId)
         .maybeSingle()
-      
+
       sedeId = profile?.sede_id || null
     }
-    
-    // Initialize service
-    const service = createServiceClient()
+
+    // Initialize service for Gmail
     await gmailService.init(service)
     
     // Exchange code for tokens

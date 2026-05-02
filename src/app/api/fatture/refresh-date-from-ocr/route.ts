@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { safeDate } from '@/lib/safe-date'
@@ -21,13 +21,10 @@ function resolvedContentType(url: string, header: string | null): string {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const service = createServiceClient()
 
   let fatturaId: string
   try {
@@ -40,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'fattura_id richiesto' }, { status: 400 })
   }
 
-  const { data: fattura, error: qErr } = await supabase
+  const { data: fattura, error: qErr } = await service
     .from('fatture')
     .select('id, data, importo, file_url')
     .eq('id', fatturaId)
@@ -56,7 +53,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const service = createServiceClient()
   let buffer: Buffer
   let contentType: string
   try {
@@ -135,7 +131,7 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  const { error: uErr } = await supabase.from('fatture').update(updates).eq('id', fatturaId)
+  const { error: uErr } = await service.from('fatture').update(updates).eq('id', fatturaId)
 
   if (uErr) {
     return NextResponse.json({ error: uErr.message }, { status: 500 })

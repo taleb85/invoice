@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import { senderAlreadyLinkedToFornitore } from '@/lib/mittente-fornitore-assoc'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
@@ -18,11 +18,9 @@ function extractEmail(raw: string): string | null {
  * Registra l’email tra gli alias del fornitore (stesso comportamento di `/fornitore-emails/remember`).
  */
 export async function POST(req: NextRequest) {
-  const auth = await createClient()
-  const {
-    data: { user },
-  } = await auth.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   let body: { fornitore_id?: string; email?: string }
   try {

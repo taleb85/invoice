@@ -6,20 +6,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { saveManualDigitalReceipt } from '@/lib/manual-delivery'
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const
 
 export async function POST(req: NextRequest) {
-  const auth = await createClient()
-  const {
-    data: { user },
-  } = await auth.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const ct = req.headers.get('content-type') ?? ''
   let text = ''

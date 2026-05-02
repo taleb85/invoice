@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-
+  const service = createServiceClient()
   // Query sedi con client normale (rispetta RLS)
-  const { data: sediRLS, error: errRLS } = await supabase.from('sedi').select('id, nome')
+  const { data: sediRLS, error: errRLS } = await service.from('sedi').select('id, nome')
 
   // Query is_admin() via RPC
-  const { data: adminCheck, error: errAdmin } = await supabase.rpc('is_admin')
+  const { data: adminCheck, error: errAdmin } = await service.rpc('is_admin')
 
   // Query profilo utente
-  const { data: profile } = await supabase.from('profiles').select('id, role, sede_id').eq('id', user.id).single()
+  const { data: profile } = await service.from('profiles').select('id, role, sede_id').eq('id', user.id).single()
 
   // Query sedi con service role (bypass RLS)
   const admin = createAdmin(

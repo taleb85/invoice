@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { fetchSedeSupplierSuggestion } from '@/lib/suggested-fornitore'
 import {
   SUPPLIER_HINT_SKIP_COOKIE,
@@ -13,13 +13,8 @@ import {
  * registra salt documento nei cookie così anche la server component esclude questo ID al refresh.
  */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: { sede_id?: string; document_id?: string }
   try {
@@ -47,13 +42,8 @@ export async function POST(req: NextRequest) {
  * Stesso suggerimento fornitore della dashboard, con lista documenti saltati (solo GET — client prefetch).
  */
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sedeId = req.nextUrl.searchParams.get('sede_id')?.trim()
   if (!sedeId) {
@@ -66,6 +56,7 @@ export async function GET(req: NextRequest) {
     : []
 
   try {
+    const supabase = createServiceClient()
     const suggestion = await fetchSedeSupplierSuggestion(supabase, sedeId, { excludeDocumentIds })
     return NextResponse.json({ suggestion })
   } catch (e) {

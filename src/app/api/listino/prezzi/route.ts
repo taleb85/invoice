@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import type { Profile } from '@/types'
 import { isMasterAdminRole } from '@/lib/roles'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
@@ -54,11 +54,9 @@ type InsertRow = {
  * **anteriore** a quell’ultima data, la riga viene **saltata** salvo `force_outdated` (operatore con accesso al listino).
  */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   const profile = await getProfile()
   if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
@@ -194,11 +192,9 @@ export async function POST(req: NextRequest) {
  * Eliminazione riga listino: verifica che la riga appartenga al fornitore indicato e che l’utente possa gestire quel fornitore.
  */
 export async function DELETE(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   const profile = await getProfile()
   if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })

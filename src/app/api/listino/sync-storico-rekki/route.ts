@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 
 /**
  * POST /api/listino/sync-storico-rekki
@@ -9,9 +9,9 @@ import { createClient, createServiceClient } from '@/utils/supabase/server'
  * per ogni prodotto in base alla fattura più vecchia trovata.
  */
 export async function POST(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   
   const { fornitore_id } = await req.json() as { fornitore_id: string }
   

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { gmailService } from '@/lib/gmail-service'
 
 /**
@@ -8,13 +8,9 @@ import { gmailService } from '@/lib/gmail-service'
  * Returns current Gmail connection status for the authenticated user.
  */
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
-  
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const service = createServiceClient()
     await gmailService.init(service)

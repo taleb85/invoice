@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { isMasterAdminRole } from '@/lib/roles'
 
 interface OverchargeItem {
   fatturaId: string
@@ -53,9 +54,14 @@ function extractQuantityFromText(text: string): number | null {
  * i casi in cui è stato pagato un prezzo superiore a quello Rekki pattuito.
  */
 export async function POST(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const profile = await getProfile()
+  if (!profile) {
+    return NextResponse.json({ error: 'Fornitore non trovato o accesso negato' }, { status: 403 })
+  }
+
   
   const { fornitore_id, from_date, to_date } = await req.json() as {
     fornitore_id: string
@@ -67,19 +73,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
   }
 
+  const service = createServiceClient()
+
   // Verify the caller has access to this fornitore's sede before using the service client.
-  const { data: fornitoreRow } = await authClient
+  const { data: fornitoreRow } = await service
     .from('fornitori')
     .select('sede_id')
     .eq('id', fornitore_id)
     .maybeSingle()
 
   if (!fornitoreRow) {
-    // Either the fornitore doesn't exist or RLS blocked it (caller has no access)
     return NextResponse.json({ error: 'Fornitore non trovato o accesso negato' }, { status: 404 })
   }
 
-  const service = createServiceClient()
+  const master = isMasterAdminRole(profile.role)
+  if (!master && profile.sede_id !== fornitoreRow.sede_id) {
+    return NextResponse.json({ error: 'Fornitore non trovato o accesso negato' }, { status: 403 })
+  }
 
   // 1. Get all listino entries with rekki_product_id for this supplier
   const { data: listinoEntries, error: listinoErr } = await service

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -82,13 +82,8 @@ type PostBody = {
  * POST — registra / aggiorna dispositivo (utente autenticato, profileId = sessione).
  */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: PostBody
   try {
@@ -109,7 +104,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'profileId non corrisponde alla sessione' }, { status: 403 })
   }
 
-  const { data: prof, error: pErr } = await supabase
+  const service = createServiceClient()
+  const { data: prof, error: pErr } = await service
     .from('profiles')
     .select('id, role, sede_id')
     .eq('id', user.id)
@@ -126,7 +122,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'sedeId non coerente con il profilo' }, { status: 400 })
   }
 
-  const service = createServiceClient()
   const now = new Date().toISOString()
   const { error: upErr } = await service.from('device_sessions').upsert(
     {

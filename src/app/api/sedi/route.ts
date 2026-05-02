@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const svc = createServiceClient()
+
+  const { data: profile } = await svc
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -32,7 +33,6 @@ export async function POST(req: NextRequest) {
   const currency = body.currency ?? 'EUR'
   const timezone = body.timezone ?? 'Europe/Rome'
 
-  const svc = createServiceClient()
   const { data: sede, error } = await svc
     .from('sedi')
     .insert([{ nome, country_code, currency, timezone }])
@@ -45,11 +45,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const svc = createServiceClient()
+
+  const { data: profile } = await svc
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
@@ -70,8 +71,7 @@ export async function GET() {
   /** `global` = admin master (tutte le sedi); `sede` = staff legato alla filiale. */
   const adminListScope: 'global' | 'sede' = scopedSedeId ? 'sede' : 'global'
 
-  /** RLS non espone l’elenco profili della sede agli admin_sede: usiamo service role dopo aver verificato il chiamante. */
-  const svc = createServiceClient()
+  /** RLS non espone l'elenco profili della sede agli admin_sede: usiamo service role dopo aver verificato il chiamante. */
 
   const { data: sediRaw, error } = await svc
     .from('sedi')

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { detectAllDuplicates, type AllDuplicatesReport } from '@/lib/duplicate-detector'
 import { compareIsoDateStrings, isDocumentDateAtLeastLatestListino } from '@/lib/listino-document-date'
@@ -66,12 +66,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   if (!master && profile.sede_id !== fornitoreSedeId) {
     return NextResponse.json({ error: 'Non autorizzato su questo fornitore' }, { status: 403 })
-  }
-
-  const authClient = await createClient()
-  const { data: sessionUser } = await authClient.auth.getUser()
-  if (!sessionUser.user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
   }
 
   const origin = new URL(req.url)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 
 /**
  * GET /api/bolle-aperte[?sede_id=xxx][&fornitore_id=yyy]
@@ -15,19 +15,20 @@ import { createClient, createServiceClient } from '@/utils/supabase/server'
  */
 export async function GET(req: NextRequest) {
   // 1. Verifica sessione
-  const supabase = await createClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  const service = createServiceClient()
 
   // 2. Query params
   const { searchParams } = new URL(req.url)
   const overrideSedeId  = searchParams.get('sede_id') ?? null
   const fornitoreId     = searchParams.get('fornitore_id') ?? null
 
-  // 3. Profilo (sede_id + role) — via createClient così RLS si applica correttamente al profilo
-  const { data: profile, error: profileErr } = await supabase
+  // 3. Profilo (sede_id + role) — service dopo auth
+  const { data: profile, error: profileErr } = await service
     .from('profiles')
     .select('sede_id, role')
     .eq('id', user.id)
@@ -45,9 +46,6 @@ export async function GET(req: NextRequest) {
   const effectiveSedeId = overrideSedeId ?? profileSedeId
 
   if (profileErr) console.error(`[bolle-aperte] Errore profilo: ${profileErr.message}`)
-
-  // 4. Service client per bypassare RLS sulle bolle
-  const service = createServiceClient()
 
   const baseQuery = service
     .from('bolle')

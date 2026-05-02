@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/utils/supabase/server'
 import {
   normalizeOperatorLoginName,
   profileFirstTokenEquals,
@@ -11,10 +11,7 @@ export async function POST(req: NextRequest) {
   if (!token) {
     return NextResponse.json({ error: 'Nome obbligatorio.' }, { status: 400 })
   }
-  const adminClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const adminClient = createServiceClient()
 
   // Nessun ILIKE sul prefisso: con nomi accentati (es. José) non matcherebbe "JOSE%".
   // Carichiamo un bound ragionevole di profili e filtriamo in app con diacritici piegati.

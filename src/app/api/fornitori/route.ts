@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 
@@ -8,9 +8,10 @@ import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-a
 // fornitore_emails so the IMAP scan can recognise it automatically.
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const service = createServiceClient()
 
   const body = await req.json() as {
     nome?: string
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'La Sede è obbligatoria' }, { status: 400 })
   }
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
   const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
@@ -42,8 +43,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Puoi creare fornitori solo per la tua sede' }, { status: 403 })
     }
   }
-
-  const service = createServiceClient()
 
   // 1. Insert the fornitore record
   const { data: fornitore, error: fornitoreErr } = await service
@@ -79,22 +78,21 @@ export async function POST(req: NextRequest) {
 // if configured, otherwise we clean them up manually).
 
 export async function DELETE(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const service = createServiceClient()
 
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID mancante' }, { status: 400 })
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
   const sedeAdmin = isSedePrivilegedRole(profile?.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
-
-  const service = createServiceClient()
 
   if (sedeAdmin) {
     const { data: row } = await service.from('fornitori').select('sede_id').eq('id', id).maybeSingle()

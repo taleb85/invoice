@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export async function GET(
@@ -7,11 +7,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const service = createServiceClient()
+
+  const { data: profile } = await service
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
@@ -26,7 +27,6 @@ export async function GET(
     return NextResponse.json({ error: 'Accesso negato a questa sede' }, { status: 403 })
   }
 
-  const service = createServiceClient()
   const { data, error } = await service
     .from('approval_settings')
     .select('id, sede_id, threshold, require_approval, auto_register_fatture')
@@ -46,11 +46,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const service = createServiceClient()
+
+  const { data: profile } = await service
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
@@ -78,7 +79,6 @@ export async function POST(
   const requireApproval = body.require_approval !== false
   const autoRegisterFatture = body.auto_register_fatture === true
 
-  const service = createServiceClient()
   const { data, error } = await service
     .from('approval_settings')
     .upsert(

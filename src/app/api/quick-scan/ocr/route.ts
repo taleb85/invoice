@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { findUniqueFornitoreForPendingDoc } from '@/lib/auto-resolve-pending-doc'
 import type { QuickScanResult } from '@/components/quick-scan/quick-scan-modal'
@@ -13,12 +13,10 @@ const ALLOWED_TYPES = [
 ]
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
+  const supabase = createServiceClient()
 
   let formData: FormData
   try {

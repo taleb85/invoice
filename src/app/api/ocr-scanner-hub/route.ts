@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { geminiGenerateText, getGeminiModelId, type GeminiUsage } from '@/lib/gemini-vision'
 import { logActivity } from '@/lib/activity-logger'
@@ -71,12 +71,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const supabase = await createClient()
-    const [{ data: { user } }, profile, cookieStore] = await Promise.all([
-      supabase.auth.getUser(),
-      getProfile(),
-      await cookies(),
-    ])
+    const { user } = await getRequestAuth()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const [profile, cookieStore] = await Promise.all([getProfile(), cookies()])
 
     // Resolve the sede the scan belongs to (for usage tracking)
     let logSedeId: string | null = profile?.sede_id ?? null

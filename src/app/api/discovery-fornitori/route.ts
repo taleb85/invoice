@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { ImapFlow } from 'imapflow'
 
@@ -102,9 +102,9 @@ async function scanInboxHeaders(
 // ── GET: discover unknown senders ─────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   // Only admin and admin_sede can scan IMAP accounts (they expose credentials)
   const profile = await getProfile()
@@ -209,9 +209,9 @@ export async function GET(req: NextRequest) {
 // ── POST: create a new fornitore from a discovered email ──────────────────────
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   // Only admin and admin_sede can create fornitori via discovery
   const profile = await getProfile()

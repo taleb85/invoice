@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 const APP_ROLES = ['operatore', 'admin_sede', 'admin_tecnico', 'admin'] as const
@@ -8,13 +8,12 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato.' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: caller } = await supabase
+  const svc = createServiceClient()
+
+  const { data: caller } = await svc
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
@@ -29,7 +28,6 @@ export async function PATCH(
   const { id: targetId } = await params
   const body = (await req.json()) as { full_name?: string | null; role?: string }
 
-  const svc = createServiceClient()
   const { data: target } = await svc
     .from('profiles')
     .select('sede_id, role')

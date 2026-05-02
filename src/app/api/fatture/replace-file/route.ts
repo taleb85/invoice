@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 
 /** Estrae il percorso del file nel bucket da un URL pubblico di Supabase Storage */
@@ -14,10 +14,10 @@ function storagePathFromUrl(url: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const supabase = createServiceClient()
 
   const formData = await req.formData()
   const fatturaId = formData.get('fattura_id') as string | null

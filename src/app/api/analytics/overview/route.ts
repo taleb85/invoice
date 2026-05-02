@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { fiscalYearRangeUtc } from '@/lib/fiscal-year'
 import { isSedePrivilegedRole } from '@/lib/roles'
 
@@ -44,6 +44,8 @@ type BollaRow = {
 }
 
 export async function GET(req: NextRequest) {
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const profile = await getProfile()
   if (!profile || !isSedePrivilegedRole(profile.role ?? '')) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
@@ -56,7 +58,7 @@ export async function GET(req: NextRequest) {
   const fyParam = searchParams.get('fy')
   const fyYear = fyParam ? parseInt(fyParam, 10) : null
 
-  const supabase = await createClient()
+  const service = createServiceClient()
   const now = new Date()
 
   // Date range: FY-anchored when fy is set, rolling window otherwise
@@ -64,7 +66,7 @@ export async function GET(req: NextRequest) {
   let dateToStr: string
 
   if (fyYear && Number.isFinite(fyYear) && sedeId) {
-    const { data: sedeRow } = await supabase
+    const { data: sedeRow } = await service
       .from('sedi')
       .select('country_code')
       .eq('id', sedeId)
@@ -94,7 +96,7 @@ export async function GET(req: NextRequest) {
   const [fattureRes, bolleRes, anomalieTotaleRes, anomalieRisolteRes, documentiRes] =
     await Promise.all([
       (() => {
-        let q = supabase
+        let q = service
           .from('fatture')
           .select('id, data, importo, fornitore_id, bolla_id, fornitori(nome, display_name)')
           .gte('data', dateFromStr)
@@ -104,7 +106,7 @@ export async function GET(req: NextRequest) {
         return q
       })(),
       (() => {
-        let q = supabase
+        let q = service
           .from('bolle')
           .select('id, data, importo, fornitore_id, stato')
           .gte('data', dateFromStr)
@@ -114,14 +116,14 @@ export async function GET(req: NextRequest) {
         return q
       })(),
       (() => {
-        let q = supabase
+        let q = service
           .from('price_anomalies')
           .select('id', { count: 'exact', head: true })
         if (sedeId) q = q.eq('sede_id', sedeId) as typeof q
         return q
       })(),
       (() => {
-        let q = supabase
+        let q = service
           .from('price_anomalies')
           .select('id', { count: 'exact', head: true })
           .eq('resolved', true)
@@ -129,7 +131,7 @@ export async function GET(req: NextRequest) {
         return q
       })(),
       (() => {
-        let q = supabase
+        let q = service
           .from('documenti_da_processare')
           .select('id', { count: 'exact', head: true })
           .in('stato', ['in_attesa', 'da_processare', 'da_associare'])
@@ -209,7 +211,7 @@ export async function GET(req: NextRequest) {
   let tempoMedioRiconciliazione = 0
   if (fattureConBolla.length > 0) {
     const bollaIds = [...new Set(fattureConBolla.map((f) => f.bolla_id!))]
-    const { data: bolleLinked } = await supabase
+    const { data: bolleLinked } = await service
       .from('bolle')
       .select('id, data')
       .in('id', bollaIds.slice(0, 500))

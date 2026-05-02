@@ -208,7 +208,7 @@ Equivale a `npm run build` seguito da `npx vercel --prod --yes` (richiede login 
 
 Per un controllo rigoroso prima del deploy (include ESLint — il repo può avere warning/errori da sistemare): `npm run verify`.
 
-Al termine, Vercel mostrerà l'URL di produzione (es. `https://invoice-psi-six.vercel.app`).
+Al termine, Vercel mostrerà l'URL di produzione (es. `https://smart-pair-psi-six.vercel.app`).
 
 ---
 

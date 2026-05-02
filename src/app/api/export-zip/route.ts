@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import JSZip from 'jszip'
 
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const service = createServiceClient()
 
   const { searchParams } = new URL(req.url)
   const year = parseInt(searchParams.get('year') ?? String(new Date().getFullYear()))
@@ -18,13 +19,13 @@ export async function GET(req: NextRequest) {
 
   // Carica bolle e fatture del mese con fornitore
   const [{ data: bolle }, { data: fatture }] = await Promise.all([
-    supabase
+    service
       .from('bolle')
       .select('id, data, file_url, fornitore_id, fornitori(nome)')
       .gte('data', startDate)
       .lt('data', endDate)
       .not('file_url', 'is', null),
-    supabase
+    service
       .from('fatture')
       .select('id, data, file_url, fornitore_id, fornitori(nome)')
       .gte('data', startDate)
@@ -38,10 +39,9 @@ export async function GET(req: NextRequest) {
 
   const sanitize = (s: string) => s.replace(/[/\\?%*:|"<>]/g, '-').trim()
 
-  const storageService = createServiceClient()
   const downloadFile = async (url: string): Promise<Uint8Array | null> => {
     try {
-      const dl = await downloadStorageObjectByFileUrl(storageService, url)
+      const dl = await downloadStorageObjectByFileUrl(service, url)
       if ('error' in dl) return null
       return new Uint8Array(dl.data)
     } catch {

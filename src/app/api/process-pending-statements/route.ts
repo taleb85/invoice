@@ -16,16 +16,18 @@
  *   fornitore_id — limit to a specific supplier
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 
 export async function POST(req: NextRequest) {
-  const authClient = await createClient()
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+
+
+  const service = createServiceClient()
   const body = await req.json().catch(() => ({})) as {
     sede_id?:      string | null
     fornitore_id?: string | null
@@ -168,13 +170,13 @@ export async function POST(req: NextRequest) {
     if (rowsErr) {
       console.error(`[PENDING-STMT] Errore insert rows per ${statementId}:`, rowsErr.message)
       errors.push(`Errore salvataggio righe: ${rowsErr.message}`)
-      await supabase.from('statements').update({ status: 'error' }).eq('id', statementId)
+      await service.from('statements').update({ status: 'error' }).eq('id', statementId)
       continue
     }
 
     // ── 6. Update summary counts ─────────────────────────────────────────────
     const missingRows = checkResults.filter(r => r.status !== 'ok').length
-    await supabase.from('statements').update({
+    await service.from('statements').update({
       status:       'done',
       total_rows:   checkResults.length,
       missing_rows: missingRows,

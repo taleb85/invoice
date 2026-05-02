@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const service = createServiceClient()
   const profile = await getProfile()
   const { subscription } = await req.json()
 
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Subscription mancante' }, { status: 400 })
   }
 
-  const { error } = await supabase
+  const { error } = await service
     .from('push_subscriptions')
     .upsert([{
       user_id: user.id,
@@ -27,10 +27,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await supabase.from('push_subscriptions').delete().eq('user_id', user.id)
+  const service = createServiceClient()
+  await service.from('push_subscriptions').delete().eq('user_id', user.id)
   return NextResponse.json({ ok: true })
 }

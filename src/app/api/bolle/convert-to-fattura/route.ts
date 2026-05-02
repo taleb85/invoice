@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
@@ -84,12 +84,6 @@ export async function POST(req: NextRequest) {
       },
       { status: 409 },
     )
-  }
-
-  const authClient = await createClient()
-  const { data: canSee } = await authClient.from('bolle').select('id').eq('id', bollaId).maybeSingle()
-  if (!canSee) {
-    return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
 
   const ownerUserId = profile.id

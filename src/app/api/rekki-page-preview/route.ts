@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { getRequestAuth } from '@/utils/supabase/server'
 
 const MAX_HTML = 400_000
 const FETCH_TIMEOUT_MS = 12_000
@@ -69,11 +69,9 @@ function absolutizeUrl(base: string, candidate: string | null): string | null {
 }
 
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
 
   const urlParam = req.nextUrl.searchParams.get('url')?.trim() ?? ''
   if (!urlParam || !isAllowedRekkiUrl(urlParam)) {

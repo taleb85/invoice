@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 
 export interface Contatto {
   id: string
@@ -13,14 +13,14 @@ export interface Contatto {
 
 // GET /api/fornitore-contatti?fornitore_id=xxx
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const service = createServiceClient()
   const fornitoreId = new URL(req.url).searchParams.get('fornitore_id')
   if (!fornitoreId) return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
 
-  const { data, error } = await supabase
+  const { data, error } = await service
     .from('fornitore_contatti')
     .select('*')
     .eq('fornitore_id', fornitoreId)
@@ -39,16 +39,16 @@ export async function GET(req: NextRequest) {
 
 // POST /api/fornitore-contatti
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const service = createServiceClient()
   const body = await req.json() as { fornitore_id: string; nome: string; ruolo?: string; email?: string; telefono?: string }
   if (!body.fornitore_id || !body.nome?.trim()) {
     return NextResponse.json({ error: 'fornitore_id e nome sono obbligatori' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await service
     .from('fornitore_contatti')
     .insert([{
       fornitore_id: body.fornitore_id,
@@ -66,15 +66,15 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/fornitore-contatti?id=xxx
 export async function PATCH(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const service = createServiceClient()
   const id = new URL(req.url).searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id richiesto' }, { status: 400 })
 
   const body = await req.json() as { nome?: string; ruolo?: string; email?: string; telefono?: string }
-  const { data, error } = await supabase
+  const { data, error } = await service
     .from('fornitore_contatti')
     .update({
       ...(body.nome     !== undefined && { nome: body.nome.trim() }),
@@ -92,14 +92,14 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/fornitore-contatti?id=xxx
 export async function DELETE(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const service = createServiceClient()
   const id = new URL(req.url).searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id richiesto' }, { status: 400 })
 
-  const { error } = await supabase.from('fornitore_contatti').delete().eq('id', id)
+  const { error } = await service.from('fornitore_contatti').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

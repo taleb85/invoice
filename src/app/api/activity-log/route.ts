@@ -18,7 +18,7 @@ export type ActivityLogRow = {
 }
 
 export async function GET(req: NextRequest) {
-  const { supabase, user } = await getRequestAuth()
+  const { user } = await getRequestAuth()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
       ? fullProfile.sede_id.trim()
       : null
   if (!role || String(role).trim() === '') {
-    const { data } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).maybeSingle()
+    const service = createServiceClient()
+    const { data } = await service.from('profiles').select('role, sede_id').eq('id', user.id).maybeSingle()
     if (data?.role != null && String(data.role).trim() !== '') role = data.role
     const raw = data?.sede_id
     if (typeof raw === 'string' && raw.trim() !== '') profileSedeId = raw.trim()

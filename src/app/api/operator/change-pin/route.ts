@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { clearSessionActivity } from '@/lib/session-activity'
 import { logActivity } from '@/lib/activity-logger'
@@ -13,13 +13,12 @@ import { logActivity } from '@/lib/activity-logger'
  * Body: { operatorId: string, newPin: string }
  */
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const service = createServiceClient()
+
+  const { data: profile } = await service
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
@@ -45,8 +44,6 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     )
   }
-
-  const service = createServiceClient()
 
   // Verify the target is actually an operatore
   const { data: opProfile } = await service

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { gmailService } from '@/lib/gmail-service'
 
 /**
@@ -9,13 +9,9 @@ import { gmailService } from '@/lib/gmail-service'
  * User will be redirected to Google to grant permissions.
  */
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
-  }
-  
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   // Check if Gmail API is configured
   if (!gmailService.isConfigured()) {
     return NextResponse.json({
@@ -26,8 +22,9 @@ export async function GET() {
   }
   
   try {
+    const service = createServiceClient()
     // Initialize service with supabase
-    await gmailService.init(supabase)
+    await gmailService.init(service)
     
     // Generate authorization URL
     const authUrl = gmailService.getAuthUrl()
