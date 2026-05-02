@@ -12,7 +12,7 @@ const OperatorPinStepUpModal = dynamic(
   { ssr: false, loading: () => null },
 )
 import { useActiveOperator } from '@/lib/active-operator-context'
-import { effectiveIsFornitoreGridAdmin } from '@/lib/effective-operator-ui'
+import { effectiveIsFornitoreGridAdmin, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
 import { fornitoreDisplayLabelUppercase, fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
@@ -65,6 +65,7 @@ export default function FornitoriCardsGrid({
   const supabase = createClient()
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
+  const masterPlaneNoOperator = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdmin = effectiveIsFornitoreGridAdmin(me, activeOperator)
   /** PIN step-up: il contesto «operatore attivo» è opzionale; in accesso sede il profilo sessione è già l’operatore. */
   const pinStepUpOperatorName = useMemo(() => {
@@ -322,7 +323,7 @@ export default function FornitoriCardsGrid({
               )}
 
               <div className="mt-auto flex shrink-0 items-center justify-center rounded-b-2xl border-t border-[rgba(34,211,238,0.15)] app-workspace-inset-bg-soft px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-sm sm:rounded-b-3xl sm:px-3 sm:py-2 lg:px-2.5 lg:py-1.5">
-                {unlockedIds.has(f.id) ? (
+                {masterPlaneNoOperator || unlockedIds.has(f.id) ? (
                   <div className="flex w-full items-center justify-between gap-2">
                     <button type="button" className={detailCls} onClick={() => request('detail', f.id, f.nome)}>
                       {t.common.detail}

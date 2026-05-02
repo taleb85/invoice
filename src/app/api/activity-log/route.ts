@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient, getProfile } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { activityGlyphId, activityLabel, type ActivityAction, type ActivityGlyphId } from '@/lib/activity-logger'
 
@@ -18,10 +18,27 @@ export type ActivityLogRow = {
 }
 
 export async function GET(req: NextRequest) {
-  const profile = await getProfile()
-  const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isSedePrivilegedRole(profile?.role)
-  if (!isMaster && !isAdminSede) {
+  const { supabase, user } = await getRequestAuth()
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const fullProfile = await getProfile()
+  let role = fullProfile?.role ?? null
+  let profileSedeId =
+    typeof fullProfile?.sede_id === 'string' && fullProfile.sede_id.trim() !== ''
+      ? fullProfile.sede_id.trim()
+      : null
+  if (!role || String(role).trim() === '') {
+    const { data } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).maybeSingle()
+    if (data?.role != null && String(data.role).trim() !== '') role = data.role
+    const raw = data?.sede_id
+    if (typeof raw === 'string' && raw.trim() !== '') profileSedeId = raw.trim()
+  }
+
+  const isMaster = isMasterAdminRole(role)
+  const canView = isMaster || isSedePrivilegedRole(role)
+  if (!canView) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 
@@ -47,9 +64,9 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
-  // Scope to own sede for admin_sede
-  if (!isMaster && profile?.sede_id) {
-    q = q.eq('sede_id', profile.sede_id) as typeof q
+  // Scope to own sede for staff sede roles
+  if (!isMaster && profileSedeId) {
+    q = q.eq('sede_id', profileSedeId) as typeof q
   } else if (isMaster && sedeIdParam) {
     q = q.eq('sede_id', sedeIdParam) as typeof q
   }

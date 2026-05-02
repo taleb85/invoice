@@ -5839,7 +5839,12 @@ function FornitoreDetailClient({
                       </svg>
                       <p className="text-sm font-semibold text-app-fg">{t.appStrings.attivitaRecentTitle}</p>
                     </div>
-                    <ActivityFeed fornitoreId={fornitore.id} limit={5} compact={true} />
+                    <ActivityFeed
+                      sedeId={fornitore.sede_id ?? me?.sede_id ?? undefined}
+                      fornitoreId={fornitore.id}
+                      limit={5}
+                      compact={true}
+                    />
                   </div>
                 </div>
                 <ErrorBoundary sectionName="risultati sincronizzazione email">

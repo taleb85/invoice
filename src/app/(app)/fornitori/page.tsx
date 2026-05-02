@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { NewFornitoreLink } from '@/components/NewFornitoreLink'
-import { getRequestAuth } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { getCookieStore } from '@/lib/locale-server'
 import { Fornitore } from '@/types'
 import FornitoriListSection from '@/components/FornitoriListSection'
@@ -24,14 +24,14 @@ async function getFornitori(): Promise<{
   const cookieStore = await getCookieStore()
 
   const { data: profile } = user
-    ? await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+    ? await supabase.from('profiles').select('role, sede_id').eq('id', user.id).maybeSingle()
     : { data: null }
 
   const sedeId = await resolveActiveSedeIdForLists(supabase, profile, (n) => cookieStore.get(n))
   let sedeNome: string | null = null
 
   if (sedeId) {
-    const { data: sede } = await supabase.from('sedi').select('nome').eq('id', sedeId).single()
+    const { data: sede } = await createServiceClient().from('sedi').select('nome').eq('id', sedeId).maybeSingle()
     sedeNome = sede?.nome ?? null
   }
 

@@ -6,7 +6,8 @@ import {
   fetchOperatorDashboardKpis,
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
-import { getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 import type { OperatorWorkspaceHeaderPayload } from '@/types/operator-workspace-header'
 
 /**
@@ -23,16 +24,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
   }
 
-  const isMasterAdmin = profile.role === 'admin'
-  const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
-
-  let adminViewSedeId: string | null = null
-  if (isMasterAdmin && adminPick) {
-    const { data } = await supabase.from('sedi').select('id').eq('id', adminPick).maybeSingle()
-    if (data?.id) adminViewSedeId = data.id
-  }
-
-  const sedeId = adminViewSedeId ?? profile.sede_id ?? null
+  const sedeId = await resolveActiveSedeIdForLists(
+    supabase,
+    { role: profile.role, sede_id: profile.sede_id },
+    (n) => cookieStore.get(n),
+  )
   const operatorScoped = !!sedeId
 
   const fyRaw = req.nextUrl.searchParams.get('fy')?.trim() || undefined
@@ -50,9 +46,10 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  const service = createServiceClient()
   const [fornitoreIds, sedeMetaRow] = await Promise.all([
     fornitoreIdsForSede(supabase, sedeId),
-    supabase.from('sedi').select('country_code, last_imap_sync_at, last_imap_sync_error').eq('id', sedeId).maybeSingle(),
+    service.from('sedi').select('country_code, last_imap_sync_at, last_imap_sync_error').eq('id', sedeId).maybeSingle(),
   ])
   const sedeCountryCode = (sedeMetaRow.data?.country_code ?? 'IT').trim() || 'IT'
   const fiscalYear = parseFiscalYearQueryParam(fyRaw, sedeCountryCode)
