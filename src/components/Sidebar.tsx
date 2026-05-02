@@ -314,17 +314,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
     backupNavItem,
   ]
 
-  // Gestionale senza cookie sede: dashboard + voci «rete» (stesso modello di `resolveOperationalSedeIdForAdminPortal`).
-  // Con `admin-sede-id`: navigazione operativa completa (fornitori, …).
+  // Gestionale senza cookie sede: in rail solo ciò che serve al portale (dashboard, backup).
+  // Analytics, approvazioni, attività, log: solo con sede attiva (`admin-sede-id`).
   // consumiAiNavItem è renderizzato direttamente subito dopo Dashboard, non entra in navItems.
-  const masterOnlyItems = [
-    adminNavItems[0],
-    adminNavItems[1],
-    adminNavItems[2],
-    adminNavItems[3],
-    adminNavItems[5],
-    adminNavItems[6],
-  ]
+  const masterOnlyItems = [adminNavItems[0], adminNavItems[6]]
   const masterWithSedeItems = [...adminNavItems]
   const navItems = isMasterAdmin
     ? (activeSede ? masterWithSedeItems : masterOnlyItems)
@@ -531,9 +524,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           )}
 
-          {/* Main flat nav items — rendered before Fornitori so analytics/approvazioni/attività/log
-              are always reachable without scrolling past the supplier list.
-              Fornitori appears as a flat link for master admin only (others use the expandable below). */}
+          {/* Main flat nav items — rendered before Fornitori expandable.
+              In portale globale master le voci sono limitate da `masterOnlyItems`. */}
           {navItems
             .slice(1)
             .filter((item) => isMasterAdmin || item.href !== '/fornitori')
