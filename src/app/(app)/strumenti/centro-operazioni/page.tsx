@@ -331,7 +331,7 @@ export default function CentroOperazioniPage() {
         >
           <AppPageHeaderTitleWithDashboardShortcut>
             <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
-            <p className={APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}>{s.pageSubtitle}</p>
+            <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-10">
