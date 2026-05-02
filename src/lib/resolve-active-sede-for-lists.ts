@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { isMasterAdminRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { createServiceClient } from '@/utils/supabase/server'
 
 /** Lettura cookie come in `getCookieStore()` / `cookies()`. */
@@ -20,6 +20,29 @@ async function sedeIdIfExists(id: string): Promise<string | null> {
   const service = createServiceClient()
   const { data } = await service.from('sedi').select('id').eq('id', id).maybeSingle()
   return data?.id ?? null
+}
+
+/**
+ * Staff con `sede_id` null (es. dopo ON DELETE SET NULL sulla sede) ma tenant con **una sola**
+ * filiale: riallinea il profilo via service role. Sicuro perimetro — non si assegna sede a caso
+ * quando esistono più sedi.
+ */
+async function healBranchStaffSedeIfSingleTenant(userId: string): Promise<string | null> {
+  const service = createServiceClient()
+  const { count, error: cntErr } = await service.from('sedi').select('id', { count: 'exact', head: true })
+  if (cntErr || count !== 1) return null
+  const onlySedeId = await firstSedeId()
+  if (!onlySedeId) return null
+  const { error: upErr } = await service
+    .from('profiles')
+    .update({ sede_id: onlySedeId })
+    .eq('id', userId)
+    .is('sede_id', null)
+  if (upErr) {
+    console.warn('[resolveActiveSedeIdForLists] heal branch sede_id failed', upErr)
+    return null
+  }
+  return onlySedeId
 }
 
 /**
@@ -53,6 +76,7 @@ async function ensuredProfileBasics(
  * 3. `null` solo se non ci sono righe in `public.sedi`
  *
  * Staff sede (`admin_sede`, `admin_tecnico`, `operatore`): `profiles.sede_id` dalla riga utente — nessuna SELECT su `sedi` (evita RLS).
+ * Eccezione: tenant con una sola sede e profilo staff senza `sede_id` → auto-riparazione (service role).
  * Master dopo eventuale `sede_id` sul profilo: cookie + SELECT `sedi` solo con service role.
  */
 export async function resolveActiveSedeIdForLists(
@@ -67,7 +91,14 @@ export async function resolveActiveSedeIdForLists(
     typeof p.sede_id === 'string' && p.sede_id.trim() !== '' ? p.sede_id.trim() : null
   if (trimmedSedeId) return trimmedSedeId
 
-  if (!isMasterAdminRole(p.role)) return null
+  if (!isMasterAdminRole(p.role)) {
+    if (!isBranchSedeStaffRole(p.role)) return null
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user?.id) return null
+    return (await healBranchStaffSedeIfSingleTenant(user.id)) ?? null
+  }
 
   const pick = getCookie('admin-sede-id')?.value?.trim() || null
   if (pick) {
