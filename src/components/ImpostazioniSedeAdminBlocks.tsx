@@ -57,23 +57,15 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start lg:gap-6">
-      <div className="min-w-0 lg:col-span-7">
+      <div className="flex min-w-0 flex-col gap-5 lg:col-span-7">
+        <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit />
         <div className="overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
           <div className="border-b border-app-line-22 bg-gradient-to-r from-teal-950/35 via-transparent to-transparent px-5 py-3.5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-200/95">{imp.sedeDocsGroupingEyebrow}</p>
-            <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.sedeDocsGroupingHint}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-teal-200/95">{t.log.ocrDiscardRulesTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
           </div>
-          <div className="divide-y divide-app-line-22">
-            <div className="p-5 sm:p-6">
-              <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit embedded />
-            </div>
-            <div className="p-5 sm:p-6">
-              <div className="mb-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-app-fg-muted">{t.log.ocrDiscardRulesTitle}</p>
-                <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
-              </div>
-              <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
-            </div>
+          <div className="p-5 sm:p-6">
+            <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
           </div>
         </div>
       </div>
