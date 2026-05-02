@@ -257,6 +257,10 @@ export default function ImpostazioniPage() {
   // Local draft state — confirmed on Save
   const [draftCurrency, setDraftCurrency] = useState(currency)
   const [draftTimezone, setDraftTimezone] = useState(timezone)
+  const [localisationDrawerOpen, setLocalisationDrawerOpen] = useState(false)
+  const localeDrawerUid = useId()
+  const locToggleId = `imp-locale-drawer-toggle-${localeDrawerUid}`
+  const locRegionId = `imp-locale-drawer-region-${localeDrawerUid}`
 
   useEffect(() => {
     setDraftCurrency(currency)
@@ -293,34 +297,79 @@ export default function ImpostazioniPage() {
       })()
     : '…'
 
+  const locCurrencyMeta = mounted ? CURRENCIES.find((c) => c.code === draftCurrency) : undefined
+  const locTzMeta = mounted ? TIMEZONES.find((z) => z.value === draftTimezone) : undefined
+  const locSummaryLine =
+    mounted && locCurrencyMeta && locTzMeta
+      ? `${locCurrencyMeta.symbol} ${locCurrencyMeta.label} (${locCurrencyMeta.code}) · ${locTzMeta.label}`
+      : '…'
+
   const selectClsInner =
     'w-full rounded-lg border border-app-line-35 bg-black/25 px-3 py-2.5 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-black/20 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
   const labelFieldCls = 'mb-2 block text-xs font-medium text-app-fg-muted'
 
   const LocalisationCardContent = () => (
     <>
-      <div className="flex items-start gap-4 border-b border-app-line-30 app-workspace-inset-bg-soft p-5 sm:p-6">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
-          <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3.055 13H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
+      <div className="app-workspace-inset-bg-soft p-5 sm:p-6">
+        <button
+          type="button"
+          id={locToggleId}
+          aria-expanded={localisationDrawerOpen}
+          aria-controls={localisationDrawerOpen ? locRegionId : undefined}
+          aria-label={
+            localisationDrawerOpen
+              ? t.impostazioni.localisationDrawerAriaClose
+              : t.impostazioni.localisationDrawerAriaOpen
+          }
+          onClick={() => setLocalisationDrawerOpen((open) => !open)}
+          className="flex w-full min-w-0 touch-manipulation items-start gap-4 rounded-xl text-left outline-none ring-app-cyan-500/40 transition hover:bg-black/[0.06] focus-visible:ring-2"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
+            <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3.055 13H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
+              {mounted ? t.impostazioni.sectionLocalisation : ''}
+            </p>
+            <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg" suppressHydrationWarning>
+              {mounted ? t.impostazioni.subtitle : ''}
+            </p>
+            <p className="mt-1.5 truncate text-xs text-app-fg-muted sm:whitespace-normal" suppressHydrationWarning>
+              {locSummaryLine}
+            </p>
+            {!localisationDrawerOpen ? (
+              <p className="mt-1 text-xs leading-snug text-app-fg-muted">
+                {t.impostazioni.localisationDrawerCollapsedHint}
+              </p>
+            ) : null}
+          </div>
+          <svg
+            className={`mt-2 h-5 w-5 shrink-0 text-app-fg-muted transition-transform duration-200 ${localisationDrawerOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
-            {mounted ? t.impostazioni.sectionLocalisation : ''}
-          </p>
-          <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg" suppressHydrationWarning>
-            {mounted ? t.impostazioni.subtitle : ''}
-          </p>
-        </div>
+        </button>
       </div>
 
-      <div className="space-y-6 px-5 py-6 sm:px-8">
+      {localisationDrawerOpen ? (
+        <div
+          id={locRegionId}
+          role="region"
+          aria-label={mounted ? `${t.impostazioni.subtitle}: ${locSummaryLine}` : undefined}
+          className="border-t border-app-line-30"
+        >
+          <div className="space-y-6 px-5 py-6 sm:px-8">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
           <div className="rounded-xl border border-app-line-28 bg-black/[0.08] p-4 ring-1 ring-white/[0.04] sm:p-5">
             <div className="mb-3 flex items-center gap-2.5">
@@ -417,7 +466,9 @@ export default function ImpostazioniPage() {
             </div>
           </div>
         </div>
-      </div>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 

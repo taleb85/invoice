@@ -80,7 +80,9 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
 
   const switchThumb =
     'pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out'
-  /** Track come in NotificationSettings — thumb assoluto evita glitch di layout nel flex */
+  const switchTrackOff = 'bg-app-line-30 ring-1 ring-white/[0.08]'
+  const switchFocus =
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
 
   return (
     <div className="rounded-xl border border-app-line-28 bg-black/[0.12] ring-1 ring-white/[0.04]">
@@ -101,8 +103,10 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
             aria-checked={settings.auto_register_fatture}
             aria-labelledby={autoHeadingId}
             onClick={() => setSettings((s) => ({ ...s, auto_register_fatture: !s.auto_register_fatture }))}
-            className={`relative mt-0.5 ml-1 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cyan-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(15,23,42,0.95)] touch-manipulation ${
-              settings.auto_register_fatture ? 'bg-emerald-600' : 'bg-app-line-30'
+            className={`relative mt-0.5 ml-1 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${switchFocus} touch-manipulation ${
+              settings.auto_register_fatture
+                ? 'bg-emerald-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] ring-1 ring-emerald-400/30'
+                : switchTrackOff
             }`}
           >
             <span
@@ -133,8 +137,10 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
             aria-labelledby={approvalHeadingId}
             aria-controls={settings.require_approval ? thresholdSectionId : undefined}
             onClick={() => setSettings((s) => ({ ...s, require_approval: !s.require_approval }))}
-            className={`relative mt-0.5 ml-1 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cyan-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(15,23,42,0.95)] touch-manipulation ${
-              settings.require_approval ? 'bg-app-cyan-600' : 'bg-app-line-30'
+            className={`relative mt-0.5 ml-1 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ${switchFocus} touch-manipulation ${
+              settings.require_approval
+                ? 'bg-app-cyan-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] ring-1 ring-app-cyan-400/35'
+                : switchTrackOff
             }`}
           >
             <span
@@ -173,7 +179,7 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-xl bg-app-cyan-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-app-cyan-500 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-xl bg-app-cyan-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-app-cyan-400 disabled:opacity-50"
         >
           {saving ? (
             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
