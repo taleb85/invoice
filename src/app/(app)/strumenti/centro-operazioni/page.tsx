@@ -345,8 +345,8 @@ export default function CentroOperazioniPage() {
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-10">
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-start lg:gap-8 xl:gap-10">
-            <div className="flex min-h-0 min-w-0 flex-col gap-10 lg:gap-8 xl:gap-10">
+          <div className="grid min-w-0 w-full grid-cols-1 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:gap-y-10 xl:gap-x-10">
+            <div className="flex min-h-0 min-w-0 flex-col gap-y-10">
           <section className="space-y-4" aria-labelledby="ops-section-sync">
             <OpsSectionTitle id="ops-section-sync">{s.sectionSyncEmail}</OpsSectionTitle>
             <div className="app-card overflow-hidden p-5">
@@ -473,7 +473,7 @@ export default function CentroOperazioniPage() {
           </section>
 
             </div>
-            <div className="flex min-h-0 min-w-0 flex-col gap-10 lg:gap-8 xl:gap-10">
+            <div className="flex min-h-0 min-w-0 flex-col gap-y-10">
           <section className="space-y-4" aria-labelledby="ops-section-ocr">
             <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
             <FixOcrDatesCard />
@@ -526,7 +526,7 @@ export default function CentroOperazioniPage() {
 
             </div>
 
-          <div className="min-w-0 border-t border-app-line-22 pt-10 lg:col-span-2 lg:col-start-1">
+          <div className="min-w-0 border-t border-app-line-22 pt-10 lg:col-span-2">
             <p className="max-w-3xl rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-balance text-app-fg-muted">
               {s.hintContextualShortcuts}
             </p>
