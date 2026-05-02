@@ -427,6 +427,89 @@ export default function Sidebar({ onClose }: SidebarProps) {
             })()}
           </div>
 
+          {/* ── Master: switcher sedi + Gestisci — fisso sotto Portale / Consumi / Backup ── */}
+          {isMasterAdmin && (
+            <div className="app-shell-rail-panel shrink-0 space-y-0.5 border-b border-app-line-22 py-2">
+            <div className="bg-transparent">
+              <button
+                type="button"
+                aria-expanded={branchesOpen}
+                onClick={() => setBranchesOpen((o) => !o)}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+              >
+                <span className="flex items-center gap-2 min-w-0">
+                  <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span className="min-w-0 truncate">{t.nav.sediNavGroupMaster}</span>
+                  {activeSede ? (
+                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
+                  ) : null}
+                </span>
+                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {branchesOpen && (
+                <div className="app-shell-rail-panel ml-3 mt-0.5 max-h-[min(50vh,14rem)] overflow-y-auto overflow-x-hidden border-l border-app-line-22 pl-2">
+                  <div className="space-y-0.5 pb-1">
+                    {allSedi.map((s) => {
+                      const isCurrent = s.id === activeSede
+                      return (
+                        <div key={s.id} className="group flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => { switchSede(s.id); onClose?.() }}
+                            title={isCurrent ? t.ui.sidebarSedeActive.replace('{name}', s.nome) : t.ui.sidebarSedeSwitchTo.replace('{name}', s.nome)}
+                            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
+                              isCurrent
+                                ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
+                                : 'bg-transparent text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'
+                            }`}
+                          >
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isCurrent ? 'bg-cyan-400' : 'bg-current opacity-40'}`} aria-hidden />
+                            <span className="min-w-0 truncate">{s.nome}</span>
+                            {isCurrent && (
+                              <svg className="ml-auto h-3 w-3 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </button>
+                          <Link
+                            href={`/sedi/${s.id}`}
+                            onClick={onClose}
+                            title={t.ui.sidebarSedeSettings.replace('{name}', s.nome)}
+                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </Link>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              <Link
+                href="/sedi"
+                onClick={onClose}
+                className={`mt-1.5 flex ${navLink(pathname === '/sedi')}`}
+              >
+                <span className={`shrink-0 ${pathname === '/sedi' ? icon.settingsTools : 'text-slate-400/75'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </span>
+                <span className="truncate">{gestisciSediLinkLabel}</span>
+              </Link>
+            </div>
+            </div>
+          )}
+
           <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden py-2 pb-3">
           {/* Admin sede: stessa pagina gestione operatori / IMAP / PIN (vista solo propria sede). */}
           {isAdminSede &&
@@ -548,89 +631,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
 
           </div>
-
-          {/* ── Master: switcher sedi + Gestisci — fisso sopra il footer (non nella colonna scroll) ── */}
-          {isMasterAdmin && (
-            <div className="app-shell-rail-panel shrink-0 space-y-0.5 border-t border-app-line-22 py-2">
-            <div className="bg-transparent">
-              <button
-                type="button"
-                aria-expanded={branchesOpen}
-                onClick={() => setBranchesOpen((o) => !o)}
-                className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
-              >
-                <span className="flex items-center gap-2 min-w-0">
-                  <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  <span className="min-w-0 truncate">{t.nav.sediNavGroupMaster}</span>
-                  {activeSede ? (
-                    <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
-                  ) : null}
-                </span>
-                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-
-              {branchesOpen && (
-                <div className="app-shell-rail-panel ml-3 mt-0.5 max-h-[min(50vh,14rem)] overflow-y-auto overflow-x-hidden border-l border-app-line-22 pl-2">
-                  <div className="space-y-0.5 pb-1">
-                    {allSedi.map((s) => {
-                      const isCurrent = s.id === activeSede
-                      return (
-                        <div key={s.id} className="group flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => { switchSede(s.id); onClose?.() }}
-                            title={isCurrent ? t.ui.sidebarSedeActive.replace('{name}', s.nome) : t.ui.sidebarSedeSwitchTo.replace('{name}', s.nome)}
-                            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
-                              isCurrent
-                                ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
-                                : 'bg-transparent text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'
-                            }`}
-                          >
-                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${isCurrent ? 'bg-cyan-400' : 'bg-current opacity-40'}`} aria-hidden />
-                            <span className="min-w-0 truncate">{s.nome}</span>
-                            {isCurrent && (
-                              <svg className="ml-auto h-3 w-3 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </button>
-                          <Link
-                            href={`/sedi/${s.id}`}
-                            onClick={onClose}
-                            title={t.ui.sidebarSedeSettings.replace('{name}', s.nome)}
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
-                          >
-                            <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          </Link>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-              <Link
-                href="/sedi"
-                onClick={onClose}
-                className={`mt-1.5 flex ${navLink(pathname === '/sedi')}`}
-              >
-                <span className={`shrink-0 ${pathname === '/sedi' ? icon.settingsTools : 'text-slate-400/75'}`}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </span>
-                <span className="truncate">{gestisciSediLinkLabel}</span>
-              </Link>
-            </div>
-            </div>
-          )}
         </nav>
 
         {/* ── Footer espandibile: riga contesto + pannello opzionale + riga icone ── */}
