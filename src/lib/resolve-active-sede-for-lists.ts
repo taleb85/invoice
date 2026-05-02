@@ -23,14 +23,18 @@ async function sedeIdIfExists(id: string): Promise<string | null> {
 }
 
 /**
- * Alcune Server Actions passano solo `profiles` parziali; garantiamo `role` con una lettura compatta se manca.
+ * Compatta `profiles` quando mancano campi utili alla risoluzione sede:
+ * prima si evitava la SELECT se arrivava solo `role` senza `sede_id`, e gli staff restavano senza filiale.
  */
 async function ensuredProfileBasics(
   supabase: SupabaseClient,
   profile: { role?: string | null; sede_id?: string | null } | null | undefined,
 ): Promise<{ role?: string | null; sede_id?: string | null } | null> {
-  if (profile?.role != null && String(profile.role).trim() !== '') {
-    return profile
+  const hasRole = profile?.role != null && String(profile.role).trim() !== ''
+  const hasSedeId =
+    typeof profile?.sede_id === 'string' && profile.sede_id.trim() !== ''
+  if (hasRole && (hasSedeId || isMasterAdminRole(profile?.role))) {
+    return profile ?? null
   }
   const {
     data: { user },
@@ -48,7 +52,8 @@ async function ensuredProfileBasics(
  * 2. altrimenti prima sede (`ORDER BY nome LIMIT 1`)
  * 3. `null` solo se non ci sono righe in `public.sedi`
  *
- * Staff sede (`admin_sede`, `admin_tecnico`, `operatore`): `profiles.sede_id` trimmato, o null se vuoto.
+ * Staff sede (`admin_sede`, `admin_tecnico`, `operatore`): `profiles.sede_id` dalla riga utente — nessuna SELECT su `sedi` (evita RLS).
+ * Master dopo eventuale `sede_id` sul profilo: cookie + SELECT `sedi` solo con service role.
  */
 export async function resolveActiveSedeIdForLists(
   supabase: SupabaseClient,
@@ -58,16 +63,17 @@ export async function resolveActiveSedeIdForLists(
   const p = await ensuredProfileBasics(supabase, profile)
   if (!p?.role || String(p.role).trim() === '') return null
 
-  if (isMasterAdminRole(p.role)) {
-    const pick = getCookie('admin-sede-id')?.value?.trim() || null
-    if (pick) {
-      const id = await sedeIdIfExists(pick)
-      if (id) return id
-    }
-    /* Cookie assente / non valido: mai lasciare il master senza sede quando ne esiste almeno una. */
-    return (await firstSedeId()) ?? null
-  }
+  const trimmedSedeId =
+    typeof p.sede_id === 'string' && p.sede_id.trim() !== '' ? p.sede_id.trim() : null
+  if (trimmedSedeId) return trimmedSedeId
 
-  const raw = p.sede_id
-  return typeof raw === 'string' && raw.trim() !== '' ? raw.trim() : null
+  if (!isMasterAdminRole(p.role)) return null
+
+  const pick = getCookie('admin-sede-id')?.value?.trim() || null
+  if (pick) {
+    const id = await sedeIdIfExists(pick)
+    if (id) return id
+  }
+  /* Cookie assente / non valido: mai lasciare il master senza sede quando ne esiste almeno una. */
+  return (await firstSedeId()) ?? null
 }
