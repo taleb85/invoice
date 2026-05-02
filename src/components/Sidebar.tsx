@@ -92,6 +92,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
     document.cookie = `admin-sede-id=${encodeURIComponent(sedeId)}; path=/; SameSite=Strict`
     setActiveSede(sedeId)
+    setBranchesOpen(false)
     router.push('/')
     router.refresh()
   }
@@ -100,6 +101,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
     document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
     setActiveSede(null)
+    setBranchesOpen(false)
     router.push('/')
     router.refresh()
   }
@@ -546,23 +548,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <>
             <div className="bg-transparent">
               <button
-                onClick={() => setBranchesOpen(o => !o)}
+                type="button"
+                aria-expanded={branchesOpen}
+                onClick={() => setBranchesOpen((o) => !o)}
                 className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-[13px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
               >
                 <span className="flex items-center gap-2 min-w-0">
-                  <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
-                  <span className="min-w-0 truncate">
-                    {activeSede
-                      ? (allSedi.find(s => s.id === activeSede)?.nome ?? t.nav.sediNavGroupMaster)
-                      : t.nav.sediNavGroupMaster}
-                  </span>
-                  {activeSede && (
+                  <span className="min-w-0 truncate">{t.nav.sediNavGroupMaster}</span>
+                  {activeSede ? (
                     <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
-                  )}
+                  ) : null}
                 </span>
-                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-3 h-3 shrink-0 transition-transform ${icon.settingsTools} ${branchesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
@@ -573,7 +573,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     {allSedi.map((s) => {
                       const isCurrent = s.id === activeSede
                       return (
-                        <div key={s.id} className="flex items-center gap-1">
+                        <div key={s.id} className="group flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => { switchSede(s.id); onClose?.() }}
