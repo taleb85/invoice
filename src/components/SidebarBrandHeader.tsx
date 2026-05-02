@@ -1,28 +1,15 @@
 'use client'
 
 import AppBuildInfo from '@/components/AppBuildInfo'
-import { hardNavigateHomeClearCaches } from '@/lib/hard-navigate-home-clear-caches'
 
 /**
- * Fascia brand 40px (md+): logo, tagline (tap → ricarico completo home + svuota cache SW/PWA).
- * Fascia brand in cima al solo `aside` (colonna sinistra fissa) in `AppShell`.
+ * Fascia brand in cima all’`aside` (AppShell): logo + versione, senza navigazione
+ * (rimane sulla route corrente; niente redirect alla dashboard).
  */
 export function SidebarRailBrand() {
   return (
     <div className="app-shell-rail-panel flex min-h-[52px] w-full min-w-0 shrink-0 flex-col justify-center gap-1 px-2 py-2 text-app-fg sm:px-3 lg:px-3.5">
-      <div
-        className="flex min-w-0 cursor-pointer items-center gap-2.5"
-        onClick={() => {
-          void hardNavigateHomeClearCaches()
-        }}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key !== 'Enter' && e.key !== ' ') return
-          e.preventDefault()
-          void hardNavigateHomeClearCaches()
-        }}
-      >
+      <div className="flex min-w-0 items-center gap-2.5">
         {/* Icon — Deep Aurora (stesso family di login) */}
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] ring-1 ring-[#38bdf8]/35 shadow-[0_0_16px_rgba(56,189,248,0.15)]">
           <svg width="20" height="20" viewBox="0 0 40 40" fill="none" aria-hidden>
