@@ -73,7 +73,7 @@ function AvatarCard({
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
-      className="flex w-full min-w-0 flex-col items-center gap-2 rounded-2xl p-2 outline-none ring-1 ring-transparent transition-all duration-200 hover:bg-app-line-10/80 hover:ring-app-line-35 active:scale-[0.98] sm:gap-3 sm:p-3"
+      className="flex w-full min-w-0 flex-col items-center gap-2 rounded-2xl p-2 outline-none transition-all duration-200 hover:bg-app-line-10/50 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-app-cyan-500/30 sm:gap-3 sm:p-3"
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
       {/* Avatar — scala nella cella griglia (3 colonne su max-w-sm) */}
@@ -83,8 +83,8 @@ function AvatarCard({
           background: `radial-gradient(circle at 35% 35%, ${fg}40, ${bg}e8)`,
           color: fg,
           boxShadow: hovered
-            ? `0 12px 44px ${bg}aa, 0 0 0 1px rgba(34, 211, 238, 0.2), 0 0 28px rgba(56,189,248,0.14)`
-            : `0 6px 28px ${bg}88, 0 0 0 1px rgba(148, 163, 184, 0.12)`,
+            ? `0 12px 40px ${bg}99, 0 0 24px rgba(56,189,248,0.12)`
+            : `0 8px 28px ${bg}66`,
           transform: hovered ? 'scale(1.06)' : 'scale(1)',
           transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
         }}
@@ -132,7 +132,7 @@ function AvatarGrid({
     <div className="flex w-full flex-col items-center gap-5 py-2 sm:gap-6 sm:py-3">
       {/* Sede — stesso linguaggio del badge in form manuale */}
       {sedeNome && (
-        <div className="inline-flex max-w-full items-center gap-2 rounded-lg border border-app-soft-border bg-app-line-10 px-3 py-1.5">
+        <div className="inline-flex max-w-full items-center gap-2 rounded-lg bg-app-line-10 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <svg className="h-3.5 w-3.5 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
           </svg>
