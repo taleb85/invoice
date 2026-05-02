@@ -9,8 +9,11 @@ export interface Sede {
   imap_user?: string | null
   /** Allegati: policy di retention (job purge da configurare lato server). */
   file_retention_policy?: SedeFileRetentionPolicy | null
+  /** Legacy: preferire `file_retention_days`. */
   file_retention_months?: number | null
   file_retention_run_day?: number | null
+  /** Età massima allegati in giorni dalla data documento. */
+  file_retention_days?: number | null
 }
 
 export interface Profile {

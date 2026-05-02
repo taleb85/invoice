@@ -139,6 +139,7 @@ export async function PATCH(
     nomi_cliente_da_ignorare?: string[] | null
     file_retention_policy?: SedeFileRetentionPolicy
     file_retention_months?: number | null
+    file_retention_days?: number | null
     file_retention_run_day?: number | null
   }
 
@@ -239,6 +240,17 @@ export async function PATCH(
     } else {
       update.file_retention_months = Math.min(120, Math.max(1, Math.floor(n)))
     }
+  }
+
+  if (body.file_retention_days !== undefined) {
+    if (body.file_retention_days == null) {
+      return NextResponse.json({ error: 'file_retention_days obbligatorio' }, { status: 400 })
+    }
+    const n = Number(body.file_retention_days)
+    if (Number.isNaN(n)) {
+      return NextResponse.json({ error: 'Invalid file_retention_days' }, { status: 400 })
+    }
+    update.file_retention_days = Math.min(3650, Math.max(1, Math.floor(n)))
   }
 
   if (body.file_retention_run_day !== undefined) {
