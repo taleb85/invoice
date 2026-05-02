@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { fetchSollecitiReminderSettings } from '@/lib/sollecito-aging'
 import SollecitiSettingsClient from './solleciti-settings-client'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +11,7 @@ export default async function SollecitiSettingsPage() {
   if (!user) redirect('/login')
 
   const profile = await getProfile()
-  if (!profile || !['admin', 'admin_sede'].includes(profile.role)) {
+  if (!profile || !isSedePrivilegedRole(profile.role)) {
     redirect('/impostazioni')
   }
 
