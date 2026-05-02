@@ -1,5 +1,5 @@
 /**
- * Report approssimativo: righe DB + storage bucket documenti per sede.
+ * Report approssimativo: righe DB + storage bucket documenti per azienda (tabella `sedi`).
  * Uso: node scripts/report-sede-footprint.mjs  (richiede .env.local con service role)
  */
 import { createClient } from '@supabase/supabase-js'
@@ -119,7 +119,7 @@ async function main() {
   }
 
   if (!sedi?.length) {
-    console.log('Nessuna sede nel progetto.')
+    console.log('Nessuna azienda nel progetto.')
     return
   }
 
@@ -211,7 +211,7 @@ async function main() {
       else bytesReferenced += sz
     }
 
-    console.log('\n── Sede:', nome)
+    console.log('\n── Azienda:', nome)
     console.log('   id:', id)
     console.log(
       '   Righe (approssimazione workload DB):',
@@ -238,7 +238,7 @@ async function main() {
         : paths.size > 0 && sizeByName.size === 0
           ? 'non calcolabile (list bucket vuota)'
           : paths.size === 0
-            ? 'nessun file_url in DB per questa sede'
+            ? 'nessun file_url in DB per questa azienda'
             : '0 (path in DB non trovati nel bucket — verifica path o sottocartelle)',
     )
     if (missingMeta > 0 && sizeByName.size > 0) {

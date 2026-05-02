@@ -161,8 +161,8 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
           <div>
             <p className="text-sm font-semibold text-amber-800">Casella email non configurata</p>
             <p className="text-xs text-amber-700 mt-1">
-              Per abilitare la scansione email per questa sede, configura le impostazioni IMAP in{' '}
-              <Link href="/sedi" className="underline">Gestione Sedi</Link>.
+              Per abilitare la scansione email per questa azienda, configura le impostazioni IMAP in{' '}
+              <Link href="/sedi" className="underline">Gestione aziende</Link>.
             </p>
           </div>
         </div>

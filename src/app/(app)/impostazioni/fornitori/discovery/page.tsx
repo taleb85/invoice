@@ -384,7 +384,7 @@ export function DiscoveryContent({
           <div>
             <p className="text-sm font-semibold text-amber-200">Nessun account IMAP configurato</p>
             <p className="text-xs text-amber-300 mt-1">
-              Configura le credenziali IMAP nelle impostazioni della sede (<Link href="/sedi" className="underline hover:text-amber-100">Sedi</Link>) per abilitare la scansione della posta.
+              Configura le credenziali IMAP nelle impostazioni dell&apos;azienda (<Link href="/sedi" className="underline hover:text-amber-100">Aziende</Link>) per abilitare la scansione della posta.
             </p>
           </div>
         </div>
