@@ -324,7 +324,7 @@ export default function CentroOperazioniPage() {
 
   return (
     <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="mx-auto w-full max-w-6xl">
         <AppPageHeaderStrip
           accent="teal"
           leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
@@ -341,7 +341,7 @@ export default function CentroOperazioniPage() {
               <span>{s.pageTitle}</span>
             </nav>
             <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
-            <p className={`max-w-xl ${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}`}>{s.pageSubtitle}</p>
+            <p className={`max-w-3xl ${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}`}>{s.pageSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-10">
