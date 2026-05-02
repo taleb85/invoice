@@ -56,44 +56,48 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
   }
 
   return (
-    <div className="space-y-5">
-      <div className="overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
-        <div className="border-b border-app-line-22 bg-gradient-to-r from-teal-950/35 via-transparent to-transparent px-5 py-3.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-200/95">{imp.sedeDocsGroupingEyebrow}</p>
-          <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.sedeDocsGroupingHint}</p>
-        </div>
-        <div className="divide-y divide-app-line-22">
-          <div className="p-5 sm:p-6">
-            <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit embedded />
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start lg:gap-6">
+      <div className="min-w-0 lg:col-span-7">
+        <div className="overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
+          <div className="border-b border-app-line-22 bg-gradient-to-r from-teal-950/35 via-transparent to-transparent px-5 py-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-200/95">{imp.sedeDocsGroupingEyebrow}</p>
+            <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.sedeDocsGroupingHint}</p>
           </div>
-          <div className="p-5 sm:p-6">
-            <div className="mb-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-app-fg-muted">{t.log.ocrDiscardRulesTitle}</p>
-              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
+          <div className="divide-y divide-app-line-22">
+            <div className="p-5 sm:p-6">
+              <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit embedded />
             </div>
-            <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
+            <div className="p-5 sm:p-6">
+              <div className="mb-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-app-fg-muted">{t.log.ocrDiscardRulesTitle}</p>
+                <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
+              </div>
+              <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5 sm:p-6">
-        <div className="mb-5 flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15">
-            <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+      <div className="min-w-0 lg:col-span-5">
+        <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5 sm:p-6">
+          <div className="mb-5 flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15">
+              <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold leading-snug text-app-fg">{imp.approvalSectionTitle}</p>
+              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.approvalSectionSubtitle}</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold leading-snug text-app-fg">{imp.approvalSectionTitle}</p>
-            <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.approvalSectionSubtitle}</p>
-          </div>
+          <ApprovalSettingsForm sedeId={sedeId} />
         </div>
-        <ApprovalSettingsForm sedeId={sedeId} />
       </div>
     </div>
   )
