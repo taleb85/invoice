@@ -51,6 +51,24 @@ async function jsonForSedeIdServiceOnly(sedeId: string) {
   return jsonForSedeIdWithClient(svc, sedeId)
 }
 
+async function responseForSessionScoped(): Promise<NextResponse> {
+  const { user } = await getRequestAuth()
+  if (!user) {
+    return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
+  }
+  const svc = createServiceClient()
+  const { data: p } = await svc
+    .from('profiles')
+    .select('sede_id, role')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!canListOperatorsSessionScope(p)) {
+    return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
+  }
+  const sid = String(p!.sede_id).trim()
+  return jsonForSedeIdWithClient(svc, sid)
+}
+
 /**
  * GET /api/sede-operators
  *
@@ -60,22 +78,8 @@ async function jsonForSedeIdServiceOnly(sedeId: string) {
  */
 export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('sedeScope') === 'session') {
-    const { user } = await getRequestAuth()
-    if (!user) {
-      return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
-    }
-    const svc = createServiceClient()
-    const { data: p } = await svc
-      .from('profiles')
-      .select('sede_id, role')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (!canListOperatorsSessionScope(p)) {
-      return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
-    }
-    return jsonForSedeIdWithClient(svc, String(p!.sede_id).trim())
+    return responseForSessionScoped()
   }
-
   const sedeId = req.cookies.get('sede-verified')?.value?.trim()
   if (!sedeId) {
     return NextResponse.json({ operators: [] })
