@@ -18,6 +18,7 @@ import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
 } from '@/lib/app-shell-layout'
+import { isPrincipalSedeAdminProtected } from '@/lib/principal-sede-admin'
 
 /* ─── IP geo-detection ─────────────────────────────────────────────────────
    Maps the ISO-2 country code returned by ipapi.co to our internal codes.
@@ -153,10 +154,15 @@ export default function SediPage() {
     if (!editingProfile) return
     setSavingProfile(true)
     const fn = editingProfile.full_name.trim().toUpperCase()
+    const locked = isPrincipalSedeAdminProtected({
+      id: editingProfile.id,
+      full_name: editingProfile.full_name,
+    })
+    const body = locked ? { full_name: fn || null } : { full_name: fn || null, role: editingProfile.role }
     const res = await fetch(`/api/profiles/${editingProfile.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: fn || null, role: editingProfile.role }),
+      body: JSON.stringify(body),
     })
     const data = await res.json().catch(() => ({}))
     setSavingProfile(false)
@@ -1013,7 +1019,12 @@ export default function SediPage() {
                           className="px-5 py-4 app-workspace-inset-bg-soft"
                         >
                           <div className="space-y-1">
-                            {sedeProfiles.map((p) => (
+                            {sedeProfiles.map((p) => {
+                              const lockedPrincipal = isPrincipalSedeAdminProtected({
+                                id: p.id,
+                                full_name: p.full_name,
+                              })
+                              return (
                           <div key={p.id}>
                             {editingProfile?.id === p.id ? (
                               <form
@@ -1043,17 +1054,32 @@ export default function SediPage() {
                                     </div>
                                     <div className="min-w-0">
                                       <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">Ruolo</label>
-                                      <select
-                                        value={editingProfile.role}
-                                        onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
-                                        className="h-9 w-full rounded-lg border border-app-line-25 px-2.5 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35 app-workspace-surface-elevated"
-                                      >
-                                        <option value="operatore">Operatore</option>
-                                        <option value="admin_sede">{t.sedi.adminSedeRole}</option>
-                                        {me?.is_admin ? (
-                                          <option value="admin">{t.sedi.profileRoleAdmin}</option>
-                                        ) : null}
-                                      </select>
+                                      {lockedPrincipal ? (
+                                        <div className="space-y-1">
+                                          <p className="flex h-9 items-center rounded-lg border border-app-line-22 px-2.5 text-sm text-app-fg-muted app-workspace-surface-elevated">
+                                            {editingProfile.role === 'admin'
+                                              ? t.sedi.profileRoleAdmin
+                                              : editingProfile.role === 'admin_sede'
+                                                ? t.sedi.adminSedeRole
+                                                : t.sedi.operatoreRole}
+                                          </p>
+                                          <p className="text-[10px] leading-snug text-app-fg-muted">
+                                            {t.sedi.principalSedeLockedRoleHint}
+                                          </p>
+                                        </div>
+                                      ) : (
+                                        <select
+                                          value={editingProfile.role}
+                                          onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
+                                          className="h-9 w-full rounded-lg border border-app-line-25 px-2.5 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35 app-workspace-surface-elevated"
+                                        >
+                                          <option value="operatore">{t.sedi.operatoreRole}</option>
+                                          <option value="admin_sede">{t.sedi.adminSedeRole}</option>
+                                          {me?.is_admin ? (
+                                            <option value="admin">{t.sedi.profileRoleAdmin}</option>
+                                          ) : null}
+                                        </select>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="flex shrink-0 justify-end gap-2 sm:justify-start">
@@ -1128,6 +1154,7 @@ export default function SediPage() {
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                   </button>
+                                  {!lockedPrincipal ? (
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteUser(p.id, p.email ?? '')}
@@ -1140,6 +1167,7 @@ export default function SediPage() {
                                       : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                     }
                                   </button>
+                                  ) : null}
                                 </div>
                               </div>
                             )}
@@ -1187,7 +1215,9 @@ export default function SediPage() {
                               </div>
                             )}
                           </div>
-                        ))}
+                        )}
+                            )
+                            })}
                           </div>
                         </div>
                       ) : null}
