@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
 import type { SedeFileRetentionPolicy } from '@/types'
 
@@ -17,13 +17,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
 
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
-  if (!master && !sedeAdmin) {
+  const branchStaff = isBranchSedeStaffRole(profile?.role)
+  if (!master && !branchStaff) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params
-  if (sedeAdmin && profile?.sede_id !== id) {
+  if (branchStaff && profile?.sede_id !== id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const { data: sede, error } = await service
@@ -62,13 +62,13 @@ export async function PATCH(
     .single()
 
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
-  if (!master && !sedeAdmin) {
+  const branchStaff = isBranchSedeStaffRole(profile?.role)
+  if (!master && !branchStaff) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const { id } = await params
-  if (sedeAdmin && profile?.sede_id !== id) {
+  if (branchStaff && profile?.sede_id !== id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
