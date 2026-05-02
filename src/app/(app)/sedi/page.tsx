@@ -214,6 +214,9 @@ export default function SediPage() {
     await loadData()
   }
 
+  /** Elenco operatori per sede: accordion dentro la strip azioni */
+  const [operatorsListOpen, setOperatorsListOpen] = useState<string | null>(null)
+
   // Crea operatore
   const [createUserOpen, setCreateUserOpen] = useState<string | null>(null)
   const [newUserPassword, setNewUserPassword] = useState('')
@@ -851,7 +854,11 @@ export default function SediPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {sedi.map((sede) => (
+            {sedi.map((sede) => {
+              const sedeProfiles = profiles.filter((p) => p.sede_id === sede.id)
+              const operatorsExpanded = operatorsListOpen === sede.id
+              const operatorsRegionId = `sedi-oper-${sede.id}`
+              return (
               <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-app-line-28 bg-transparent">
                 {/* ── Header sede ── */}
                 <div className="flex items-center justify-between px-5 py-4">
@@ -950,17 +957,58 @@ export default function SediPage() {
                   )}
                 </div>
 
-                {/* ── Utenti della sede ── */}
-                {(() => {
-                  const sedeProfiles = profiles.filter(p => p.sede_id === sede.id)
-                  if (sedeProfiles.length === 0) return null
-                  return (
-                    <div className="border-t border-app-line-22 px-5 py-3">
-                      <p className="text-[11px] font-semibold text-app-fg-muted uppercase tracking-wide mb-2">
-                        {t.sedi.operatoriHeader.replace('{n}', String(sedeProfiles.length))}
-                      </p>
-                      <div className="space-y-1">
-                        {sedeProfiles.map((p) => (
+                {/* ── Azioni (accordion) ── */}
+                <div className={`border-t border-app-line-22 ${APP_SECTION_DIVIDE_ROWS}`}>
+
+                  {sedeProfiles.length > 0 ? (
+                    <>
+                      <button
+                        type="button"
+                        id={`${operatorsRegionId}-toggle`}
+                        aria-expanded={operatorsExpanded}
+                        aria-controls={operatorsExpanded ? operatorsRegionId : undefined}
+                        aria-label={
+                          operatorsExpanded
+                            ? t.sedi.operatorsDrawerAriaClose
+                            : t.sedi.operatorsDrawerAriaOpen
+                        }
+                        onClick={() =>
+                          setOperatorsListOpen((prev) => (prev === sede.id ? null : sede.id))
+                        }
+                        className="flex w-full items-center justify-between px-5 py-2.5 text-left text-xs font-medium text-app-fg-muted outline-none ring-app-cyan-500/40 transition-colors hover:bg-black/12 focus-visible:ring-2"
+                      >
+                        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+                          <span className="flex items-center gap-1.5 uppercase tracking-wide">
+                            <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span>{t.sedi.operatoriHeader.replace('{n}', String(sedeProfiles.length))}</span>
+                          </span>
+                          {!operatorsExpanded ? (
+                            <span className="max-w-[min(100%,32rem)] pl-[22px] text-[11px] font-normal normal-case tracking-normal text-app-fg-muted">
+                              {t.sedi.operatorsDrawerCollapsedHint}
+                            </span>
+                          ) : null}
+                        </span>
+                        <svg
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${operatorsExpanded ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {operatorsExpanded ? (
+                        <div
+                          id={operatorsRegionId}
+                          role="region"
+                          aria-labelledby={`${operatorsRegionId}-toggle`}
+                          className="px-5 py-4 app-workspace-inset-bg-soft"
+                        >
+                          <div className="space-y-1">
+                            {sedeProfiles.map((p) => (
                           <div key={p.id}>
                             {editingProfile?.id === p.id ? (
                               <form
@@ -1020,7 +1068,7 @@ export default function SediPage() {
                                 </div>
                               </form>
                             ) : (
-                              <div className="flex items-center justify-between py-1.5 px-3 app-workspace-inset-bg-soft rounded-lg">
+                              <div className="flex items-center justify-between rounded-lg border border-app-line-22 py-1.5 px-3 app-workspace-inset-bg-soft">
                                 <div className="flex items-center gap-2 min-w-0">
                                   <div className="w-6 h-6 rounded-full bg-app-line-10 flex items-center justify-center shrink-0">
                                     <svg className="w-3 h-3 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1133,13 +1181,11 @@ export default function SediPage() {
                             )}
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {/* ── Azioni (3 accordion) ── */}
-                <div className={`border-t border-app-line-22 ${APP_SECTION_DIVIDE_ROWS}`}>
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
 
                   {/* Crea operatore */}
                   <button type="button"
@@ -1462,7 +1508,8 @@ export default function SediPage() {
                   )}
                 </div>
               </div>
-            ))}
+            )
+          })}
           </div>
         )}
       </div>
