@@ -360,10 +360,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
             const iconColor = (item as { iconColor?: string }).iconColor
-            // In gestionale puro (nessuna sede), il link principale diventa "Portale Gestionale"
-            // e al click ripulisce anche il cookie sede per sicurezza.
+            // Master: prima voce = «Portale gestionale» sempre; senza sede attiva, al click si ripulisce il cookie sede.
             const isGestionalePuro = isMasterAdmin && !activeSede
-            const label = isGestionalePuro ? t.sedi.adminRole : item.label
+            const label = isMasterAdmin ? t.sedi.adminRole : item.label
             const handleClick = () => {
               if (isGestionalePuro) clearSede()
               onClose?.()
