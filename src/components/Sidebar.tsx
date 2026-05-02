@@ -352,7 +352,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       className="app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3"
     >
         <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
-          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto py-2">
+          <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden py-2 pb-3">
           {/* Dashboard / Portale Gestionale */}
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
@@ -537,7 +537,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </button>
 
               {branchesOpen && (
-                <div className="app-shell-rail-panel ml-3 mt-0.5 border-l border-app-line-22 pl-2">
+                <div className="app-shell-rail-panel ml-3 mt-0.5 max-h-[min(45vh,18rem)] overflow-y-auto overflow-x-hidden border-l border-app-line-22 pl-2 overscroll-y-contain">
                   <div className="space-y-0.5 pb-1">
                     {allSedi.map((s) => {
                       const isCurrent = s.id === activeSede

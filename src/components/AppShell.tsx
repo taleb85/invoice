@@ -500,7 +500,7 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             aria-label="Navigazione principale"
             className={[
               // `isolate`: stacking per il decorative progress sotto ai link (`z` del wrapper sopra il layer assoluto).
-              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-visible lg:relative lg:isolate lg:z-auto',
+              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-hidden lg:relative lg:isolate lg:z-auto',
             ].join(' ')}
           >
             <div
