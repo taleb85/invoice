@@ -97,7 +97,8 @@ function sedeDetailPathSedeId(pathname: string): string | null {
   return id || null
 }
 
-export async function proxy(request: NextRequest) {
+/** Implementazione completa del proxy; isolata per try/catch globale. */
+async function runProxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
@@ -251,6 +252,15 @@ export async function proxy(request: NextRequest) {
   }
 
   return supabaseResponse
+}
+
+export async function proxy(request: NextRequest) {
+  try {
+    return await runProxy(request)
+  } catch (error) {
+    console.error('[PROXY ERROR]', error)
+    return NextResponse.next({ request })
+  }
 }
 
 export const config = {
