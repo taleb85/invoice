@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useId } from 'react'
 import type { BackupDate } from '@/app/api/backup/list/route'
+import type { Locale } from '@/lib/translations'
+import { useLocale } from '@/lib/locale-context'
+import { useT } from '@/lib/use-t'
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 
 type BackupHistoryEntry = {
@@ -22,14 +25,22 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function nextMonday2am(): string {
+const LOCALE_TAG: Record<Locale, string> = {
+  it: 'it-IT',
+  en: 'en-GB',
+  es: 'es-ES',
+  fr: 'fr-FR',
+  de: 'de-DE',
+}
+
+function nextMonday2am(locale: Locale): string {
   const now = new Date()
   const day = now.getUTCDay() // 0 Sun, 1 Mon
   const daysUntilMonday = day === 1 ? 7 : (8 - day) % 7
   const next = new Date(now)
   next.setUTCDate(now.getUTCDate() + daysUntilMonday)
   next.setUTCHours(2, 0, 0, 0)
-  return next.toLocaleString('it-IT', {
+  return next.toLocaleString(LOCALE_TAG[locale], {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
@@ -51,6 +62,11 @@ function tableLabel(name: string): string {
 }
 
 export function BackupManager() {
+  const t = useT()
+  const { locale } = useLocale()
+  const b = t.appStrings
+  const cronAutomationHeadingId = useId()
+
   const [backups, setBackups] = useState<BackupDate[]>([])
   const [history, setHistory] = useState<BackupHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,21 +74,36 @@ export function BackupManager() {
   const [runResult, setRunResult] = useState<{ ok: boolean; message: string } | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [downloading, setDownloading] = useState<string | null>(null)
+  const [cronAutomationEnabled, setCronAutomationEnabled] = useState(true)
+  const [cronAutomationSaving, setCronAutomationSaving] = useState(false)
+  const [cronAutomationError, setCronAutomationError] = useState<string | null>(null)
 
   const fetchBackups = useCallback(async () => {
     setLoading(true)
     try {
-      const [listRes, histRes] = await Promise.all([
+      const [autoRes, listRes, histRes] = await Promise.all([
+        fetch('/api/backup/automation'),
         fetch('/api/backup/list'),
         fetch('/api/activity-log?action=backup.completed&limit=10'),
       ])
+      if (autoRes.ok) {
+        const j = (await autoRes.json()) as { enabled?: boolean }
+        if (typeof j.enabled === 'boolean') setCronAutomationEnabled(j.enabled)
+      }
       if (listRes.ok) {
-        const { backups: b } = await listRes.json() as { backups: BackupDate[] }
-        setBackups(b ?? [])
-        if (b?.length > 0) setExpanded(b[0].date)
+        const { backups: bRows } = (await listRes.json()) as { backups: BackupDate[] }
+        setBackups(bRows ?? [])
+        if (bRows?.length > 0) setExpanded(bRows[0].date)
       }
       if (histRes.ok) {
-        const json = await histRes.json() as { activities?: Array<{ id: string; createdAt: string; entityLabel: string | null; metadata: BackupHistoryEntry['metadata'] }> }
+        const json = (await histRes.json()) as {
+          activities?: Array<{
+            id: string
+            createdAt: string
+            entityLabel: string | null
+            metadata: BackupHistoryEntry['metadata']
+          }>
+        }
         setHistory(json.activities ?? [])
       }
     } finally {
@@ -88,7 +119,7 @@ export function BackupManager() {
     setRunning(true)
     setRunResult(null)
     try {
-      const res = await fetch('/api/cron/backup', {
+      const res = await fetch('/api/cron/backup?force=1', {
         headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ''}` },
       })
       if (res.ok) {
@@ -126,6 +157,28 @@ export function BackupManager() {
 
   const lastBackup = backups[0]
 
+  async function persistCronAutomation(enabled: boolean) {
+    setCronAutomationSaving(true)
+    setCronAutomationError(null)
+    try {
+      const res = await fetch('/api/backup/automation', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      })
+      if (!res.ok) throw new Error('save')
+      const j = (await res.json()) as { enabled?: boolean }
+      if (typeof j.enabled === 'boolean') setCronAutomationEnabled(j.enabled)
+    } catch {
+      setCronAutomationError(b.backupCronSaveError)
+    } finally {
+      setCronAutomationSaving(false)
+    }
+  }
+
+  const switchFocus =
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent'
+
   return (
     <div className="space-y-6">
       <section
@@ -137,6 +190,41 @@ export function BackupManager() {
         </div>
 
         <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-app-line-28 bg-app-line-5 px-4 py-3.5">
+            <div className="min-w-0 flex-1">
+              <p id={cronAutomationHeadingId} className="text-sm font-semibold text-app-fg">
+                {b.backupCronAutomationLabel}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{b.backupCronAutomationHint}</p>
+              {cronAutomationError ? (
+                <p className="mt-2 text-xs font-medium text-red-400">{cronAutomationError}</p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={cronAutomationEnabled}
+              aria-labelledby={cronAutomationHeadingId}
+              disabled={cronAutomationSaving || loading}
+              onClick={() => void persistCronAutomation(!cronAutomationEnabled)}
+              className={`relative mt-0.5 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 touch-manipulation disabled:cursor-not-allowed disabled:opacity-50 ${switchFocus} ${
+                cronAutomationEnabled
+                  ? 'bg-app-cyan-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] ring-1 ring-app-cyan-400/35'
+                  : 'bg-app-line-30 ring-1 ring-white/[0.08]'
+              }`}
+            >
+              <span
+                className={`pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${
+                  cronAutomationEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`}
+                aria-hidden
+              />
+            </button>
+          </div>
+          {cronAutomationSaving ? (
+            <p className="text-xs text-app-fg-muted">{b.backupCronSaving}</p>
+          ) : null}
+
           {/* Status bar */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
@@ -153,8 +241,10 @@ export function BackupManager() {
 
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
               <p className="text-xs text-app-fg-muted">Prossimo backup</p>
-              <p className="mt-1 text-sm font-semibold text-app-fg">{nextMonday2am()}</p>
-              <p className="text-xs text-app-fg-muted">Ogni lunedì alle 02:00 UTC</p>
+              <p className="mt-1 text-sm font-semibold text-app-fg">
+                {cronAutomationEnabled ? nextMonday2am(locale) : b.backupCronNextPaused}
+              </p>
+              <p className="text-xs text-app-fg-muted">{b.backupCronScheduleFootnote}</p>
             </div>
 
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">

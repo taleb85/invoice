@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/utils/supabase/server'
+import { fetchBackupAutomationEnabled } from '@/lib/backup-automation'
 
 export const maxDuration = 300
 
@@ -11,6 +12,15 @@ export async function GET(req: NextRequest) {
   }
 
   const service = createServiceClient()
+  const force = req.nextUrl.searchParams.get('force') === '1'
+  const automationEnabled = await fetchBackupAutomationEnabled(service)
+  if (!force && !automationEnabled) {
+    return NextResponse.json({
+      skipped: true,
+      reason: 'automation_disabled',
+      message: 'Scheduled backup automation is disabled (configurazioni_app).',
+    })
+  }
   const date = new Date().toISOString().split('T')[0]
   const results: Record<string, { rows: number; path: string }> = {}
   const errors: string[] = []
