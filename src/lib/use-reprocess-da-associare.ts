@@ -53,8 +53,11 @@ export function useReprocessDaAssociare(opts: {
         )
         return
       }
+      const trimmedHint = strings.moreHint.trim()
       const more =
-        j.has_more_candidates === true ? strings.moreHint.trim() : ''
+        j.has_more_candidates === true && trimmedHint
+          ? `\n${trimmedHint}`
+          : ''
       const otherOutcomes =
         typeof j.other_outcomes === 'number' && Number.isFinite(j.other_outcomes)
           ? j.other_outcomes
