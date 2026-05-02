@@ -2,4 +2,4 @@
 export const FILE_ATTACHMENT_RETENTION_DAYS = 45 as const
 
 /** Se true, wizard Sedi e pannello elenco sedi espongono la conservazione allegati e inviano i campi in PATCH. */
-export const FILE_ATTACHMENT_RETENTION_UI_ENABLED = false as const
+export const FILE_ATTACHMENT_RETENTION_UI_ENABLED = true as const
