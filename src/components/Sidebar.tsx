@@ -36,6 +36,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [sedeNome, setSedeNome] = useState<string | null>(null)
   const [allSedi, setAllSedi] = useState<{ id: string; nome: string }[]>([])
   const [branchesOpen, setBranchesOpen] = useState(true)
+  const [masterOperationalNavOpen, setMasterOperationalNavOpen] = useState(true)
   const [activeSede, setActiveSede] = useState<string | null>(null)
   const [fornitori, setFornitori] = useState<{ id: string; nome: string; display_name: string | null }[]>([])
   const [fornitoriOpen, setFornitoriOpen] = useState(true)
@@ -328,6 +329,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
   /** Master: Backup sempre in striscia fissa (come Consumi AI), mai nella colonna scroll. */
   const portaleLinksFixedBackup = isMasterAdmin
 
+  /** Master: voci operative sotto dashboard (Analitiche, …) — nel cassetto sotto l’elenco sedi. */
+  const flatNavRestItems = navItems
+    .slice(1)
+    .filter(
+      (item) =>
+        (isMasterAdmin || item.href !== '/fornitori') &&
+        !(portaleLinksFixedBackup && item.href === '/backup'),
+    )
+
   const handleLogout = async () => {
     try {
       localStorage.removeItem('fluxo-active-operator')
@@ -347,6 +357,13 @@ export default function Sidebar({ onClose }: SidebarProps) {
       isActive
         ? 'border-l-2 border-app-cyan-400/90 bg-gradient-to-r from-app-line-15 to-app-a-20 pl-[10px] text-app-fg shadow-[inset_0_0_20px_rgba(6,182,212,0.1)]'
         : 'border-l-2 border-transparent bg-transparent pl-[10px] text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+    }`
+
+  const railDrawerNavLink = (isActive: boolean) =>
+    `flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
+      isActive
+        ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
+        : 'bg-transparent text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'
     }`
 
   return (
@@ -449,9 +466,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </svg>
               </button>
 
-              {branchesOpen && (
-                <div className="app-shell-rail-panel ml-3 mt-0.5 max-h-[min(50vh,14rem)] overflow-y-auto overflow-x-hidden border-l border-app-line-22 pl-2">
-                  <div className="space-y-0.5 pb-1">
+              {(branchesOpen || flatNavRestItems.length > 0) && (
+                <div className="app-shell-rail-panel ml-3 mt-0.5 border-l border-app-line-22 pl-2">
+                  {branchesOpen ? (
+                    <div className="max-h-[min(50vh,14rem)] overflow-y-auto overflow-x-hidden">
+                      <div className="space-y-0.5 pb-1">
                     {allSedi.map((s) => {
                       const isCurrent = s.id === activeSede
                       return (
@@ -488,7 +507,67 @@ export default function Sidebar({ onClose }: SidebarProps) {
                         </div>
                       )
                     })}
-                  </div>
+                      </div>
+                    </div>
+                  ) : null}
+                  {flatNavRestItems.length > 0 ? (
+                    <>
+                      {branchesOpen ? <div className="my-1.5 border-t border-app-line-18" aria-hidden /> : null}
+                      <button
+                        type="button"
+                        aria-expanded={masterOperationalNavOpen}
+                        onClick={() => setMasterOperationalNavOpen((o) => !o)}
+                        className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] font-semibold text-app-fg-muted transition-colors hover:bg-app-line-10 hover:text-app-fg"
+                      >
+                        <span className="min-w-0 truncate">{t.dashboard.adminOpenBranchDashboard}</span>
+                        <svg
+                          className={`h-3 w-3 shrink-0 transition-transform ${icon.settingsTools} ${masterOperationalNavOpen ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          aria-hidden
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {masterOperationalNavOpen ? (
+                        <div className="mt-0.5 space-y-0.5 pb-1">
+                          {flatNavRestItems.map((item) => {
+                            const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+                            const hasBadge = (item as { badge?: boolean }).badge
+                            const itemCount = (item as { count?: number }).count
+                            const iconColor = (item as { iconColor?: string }).iconColor
+                            return (
+                              <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={() => {
+                                  onClose?.()
+                                  router.push(item.href)
+                                }}
+                                className={`${railDrawerNavLink(isActive)} relative`}
+                              >
+                                <span
+                                  className={`shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5 ${
+                                    isActive ? (iconColor ?? 'text-app-cyan-300') : iconColor ? `${iconColor}/75` : 'text-app-fg-muted'
+                                  }`}
+                                >
+                                  {item.icon}
+                                </span>
+                                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                                {hasBadge ? <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-red-500" /> : null}
+                                {itemCount != null && itemCount > 0 ? (
+                                  <span className="ml-auto shrink-0 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-0.5 text-[9px] font-bold tabular-nums text-white">
+                                    {itemCount > 99 ? '99+' : itemCount}
+                                  </span>
+                                ) : null}
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -509,16 +588,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           )}
 
-          {/* Main flat nav items — rendered before Fornitori expandable.
-              In portale globale master le voci sono limitate da `masterOnlyItems`. */}
-          {navItems
-            .slice(1)
-            .filter(
-              (item) =>
-                (isMasterAdmin || item.href !== '/fornitori') &&
-                !(portaleLinksFixedBackup && item.href === '/backup'),
-            )
-            .map((item) => {
+          {/* Main flat nav items — master: nel cassetto sotto Aziende; altri: qui. */}
+          {!isMasterAdmin &&
+            flatNavRestItems.map((item) => {
               const isActive = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
               const hasBadge = (item as { badge?: boolean }).badge
               const itemCount = (item as { count?: number }).count
