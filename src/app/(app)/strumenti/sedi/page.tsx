@@ -584,7 +584,10 @@ export default function SediPage() {
                     role="switch"
                     className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? 'bg-[#22d3ee]' : 'bg-app-line-30'}`}
                   >
-                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    <span
+                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0'}`}
+                      aria-hidden
+                    />
                   </button>
                 </div>
               )
