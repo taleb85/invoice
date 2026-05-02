@@ -314,9 +314,10 @@ async function finalizePendingByTipo(
 // unknown sender), which is invisible via user-level RLS:  NULL ≠ sede_id.
 //
 // Query params:
-//   stati        comma-separated stato values  (default: see below)
-//   sede_id      restrict to a specific sede   (optional)
-//   fornitore_id restrict to a specific supplier (optional)
+//   stati         comma-separated stato values  (default: see below)
+//   sede_id       restrict to a specific sede   (optional)
+//   fornitore_id  restrict to a specific supplier (optional)
+//   total=1       add header `X-Total-Count` = rows matching filters (lista resta max 200)
 
 export async function GET(req: NextRequest) {
   const authClient = await createClient()
@@ -350,6 +351,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'sede_id non consentito' }, { status: 403 })
   }
 
+  const wantsTotal =
+    searchParams.get('total') === '1' || searchParams.get('include_total') === '1'
+
+  let totalMatching: number | null = null
+  if (wantsTotal) {
+    let countQ = service
+      .from('documenti_da_processare')
+      .select('*', { count: 'exact', head: true })
+      .in('stato', stati)
+    if (fornitoreId) {
+      countQ = countQ.eq('fornitore_id', fornitoreId)
+    }
+    if (fromDate) {
+      countQ = countQ.gte('created_at', fromDate)
+    }
+    if (toDate) {
+      countQ = countQ.lt('created_at', toDate)
+    }
+    if (sedeId) {
+      countQ = countQ.eq('sede_id', sedeId)
+    } else if (!isMasterAdmin && profile?.sede_id) {
+      countQ = countQ.or(`sede_id.eq.${profile.sede_id},sede_id.is.null`)
+    }
+    const { count: ctot, error: countErr } = await countQ
+    if (countErr) return NextResponse.json({ error: countErr.message }, { status: 500 })
+    totalMatching = typeof ctot === 'number' && Number.isFinite(ctot) ? ctot : 0
+  }
+
   let query = service
     .from('documenti_da_processare')
     .select('*, fornitore:fornitori(nome, email)')
@@ -381,7 +410,11 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json(data ?? [])
+  const res = NextResponse.json(data ?? [])
+  if (totalMatching != null) {
+    res.headers.set('x-total-count', String(totalMatching))
+  }
+  return res
 }
 
 export async function POST(req: NextRequest) {

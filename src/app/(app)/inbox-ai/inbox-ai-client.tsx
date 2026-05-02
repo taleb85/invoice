@@ -232,6 +232,8 @@ export default function InboxAiClient(props: {
   const [supplierEmailDraft, setSupplierEmailDraft] = useState('')
   const [supplierSaveBusy, setSupplierSaveBusy] = useState(false)
   const [geminiHistoryRuns, setGeminiHistoryRuns] = useState(loadInboxGeminiHistoryRuns(sedeId))
+  /** Totale righe in coda (stessi filtri GET); lista client max 200. */
+  const [docsTotal, setDocsTotal] = useState<number | null>(null)
 
   useEffect(() => {
     setResolvedToday(readResolvedToday())
@@ -239,15 +241,17 @@ export default function InboxAiClient(props: {
 
   useEffect(() => {
     setGeminiHistoryRuns(loadInboxGeminiHistoryRuns(sedeId))
+    setDocsTotal(null)
   }, [sedeId])
 
-  const loadDocs = useCallback(async () => {
+  const loadDocs = useCallback(async (opts?: { silent?: boolean }) => {
     if (!sedeId || blockedNoSede) return
-    setDocsLoading(true)
+    if (!opts?.silent) setDocsLoading(true)
     try {
       const params = new URLSearchParams()
       params.set('stati', 'da_associare,da_revisionare')
       params.set('sede_id', sedeId)
+      params.set('total', '1')
       const res = await fetch(`/api/documenti-da-processare?${params.toString()}`, {
         credentials: 'include',
       })
@@ -257,15 +261,20 @@ export default function InboxAiClient(props: {
         data = JSON.parse(raw) as unknown
       } catch {
         setDocs([])
+        setDocsTotal(null)
         return
       }
       if (!res.ok || !Array.isArray(data)) {
         setDocs([])
+        setDocsTotal(null)
         return
       }
       setDocs(data as PendingDocRow[])
+      const th = res.headers.get('x-total-count')
+      const nt = th != null ? Number.parseInt(th, 10) : NaN
+      setDocsTotal(Number.isFinite(nt) ? nt : (data as PendingDocRow[]).length)
     } finally {
-      setDocsLoading(false)
+      if (!opts?.silent) setDocsLoading(false)
     }
   }, [blockedNoSede, sedeId])
 
@@ -487,6 +496,7 @@ export default function InboxAiClient(props: {
         setGeminiHistoryRuns(loadInboxGeminiHistoryRuns(sedeId))
       }
 
+      await loadDocs({ silent: true })
       if (didMutateQueue) router.refresh()
     } finally {
       setAnalyzeBusy(false)
@@ -535,7 +545,8 @@ export default function InboxAiClient(props: {
     docId: string,
     kind: 'fattura' | 'bolla' | 'listino',
   ) => {
-    await finalizeWithKind(docId, kind)
+    const ok = await finalizeWithKind(docId, kind)
+    if (ok) await loadDocs({ silent: true })
   }
 
   /** Una conferma dopo l’analisi AI: registra nell’ordine lista (recenti prima) tutti i documenti con suggerimento applicabile. */
@@ -563,6 +574,7 @@ export default function InboxAiClient(props: {
         const ok = await finalizeWithKind(row.id, kind)
         if (!ok) break
       }
+      await loadDocs({ silent: true })
     } finally {
       setConfirmAllBusy(false)
     }
@@ -581,6 +593,7 @@ export default function InboxAiClient(props: {
       const n = bumpResolved(1)
       setResolvedToday(n)
       showToast(t.log.activityDocDiscardedToast, 'success')
+      await loadDocs({ silent: true })
       router.refresh()
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
@@ -622,6 +635,7 @@ export default function InboxAiClient(props: {
       })
       setResolvedToday(bumpResolved(1))
       showToast(t.log.activityIgnoreSenderDoneToast, 'success')
+      await loadDocs({ silent: true })
       router.refresh()
     } catch (e) {
       showToast(e instanceof Error ? e.message : t.log.blacklistError, 'error')
@@ -681,7 +695,7 @@ export default function InboxAiClient(props: {
         delete next[doc.id]
         return next
       })
-      await loadDocs()
+      await loadDocs({ silent: true })
       router.refresh()
     } catch (e) {
       showToast(e instanceof Error ? e.message : 'Errore', 'error')
@@ -737,13 +751,18 @@ export default function InboxAiClient(props: {
   }
 
   const tabBadge = (id: TabId) => {
-    if (id === 'docs') return docs.length
+    if (id === 'docs') return docsTotal ?? docs.length
     if (id === 'fatture') return dupFattureRigheCount
     if (id === 'bolle') return dupBolleRigheCount
     if (id === 'audit') return auditRows.length
     if (id === 'rekki') return 0
     return 0
   }
+
+  const docsTabTruncatedTooltip =
+    typeof docsTotal === 'number' && docsTotal > docs.length
+      ? `Totale ${docsTotal} documenti in coda; in elenco (per data recente) caricati al massimo ${docs.length}`
+      : undefined
 
   const addEmailToFornitore = async (row: AuditMatchRow) => {
     const fid = row.assigned_fornitore_id
@@ -866,13 +885,14 @@ export default function InboxAiClient(props: {
               ['audit', `Abbinamenti (${tabBadge('audit')})`] as const,
               ['fatture', `Fatture dup. (${tabBadge('fatture')})`] as const,
               ['bolle', `Bolle dup. (${tabBadge('bolle')})`] as const,
-              ['rekki', 'Anomalie Rekki (0)'] as const,
+              ['rekki', `Anomalie Rekki (${tabBadge('rekki')})`] as const,
             ] as const
           ).map(([id, label]) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
+              title={id === 'docs' ? docsTabTruncatedTooltip : undefined}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 tab === id
                   ? 'bg-teal-500/25 text-teal-100 ring-1 ring-teal-400/40'
