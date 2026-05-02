@@ -123,6 +123,12 @@ export default async function DashboardPage(props: {
               />
             </svg>
             <p className="text-sm text-app-fg-muted">{t.sedi.noSedi}</p>
+            <Link
+              href="/onboarding"
+              className="mt-6 inline-flex items-center justify-center rounded-xl border border-[rgba(34,211,238,0.25)] bg-app-line-15 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition-colors hover:bg-app-line-20 hover:text-cyan-100"
+            >
+              {t.sedi.newSede}
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

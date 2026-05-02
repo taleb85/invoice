@@ -22,9 +22,7 @@ export default function ConsumiAiPage() {
   const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
-    if (!loading && me?.role !== 'admin') {
-      router.replace('/')
-    }
+    if (!loading && me && !me.is_admin) router.replace('/')
   }, [me, loading, router])
 
   const handleRefresh = () => {
@@ -33,7 +31,7 @@ export default function ConsumiAiPage() {
     setTimeout(() => setRefreshing(false), 1200)
   }
 
-  if (loading || me?.role !== 'admin') {
+  if (loading || !me?.is_admin) {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-app-cyan-500 border-t-transparent" />

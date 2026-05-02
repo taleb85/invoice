@@ -92,7 +92,15 @@ function readBrowserCookie(name: string): string {
 
 /**
  * Redirect master admin to /onboarding when no sedi are configured yet.
+ * La home `/` è sempre raggiungibile: è il “Portale Gestionale” (griglia vuota / CTA creazione sedi),
+ * mentre le altre rotte continuano fino al completamento onboarding.
  */
+function onboardingIncompleteMasterMayStay(pathname: string | null | undefined): boolean {
+  const p = pathname ?? ''
+  if (p === '/' || p === '') return true
+  return p === '/consumi-ai' || p.startsWith('/consumi-ai/')
+}
+
 function OnboardingGuard() {
   const { me } = useMe()
   const router = useRouter()
@@ -103,6 +111,7 @@ function OnboardingGuard() {
     if (!me.is_admin) return
     if (me.onboarding_complete) return
     if (pathname?.startsWith('/onboarding')) return
+    if (onboardingIncompleteMasterMayStay(pathname)) return
     router.replace('/onboarding')
   }, [me, pathname, router])
 
