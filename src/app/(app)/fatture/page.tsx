@@ -32,6 +32,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ExportButton } from '@/components/export-button'
 import type { ExportRow } from '@/lib/export-report'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 type FatturaListRow = {
   id: string
@@ -79,20 +81,8 @@ export default async function FatturePage(props: {
     getRequestAuth(),
   ])
 
-  const isMasterAdmin = profile?.role === 'admin'
-  const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
-  let adminViewSedeId: string | null = null
-  if (isMasterAdmin && adminPick) {
-    const { data } = await supabase.from('sedi').select('id').eq('id', adminPick).maybeSingle()
-    if (data?.id) adminViewSedeId = data.id
-  }
-  // Fallback: se admin senza cookie, usa la prima sede disponibile
-  if (isMasterAdmin && !adminViewSedeId) {
-    const { data: firstSede } = await supabase.from('sedi').select('id').order('nome').limit(1).maybeSingle()
-    adminViewSedeId = firstSede?.id ?? null
-  }
-
-  const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
+  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  const sedeId = await resolveActiveSedeIdForLists(supabase, profile, (n) => cookieStore.get(n))
   const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
 
   let fatture: FatturaListRow[] = []
@@ -138,8 +128,7 @@ export default async function FatturePage(props: {
     sede: null,
   }))
 
-  const isAdminSede = profile?.role === 'admin_sede'
-  const showApprovalBadge = isMasterAdmin || isAdminSede
+  const showApprovalBadge = isMasterAdmin || isBranchSedeStaffRole(profile?.role)
 
   const fattureRowsClient = fatture.map((f) => ({
     id: f.id,

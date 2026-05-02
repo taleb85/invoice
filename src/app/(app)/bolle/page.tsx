@@ -37,6 +37,7 @@ import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { ExportButton } from '@/components/export-button'
 import type { ExportRow } from '@/lib/export-report'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 
 const BOLLE_LIST_LIMIT = 500
 
@@ -72,14 +73,7 @@ async function getListSedeId(): Promise<string | null> {
   if (!user) return null
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const cookieStore = await cookies()
-  if (profile?.role === 'admin') {
-    const fromCookie = cookieStore.get('admin-sede-id')?.value?.trim() || null
-    if (fromCookie) return fromCookie
-    // Fallback: usa la prima sede disponibile per evitare di mostrare tutti i dati
-    const { data: firstSede } = await supabase.from('sedi').select('id').order('nome').limit(1).maybeSingle()
-    return firstSede?.id ?? null
-  }
-  return profile?.sede_id ?? null
+  return resolveActiveSedeIdForLists(supabase, profile, (n) => cookieStore.get(n))
 }
 
 async function getBolleForToday(timeZone: string, sedeId: string | null) {

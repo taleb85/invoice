@@ -26,7 +26,7 @@ import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileAc
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
-import { isAdminSedeRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -284,7 +284,7 @@ export default async function DashboardPage(props: {
           {t.dashboard.operatorNoSede}
         </div>
       )}
-      {operatorScoped && (isMasterAdmin || isAdminSede) && (
+      {operatorScoped && (isMasterAdmin || isBranchSedeStaffRole(profile?.role)) && (
         <Suspense fallback={null}>
           <DuplicateDashboardBanner />
         </Suspense>
@@ -294,6 +294,24 @@ export default async function DashboardPage(props: {
           {dashboardAdminSedeUi && sedeId ? (
             <DashboardAdminMobileActions sedeOperatoriHref={`/sedi/${sedeId}#sede-operatori`} />
           ) : null}
+          {/*
+           * KPI desktop: classe `hidden md:flex` sulla colonna sotto — senza questo blocco
+           * schermate &lt; md non vedono numeri (dashboard “vuota”). `dashboard-operator-scanner-mobile-only`
+           * è nascosto da md in globals.css per evitare duplicati.
+           */}
+          <div className="dashboard-operator-scanner-mobile-only w-full min-w-0">
+            <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
+              <DashboardOperatorKpiGrid
+                glassShell
+                kpis={kpis}
+                t={t}
+                locale={locale}
+                currency={currency}
+                fiscalYear={fiscalYear}
+                kpiRevisionFiscalCountryCode={sedeCountryCode}
+              />
+            </Suspense>
+          </div>
         </>
       ) : null}
 

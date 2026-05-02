@@ -13,6 +13,7 @@ import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 
 async function getFornitori(): Promise<{
   fornitori: Fornitore[]
@@ -22,24 +23,12 @@ async function getFornitori(): Promise<{
   const { supabase, user } = await getRequestAuth()
   const cookieStore = await getCookieStore()
 
-  // Detect sede attiva: per admin usa admin-sede-id, per operatore usa sede dal profilo
   const { data: profile } = user
     ? await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
     : { data: null }
 
-  let sedeId: string | null = null
+  const sedeId = await resolveActiveSedeIdForLists(supabase, profile, (n) => cookieStore.get(n))
   let sedeNome: string | null = null
-
-  if (profile?.role === 'admin') {
-    sedeId = cookieStore.get('admin-sede-id')?.value?.trim() || null
-    if (!sedeId) {
-      // Fallback: usa la prima sede disponibile invece di mostrare tutti i dati
-      const { data: firstSede } = await supabase.from('sedi').select('id').order('nome').limit(1).maybeSingle()
-      sedeId = firstSede?.id ?? null
-    }
-  } else if (profile?.sede_id) {
-    sedeId = profile.sede_id
-  }
 
   if (sedeId) {
     const { data: sede } = await supabase.from('sedi').select('nome').eq('id', sedeId).single()
