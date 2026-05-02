@@ -68,12 +68,10 @@ export function coerceListinoFromSignals(
   return { tipo_suggerito: tipo_raw || 'altro', confidenza }
 }
 
-function parseJsonObject(raw: string): Record<string, unknown> {
-  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
-  const start = cleaned.indexOf('{')
-  const end = cleaned.lastIndexOf('}')
-  const slice = start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned
-  return JSON.parse(slice) as Record<string, unknown>
+function clamp01InboxLike(n: unknown): number {
+  const x = typeof n === 'number' ? n : parseFloat(String(n))
+  if (!Number.isFinite(x)) return 0.5
+  return Math.min(1, Math.max(0, x))
 }
 
 export type GeminiInboxClassification = {
@@ -83,6 +81,30 @@ export type GeminiInboxClassification = {
   azione_consigliata: string
   confidenza: number
   error?: string
+}
+
+/**
+ * Suggerisce di scartare la riga dall’AI Inbox senza revisione umana: contenuto dichiarato
+ * non pertinente alla contabilità (CV, memo, ecc.) con confidenza sufficiente.
+ */
+export const GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF = 0.9
+
+export function inboxClassificationShouldAutoDiscard(
+  suggestion: GeminiInboxClassification,
+): boolean {
+  if (suggestion.error) return false
+  const tipo = (suggestion.tipo_suggerito ?? '').toLowerCase().trim()
+  if (tipo !== 'altro') return false
+  const c = clamp01InboxLike(suggestion.confidenza)
+  return c >= GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF
+}
+
+function parseJsonObject(raw: string): Record<string, unknown> {
+  const cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim()
+  const start = cleaned.indexOf('{')
+  const end = cleaned.lastIndexOf('}')
+  const slice = start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned
+  return JSON.parse(slice) as Record<string, unknown>
 }
 
 function clamp01(n: unknown): number {

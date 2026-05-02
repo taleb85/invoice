@@ -7,6 +7,10 @@ import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { createClient } from '@/utils/supabase/client'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
+import {
+  GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF,
+  inboxClassificationShouldAutoDiscard,
+} from '@/lib/gemini-inbox-classify'
 import { useT } from '@/lib/use-t'
 import { Ban, UserPlus } from 'lucide-react'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
@@ -328,7 +332,37 @@ export default function InboxAiClient(props: {
 
       /** Stessa copia lista usata dall’analisi dopo ogni finalize (stato aggiorna in modo asincrono). */
       let workingDocs = [...docs]
+      const discardedAuto = new Set<string>()
+      let didMutateQueue = false
+
       for (const s of list) {
+        if (!inboxClassificationShouldAutoDiscard(s)) continue
+        const row = workingDocs.find((d) => d.id === s.doc_id)
+        if (!row) continue
+        try {
+          await postDoc({ id: s.doc_id, azione: 'scarta' })
+          discardedAuto.add(s.doc_id)
+          workingDocs = workingDocs.filter((d) => d.id !== s.doc_id)
+          setDocs((d) => d.filter((x) => x.id !== s.doc_id))
+          setSuggestions((prev) => {
+            const next = { ...prev }
+            delete next[s.doc_id]
+            return next
+          })
+          setResolvedToday(bumpResolved(1))
+          didMutateQueue = true
+        } catch (e) {
+          window.alert(e instanceof Error ? e.message : 'Scarto automatico non riuscito')
+          break
+        }
+      }
+
+      if (discardedAuto.size > 0) {
+        showToast(t.log.activityAiInboxAutoDiscardedToast.replace(/\{n\}/g, String(discardedAuto.size)), 'success')
+      }
+
+      for (const s of list) {
+        if (discardedAuto.has(s.doc_id)) continue
         const row = workingDocs.find((d) => d.id === s.doc_id)
         if (!row) continue
         const kind = tipoAiToPendingKind(s.tipo_suggerito)
@@ -339,8 +373,11 @@ export default function InboxAiClient(props: {
         if (conf < minConf) continue
         const ok = await finalizeWithKind(row.id, kind)
         if (!ok) break
+        didMutateQueue = true
         workingDocs = workingDocs.filter((d) => d.id !== row.id)
       }
+
+      if (didMutateQueue) router.refresh()
     } finally {
       setAnalyzeBusy(false)
     }
@@ -748,7 +785,15 @@ export default function InboxAiClient(props: {
               <span lang="en" className="text-app-fg/90">
                 e.g. &quot;Price Update&quot;, price lists
               </span>
-              ). Altrimenti{' '}
+              ).{' '}
+              <span className="font-semibold text-app-fg">Tipo altro</span>
+              chiaramente non contabile alla stessa confidenza{' '}
+              <span className="font-semibold text-app-fg">
+                (~{Math.round(GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF * 100)}%)
+              </span>{' '}
+              viene{' '}
+              <span className="font-semibold text-app-fg">scartato in automatico</span> dall’analisi AI.{' '}
+              Altrimenti{' '}
               <span className="font-semibold text-app-fg">Conferma suggeriti</span> o i pulsanti riga (incluso{' '}
               <span className="font-semibold text-app-fg">Registra listino</span>
               ). Ogni analisi mostra un segno di spunta e il dettaglio.
