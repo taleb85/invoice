@@ -107,12 +107,14 @@ export default function AttivitaPage() {
   const [operatori, setOperatori] = useState<Operatore[]>([])
   const [exporting, setExporting] = useState(false)
 
-  const isMaster = me?.is_admin
-  const isAdminSede = me?.is_admin_sede
+  const isMaster = Boolean(me?.is_admin)
+  /** Allineato a `/api/activity-log` e alla sidebar (`effectiveIsAdminSedeUi`): include `admin_tecnico`. */
+  const canViewAttivita =
+    isMaster || Boolean(me?.is_admin_sede || me?.is_admin_tecnico)
 
   // Load operatori list for user filter
   useEffect(() => {
-    if (!isMaster && !isAdminSede) return
+    if (!canViewAttivita) return
     const sedeFilter = !isMaster && me?.sede_id ? me.sede_id : ''
     const url = sedeFilter
       ? `/api/operators-for-sede?sede_id=${encodeURIComponent(sedeFilter)}`
@@ -123,7 +125,7 @@ export default function AttivitaPage() {
         setOperatori(Array.isArray(d) ? d : (d.operators ?? []))
       )
       .catch(() => {})
-  }, [isMaster, isAdminSede, me?.sede_id])
+  }, [canViewAttivita, isMaster, me?.sede_id])
 
   const handleExport = useCallback(async () => {
     setExporting(true)
@@ -150,7 +152,7 @@ export default function AttivitaPage() {
     )
   }
 
-  if (!isMaster && !isAdminSede) {
+  if (!canViewAttivita) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
         <p className="text-app-fg-muted">Accesso negato.</p>
@@ -292,7 +294,7 @@ export default function AttivitaPage() {
 
       {/* Feed */}
       <ActivityFeed
-        sedeId={sedeId || (isMaster ? undefined : me?.sede_id)}
+        sedeId={sedeId || (isMaster ? undefined : me?.sede_id ?? undefined)}
         userId={userId || undefined}
         dateFrom={dateFrom || undefined}
         dateTo={dateTo || undefined}
