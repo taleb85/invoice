@@ -65,11 +65,11 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
   }
 
   if (loading) {
-    return <div className="h-14 animate-pulse rounded-xl bg-app-line-10" />
+    return <div className="h-24 animate-pulse rounded-xl bg-app-line-10" />
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-app-fg">{t.approvalSettings.autoRegisterTitle}</p>

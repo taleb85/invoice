@@ -56,28 +56,28 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
-        <div className="border-b border-app-line-22 bg-gradient-to-r from-teal-950/35 via-transparent to-transparent px-4 py-2.5 sm:px-5">
+        <div className="border-b border-app-line-22 bg-gradient-to-r from-teal-950/35 via-transparent to-transparent px-5 py-3.5">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-200/95">{imp.sedeDocsGroupingEyebrow}</p>
-          <p className="mt-0.5 text-[11px] leading-snug text-app-fg-muted sm:text-xs">{imp.sedeDocsGroupingHint}</p>
+          <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{imp.sedeDocsGroupingHint}</p>
         </div>
         <div className="divide-y divide-app-line-22">
-          <div className="p-4 sm:p-4">
+          <div className="p-5 sm:p-6">
             <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit embedded />
           </div>
-          <div className="p-4 sm:p-4">
-            <div className="mb-3 sm:mb-4">
+          <div className="p-5 sm:p-6">
+            <div className="mb-5">
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-app-fg-muted">{t.log.ocrDiscardRulesTitle}</p>
-              <p className="mt-0.5 text-[11px] leading-snug text-app-fg-muted sm:text-xs">{t.log.ocrDiscardRulesSubtitle}</p>
+              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
             </div>
             <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-4 sm:p-4">
-        <div className="mb-4 flex items-start gap-2.5 sm:gap-3">
+      <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5 sm:p-6">
+        <div className="mb-5 flex items-start gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/15">
             <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path

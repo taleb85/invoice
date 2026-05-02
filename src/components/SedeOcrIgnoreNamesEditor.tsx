@@ -147,7 +147,7 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
 
   if (embedded) {
     return (
-      <div className="space-y-3 sm:space-y-3">
+      <div className="space-y-4">
         {header}
         {body}
       </div>

@@ -126,7 +126,7 @@ export default function OcrScartoRulesPanel({
 
   const outerCls =
     variant === 'settingsPage'
-      ? 'space-y-4 lg:space-y-3.5'
+      ? 'space-y-6'
       : 'space-y-4 border-t border-white/10 pt-5'
 
   const fieldCls =
@@ -137,8 +137,8 @@ export default function OcrScartoRulesPanel({
 
   const composeForm =
     variant === 'settingsPage' ? (
-      <div className="rounded-xl border border-app-line-28 bg-black/[0.18] p-3.5 ring-1 ring-white/[0.04] sm:p-4">
-        <div className="flex flex-col gap-3 lg:gap-3">
+      <div className="rounded-xl border border-app-line-28 bg-black/[0.18] p-4 ring-1 ring-white/[0.04] sm:p-5">
+        <div className="flex flex-col gap-4">
           <label className={labelCls}>
             {tg.ocrDiscardRulesColTipo}
             <select
@@ -153,7 +153,7 @@ export default function OcrScartoRulesPanel({
               ))}
             </select>
           </label>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className={labelCls}>
               {tg.ocrDiscardRulesColValore}
               <input
@@ -249,12 +249,12 @@ export default function OcrScartoRulesPanel({
             <span className="text-end">{tg.ocrDiscardRulesColActions}</span>
           </div>
         ) : null}
-        <ul className={`${variant === 'settingsPage' ? 'max-h-[min(22rem,calc(100dvh-16rem))]' : 'max-h-[22rem]'} space-y-1.5 overflow-y-auto pr-1 sm:space-y-2`}>
+        <ul className={`${variant === 'settingsPage' ? 'max-h-[min(26rem,calc(100dvh-20rem))]' : 'max-h-[22rem]'} space-y-2 overflow-y-auto pr-1`}>
           {rows.map((r) =>
             variant === 'settingsPage' ? (
               <li
                 key={r.id}
-                className="grid grid-cols-1 gap-2.5 rounded-lg border border-app-line-28 bg-black/25 px-3 py-2 ring-1 ring-white/[0.04] sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,9rem)_auto] sm:items-start sm:gap-2.5 lg:rounded-xl lg:py-2.5"
+                className="grid grid-cols-1 gap-3 rounded-xl border border-app-line-28 bg-black/25 px-3 py-3 ring-1 ring-white/[0.04] sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,9rem)_auto] sm:items-start sm:gap-3"
               >
                 <span className="inline-flex max-w-full items-center rounded-md bg-white/[0.08] px-2 py-1.5 text-[11px] font-semibold leading-snug text-teal-100/95">
                   {tipoUiLabel(tg, r.tipo)}
@@ -342,7 +342,7 @@ export default function OcrScartoRulesPanel({
 
       {composeForm}
 
-      <div className={variant === 'settingsPage' ? 'border-t border-app-line-20 pt-4' : undefined}>
+      <div className={variant === 'settingsPage' ? 'border-t border-app-line-20 pt-5' : undefined}>
         {listBlock}
       </div>
     </div>

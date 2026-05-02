@@ -126,8 +126,8 @@ function SollecitiSettingsLinkCard() {
   const { t } = useLocale()
   return (
     <div className="app-card overflow-hidden">
-      <div className="flex items-start gap-3 app-workspace-inset-bg-soft p-4 sm:gap-3.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25 sm:h-10 sm:w-10">
+      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
           <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -137,7 +137,7 @@ function SollecitiSettingsLinkCard() {
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.impostazioni.linkSollecitiDesc}</p>
           <Link
             href="/settings/solleciti"
-            className="mt-2 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
+            className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
           >
             {t.sollecitiSettingsPage.title} →
           </Link>
@@ -167,8 +167,8 @@ function ImapConfigCard() {
 
   return (
     <div className="app-card overflow-hidden">
-      <div className="flex items-start gap-3 app-workspace-inset-bg-soft p-4 sm:gap-3.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25 sm:h-10 sm:w-10">
+      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
           <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
@@ -183,7 +183,7 @@ function ImapConfigCard() {
           </p>
           <Link
             href={`/sedi/${sedeId}`}
-            className="mt-2 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/18"
+            className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-3.5 py-2 text-xs font-semibold text-cyan-100 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/18"
           >
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -204,9 +204,9 @@ function NotificationSettings() {
 
   return (
     <div className="app-card overflow-hidden">
-      <div className="flex items-center justify-between gap-3 app-workspace-inset-bg-soft p-3.5 sm:gap-3 sm:p-4">
-        <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
+      <div className="flex items-center justify-between gap-3 app-workspace-inset-bg-soft p-4 sm:p-5">
+        <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
             <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -214,8 +214,8 @@ function NotificationSettings() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Notifiche</p>
-            <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg">Notifiche push</p>
-            <p className="mt-0.5 text-xs leading-snug text-app-fg-muted">
+            <p className="mt-0.5 text-sm font-semibold text-app-fg">Notifiche push</p>
+            <p className="mt-1 text-xs leading-snug text-app-fg-muted">
               Ricevi avvisi per nuovi documenti e anomalie prezzi
             </p>
           </div>
@@ -272,7 +272,7 @@ export default function ImpostazioniPage() {
   }
 
   const selectCls =
-    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3 py-2.5 lg:py-2 text-sm leading-snug text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
+    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
   const labelCls = 'mb-1.5 block text-sm font-medium text-app-fg-muted'
 
   const intlLocale =
@@ -296,12 +296,13 @@ export default function ImpostazioniPage() {
     : '…'
 
   const FormBody = () => (
-    <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start lg:gap-x-6 lg:gap-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:gap-4 md:grid-cols-2 md:gap-4 lg:col-span-7 xl:col-span-8">
+    <div className="space-y-8 md:space-y-6">
+      {/* Currency + Timezone — side by side on desktop */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-5">
         {/* Valuta */}
         <div>
-          <div className="flex items-center gap-2 mb-2 sm:gap-2.5 lg:mb-1.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 sm:h-8 sm:w-8">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15">
               <svg className="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -317,8 +318,8 @@ export default function ImpostazioniPage() {
 
         {/* Fuso orario */}
         <div>
-          <div className="flex items-center gap-2 mb-2 sm:gap-2.5 lg:mb-1.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 sm:h-8 sm:w-8">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/15">
               <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -333,23 +334,23 @@ export default function ImpostazioniPage() {
         </div>
       </div>
 
-      {/* Live preview — sotto ai select su schermi stretti; a fianco da lg */}
-      <div className="rounded-xl border border-app-line-25 app-workspace-inset-bg-soft p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10 sm:p-3.5 lg:col-span-5 xl:col-span-4 lg:self-start">
-        <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted lg:mb-2" suppressHydrationWarning>{t.impostazioni.preview}</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+      {/* Live preview */}
+      <div className="rounded-xl border border-app-line-25 app-workspace-inset-bg-soft p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10">
+        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>{t.impostazioni.preview}</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Date</p>
-            <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium leading-snug text-app-fg">
-              <svg className="h-3.5 w-3.5 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Date</p>
+            <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+              <svg className="h-4 w-4 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span className="min-w-0 break-words" suppressHydrationWarning>{previewData}</span>
+              <span suppressHydrationWarning>{previewData}</span>
             </div>
           </div>
           <div>
-            <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Currency</p>
-            <div className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-app-fg">
-              <svg className="h-3.5 w-3.5 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Currency</p>
+            <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+              <svg className="h-4 w-4 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span suppressHydrationWarning>{previewValuta}</span>
@@ -487,54 +488,61 @@ export default function ImpostazioniPage() {
               </div>
             </AppPageHeaderTitleWithDashboardShortcut>
           </AppPageHeaderStrip>
-          <div className="mt-2 grid grid-cols-1 gap-3 sm:gap-3 lg:mt-2 lg:grid-cols-2 lg:gap-5 xl:gap-6">
-            <div className="flex min-w-0 flex-col gap-3">
-              <div className="app-card overflow-hidden">
-                <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5 lg:space-y-3 lg:px-5 lg:py-4">
-                  <FormBody />
-                  {saved && (
-                    <div className="flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-3 py-2 text-xs font-semibold text-green-300 sm:text-sm">
-                      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <div className="mt-2 flex flex-col gap-6 lg:mt-3 lg:gap-8">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8 lg:items-start">
+              <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+                <div className="app-card overflow-hidden">
+                  <div className="space-y-6 px-6 py-6 sm:px-8">
+                    <FormBody />
+                    {saved && (
+                      <div className="flex items-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
+                        <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span suppressHydrationWarning>{t.impostazioni.saved}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span suppressHydrationWarning>{t.impostazioni.saved}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col-reverse gap-2 border-t border-app-line-30 app-workspace-inset-bg-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-5 lg:py-2.5">
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    className="inline-flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-colors hover:bg-cyan-600 active:bg-cyan-700 sm:w-auto"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span suppressHydrationWarning>{t.common.save}</span>
-                  </button>
-                </div>
-              </div>
-              <NotificationSettings />
-            </div>
-
-            <div className="flex min-w-0 flex-col gap-3">
-              <ImapConfigCard />
-              {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
-              {showSedePickHint ? (
-                <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
-                  <div className="app-workspace-inset-bg-soft p-4">
-                    <p className="text-xs leading-snug text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
-                    <Link
-                      href="/sedi"
-                      className="mt-2 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
-                    >
-                      {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
-                    </Link>
+                      <span suppressHydrationWarning>{t.common.save}</span>
+                    </button>
                   </div>
                 </div>
-              ) : null}
-              {showSedeOcrBlocks && sedeResolved ? <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} /> : null}
+              </div>
+
+              <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
+                <ImapConfigCard />
+                {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
+                <NotificationSettings />
+                {showSedePickHint ? (
+                  <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
+                    <div className="app-workspace-inset-bg-soft p-5">
+                      <p className="text-xs leading-relaxed text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
+                      <Link
+                        href="/sedi"
+                        className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3.5 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
+                      >
+                        {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
+                      </Link>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
+
+            {showSedeOcrBlocks && sedeResolved ? (
+              <div className="min-w-0">
+                <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
