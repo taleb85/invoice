@@ -338,6 +338,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
         !(portaleLinksFixedBackup && item.href === '/backup'),
     )
 
+  const masterGestisciSediRailActive = pathname === '/sedi' || pathname.startsWith('/sedi/')
+
   const handleLogout = async () => {
     try {
       localStorage.removeItem('fluxo-active-operator')
@@ -475,12 +477,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
                     {allSedi.map((s) => {
                       const isCurrent = s.id === activeSede
                       return (
-                        <div key={s.id} className="group flex items-center gap-1">
+                        <div key={s.id} className="flex items-center">
                           <button
                             type="button"
                             onClick={() => { switchSede(s.id); onClose?.() }}
                             title={isCurrent ? t.ui.sidebarSedeActive.replace('{name}', s.nome) : t.ui.sidebarSedeSwitchTo.replace('{name}', s.nome)}
-                            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
+                            className={`flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation ${
                               isCurrent
                                 ? 'border border-cyan-500/35 bg-cyan-500/10 text-cyan-100'
                                 : 'bg-transparent text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg'
@@ -494,17 +496,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                               </svg>
                             )}
                           </button>
-                          <Link
-                            href="/sedi"
-                            onClick={onClose}
-                            title={t.nav.gestisciSedi}
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-app-fg-muted opacity-0 transition-opacity hover:bg-app-line-10 hover:text-app-fg group-hover:opacity-100 focus:opacity-100"
-                          >
-                            <svg className={`h-3 w-3 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          </Link>
                         </div>
                       )
                     })}
@@ -569,6 +560,22 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       ) : null}
                     </>
                   ) : null}
+                  <div className="mt-1.5 border-t border-app-line-18 pt-1.5">
+                    <Link
+                      href="/sedi"
+                      onClick={onClose}
+                      title={t.nav.gestisciSedi}
+                      className={railDrawerNavLink(masterGestisciSediRailActive)}
+                    >
+                      <span className={`shrink-0 [&_svg]:h-3.5 [&_svg]:w-3.5 ${masterGestisciSediRailActive ? icon.settingsTools : 'text-app-fg-muted'}`}>
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </span>
+                      <span className="min-w-0 flex-1 truncate">{t.nav.gestisciSedi}</span>
+                    </Link>
+                  </div>
                 </div>
                 </div>
               )}
