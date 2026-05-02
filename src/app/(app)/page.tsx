@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import DuplicateDashboardBanner from '@/components/duplicates/duplicate-dashboard-banner'
-import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
 import { getT, getLocale, getCurrency, getCookieStore } from '@/lib/locale-server'
 import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
@@ -12,7 +11,6 @@ import {
   fornitoreIdsForSede,
 } from '@/lib/dashboard-operator-kpis'
 import { fetchRecurringEmailBodySupplierHints } from '@/lib/dashboard-email-body-supplier-hints'
-import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
 import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
 import { DashboardEmbeddedAnalytics } from '@/components/analytics/dashboard-embedded-analytics'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -26,6 +24,7 @@ import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileAc
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
@@ -49,19 +48,17 @@ export default async function DashboardPage(props: {
     isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
 
   const { supabase } = await getRequestAuth()
-  let adminViewSedeId: string | null = null
-  let adminViewSedeNome: string | null = null
-  if (isMasterAdmin && adminPick) {
-    const { data } = await supabase.from('sedi').select('id, nome').eq('id', adminPick).maybeSingle()
-    if (data?.id) {
-      adminViewSedeId = data.id
-      adminViewSedeNome = data.nome ?? null
-    }
-  }
 
-  if (isMasterAdmin && !adminViewSedeId) {
-    const [sediStats, erroriRecenti, emailBodySupplierHints] = await Promise.all([
-      fetchAdminDashboardSediWithStats(supabase),
+  /** Stessa sede attiva degli elenchi: master → cookie `admin-sede-id` validato, altrimenti prima sede (mai null se DB ha sedi). */
+  const operationalSedeId = await resolveActiveSedeIdForLists(
+    supabase,
+    profile ?? undefined,
+    (n) => cookieStore.get(n),
+  )
+
+  /** Master ma non esiste alcuna sede in database → porta gestionale onboarding. */
+  if (isMasterAdmin && operationalSedeId === null) {
+    const [erroriRecenti, emailBodySupplierHints] = await Promise.all([
       countSyncLogErrors24h(supabase),
       fetchRecurringEmailBodySupplierHints(supabase),
     ])
@@ -112,111 +109,29 @@ export default async function DashboardPage(props: {
           />
         ) : null}
 
-        {sediStats.length === 0 ? (
-          <div className="rounded-xl border border-app-line-32 app-workspace-inset-bg-soft px-6 py-16 text-center">
-            <svg className="mx-auto mb-3 h-12 w-12 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
-            <p className="text-sm text-app-fg-muted">{t.sedi.noSedi}</p>
-            <Link
-              href="/onboarding"
-              className="mt-6 inline-flex items-center justify-center rounded-xl border border-[rgba(34,211,238,0.25)] bg-app-line-15 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition-colors hover:bg-app-line-20 hover:text-cyan-100"
-            >
-              {t.sedi.newSede}
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {sediStats.map((sede) => {
-              const unhealthy = 'syncUnhealthy' in sede && Boolean((sede as { syncUnhealthy?: boolean }).syncUnhealthy)
-              const ocrN = 'ocrFailures48h' in sede ? Number((sede as { ocrFailures48h?: number }).ocrFailures48h ?? 0) : 0
-              const imapErr = (sede as { last_imap_sync_error?: string | null }).last_imap_sync_error
-              return (
-              <div
-                key={sede.id}
-                className={`rounded-xl border app-workspace-inset-bg p-5 shadow-[0_0_28px_-10px_rgba(6,182,212,0.35)] ${
-                  unhealthy
-                    ? 'border-[rgba(34,211,238,0.15)] ring-1 ring-red-500/25'
-                    : 'border-app-soft-border'
-                }`}
-              >
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-app-line-20">
-                      <svg className="h-4 w-4 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                        />
-                      </svg>
-                    </div>
-                    <span className="min-w-0 font-semibold text-app-fg">{sede.nome}</span>
-                  </div>
-                  <AdminSelectSedeButton
-                    sedeId={sede.id}
-                    className="shrink-0 rounded-lg border border-app-line-32 app-workspace-surface-elevated px-2.5 py-1.5 text-[11px] font-semibold text-app-fg-muted transition-colors hover:border-app-line-40 hover:bg-app-line-12"
-                  >
-                    {t.dashboard.enterAsSede}
-                  </AdminSelectSedeButton>
-                </div>
-                {unhealthy && (
-                  <div className="mb-3 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/35 px-2.5 py-2 text-[11px] leading-snug text-red-100">
-                    <p className="font-semibold">{t.dashboard.syncHealthAlert}</p>
-                    {imapErr ? <p className="mt-1 font-mono text-red-200/90">{imapErr}</p> : null}
-                    {ocrN > 0 ? (
-                      <p className="mt-1 text-red-200/90">
-                        {t.dashboard.syncHealthOcrCount.replace(/\{n\}/g, String(ocrN))}
-                      </p>
-                    ) : null}
-                  </div>
-                )}
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <Link
-                    href={`/sedi/${sede.id}/fornitori`}
-                    className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-violet-500/5 py-2.5 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-violet-500/15 active:scale-[0.98] touch-manipulation"
-                  >
-                    <p className="text-xl font-bold text-violet-200">{sede.fornitori}</p>
-                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-violet-400/80">
-                      {t.dashboard.suppliers}
-                    </p>
-                  </Link>
-                  <Link
-                    href="/bolle"
-                    className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/5 py-2.5 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-500/15 active:scale-[0.98] touch-manipulation"
-                  >
-                    <p className="text-xl font-bold text-amber-200">{sede.bolleInAttesa}</p>
-                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-400/80">
-                      {t.dashboard.pendingBills}
-                    </p>
-                  </Link>
-                  <Link
-                    href="/fatture"
-                    className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/5 py-2.5 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-emerald-500/15 active:scale-[0.98] touch-manipulation"
-                  >
-                    <p className="text-xl font-bold text-emerald-200">{sede.fatture}</p>
-                    <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-400/80">
-                      {t.dashboard.invoices}
-                    </p>
-                  </Link>
-                </div>
-              </div>
-            )
-          })}
-          </div>
-        )}
+        <div className="rounded-xl border border-app-line-32 app-workspace-inset-bg-soft px-6 py-16 text-center">
+          <svg className="mx-auto mb-3 h-12 w-12 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+            />
+          </svg>
+          <p className="text-sm text-app-fg-muted">{t.sedi.noSedi}</p>
+          <Link
+            href="/onboarding"
+            className="mt-6 inline-flex items-center justify-center rounded-xl border border-[rgba(34,211,238,0.25)] bg-app-line-15 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition-colors hover:bg-app-line-20 hover:text-cyan-100"
+          >
+            {t.sedi.newSede}
+          </Link>
+        </div>
       </div>
     )
   }
 
-  const sedeId = adminViewSedeId ?? profile?.sede_id ?? null
-  let dashboardSedeNome: string | null = adminViewSedeNome
+  const sedeId = operationalSedeId
+  let dashboardSedeNome: string | null = null
   const [fornitoreIds, sedeMetaRow] = await Promise.all([
     sedeId ? fornitoreIdsForSede(supabase, sedeId) : Promise.resolve([] as string[]),
     sedeId
@@ -255,8 +170,13 @@ export default async function DashboardPage(props: {
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
-      {isMasterAdmin && adminViewSedeId && adminViewSedeNome && !actingRoleCookie ? (
-        <AdminSedeViewBanner sedeNome={adminViewSedeNome} />
+      {isMasterAdmin &&
+      adminPick &&
+      sedeId &&
+      dashboardSedeNome &&
+      adminPick === sedeId &&
+      !actingRoleCookie ? (
+        <AdminSedeViewBanner sedeNome={dashboardSedeNome} />
       ) : null}
       <AppPageHeaderStrip
         dense
