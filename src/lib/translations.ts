@@ -2179,7 +2179,7 @@ const it: Translations = {
       'OCR Gemini e registrazione automatica in piccoli batch (pochi file per richiesta, per ridurre timeout) per righe «da associare» con fornitore collegato e file. Ripeti finché necessario.',
     reprocessDaAssociareCta: 'Riprocessa documenti storici',
     reprocessDaAssociareResult:
-      'Ultimo batch: OCR ok su {processed} file — auto-registrate (bolla/fattura) {auto_saved}, da revisionare {da_revisionare}, aggiornate in coda senza registrazione auto {other_outcomes}, errori {errors}.{more}',
+      'Ultimo batch: OCR ok su {processed} file — con registrazione automatica di bolla o fattura {auto_saved}, marchiati come da revisionare {da_revisionare}, aggiornati in coda ma senza nuova bolla/fattura automatica {other_outcomes}, errori {errors}.{more}',
     reprocessDaAssociareMoreHint: 'Altri documenti in coda — ripeti l’operazione.',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
