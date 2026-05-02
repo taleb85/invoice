@@ -486,6 +486,9 @@ export default function CentroOperazioniPage() {
                 {s.ocrAbbinamentiCta} →
               </Link>
             </div>
+            <p className="rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-balance text-app-fg-muted">
+              {s.hintContextualShortcuts}
+            </p>
           </section>
 
           <section className="space-y-4" aria-labelledby="ops-section-manutenzione">
@@ -525,12 +528,6 @@ export default function CentroOperazioniPage() {
           </section>
 
             </div>
-
-          <div className="min-w-0 border-t border-app-line-22 pt-10 lg:col-span-2">
-            <p className="max-w-3xl rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-balance text-app-fg-muted">
-              {s.hintContextualShortcuts}
-            </p>
-          </div>
 
           </div>
 
