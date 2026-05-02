@@ -60,24 +60,33 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
     }
   }
 
-  const header = (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15">
-        <svg className="h-4 w-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-          />
-        </svg>
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold leading-snug text-app-fg">Nomi azienda da ignorare nell&apos;OCR</p>
-        <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">
-          Destinatari/clienti della sede: non usarli come fornitore su fatture e DDT. Elenco salvato nella sede.
-        </p>
-      </div>
+  const headerIcon = (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
+      <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        />
+      </svg>
+    </div>
+  )
+
+  const headerCopy = (
+    <div className="min-w-0 flex-1">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">OCR</p>
+      <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg">Nomi azienda da ignorare nell&apos;OCR</p>
+      <p className="mt-1 text-xs leading-snug text-app-fg-muted">
+        Destinatari/clienti della sede: non usarli come fornitore su fatture e DDT. Elenco salvato nella sede.
+      </p>
+    </div>
+  )
+
+  const headerRow = (
+    <div className="flex items-start gap-4">
+      {headerIcon}
+      {headerCopy}
     </div>
   )
 
@@ -148,16 +157,16 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
   if (embedded) {
     return (
       <div className="space-y-4">
-        {header}
+        {headerRow}
         {body}
       </div>
     )
   }
 
   return (
-    <article className="min-h-0 min-w-0 overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
-      <div className="border-b border-app-line-22 app-workspace-inset-bg-soft px-5 py-4 sm:px-6">{header}</div>
-      <div className="space-y-4 px-5 py-5 sm:px-6 sm:pb-6">{body}</div>
-    </article>
+    <div className="min-h-0 min-w-0 overflow-hidden app-card">
+      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">{headerRow}</div>
+      <div className="space-y-4 border-t border-app-line-30 app-workspace-inset-bg-soft p-5">{body}</div>
+    </div>
   )
 }
