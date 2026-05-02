@@ -19,7 +19,6 @@ import {
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
 } from '@/lib/app-shell-layout'
 import {
-  FILE_ATTACHMENT_RETENTION_DAYS,
   FILE_ATTACHMENT_RETENTION_UI_ENABLED,
 } from '@/lib/file-retention-config'
 
@@ -132,7 +131,6 @@ export default function SediPage() {
     const patch: Record<string, unknown> = {}
     if (FILE_ATTACHMENT_RETENTION_UI_ENABLED) {
       patch.file_retention_policy = wizardFileRetention
-      patch.file_retention_days = FILE_ATTACHMENT_RETENTION_DAYS
       patch.file_retention_months = null
       patch.file_retention_run_day = Math.min(28, Math.max(1, parseInt(wizardRetentionRunDay, 10) || 1))
     }
@@ -388,7 +386,6 @@ export default function SediPage() {
     setError(null)
     const body: Record<string, unknown> = {
       file_retention_policy: retentionPolicy,
-      file_retention_days: FILE_ATTACHMENT_RETENTION_DAYS,
       file_retention_months: null,
       file_retention_run_day: Math.min(28, Math.max(1, parseInt(retentionRunDay, 10) || 1)),
     }
@@ -420,7 +417,6 @@ export default function SediPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         file_retention_policy: newPolicy,
-        file_retention_days: FILE_ATTACHMENT_RETENTION_DAYS,
         file_retention_months: null,
         ...(newPolicy !== 'keep' && { file_retention_run_day: sede.file_retention_run_day ?? 1 }),
       }),
