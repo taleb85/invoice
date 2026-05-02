@@ -4,7 +4,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { OperatorDashboardKpis } from '@/lib/dashboard-operator-kpis'
 import type { Translations, Locale } from '@/lib/translations'
-import { type CSSProperties, type ReactNode } from 'react'
+import { type CSSProperties, type ReactNode, useMemo } from 'react'
+import { useMe } from '@/lib/me-context'
+import { useActiveOperator } from '@/lib/active-operator-context'
+import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { useReprocessDaAssociare } from '@/lib/use-reprocess-da-associare'
 import {
   DASHBOARD_OPERATOR_KPI_GRID_LAYOUT_CLASS,
   DASHBOARD_OPERATOR_KPI_SUPPLIER_HEXES,
@@ -174,6 +179,28 @@ export default function DashboardOperatorKpiGrid({
   const router = useRouter()
   const network = useNetworkStatusOptional()
   const online = network?.online ?? true
+  const { me } = useMe()
+  const { activeOperator } = useActiveOperator()
+  const { effectiveSedeId } = useManualDeliverySede()
+
+  const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
+  const adminSedeUi = effectiveIsAdminSedeUi(me, activeOperator)
+  const showHistoricReprocessCta =
+    Boolean(glassShell) && Boolean(masterPlane || adminSedeUi)
+
+  const reprocessStrings = useMemo(
+    () => ({
+      resultTemplate: t.strumentiCentroOperazioni.reprocessDaAssociareResult,
+      moreHint: t.strumentiCentroOperazioni.reprocessDaAssociareMoreHint,
+    }),
+    [t.strumentiCentroOperazioni.reprocessDaAssociareMoreHint, t.strumentiCentroOperazioni.reprocessDaAssociareResult],
+  )
+
+  const historicReprocess = useReprocessDaAssociare({
+    effectiveSedeId,
+    strings: reprocessStrings,
+  })
+
   const fy = fiscalYear
   const stmtN = k.statementsTotal
   const stmtIssues = k.statementsWithIssues
@@ -349,7 +376,43 @@ export default function DashboardOperatorKpiGrid({
       {shellAccentBar}
       {glassShell ? (
         <div className="border-b border-white/10 px-4 pt-4 pb-3 md:px-5 md:pt-5 md:pb-3.5">
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">{t.fornitori.tabRiepilogo}</h2>
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2">
+            <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
+              {t.fornitori.tabRiepilogo}
+            </h2>
+            {showHistoricReprocessCta ? (
+              <button
+                type="button"
+                disabled={historicReprocess.loading || !online}
+                onClick={() => void historicReprocess.run()}
+                className="inline-flex min-h-[2.375rem] w-full shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-emerald-500/45 bg-emerald-500/12 px-4 py-2 text-xs font-bold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-h-0 sm:py-2.5"
+              >
+                {historicReprocess.loading ? (
+                  <>
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100 border-t-transparent" />
+                    {t.common.loading}
+                  </>
+                ) : (
+                  t.strumentiCentroOperazioni.reprocessDaAssociareCta
+                )}
+              </button>
+            ) : null}
+          </div>
+          {showHistoricReprocessCta &&
+          (historicReprocess.error ?? historicReprocess.result) ? (
+            <div className="mt-2.5 min-w-0 space-y-1 text-left">
+              {historicReprocess.error ? (
+                <p className="text-[11px] leading-snug text-rose-300 sm:text-xs">
+                  {historicReprocess.error}
+                </p>
+              ) : null}
+              {historicReprocess.result ? (
+                <p className="text-[11px] leading-snug text-emerald-200/95 sm:text-xs">
+                  {historicReprocess.result}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
       <div className={`${innerPadClass} relative`}>

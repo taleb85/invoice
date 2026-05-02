@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
@@ -16,6 +16,7 @@ import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import { useReprocessDaAssociare } from '@/lib/use-reprocess-da-associare'
 
 type DashboardPayload = {
   lastCleanupAt: string | null
@@ -149,9 +150,24 @@ export default function CentroOperazioniPage() {
   const [historicSyncError, setHistoricSyncError] = useState<string | null>(null)
   const [historicSyncResult, setHistoricSyncResult] = useState<string | null>(null)
   const [historicProgressLine, setHistoricProgressLine] = useState<string | null>(null)
-  const [reprocessLoading, setReprocessLoading] = useState(false)
-  const [reprocessError, setReprocessError] = useState<string | null>(null)
-  const [reprocessResult, setReprocessResult] = useState<string | null>(null)
+
+  const reprocessStrings = useMemo(
+    () => ({
+      resultTemplate: s.reprocessDaAssociareResult,
+      moreHint: s.reprocessDaAssociareMoreHint,
+    }),
+    [s.reprocessDaAssociareMoreHint, s.reprocessDaAssociareResult],
+  )
+
+  const {
+    loading: reprocessLoading,
+    error: reprocessError,
+    result: reprocessResult,
+    run: onReprocessDaAssociare,
+  } = useReprocessDaAssociare({
+    effectiveSedeId,
+    strings: reprocessStrings,
+  })
 
   const load = useCallback(async () => {
     setLoadError(null)
@@ -280,47 +296,6 @@ export default function CentroOperazioniPage() {
       setHistoricSyncLoading(false)
     }
   }, [effectiveSedeId, s.historicSyncCompleted, s.historicSyncProgress, s.historicSyncResult])
-
-  const onReprocessDaAssociare = useCallback(async () => {
-    setReprocessLoading(true)
-    setReprocessError(null)
-    setReprocessResult(null)
-    try {
-      const res = await fetch('/api/admin/reprocess-da-associare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(effectiveSedeId ? { sede_id: effectiveSedeId } : {}),
-        }),
-      })
-      const j = (await res.json().catch(() => ({}))) as {
-        error?: string
-        processed?: number
-        auto_saved?: number
-        da_revisionare?: number
-        errors?: number
-        has_more_candidates?: boolean
-      }
-      if (!res.ok) {
-        setReprocessError(j.error ?? `HTTP ${res.status}`)
-        return
-      }
-      const more =
-        j.has_more_candidates === true ? s.reprocessDaAssociareMoreHint.trim() : ''
-      setReprocessResult(
-        s.reprocessDaAssociareResult
-          .replace('{processed}', String(j.processed ?? 0))
-          .replace('{auto_saved}', String(j.auto_saved ?? 0))
-          .replace('{da_revisionare}', String(j.da_revisionare ?? 0))
-          .replace('{errors}', String(j.errors ?? 0))
-          .replace('{more}', more),
-      )
-    } catch (e) {
-      setReprocessError(e instanceof Error ? e.message : 'Errore di rete')
-    } finally {
-      setReprocessLoading(false)
-    }
-  }, [effectiveSedeId, s])
 
   if (!canView) {
     return (
