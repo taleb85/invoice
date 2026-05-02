@@ -121,6 +121,8 @@ function tipoAiToPendingKind(tipo: string): 'fattura' | 'bolla' | 'statement' | 
 const AUTO_FINALIZE_AI_CONF_MIN = 0.95
 /** Fattura/bolla/… rimangono a 0.95; listino permette più varianti Gemini (≈90% reali). */
 const AUTO_FINALIZE_LISTINO_CONF_MIN = 0.9
+/** Batch `gemini_classify` (stesso `BATCH` in `api/admin/reprocess-pending-docs`). */
+const INBOX_AI_GEMINI_CLASSIFY_BATCH = 5
 
 function suggestionConf01(s: GeminiSuggestion): number {
   const x =
@@ -154,6 +156,8 @@ export default function InboxAiClient(props: {
   const [dupLoading, setDupLoading] = useState(false)
   const [suggestions, setSuggestions] = useState<Record<string, GeminiSuggestion>>({})
   const [analyzeBusy, setAnalyzeBusy] = useState(false)
+  /** ID documenti del batch corrente (evidenza UI durante la POST + post-elaborazioni). */
+  const [analyzeTargetIds, setAnalyzeTargetIds] = useState<string[]>([])
   const [confirmAllBusy, setConfirmAllBusy] = useState(false)
   const [resolvedToday, setResolvedToday] = useState(0)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
@@ -306,6 +310,12 @@ export default function InboxAiClient(props: {
 
   const runAnalyze = async () => {
     if (!sedeId) return
+    const excludeSet = new Set(excludedForNextBatch)
+    const snapshotBatch = docsNewestFirst
+      .filter((d) => !excludeSet.has(d.id))
+      .slice(0, INBOX_AI_GEMINI_CLASSIFY_BATCH)
+      .map((d) => d.id)
+    setAnalyzeTargetIds(snapshotBatch)
     setAnalyzeBusy(true)
     try {
       const res = await fetch('/api/admin/reprocess-pending-docs', {
@@ -380,6 +390,7 @@ export default function InboxAiClient(props: {
       if (didMutateQueue) router.refresh()
     } finally {
       setAnalyzeBusy(false)
+      setAnalyzeTargetIds([])
     }
   }
 
@@ -810,30 +821,48 @@ export default function InboxAiClient(props: {
             ) : docs.length === 0 ? (
               <p className="text-sm text-app-fg-muted">{t.log.activityQueueEmptyCelebrate}</p>
             ) : (
-              <ul className="space-y-3">
+              <ul className="space-y-3" aria-busy={analyzeBusy}>
                 {docsNewestFirst.map((d) => {
                   const sug = suggestions[d.id]
                   const supplier =
                     d.fornitore?.nome ?? (d.fornitore_id ? '(fornitore ID)' : '— sconosciuto —')
                   const busyRow = actionBusy === d.id
                   const needsSupplier = !d.fornitore_id
+                  const inGeminiAnalyze = analyzeBusy && analyzeTargetIds.includes(d.id)
                   return (
                     <li
                       key={d.id}
                       className={`rounded-xl border px-3 py-3 sm:px-4 ${
-                        sug
-                          ? 'border-teal-500/35 bg-gradient-to-br from-teal-950/25 to-white/[0.03]'
-                          : 'border-white/10 bg-white/[0.03]'
-                      }`}
+                        inGeminiAnalyze
+                          ? 'border-cyan-400/50 bg-gradient-to-br from-cyan-950/[0.33] to-white/[0.04] shadow-[0_0_28px_-8px_rgba(34,211,238,0.38)]'
+                          : sug
+                            ? 'border-teal-500/35 bg-gradient-to-br from-teal-950/25 to-white/[0.03]'
+                            : 'border-white/10 bg-white/[0.03]'
+                      } ${inGeminiAnalyze ? 'animate-pulse' : ''}`}
                     >
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex min-w-0 gap-2.5">
                           <div
-                            className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-black/20 text-sm"
-                            title={sug ? 'Analizzato dall’AI' : 'In attesa di analisi'}
+                            className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-sm ${
+                              inGeminiAnalyze
+                                ? 'border-cyan-400/45 bg-cyan-950/35'
+                                : 'border-white/10 bg-black/20'
+                            }`}
+                            title={
+                              sug
+                                ? 'Analizzato dall’AI'
+                                : inGeminiAnalyze
+                                  ? 'Analisi Gemini in corso…'
+                                  : 'In attesa di analisi'
+                            }
                           >
                             {sug ? (
                               <GlyphCheck className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
+                            ) : inGeminiAnalyze ? (
+                              <span
+                                className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-200/90 border-t-transparent"
+                                aria-hidden
+                              />
                             ) : (
                               <span className="text-app-fg-subtle" aria-hidden>
                                 ○
