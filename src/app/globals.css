@@ -824,11 +824,12 @@ body {
   opacity: 1;
 }
 
-/* Desktop lg+: due tratti verticali sul perimetro sidebar (sinistra/destra del rail) */
+/* Desktop lg+: due tratti verticali sul perimetro sidebar (sinistra/destra del rail).
+   Contesto stacking: sopra viene la colonna dei link (#app-shell / aside wrapper z-[1]). */
 .navigation-top-progress--desktop-sidebar-perimeter {
   position: absolute;
   inset: 0;
-  z-index: 60;
+  z-index: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;

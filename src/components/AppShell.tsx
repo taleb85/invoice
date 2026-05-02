@@ -487,21 +487,24 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             suppressHydrationWarning
             aria-label="Navigazione principale"
             className={[
-              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-visible lg:relative lg:z-auto',
+              'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-visible lg:relative lg:isolate lg:z-auto',
             ].join(' ')}
           >
-            <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
-              <SidebarRailBrand />
-            </div>
-            <ErrorBoundary sectionName="navigazione">
-              <Sidebar />
-            </ErrorBoundary>
+            {/* Deco progress route: dietro ai link (portal); non sopra nella paint order */}
             <div
               ref={bindDesktopSidebarNavHost}
               id={APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID}
-              className="pointer-events-none absolute inset-0 z-[60] hidden min-h-0 overflow-visible lg:block"
+              className="pointer-events-none absolute inset-0 z-0 hidden min-h-0 overflow-visible lg:block"
               aria-hidden
             />
+            <div className="relative z-[1] flex min-h-0 min-w-0 flex-1 flex-col">
+              <div className="app-shell-rail-panel flex shrink-0 border-b border-app-line-25">
+                <SidebarRailBrand />
+              </div>
+              <ErrorBoundary sectionName="navigazione">
+                <Sidebar />
+              </ErrorBoundary>
+            </div>
           </aside>
           <div
             data-app-desktop-canvas

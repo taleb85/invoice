@@ -8,7 +8,7 @@ import { useLocale } from '@/lib/locale-context'
 export function SidebarRailBrand() {
   const { t } = useLocale()
   return (
-    <div className="app-shell-rail-panel relative z-[80] flex min-h-[52px] w-full min-w-0 shrink-0 flex-col justify-center gap-1 px-2 py-2 text-app-fg sm:px-3 lg:px-3.5">
+    <div className="app-shell-rail-panel flex min-h-[52px] w-full min-w-0 shrink-0 flex-col justify-center gap-1 px-2 py-2 text-app-fg sm:px-3 lg:px-3.5">
       <div className="flex min-w-0 items-center gap-2.5">
         <Link
           href="/"
