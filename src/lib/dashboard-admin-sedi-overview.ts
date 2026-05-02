@@ -105,3 +105,14 @@ export async function fetchAdminDashboardSediWithStats(
     }
   })
 }
+
+/** Solo anagrafica sedi per il portale master globale — niente conteggi operativi (fornitori, bolle, fatture). */
+export async function fetchSediBasicForAdminGlobalPortal(
+  supabase: SupabaseClient,
+): Promise<Pick<Sede, 'id' | 'nome' | 'country_code' | 'imap_host' | 'imap_user'>[]> {
+  const { data } = await supabase
+    .from('sedi')
+    .select('id, nome, country_code, imap_host, imap_user')
+    .order('nome')
+  return (data ?? []) as Pick<Sede, 'id' | 'nome' | 'country_code' | 'imap_host' | 'imap_user'>[]
+}

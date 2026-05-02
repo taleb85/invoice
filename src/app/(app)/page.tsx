@@ -25,7 +25,7 @@ import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupp
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { resolveOperationalSedeIdForAdminPortal } from '@/lib/admin-portal-operational-sede'
-import { fetchAdminDashboardSediWithStats } from '@/lib/dashboard-admin-sedi-overview'
+import { fetchSediBasicForAdminGlobalPortal } from '@/lib/dashboard-admin-sedi-overview'
 import { AdminGlobalDashboard } from '@/components/AdminGlobalDashboard'
 import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
@@ -64,28 +64,19 @@ export default async function DashboardPage(props: {
 
   /** Master senza sede nel cookie: dashboard globale se ci sono sedi, altrimenti onboarding. */
   if (isMasterAdmin && operationalSedeId === null) {
-    const [erroriRecenti, emailBodySupplierHints, sediOverview] = await Promise.all([
+    const [erroriRecenti, emailBodySupplierHints, sediBasic] = await Promise.all([
       countSyncLogErrors24h(supabase),
       fetchRecurringEmailBodySupplierHints(supabase),
-      fetchAdminDashboardSediWithStats(supabase),
+      fetchSediBasicForAdminGlobalPortal(supabase),
     ])
 
-    if (sediOverview.length > 0) {
-      const { count: totBolle } = await supabase.from('bolle').select('*', { count: 'exact', head: true })
-      const globalTotals = {
-        totFornitori: sediOverview.reduce((a, r) => a + r.fornitori, 0),
-        totBolle: totBolle ?? 0,
-        bolleInAttesa: sediOverview.reduce((a, r) => a + r.bolleInAttesa, 0),
-        totFatture: sediOverview.reduce((a, r) => a + r.fatture + r.documentiInCoda, 0),
-      }
-      const sediCards = sediOverview.map((r) => ({
+    if (sediBasic.length > 0) {
+      const sediCards = sediBasic.map((r) => ({
         id: r.id,
         nome: r.nome,
         country_code: r.country_code,
         imap_host: r.imap_host,
         imap_user: r.imap_user,
-        bolleInAttesa: r.bolleInAttesa,
-        documentiInCoda: r.documentiInCoda,
       }))
       return (
         <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -99,7 +90,6 @@ export default async function DashboardPage(props: {
           <AdminGlobalDashboard
             t={t}
             sediCards={sediCards}
-            globalTotals={globalTotals}
             erroriRecenti={erroriRecenti}
             associatedSedeNome=""
           />

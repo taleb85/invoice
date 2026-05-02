@@ -53,7 +53,10 @@ export async function GET(req: NextRequest) {
 
   try {
   const { searchParams } = new URL(req.url)
-  const sedeId = searchParams.get('sede_id') || null
+  const sedeId = (searchParams.get('sede_id') || '').trim() || null
+  if (!sedeId) {
+    return NextResponse.json({ error: 'sede_id richiesto' }, { status: 400 })
+  }
   const monthsCount = Math.min(24, Math.max(1, parseInt(searchParams.get('months') ?? '6', 10)))
   const fyParam = searchParams.get('fy')
   const fyYear = fyParam ? parseInt(fyParam, 10) : null

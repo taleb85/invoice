@@ -11,7 +11,8 @@ import {
  * (tutta la rete nel DB del deploy) e vista **filiale** (`admin-sede-id`).
  *
  * **Oggi:** un progetto Supabase = un cliente; non c’è ancora `organization_id` sulle righe
- * (`docs/DEPLOY_PER_CLIENTE.md`). Con master senza cookie la vista globale è l’intero database.
+ * (`docs/DEPLOY_PER_CLIENTE.md`). Con master senza cookie la UI portale **non** mostra totali
+ * operativi aggregati tra sedi; per dati acquisti/fatture serve `admin-sede-id` o equivalente.
  * **Domani:** quando introdurrete organizzazioni nel DB, questo è il punto unico in cui applicare
  * il filtro “organizzazione” vs “filiale” senza rivisitare ogni pagina.
  *

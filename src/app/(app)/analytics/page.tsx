@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient, getProfile } from '@/utils/supabase/server'
 import { getCookieStore, getT } from '@/lib/locale-server'
@@ -71,16 +72,32 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
         <DashboardFiscalYearHeaderForSede fyRaw={sp.fy} />
       </AppPageHeaderStrip>
 
-      <div className="mb-5">
-        <AnalyticsPeriodStrip
-          basePath="/analytics"
-          fiscalYear={fiscalYear}
-          months={months}
-          fyLabel={fyLabel}
-        />
-      </div>
-
-      <AnalyticsDashboard sedeId={sedeId} months={months} fiscalYear={fiscalYear} />
+      {!sedeId ? (
+        <div className="rounded-xl border border-app-soft-border app-workspace-inset-bg-soft px-5 py-8 text-center">
+          <p className="text-base font-semibold text-app-fg">{t.appStrings.analyticsRequireSedeTitle}</p>
+          <p className="mt-2 max-w-lg mx-auto text-sm text-app-fg-muted leading-relaxed">
+            {t.appStrings.analyticsRequireSedeHint}
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex items-center justify-center rounded-xl border border-[rgba(34,211,238,0.25)] bg-app-line-15 px-4 py-2.5 text-sm font-semibold text-cyan-200 transition-colors hover:bg-app-line-20"
+          >
+            {t.nav.dashboard}
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="mb-5">
+            <AnalyticsPeriodStrip
+              basePath="/analytics"
+              fiscalYear={fiscalYear}
+              months={months}
+              fyLabel={fyLabel}
+            />
+          </div>
+          <AnalyticsDashboard sedeId={sedeId} months={months} fiscalYear={fiscalYear} />
+        </>
+      )}
     </div>
   )
 }
