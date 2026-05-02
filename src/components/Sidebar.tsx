@@ -471,6 +471,29 @@ export default function Sidebar({ onClose }: SidebarProps) {
               {(branchesOpen || flatNavRestItems.length > 0) && (
                 <div className="app-shell-rail-panel ml-3 mt-0.5 min-w-0">
                   <div className="app-card px-2 py-1.5">
+                  {!branchesOpen && activeSede ? (
+                    (() => {
+                      const s = allSedi.find((x) => x.id === activeSede)
+                      if (!s) return null
+                      return (
+                        <div className="flex items-center">
+                          <button
+                            type="button"
+                            onClick={() => setBranchesOpen(true)}
+                            title={t.ui.sidebarSedeActive.replace('{name}', s.nome)}
+                            className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold transition-colors touch-manipulation border border-cyan-500/35 bg-cyan-500/10 text-cyan-100"
+                          >
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" aria-hidden />
+                            <span className="min-w-0 flex-1 truncate">{s.nome}</span>
+                            <svg className="h-3 w-3 shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </button>
+                        </div>
+                      )
+                    })()
+                  ) : (
+                    <>
                   {branchesOpen ? (
                     <div className="max-h-[min(50vh,14rem)] overflow-y-auto overflow-x-hidden">
                       <div className="space-y-0.5 pb-1">
@@ -576,6 +599,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       <span className="min-w-0 flex-1 truncate">{t.nav.gestisciSedi}</span>
                     </Link>
                   </div>
+                    </>
+                  )}
                 </div>
                 </div>
               )}
