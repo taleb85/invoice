@@ -569,7 +569,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </button>
 
               {branchesOpen && (
-                <div className="app-shell-rail-panel ml-3 mt-0.5 max-h-[min(45vh,18rem)] overflow-y-auto overflow-x-hidden border-l border-app-line-22 pl-2 overscroll-y-contain">
+                <div className="app-shell-rail-panel ml-3 mt-0.5 overflow-x-hidden border-l border-app-line-22 pl-2">
                   <div className="space-y-0.5 pb-1">
                     {allSedi.map((s) => {
                       const isCurrent = s.id === activeSede
