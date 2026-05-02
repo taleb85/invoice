@@ -73,22 +73,19 @@ function AvatarCard({
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
-      className="flex flex-col items-center gap-3 rounded-2xl p-3 outline-none ring-1 ring-transparent transition-all duration-200 hover:bg-white/[0.035] hover:ring-white/10 active:scale-[0.98] sm:p-4"
+      className="flex w-full min-w-0 flex-col items-center gap-2 rounded-2xl p-2 outline-none ring-1 ring-transparent transition-all duration-200 hover:bg-app-line-10/80 hover:ring-app-line-35 active:scale-[0.98] sm:gap-3 sm:p-3"
       style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
     >
-      {/* Avatar — 120 px rounded square */}
+      {/* Avatar — scala nella cella griglia (3 colonne su max-w-sm) */}
       <div
-        className="flex shrink-0 items-center justify-center rounded-2xl font-bold"
+        className="flex aspect-square w-full max-w-[4.75rem] shrink-0 items-center justify-center rounded-2xl font-bold text-[clamp(1rem,4.5vw,1.35rem)] sm:max-w-[7.5rem] sm:text-[2.1rem]"
         style={{
-          width: '7.5rem',
-          height: '7.5rem',
-          fontSize: '2.1rem',
           background: `radial-gradient(circle at 35% 35%, ${fg}40, ${bg}e8)`,
           color: fg,
           boxShadow: hovered
-            ? `0 12px 44px ${bg}aa, 0 0 0 1px rgb(255 255 255 / 0.12), 0 0 36px rgba(56,189,248,0.18)`
-            : `0 6px 28px ${bg}88, 0 0 0 1px rgb(255 255 255 / 0.06)`,
-          transform: hovered ? 'scale(1.08)' : 'scale(1)',
+            ? `0 12px 44px ${bg}aa, 0 0 0 1px rgba(34, 211, 238, 0.2), 0 0 28px rgba(56,189,248,0.14)`
+            : `0 6px 28px ${bg}88, 0 0 0 1px rgba(148, 163, 184, 0.12)`,
+          transform: hovered ? 'scale(1.06)' : 'scale(1)',
           transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease',
         }}
       >
@@ -97,9 +94,9 @@ function AvatarCard({
 
       {/* Name */}
       <span
-        className="max-w-full truncate text-center text-sm font-semibold sm:text-[0.9375rem]"
+        className="max-w-full truncate text-center text-[11px] font-semibold leading-tight text-app-fg sm:text-sm sm:text-[0.9375rem]"
         style={{
-          color: hovered ? fg : 'var(--color-app-fg, #e2e8f0)',
+          color: hovered ? fg : undefined,
           transition: 'color 0.15s ease',
         }}
       >
@@ -132,23 +129,25 @@ function AvatarGrid({
           : 'grid-cols-2 sm:grid-cols-4'
 
   return (
-    <div className="flex w-full flex-col items-center gap-7 py-4">
-      {/* Sede badge */}
+    <div className="flex w-full flex-col items-center gap-5 py-2 sm:gap-6 sm:py-3">
+      {/* Sede — stesso linguaggio del badge in form manuale */}
       {sedeNome && (
-        <div className="flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.65)]" />
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#94a3b8]">{sedeNome}</p>
+        <div className="inline-flex max-w-full items-center gap-2 rounded-lg border border-app-soft-border bg-app-line-10 px-3 py-1.5">
+          <svg className="h-3.5 w-3.5 shrink-0 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <p className="min-w-0 truncate text-center text-[11px] font-semibold uppercase tracking-wide text-app-fg-muted">{sedeNome}</p>
         </div>
       )}
 
       {/* Title + subtitle */}
-      <div className="flex flex-col items-center gap-1.5 text-center">
-        <h2 className="font-outfit text-2xl font-semibold tracking-tight text-white sm:text-3xl">{title}</h2>
-        <p className="max-w-[20rem] text-xs leading-relaxed text-[#94a3b8]">{subtitle}</p>
+      <div className="flex flex-col items-center gap-1 text-center">
+        <h2 className="font-outfit text-xl font-semibold tracking-tight text-app-fg sm:text-2xl">{title}</h2>
+        <p className="max-w-[20rem] text-[11px] leading-relaxed text-app-fg-muted sm:text-xs">{subtitle}</p>
       </div>
 
       {/* Grid */}
-      <div className={`grid w-full gap-2 sm:gap-4 ${gridCols}`}>
+      <div className={`grid w-full max-w-full gap-1.5 sm:gap-3 ${gridCols}`}>
         {operators.map((op) => (
           <AvatarCard key={op.id} op={op} onSelect={onSelect} />
         ))}
@@ -171,8 +170,11 @@ const LOGIN_FORM_COLUMN_CLASS = [
   'mx-auto w-full max-w-sm p-4 sm:p-5',
 ].join(' ')
 
-/** Stesso guscio della colonna / strip in app (`app-summary-highlight-surface`), non un secondo `glass-surface`. */
-const LOGIN_GLASS_PANEL_SHELL = SUMMARY_HIGHLIGHT_SURFACE_CLASS
+/**
+ * Contenitore interno pannello login: un solo bordo visivo (`LOGIN_FORM_COLUMN_CLASS`); evita doppia
+ * cornice `app-summary-highlight-surface` annidata (AuroraPanelShell + inner surface).
+ */
+const LOGIN_PANEL_INNER = 'flex min-w-0 flex-col'
 
 /** Fascia / cluster: stesso linguaggio di `DashboardScannerFlowCard` (vetro + inner shadow). */
 const LOGIN_GLASS_INSET_CLUSTER = 'glass-surface rounded-xl shadow-inner shadow-black/15'
@@ -1317,8 +1319,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         </div>
         {/* Card wrapper: same dark glass look as the PIN card */}
         <AuroraPanelShell aria-label={sedeT.netflixTitle}>
-          <div className={LOGIN_GLASS_PANEL_SHELL}>
-            <div className="px-4 pb-2 pt-4 sm:px-6">
+          <div className={LOGIN_PANEL_INNER}>
             <AvatarGrid
               operators={netflixOperators}
               onSelect={handleNetflixSelect}
@@ -1326,9 +1327,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               title={sedeT.netflixTitle}
               subtitle={sedeT.netflixSubtitle}
             />
-            </div>
           {/* Footer links */}
-          <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+          <div className="mt-1 flex items-center justify-between gap-3 border-t border-app-line-25 px-0 py-3">
             <div className="flex flex-col gap-1">
               <button
                 type="button"
@@ -1364,7 +1364,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         <div className={LOGIN_FORM_COLUMN_CLASS}>
         {accessoTopBar}
         <AuroraPanelShell aria-labelledby="login-pin-heading">
-          <div className={LOGIN_GLASS_PANEL_SHELL}>
+          <div className={LOGIN_PANEL_INNER}>
             <div className="flex flex-col items-center gap-5 p-6 text-center">
             {/* Avatar selezionato */}
             <div className="flex flex-col items-center gap-3">
@@ -1494,7 +1494,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
             </div>
 
           {/* Footer lingua */}
-          <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-white/10 px-4 py-2.5">
+          <div className="flex min-h-[3rem] items-center justify-end gap-3 border-t border-app-line-25 px-0 py-2.5">
             <LangPicker locale={locale} setLocale={setLocale} langOpen={langOpen} setLangOpen={setLangOpen} />
           </div>
           </div>
@@ -1528,7 +1528,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
       {/* Stesso guscio Aurora della card Scanner / KPI dashboard. */}
       <AuroraPanelShell>
 
-        <div className={LOGIN_GLASS_PANEL_SHELL}>
+        <div className={LOGIN_PANEL_INNER}>
         <div className="space-y-4 p-5 text-center text-app-fg sm:p-6">
 
         {mode === 'name' ? (
