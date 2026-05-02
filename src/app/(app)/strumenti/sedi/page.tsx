@@ -370,8 +370,7 @@ export default function SediPage() {
 
     setIsAdmin(true)
     const data = await res.json()
-    const scope: 'global' | 'sede' = data.adminListScope === 'sede' ? 'sede' : 'global'
-    setAdminListScope(scope)
+    setAdminListScope('sede')
     setSedi(data.sedi ?? [])
     setProfiles((data.profiles ?? []) as ProfileWithSede[])
     setLoading(false)
