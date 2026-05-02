@@ -863,20 +863,25 @@ export default function SediPage() {
                 {/* ── Header sede ── */}
                 <div className="flex items-center justify-between px-5 py-4">
                   {editingSede?.id === sede.id ? (
-                    <form onSubmit={handleUpdateSede} className="flex gap-2 flex-1 mr-2">
+                    <form onSubmit={handleUpdateSede} className="mr-2 flex flex-1 flex-wrap items-center gap-2">
                       <input
                         type="text" required autoFocus value={editingSede.nome}
                         onChange={(e) => setEditingSede({ ...editingSede, nome: e.target.value })}
-                        className="flex-1 px-3 py-1.5 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500"
+                        className="h-9 min-w-[min(100%,14rem)] flex-1 shrink rounded-lg border border-app-line-25 px-3 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35"
                       />
-                      <button type="submit" className="px-3 py-1.5 text-xs bg-app-cyan-500 text-white rounded-lg hover:bg-cyan-600">{t.common.save}</button>
                       <button
                         type="button"
                         onClick={() => setEditingSede(null)}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-app-line-35 bg-black/14 px-2.5 py-1.5 text-xs font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-app-line-45 hover:bg-black/22 touch-manipulation"
+                        className="inline-flex h-9 min-w-[7.25rem] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-app-line-35 bg-black/14 px-3 text-xs font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-app-line-45 hover:bg-black/22 touch-manipulation"
                       >
                         <GlyphXMark className="h-3.5 w-3.5 shrink-0 text-app-fg" aria-hidden />
                         <span>{t.common.cancel}</span>
+                      </button>
+                      <button
+                        type="submit"
+                        className="inline-flex h-9 min-w-[7.25rem] shrink-0 items-center justify-center rounded-lg bg-app-cyan-500 px-3 text-xs font-semibold text-white transition-colors hover:bg-cyan-600"
+                      >
+                        {t.common.save}
                       </button>
                     </form>
                   ) : (
@@ -1012,59 +1017,61 @@ export default function SediPage() {
                           <div key={p.id}>
                             {editingProfile?.id === p.id ? (
                               <form
-                                className="space-y-3 rounded-lg border border-app-line-28 app-workspace-surface-elevated px-3 py-2.5 ring-1 ring-app-line-10"
+                                className="rounded-lg border border-app-line-28 app-workspace-surface-elevated px-3 py-2.5 ring-1 ring-app-line-10"
                                 onSubmit={(e) => {
                                   e.preventDefault()
                                   void handleSaveProfile()
                                 }}
                               >
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                  <div className="min-w-0">
-                                    <label className="block text-[10px] font-semibold text-app-fg-muted uppercase mb-1">Nome</label>
-                                    <input
-                                      type="text"
-                                      autoFocus
-                                      autoCapitalize="characters"
-                                      value={editingProfile.full_name}
-                                      onChange={(e) =>
-                                        setEditingProfile({
-                                          ...editingProfile,
-                                          full_name: e.target.value.toUpperCase(),
-                                        })
-                                      }
-                                      className="w-full text-sm px-2.5 py-2 min-h-[44px] border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                                    />
+                                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
+                                  <div className="grid min-h-0 min-w-0 flex-1 grid-cols-2 gap-2">
+                                    <div className="min-w-0">
+                                      <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">Nome</label>
+                                      <input
+                                        type="text"
+                                        autoFocus
+                                        autoCapitalize="characters"
+                                        value={editingProfile.full_name}
+                                        onChange={(e) =>
+                                          setEditingProfile({
+                                            ...editingProfile,
+                                            full_name: e.target.value.toUpperCase(),
+                                          })
+                                        }
+                                        className="min-h-[44px] w-full rounded-lg border border-app-line-25 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">Ruolo</label>
+                                      <select
+                                        value={editingProfile.role}
+                                        onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
+                                        className="min-h-[44px] w-full rounded-lg border border-app-line-25 px-2.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                                      >
+                                        <option value="operatore">Operatore</option>
+                                        <option value="admin_sede">{t.sedi.adminSedeRole}</option>
+                                        {me?.is_admin ? (
+                                          <option value="admin">{t.sedi.profileRoleAdmin}</option>
+                                        ) : null}
+                                      </select>
+                                    </div>
                                   </div>
-                                  <div className="min-w-0">
-                                    <label className="block text-[10px] font-semibold text-app-fg-muted uppercase mb-1">Ruolo</label>
-                                    <select
-                                      value={editingProfile.role}
-                                      onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
-                                      className="w-full text-sm px-2.5 py-2 min-h-[44px] border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
+                                  <div className="flex shrink-0 justify-end gap-2 sm:justify-start">
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingProfile(null)}
+                                      className="min-h-[44px] min-w-[5.5rem] flex-1 rounded-lg border border-app-line-25 px-4 py-2 text-sm text-app-fg-muted hover:bg-black/18 sm:flex-initial sm:min-w-0"
                                     >
-                                      <option value="operatore">Operatore</option>
-                                      <option value="admin_sede">{t.sedi.adminSedeRole}</option>
-                                      {me?.is_admin ? (
-                                        <option value="admin">{t.sedi.profileRoleAdmin}</option>
-                                      ) : null}
-                                    </select>
+                                      {t.common.cancel}
+                                    </button>
+                                    <button
+                                      type="submit"
+                                      disabled={savingProfile}
+                                      className="min-h-[44px] min-w-[5.5rem] flex-1 rounded-lg bg-app-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 touch-manipulation sm:flex-initial sm:min-w-0"
+                                    >
+                                      {savingProfile ? t.appStrings.savingShort : t.common.save}
+                                    </button>
                                   </div>
-                                </div>
-                                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingProfile(null)}
-                                    className="w-full sm:w-auto min-h-[44px] px-4 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/18 text-app-fg-muted"
-                                  >
-                                    {t.common.cancel}
-                                  </button>
-                                  <button
-                                    type="submit"
-                                    disabled={savingProfile}
-                                    className="w-full sm:w-auto min-h-[44px] px-4 py-2 text-sm font-semibold bg-app-cyan-500 text-white rounded-lg shadow-sm hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 touch-manipulation"
-                                  >
-                                    {savingProfile ? t.appStrings.savingShort : t.common.save}
-                                  </button>
                                 </div>
                               </form>
                             ) : (
