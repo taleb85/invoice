@@ -314,10 +314,16 @@ export default function Sidebar({ onClose }: SidebarProps) {
     backupNavItem,
   ]
 
-  // Gestionale puro (nessuna sede selezionata): Dashboard + Consumi AI.
-  // Gestionale con sede attiva: tutti gli item operativi + Consumi AI sempre visibile.
+  // Gestionale senza sede: dashboard + voci che l’API supporta già per tutta la rete (master).
+  // Con sede attiva: navigazione operativa completa (analytics, fornitori, …).
   // consumiAiNavItem è renderizzato direttamente subito dopo Dashboard, non entra in navItems.
-  const masterOnlyItems = [adminNavItems[0]]
+  const masterOnlyItems = [
+    adminNavItems[0],
+    adminNavItems[2],
+    adminNavItems[3],
+    adminNavItems[5],
+    adminNavItems[6],
+  ]
   const masterWithSedeItems = [...adminNavItems]
   const navItems = isMasterAdmin
     ? (activeSede ? masterWithSedeItems : masterOnlyItems)

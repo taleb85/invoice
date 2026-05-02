@@ -5,7 +5,7 @@ import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { APP_PAGE_HEADER_STRIP_H1_CLASS, APP_SECTION_STICKY_TOP_INNER_X_CLASS, APP_SECTION_STICKY_TOP_STACK_CLASS, APP_SHELL_SECTION_PAGE_STACK_CLASS } from '@/lib/app-shell-layout'
 import { ApprovalQueue } from '@/components/approval/approval-queue'
-import { isSedePrivilegedRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +14,7 @@ export default async function ApprovazioniPage() {
   if (!profile || !isSedePrivilegedRole(profile.role ?? '')) {
     redirect('/')
   }
+  const isMaster = isMasterAdminRole(profile.role)
 
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>
@@ -28,6 +29,11 @@ export default async function ApprovazioniPage() {
             <div className="min-w-0">
               <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.nav.approvazioni}</h1>
               <p className="mt-0.5 text-xs text-app-fg-muted">{t.appStrings.approvazioni_pageSub}</p>
+              {isMaster ? (
+                <p className="mt-1 max-w-2xl text-[11px] leading-snug text-app-fg-muted/90">
+                  {t.appStrings.approvazioni_masterNetworkHint}
+                </p>
+              ) : null}
             </div>
           </AppPageHeaderStrip>
         </div>

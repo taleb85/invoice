@@ -29,7 +29,11 @@ export async function GET(req: NextRequest) {
 
   const service = createServiceClient()
 
-  let q = service
+  let countQ = service
+    .from('fatture')
+    .select('id', { count: 'exact', head: true })
+    .eq('approval_status', 'pending')
+  let rowsQ = service
     .from('fatture')
     .select(
       'id, data, importo, numero_fattura, file_url, sede_id, approval_status, approval_threshold, creato_il, fornitori(nome), sedi(nome)',
@@ -40,12 +44,16 @@ export async function GET(req: NextRequest) {
 
   // Scope: admin_sede can only see their own sede
   if (!isMaster && profile?.sede_id) {
-    q = q.eq('sede_id', profile.sede_id) as typeof q
+    countQ = countQ.eq('sede_id', profile.sede_id) as typeof countQ
+    rowsQ = rowsQ.eq('sede_id', profile.sede_id) as typeof rowsQ
   } else if (isMaster && sedeIdParam) {
-    q = q.eq('sede_id', sedeIdParam) as typeof q
+    countQ = countQ.eq('sede_id', sedeIdParam) as typeof countQ
+    rowsQ = rowsQ.eq('sede_id', sedeIdParam) as typeof rowsQ
   }
 
-  const { data, error } = await q
+  const [{ count: pendingTotal, error: countErr }, { data, error }] = await Promise.all([countQ, rowsQ])
+
+  if (countErr) return NextResponse.json({ error: countErr.message }, { status: 500 })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -77,5 +85,8 @@ export async function GET(req: NextRequest) {
     sedeNome: f.sedi?.nome ?? null,
   }))
 
-  return NextResponse.json({ rows, count: rows.length })
+  return NextResponse.json({
+    rows,
+    count: typeof pendingTotal === 'number' ? pendingTotal : rows.length,
+  })
 }
