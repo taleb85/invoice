@@ -83,6 +83,13 @@ export function AdminGlobalDashboard({
         </AppPageHeaderStrip>
       </div>
 
+      <div
+        className="mb-6 rounded-lg border border-[rgba(34,211,238,0.2)] bg-cyan-500/[0.06] px-3.5 py-3 text-sm leading-snug text-app-fg-muted md:px-4"
+        role="note"
+      >
+        {t.dashboard.adminPortalGlobalNavHint}
+      </div>
+
       {/* Aggregati globali (nessun filtro sede — RLS) */}
       <div className="mb-8 rounded-xl border border-app-soft-border app-workspace-inset-bg-soft p-4 shadow-[0_0_24px_-8px_rgba(6,182,212,0.25)] md:p-5">
         <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.dashboard.adminGlobalTotalsLabel}</p>
