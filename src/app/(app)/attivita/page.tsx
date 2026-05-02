@@ -117,7 +117,7 @@ export default function AttivitaPage() {
     const url = sedeFilter
       ? `/api/operators-for-sede?sede_id=${encodeURIComponent(sedeFilter)}`
       : `/api/operators-for-sede`
-    fetch(url)
+    fetch(url, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : []))
       .then((d: Operatore[] | { operators?: Operatore[] }) =>
         setOperatori(Array.isArray(d) ? d : (d.operators ?? []))

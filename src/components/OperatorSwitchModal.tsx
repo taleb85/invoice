@@ -82,7 +82,7 @@ export default function OperatorSwitchModal() {
 
     Promise.all(
       sedeIds.map((id) =>
-        fetch(`/api/operators-for-sede?sedeId=${encodeURIComponent(id)}`).then((r) => r.json()),
+        fetch(`/api/operators-for-sede?sedeId=${encodeURIComponent(id)}`, { credentials: 'include' }).then((r) => r.json()),
       ),
     )
       .then((payloads) => {
