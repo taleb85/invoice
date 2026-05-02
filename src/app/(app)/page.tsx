@@ -26,6 +26,7 @@ import { DashboardAdminMobileActions } from '@/components/DashboardAdminMobileAc
 import DashboardEmailBodySupplierHints from '@/components/DashboardEmailBodySupplierHints'
 import { OperatorWorkspaceToolsToolbar } from '@/components/OperatorDesktopWorkspaceHeader'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
+import { isAdminSedeRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,8 +41,8 @@ export default async function DashboardPage(props: {
     getProfile(),
     getCurrency(),
   ])
-  const isMasterAdmin = profile?.role === 'admin'
-  const isAdminSede = profile?.role === 'admin_sede'
+  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  const isAdminSede = isAdminSedeRole(profile?.role)
   const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
   const actingRoleCookie = cookieStore.get('fluxo-acting-role')?.value?.trim()
   const dashboardAdminSedeUi =
@@ -233,7 +234,7 @@ export default async function DashboardPage(props: {
     !!operatorScoped &&
     !!sedeId &&
     !!profile?.role &&
-    (profile.role === 'admin' || profile.role === 'admin_sede')
+    isSedePrivilegedRole(profile.role)
   const dashboardAnalyticsPeriodToolbar = canViewEmbeddedAnalytics
   const kpiFiscal = operatorScoped ? { countryCode: sedeCountryCode, labelYear: fiscalYear } : null
 
