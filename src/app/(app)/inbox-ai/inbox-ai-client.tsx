@@ -17,6 +17,15 @@ import { GlyphCheck } from '@/components/ui/glyph-icons'
 import { extractEmailFromSenderHeader } from '@/lib/sender-email'
 import { useToast } from '@/lib/toast-context'
 import { useRouter } from 'next/navigation'
+import { useLocale } from '@/lib/locale-context'
+import type { Locale, Translations } from '@/lib/translations'
+import {
+  clearInboxGeminiHistoryForSede,
+  loadInboxGeminiHistoryRuns,
+  pushInboxGeminiHistoryRun,
+  type InboxGeminiHistoryLine,
+  type InboxGeminiHistoryOutcome,
+} from '@/lib/inbox-ai-gemini-history-storage'
 
 type GeminiSuggestion = {
   doc_id: string
@@ -131,10 +140,59 @@ function suggestionConf01(s: GeminiSuggestion): number {
   return Math.min(1, Math.max(0, x))
 }
 
+function formatInboxGeminiHistoryTs(ms: number, locale: Locale): string {
+  const map: Record<Locale, string> = {
+    it: 'it-IT',
+    en: 'en-GB',
+    es: 'es-ES',
+    fr: 'fr-FR',
+    de: 'de-DE',
+  }
+  try {
+    return new Date(ms).toLocaleString(map[locale] ?? 'it-IT', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    })
+  } catch {
+    return String(ms)
+  }
+}
+
+function inboxGeminiOutcomePillClass(o: InboxGeminiHistoryOutcome): string {
+  switch (o) {
+    case 'registered':
+      return 'border-emerald-500/35 bg-emerald-950/25 text-emerald-100'
+    case 'auto_discarded':
+      return 'border-rose-500/35 bg-rose-950/20 text-rose-100'
+    case 'classification_error':
+      return 'border-amber-500/35 bg-amber-950/20 text-amber-50'
+    default:
+      return 'border-white/20 bg-black/25 text-app-fg-muted'
+  }
+}
+
+function inboxGeminiHistoryOutcomeLabel(
+  t: Translations,
+  ln: Pick<InboxGeminiHistoryLine, 'outcome' | 'registered_kind'>,
+): string {
+  if (ln.outcome === 'auto_discarded') return t.log.inboxGeminiHistoryOutcomeAutoDiscarded
+  if (ln.outcome === 'registered')
+    return t.log.inboxGeminiHistoryOutcomeRegistered.replace(/\{kind\}/g, String(ln.registered_kind ?? '—'))
+  if (ln.outcome === 'classification_error') return t.log.inboxGeminiHistoryOutcomeBadResponse
+  return t.log.inboxGeminiHistoryOutcomeSuggestedOnly
+}
+
 function pdfNomeFromMetadata(meta: unknown): string {
   if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return ''
   const r = (meta as { ragione_sociale?: string | null }).ragione_sociale
   return typeof r === 'string' && r.trim() ? r.trim() : ''
+}
+
+function pendingDocFileLabel(row: PendingDocRow): string {
+  const nm = typeof row.file_name === 'string' ? row.file_name.trim() : ''
+  if (nm) return nm
+  const rag = pdfNomeFromMetadata(row.metadata)
+  return rag || `${row.id.slice(0, 8)}…`
 }
 
 export default function InboxAiClient(props: {
@@ -146,6 +204,7 @@ export default function InboxAiClient(props: {
 }) {
   const { sedeId, blockedNoSede, initialTab } = props
   const t = useT()
+  const { locale } = useLocale()
   const { showToast } = useToast()
   const router = useRouter()
   const [tab, setTab] = useState<TabId>(() => parseInitialTab(initialTab ?? undefined))
@@ -172,10 +231,15 @@ export default function InboxAiClient(props: {
   const [supplierNomeDraft, setSupplierNomeDraft] = useState('')
   const [supplierEmailDraft, setSupplierEmailDraft] = useState('')
   const [supplierSaveBusy, setSupplierSaveBusy] = useState(false)
+  const [geminiHistoryRuns, setGeminiHistoryRuns] = useState(loadInboxGeminiHistoryRuns(sedeId))
 
   useEffect(() => {
     setResolvedToday(readResolvedToday())
   }, [])
+
+  useEffect(() => {
+    setGeminiHistoryRuns(loadInboxGeminiHistoryRuns(sedeId))
+  }, [sedeId])
 
   const loadDocs = useCallback(async () => {
     if (!sedeId || blockedNoSede) return
@@ -311,10 +375,11 @@ export default function InboxAiClient(props: {
   const runAnalyze = async () => {
     if (!sedeId) return
     const excludeSet = new Set(excludedForNextBatch)
-    const snapshotBatch = docsNewestFirst
+    const batchRows = docsNewestFirst
       .filter((d) => !excludeSet.has(d.id))
       .slice(0, INBOX_AI_GEMINI_CLASSIFY_BATCH)
-      .map((d) => d.id)
+    const snapshotBatch = batchRows.map((d) => d.id)
+    const snapshotFileById = new Map(batchRows.map((d) => [d.id, pendingDocFileLabel(d)]))
     setAnalyzeTargetIds(snapshotBatch)
     setAnalyzeBusy(true)
     try {
@@ -343,6 +408,7 @@ export default function InboxAiClient(props: {
       /** Stessa copia lista usata dall’analisi dopo ogni finalize (stato aggiorna in modo asincrono). */
       let workingDocs = [...docs]
       const discardedAuto = new Set<string>()
+      const finalizedKindByDoc = new Map<string, string>()
       let didMutateQueue = false
 
       for (const s of list) {
@@ -383,8 +449,42 @@ export default function InboxAiClient(props: {
         if (conf < minConf) continue
         const ok = await finalizeWithKind(row.id, kind)
         if (!ok) break
+        finalizedKindByDoc.set(row.id, kind)
         didMutateQueue = true
         workingDocs = workingDocs.filter((d) => d.id !== row.id)
+      }
+
+      if (list.length > 0) {
+        const lines: InboxGeminiHistoryLine[] = list.map((s) => {
+          const er =
+            typeof s.error === 'string' && s.error.trim().length > 0
+              ? s.error.trim().slice(0, 620)
+              : null
+          let outcome: InboxGeminiHistoryOutcome
+          if (er) outcome = 'classification_error'
+          else if (discardedAuto.has(s.doc_id)) outcome = 'auto_discarded'
+          else if (finalizedKindByDoc.has(s.doc_id)) outcome = 'registered'
+          else outcome = 'classification_only'
+          const reg = finalizedKindByDoc.get(s.doc_id)
+          const tipo =
+            typeof s.tipo_suggerito === 'string' ? s.tipo_suggerito.trim() : ''
+          const az =
+            typeof s.azione_consigliata === 'string'
+              ? s.azione_consigliata.trim().slice(0, 220)
+              : null
+          return {
+            doc_id: s.doc_id,
+            file_label: snapshotFileById.get(s.doc_id) ?? '—',
+            tipo_suggerito: tipo || '—',
+            confidenza: suggestionConf01(s),
+            outcome,
+            ...(reg ? { registered_kind: reg } : {}),
+            ...(er ? { classify_error: er } : {}),
+            ...(az ? { azione_breve: az } : {}),
+          }
+        })
+        pushInboxGeminiHistoryRun({ sede_id: sedeId, at_ms: Date.now(), lines })
+        setGeminiHistoryRuns(loadInboxGeminiHistoryRuns(sedeId))
       }
 
       if (didMutateQueue) router.refresh()
@@ -785,6 +885,117 @@ export default function InboxAiClient(props: {
         </div>
 
         {tab === 'docs' ? (
+          <div className="space-y-6">
+            <aside
+              className="rounded-xl border border-white/12 bg-white/[0.03] px-3 py-3 sm:px-4 sm:py-4"
+              aria-labelledby="inbox-gemini-history-title"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h2
+                    id="inbox-gemini-history-title"
+                    className="text-sm font-semibold text-teal-100/95"
+                  >
+                    {t.log.inboxGeminiHistoryTitle}
+                  </h2>
+                  <p className="mt-0.5 text-[11px] leading-snug text-app-fg-muted">
+                    {t.log.inboxGeminiHistorySubtitle}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={!sedeId || geminiHistoryRuns.length === 0}
+                  onClick={() => {
+                    clearInboxGeminiHistoryForSede(sedeId)
+                    setGeminiHistoryRuns(loadInboxGeminiHistoryRuns(sedeId))
+                  }}
+                  className="shrink-0 rounded-md border border-white/18 bg-black/25 px-2.5 py-1.5 text-[11px] font-semibold text-app-fg-muted hover:bg-white/10 disabled:pointer-events-none disabled:opacity-35"
+                >
+                  {t.log.inboxGeminiHistoryClear}
+                </button>
+              </div>
+              {geminiHistoryRuns.length === 0 ? (
+                <p className="mt-3 text-xs text-app-fg-muted">{t.log.inboxGeminiHistoryEmpty}</p>
+              ) : (
+                <div className="mt-3 max-h-[min(22rem,45vh)] space-y-3 overflow-y-auto pr-1">
+                  {geminiHistoryRuns.map((run, ri) => (
+                    <div
+                      key={`${run.at_ms}-${ri}`}
+                      className="rounded-lg border border-white/10 bg-black/[0.12] px-2.5 py-2 sm:px-3 sm:py-3"
+                    >
+                      <p className="mb-2 text-[11px] font-semibold text-app-fg-muted">
+                        {formatInboxGeminiHistoryTs(run.at_ms, locale)}
+                        <span className="ms-2 font-normal text-app-fg-muted/80">
+                          ({run.lines.length})
+                        </span>
+                      </p>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse text-left text-[11px]">
+                          <thead className="text-[10px] uppercase tracking-wide text-app-fg-muted">
+                            <tr>
+                              <th className="border-b border-white/10 pb-1 pe-3 font-semibold">
+                                {t.log.inboxGeminiHistoryColFile}
+                              </th>
+                              <th className="border-b border-white/10 pb-1 pe-3 font-semibold">
+                                {t.log.inboxGeminiHistoryColTipo}
+                              </th>
+                              <th className="border-b border-white/10 pb-1 pe-3 font-semibold">
+                                {t.log.inboxGeminiHistoryColConf}
+                              </th>
+                              <th className="border-b border-white/10 pb-1 font-semibold">
+                                {t.log.inboxGeminiHistoryColOutcome}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {run.lines.map((ln) => (
+                              <tr key={ln.doc_id} className="align-top text-app-fg/95">
+                                <td className="max-w-[9rem] border-b border-white/[0.06] py-1.5 pe-3 sm:max-w-[16rem]">
+                                  <span className="line-clamp-2 break-words" title={ln.file_label}>
+                                    {ln.file_label}
+                                  </span>
+                                  <span className="block font-mono text-[9px] text-app-fg-muted/90">
+                                    {ln.doc_id.slice(0, 8)}…
+                                  </span>
+                                </td>
+                                <td className="border-b border-white/[0.06] py-1.5 pe-3">
+                                  <span className="line-clamp-2 break-words">{ln.tipo_suggerito}</span>
+                                </td>
+                                <td className="whitespace-nowrap border-b border-white/[0.06] py-1.5 pe-3">
+                                  {(ln.confidenza * 100).toFixed(0)}%
+                                </td>
+                                <td className="border-b border-white/[0.06] py-1.5">
+                                  <span
+                                    className={`inline-block max-w-[min(14rem,40vw)] rounded-full border px-2 py-0.5 text-[10px] font-semibold leading-tight ${inboxGeminiOutcomePillClass(
+                                      ln.outcome,
+                                    )}`}
+                                  >
+                                    {inboxGeminiHistoryOutcomeLabel(t, ln)}
+                                  </span>
+                                  {ln.classify_error ? (
+                                    <span
+                                      className="mt-1 block whitespace-pre-wrap break-words text-[10px] text-amber-200/85"
+                                      title={ln.classify_error}
+                                    >
+                                      {ln.classify_error}
+                                    </span>
+                                  ) : null}
+                                  {ln.azione_breve && ln.outcome === 'classification_only' ? (
+                                    <span className="mt-0.5 block break-words text-[10px] text-app-fg-muted">
+                                      {ln.azione_breve}
+                                    </span>
+                                  ) : null}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </aside>
           <section className="space-y-3">
             <p className="text-xs text-app-fg-muted">
               Documenti in coda (<span className="font-mono text-app-fg">da_associare</span> /{' '}
@@ -976,6 +1187,7 @@ export default function InboxAiClient(props: {
               </ul>
             )}
           </section>
+          </div>
         ) : null}
 
         {tab === 'audit' ? (
