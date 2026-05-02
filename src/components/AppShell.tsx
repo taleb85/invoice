@@ -98,7 +98,10 @@ function readBrowserCookie(name: string): string {
 function onboardingIncompleteMasterMayStay(pathname: string | null | undefined): boolean {
   const p = pathname ?? ''
   if (p === '/' || p === '') return true
-  return p === '/consumi-ai' || p.startsWith('/consumi-ai/')
+  if (p === '/consumi-ai' || p.startsWith('/consumi-ai/')) return true
+  if (p === '/log' || p.startsWith('/log/')) return true
+  if (p === '/sedi' || p.startsWith('/sedi/')) return true
+  return false
 }
 
 function OnboardingGuard() {

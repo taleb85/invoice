@@ -1,7 +1,33 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseServiceClient } from '@supabase/supabase-js'
 import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
+
+/** Stesso motivo di `getProfile()` lato server: RLS sulla sessione utente può non esporre `profiles` (es. master senza `sede_id`). */
+async function fetchProfileRoleAndSedeIdForMiddleware(userId: string): Promise<{
+  role: string | null
+  sede_id: string | null
+} | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) {
+    console.error('[middleware] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+    return Promise.resolve(null)
+  }
+  const service = createSupabaseServiceClient(url, serviceKey)
+  const { data } = await service
+    .from('profiles')
+    .select('role, sede_id')
+    .eq('id', userId)
+    .maybeSingle()
+  return data
+    ? {
+        role: (data as { role?: string | null }).role ?? null,
+        sede_id: (data as { sede_id?: string | null }).sede_id ?? null,
+      }
+    : null
+}
 
 /** Rotte accessibili senza autenticazione */
 const PUBLIC_PATHS = [
@@ -40,6 +66,22 @@ export async function proxy(request: NextRequest) {
 
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
   if (isPublic) return NextResponse.next({ request })
+
+  /** Bookmark / vecchi link: normalizza prima dell’auth così le regole sotto valgono per `/log` e `/sedi/...`. */
+  if (pathname === '/email-log' || pathname.startsWith('/email-log/')) {
+    const url = request.nextUrl.clone()
+    url.pathname = `/log${pathname === '/email-log' ? '' : pathname.slice('/email-log'.length)}`
+    return NextResponse.redirect(url)
+  }
+  if (pathname.startsWith('/gestisci/')) {
+    const rest = pathname.slice('/gestisci/'.length)
+    const id = rest.split('/')[0]?.trim()
+    if (id) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/sedi/${rest}`
+      return NextResponse.redirect(url)
+    }
+  }
 
   const isApi = pathname.startsWith('/api/')
 
@@ -84,11 +126,21 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(homeUrl)
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, sede_id')
-    .eq('id', user.id)
-    .maybeSingle()
+  let profile: { role: string | null; sede_id: string | null } | null =
+    await fetchProfileRoleAndSedeIdForMiddleware(user.id)
+  if (!profile) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('role, sede_id')
+      .eq('id', user.id)
+      .maybeSingle()
+    profile = data
+      ? {
+          role: (data as { role?: string | null }).role ?? null,
+          sede_id: (data as { sede_id?: string | null }).sede_id ?? null,
+        }
+      : null
+  }
 
   const role = profile?.role ?? ''
   const isMasterAdmin = isMasterAdminRole(role)
