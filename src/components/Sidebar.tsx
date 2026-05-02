@@ -314,11 +314,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
     backupNavItem,
   ]
 
-  // Gestionale senza sede: dashboard + voci che l’API supporta già per tutta la rete (master).
-  // Con sede attiva: navigazione operativa completa (analytics, fornitori, …).
+  // Gestionale senza sede: dashboard + voci rete / fallback prima sede (come `resolveActiveSedeIdForLists`).
+  // Con sede attiva: navigazione operativa completa (fornitori, …).
   // consumiAiNavItem è renderizzato direttamente subito dopo Dashboard, non entra in navItems.
   const masterOnlyItems = [
     adminNavItems[0],
+    adminNavItems[1],
     adminNavItems[2],
     adminNavItems[3],
     adminNavItems[5],

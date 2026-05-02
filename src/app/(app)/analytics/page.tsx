@@ -15,6 +15,7 @@ import {
 import { parseFiscalYearQueryParam, formatFiscalYearShort } from '@/lib/fiscal-year'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { isSedePrivilegedRole } from '@/lib/roles'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,11 +34,7 @@ export default async function AnalyticsPage(props: { searchParams: Promise<Searc
     createClient(),
   ])
 
-  const isMasterAdmin = profile.role === 'admin'
-  const adminPick = isMasterAdmin
-    ? (cookieStore.get('admin-sede-id')?.value?.trim() || null)
-    : null
-  const sedeId = adminPick ?? (profile.role !== 'admin' ? (profile.sede_id ?? null) : null)
+  const sedeId = await resolveActiveSedeIdForLists(supabase, profile, (n) => cookieStore.get(n))
 
   // Resolve country code to get correct default FY (UK vs IT/EU)
   let countryCode = 'IT'

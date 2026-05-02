@@ -3,6 +3,7 @@ import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { getCookieStore } from '@/lib/locale-server'
 import { parseFiscalYearQueryParam } from '@/lib/fiscal-year'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
+import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
 
 /**
  * Select anno fiscale nella `AppPageHeaderStrip` quando c’è una sede attiva
@@ -19,14 +20,7 @@ export default async function DashboardFiscalYearHeaderForSede({
     getCookieStore(),
   ])
 
-  const isMasterAdmin = profile?.role === 'admin'
-  const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
-  let sedeId: string | null = null
-  if (isMasterAdmin && adminPick) {
-    const { data } = await supabase.from('sedi').select('id').eq('id', adminPick).maybeSingle()
-    if (data?.id) sedeId = data.id
-  }
-  if (!sedeId) sedeId = profile?.sede_id ?? null
+  const sedeId = await resolveActiveSedeIdForLists(supabase, profile, (n) => cookieStore.get(n))
   if (!sedeId) return null
 
   const { data } = await supabase.from('sedi').select('country_code').eq('id', sedeId).maybeSingle()
