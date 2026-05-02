@@ -467,7 +467,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
               </button>
 
               {(branchesOpen || flatNavRestItems.length > 0) && (
-                <div className="app-shell-rail-panel ml-3 mt-0.5 border-l border-app-line-22 pl-2">
+                <div className="app-shell-rail-panel ml-3 mt-0.5 min-w-0">
+                  <div className="app-card px-2 py-1.5">
                   {branchesOpen ? (
                     <div className="max-h-[min(50vh,14rem)] overflow-y-auto overflow-x-hidden">
                       <div className="space-y-0.5 pb-1">
@@ -568,6 +569,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                       ) : null}
                     </>
                   ) : null}
+                </div>
                 </div>
               )}
             </div>
