@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, type ReactNode } from 'react'
 import { CircleCheck, Forward, Trash2, UserPlus } from 'lucide-react'
 import { LogActivityDocumentLink } from '@/components/LogActivityDocumentLink'
-import LogBlacklistIgnoreButton from '@/components/LogBlacklistIgnoreButton'
+import IgnoreSenderDiscardMenu from '@/components/IgnoreSenderDiscardMenu'
 import { NewFornitoreLink } from '@/components/NewFornitoreLink'
 import { actionButtonClassName } from '@/components/ui/ActionButton'
 import { useToast } from '@/lib/toast-context'
@@ -290,11 +290,11 @@ function NeedsSupplierRowActions({
           <span className="min-w-0 truncate">{tLog.activityInboxAddSupplier}</span>
         </NewFornitoreLink>
         {sede && emailOk ? (
-          <LogBlacklistIgnoreButton
+          <IgnoreSenderDiscardMenu
             mittente={mitt}
             sedeId={sede}
             documentoId={id}
-            successMessage={tLog.activityIgnoreSenderDoneToast}
+            successBlacklistMessage={tLog.activityIgnoreSenderDoneToast}
           />
         ) : null}
         <button

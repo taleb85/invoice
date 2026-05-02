@@ -46,6 +46,14 @@ import {
 } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 import { persistKnownFornitoreEmailScanWithFile } from '@/lib/email-scan-persist-known-with-file'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import {
+  evaluatePreGeminiDiscardRule,
+  evaluatePostGeminiDiscardRuleTipo,
+  loadActiveOcrScartoRulesForSede,
+  mergeScartoRegolaMetadata,
+  OCR_SCARTO_RULE_LOG_MARKER,
+  type OcrScartoRuleRow,
+} from '@/lib/ocr-scarto-rules'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import {
   loadEmailScanBlacklistSet,
@@ -221,6 +229,58 @@ async function insertLog(
     imap_uid: opts.imap_uid ?? email.uid ?? null,
     scan_attachment_fingerprint: opts.scan_attachment_fingerprint ?? null,
   }])
+}
+
+function ocrScartoRuleErroreLog(rule: Pick<OcrScartoRuleRow, 'tipo' | 'valore' | 'motivo'>): string {
+  const m = rule.motivo?.trim()
+  return `${OCR_SCARTO_RULE_LOG_MARKER} tipo=${rule.tipo} valore=${rule.valore}${m ? ` — ${m}` : ''}`
+}
+
+async function insertDocumentoScartatoDaRegolaScan(
+  supabase: SupabaseClient,
+  p: {
+    email: ScannedEmail
+    rule: Pick<OcrScartoRuleRow, 'tipo' | 'valore' | 'motivo'>
+    fingerprint: string
+    sedeId: string | null
+    fornitoreId: string | null
+    filePublicUrl: string
+    storedFileName: string | null
+    storedContentType: string | null
+    mittente_sconosciuto?: boolean
+    ocrMeta: OcrResult
+    allegato_nome_for_log?: string | null
+  },
+) {
+  const baseMeta = mergeScartoRegolaMetadata(buildMetadata(p.ocrMeta, 'unknown'), p.rule)
+  const meta = {
+    ...baseMeta,
+    ...(p.mittente_sconosciuto ? { mittente_sconosciuto: true } : {}),
+  }
+  const insErr = await insertDocumento(supabase, {
+    fornitore_id: p.fornitoreId,
+    sede_id: p.sedeId,
+    mittente: p.email.from || 'sconosciuto',
+    oggetto_mail: p.email.subject ?? null,
+    file_url: p.filePublicUrl,
+    file_name: p.storedFileName,
+    content_type: p.storedContentType,
+    data_documento: safeDate(p.ocrMeta.data_fattura),
+    stato: 'scartato',
+    metadata: meta,
+    note: p.ocrMeta.note_corpo_mail?.trim() ?? null,
+  })
+  if (!insErr) {
+    await insertLog(supabase, p.email, 'documento_non_fiscale', {
+      fornitore_id: p.fornitoreId ?? undefined,
+      file_url: p.filePublicUrl,
+      errore_dettaglio: ocrScartoRuleErroreLog(p.rule),
+      sede_id: p.sedeId,
+      allegato_nome: p.allegato_nome_for_log ?? p.storedFileName,
+      scan_attachment_fingerprint: p.fingerprint,
+    })
+  }
+  return insErr
 }
 
 type FetchImapHooks = {
@@ -705,6 +765,9 @@ async function processEmails(
       : emails.filter((e) => !senderMatchesEmailScanBlacklist(blacklistSet, e.from))
   const blacklistSkipped = emails.length - workEmails.length
 
+  const ocrScartoRules =
+    effectiveSede ? await loadActiveOcrScartoRulesForSede(supabase, effectiveSede) : []
+
   const attachmentsTotal = countScanEmailUnits(workEmails)
   let attachmentsProcessed = 0
   const unitsPerUid = new Map<number, number>()
@@ -854,14 +917,64 @@ async function processEmails(
         continue
       }
 
-      mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso (nessun fallback fornitore sul documento)`)
-
       const baseMimeU = (attachment.contentType ?? '').split(';')[0].trim().toLowerCase()
       if (baseMimeU === 'text/plain') {
         mailDebugLog(`[PROCESS] Allegato solo text/plain ignorato (nessun OCR Vision): ${attachment.filename ?? '(file)'}`)
         bumpAttach(email.uid)
         continue
       }
+
+      if (ocrScartoRules.length > 0) {
+        const hitPre = await evaluatePreGeminiDiscardRule({
+          rules: ocrScartoRules,
+          mittenteHeader: email.from,
+          attachmentBuf: attachment.content,
+          attachmentContentType: attachment.contentType,
+        })
+        if (hitPre) {
+          mailDebugLog(
+            `[PROCESS] Regola scarto OCR (pre-Gemini, ${hitPre.tipo}) valore="${hitPre.valore}" | "${email.from}"`,
+          )
+          const unknownDocSedePre = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+          const uniqueNamePre = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
+          const { error: upPre } = await supabase.storage
+            .from('documenti')
+            .upload(uniqueNamePre, attachment.content, {
+              contentType: attachment.contentType,
+              upsert: false,
+            })
+          if (upPre) {
+            await insertLog(supabase, email, 'fornitore_non_trovato', {
+              errore_dettaglio: `${OCR_SCARTO_RULE_LOG_MARKER} Upload fallito: ${upPre.message}`,
+              sede_id: effectiveSede,
+              allegato_nome: attachment.filename ?? null,
+              scan_attachment_fingerprint: fp,
+            })
+            ignorate++
+            bumpAttach(email.uid)
+            continue
+          }
+          const pubPre = documentiPublicRefUrl(uniqueNamePre)
+          await insertDocumentoScartatoDaRegolaScan(supabase, {
+            email,
+            rule: hitPre,
+            fingerprint: fp,
+            sedeId: unknownDocSedePre,
+            fornitoreId: null,
+            filePublicUrl: pubPre,
+            storedFileName: attachment.filename ?? null,
+            storedContentType: attachment.contentType ?? null,
+            mittente_sconosciuto: true,
+            ocrMeta: EMPTY_OCR,
+            allegato_nome_for_log: attachment.filename ?? null,
+          })
+          ignorate++
+          bumpAttach(email.uid)
+          continue
+        }
+      }
+
+      mailDebugLog(`[PROCESS] Mittente sconosciuto "${email.from}" — OCR in corso (nessun fallback fornitore sul documento)`)
 
       // 1. OCR allegato + corpo mail (runOcrForEmail passa già emailBodyText all'AI)
       const ocrOrNull = await runOcrForEmail(
@@ -896,6 +1009,79 @@ async function processEmails(
         }
       }
       mailDebugLog(`[PROCESS] OCR sconosciuto: ragione_sociale=${ocr.ragione_sociale ?? '—'} piva=${ocr.p_iva ?? '—'} totale=${ocr.totale_iva_inclusa ?? '—'} bodyFallback=${docFromBodyFallback}`)
+
+      const tipoRuleUnk = evaluatePostGeminiDiscardRuleTipo(ocrScartoRules, ocr.tipo_documento)
+      if (tipoRuleUnk) {
+        mailDebugLog(
+          `[PROCESS] Regola scarto OCR (tipo_documento)="${tipoRuleUnk.valore}" Gemini tipo="${ocr.tipo_documento ?? '—'}"`,
+        )
+        const unknownDocSedeIdTipo = sedeFilter ?? fallbackSedeId ?? effectiveSede ?? null
+        if (docFromBodyFallback) {
+          const synTipo = await uploadSyntheticEmailBodyDoc(supabase, email)
+          if ('error' in synTipo) {
+            await insertLog(supabase, email, 'fornitore_non_trovato', {
+              errore_dettaglio: `Regola tipo_documento — upload sintetico: ${synTipo.error}`,
+              sede_id: effectiveSede,
+              allegato_nome: attachment.filename ?? null,
+              scan_attachment_fingerprint: fp,
+            })
+            ignorate++
+            bumpAttach(email.uid)
+            continue
+          }
+          await insertDocumentoScartatoDaRegolaScan(supabase, {
+            email,
+            rule: tipoRuleUnk,
+            fingerprint: fp,
+            sedeId: unknownDocSedeIdTipo,
+            fornitoreId: null,
+            filePublicUrl: synTipo.publicUrl,
+            storedFileName: SYNTHETIC_EMAIL_DOC_FILENAME,
+            storedContentType: 'text/plain',
+            mittente_sconosciuto: true,
+            ocrMeta: ocr,
+            allegato_nome_for_log: attachment.filename ?? null,
+          })
+          ignorate++
+          bumpAttach(email.uid)
+          continue
+        }
+        const uniqueNameTipo = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
+        const { error: upTipo } = await supabase.storage
+          .from('documenti')
+          .upload(uniqueNameTipo, attachment.content, {
+            contentType: attachment.contentType,
+            upsert: false,
+          })
+        if (upTipo) {
+          await insertLog(supabase, email, 'fornitore_non_trovato', {
+            errore_dettaglio: `${OCR_SCARTO_RULE_LOG_MARKER} tipo_documento — upload fallito: ${upTipo.message}`,
+            sede_id: effectiveSede,
+            allegato_nome: attachment.filename ?? null,
+            scan_attachment_fingerprint: fp,
+          })
+          ignorate++
+          bumpAttach(email.uid)
+          continue
+        }
+        const pubTipo = documentiPublicRefUrl(uniqueNameTipo)
+        await insertDocumentoScartatoDaRegolaScan(supabase, {
+          email,
+          rule: tipoRuleUnk,
+          fingerprint: fp,
+          sedeId: unknownDocSedeIdTipo,
+          fornitoreId: null,
+          filePublicUrl: pubTipo,
+          storedFileName: attachment.filename ?? null,
+          storedContentType: attachment.contentType ?? null,
+          mittente_sconosciuto: true,
+          ocrMeta: ocr,
+          allegato_nome_for_log: attachment.filename ?? null,
+        })
+        ignorate++
+        bumpAttach(email.uid)
+        continue
+      }
 
       // 3a. Dati solo da testo → documento sintetico [DA TESTO EMAIL]
       if (docFromBodyFallback) {
@@ -1486,41 +1672,120 @@ async function processEmails(
     }
 
     // null = transient OCR failure for that item — do NOT fingerprint; retry next scan.
-    const ocrResults: (OcrResult | null)[] = await Promise.all(
-      items.map(({ attachment, ocr, email }, i) => {
-        if (skipped[i] || skipServiceReport[i]) return Promise.resolve(EMPTY_OCR)
+    const discardedPreKnown: boolean[] = new Array(items.length).fill(false)
+    const ocrResults: (OcrResult | null)[] = new Array(items.length).fill(null)
+
+    await Promise.all(
+      items.map(async ({ attachment, ocr: preOcr, email }, i) => {
+        if (skipped[i] || skipServiceReport[i]) return
         const fp = fpList[i]
-        return ocr
-          ? Promise.resolve(ocr)
-          : attachment
-            ? runOcrForEmail(
-                supabase,
-                attachment.content,
-                attachment.contentType,
-                langHint,
-                email,
-                attachment,
-                fornitore.id,
-                logSedeForFornitore,
-                fp,
-              )
-            : runOcrEmailBodyOnly(
-                supabase,
-                email,
-                langHint,
-                fornitore.id,
-                logSedeForFornitore,
-                fp,
-              )
+        const documentSedeIdPre = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
+
+        if (preOcr) {
+          ocrResults[i] = preOcr
+          return
+        }
+
+        const buf = attachment?.content ?? Buffer.from(email.bodyText ?? '', 'utf8')
+        const ctype = attachment?.contentType ?? 'text/plain'
+        if (ocrScartoRules.length > 0) {
+          const hitPre = await evaluatePreGeminiDiscardRule({
+            rules: ocrScartoRules,
+            mittenteHeader: email.from,
+            attachmentBuf: buf,
+            attachmentContentType: ctype,
+          })
+          if (hitPre) {
+            mailDebugLog(
+              `[PROCESS] Regola scarto OCR (pre-Gemini, ${hitPre.tipo}) valore="${hitPre.valore}" | fornitore="${fornitore.nome}"`,
+            )
+            if (attachment) {
+              const uniqueName = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
+              const { error: upE } = await supabase.storage
+                .from('documenti')
+                .upload(uniqueName, attachment.content, {
+                  contentType: attachment.contentType,
+                  upsert: false,
+                })
+              if (!upE) {
+                const pub = documentiPublicRefUrl(uniqueName)
+                const insErr = await insertDocumentoScartatoDaRegolaScan(supabase, {
+                  email,
+                  rule: hitPre,
+                  fingerprint: fp,
+                  sedeId: documentSedeIdPre,
+                  fornitoreId: fornitore.id,
+                  filePublicUrl: pub,
+                  storedFileName: attachment.filename ?? null,
+                  storedContentType: attachment.contentType ?? null,
+                  ocrMeta: EMPTY_OCR,
+                  allegato_nome_for_log: attachment.filename ?? null,
+                })
+                if (!insErr) {
+                  discardedPreKnown[i] = true
+                  return
+                }
+              }
+            } else {
+              const syn = await uploadSyntheticEmailBodyDoc(supabase, email)
+              if (!('error' in syn)) {
+                const insErr = await insertDocumentoScartatoDaRegolaScan(supabase, {
+                  email,
+                  rule: hitPre,
+                  fingerprint: fp,
+                  sedeId: documentSedeIdPre,
+                  fornitoreId: fornitore.id,
+                  filePublicUrl: syn.publicUrl,
+                  storedFileName: SYNTHETIC_EMAIL_DOC_FILENAME,
+                  storedContentType: 'text/plain',
+                  ocrMeta: EMPTY_OCR,
+                  allegato_nome_for_log: null,
+                })
+                if (!insErr) {
+                  discardedPreKnown[i] = true
+                  return
+                }
+              }
+            }
+          }
+        }
+
+        ocrResults[i] = attachment
+          ? await runOcrForEmail(
+              supabase,
+              attachment.content,
+              attachment.contentType,
+              langHint,
+              email,
+              attachment,
+              fornitore.id,
+              logSedeForFornitore,
+              fp,
+            )
+          : await runOcrEmailBodyOnly(
+              supabase,
+              email,
+              langHint,
+              fornitore.id,
+              logSedeForFornitore,
+              fp,
+            )
       }),
     )
-    mailDebugLog(`[PROCESS] OCR completato per "${fornitore.nome}" (matched_by=${matchedBy}): numeri fattura=[${ocrResults.map(r => r?.numero_fattura ?? 'null').join(', ')}] totali=[${ocrResults.map(r => r?.totale_iva_inclusa ?? 'null').join(', ')}]`)
+    mailDebugLog(
+      `[PROCESS] OCR completato per "${fornitore.nome}" (matched_by=${matchedBy}): numeri fattura=[${ocrResults.map((r) => r?.numero_fattura ?? 'null').join(', ')}] totali=[${ocrResults.map((r) => r?.totale_iva_inclusa ?? 'null').join(', ')}]`,
+    )
 
     for (let i = 0; i < items.length; i++) {
       if (skipped[i]) continue
       if (skipServiceReport[i]) continue
       const { email, attachment } = items[i]
       const fp = fpList[i]
+      if (discardedPreKnown[i]) {
+        ignorate++
+        bumpAttach(email.uid)
+        continue
+      }
 
       const baseMimeGrp = attachment ? (attachment.contentType ?? '').split(';')[0].trim().toLowerCase() : ''
       if (attachment && baseMimeGrp === 'text/plain') {
@@ -1538,6 +1803,72 @@ async function processEmails(
       }
       const ocr = ocrResults[i] as OcrResult
       const documentSedeId = sedeFilter ?? fornitore.sede_id ?? fallbackSedeId ?? effectiveSede ?? null
+
+      const tipoRuleK = evaluatePostGeminiDiscardRuleTipo(ocrScartoRules, ocr.tipo_documento)
+      if (tipoRuleK) {
+        mailDebugLog(
+          `[PROCESS] Regola scarto OCR (tipo_documento)="${tipoRuleK.valore}" — fornitore="${fornitore.nome}" Gemini="${ocr.tipo_documento ?? '—'}"`,
+        )
+        if (attachment) {
+          const uniqueNameK = `email_auto_${crypto.randomUUID()}.${attachment.extension}`
+          const { error: upK } = await supabase.storage
+            .from('documenti')
+            .upload(uniqueNameK, attachment.content, {
+              contentType: attachment.contentType,
+              upsert: false,
+            })
+          if (upK) {
+            await insertLog(supabase, email, 'fornitore_non_trovato', {
+              fornitore_id: fornitore.id,
+              errore_dettaglio: `${OCR_SCARTO_RULE_LOG_MARKER} tipo_documento — upload fallito: ${upK.message}`,
+              sede_id: documentSedeId,
+              allegato_nome: attachment.filename ?? null,
+            })
+            bumpAttach(email.uid)
+            continue
+          }
+          const pubK = documentiPublicRefUrl(uniqueNameK)
+          await insertDocumentoScartatoDaRegolaScan(supabase, {
+            email,
+            rule: tipoRuleK,
+            fingerprint: fp,
+            sedeId: documentSedeId,
+            fornitoreId: fornitore.id,
+            filePublicUrl: pubK,
+            storedFileName: attachment.filename ?? null,
+            storedContentType: attachment.contentType ?? null,
+            ocrMeta: ocr,
+            allegato_nome_for_log: attachment.filename ?? null,
+          })
+        } else {
+          const synK = await uploadSyntheticEmailBodyDoc(supabase, email)
+          if ('error' in synK) {
+            await insertLog(supabase, email, 'fornitore_non_trovato', {
+              fornitore_id: fornitore.id,
+              errore_dettaglio: `Regola tipo_documento — upload sintetico: ${synK.error}`,
+              sede_id: documentSedeId,
+              allegato_nome: null,
+            })
+            bumpAttach(email.uid)
+            continue
+          }
+          await insertDocumentoScartatoDaRegolaScan(supabase, {
+            email,
+            rule: tipoRuleK,
+            fingerprint: fp,
+            sedeId: documentSedeId,
+            fornitoreId: fornitore.id,
+            filePublicUrl: synK.publicUrl,
+            storedFileName: SYNTHETIC_EMAIL_DOC_FILENAME,
+            storedContentType: 'text/plain',
+            ocrMeta: ocr,
+            allegato_nome_for_log: null,
+          })
+        }
+        ignorate++
+        bumpAttach(email.uid)
+        continue
+      }
 
       /** CV / résumé — niente upload né `documenti_da_processare`; fingerprint chiuso nel log. */
       if (ocr.tipo_documento === 'curriculum') {

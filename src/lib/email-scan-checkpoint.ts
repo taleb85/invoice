@@ -68,7 +68,7 @@ async function scanUnitHistoricalShouldSkipFullyLinked(
 ): Promise<boolean> {
   const { data: rows, error } = await supabase
     .from('log_sincronizzazione')
-    .select('stato, file_url')
+    .select('stato, file_url, errore_dettaglio')
     .eq('scan_attachment_fingerprint', fingerprint)
     .order('data', { ascending: false })
     .limit(1)
@@ -79,6 +79,14 @@ async function scanUnitHistoricalShouldSkipFullyLinked(
   }
   const row = rows?.[0]
   if (!row) return false
+
+  if (
+    row.stato === 'documento_non_fiscale' &&
+    typeof row.errore_dettaglio === 'string' &&
+    row.errore_dettaglio.includes('OCR_RULE_SCARTO')
+  ) {
+    return true
+  }
 
   if (row.stato === 'fornitore_non_trovato' || row.stato === 'bolla_non_trovata') {
     return false
