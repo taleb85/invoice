@@ -56,7 +56,7 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-5 lg:gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit />
       <div className="overflow-hidden rounded-2xl border border-app-line-22 bg-[#0f172b]/60">
         <div className="border-b border-app-line-22 app-workspace-inset-bg-soft px-5 py-4 sm:px-6">
