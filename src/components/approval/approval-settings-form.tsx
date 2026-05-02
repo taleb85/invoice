@@ -78,11 +78,12 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
     return <div className="h-24 animate-pulse rounded-xl bg-app-line-10" />
   }
 
-  const switchBase =
-    'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cyan-500/40'
+  const switchThumb =
+    'pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out'
+  /** Track come in NotificationSettings — thumb assoluto evita glitch di layout nel flex */
 
   return (
-    <div className="overflow-hidden rounded-xl border border-app-line-28 bg-black/[0.12] ring-1 ring-white/[0.04]">
+    <div className="rounded-xl border border-app-line-28 bg-black/[0.12] ring-1 ring-white/[0.04]">
       <section
         aria-labelledby={autoHeadingId}
         className="p-4 sm:p-5"
@@ -100,14 +101,15 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
             aria-checked={settings.auto_register_fatture}
             aria-labelledby={autoHeadingId}
             onClick={() => setSettings((s) => ({ ...s, auto_register_fatture: !s.auto_register_fatture }))}
-            className={`${switchBase} ${
+            className={`relative mt-0.5 ml-1 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cyan-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(15,23,42,0.95)] touch-manipulation ${
               settings.auto_register_fatture ? 'bg-emerald-600' : 'bg-app-line-30'
             }`}
           >
             <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+              className={`${switchThumb} ${
                 settings.auto_register_fatture ? 'translate-x-5' : 'translate-x-0'
               }`}
+              aria-hidden
             />
           </button>
         </div>
@@ -131,14 +133,13 @@ export function ApprovalSettingsForm({ sedeId }: Props) {
             aria-labelledby={approvalHeadingId}
             aria-controls={settings.require_approval ? thresholdSectionId : undefined}
             onClick={() => setSettings((s) => ({ ...s, require_approval: !s.require_approval }))}
-            className={`${switchBase} ${
+            className={`relative mt-0.5 ml-1 h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cyan-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[rgba(15,23,42,0.95)] touch-manipulation ${
               settings.require_approval ? 'bg-app-cyan-600' : 'bg-app-line-30'
             }`}
           >
             <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                settings.require_approval ? 'translate-x-5' : 'translate-x-0'
-              }`}
+              className={`${switchThumb} ${settings.require_approval ? 'translate-x-5' : 'translate-x-0'}`}
+              aria-hidden
             />
           </button>
         </div>

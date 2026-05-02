@@ -271,9 +271,7 @@ export default function ImpostazioniPage() {
     setTimeout(() => setSaved(false), 1500)
   }
 
-  const selectCls =
-    'w-full rounded-xl border border-app-line-35 app-workspace-inset-bg-soft px-3.5 py-2.5 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] ring-1 ring-app-line-10 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
-  const labelCls = 'mb-1.5 block text-sm font-medium text-app-fg-muted'
+
 
   const intlLocale =
     locale === 'it' ? 'it-IT'
@@ -295,70 +293,132 @@ export default function ImpostazioniPage() {
       })()
     : '…'
 
-  const FormBody = () => (
-    <div className="space-y-8 md:space-y-6">
-      {/* Currency + Timezone — side by side on desktop */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-5">
-        {/* Valuta */}
-        <div>
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15">
-              <svg className="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <label className={labelCls + ' mb-0'} suppressHydrationWarning>{t.impostazioni.valuta}</label>
-          </div>
-          <select value={draftCurrency} onChange={(e) => setDraftCurrency(e.target.value)} className={selectCls}>
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.symbol} — {c.label} ({c.code})</option>
-            ))}
-          </select>
-        </div>
+  const selectClsInner =
+    'w-full rounded-lg border border-app-line-35 bg-black/25 px-3 py-2.5 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-black/20 [color-scheme:dark] focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
+  const labelFieldCls = 'mb-2 block text-xs font-medium text-app-fg-muted'
 
-        {/* Fuso orario */}
-        <div>
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/15">
-              <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <label className={labelCls + ' mb-0'} suppressHydrationWarning>{t.impostazioni.fuso}</label>
-          </div>
-          <select value={draftTimezone} onChange={(e) => setDraftTimezone(e.target.value)} className={selectCls}>
-            {TIMEZONES.map((tz) => (
-              <option key={tz.value} value={tz.value}>{tz.label}</option>
-            ))}
-          </select>
+  const LocalisationCardContent = () => (
+    <>
+      <div className="flex items-start gap-4 border-b border-app-line-30 app-workspace-inset-bg-soft p-5 sm:p-6">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
+          <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3.055 13H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
+            {mounted ? t.impostazioni.sectionLocalisation : ''}
+          </p>
+          <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg" suppressHydrationWarning>
+            {mounted ? t.impostazioni.subtitle : ''}
+          </p>
         </div>
       </div>
 
-      {/* Live preview */}
-      <div className="rounded-xl border border-app-line-25 app-workspace-inset-bg-soft p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10">
-        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>{t.impostazioni.preview}</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Date</p>
-            <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
-              <svg className="h-4 w-4 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span suppressHydrationWarning>{previewData}</span>
+      <div className="space-y-6 px-5 py-6 sm:px-8">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
+          <div className="rounded-xl border border-app-line-28 bg-black/[0.08] p-4 ring-1 ring-white/[0.04] sm:p-5">
+            <div className="mb-3 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/12 ring-1 ring-emerald-500/25">
+                <svg className="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <label className={`${labelFieldCls} mb-0 min-w-0 flex-1`} htmlFor="impostazioni-valuta-select" suppressHydrationWarning>
+                {t.impostazioni.valuta}
+              </label>
             </div>
+            <select
+              id="impostazioni-valuta-select"
+              value={draftCurrency}
+              onChange={(e) => setDraftCurrency(e.target.value)}
+              className={selectClsInner}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.symbol} — {c.label} ({c.code})
+                </option>
+              ))}
+            </select>
           </div>
-          <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">Currency</p>
-            <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
-              <svg className="h-4 w-4 shrink-0 text-app-cyan-500 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span suppressHydrationWarning>{previewValuta}</span>
+
+          <div className="rounded-xl border border-app-line-28 bg-black/[0.08] p-4 ring-1 ring-white/[0.04] sm:p-5">
+            <div className="mb-3 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-500/12 ring-1 ring-violet-500/25">
+                <svg className="h-4 w-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <label className={`${labelFieldCls} mb-0 min-w-0 flex-1`} htmlFor="impostazioni-fuso-select" suppressHydrationWarning>
+                {t.impostazioni.fuso}
+              </label>
+            </div>
+            <select
+              id="impostazioni-fuso-select"
+              value={draftTimezone}
+              onChange={(e) => setDraftTimezone(e.target.value)}
+              className={selectClsInner}
+            >
+              {TIMEZONES.map((tz) => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-app-line-28 bg-black/[0.06] p-4 ring-1 ring-white/[0.04] sm:p-5">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-app-fg-muted" suppressHydrationWarning>
+            {t.impostazioni.preview}
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+            <div className="min-w-0">
+              <p className="mb-1 text-xs font-medium text-app-fg-muted" suppressHydrationWarning>
+                {t.impostazioni.fuso}
+              </p>
+              <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+                <svg className="h-4 w-4 shrink-0 text-violet-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span suppressHydrationWarning>{previewData}</span>
+              </div>
+            </div>
+            <div className="min-w-0">
+              <p className="mb-1 text-xs font-medium text-app-fg-muted" suppressHydrationWarning>
+                {t.impostazioni.valuta}
+              </p>
+              <div className="flex items-center gap-2 text-sm font-medium text-app-fg">
+                <svg className="h-4 w-4 shrink-0 text-emerald-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span suppressHydrationWarning>{previewValuta}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 
   return (
@@ -408,19 +468,26 @@ export default function ImpostazioniPage() {
           </AppPageHeaderTitleWithDashboardShortcut>
         </AppPageHeaderStrip>
         <div className="app-card overflow-hidden">
-          <div className="space-y-5 app-workspace-inset-bg-soft p-5">
-          <FormBody />
-          {saved && (
-            <div className="flex items-center gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          <LocalisationCardContent />
+          {saved ? (
+            <div className="flex items-center gap-2 border-t border-app-line-30 px-5 py-3.5 text-sm font-semibold text-green-300 app-workspace-inset-bg-soft">
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
               <span suppressHydrationWarning>{t.impostazioni.saved}</span>
             </div>
-          )}
-          <button onClick={handleSave}
-            className="flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 py-3 text-sm font-bold text-white shadow-[0_0_18px_-6px_rgba(34,211,238,0.45)] ring-1 ring-app-tint-300-30 transition-colors hover:bg-app-cyan-400 hover:shadow-[0_0_22px_-5px_rgba(34,211,238,0.55)] active:bg-cyan-600">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-            <span suppressHydrationWarning>{t.common.save}</span>
-          </button>
+          ) : null}
+          <div className="border-t border-app-line-30 app-workspace-inset-bg-soft px-5 py-4">
+            <button
+              type="button"
+              onClick={handleSave}
+              className="flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl bg-app-cyan-500 py-3 text-sm font-bold text-white shadow-[0_0_18px_-6px_rgba(34,211,238,0.45)] ring-1 ring-app-tint-300-30 transition-colors hover:bg-app-cyan-400 hover:shadow-[0_0_22px_-5px_rgba(34,211,238,0.55)] active:bg-cyan-600"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span suppressHydrationWarning>{t.common.save}</span>
+            </button>
           </div>
         </div>
         <ImapConfigCard />
@@ -499,17 +566,15 @@ export default function ImpostazioniPage() {
               <div className="flex min-h-0 min-w-0 flex-col gap-10">
                 <div className="min-h-0 min-w-0">
                   <div className="app-card overflow-hidden">
-                    <div className="space-y-6 px-6 py-6 sm:px-8">
-                      <FormBody />
-                      {saved && (
-                        <div className="flex items-center gap-2 rounded-xl border border-[rgba(34,211,238,0.15)] bg-green-500/10 px-4 py-3 text-sm font-semibold text-green-300">
-                          <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                          <span suppressHydrationWarning>{t.impostazioni.saved}</span>
-                        </div>
-                      )}
-                    </div>
+                    <LocalisationCardContent />
+                    {saved ? (
+                      <div className="flex items-center gap-2 border-t border-app-line-30 px-6 py-3.5 text-sm font-semibold text-green-300 app-workspace-inset-bg-soft sm:px-8">
+                        <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span suppressHydrationWarning>{t.impostazioni.saved}</span>
+                      </div>
+                    ) : null}
                     <div className="flex flex-col-reverse gap-3 border-t border-app-line-30 app-workspace-inset-bg-soft px-6 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-8">
                       <button
                         type="button"
