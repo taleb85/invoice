@@ -92,7 +92,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
     document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
     document.cookie = `admin-sede-id=${encodeURIComponent(sedeId)}; path=/; SameSite=Strict`
     setActiveSede(sedeId)
-    setBranchesOpen(false)
     router.push('/')
     router.refresh()
   }
@@ -101,7 +100,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
     document.cookie = 'admin-sede-id=; path=/; Max-Age=0; SameSite=Strict'
     document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
     setActiveSede(null)
-    setBranchesOpen(false)
     router.push('/')
     router.refresh()
   }
