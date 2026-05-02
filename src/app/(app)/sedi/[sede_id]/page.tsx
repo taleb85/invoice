@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Suspense } from 'react'
 import { createServiceClient } from '@/utils/supabase/server'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
@@ -8,14 +7,9 @@ import CountrySelector from '@/components/CountrySelector'
 import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import { getLocale } from '@/lib/localization'
-import { getT, getLocale as getAppLocale, getCurrency } from '@/lib/locale-server'
-import { parseFiscalYearQueryParam } from '@/lib/fiscal-year'
-import { fetchOperatorDashboardKpis, fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
-import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/components/DashboardOperatorKpiGrid'
+import { getT } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
-import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
-import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 interface SedeProfile {
   id: string
@@ -53,15 +47,11 @@ async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
   }
 }
 
-export default async function SedeProfilePage(props: {
-  params: Promise<{ sede_id: string }>
-  searchParams?: Promise<{ fy?: string }>
-}) {
-  const { supabase, user } = await getRequestAuth()
+export default async function SedeProfilePage(props: { params: Promise<{ sede_id: string }> }) {
+  const { user } = await getRequestAuth()
   if (!user) redirect('/login')
 
   const { sede_id } = await props.params
-  const searchParams = await unwrapSearchParams(props.searchParams)
   const sede = await fetchSedeProfile(sede_id)
   if (!sede) redirect('/sedi')
 
@@ -70,17 +60,7 @@ export default async function SedeProfilePage(props: {
   const isAdminSede = profile?.role === 'admin_sede' && profile?.sede_id === sede_id
   const canManageSedeOperators = isMasterAdmin || isAdminSede
 
-  const [tDashboard, appLocale, currency, fornitoreIds] = await Promise.all([
-    getT(),
-    getAppLocale(),
-    getCurrency(),
-    fornitoreIdsForSede(supabase, sede_id),
-  ])
-  const fiscalYear = parseFiscalYearQueryParam(searchParams.fy, sede.country_code)
-  const sedeKpis = await fetchOperatorDashboardKpis(supabase, sede_id, fornitoreIds, {
-    countryCode: sede.country_code,
-    labelYear: fiscalYear,
-  })
+  const tDashboard = await getT()
 
   const imapConfigured = !!(sede.imap_host && sede.imap_user)
 
@@ -107,12 +87,7 @@ export default async function SedeProfilePage(props: {
               </svg>
             </div>
             <div className="min-w-0">
-              <div className="flex min-w-0 flex-row flex-nowrap items-center gap-2 overflow-x-auto sm:gap-x-3">
-                <h1 className="app-page-title min-w-0 flex-1 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl">{sede.nome}</h1>
-                <Suspense fallback={null}>
-                  <DashboardFiscalYearHeaderSelect countryCode={sede.country_code} selectedFiscalYear={fiscalYear} />
-                </Suspense>
-              </div>
+              <h1 className="app-page-title min-w-0 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl">{sede.nome}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-3">
                 <span className="text-sm text-app-fg-muted">
                   {sede.operators_count} operatore{sede.operators_count !== 1 ? 'i' : ''}
@@ -175,84 +150,6 @@ export default async function SedeProfilePage(props: {
           <SedeAddOperatorForm sedeId={sede_id} />
         </section>
       ) : null}
-
-      <Suspense fallback={<DashboardOperatorKpiSkeleton />}>
-        <div>
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-app-fg-muted">
-            {tDashboard.fornitori.tabRiepilogo}
-          </h2>
-          <DashboardOperatorKpiGrid
-            kpis={sedeKpis}
-            t={tDashboard}
-            locale={appLocale}
-            currency={currency}
-            fiscalYear={fiscalYear}
-          />
-        </div>
-      </Suspense>
-
-      {/* Quick-action cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <Link
-          href={`/sedi/${sede_id}/statements`}
-          className="app-card group flex flex-col overflow-hidden transition-all hover:border-app-line-40"
-        >
-          <div className="flex flex-1 flex-col gap-3 p-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-app-line-15 transition-colors group-hover:bg-app-line-25">
-            <svg className="h-5 w-5 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-app-fg">Estratti Conto</p>
-            <p className="mt-0.5 text-xs text-app-fg-muted">Associa fatture alle bolle</p>
-          </div>
-          <svg className="mt-auto h-4 w-4 self-end text-app-fg-muted transition-colors group-hover:text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          </div>
-        </Link>
-
-        <Link
-          href={`/sedi/${sede_id}/discovery`}
-          className="app-card group flex flex-col overflow-hidden transition-all hover:border-[rgba(34,211,238,0.15)]"
-        >
-          <div className="flex flex-1 flex-col gap-3 p-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 transition-colors group-hover:bg-emerald-500/25">
-            <svg className="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-app-fg">Scopri Fornitori</p>
-            <p className="mt-0.5 text-xs text-app-fg-muted">Trova mittenti sconosciuti</p>
-          </div>
-          <svg className="mt-auto h-4 w-4 self-end text-app-fg-muted transition-colors group-hover:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          </div>
-        </Link>
-
-        <Link
-          href={`/sedi/${sede_id}/fornitori`}
-          className="app-card group flex flex-col overflow-hidden transition-all hover:border-[rgba(34,211,238,0.15)]"
-        >
-          <div className="flex flex-1 flex-col gap-3 p-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 transition-colors group-hover:bg-violet-500/25">
-            <svg className="h-5 w-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-app-fg">Fornitori</p>
-            <p className="mt-0.5 text-xs text-app-fg-muted">{sede.fornitori_count} registrati</p>
-          </div>
-          <svg className="mt-auto h-4 w-4 self-end text-app-fg-muted transition-colors group-hover:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          </div>
-        </Link>
-      </div>
 
       {/* IMAP not configured warning */}
       {!imapConfigured && (
