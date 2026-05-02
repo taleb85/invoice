@@ -204,7 +204,7 @@ export default function DashboardMobileBottomNav() {
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === ''
     if (href === '/consumi-ai') return pathname.startsWith('/consumi-ai')
-    if (href === '/sedi') return pathname === '/sedi' || pathname.startsWith('/sedi/')
+    if (href === '/strumenti/sedi') return pathname === '/strumenti/sedi' || pathname.startsWith('/sedi/')
     if (href === '/bolle') {
       if (pathname === '/bolle/new') return false
       return pathname === '/bolle' || pathname.startsWith('/bolle/')
@@ -213,7 +213,7 @@ export default function DashboardMobileBottomNav() {
       if (pathname === '/fornitori/import') return true
       return pathname === '/fornitori' || pathname.startsWith('/fornitori/')
     }
-    if (href === '/impostazioni') return pathname === '/impostazioni' || pathname.startsWith('/impostazioni/')
+    if (href === '/strumenti/impostazioni') return pathname === '/strumenti/impostazioni' || pathname.startsWith('/impostazioni/')
     return pathname === href
   }
 
@@ -295,9 +295,9 @@ export default function DashboardMobileBottomNav() {
             </span>
           </Link>
 
-          <Link href="/sedi" className={itemCls(isActive('/sedi'))} prefetch={false}>
+          <Link href="/strumenti/sedi" className={itemCls(isActive('/strumenti/sedi'))} prefetch={false}>
             <span
-              className={`shrink-0 ${isActive('/sedi') ? icon.fornitori : `${icon.fornitori}/75`}`}
+              className={`shrink-0 ${isActive('/strumenti/sedi') ? icon.fornitori : `${icon.fornitori}/75`}`}
               aria-hidden
             >
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,9 +314,9 @@ export default function DashboardMobileBottomNav() {
             </span>
           </Link>
 
-          <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
+          <Link href="/strumenti/impostazioni" className={itemCls(isActive('/strumenti/impostazioni'))} prefetch={false}>
             <span
-              className={`shrink-0 ${isActive('/impostazioni') ? icon.settingsTools : `${icon.settingsTools}/75`}`}
+              className={`shrink-0 ${isActive('/strumenti/impostazioni') ? icon.settingsTools : `${icon.settingsTools}/75`}`}
               aria-hidden
             >
               <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +362,7 @@ export default function DashboardMobileBottomNav() {
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.fornitori}</span>
         </Link>
         <OperatorHubNavItem itemCls={itemCls} />
-        <Link href="/impostazioni" className={itemCls(isActive('/impostazioni'))} prefetch={false}>
+        <Link href="/strumenti/impostazioni" className={itemCls(isActive('/strumenti/impostazioni'))} prefetch={false}>
           <Settings className={`h-6 w-6 shrink-0 ${icon.settingsTools}`} aria-hidden />
           <span className="line-clamp-2 max-w-full text-center [overflow-wrap:anywhere]">{t.nav.impostazioni}</span>
         </Link>
