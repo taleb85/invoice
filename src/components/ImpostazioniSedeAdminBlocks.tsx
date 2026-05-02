@@ -59,6 +59,22 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
     <div className="space-y-4">
       <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit />
       <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5">
+        <div className="mb-5 flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/15">
+            <svg className="h-4 w-4 text-teal-300/95" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold leading-snug text-app-fg">{t.log.ocrDiscardRulesTitle}</p>
+            <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
+          </div>
+        </div>
         <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
       </div>
       <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5">

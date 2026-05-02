@@ -126,23 +126,75 @@ export default function OcrScartoRulesPanel({
 
   const outerCls =
     variant === 'settingsPage'
-      ? 'space-y-4'
+      ? 'space-y-6'
       : 'space-y-4 border-t border-white/10 pt-5'
 
-  return (
-    <div className={outerCls}>
-      <div>
-        <h3 className="text-sm font-semibold text-teal-100/95">{tg.ocrDiscardRulesTitle}</h3>
-        <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{tg.ocrDiscardRulesSubtitle}</p>
-      </div>
+  const fieldCls =
+    'w-full rounded-lg border border-app-line-35 bg-black/30 px-3 py-2 text-sm text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-black/25 placeholder:text-app-fg-muted focus:border-app-a-55 focus:outline-none focus:ring-2 focus:ring-app-a-35'
+  const labelCls = 'flex flex-col gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted'
 
+  const showIntroBlock = variant === 'embeddedInLogTab'
+
+  const composeForm =
+    variant === 'settingsPage' ? (
+      <div className="rounded-xl border border-app-line-28 bg-black/[0.18] p-4 ring-1 ring-white/[0.04] sm:p-5">
+        <div className="flex flex-col gap-4">
+          <label className={labelCls}>
+            {tg.ocrDiscardRulesColTipo}
+            <select
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value as OcrScartoRuleTipo)}
+              className={`${fieldCls} max-w-md`}
+            >
+              {OCR_SCARTO_RULE_TIPOS.map((k) => (
+                <option key={k} value={k}>
+                  {tipoUiLabel(tg, k)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className={labelCls}>
+              {tg.ocrDiscardRulesColValore}
+              <input
+                value={valore}
+                onChange={(e) => setValore(e.target.value)}
+                placeholder={tg.ocrDiscardRulesValorePlaceholder}
+                className={fieldCls}
+              />
+            </label>
+            <label className={labelCls}>
+              <span className="inline-flex flex-wrap items-baseline gap-x-1 gap-y-0">
+                <span>{tg.ocrDiscardRulesColMotivo}</span>
+                <span className="sr-only">{tg.ocrDiscardRulesMotivoHint}</span>
+              </span>
+              <input
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder={tg.ocrDiscardRulesMotivoPlaceholder}
+                className={fieldCls}
+              />
+              <span className="text-[11px] font-normal normal-case leading-snug text-app-fg-muted">{tg.ocrDiscardRulesMotivoHint}</span>
+            </label>
+          </div>
+          <button
+            type="button"
+            disabled={busy || !valore.trim()}
+            onClick={() => void addRule()}
+            className="w-full rounded-lg bg-teal-600/90 px-4 py-2.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-teal-600 disabled:opacity-35 sm:w-auto sm:self-start"
+          >
+            {tg.ocrDiscardRulesAdd}
+          </button>
+        </div>
+      </div>
+    ) : (
       <div className="grid gap-2 sm:grid-cols-12 sm:items-end">
-        <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted sm:col-span-3">
+        <label className={`${labelCls} sm:col-span-3`}>
           {tg.ocrDiscardRulesColTipo}
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value as OcrScartoRuleTipo)}
-            className="rounded-md border border-app-soft-border bg-black/30 px-2 py-1.5 text-xs text-app-fg"
+            className={`${fieldCls} py-1.5 text-xs`}
           >
             {OCR_SCARTO_RULE_TIPOS.map((k) => (
               <option key={k} value={k}>
@@ -151,23 +203,23 @@ export default function OcrScartoRulesPanel({
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted sm:col-span-4">
+        <label className={`${labelCls} sm:col-span-4`}>
           {tg.ocrDiscardRulesColValore}
           <input
             value={valore}
             onChange={(e) => setValore(e.target.value)}
             placeholder={tg.ocrDiscardRulesValorePlaceholder}
-            className="rounded-md border border-app-soft-border bg-black/30 px-2 py-1.5 text-xs text-app-fg placeholder:text-app-fg-muted"
+            className={`${fieldCls} py-1.5 text-xs`}
           />
         </label>
-        <label className="flex flex-col gap-1 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted sm:col-span-4">
+        <label className={`${labelCls} sm:col-span-4`}>
           {tg.ocrDiscardRulesColMotivo}{' '}
           <span className="sr-only">{tg.ocrDiscardRulesMotivoHint}</span>
           <input
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             placeholder={tg.ocrDiscardRulesMotivoPlaceholder}
-            className="rounded-md border border-app-soft-border bg-black/30 px-2 py-1.5 text-xs text-app-fg placeholder:text-app-fg-muted"
+            className={`${fieldCls} py-1.5 text-xs`}
           />
         </label>
         <button
@@ -179,51 +231,120 @@ export default function OcrScartoRulesPanel({
           {tg.ocrDiscardRulesAdd}
         </button>
       </div>
+    )
 
-      {rows.length === 0 ? (
-        <p className="text-xs text-app-fg-muted">{tg.ocrDiscardRulesEmpty}</p>
-      ) : (
-        <ul className="max-h-[22rem] space-y-2 overflow-y-auto pr-1 text-xs">
-          {rows.map((r) => (
-            <li
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/25 px-2 py-2"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-app-fg">
-                  <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-teal-100/95">
-                    {tipoUiLabel(tg, r.tipo)}
-                  </span>{' '}
-                  <span className="break-all">{r.valore}</span>
-                </p>
-                {r.motivo?.trim() ? (
-                  <p className="mt-1 text-[11px] text-app-fg-muted">{r.motivo}</p>
-                ) : null}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <label className="flex items-center gap-1 text-[11px] text-app-fg-muted">
-                  <input
-                    type="checkbox"
-                    checked={r.attivo}
+  const listBlock =
+    rows.length === 0 ? (
+      <p className="rounded-lg border border-dashed border-app-line-35 bg-black/15 px-4 py-6 text-center text-sm text-app-fg-muted">{tg.ocrDiscardRulesEmpty}</p>
+    ) : (
+      <div className="space-y-2">
+        {variant === 'settingsPage' ? (
+          <div
+            className="hidden gap-3 px-2 pb-1 text-[10px] font-bold uppercase tracking-wide text-app-fg-muted sm:grid sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,9rem)_auto]"
+            aria-hidden
+          >
+            <span>{tg.ocrDiscardRulesColTipo}</span>
+            <span>{tg.ocrDiscardRulesColValore}</span>
+            <span>{tg.ocrDiscardRulesColMotivo}</span>
+            <span className="text-end">{tg.ocrDiscardRulesColActions}</span>
+          </div>
+        ) : null}
+        <ul className={`${variant === 'settingsPage' ? 'max-h-[min(26rem,calc(100dvh-20rem))]' : 'max-h-[22rem]'} space-y-2 overflow-y-auto pr-1`}>
+          {rows.map((r) =>
+            variant === 'settingsPage' ? (
+              <li
+                key={r.id}
+                className="grid grid-cols-1 gap-3 rounded-xl border border-app-line-28 bg-black/25 px-3 py-3 ring-1 ring-white/[0.04] sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_minmax(0,9rem)_auto] sm:items-start sm:gap-3"
+              >
+                <span className="inline-flex max-w-full items-center rounded-md bg-white/[0.08] px-2 py-1.5 text-[11px] font-semibold leading-snug text-teal-100/95">
+                  {tipoUiLabel(tg, r.tipo)}
+                </span>
+                <p className="min-w-0 break-all text-sm font-medium text-app-fg">{r.valore}</p>
+                <div className="min-w-0">
+                  {r.motivo?.trim() ? (
+                    <p className="break-words text-xs leading-snug text-app-fg-muted">{r.motivo}</p>
+                  ) : (
+                    <span className="text-xs text-app-fg-subtle">—</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2 sm:flex-col sm:items-end sm:gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 text-[11px] tabular-nums text-app-fg-muted">
+                    <input
+                      type="checkbox"
+                      checked={r.attivo}
+                      disabled={busy}
+                      onChange={() => void toggle(r.id, !r.attivo)}
+                      className="rounded border-white/35"
+                    />
+                    {tg.ocrDiscardRulesColAttivo}
+                  </label>
+                  <button
+                    type="button"
                     disabled={busy}
-                    onChange={() => void toggle(r.id, !r.attivo)}
-                    className="rounded border-white/30"
-                  />
-                  {tg.ocrDiscardRulesColAttivo}
-                </label>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void del(r.id)}
-                  className="rounded-md border border-rose-500/35 bg-rose-950/30 px-2 py-1 text-[11px] font-semibold text-rose-100 hover:bg-rose-950/50 disabled:opacity-40"
-                >
-                  {tg.ocrDiscardRulesDelete}
-                </button>
-              </div>
-            </li>
-          ))}
+                    onClick={() => void del(r.id)}
+                    className="rounded-lg border border-rose-500/40 bg-rose-950/35 px-2.5 py-1 text-[11px] font-semibold text-rose-100 transition-colors hover:bg-rose-950/50 disabled:opacity-40"
+                  >
+                    {tg.ocrDiscardRulesDelete}
+                  </button>
+                </div>
+              </li>
+            ) : (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/25 px-2 py-2 text-xs"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-app-fg">
+                    <span className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-teal-100/95">
+                      {tipoUiLabel(tg, r.tipo)}
+                    </span>{' '}
+                    <span className="break-all">{r.valore}</span>
+                  </p>
+                  {r.motivo?.trim() ? (
+                    <p className="mt-1 text-[11px] text-app-fg-muted">{r.motivo}</p>
+                  ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <label className="flex items-center gap-1 text-[11px] text-app-fg-muted">
+                    <input
+                      type="checkbox"
+                      checked={r.attivo}
+                      disabled={busy}
+                      onChange={() => void toggle(r.id, !r.attivo)}
+                      className="rounded border-white/30"
+                    />
+                    {tg.ocrDiscardRulesColAttivo}
+                  </label>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void del(r.id)}
+                    className="rounded-md border border-rose-500/35 bg-rose-950/30 px-2 py-1 text-[11px] font-semibold text-rose-100 hover:bg-rose-950/50 disabled:opacity-40"
+                  >
+                    {tg.ocrDiscardRulesDelete}
+                  </button>
+                </div>
+              </li>
+            ),
+          )}
         </ul>
-      )}
+      </div>
+    )
+
+  return (
+    <div className={outerCls}>
+      {showIntroBlock ? (
+        <div>
+          <h3 className="text-sm font-semibold text-teal-100/95">{tg.ocrDiscardRulesTitle}</h3>
+          <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{tg.ocrDiscardRulesSubtitle}</p>
+        </div>
+      ) : null}
+
+      {composeForm}
+
+      <div className={variant === 'settingsPage' ? 'border-t border-app-line-20 pt-5' : undefined}>
+        {listBlock}
+      </div>
     </div>
   )
 }
