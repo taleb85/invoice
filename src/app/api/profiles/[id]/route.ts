@@ -6,7 +6,7 @@ const APP_ROLES = ['operatore', 'admin_sede', 'admin_tecnico', 'admin'] as const
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  segmentCtx: { params: Promise<{ id: string }> },
 ) {
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -25,7 +25,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
   }
 
-  const { id: targetId } = await params
+  const { id: targetId } = await segmentCtx.params
   const body = (await req.json()) as { full_name?: string | null; role?: string }
 
   const { data: target } = await svc

@@ -40,8 +40,8 @@ function duplicateHitsForFornitore(report: AllDuplicatesReport, fornitoreId: str
   return n
 }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id: fornitoreId } = await params
+export async function POST(req: NextRequest, segmentCtx: { params: Promise<{ id: string }> }) {
+  const { id: fornitoreId } = await segmentCtx.params
   if (!fornitoreId) return NextResponse.json({ error: 'ID mancante' }, { status: 400 })
 
   const profile = await getProfile()

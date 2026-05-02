@@ -4,9 +4,9 @@ import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  segmentCtx: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params
+  const { id } = await segmentCtx.params
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -43,9 +43,9 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  segmentCtx: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params
+  const { id } = await segmentCtx.params
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

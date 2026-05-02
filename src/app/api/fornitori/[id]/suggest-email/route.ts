@@ -34,9 +34,9 @@ function normEmail(s: string): string {
  */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  segmentCtx: { params: Promise<{ id: string }> },
 ) {
-  const { id: fornitoreId } = await params
+  const { id: fornitoreId } = await segmentCtx.params
 
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

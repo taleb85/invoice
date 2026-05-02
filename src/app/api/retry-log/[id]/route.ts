@@ -10,8 +10,8 @@ import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 // States that can be retried (any error state, regardless of which version created the log)
 const RETRYABLE_STATES = ['bolla_non_trovata', 'fornitore_non_trovato'] as const
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export async function POST(_req: Request, segmentCtx: { params: Promise<{ id: string }> }) {
+  const { id } = await segmentCtx.params
 
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

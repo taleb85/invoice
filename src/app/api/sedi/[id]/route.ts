@@ -10,7 +10,10 @@ const ALLOWED_CURRENCIES = ['GBP', 'EUR', 'USD', 'CHF', 'CAD', 'AUD', 'JPY', 'SE
 const ALLOWED_LANGS = ['it', 'en', 'fr', 'de', 'es']
 
 /** Nome sede + elenco «nomi cliente da ignorare» (merge default se vuoto nel DB). */
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _req: NextRequest,
+  segmentCtx: { params: Promise<{ id: string }> },
+) {
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -29,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { id: rawId } = await params
+  const { id: rawId } = await segmentCtx.params
   const id = String(rawId ?? '').trim()
   if (!id) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
@@ -80,7 +83,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  segmentCtx: { params: Promise<{ id: string }> },
 ) {
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -100,7 +103,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { id: rawId } = await params
+  const { id: rawId } = await segmentCtx.params
   const id = String(rawId ?? '').trim()
   if (!id) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
@@ -275,12 +278,12 @@ export async function PATCH(
 /** PATCH /api/sedi/[id]/fornitore-lang — sets language preference on a supplier */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  segmentCtx: { params: Promise<{ id: string }> },
 ) {
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await params
+  const { id } = await segmentCtx.params
   const body = await req.json() as { language?: string | null }
   const lang = body.language ?? null
 
