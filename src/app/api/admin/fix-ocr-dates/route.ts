@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { safeDate } from '@/lib/safe-date'
 import {
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
   const limit = Math.min(150, Math.max(1, Number(body?.limit) || 40))
   const sedeFromBody = typeof body.sede_id === 'string' ? body.sede_id.trim() : ''
 
-  if (isSedePrivilegedRole(profile.role)) {
+  if (isBranchSedeStaffRole(profile.role)) {
     if (!sedeFromBody) {
       return NextResponse.json({ error: 'sede_id obbligatorio' }, { status: 400 })
     }
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
     if (sedeFilter && fSede !== sedeFilter) {
       return NextResponse.json({ error: 'Sede non consentita per questo fornitore' }, { status: 403 })
     }
-    if (!sedeFilter && isSedePrivilegedRole(profile.role) && fSede !== profile.sede_id) {
+    if (!sedeFilter && isBranchSedeStaffRole(profile.role) && fSede !== profile.sede_id) {
       return NextResponse.json({ error: 'Sede non consentita per questo fornitore' }, { status: 403 })
     }
 
@@ -331,7 +331,7 @@ export async function POST(req: NextRequest) {
     if (sedeFilter && br.sede_id !== sedeFilter) {
       return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
     }
-    if (!sedeFilter && isSedePrivilegedRole(profile.role) && br.sede_id !== profile.sede_id) {
+    if (!sedeFilter && isBranchSedeStaffRole(profile.role) && br.sede_id !== profile.sede_id) {
       return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
     }
     queue = [{ kind: 'bolla', row: br }]
@@ -351,7 +351,7 @@ export async function POST(req: NextRequest) {
     if (sedeFilter && fr.sede_id !== sedeFilter) {
       return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
     }
-    if (!sedeFilter && isSedePrivilegedRole(profile.role) && fr.sede_id !== profile.sede_id) {
+    if (!sedeFilter && isBranchSedeStaffRole(profile.role) && fr.sede_id !== profile.sede_id) {
       return NextResponse.json({ error: 'Sede non consentita' }, { status: 403 })
     }
     queue = [{ kind: 'fattura', row: fr }]
