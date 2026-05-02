@@ -5,6 +5,11 @@ import { createServiceClient } from '@/utils/supabase/server'
 /** Lettura cookie come in `getCookieStore()` / `cookies()`. */
 export type ListPageCookieGet = (name: string) => { value?: string } | undefined
 
+function hasServiceRoleKey(): boolean {
+  const k = process.env.SUPABASE_SERVICE_ROLE_KEY
+  return typeof k === 'string' && k.trim() !== ''
+}
+
 async function firstSedeId(): Promise<string | null> {
   const service = createServiceClient()
   const { data } = await service
@@ -20,6 +25,37 @@ async function sedeIdIfExists(id: string): Promise<string | null> {
   const service = createServiceClient()
   const { data } = await service.from('sedi').select('id').eq('id', id).maybeSingle()
   return data?.id ?? null
+}
+
+/**
+ * Ultima sede nota da `device_sessions` (Accesso sede / PIN): stesso utente che ha perso
+ * `profiles.sede_id` può riaverla senza intervento admin, anche con più sedi nel tenant.
+ */
+async function healBranchStaffSedeFromLastDeviceSession(userId: string): Promise<string | null> {
+  const service = createServiceClient()
+  const { data, error } = await service
+    .from('device_sessions')
+    .select('sede_id')
+    .eq('profile_id', userId)
+    .order('last_seen_at', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error || !data || data.sede_id == null) return null
+  const raw = String(data.sede_id).trim()
+  if (!raw) return null
+  const exists = await sedeIdIfExists(raw)
+  if (!exists) return null
+  const { error: upErr } = await service
+    .from('profiles')
+    .update({ sede_id: exists })
+    .eq('id', userId)
+    .is('sede_id', null)
+  if (upErr) {
+    console.warn('[resolveActiveSedeIdForLists] heal from device_sessions failed', upErr)
+    return null
+  }
+  return exists
 }
 
 /**
@@ -43,6 +79,13 @@ async function healBranchStaffSedeIfSingleTenant(userId: string): Promise<string
     return null
   }
   return onlySedeId
+}
+
+async function healBranchStaffSedeOrphan(userId: string): Promise<string | null> {
+  if (!hasServiceRoleKey()) return null
+  return (
+    (await healBranchStaffSedeFromLastDeviceSession(userId)) ?? (await healBranchStaffSedeIfSingleTenant(userId))
+  )
 }
 
 /**
@@ -76,7 +119,7 @@ async function ensuredProfileBasics(
  * 3. `null` solo se non ci sono righe in `public.sedi`
  *
  * Staff sede (`admin_sede`, `admin_tecnico`, `operatore`): `profiles.sede_id` dalla riga utente — nessuna SELECT su `sedi` (evita RLS).
- * Eccezione: tenant con una sola sede e profilo staff senza `sede_id` → auto-riparazione (service role).
+ * Eccezione senza `sede_id`: auto-riparazione (service role) da ultimo `device_sessions`, altrimenti se esiste una sola sede nel DB.
  * Master dopo eventuale `sede_id` sul profilo: cookie + SELECT `sedi` solo con service role.
  */
 export async function resolveActiveSedeIdForLists(
@@ -97,7 +140,7 @@ export async function resolveActiveSedeIdForLists(
       data: { user },
     } = await supabase.auth.getUser()
     if (!user?.id) return null
-    return (await healBranchStaffSedeIfSingleTenant(user.id)) ?? null
+    return (await healBranchStaffSedeOrphan(user.id)) ?? null
   }
 
   const pick = getCookie('admin-sede-id')?.value?.trim() || null
