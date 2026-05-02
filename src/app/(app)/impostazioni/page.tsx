@@ -445,7 +445,7 @@ export default function ImpostazioniPage() {
 
       {/* ══ DESKTOP: stessa strip del mobile (back + icona + tray) senza header duplicato in card ══ */}
       <div className={`hidden min-h-0 w-full flex-1 flex-col md:flex ${APP_SHELL_SECTION_PAGE_STACK_CLASS}`}>
-        <div className="mx-auto w-full max-w-2xl flex-1">
+        <div className="mx-auto w-full max-w-6xl flex-1">
           <AppPageHeaderStrip
             dense
             flushBottom
