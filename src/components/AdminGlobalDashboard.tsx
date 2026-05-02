@@ -9,19 +9,16 @@ import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHea
 import type { SedeAdminGlobalOverviewRow } from '@/lib/dashboard-admin-sedi-overview'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT } from '@/lib/app-shell-layout'
-import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
 export type AdminGlobalSedeCard = SedeAdminGlobalOverviewRow
 
 export function AdminGlobalDashboard({
   t,
   sediCards,
-  erroriRecenti,
   associatedSedeNome = '',
 }: {
   t: Translations
   sediCards: AdminGlobalSedeCard[]
-  erroriRecenti: number
   /** Nome sede sul profilo (o contesto) per etichetta «Gestisci …» */
   associatedSedeNome?: string | null
 }) {
@@ -49,37 +46,6 @@ export function AdminGlobalDashboard({
             <p className="mt-1 hidden text-sm text-app-fg-muted md:block">{t.dashboard.adminGlobalSubtitle}</p>
             <p className="mt-1 text-xs text-app-fg-muted md:hidden">{t.dashboard.adminGlobalSubtitle}</p>
           </AppPageHeaderTitleWithDashboardShortcut>
-          <div className="-mx-4 flex w-[calc(100%+2rem)] min-w-0 shrink-0 flex-nowrap items-center justify-end gap-2 overflow-x-auto px-4 py-2.5 md:mx-0 md:w-auto md:overflow-visible md:px-0 md:py-0">
-            <Link
-              href="/log"
-              className={`inline-flex h-11 min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-lg px-3.5 py-0 text-xs font-semibold transition-colors whitespace-nowrap touch-manipulation ${
-                erroriRecenti > 0
-                  ? 'bg-red-950/60 text-red-200 ring-1 ring-red-500/40 hover:bg-red-950/80'
-                  : 'app-workspace-surface-elevated text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
-              }`}
-            >
-              {erroriRecenti > 0 && (
-                <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-0.5 text-[10px] font-bold text-white tabular-nums">
-                  {erroriRecenti > 9 ? '9+' : erroriRecenti}
-                </span>
-              )}
-              <svg className={`h-4 w-4 shrink-0 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                />
-              </svg>
-              <span>{t.dashboard.viewLog}</span>
-            </Link>
-            <Link
-              href="/sedi"
-              className="inline-flex min-h-[44px] items-center rounded-lg border border-app-line-25 bg-app-line-10 px-3 py-2 text-sm font-semibold text-app-fg-muted transition-colors hover:bg-app-line-15"
-            >
-              {manageSediText}
-            </Link>
-          </div>
         </AppPageHeaderStrip>
       </div>
 

@@ -84,7 +84,6 @@ export default async function DashboardPage(props: {
           <AdminGlobalDashboard
             t={t}
             sediCards={sediHealth}
-            erroriRecenti={erroriRecenti}
             associatedSedeNome=""
           />
         </div>
