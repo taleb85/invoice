@@ -362,11 +362,15 @@ export default function Sidebar({ onClose }: SidebarProps) {
           {navItems.slice(0, 1).map((item) => {
             const isActive = pathname === '/'
             const iconColor = (item as { iconColor?: string }).iconColor
-            // Master: prima voce = «Portale gestionale» sempre; senza sede attiva, al click si ripulisce il cookie sede.
-            const isGestionalePuro = isMasterAdmin && !activeSede
+            // Master: stessa voce del portale globale — al click si ripulisce sempre `admin-sede-id` (come l’ex pulsante nel pannello sedi).
             const label = isMasterAdmin ? t.sedi.adminRole : item.label
-            const handleClick = () => {
-              if (isGestionalePuro) clearSede()
+            const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              if (isMasterAdmin) {
+                e.preventDefault()
+                onClose?.()
+                clearSede()
+                return
+              }
               onClose?.()
               router.push(item.href)
             }
