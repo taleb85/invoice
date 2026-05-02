@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
-import { isCorporateSedeAdminRole, isMasterAdminRole } from '@/lib/roles'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 import { logActivity } from '@/lib/activity-logger'
 
 export async function POST(req: NextRequest) {
@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isCorporateSedeAdminRole(profile?.role)
+  const sedeAdmin = isAdminSedeRole(profile?.role)
   if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
 
   const { name, pin, sedeId, role } = await req.json()

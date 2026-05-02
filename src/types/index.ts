@@ -8,7 +8,7 @@ export interface Profile {
   id: string
   email: string | null
   sede_id: string | null
-  role: 'admin' | 'admin_sede' | 'admin_tecnico' | 'operatore'
+  role: 'admin' | 'admin_sede' | 'operatore'
   full_name: string | null
   created_at: string
   sedi?: Sede | null

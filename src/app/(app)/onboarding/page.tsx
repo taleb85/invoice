@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getProfile } from '@/utils/supabase/server'
-import { isCorporateSedeAdminRole, isMasterAdminRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 
 export const dynamic = 'force-dynamic'
@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic'
 export default async function OnboardingPage() {
   const profile = await getProfile()
   const isMaster = isMasterAdminRole(profile?.role)
-  const canAccessOnboardingAsSedeBoss = isCorporateSedeAdminRole(profile?.role)
+  const isAdminSede = isSedePrivilegedRole(profile?.role)
 
-  if (!isMaster && !canAccessOnboardingAsSedeBoss) {
+  if (!isMaster && !isAdminSede) {
     redirect('/')
   }
 

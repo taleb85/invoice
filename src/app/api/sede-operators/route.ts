@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
     const r = String(p?.role ?? '').toLowerCase()
-    if (!p?.sede_id || (r !== 'operatore' && r !== 'admin_sede' && r !== 'admin_tecnico')) {
+    if (!p?.sede_id || (r !== 'operatore' && r !== 'admin_sede')) {
       return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
     }
     return jsonForSedeId(p.sede_id)

@@ -469,7 +469,6 @@ export default function SediPage() {
   const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35'
 
   const isSedeScopedAdmin = adminListScope === 'sede'
-  const canHrUsersOnSediPage = me?.role !== 'admin_tecnico'
 
   return (
     <div className="w-full min-w-0 app-shell-page-padding space-y-6 md:space-y-8">
@@ -940,14 +939,12 @@ export default function SediPage() {
                             Accedi
                           </button>
                         )}
-                        {(!isSedeScopedAdmin || canHrUsersOnSediPage) ? (
                         <button onClick={() => setEditingSede({ id: sede.id, nome: sede.nome })}
                           className="p-1.5 text-app-fg-muted hover:text-app-fg hover:bg-black/18 rounded-lg transition-colors" title={t.sedi.renameTitle}>
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                           </svg>
                         </button>
-                        ) : null}
                         {!isSedeScopedAdmin ? (
                           <button
                             type="button"
@@ -968,7 +965,7 @@ export default function SediPage() {
                 {/* ── Azioni (accordion) ── */}
                 <div className={`border-t border-app-line-22 ${APP_SECTION_DIVIDE_ROWS}`}>
 
-                  {sedeProfiles.length > 0 && canHrUsersOnSediPage ? (
+                  {sedeProfiles.length > 0 ? (
                     <>
                       <button
                         type="button"
@@ -1051,9 +1048,8 @@ export default function SediPage() {
                                         onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
                                         className="h-9 w-full rounded-lg border border-app-line-25 px-2.5 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35 app-workspace-surface-elevated"
                                       >
-                                        <option value="operatore">{t.sedi.operatoreRole}</option>
+                                        <option value="operatore">Operatore</option>
                                         <option value="admin_sede">{t.sedi.adminSedeRole}</option>
-                                        <option value="admin_tecnico">{t.sedi.adminTecnicoRole}</option>
                                         {me?.is_admin ? (
                                           <option value="admin">{t.sedi.profileRoleAdmin}</option>
                                         ) : null}
@@ -1096,17 +1092,9 @@ export default function SediPage() {
                                       ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
                                       : p.role === 'admin_sede'
                                         ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
-                                        : p.role === 'admin_tecnico'
-                                          ? 'bg-cyan-500/15 text-cyan-100 ring-cyan-500/35'
-                                          : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
+                                        : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                                   }`}>
-                                    {p.role === 'admin'
-                                      ? t.sedi.profileRoleAdmin
-                                      : p.role === 'admin_sede'
-                                        ? t.sedi.adminSedeRoleShort
-                                        : p.role === 'admin_tecnico'
-                                          ? t.sedi.adminTecnicoRoleShort
-                                          : t.sedi.operatoreRoleShort}
+                                    {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
                                   </span>
                                   {p.role === 'operatore' && (
                                     <button
@@ -1207,8 +1195,6 @@ export default function SediPage() {
                   ) : null}
 
                   {/* Crea operatore */}
-                  {canHrUsersOnSediPage ? (
-                  <>
                   <button type="button"
                     onClick={() => { setCreateUserOpen(createUserOpen === sede.id ? null : sede.id); setCreateUserMsg(null); setNewUserPassword(''); setNewUserName('') }}
                     className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-app-fg-muted hover:bg-black/12 transition-colors"
@@ -1271,8 +1257,6 @@ export default function SediPage() {
                       </div>
                     </div>
                   )}
-                  </>
-                  ) : null}
 
                   {/* Codice accesso */}
                   <button type="button"
@@ -1559,18 +1543,10 @@ export default function SediPage() {
                           ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
                           : p.role === 'admin_sede'
                             ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
-                            : p.role === 'admin_tecnico'
-                              ? 'bg-cyan-500/15 text-cyan-100 ring-cyan-500/35'
-                              : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
+                            : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                       }`}
                     >
-                      {p.role === 'admin'
-                        ? t.sedi.profileRoleAdmin
-                        : p.role === 'admin_sede'
-                          ? t.sedi.adminSedeRoleShort
-                          : p.role === 'admin_tecnico'
-                            ? t.sedi.adminTecnicoRoleShort
-                            : t.sedi.operatoreRoleShort}
+                      {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
                     </span>
                     <button
                       type="button"

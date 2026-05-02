@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { isMasterAdminRole, isAdminSedeRole } from '@/lib/roles'
 import {
   processLegacyPendingDoc,
   type LegacyPendingDocRow,
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (role === 'operatore') {
     return NextResponse.json({ error: 'Operatore: non autorizzato' }, { status: 403 })
   }
-  if (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role)) {
+  if (!isMasterAdminRole(profile.role) && !isAdminSedeRole(profile.role)) {
     return NextResponse.json({ error: 'Solo amministratore o responsabile sede' }, { status: 403 })
   }
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     fiscalPgBounds = getFiscalYearPgBounds(fiscalCcRaw, fiscalYy)
   }
 
-  if (isSedePrivilegedRole(profile.role)) {
+  if (isAdminSedeRole(profile.role)) {
     if (!sedeFromBody) {
       return NextResponse.json({ error: 'sede_id obbligatorio' }, { status: 400 })
     }

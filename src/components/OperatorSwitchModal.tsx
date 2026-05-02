@@ -12,7 +12,7 @@ const PIN_LENGTH = 4
 interface Operator {
   id:        string
   full_name: string
-  role:      'operatore' | 'admin_sede' | 'admin_tecnico'
+  role:      'operatore' | 'admin_sede'
 }
 
 type Step = 'select' | 'pin'
@@ -88,12 +88,7 @@ export default function OperatorSwitchModal() {
             merged.push({
               id:        o.id,
               full_name: o.full_name ?? '',
-              role: ((): Operator['role'] => {
-                const rr = String(o.role ?? '').toLowerCase()
-                if (rr === 'admin_sede') return 'admin_sede'
-                if (rr === 'admin_tecnico') return 'admin_tecnico'
-                return 'operatore'
-              })(),
+              role:      o.role === 'admin_sede' ? 'admin_sede' : 'operatore',
             })
           }
         }
@@ -176,23 +171,18 @@ export default function OperatorSwitchModal() {
         return
       }
       await createClient().auth.refreshSession().catch(() => {})
-      const fluxoPinRole = ((): 'operatore' | 'admin_sede' | 'admin_tecnico' => {
-        const rr = String(data.role ?? '').toLowerCase()
-        if (rr === 'admin_sede') return 'admin_sede'
-        if (rr === 'admin_tecnico') return 'admin_tecnico'
-        return 'operatore'
-      })()
       const op: ActiveOperator = {
         id:        data.id,
         full_name: data.full_name,
         sede_id:   data.sede_id,
         sede_nome: data.sede_nome,
-        role:      fluxoPinRole,
+        role:      data.role === 'admin_sede' ? 'admin_sede' : 'operatore',
       }
       setActiveOperator(op, me?.user?.id ?? null)
       if (me?.is_admin && typeof data.sede_id === 'string' && data.sede_id) {
         document.cookie = `admin-sede-id=${encodeURIComponent(data.sede_id)}; path=/; SameSite=Strict`
-        document.cookie = `fluxo-acting-role=${encodeURIComponent(fluxoPinRole)}; path=/; SameSite=Strict`
+        const ar = data.role === 'admin_sede' ? 'admin_sede' : 'operatore'
+        document.cookie = `fluxo-acting-role=${encodeURIComponent(ar)}; path=/; SameSite=Strict`
       }
       try {
         window.dispatchEvent(

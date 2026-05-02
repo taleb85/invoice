@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import {
-  isAdminTecnicoRole,
-  isCorporateSedeAdminRole,
-  isMasterAdminRole,
-} from '@/lib/roles'
+import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
 
-const APP_ROLES = ['operatore', 'admin_sede', 'admin_tecnico', 'admin'] as const
+const APP_ROLES = ['operatore', 'admin_sede', 'admin'] as const
 
 export async function PATCH(
   req: NextRequest,
@@ -25,11 +21,8 @@ export async function PATCH(
     .single()
 
   const master = isMasterAdminRole(caller?.role)
-  const corporate = isCorporateSedeAdminRole(caller?.role)
-  const technical = isAdminTecnicoRole(caller?.role)
-
-  // `admin_tecnico` può aggiornare solo il proprio `full_name` (nessuna gestione utenti della sede).
-  if (!master && !corporate && !technical) {
+  const sedeAdmin = isAdminSedeRole(caller?.role)
+  if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
   }
 
@@ -47,16 +40,7 @@ export async function PATCH(
 
   const targetRole = String(target.role ?? '').toLowerCase()
 
-  if (technical && !corporate && !master) {
-    if (targetId !== user.id) {
-      return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
-    }
-    if (body.role !== undefined) {
-      return NextResponse.json({ error: 'Non puoi modificare ruoli dalla console tecnica sede.' }, { status: 403 })
-    }
-  }
-
-  if (corporate) {
+  if (sedeAdmin) {
     if (!caller?.sede_id || target.sede_id !== caller.sede_id) {
       return NextResponse.json({ error: 'Puoi modificare solo profili della tua sede.' }, { status: 403 })
     }
@@ -65,7 +49,7 @@ export async function PATCH(
     }
     if (body.role !== undefined) {
       const r = String(body.role).toLowerCase()
-      if (r !== 'operatore' && r !== 'admin_sede' && r !== 'admin_tecnico') {
+      if (r !== 'operatore' && r !== 'admin_sede') {
         return NextResponse.json({ error: 'Ruolo non consentito.' }, { status: 403 })
       }
     }

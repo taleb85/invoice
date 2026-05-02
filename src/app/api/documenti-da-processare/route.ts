@@ -17,7 +17,6 @@ import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { processLegacyPendingDoc, type LegacyPendingDocRow } from '@/lib/reprocess-pending-docs-ocr'
 import { safeDate } from '@/lib/safe-date'
-import { isSedePrivilegedRole } from '@/lib/roles'
 
 type DocRowFinalizza = {
   fornitore_id: string | null
@@ -346,9 +345,9 @@ export async function GET(req: NextRequest) {
     .single()
 
   const isMasterAdmin = profile?.role === 'admin'
-  const isPrivilegedSede = isSedePrivilegedRole(profile?.role)
+  const isAdminSede = profile?.role === 'admin_sede'
 
-  if (isPrivilegedSede && sedeId && profile?.sede_id && sedeId !== profile.sede_id) {
+  if (isAdminSede && sedeId && profile?.sede_id && sedeId !== profile.sede_id) {
     return NextResponse.json({ error: 'sede_id non consentito' }, { status: 403 })
   }
 

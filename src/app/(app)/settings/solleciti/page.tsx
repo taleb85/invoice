@@ -11,10 +11,7 @@ export default async function SollecitiSettingsPage() {
   if (!user) redirect('/login')
 
   const profile = await getProfile()
-  if (
-    !profile ||
-    (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role))
-  ) {
+  if (!profile || !['admin', 'admin_sede'].includes(profile.role)) {
     redirect('/impostazioni')
   }
 

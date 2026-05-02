@@ -824,8 +824,13 @@ body {
   opacity: 1;
 }
 
-/* Desktop lg+: due tratti verticali sul perimetro sidebar (sinistra/destra del rail).
-   Contesto stacking: sopra viene la colonna dei link (#app-shell / aside wrapper z-[1]). */
+/* Desktop lg+: due tratti verticali sul perimetro sidebar (sinistra/destra del rail) */
+/* Nessun punto di hit: deve restare decorative rispetto ai link nella rail. */
+#app-desktop-sidebar-nav-progress,
+#app-desktop-sidebar-nav-progress * {
+  pointer-events: none !important;
+}
+
 .navigation-top-progress--desktop-sidebar-perimeter {
   position: absolute;
   inset: 0;
@@ -846,19 +851,7 @@ body {
   display: block;
   width: 100%;
   height: 100%;
-  /* Il wrapper ha già pointer-events: none ma i figli SVG possono essere target dei click di default —
-     coprono tutta la sidebar e bloccano Link nella rail (es. Gestisci …). */
-  pointer-events: none;
   filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.2));
-}
-
-/*
- * `#app-desktop-sidebar-nav-progress`: overlay assoluto sull’intera aside (`AppShell.tsx`).
- * Qualsiasi figlio sensibile ai click sopra gli item nav fa finire tap su `[href="/"]`/home invece di `/sedi`.
- */
-#app-desktop-sidebar-nav-progress,
-#app-desktop-sidebar-nav-progress * {
-  pointer-events: none !important;
 }
 
 .navigation-top-progress--visible {

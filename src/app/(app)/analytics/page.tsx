@@ -22,10 +22,7 @@ type SearchParamsShape = { fy?: string; months?: string }
 
 export default async function AnalyticsPage(props: { searchParams: Promise<SearchParamsShape> }) {
   const profile = await getProfile()
-  if (
-    !profile ||
-    (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role))
-  ) {
+  if (!profile || !['admin', 'admin_sede'].includes(profile.role ?? '')) {
     redirect('/')
   }
 

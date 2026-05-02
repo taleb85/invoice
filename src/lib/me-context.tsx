@@ -18,7 +18,7 @@ export interface MeData {
   user:         { id: string; email: string } | null
   /** `profiles.full_name` — nome mostrato in UI (es. sidebar) quando non c'è operatore attivo nel contesto */
   full_name:    string | null
-  role:         'admin' | 'admin_sede' | 'admin_tecnico' | 'operatore' | null
+  role:         'admin' | 'admin_sede' | 'operatore' | null
   sede_id:      string | null
   sede_nome:    string | null
   country_code: string
@@ -28,10 +28,8 @@ export interface MeData {
   timezone:     string
   /** Admin Master (tutte le sedi) */
   is_admin:     boolean
-  /** Responsabile di sede: gestione anche utenti/PIN sulla `sede_id` */
+  /** Responsabile di sede: permessi elevati solo su `sede_id` */
   is_admin_sede: boolean
-  /** Amministratore tecnico: stessi strumenti operativi sulla sede, senza gestione altri utenti dalla UI/API HR */
-  is_admin_tecnico: boolean
   all_sedi:     { id: string; nome: string }[]
   /** False only for master admin with zero sedi configured — triggers onboarding */
   onboarding_complete: boolean
@@ -80,9 +78,7 @@ function parseMeResponse(data: Record<string, unknown>): MeData {
       ? 'admin'
       : raw === 'admin_sede'
         ? 'admin_sede'
-        : raw === 'admin_tecnico'
-          ? 'admin_tecnico'
-          : raw === 'operatore'
+        : raw === 'operatore'
           ? 'operatore'
           : null
   return {
@@ -96,7 +92,6 @@ function parseMeResponse(data: Record<string, unknown>): MeData {
     timezone:      (data.timezone as string) ?? 'Europe/London',
     is_admin:      !!(data.is_admin) || role === 'admin',
     is_admin_sede: !!(data.is_admin_sede) || role === 'admin_sede',
-    is_admin_tecnico: !!(data.is_admin_tecnico) || role === 'admin_tecnico',
     all_sedi:      (data.all_sedi as MeData['all_sedi']) ?? [],
     onboarding_complete: typeof data.onboarding_complete === 'boolean' ? data.onboarding_complete : true,
   }

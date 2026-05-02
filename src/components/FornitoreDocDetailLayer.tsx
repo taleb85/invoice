@@ -432,7 +432,7 @@ function FatturaLayerBody({
 
   const formatDate = (d: string) => formatDateLib(d, locale, timezone, { day: '2-digit', month: 'short', year: 'numeric' })
 
-  const isAdmin = Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
+  const isAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
 
   const handleDelete = async () => {
     if (!fattura) return
@@ -486,7 +486,7 @@ function FatturaLayerBody({
   }
 
   if (fattura.file_url?.trim()) {
-    const listinoAdmin = Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
+    const listinoAdmin = Boolean(me?.is_admin || me?.is_admin_sede)
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <FornitoreInlineDocPreview

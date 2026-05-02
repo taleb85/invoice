@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export async function POST(req: NextRequest) {
   if (!process.env.VAPID_PRIVATE_KEY || !process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) {
@@ -21,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   if (!hasCronSecret) {
     const profile = await getProfile()
-    if (!isMasterAdminRole(profile?.role) && !isSedePrivilegedRole(profile?.role)) {
+    if (profile?.role !== 'admin' && profile?.role !== 'admin_sede') {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
     }
   }

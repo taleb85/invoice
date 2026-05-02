@@ -190,7 +190,7 @@ export default function DashboardMobileBottomNav() {
   const { activeOperator } = useActiveOperator()
   const { pendingCount, isOnline } = useOfflineSync()
 
-  const role: 'admin' | 'admin_sede' | 'admin_tecnico' | 'operatore' | null = me?.role ?? null
+  const role: 'admin' | 'admin_sede' | 'operatore' | null = me?.role ?? null
   const showOfflineBadge = !isOnline && pendingCount > 0
 
   const normalized = normalizeAppPath(pathname)

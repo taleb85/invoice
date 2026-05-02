@@ -1766,7 +1766,7 @@ function BolleTab({
   const [ocrProgressStep, setOcrProgressStep] = useState(0)
   const ocrStepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const canRianalizzaOcr = Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
+  const canRianalizzaOcr = Boolean(me?.is_admin || me?.is_admin_sede)
   const supplierReturnPath = useMemo(
     () => buildListLocationPath(pathname, searchParams),
     [pathname, searchParams],
@@ -1793,7 +1793,7 @@ function BolleTab({
           sede_id?: string
           allow_tipo_migrate: boolean
         } = { bolla_id: bollaId, limit: 1, allow_tipo_migrate: true }
-        if ((me?.is_admin_sede || me?.is_admin_tecnico) && me.sede_id) body.sede_id = me.sede_id
+        if (me?.is_admin_sede && me.sede_id) body.sede_id = me.sede_id
         const res = await fetch('/api/admin/fix-ocr-dates', {
           method: 'POST',
           cache: 'no-store',
@@ -1844,7 +1844,7 @@ function BolleTab({
         setOcrBusyId(null)
       }
     },
-    [me?.is_admin_sede, me?.is_admin_tecnico, me?.sede_id, onLedgerMutated, t.bolle],
+    [me?.is_admin_sede, me?.sede_id, onLedgerMutated, t.bolle],
   )
 
   const runConvertBollaToFattura = useCallback(
@@ -5144,7 +5144,7 @@ function FornitoreDetailClient({
     reloadFornitore?.()
   }, [reloadFornitore])
 
-  const canRunOcrFornitore = Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico) && !supplierReadOnlyMobile
+  const canRunOcrFornitore = Boolean(me?.is_admin || me?.is_admin_sede) && !supplierReadOnlyMobile
   const [analisiCompletaBusy, setAnalisiCompletaBusy] = useState(false)
   const [analisiCompletaFlash, setAnalisiCompletaFlash] = useState<{ text: string; ok: boolean } | null>(null)
 

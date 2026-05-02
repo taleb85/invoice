@@ -57,8 +57,8 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
 
   const profile = await getProfile()
   const isMasterAdmin = profile?.role === 'admin'
-  const isCorporateSede = profile?.role === 'admin_sede' && profile?.sede_id === sede_id
-  const canManageSedeOperators = isMasterAdmin || isCorporateSede
+  const isAdminSede = profile?.role === 'admin_sede' && profile?.sede_id === sede_id
+  const canManageSedeOperators = isMasterAdmin || isAdminSede
 
   const tDashboard = await getT()
 

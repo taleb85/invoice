@@ -487,10 +487,10 @@ function AppShellMain({ children }: { children: React.ReactNode }) {
             suppressHydrationWarning
             aria-label="Navigazione principale"
             className={[
+              // `isolate`: stacking per il decorative progress sotto ai link (`z` del wrapper sopra il layer assoluto).
               'app-sidebar-aside app-shell-rail-clear hidden min-h-0 w-full min-w-0 shrink-0 lg:col-start-1 lg:row-start-1 lg:flex lg:h-full lg:min-h-0 lg:flex-col lg:self-stretch lg:overflow-visible lg:relative lg:isolate lg:z-auto',
             ].join(' ')}
           >
-            {/* Deco progress route: dietro ai link (portal); non sopra nella paint order */}
             <div
               ref={bindDesktopSidebarNavHost}
               id={APP_DESKTOP_SIDEBAR_NAV_PROGRESS_ANCHOR_ID}

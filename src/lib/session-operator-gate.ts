@@ -33,5 +33,5 @@ export function isSessionOperatorGateOk(): boolean {
 
 export function branchSessionGateRequiredRole(role: string | null | undefined): boolean {
   const r = String(role ?? '').toLowerCase()
-  return r === 'operatore' || r === 'admin_sede' || r === 'admin_tecnico'
+  return r === 'operatore' || r === 'admin_sede'
 }

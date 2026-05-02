@@ -9,7 +9,6 @@ import {
   SOLLECITI_APP_TO_LEGACY_CHIAVE,
   SOLLECITI_CONFIG_CHIAVI,
 } from '@/lib/sollecito-aging'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export type SaveSollecitiSettingsResult =
   | { ok: true }
@@ -167,10 +166,7 @@ export async function saveSollecitiSettingsAction(
   if (!user) return { ok: false, error: 'not_authenticated' }
 
   const profile = await getProfile()
-  if (
-    !profile ||
-    (!isMasterAdminRole(profile.role) && !isSedePrivilegedRole(profile.role))
-  ) {
+  if (!profile || !['admin', 'admin_sede'].includes(profile.role)) {
     return { ok: false, error: 'forbidden' }
   }
 
