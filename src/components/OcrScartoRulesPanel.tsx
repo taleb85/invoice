@@ -141,11 +141,8 @@ export default function OcrScartoRulesPanel({
   const composeForm =
     variant === 'settingsPage' ? (
       <div className="rounded-xl border border-app-line-28 bg-black/[0.12] p-4 ring-1 ring-white/[0.04] sm:p-5">
-        <div className="border-b border-app-line-22 pb-4">
-          <h3 className="text-sm font-semibold text-app-fg">{tg.ocrDiscardRulesAdd}</h3>
-        </div>
-        <div className="grid gap-6 pt-5 sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-8 lg:grid-cols-[minmax(0,17rem)_1fr]">
-          <label className={settingsFormLabelCls}>
+        <div className="flex flex-col-reverse items-stretch gap-4 border-b border-app-line-22 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <label className={`${settingsFormLabelCls} min-w-0 flex-1 sm:max-w-lg`}>
             <span className="text-app-fg">{tg.ocrDiscardRulesColTipo}</span>
             <select
               value={tipo}
@@ -159,37 +156,35 @@ export default function OcrScartoRulesPanel({
               ))}
             </select>
           </label>
-          <div className="flex min-w-0 flex-col gap-4">
-            <label className={settingsFormLabelCls}>
-              <span className="text-app-fg">{tg.ocrDiscardRulesColValore}</span>
-              <input
-                value={valore}
-                onChange={(e) => setValore(e.target.value)}
-                placeholder={tg.ocrDiscardRulesValorePlaceholder}
-                className={fieldCls}
-              />
-            </label>
-            <label className={`${settingsFormLabelCls} gap-1.5`}>
-              <span className="text-app-fg">{tg.ocrDiscardRulesColMotivo}</span>
-              <input
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                placeholder={tg.ocrDiscardRulesMotivoPlaceholder}
-                className={fieldCls}
-              />
-              <p className="text-[11px] font-normal leading-relaxed text-app-fg-muted">{tg.ocrDiscardRulesMotivoHint}</p>
-            </label>
-            <div className="flex justify-end border-t border-app-line-20 pt-4">
-              <button
-                type="button"
-                disabled={busy || !valore.trim()}
-                onClick={() => void addRule()}
-                className="rounded-lg bg-teal-600/90 px-4 py-2.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-teal-600 disabled:opacity-35"
-              >
-                {tg.ocrDiscardRulesAdd}
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            disabled={busy || !valore.trim()}
+            onClick={() => void addRule()}
+            className="shrink-0 rounded-lg bg-teal-600/90 px-4 py-2.5 text-sm font-bold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-teal-600 disabled:opacity-35 sm:self-end"
+          >
+            {tg.ocrDiscardRulesAdd}
+          </button>
+        </div>
+        <div className="flex flex-col gap-4 pt-5">
+          <label className={settingsFormLabelCls}>
+            <span className="text-app-fg">{tg.ocrDiscardRulesColValore}</span>
+            <input
+              value={valore}
+              onChange={(e) => setValore(e.target.value)}
+              placeholder={tg.ocrDiscardRulesValorePlaceholder}
+              className={fieldCls}
+            />
+          </label>
+          <label className={`${settingsFormLabelCls} gap-1.5`}>
+            <span className="text-app-fg">{tg.ocrDiscardRulesColMotivo}</span>
+            <input
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder={tg.ocrDiscardRulesMotivoPlaceholder}
+              className={fieldCls}
+            />
+            <p className="text-[11px] font-normal leading-relaxed text-app-fg-muted">{tg.ocrDiscardRulesMotivoHint}</p>
+          </label>
         </div>
       </div>
     ) : (
