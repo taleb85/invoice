@@ -12,7 +12,7 @@ export default async function SollecitiSettingsPage() {
 
   const profile = await getProfile()
   if (!profile || !isSedePrivilegedRole(profile.role)) {
-    redirect('/impostazioni')
+    redirect('/strumenti/impostazioni')
   }
 
   const initial = await fetchSollecitiReminderSettings(supabase)
