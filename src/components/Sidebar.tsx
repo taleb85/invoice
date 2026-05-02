@@ -818,7 +818,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <span className="truncate">{t.nav.impostazioni}</span>
               </Link>
               <Link
-                href="/strumenti/centro-operazioni"
+                href="/strumenti"
                 title={t.strumentiCentroOperazioni.pageTitle}
                 onClick={() => setFooterOpen(false)}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors ${
@@ -912,7 +912,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
 
             <Link
-              href="/strumenti/centro-operazioni"
+              href="/strumenti"
               title={t.strumentiCentroOperazioni.pageTitle}
               className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 ${pathname?.startsWith('/strumenti') ? 'text-cyan-300' : 'text-app-fg-subtle hover:text-app-fg'}`}
             >
