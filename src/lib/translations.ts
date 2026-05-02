@@ -1426,6 +1426,15 @@ type Translations = {
   approvalSettings: {
     autoRegisterTitle: string
     autoRegisterDescription: string
+    requireApprovalTitle: string
+    requireApprovalDescription: string
+    thresholdLabel: string
+    /** `{threshold}` = importo numerico configurato */
+    thresholdHint: string
+    saveSettings: string
+    savingSettings: string
+    savedSettings: string
+    saveFailedFallback: string
   }
   statements: {
     // page heading
@@ -3175,6 +3184,15 @@ const it: Translations = {
     autoRegisterTitle: 'Registrazione automatica fatture AI',
     autoRegisterDescription:
       'Le fatture riconosciute con certezza dall’AI vengono registrate automaticamente senza conferma manuale.',
+    requireApprovalTitle: 'Richiedi approvazione',
+    requireApprovalDescription: 'Le fatture sopra soglia richiedono approvazione admin.',
+    thresholdLabel: 'Soglia importo (£)',
+    thresholdHint:
+      'Fatture con importo pari o superiore a £{threshold} richiederanno conferma prima della registrazione.',
+    saveSettings: 'Salva impostazioni',
+    savingSettings: 'Salvataggio…',
+    savedSettings: 'Salvato',
+    saveFailedFallback: 'Salvataggio fallito. Riprova.',
   },
   statements: {
     heading: 'Verifica Estratti Conto Mensili',
@@ -4004,6 +4022,14 @@ const en: Translations = {
     autoRegisterTitle: 'Automatic AI invoice registration',
     autoRegisterDescription:
       'Invoices the AI is confident about are saved automatically without manual confirmation.',
+    requireApprovalTitle: 'Require approval',
+    requireApprovalDescription: 'Invoices above the threshold need admin approval.',
+    thresholdLabel: 'Amount threshold (£)',
+    thresholdHint: 'Invoices with amount ≥ £{threshold} require approval before registration.',
+    saveSettings: 'Save settings',
+    savingSettings: 'Saving…',
+    savedSettings: 'Saved',
+    saveFailedFallback: 'Could not save. Try again.',
   },
   statements: {
     heading: 'Monthly Statement Verification',
@@ -4782,6 +4808,16 @@ const es: Translations = {
     autoRegisterTitle: 'Registro automático de facturas por IA',
     autoRegisterDescription:
       'Las facturas que la IA identifica con certeza se registran automáticamente sin confirmación manual.',
+    requireApprovalTitle: 'Pedir aprobación',
+    requireApprovalDescription:
+      'Las facturas por encima del umbral requieren aprobación administrativa.',
+    thresholdLabel: 'Umbral importe (£)',
+    thresholdHint:
+      'Los importes desde £{threshold} requerirán aprobación antes de registrarse.',
+    saveSettings: 'Guardar configuración',
+    savingSettings: 'Guardando…',
+    savedSettings: 'Guardado',
+    saveFailedFallback: 'No se pudieron guardar los ajustes.',
   },
   statements: {
     heading: 'Verificación de Extractos Mensuales',
@@ -5556,6 +5592,16 @@ const fr: Translations = {
     autoRegisterTitle: 'Enregistrement automatique des factures IA',
     autoRegisterDescription:
       'Les factures reconnues avec certitude par l’IA sont enregistrées automatiquement sans confirmation manuelle.',
+    requireApprovalTitle: 'Exiger validation',
+    requireApprovalDescription:
+      'Au-dessus du seuil, les factures doivent être validées par un administrateur.',
+    thresholdLabel: 'Seuil montant (£)',
+    thresholdHint:
+      'Les factures avec un montant ≥ £{threshold} nécessiteront une validation avant enregistrement.',
+    saveSettings: 'Enregistrer les paramètres',
+    savingSettings: 'Enregistrement…',
+    savedSettings: 'Enregistré',
+    saveFailedFallback: 'Impossible d’enregistrer. Réessayez.',
   },
   statements: {
     heading: 'Vérification des Relevés Mensuels',
@@ -6329,6 +6375,16 @@ const de: Translations = {
     autoRegisterTitle: 'Automatische KI-Rechnungsregistrierung',
     autoRegisterDescription:
       'Rechnungen, die die KI zuverlässig erkennt, werden ohne manuelle Bestätigung gespeichert.',
+    requireApprovalTitle: 'Freigabe verlangen',
+    requireApprovalDescription:
+      'Rechnungen über dem Schwellbetrag müssen durch eine Admin-Person freigegeben werden.',
+    thresholdLabel: 'Schwellbetrag (£)',
+    thresholdHint:
+      'Mit Betrag ≥ £{threshold} erfolgt keine automatische Buchung ohne Freigabe.',
+    saveSettings: 'Einstellungen speichern',
+    savingSettings: 'Wird gespeichert…',
+    savedSettings: 'Gespeichert',
+    saveFailedFallback: 'Speichern fehlgeschlagen.',
   },
   statements: {
     heading: 'Monatliche Kontoauszugs-Prüfung',
