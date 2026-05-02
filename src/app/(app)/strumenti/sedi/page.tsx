@@ -409,6 +409,31 @@ export default function SediPage() {
     await loadData()
   }
 
+  const handleToggleRetention = async (sede: SedeWithCounts) => {
+    const isEnabled = sede.file_retention_policy !== 'keep'
+    const newPolicy = isEnabled ? 'keep' : 'delete_only'
+    setSedi((prev) =>
+      prev.map((s) => s.id === sede.id ? { ...s, file_retention_policy: newPolicy } : s)
+    )
+    const res = await fetch(`/api/sedi/${sede.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file_retention_policy: newPolicy,
+        file_retention_days: FILE_ATTACHMENT_RETENTION_DAYS,
+        file_retention_months: null,
+        ...(newPolicy !== 'keep' && { file_retention_run_day: sede.file_retention_run_day ?? 1 }),
+      }),
+    })
+    if (!res.ok) {
+      setSedi((prev) =>
+        prev.map((s) => s.id === sede.id ? { ...s, file_retention_policy: sede.file_retention_policy } : s)
+      )
+      const d = await res.json().catch(() => ({}))
+      setError(typeof d.error === 'string' ? d.error : t.appStrings.sedeErrUpdating)
+    }
+  }
+
   useEffect(() => { loadData() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -546,6 +571,34 @@ export default function SediPage() {
 
       {error && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
       {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
+
+      {FILE_ATTACHMENT_RETENTION_UI_ENABLED && sedi.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-app-line-28">
+          <div className="px-4 py-3 border-b border-app-line-22 app-workspace-inset-bg-soft">
+            <p className="text-sm font-semibold text-app-fg">{t.sedi.fileRetentionSectionTitle}</p>
+            <p className="mt-0.5 text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
+          </div>
+          <div className="divide-y divide-app-line-18">
+            {sedi.map((sede) => {
+              const enabled = sede.file_retention_policy !== 'keep'
+              return (
+                <div key={sede.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="text-sm text-app-fg">{sede.nome}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleRetention(sede)}
+                    aria-checked={enabled}
+                    role="switch"
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? 'bg-[#22d3ee]' : 'bg-app-line-30'}`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Sedi list */}
       <div>
