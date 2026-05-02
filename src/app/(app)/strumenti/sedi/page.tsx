@@ -544,42 +544,11 @@ export default function SediPage() {
     <div className="w-full min-w-0 app-shell-page-padding">
       <div className="app-card min-w-0 space-y-6 p-4 sm:p-5 md:space-y-8 md:p-6">
 
-      <AppPageHeaderStrip
-        accent="teal"
-        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
-        icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
-      >
-        <AppPageHeaderTitleWithDashboardShortcut>
-          <h1 id="page-sedi-title" className={APP_PAGE_HEADER_STRIP_H1_CLASS} aria-describedby="page-sedi-desc">
-            {t.sedi.titleGlobalAdmin}
-          </h1>
-          <p id="page-sedi-desc" className={APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS}>
-            {t.sedi.subtitleGlobalAdmin}
-          </p>
-        </AppPageHeaderTitleWithDashboardShortcut>
-        {!isSedeScopedAdmin ? (
-          <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-            <button
-              type="button"
-              onClick={openWizard}
-              className="flex shrink-0 items-center gap-2 rounded-lg bg-app-cyan-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-cyan-600 md:px-4 md:py-2.5"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span className="hidden sm:inline">{t.sedi.newSede}</span>
-              <span className="sm:hidden">Nuova</span>
-            </button>
-          </div>
-        ) : null}
-      </AppPageHeaderStrip>
-
       {error && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
       {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
 
       {/* Sedi list */}
       <div>
-        <h2 className="text-base font-semibold text-app-fg mb-3">{t.sedi.titleGlobalAdmin} ({sedi.length})</h2>
         {sedi.length === 0 ? (
           <div className="app-workspace-inset-bg-soft border border-dashed border-app-line-25 rounded-xl p-8 text-center">
             <p className="text-app-fg-muted text-sm mb-4">{t.sedi.noSedi}</p>
