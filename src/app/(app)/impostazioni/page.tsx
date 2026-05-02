@@ -146,10 +146,8 @@ function SollecitiSettingsLinkCard() {
     }
   }, [])
 
-  const reloadSollecitiAfterSave = async () => {
-    const supabase = createClient()
-    const data = await fetchSollecitiReminderSettings(supabase)
-    setSollecitiInitial(data)
+  const reloadSollecitiAfterSave = (saved: SollecitiReminderSettings) => {
+    setSollecitiInitial(saved)
     setEmbeddedSession((n) => n + 1)
   }
 

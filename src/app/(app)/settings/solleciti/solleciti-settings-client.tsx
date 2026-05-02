@@ -16,8 +16,8 @@ type Props = {
   initial: SollecitiReminderSettings
   /** Solo form (pagina Impostazioni / cassetto); senza header full-page. */
   variant?: 'page' | 'embedded'
-  /** Dopo salvataggio riuscito (es. ricarico dati lato contenitore). */
-  onPersisted?: () => void | Promise<void>
+  /** Dopo salvataggio riuscito: riceve i valori appena persistiti per evitare re-fetch lato client (RLS). */
+  onPersisted?: (saved: SollecitiReminderSettings) => void | Promise<void>
 }
 
 function numOrZero(v: string): number {
@@ -56,7 +56,12 @@ export default function SollecitiSettingsClient({ initial, variant = 'page', onP
       if (res.ok) {
         setMsg('saved')
         try {
-          await onPersisted?.()
+          await onPersisted?.({
+            autoSollecitiEnabled: autoOn,
+            giorniTolBolla: payload.giorniTolBolla,
+            giorniTolPromessa: payload.giorniTolPromessa,
+            giorniTolEstrattoMismatch: payload.giorniTolEstrattoMismatch,
+          })
         } catch {
           /* optional refetch failed */
         }
