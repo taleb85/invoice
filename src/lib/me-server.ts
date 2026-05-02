@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { getRequestAuth } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import type { MeData } from '@/lib/me-context'
 import { isCorporateSedeAdminRole, isMasterAdminRole, isAdminTecnicoRole } from '@/lib/roles'
 
@@ -25,13 +25,25 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
   const { supabase, user } = await getRequestAuth()
   if (!user) return { ok: false, kind: 'unauth' }
 
-  const { data: profile, error: profileErr } = await supabase
-    .from('profiles')
-    .select('role, sede_id, full_name, sedi(id, nome, country_code, currency, timezone)')
-    .eq('id', user.id)
-    .single()
+  const PROFILE_SELECT =
+    'role, sede_id, full_name, sedi(id, nome, country_code, currency, timezone)' as const
 
-  if (profileErr || !profile) return { ok: false, kind: 'noprofile' }
+  let { data: profile, error: profileErr } = await supabase
+    .from('profiles')
+    .select(PROFILE_SELECT)
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!profile) {
+    const svc = createServiceClient()
+    const r = await svc.from('profiles').select(PROFILE_SELECT).eq('id', user.id).maybeSingle()
+    profile = r.data
+    if (!profile && profileErr?.message) {
+      console.warn('[loadAppMeShellResult] profile user-bound read:', profileErr.message)
+    }
+  }
+
+  if (!profile) return { ok: false, kind: 'noprofile' }
 
   const isAdmin = isMasterAdminRole(profile.role)
   const isCorporateSedeAdmin = isCorporateSedeAdminRole(profile.role)

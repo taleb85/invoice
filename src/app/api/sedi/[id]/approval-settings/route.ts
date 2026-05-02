@@ -1,28 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { sameSedeId } from '@/lib/sede-id-match'
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, sede_id')
-    .eq('id', user.id)
-    .single()
+  const profile = await getProfile()
+  if (!profile) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
-  const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isSedePrivilegedRole(profile?.role)
+  const isMaster = isMasterAdminRole(profile.role)
+  const isAdminSede = isSedePrivilegedRole(profile.role)
   if (!isMaster && !isAdminSede) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
-  if (isAdminSede && !isMaster && profile?.sede_id !== id) {
+  if (isAdminSede && !isMaster && !sameSedeId(profile.sede_id, id)) {
     return NextResponse.json({ error: 'Accesso negato a questa sede' }, { status: 403 })
   }
 
@@ -46,22 +43,18 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, sede_id')
-    .eq('id', user.id)
-    .single()
+  const profile = await getProfile()
+  if (!profile) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
 
-  const isMaster = isMasterAdminRole(profile?.role)
-  const isAdminSede = isSedePrivilegedRole(profile?.role)
+  const isMaster = isMasterAdminRole(profile.role)
+  const isAdminSede = isSedePrivilegedRole(profile.role)
   if (!isMaster && !isAdminSede) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
-  if (isAdminSede && !isMaster && profile?.sede_id !== id) {
+  if (isAdminSede && !isMaster && !sameSedeId(profile.sede_id, id)) {
     return NextResponse.json({ error: 'Accesso negato a questa sede' }, { status: 403 })
   }
 

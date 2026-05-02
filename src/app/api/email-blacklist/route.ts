@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getRequestAuth, getProfile } from '@/utils/supabase/server'
 import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import {
   normalizeBlacklistMittente,
   parseEmailBlacklistMotivo,
   EMAIL_BLACKLIST_MOTIVI,
 } from '@/lib/email-scan-blacklist'
+import { sameSedeId } from '@/lib/sede-id-match'
 
 function targetSedeId(profile: { role?: string | null; sede_id?: string | null }, bodySede?: string): string | null {
   const master = isMasterAdminRole(profile?.role)
@@ -15,15 +16,14 @@ function targetSedeId(profile: { role?: string | null; sede_id?: string | null }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
-  const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isSedePrivilegedRole(profile?.role)
+  const profile = await getProfile()
+  if (!profile) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+
+  const master = isMasterAdminRole(profile.role)
+  const sedeAdmin = isSedePrivilegedRole(profile.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
   const motivoFilter = req.nextUrl.searchParams.get('motivo')
   const sedeParam = req.nextUrl.searchParams.get('sede_id')
 
-  const sedeId = sedeParam?.trim() || profile?.sede_id || null
-  if (!master && sedeParam && sedeParam !== profile?.sede_id) {
+  const sedeId = sedeParam?.trim() || profile.sede_id || null
+  if (!master && sedeParam && !sameSedeId(sedeParam, profile.sede_id)) {
     return NextResponse.json({ error: 'Puoi leggere solo la blacklist della tua sede' }, { status: 403 })
   }
   if (!sedeId) {
@@ -69,10 +69,7 @@ export async function GET(req: NextRequest) {
 
 // ── POST ──────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const body = (await req.json()) as { mittente?: string; motivo?: string; sede_id?: string }
@@ -89,18 +86,20 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
-  const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isSedePrivilegedRole(profile?.role)
+  const profile = await getProfile()
+  if (!profile) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+
+  const master = isMasterAdminRole(profile.role)
+  const sedeAdmin = isSedePrivilegedRole(profile.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 
-  const sede_id = targetSedeId(profile as { role?: string | null; sede_id?: string | null }, body.sede_id)
+  const sede_id = targetSedeId(profile, body.sede_id)
   if (!sede_id) {
     return NextResponse.json({ error: 'Sede richiesta sul profilo' }, { status: 400 })
   }
-  if (sedeAdmin && profile?.sede_id !== sede_id) {
+  if (sedeAdmin && !sameSedeId(profile.sede_id, sede_id)) {
     return NextResponse.json({ error: 'Puoi modificare solo la blacklist della tua sede' }, { status: 403 })
   }
 
@@ -130,10 +129,7 @@ export async function POST(req: NextRequest) {
 
 // ── DELETE ────────────────────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const mittente = req.nextUrl.searchParams.get('mittente')?.trim()
@@ -141,20 +137,22 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'mittente mancante' }, { status: 400 })
   }
 
-  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
-  const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isSedePrivilegedRole(profile?.role)
+  const profile = await getProfile()
+  if (!profile) return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
+
+  const master = isMasterAdminRole(profile.role)
+  const sedeAdmin = isSedePrivilegedRole(profile.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 
   const sedeParam = req.nextUrl.searchParams.get('sede_id')?.trim()
-  const sedeId = sedeParam || profile?.sede_id || null
+  const sedeId = sedeParam || profile.sede_id || null
   if (!sedeId) return NextResponse.json({ error: 'sede richiesta' }, { status: 400 })
-  if (!master && sedeParam && sedeParam !== profile?.sede_id) {
+  if (!master && sedeParam && !sameSedeId(sedeParam, profile.sede_id)) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
-  if (sedeAdmin && profile?.sede_id !== sedeId) {
+  if (sedeAdmin && !sameSedeId(profile.sede_id, sedeId)) {
     return NextResponse.json({ error: 'Puoi modificare solo la blacklist della tua sede' }, { status: 403 })
   }
 

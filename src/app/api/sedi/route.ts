@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (!isMasterAdminRole(profile?.role)) {
+  const profile = await getProfile()
+  if (!profile || !isMasterAdminRole(profile.role)) {
     return NextResponse.json({ error: 'Solo l\'admin può creare sedi' }, { status: 403 })
   }
 
@@ -45,28 +39,26 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, sede_id')
-    .eq('id', user.id)
-    .single()
+  const profile = await getProfile()
+  if (!profile) {
+    return NextResponse.json({ error: 'Profilo non trovato.' }, { status: 403 })
+  }
 
-  const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isSedePrivilegedRole(profile?.role)
+  const master = isMasterAdminRole(profile.role)
+  const sedeAdmin = isSedePrivilegedRole(profile.role)
   if (!master && !sedeAdmin) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
   }
-  if (sedeAdmin && !profile?.sede_id?.trim()) {
+  if (sedeAdmin && !profile.sede_id?.trim()) {
     return NextResponse.json({ error: 'Profilo sede non configurato.' }, { status: 403 })
   }
 
   const scopedSedeId = sedeAdmin
-    ? profile!.sede_id!.trim()
-    : (profile?.sede_id?.trim() || null)
+    ? profile.sede_id!.trim()
+    : (profile.sede_id?.trim() || null)
   /** `global` = admin master senza sede; `sede` = vista limitata a una filiale. */
   const adminListScope: 'global' | 'sede' = scopedSedeId ? 'sede' : 'global'
 

@@ -69,11 +69,26 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   const { supabase, user } = await getRequestAuth()
   if (!user) return null
 
-  const { data } = await supabase
+  let { data, error } = await supabase
     .from('profiles')
     .select('*, sedi(id, nome, created_at)')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
+
+  if (!data) {
+    const svc = createServiceClient()
+    const r = await svc
+      .from('profiles')
+      .select('*, sedi(id, nome, created_at)')
+      .eq('id', user.id)
+      .maybeSingle()
+    data = r.data
+    if (r.error?.message && !data) console.warn('[getProfile] fallback service read failed:', r.error.message)
+  }
+
+  if (!data && error?.message && !String(error.code ?? '').includes('PGRST')) {
+    console.warn('[getProfile] user-bound read:', error.message)
+  }
 
   return (data as Profile) ?? null
 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient, getProfile } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { sameSedeId } from '@/lib/sede-id-match'
 import { logActivity } from '@/lib/activity-logger'
 
 export async function POST(req: NextRequest) {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
   }
 
   // admin_sede can only approve fatture from their own sede
-  if (isAdminSede && !isMaster && profile?.sede_id !== (fattura as { sede_id?: string }).sede_id) {
+  if (isAdminSede && !isMaster && !sameSedeId(profile?.sede_id, (fattura as { sede_id?: string }).sede_id)) {
     return NextResponse.json({ error: 'Accesso negato a questa fattura' }, { status: 403 })
   }
 
