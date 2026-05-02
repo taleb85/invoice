@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import DuplicateDashboardBanner from '@/components/duplicates/duplicate-dashboard-banner'
 import AdminSedeViewBanner from '@/components/AdminSedeViewBanner'
-import { getT, getLocale, getCurrency, getCookieStore, getTimezone } from '@/lib/locale-server'
+import { getT, getLocale, getCurrency, getCookieStore } from '@/lib/locale-server'
 import { countSyncLogErrors24h } from '@/lib/dashboard-notification-counts'
 import {
   DEFAULT_OPERATOR_DASHBOARD_KPIS,
@@ -64,11 +64,10 @@ export default async function DashboardPage(props: {
 
   /** Master senza sede nel cookie: dashboard globale se ci sono sedi, altrimenti onboarding. */
   if (isMasterAdmin && operationalSedeId === null) {
-    const [erroriRecenti, emailBodySupplierHints, portalBundle, appTz] = await Promise.all([
+    const [erroriRecenti, emailBodySupplierHints, portalBundle] = await Promise.all([
       countSyncLogErrors24h(supabase),
       fetchRecurringEmailBodySupplierHints(supabase),
       fetchAdminGlobalPortalBundle(supabase),
-      getTimezone(),
     ])
     const sediHealth = portalBundle.sediHealth
 
@@ -85,9 +84,6 @@ export default async function DashboardPage(props: {
           <AdminGlobalDashboard
             t={t}
             sediCards={sediHealth}
-            consoleEvents={portalBundle.consoleEvents}
-            appLocale={locale}
-            appTimezone={appTz}
             erroriRecenti={erroriRecenti}
             associatedSedeNome=""
           />

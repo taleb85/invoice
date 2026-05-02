@@ -1,58 +1,31 @@
 import Link from 'next/link'
-import type { Translations, Locale } from '@/lib/translations'
+import type { Translations } from '@/lib/translations'
 import { getLocale as getCountryLocale, type CountryCode } from '@/lib/localization'
 import { LocaleCodeChip } from '@/components/ui/glyph-icons'
 import { AdminSelectSedeButton } from '@/components/AdminSelectSedeButton'
 import { dashboardManageSediLabel } from '@/lib/gestisci-sede-label'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
-import type { SedeAdminGlobalOverviewRow, AdminGlobalConsoleEvent } from '@/lib/dashboard-admin-sedi-overview'
+import type { SedeAdminGlobalOverviewRow } from '@/lib/dashboard-admin-sedi-overview'
 import AppSectionEmptyState from '@/components/AppSectionEmptyState'
 import { APP_SECTION_EMPTY_LINK_CLASS_COMPACT } from '@/lib/app-shell-layout'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
-import { formatDate } from '@/lib/locale-shared'
-import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 
 export type AdminGlobalSedeCard = SedeAdminGlobalOverviewRow
 
 export function AdminGlobalDashboard({
   t,
   sediCards,
-  consoleEvents,
-  appLocale,
-  appTimezone,
   erroriRecenti,
   associatedSedeNome = '',
 }: {
   t: Translations
   sediCards: AdminGlobalSedeCard[]
-  consoleEvents: AdminGlobalConsoleEvent[]
-  appLocale: Locale
-  appTimezone: string
   erroriRecenti: number
   /** Nome sede sul profilo (o contesto) per etichetta «Gestisci …» */
   associatedSedeNome?: string | null
 }) {
   const manageSediText = dashboardManageSediLabel(t, associatedSedeNome ?? '')
-
-  function consoleStatoLabel(evt: AdminGlobalConsoleEvent): string {
-    if (evt.channel === 'imap') return t.dashboard.adminGlobalConsoleChannelImap
-    if (evt.statoKey === 'fornitore_non_trovato') return t.dashboard.adminGlobalConsoleStatoSupplier
-    if (evt.statoKey === 'bolla_non_trovata') return t.dashboard.adminGlobalConsoleStatoBolla
-    return evt.statoKey
-  }
-
-  function consoleTimeLabel(iso: string): string {
-    if (iso.startsWith('1970-01-01T00:00:00')) return t.dashboard.adminGlobalConsoleTimeUnknown
-    const formatted = formatDate(iso, appLocale, appTimezone, {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-    return formatted || iso
-  }
 
   return (
     <div className="w-full min-w-0">
@@ -109,71 +82,6 @@ export function AdminGlobalDashboard({
           </div>
         </AppPageHeaderStrip>
       </div>
-
-      <section
-        className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} mb-8 flex flex-col border-app-line-35 p-0`}
-        aria-label={t.dashboard.adminGlobalConsoleAria}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-app-line-22 px-4 py-3">
-          <div>
-            <h2 className="text-sm font-semibold text-app-fg">{t.dashboard.adminGlobalConsoleTitle}</h2>
-            <p className="mt-0.5 text-xs text-app-fg-muted">{t.dashboard.adminGlobalConsoleSubtitle}</p>
-          </div>
-          <Link
-            href="/log"
-            className="shrink-0 text-xs font-semibold text-app-cyan-400 hover:text-cyan-200 hover:underline"
-          >
-            {t.dashboard.adminGlobalConsoleOpenLog}
-          </Link>
-        </div>
-        {consoleEvents.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-app-fg-muted">{t.dashboard.adminGlobalConsoleEmpty}</p>
-        ) : (
-          <div
-            className="max-h-[min(22rem,50vh)] overflow-y-auto overflow-x-auto px-3 py-2 font-mono text-[11px] leading-relaxed sm:text-xs"
-            tabIndex={0}
-          >
-            <ul className="space-y-0">
-              {consoleEvents.map((evt) => {
-                const sedeDisplay = evt.sedeNome === '—' ? t.dashboard.adminGlobalConsoleUnknownSede : evt.sedeNome
-                const tag = consoleStatoLabel(evt)
-                const att =
-                  evt.allegatoNome?.trim() &&
-                  `${t.dashboard.adminGlobalConsoleAttachment}: ${evt.allegatoNome.trim()}`
-                const lineDetail = [evt.detail.trim(), att].filter(Boolean).join(' · ')
-                return (
-                  <li
-                    key={evt.id}
-                    className="grid border-b border-app-line-15/80 py-2 last:border-b-0 sm:grid-cols-[minmax(7.5rem,auto)_minmax(5rem,auto)_minmax(5rem,1fr)_minmax(0,1fr)] sm:gap-x-3"
-                  >
-                    <span className="whitespace-nowrap text-slate-500 tabular-nums">{consoleTimeLabel(evt.occurredAt)}</span>
-                    <span
-                      className={`whitespace-nowrap font-semibold uppercase tracking-wide ${
-                        evt.channel === 'imap' ? 'text-amber-400' : 'text-rose-300/95'
-                      }`}
-                    >
-                      {tag}
-                    </span>
-                    <span className="min-w-0 sm:max-w-[14rem]">
-                      {evt.sedeId ? (
-                        <Link
-                          href={`/sedi/${evt.sedeId}`}
-                          className="truncate font-semibold text-cyan-300/95 hover:text-cyan-100 hover:underline"
-                        >
-                          {sedeDisplay}
-                        </Link>
-                      ) : (
-                        <span className="text-slate-400">{sedeDisplay}</span>
-                      )}
-                    </span>
-                    <span className="min-w-0 break-words text-slate-300/95">{lineDetail || '—'}</span>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        )}
-      </section>
 
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-semibold text-app-fg">{t.dashboard.sedeOverview}</h2>
