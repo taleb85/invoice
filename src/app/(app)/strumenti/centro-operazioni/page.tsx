@@ -346,7 +346,6 @@ export default function CentroOperazioniPage() {
         </AppPageHeaderStrip>
         <div className="mt-6 space-y-10">
           <div className="grid min-w-0 w-full grid-cols-1 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:gap-y-10 xl:gap-x-10">
-            <div className="flex min-h-0 min-w-0 flex-col gap-y-10">
               <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-sync">
                 <OpsSectionTitle id="ops-section-sync">{s.sectionSyncEmail}</OpsSectionTitle>
                 <div className="flex min-h-0 min-w-0 flex-col gap-4">
@@ -475,9 +474,7 @@ export default function CentroOperazioniPage() {
                   </article>
                 </div>
               </section>
-            </div>
 
-            <div className="flex min-h-0 min-w-0 flex-col gap-y-10">
               <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-ocr">
                 <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
 
@@ -542,8 +539,6 @@ export default function CentroOperazioniPage() {
                   />
                 </div>
               </section>
-
-            </div>
 
           </div>
 
