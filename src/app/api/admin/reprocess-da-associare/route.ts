@@ -8,15 +8,17 @@ import {
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+/** Allineato a cron/scan OCR pesanti; su Hobby Vercel resta comunque il tetto ~60s — batch piccolo sotto. */
+export const maxDuration = 300
 
-const BATCH = 20
+/** Per richiesta: resta sotto timeout gateway (~60s su Hobby anche se maxDuration è più alto sul Pro). */
+const BATCH = 3
 const FETCH_CAP = 120
 
 type Body = { sede_id?: string }
 
 /**
- * POST — Documenti `da_associare` con fornitore già collegato e file: OCR + auto fattura/bolla (batch 20).
+ * POST — Documenti `da_associare` con fornitore già collegato e file: OCR + auto fattura/bolla (piccolo batch per richiesta).
  * Storicamente restati senza `metadata.ocr_tipo` o con OCR incompleto.
  */
 export async function POST(req: NextRequest) {
@@ -86,7 +88,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: fetchErr.message }, { status: 500 })
   }
 
-  const batch = ((rowsRaw ?? []) as LegacyPendingDocRow[]).slice(0, BATCH)
+  const candidates = ((rowsRaw ?? []) as LegacyPendingDocRow[])
+  const batch = candidates.slice(0, BATCH)
 
   let processed = 0
   let auto_saved = 0
@@ -112,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const totalFetched = (rowsRaw ?? []).length
+  const totalFetched = candidates.length
 
   return NextResponse.json({
     processed,
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
     errors,
     batch_size: batch.length,
     fetched: totalFetched,
-    has_more_candidates: totalFetched >= FETCH_CAP,
+    /** Altri candidati nella query corrente o possibili righe oltre il FETCH_CAP. */
+    has_more_candidates: totalFetched >= FETCH_CAP || totalFetched > batch.length,
   })
 }

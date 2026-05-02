@@ -44,7 +44,12 @@ export function useReprocessDaAssociare(opts: {
       })
       const j = (await res.json().catch(() => ({}))) as ReprocessResponse
       if (!res.ok) {
-        setError(j.error ?? `HTTP ${res.status}`)
+        setError(
+          j.error ??
+            (res.status === 504
+              ? 'Timeout (504): la richiesta ha impiegato troppo tempo. Riprova: vengono elaborati solo pochi documenti per singola richiesta.'
+              : `HTTP ${res.status}`),
+        )
         return
       }
       const more =
