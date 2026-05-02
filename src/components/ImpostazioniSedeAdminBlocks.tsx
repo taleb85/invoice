@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import Link from 'next/link'
 import { useLocale } from '@/lib/locale-context'
 import SedeOcrIgnoreNamesEditor from '@/components/SedeOcrIgnoreNamesEditor'
@@ -15,6 +15,14 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
   const imp = t.impostazioni
   const [initialNames, setInitialNames] = useState<string[] | null>(null)
   const [loadErr, setLoadErr] = useState(false)
+  const [discardDrawerOpen, setDiscardDrawerOpen] = useState(false)
+  const [approvalDrawerOpen, setApprovalDrawerOpen] = useState(false)
+  const discardDrawerHookId = useId()
+  const approvalDrawerHookId = useId()
+  const discardToggleId = `sede-scarto-rules-toggle-${discardDrawerHookId}`
+  const discardRegionId = `sede-scarto-rules-region-${discardDrawerHookId}`
+  const approvalToggleId = `sede-approval-toggle-${approvalDrawerHookId}`
+  const approvalRegionId = `sede-approval-region-${approvalDrawerHookId}`
 
   useEffect(() => {
     let cancelled = false
@@ -60,48 +68,112 @@ export default function ImpostazioniSedeAdminBlocks({ sedeId }: { sedeId: string
       <SedeOcrIgnoreNamesEditor sedeId={sedeId} initialNames={initialNames} canEdit />
 
       <div className="app-card min-h-0 min-w-0 overflow-hidden">
-        <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/12 ring-1 ring-teal-500/25">
-            <svg className="h-5 w-5 text-teal-300/95" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
+        <div className="app-workspace-inset-bg-soft p-5">
+          <button
+            type="button"
+            id={discardToggleId}
+            aria-expanded={discardDrawerOpen}
+            aria-controls={discardRegionId}
+            aria-label={
+              discardDrawerOpen
+                ? 'Chiudi gestione regole di scarto documenti OCR'
+                : 'Apri gestione regole di scarto documenti OCR'
+            }
+            onClick={() => setDiscardDrawerOpen((v) => !v)}
+            className="flex w-full min-w-0 items-start gap-4 rounded-xl text-left outline-none ring-app-cyan-500/40 transition hover:bg-black/[0.06] focus-visible:ring-2"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/12 ring-1 ring-teal-500/25">
+              <svg className="h-5 w-5 text-teal-300/95" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">OCR</p>
+              <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg">{t.log.ocrDiscardRulesTitle}</p>
+              <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
+              {!discardDrawerOpen ? (
+                <p className="mt-1.5 text-xs text-app-fg-muted">Clicca per aprire e modificare.</p>
+              ) : null}
+            </div>
+            <svg
+              className={`mt-2 h-5 w-5 shrink-0 text-app-fg-muted transition-transform duration-200 ${discardDrawerOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">OCR</p>
-            <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg">{t.log.ocrDiscardRulesTitle}</p>
-            <p className="mt-1 text-xs leading-snug text-app-fg-muted">{t.log.ocrDiscardRulesSubtitle}</p>
-          </div>
+          </button>
         </div>
-        <div className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5">
-          <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
-        </div>
+        {discardDrawerOpen ? (
+          <div
+            id={discardRegionId}
+            role="region"
+            aria-labelledby={discardToggleId}
+            className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5"
+          >
+            <OcrScartoRulesPanel sedeId={sedeId} variant="settingsPage" />
+          </div>
+        ) : null}
       </div>
 
       <div className="app-card min-h-0 min-w-0 overflow-hidden">
-        <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
-            <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+        <div className="app-workspace-inset-bg-soft p-5">
+          <button
+            type="button"
+            id={approvalToggleId}
+            aria-expanded={approvalDrawerOpen}
+            aria-controls={approvalRegionId}
+            aria-label={
+              approvalDrawerOpen ? 'Chiudi impostazioni approvazione fatture' : 'Apri impostazioni approvazione fatture'
+            }
+            onClick={() => setApprovalDrawerOpen((v) => !v)}
+            className="flex w-full min-w-0 items-start gap-4 rounded-xl text-left outline-none ring-app-cyan-500/40 transition hover:bg-black/[0.06] focus-visible:ring-2"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
+              <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{imp.approvalSectionTitle}</p>
+              <p className="mt-1 text-xs leading-snug text-app-fg-muted">{imp.approvalSectionSubtitle}</p>
+              {!approvalDrawerOpen ? (
+                <p className="mt-1.5 text-xs text-app-fg-muted">Clicca per aprire e modificare.</p>
+              ) : null}
+            </div>
+            <svg
+              className={`mt-2 h-5 w-5 shrink-0 text-app-fg-muted transition-transform duration-200 ${approvalDrawerOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{imp.approvalSectionTitle}</p>
-            <p className="mt-1 text-xs leading-snug text-app-fg-muted">{imp.approvalSectionSubtitle}</p>
-          </div>
+          </button>
         </div>
-        <div className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5">
-          <ApprovalSettingsForm sedeId={sedeId} />
-        </div>
+        {approvalDrawerOpen ? (
+          <div
+            id={approvalRegionId}
+            role="region"
+            aria-labelledby={approvalToggleId}
+            className="border-t border-app-line-30 app-workspace-inset-bg-soft p-5"
+          >
+            <ApprovalSettingsForm sedeId={sedeId} />
+          </div>
+        ) : null}
       </div>
     </div>
   )
