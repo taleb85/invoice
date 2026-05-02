@@ -851,6 +851,15 @@ body {
   filter: drop-shadow(0 0 2px rgba(6, 182, 212, 0.2));
 }
 
+/*
+ * `#app-desktop-sidebar-nav-progress`: overlay assoluto sull’intera aside (`AppShell.tsx`).
+ * Qualsiasi figlio sensibile ai click sopra gli item nav fa finire tap su `[href="/"]`/home invece di `/sedi`.
+ */
+#app-desktop-sidebar-nav-progress,
+#app-desktop-sidebar-nav-progress * {
+  pointer-events: none !important;
+}
+
 .navigation-top-progress--visible {
   opacity: 1;
 }

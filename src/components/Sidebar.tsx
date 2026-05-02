@@ -342,7 +342,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       suppressHydrationWarning
       className="app-shell-rail-panel flex min-h-0 min-w-0 flex-1 flex-col px-2.5 lg:px-3"
     >
-        <nav className="app-shell-rail-panel relative z-0 flex min-h-0 flex-1 flex-col text-app-fg">
+        <nav className="app-shell-rail-panel relative z-[80] flex min-h-0 flex-1 flex-col text-app-fg">
           <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto py-2">
           {/* Dashboard / Portale Gestionale */}
           {navItems.slice(0, 1).map((item) => {

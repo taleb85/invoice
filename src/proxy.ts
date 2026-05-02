@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
 import { NextResponse, type NextRequest } from 'next/server'
-import { isSedePrivilegedRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 /** Rotte accessibili senza autenticazione */
 const PUBLIC_PATHS = [
@@ -88,11 +88,10 @@ export async function proxy(request: NextRequest) {
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  const role = profile?.role ?? ''
-  const isMasterAdmin = role === 'admin'
-  const isPrivilegedSede = isSedePrivilegedRole(role)
+  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  const isPrivilegedSede = isSedePrivilegedRole(profile?.role)
 
   if (isMasterAdminOnlyPath(pathname)) {
     if (!isMasterAdmin) {
