@@ -22,6 +22,7 @@ import {
 } from 'recharts'
 
 import { clearAiUsageLogAction } from '@/app/(app)/consumi-ai/actions'
+import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 
 /** ── Date helpers (calendar locale browser, anno fiscale UK = 6 aprile) ── */
 
@@ -548,8 +549,8 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
     }, [data])
 
     return (
-    <div className="app-card min-w-0 overflow-hidden">
-      <div className="app-workspace-inset-bg-soft px-5 pb-5 pt-5">
+    <div className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} min-w-0 flex flex-col border-app-line-35 p-0`}>
+      <div className="px-4 py-5 sm:px-5">
         {loading && !data && (
           <div className="flex items-center justify-center py-10">
             <svg
