@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 
 export type FixOcrDetailRow = {
   id: string
@@ -43,11 +44,12 @@ function actionLabelIt(a: FixOcrDetailRow['action']): string {
 }
 
 /**
- * Correggi date sospette (Gemini) — stessa logica della pagina Impostazioni.
+ * Correggi date sospette (Gemini) — usato nel Centro operazioni (sede effettiva = cookie PIN / contesto sede).
  */
 export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
+  const { effectiveSedeId } = useManualDeliverySede()
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -57,7 +59,7 @@ export default function FixOcrDatesCard({ anchorId }: { anchorId?: string }) {
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
-  const sedeId = me?.sede_id ?? null
+  const sedeId = effectiveSedeId
   const show = !!(sedeId && (masterPlane || isAdminSede))
 
   if (!show) return null

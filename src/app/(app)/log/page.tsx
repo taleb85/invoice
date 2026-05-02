@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { LogEmailActivityTabs } from '@/components/LogEmailActivityTabs'
 import EmailBlacklistPanel from '@/components/EmailBlacklistPanel'
-import OcrScartoRulesPanel from '@/components/OcrScartoRulesPanel'
 import { type LogRowView } from '@/components/EmailActivityLogPanel'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
@@ -256,7 +255,6 @@ export default async function LogPage(props: {
             <div className="app-card overflow-hidden">
               <div className="min-w-0 flex-1 p-4 md:p-5">
                 <EmailBlacklistPanel sedeId={blacklistSedeId} />
-                <OcrScartoRulesPanel sedeId={blacklistSedeId} />
               </div>
             </div>
           ) : (

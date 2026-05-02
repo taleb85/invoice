@@ -15,9 +15,6 @@ import DashboardOperatorKpiGrid, { DashboardOperatorKpiSkeleton } from '@/compon
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import DashboardFiscalYearHeaderSelect from '@/components/DashboardFiscalYearHeaderSelect'
-import { ApprovalSettingsForm } from '@/components/approval/approval-settings-form'
-import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
-import SedeOcrIgnoreNamesEditor from '@/components/SedeOcrIgnoreNamesEditor'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 
 interface SedeProfile {
@@ -28,14 +25,13 @@ interface SedeProfile {
   country_code: string
   fornitori_count: number
   operators_count: number
-  ocrClienteIgnoreNames: string[]
 }
 
 async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
   const service = createServiceClient()
   const { data: sede } = await service
     .from('sedi')
-    .select('id, nome, imap_user, imap_host, country_code, nomi_cliente_da_ignorare')
+    .select('id, nome, imap_user, imap_host, country_code')
     .eq('id', sedeId)
     .single()
 
@@ -46,14 +42,6 @@ async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
     service.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
   ])
 
-  const rawIgnored = (
-    sede as { nomi_cliente_da_ignorare?: string[] | null }
-  ).nomi_cliente_da_ignorare
-  const ocrClienteIgnoreNames =
-    Array.isArray(rawIgnored) && rawIgnored.length > 0
-      ? rawIgnored.filter((x): x is string => typeof x === 'string' && !!x.trim())
-      : [...DEFAULT_NOMI_CLIENTE_DA_IGNORARE]
-
   return {
     id: sede.id,
     nome: sede.nome,
@@ -62,7 +50,6 @@ async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
     country_code: (sede as { country_code?: string }).country_code ?? 'UK',
     fornitori_count: fornitori_count ?? 0,
     operators_count: operators_count ?? 0,
-    ocrClienteIgnoreNames,
   }
 }
 
@@ -266,35 +253,6 @@ export default async function SedeProfilePage(props: {
           </div>
         </Link>
       </div>
-
-      {/* OCR: nomi cliente da non confondere con fornitore */}
-      {(isMasterAdmin || isAdminSede) && (
-        <div className="mb-6">
-          <SedeOcrIgnoreNamesEditor
-            sedeId={sede_id}
-            initialNames={sede.ocrClienteIgnoreNames}
-            canEdit={canManageSedeOperators}
-          />
-        </div>
-      )}
-
-      {/* Approval settings */}
-      {(isMasterAdmin || isAdminSede) && (
-        <div className="rounded-2xl border border-app-line-22 bg-[#0f172b]/60 p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15">
-              <svg className="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-app-fg">Approvazione fatture</p>
-              <p className="text-xs text-app-fg-muted">Configura la soglia per l&apos;approvazione manuale</p>
-            </div>
-          </div>
-          <ApprovalSettingsForm sedeId={sede_id} />
-        </div>
-      )}
 
       {/* IMAP not configured warning */}
       {!imapConfigured && (

@@ -19,8 +19,9 @@ import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
-import DuplicateManager from '@/components/duplicates/duplicate-manager'
-import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
+import ImpostazioniSedeAdminBlocks from '@/components/ImpostazioniSedeAdminBlocks'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+
 function ProfileMobileHub() {
   const { me } = useMe()
   const { openSwitchModal, activeOperator } = useActiveOperator()
@@ -146,12 +147,21 @@ function SollecitiSettingsLinkCard() {
   )
 }
 
-/** Scheda rapida per accedere alla configurazione IMAP della sede attiva. */
+/** Scheda rapida per accedere alla configurazione IMAP della sede effettiva (JWT o contesto PIN/cookie). */
 function ImapConfigCard() {
   const { me } = useMe()
   const { t } = useLocale()
-  const sedeId = me?.sede_id ?? null
-  const sedeNome = me?.sede_nome ?? null
+  const { effectiveSedeId } = useManualDeliverySede()
+  const sedeId = effectiveSedeId ?? me?.sede_id ?? null
+  const im = t.impostazioni
+
+  const nameMatchesProfile = !!(sedeId && me?.sede_id?.trim() === sedeId)
+  const displayPart =
+    nameMatchesProfile && me?.sede_nome?.trim()
+      ? me.sede_nome.trim()
+      : sedeId
+        ? im.imapBranchSessionTitle
+        : null
 
   if (!sedeId) return null
 
@@ -164,14 +174,12 @@ function ImapConfigCard() {
           </svg>
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-            {t.impostazioni.imapSection ?? 'Email IMAP'}
-          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{im.imapSection ?? 'Email IMAP'}</p>
           <p className="mt-0.5 text-sm font-semibold text-app-fg">
-            {sedeNome ? `Sede: ${sedeNome}` : 'Configurazione Email'}
+            {displayPart ? `${im.imapBranchSessionTitle}: ${displayPart}` : im.imapSection}
           </p>
           <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-            Configura host, porta, utente e password IMAP per ricevere e abbinare le fatture automaticamente.
+            Configura host, porta, utente e password IMAP sulla scheda della sede.
           </p>
           <Link
             href={`/sedi/${sedeId}`}
@@ -231,15 +239,19 @@ export default function ImpostazioniPage() {
   const { activeOperator } = useActiveOperator()
   const [mounted, setMounted] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [dupOpen, setDupOpen] = useState(false)
   const helpIconGradIdRaw = useId()
   const helpIconGradIdBase = `imp-fluxo-help-${helpIconGradIdRaw.replace(/[^a-zA-Z0-9_-]/g, '') || 'g'}`
   const helpIconGradIdMobile = `${helpIconGradIdBase}-m`
   const helpIconGradIdDesktop = `${helpIconGradIdBase}-d`
 
+  const { effectiveSedeId } = useManualDeliverySede()
+  const sedeResolved = effectiveSedeId ?? me?.sede_id ?? null
+
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
-  const canManageDuplicates = !!(me?.sede_id && (masterPlane || isAdminSede))
+  const isSedePrivileged = masterPlane || isAdminSede
+  const showSedePickHint = isSedePrivileged && !sedeResolved
+  const showSedeOcrBlocks = isSedePrivileged && !!sedeResolved
   const canEditSolleciti = masterPlane || isAdminSede
 
   // Local draft state — confirmed on Save
@@ -414,35 +426,20 @@ export default function ImpostazioniPage() {
         <ImapConfigCard />
         {canEditSolleciti ? <SollecitiSettingsLinkCard /> : null}
         <NotificationSettings />
-        <FixOcrDatesCard anchorId="fix-ocr-dates" />
-        {canManageDuplicates && (
-          <div className="app-card overflow-hidden">
-            <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
-                <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Manutenzione dati</p>
-                <p className="mt-0.5 text-sm font-semibold text-app-fg">Gestione Duplicati</p>
-                <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-                  Scansiona fatture, bolle e fornitori per trovare ed eliminare voci duplicate.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setDupOpen(true)}
-                  className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
-                >
-                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  Scansiona duplicati
-                </button>
-              </div>
+        {showSedePickHint ? (
+          <div className="app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
+            <div className="app-workspace-inset-bg-soft p-5">
+              <p className="text-xs leading-relaxed text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
+              <Link
+                href="/sedi"
+                className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3.5 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
+              >
+                {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
+              </Link>
             </div>
           </div>
-        )}
+        ) : null}
+        {showSedeOcrBlocks && sedeResolved ? <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} /> : null}
         <ProfileMobileHub />
       </div>
 
@@ -527,42 +524,26 @@ export default function ImpostazioniPage() {
           <div className="mt-4">
             <NotificationSettings />
           </div>
-          <div className="mt-4">
-            <FixOcrDatesCard anchorId="fix-ocr-dates" />
-          </div>
-          {canManageDuplicates && (
-            <div className="mt-4 app-card overflow-hidden">
-              <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/12 ring-1 ring-amber-500/25">
-                  <svg className="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">Manutenzione dati</p>
-                  <p className="mt-0.5 text-sm font-semibold text-app-fg">Gestione Duplicati</p>
-                  <p className="mt-1 text-xs leading-snug text-app-fg-muted">
-                    Scansiona fatture, bolle e fornitori per trovare ed eliminare voci duplicate.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setDupOpen(true)}
-                    className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3.5 py-2 text-xs font-semibold text-amber-100 transition-colors hover:border-amber-400/50 hover:bg-amber-500/18"
-                  >
-                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Scansiona duplicati
-                  </button>
-                </div>
+          {showSedePickHint ? (
+            <div className="mt-4 app-card overflow-hidden border border-amber-500/30 bg-amber-500/[0.07]">
+              <div className="app-workspace-inset-bg-soft p-5">
+                <p className="text-xs leading-relaxed text-amber-100/95">{t.impostazioni.sedeScopedAdminHint}</p>
+                <Link
+                  href="/sedi"
+                  className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/14 px-3.5 py-2 text-xs font-semibold text-amber-50 transition-colors hover:bg-amber-500/22"
+                >
+                  {t.nav.sediNavGroupMaster ?? t.nav.sediTitle}
+                </Link>
               </div>
             </div>
-          )}
+          ) : null}
+          {showSedeOcrBlocks && sedeResolved ? (
+            <div className="mt-4">
+              <ImpostazioniSedeAdminBlocks sedeId={sedeResolved} />
+            </div>
+          ) : null}
         </div>
       </div>
-      {canManageDuplicates && (
-        <DuplicateManager open={dupOpen} onOpenChange={setDupOpen} />
-      )}
     </>
   )
 }

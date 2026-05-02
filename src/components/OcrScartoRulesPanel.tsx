@@ -27,8 +27,14 @@ function tipoUiLabel(
   return tipoRaw
 }
 
-/** Gestione `ocr_scarto_rules` nella tab blacklist del log email (`sede_id` risolto lato SSR). */
-export default function OcrScartoRulesPanel({ sedeId }: { sedeId: string }) {
+/** Gestione `ocr_scarto_rules`: tab blacklist log email o Impostazioni. */
+export default function OcrScartoRulesPanel({
+  sedeId,
+  variant = 'embeddedInLogTab',
+}: {
+  sedeId: string
+  variant?: 'embeddedInLogTab' | 'settingsPage'
+}) {
   const { t } = useLocale()
   const tg = t.log
 
@@ -118,8 +124,13 @@ export default function OcrScartoRulesPanel({ sedeId }: { sedeId: string }) {
   if (loadErr) return <p className="text-sm text-red-400">{tg.ocrDiscardRulesLoadErr}</p>
   if (rows === null) return <p className="text-sm text-app-fg-muted">…</p>
 
+  const outerCls =
+    variant === 'settingsPage'
+      ? 'space-y-4'
+      : 'space-y-4 border-t border-white/10 pt-5'
+
   return (
-    <div className="space-y-4 border-t border-white/10 pt-5">
+    <div className={outerCls}>
       <div>
         <h3 className="text-sm font-semibold text-teal-100/95">{tg.ocrDiscardRulesTitle}</h3>
         <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{tg.ocrDiscardRulesSubtitle}</p>

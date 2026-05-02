@@ -1,10 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { DEFAULT_NOMI_CLIENTE_DA_IGNORARE } from '@/lib/ocr-invoice'
 
 const ALLOWED_COUNTRIES = ['UK', 'IT', 'FR', 'DE', 'ES']
 const ALLOWED_CURRENCIES = ['GBP', 'EUR', 'USD', 'CHF', 'CAD', 'AUD', 'JPY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF']
 const ALLOWED_LANGS = ['it', 'en', 'fr', 'de', 'es']
+
+/** Nome sede + elenco «nomi cliente da ignorare» (merge default se vuoto nel DB). */
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+
+  const { data: profile } = await supabase.from('profiles').select('role, sede_id').eq('id', user.id).single()
+
+  const master = isMasterAdminRole(profile?.role)
+  const sedeAdmin = isAdminSedeRole(profile?.role)
+  if (!master && !sedeAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id } = await params
+  if (sedeAdmin && profile?.sede_id !== id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const service = createServiceClient()
+  const { data: sede, error } = await service
+    .from('sedi')
+    .select('id, nome, nomi_cliente_da_ignorare')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error || !sede) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  const rawIgnored = (sede as { nomi_cliente_da_ignorare?: string[] | null }).nomi_cliente_da_ignorare
+  const merged =
+    Array.isArray(rawIgnored) && rawIgnored.length > 0
+      ? rawIgnored.filter((x): x is string => typeof x === 'string' && !!x.trim())
+      : [...DEFAULT_NOMI_CLIENTE_DA_IGNORARE]
+
+  return NextResponse.json({
+    id: sede.id,
+    nome: sede.nome,
+    nomi_cliente_da_ignorare: merged,
+  })
+}
 
 export async function PATCH(
   req: NextRequest,
