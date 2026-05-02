@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 type Props = {
   sedeId: string
@@ -12,11 +12,16 @@ type Props = {
 }
 
 export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit, embedded = false }: Props) {
+  const drawerIds = useId()
+  const drawerToggleId = `sede-ocr-ignore-toggle-${drawerIds}`
+  const drawerRegionId = `sede-ocr-ignore-region-${drawerIds}`
   const [names, setNames] = useState<string[]>(() => [...initialNames])
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Cassetto: elenco modificabile sotto il titolo */
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   if (!canEdit) return null
 
@@ -73,20 +78,20 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
     </div>
   )
 
-  const headerCopy = (
-    <div className="min-w-0 flex-1">
+  const headerTexts = (
+    <>
       <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">OCR</p>
       <p className="mt-0.5 text-sm font-semibold leading-snug text-app-fg">Nomi azienda da ignorare nell&apos;OCR</p>
       <p className="mt-1 text-xs leading-snug text-app-fg-muted">
         Destinatari/clienti della sede: non usarli come fornitore su fatture e DDT. Elenco salvato nella sede.
       </p>
-    </div>
+    </>
   )
 
   const headerRow = (
     <div className="flex items-start gap-4">
       {headerIcon}
-      {headerCopy}
+      <div className="min-w-0 flex-1">{headerTexts}</div>
     </div>
   )
 
@@ -163,10 +168,52 @@ export default function SedeOcrIgnoreNamesEditor({ sedeId, initialNames, canEdit
     )
   }
 
+  const headerToggleLabel =
+    drawerOpen ? 'Chiudi gestione elenco nomi OCR' : 'Apri gestione elenco nomi OCR'
+
   return (
     <div className="min-h-0 min-w-0 overflow-hidden app-card">
-      <div className="flex items-start gap-4 app-workspace-inset-bg-soft p-5">{headerRow}</div>
-      <div className="space-y-4 border-t border-app-line-30 app-workspace-inset-bg-soft p-5">{body}</div>
+      <div className="app-workspace-inset-bg-soft p-5">
+        <button
+          type="button"
+          id={drawerToggleId}
+          aria-expanded={drawerOpen}
+          aria-controls={drawerRegionId}
+          aria-label={headerToggleLabel}
+          onClick={() => setDrawerOpen((v) => !v)}
+          className="flex w-full min-w-0 items-start gap-4 rounded-xl text-left outline-none ring-app-cyan-500/40 transition hover:bg-black/[0.06] focus-visible:ring-2"
+        >
+          {headerIcon}
+          <div className="min-w-0 flex-1">
+            {headerTexts}
+            <p className="mt-1.5 text-xs text-app-fg-muted">
+              {names.length === 0
+                ? 'Nessuna voce in elenco.'
+                : `${names.length} ${names.length === 1 ? 'voce nell’elenco.' : 'voci nell’elenco.'}`}
+              {!drawerOpen ? <> Clicca per aprire e modificare.</> : null}
+            </p>
+          </div>
+          <svg
+            className={`mt-2 h-5 w-5 shrink-0 text-app-fg-muted transition-transform duration-200 ${drawerOpen ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+      {drawerOpen ? (
+        <div
+          id={drawerRegionId}
+          role="region"
+          aria-labelledby={drawerToggleId}
+          className="space-y-4 border-t border-app-line-30 app-workspace-inset-bg-soft p-5"
+        >
+          {body}
+        </div>
+      ) : null}
     </div>
   )
 }
