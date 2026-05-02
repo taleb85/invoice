@@ -81,7 +81,7 @@ export default function SediPage() {
   const [showWizard, setShowWizard] = useState(false)
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1)
   const [wizardSedeName, setWizardSedeName] = useState('')
-  const [wizardFileRetention, setWizardFileRetention] = useState<SedeFileRetentionPolicy>('keep')
+  const [wizardFileRetention, setWizardFileRetention] = useState<SedeFileRetentionPolicy>('delete_only')
   const [wizardRetentionMonths, setWizardRetentionMonths] = useState('12')
   const [wizardRetentionRunDay, setWizardRetentionRunDay] = useState('1')
   const [wizardImap, setWizardImap] = useState<ImapForm>({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
@@ -100,7 +100,7 @@ export default function SediPage() {
   const openWizard = () => {
     if (adminListScope === 'sede') return
     setWizardStep(1); setWizardSedeName(''); setWizardError(null)
-    setWizardFileRetention('keep')
+    setWizardFileRetention('delete_only')
     setWizardRetentionMonths('12')
     setWizardRetentionRunDay('1')
     setWizardImap({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
@@ -129,10 +129,8 @@ export default function SediPage() {
 
     const patch: Record<string, unknown> = {
       file_retention_policy: wizardFileRetention,
-      file_retention_months:
-        wizardFileRetention === 'keep' ? null : Math.min(120, Math.max(1, parseInt(wizardRetentionMonths, 10) || 12)),
-      file_retention_run_day:
-        wizardFileRetention === 'keep' ? null : Math.min(28, Math.max(1, parseInt(wizardRetentionRunDay, 10) || 1)),
+      file_retention_months: Math.min(120, Math.max(1, parseInt(wizardRetentionMonths, 10) || 12)),
+      file_retention_run_day: Math.min(28, Math.max(1, parseInt(wizardRetentionRunDay, 10) || 1)),
     }
     if (wizardImap.imap_host.trim() && wizardImap.imap_user.trim()) {
       patch.imap_host = wizardImap.imap_host.trim()
@@ -317,7 +315,7 @@ export default function SediPage() {
   const [savingLoc, setSavingLoc]     = useState(false)
 
   const [retentionOpen, setRetentionOpen] = useState<string | null>(null)
-  const [retentionPolicy, setRetentionPolicy] = useState<SedeFileRetentionPolicy>('keep')
+  const [retentionPolicy, setRetentionPolicy] = useState<SedeFileRetentionPolicy>('delete_only')
   const [retentionMonths, setRetentionMonths] = useState('12')
   const [retentionRunDay, setRetentionRunDay] = useState('1')
   const [savingRetention, setSavingRetention] = useState(false)
@@ -377,7 +375,7 @@ export default function SediPage() {
   const openRetentionForm = (sede: SedeWithCounts) => {
     setRetentionOpen(sede.id)
     const pol = sede.file_retention_policy
-    setRetentionPolicy(pol === 'delete_only' || pol === 'archive_then_delete' ? pol : 'keep')
+    setRetentionPolicy(pol === 'archive_then_delete' ? 'archive_then_delete' : 'delete_only')
     setRetentionMonths(String(sede.file_retention_months ?? 12))
     setRetentionRunDay(String(sede.file_retention_run_day ?? 1))
   }
@@ -387,10 +385,8 @@ export default function SediPage() {
     setError(null)
     const body: Record<string, unknown> = {
       file_retention_policy: retentionPolicy,
-      file_retention_months:
-        retentionPolicy === 'keep' ? null : Math.min(120, Math.max(1, parseInt(retentionMonths, 10) || 12)),
-      file_retention_run_day:
-        retentionPolicy === 'keep' ? null : Math.min(28, Math.max(1, parseInt(retentionRunDay, 10) || 1)),
+      file_retention_months: Math.min(120, Math.max(1, parseInt(retentionMonths, 10) || 12)),
+      file_retention_run_day: Math.min(28, Math.max(1, parseInt(retentionRunDay, 10) || 1)),
     }
     const res = await fetch(`/api/sedi/${sedeId}`, {
       method: 'PATCH',
@@ -1120,7 +1116,7 @@ export default function SediPage() {
                       <p className="text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
                       <div className="space-y-1.5">
                         <p className="text-xs font-medium text-app-fg-muted">{t.sedi.fileRetentionPolicyLabel}</p>
-                        {(['keep', 'delete_only', 'archive_then_delete'] as const).map((pol) => (
+                        {(['delete_only', 'archive_then_delete'] as const).map((pol) => (
                           <label key={pol} className="flex items-start gap-2 rounded-lg border border-app-line-25 px-3 py-2 cursor-pointer hover:bg-black/10">
                             <input
                               type="radio"
@@ -1130,38 +1126,36 @@ export default function SediPage() {
                               onChange={() => setRetentionPolicy(pol)}
                             />
                             <span className="text-sm text-app-fg">
-                              {pol === 'keep' ? t.sedi.fileRetentionKeep : pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
+                              {pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
                             </span>
                           </label>
                         ))}
                       </div>
-                      {retentionPolicy !== 'keep' && (
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                          <div>
-                            <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionMonthsLabel}</label>
-                            <input
-                              type="number"
-                              min={1}
-                              max={120}
-                              value={retentionMonths}
-                              onChange={(e) => setRetentionMonths(e.target.value)}
-                              className={inputCls}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
-                            <input
-                              type="number"
-                              min={1}
-                              max={28}
-                              value={retentionRunDay}
-                              onChange={(e) => setRetentionRunDay(e.target.value)}
-                              className={inputCls}
-                            />
-                            <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
-                          </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionMonthsLabel}</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={120}
+                            value={retentionMonths}
+                            onChange={(e) => setRetentionMonths(e.target.value)}
+                            className={inputCls}
+                          />
                         </div>
-                      )}
+                        <div>
+                          <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={28}
+                            value={retentionRunDay}
+                            onChange={(e) => setRetentionRunDay(e.target.value)}
+                            className={inputCls}
+                          />
+                          <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
+                        </div>
+                      </div>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => setRetentionOpen(null)}
                           className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
@@ -1501,7 +1495,7 @@ export default function SediPage() {
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-app-fg-muted">{t.sedi.fileRetentionPolicyLabel}</p>
-                    {(['keep', 'delete_only', 'archive_then_delete'] as const).map((pol) => (
+                    {(['delete_only', 'archive_then_delete'] as const).map((pol) => (
                       <label key={pol} className="flex items-start gap-2 rounded-lg border border-app-line-25 px-3 py-2 cursor-pointer hover:bg-black/10">
                         <input
                           type="radio"
@@ -1511,38 +1505,36 @@ export default function SediPage() {
                           onChange={() => setWizardFileRetention(pol)}
                         />
                         <span className="text-sm text-app-fg">
-                          {pol === 'keep' ? t.sedi.fileRetentionKeep : pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
+                          {pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
                         </span>
                       </label>
                     ))}
                   </div>
-                  {wizardFileRetention !== 'keep' && (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionMonthsLabel}</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={120}
-                          value={wizardRetentionMonths}
-                          onChange={(e) => setWizardRetentionMonths(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-surface-elevated"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={28}
-                          value={wizardRetentionRunDay}
-                          onChange={(e) => setWizardRetentionRunDay(e.target.value)}
-                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-surface-elevated"
-                        />
-                        <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
-                      </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionMonthsLabel}</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={wizardRetentionMonths}
+                        onChange={(e) => setWizardRetentionMonths(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-surface-elevated"
+                      />
                     </div>
-                  )}
+                    <div>
+                      <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={28}
+                        value={wizardRetentionRunDay}
+                        onChange={(e) => setWizardRetentionRunDay(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-surface-elevated"
+                      />
+                      <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
+                    </div>
+                  </div>
                   <div className="flex justify-between">
                     <button type="button" onClick={() => setWizardStep(1)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
                       {t.appStrings.sedeWizardBack}
