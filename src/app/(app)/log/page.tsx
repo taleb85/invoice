@@ -28,6 +28,7 @@ import {
   type EmailActivityRow,
   type EmailActivityTipoKey,
 } from '@/lib/email-activity-day'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 function tipoLabelFromKey(
   t: Awaited<ReturnType<typeof getT>>['log'],
@@ -66,9 +67,9 @@ export default async function LogPage(props: {
   searchParams?: Promise<{ p?: string | string[]; page?: string | string[] }>
 }) {
   const profile = await getProfile()
-  const isMasterAdmin = profile?.role === 'admin'
-  const isAdminSede = profile?.role === 'admin_sede'
-  if (!isMasterAdmin && !isAdminSede) redirect('/')
+  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  const isBranchPrivilegedLog = isBranchSedeStaffRole(profile?.role)
+  if (!isMasterAdmin && !isBranchPrivilegedLog) redirect('/')
 
   const [t, locale, tz, currency, sedeScopeIdRaw] = await Promise.all([
     getT(),
@@ -108,7 +109,7 @@ export default async function LogPage(props: {
   const sedeForProcessApi = isMasterAdmin ? sedeScopeId : profile?.sede_id ?? null
 
   let blacklistSedeId = profile?.sede_id ?? null
-  if (!blacklistSedeId && profile?.role === 'admin') {
+  if (!blacklistSedeId && isMasterAdminRole(profile?.role)) {
     const { data: firstSedeRow } = await supabase.from('sedi').select('id').limit(1).maybeSingle()
     blacklistSedeId = firstSedeRow?.id ?? null
   }

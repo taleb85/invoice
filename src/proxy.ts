@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { isInvalidRefreshTokenError } from '@/lib/auth-refresh-error'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 /** Rotte accessibili senza autenticazione */
 const PUBLIC_PATHS = [
@@ -90,8 +91,8 @@ export async function proxy(request: NextRequest) {
     .single()
 
   const role = profile?.role ?? ''
-  const isMasterAdmin = role === 'admin'
-  const isAdminSede = role === 'admin_sede'
+  const isMasterAdmin = isMasterAdminRole(role)
+  const isBranchStaff = isBranchSedeStaffRole(role)
 
   if (isMasterAdminOnlyPath(pathname)) {
     if (!isMasterAdmin) {
@@ -104,7 +105,7 @@ export async function proxy(request: NextRequest) {
 
   /** Lista `/sedi`: master (tutte) oppure admin_sede con sede assegnata (solo la propria, via API). */
   if (pathname === '/sedi') {
-    const allowed = isMasterAdmin || (isAdminSede && !!profile?.sede_id)
+    const allowed = isMasterAdmin || (isBranchStaff && !!profile?.sede_id)
     if (!allowed) {
       if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const homeUrl = request.nextUrl.clone()
@@ -117,8 +118,8 @@ export async function proxy(request: NextRequest) {
   if (sedeFromPath) {
     if (isMasterAdmin) {
       // ok
-    } else if (isAdminSede && profile?.sede_id && sedeFromPath === profile.sede_id) {
-      // ok: responsabile solo della propria sede
+    } else if (isBranchStaff && profile?.sede_id && sedeFromPath === profile.sede_id) {
+      // ok: responsabile/tecnico solo della propria sede
     } else {
       if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const homeUrl = request.nextUrl.clone()
@@ -128,7 +129,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (isLogPath(pathname)) {
-    if (!isMasterAdmin && !isAdminSede) {
+    if (!isMasterAdmin && !isBranchStaff) {
       if (isApi) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const homeUrl = request.nextUrl.clone()
       homeUrl.pathname = '/'

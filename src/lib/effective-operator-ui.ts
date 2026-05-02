@@ -24,25 +24,27 @@ export function effectiveIsMasterAdminPlane(
  * altrimenti un admin_sede dopo il PIN non vedrebbe “Gestisci sede”.
  */
 export function effectiveIsAdminSedeUi(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'user'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
   activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
 ): boolean {
   if (!me) return false
+  const profileBranchStaff =
+    Boolean((me.is_admin_sede || me.is_admin_tecnico) && !me.is_admin)
   if (me.is_admin && activeOperator) {
-    return activeOperator.role === 'admin_sede'
+    return activeOperator.role === 'admin_sede' || activeOperator.role === 'admin_tecnico'
   }
   if (activeOperator) {
     const r = activeOperator.role
-    if (r === 'admin_sede') return true
+    if (r === 'admin_sede' || r === 'admin_tecnico') return true
     if (r === 'operatore') return false
     const sameAsSession =
       Boolean(me.user?.id && activeOperator.id === me.user.id)
     if (sameAsSession) {
-      return Boolean(me.is_admin_sede && !me.is_admin)
+      return profileBranchStaff
     }
     return false
   }
-  return Boolean(me.is_admin_sede && !me.is_admin)
+  return profileBranchStaff
 }
 
 /**
@@ -50,7 +52,7 @@ export function effectiveIsAdminSedeUi(
  * Master solo senza PIN; altrimenti solo se il ruolo effettivo è admin_sede.
  */
 export function effectiveIsFornitoreGridAdmin(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'user'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
   activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
 ): boolean {
   if (!me) return false
@@ -58,9 +60,9 @@ export function effectiveIsFornitoreGridAdmin(
   return effectiveIsAdminSedeUi(me, activeOperator)
 }
 
-/** Coerente con `proxy.ts` su `/sedi`: solo `admin` o `admin_sede` nel profilo reale (non basta il PIN come altro ruolo). */
+/** Coerente con `proxy.ts` su `/sedi`: `admin`, `admin_sede` o `admin_tecnico` nel profilo reale (non basta il PIN come altro ruolo). */
 export function profileCanAccessSediListPage(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico'> | null | undefined,
 ): boolean {
-  return Boolean(me?.is_admin || me?.is_admin_sede)
+  return Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
 }

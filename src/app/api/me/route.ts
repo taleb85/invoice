@@ -44,6 +44,7 @@ export async function GET() {
       timezone:     me.timezone,
       is_admin:     me.is_admin,
       is_admin_sede: me.is_admin_sede,
+      is_admin_tecnico: me.is_admin_tecnico,
       all_sedi:     me.all_sedi,
       onboarding_complete: me.onboarding_complete,
     },

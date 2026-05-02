@@ -1,4 +1,6 @@
 /** Gate per sessione tab/browser: operatore deve reinserire nome + PIN dopo nuova apertura. */
+import { isProfilesBranchDeskRole } from '@/lib/roles'
+
 export const SESSION_OPERATOR_GATE_KEY = 'fluxo-branch-session-gate-v1'
 
 /**
@@ -32,6 +34,5 @@ export function isSessionOperatorGateOk(): boolean {
 }
 
 export function branchSessionGateRequiredRole(role: string | null | undefined): boolean {
-  const r = String(role ?? '').toLowerCase()
-  return r === 'operatore' || r === 'admin_sede'
+  return isProfilesBranchDeskRole(role)
 }

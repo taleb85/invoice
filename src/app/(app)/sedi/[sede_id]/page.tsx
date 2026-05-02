@@ -10,6 +10,7 @@ import { getLocale } from '@/lib/localization'
 import { getT } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
+import { isBranchSedeStaffRole } from '@/lib/roles'
 
 interface SedeProfile {
   id: string
@@ -57,8 +58,8 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
 
   const profile = await getProfile()
   const isMasterAdmin = profile?.role === 'admin'
-  const isAdminSede = profile?.role === 'admin_sede' && profile?.sede_id === sede_id
-  const canManageSedeOperators = isMasterAdmin || isAdminSede
+  const isStaffThisSede = isBranchSedeStaffRole(profile?.role) && profile?.sede_id === sede_id
+  const canManageSedeOperators = isMasterAdmin || isStaffThisSede
 
   const tDashboard = await getT()
 

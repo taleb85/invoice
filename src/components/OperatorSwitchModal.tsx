@@ -12,7 +12,14 @@ const PIN_LENGTH = 4
 interface Operator {
   id:        string
   full_name: string
-  role:      'operatore' | 'admin_sede'
+  role:      'operatore' | 'admin_sede' | 'admin_tecnico'
+}
+
+function normalizeSedeDeskRole(raw: unknown): Operator['role'] {
+  const r = String(raw ?? '').toLowerCase()
+  if (r === 'admin_sede') return 'admin_sede'
+  if (r === 'admin_tecnico') return 'admin_tecnico'
+  return 'operatore'
 }
 
 type Step = 'select' | 'pin'
@@ -88,7 +95,7 @@ export default function OperatorSwitchModal() {
             merged.push({
               id:        o.id,
               full_name: o.full_name ?? '',
-              role:      o.role === 'admin_sede' ? 'admin_sede' : 'operatore',
+              role:      normalizeSedeDeskRole(o.role),
             })
           }
         }
@@ -171,17 +178,19 @@ export default function OperatorSwitchModal() {
         return
       }
       await createClient().auth.refreshSession().catch(() => {})
+      const deskRole = normalizeSedeDeskRole(data.role)
       const op: ActiveOperator = {
         id:        data.id,
         full_name: data.full_name,
         sede_id:   data.sede_id,
         sede_nome: data.sede_nome,
-        role:      data.role === 'admin_sede' ? 'admin_sede' : 'operatore',
+        role:      deskRole,
       }
       setActiveOperator(op, me?.user?.id ?? null)
       if (me?.is_admin && typeof data.sede_id === 'string' && data.sede_id) {
         document.cookie = `admin-sede-id=${encodeURIComponent(data.sede_id)}; path=/; SameSite=Strict`
-        const ar = data.role === 'admin_sede' ? 'admin_sede' : 'operatore'
+        const ar =
+          deskRole === 'admin_sede' ? 'admin_sede' : deskRole === 'admin_tecnico' ? 'admin_tecnico' : 'operatore'
         document.cookie = `fluxo-acting-role=${encodeURIComponent(ar)}; path=/; SameSite=Strict`
       }
       try {

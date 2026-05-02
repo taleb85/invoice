@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
+import { isProfilesBranchDeskRole } from '@/lib/roles'
 
 function serviceDb() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
       .eq('id', user.id)
       .maybeSingle()
     const r = String(p?.role ?? '').toLowerCase()
-    if (!p?.sede_id || (r !== 'operatore' && r !== 'admin_sede')) {
+    if (!p?.sede_id || !isProfilesBranchDeskRole(r)) {
       return NextResponse.json({ sede_id: null, country_code: null, operators: [] })
     }
     return jsonForSedeId(p.sede_id)

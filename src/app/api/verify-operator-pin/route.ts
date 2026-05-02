@@ -5,6 +5,7 @@ import {
   normalizeOperatorLoginName,
   profileFirstTokenEquals,
 } from '@/lib/operator-login-name'
+import { isProfilesBranchDeskRole } from '@/lib/roles'
 
 /**
  * Verifica PIN su GoTrue senza cookie: ok per “admin verifica operatore” (sessioni diverse).
@@ -57,10 +58,11 @@ export async function POST(req: NextRequest) {
 
   const profile = profiles[0]
 
-  if (profile.role !== 'operatore' && profile.role !== 'admin_sede') {
+  const pr = typeof profile.role === 'string' ? profile.role : ''
+  if (!isProfilesBranchDeskRole(pr)) {
     return NextResponse.json(
-      { error: 'Questo account non è un operatore o un responsabile di sede.' },
-      { status: 403 }
+      { error: 'Questo account non è un operatore, un responsabile di sede o un amministratore tecnico.' },
+      { status: 403 },
     )
   }
 
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
     full_name: profile.full_name,
     sede_id:   profile.sede_id,
     sede_nome: sede?.nome ?? null,
-    role:      profile.role as 'operatore' | 'admin_sede',
+    role:      pr.toLowerCase() as 'operatore' | 'admin_sede' | 'admin_tecnico',
   }
 
   const out = NextResponse.json(payload)

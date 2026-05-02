@@ -1050,6 +1050,7 @@ export default function SediPage() {
                                       >
                                         <option value="operatore">Operatore</option>
                                         <option value="admin_sede">{t.sedi.adminSedeRole}</option>
+                                        <option value="admin_tecnico">{t.sedi.adminTecnicoRole}</option>
                                         {me?.is_admin ? (
                                           <option value="admin">{t.sedi.profileRoleAdmin}</option>
                                         ) : null}
@@ -1090,11 +1091,11 @@ export default function SediPage() {
                                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ring-1 ${
                                     p.role === 'admin'
                                       ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
-                                      : p.role === 'admin_sede'
+                                      : p.role === 'admin_sede' || p.role === 'admin_tecnico'
                                         ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
                                         : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                                   }`}>
-                                    {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
+                                    {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_tecnico' ? t.sedi.adminTecnicoRoleShort : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
                                   </span>
                                   {p.role === 'operatore' && (
                                     <button
@@ -1541,12 +1542,12 @@ export default function SediPage() {
                       className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ${
                         p.role === 'admin'
                           ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
-                          : p.role === 'admin_sede'
+                          : p.role === 'admin_sede' || p.role === 'admin_tecnico'
                             ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
                             : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
                       }`}
                     >
-                      {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
+                      {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_tecnico' ? t.sedi.adminTecnicoRoleShort : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
                     </span>
                     <button
                       type="button"

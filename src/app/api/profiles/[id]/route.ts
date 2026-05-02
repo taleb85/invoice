@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
-const APP_ROLES = ['operatore', 'admin_sede', 'admin'] as const
+const APP_ROLES = ['operatore', 'admin_sede', 'admin_tecnico', 'admin'] as const
 
 export async function PATCH(
   req: NextRequest,
@@ -21,8 +21,8 @@ export async function PATCH(
     .single()
 
   const master = isMasterAdminRole(caller?.role)
-  const sedeAdmin = isAdminSedeRole(caller?.role)
-  if (!master && !sedeAdmin) {
+  const sedeStaff = isBranchSedeStaffRole(caller?.role)
+  if (!master && !sedeStaff) {
     return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
   }
 
@@ -40,7 +40,7 @@ export async function PATCH(
 
   const targetRole = String(target.role ?? '').toLowerCase()
 
-  if (sedeAdmin) {
+  if (sedeStaff) {
     if (!caller?.sede_id || target.sede_id !== caller.sede_id) {
       return NextResponse.json({ error: 'Puoi modificare solo profili della tua sede.' }, { status: 403 })
     }
@@ -49,7 +49,7 @@ export async function PATCH(
     }
     if (body.role !== undefined) {
       const r = String(body.role).toLowerCase()
-      if (r !== 'operatore' && r !== 'admin_sede') {
+      if (r !== 'operatore' && r !== 'admin_sede' && r !== 'admin_tecnico') {
         return NextResponse.json({ error: 'Ruolo non consentito.' }, { status: 403 })
       }
     }
