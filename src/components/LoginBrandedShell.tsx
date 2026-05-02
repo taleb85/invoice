@@ -19,7 +19,7 @@ export default function LoginBrandedShell({ children }: { children: ReactNode })
       </div>
 
       <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain">
-        <div className="mx-auto flex w-[92%] max-w-md flex-1 flex-col items-center justify-start pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:justify-center sm:pt-[max(1.5rem,env(safe-area-inset-top))]">
+        <div className="mx-auto flex w-[92%] max-w-md flex-1 flex-col items-center justify-center pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pt-[max(1.5rem,env(safe-area-inset-top))]">
           {children}
         </div>
       </div>
