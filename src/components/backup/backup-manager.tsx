@@ -128,70 +128,81 @@ export function BackupManager() {
 
   return (
     <div className="space-y-6">
-      {/* Status bar */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
-          <p className="text-xs text-app-fg-muted">Ultimo backup</p>
-          <p className="mt-1 text-base font-semibold text-app-fg">
-            {lastBackup ? lastBackup.date : 'Nessuno'}
-          </p>
-          {lastBackup && (
-            <p className="text-xs text-app-fg-muted">
-              {lastBackup.files.length} file
-            </p>
+      <section
+        className={`${SUMMARY_HIGHLIGHT_SURFACE_CLASS} flex flex-col border-app-line-35 p-0`}
+        aria-label="Stato e pianificazione backup"
+      >
+        <div className="border-b border-app-line-22 px-4 py-3">
+          <h2 className="text-sm font-semibold text-app-fg">Stato e pianificazione</h2>
+        </div>
+
+        <div className="space-y-4 px-4 py-3 sm:px-5 sm:py-4">
+          {/* Status bar */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
+              <p className="text-xs text-app-fg-muted">Ultimo backup</p>
+              <p className="mt-1 text-base font-semibold text-app-fg">
+                {lastBackup ? lastBackup.date : 'Nessuno'}
+              </p>
+              {lastBackup && (
+                <p className="text-xs text-app-fg-muted">
+                  {lastBackup.files.length} file
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
+              <p className="text-xs text-app-fg-muted">Prossimo backup</p>
+              <p className="mt-1 text-sm font-semibold text-app-fg">{nextMonday2am()}</p>
+              <p className="text-xs text-app-fg-muted">Ogni lunedì alle 02:00 UTC</p>
+            </div>
+
+            <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
+              <p className="text-xs text-app-fg-muted">Totale backup disponibili</p>
+              <p className="mt-1 text-base font-semibold text-app-fg">{backups.length}</p>
+              <p className="text-xs text-app-fg-muted">Archiviati in Supabase Storage</p>
+            </div>
+          </div>
+
+          {/* Manual trigger */}
+          <div className="flex flex-col gap-3 rounded-lg border border-app-line-28 bg-app-line-5 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-app-fg">Esegui backup manuale</p>
+              <p className="text-xs text-app-fg-muted">
+                Esporta subito tutte le tabelle critiche in CSV
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void runBackupNow()}
+              disabled={running}
+              className="flex items-center gap-2 rounded-xl bg-app-cyan-500 px-4 py-2 text-sm font-semibold text-[#0a192f] transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {running ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#0a192f] border-t-transparent" />
+              ) : (
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                </svg>
+              )}
+              {running ? 'Esecuzione…' : 'Esegui backup ora'}
+            </button>
+          </div>
+
+          {runResult && (
+            <div
+              className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                runResult.ok
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : 'bg-red-500/10 text-red-400'
+              }`}
+            >
+              {runResult.ok ? '✓ ' : '✗ '}{runResult.message}
+            </div>
           )}
         </div>
-
-        <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
-          <p className="text-xs text-app-fg-muted">Prossimo backup</p>
-          <p className="mt-1 text-sm font-semibold text-app-fg">{nextMonday2am()}</p>
-          <p className="text-xs text-app-fg-muted">Ogni lunedì alle 02:00 UTC</p>
-        </div>
-
-        <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
-          <p className="text-xs text-app-fg-muted">Totale backup disponibili</p>
-          <p className="mt-1 text-base font-semibold text-app-fg">{backups.length}</p>
-          <p className="text-xs text-app-fg-muted">Archiviati in Supabase Storage</p>
-        </div>
-      </div>
-
-      {/* Manual trigger */}
-      <div className="flex flex-col gap-3 rounded-lg border border-app-line-28 bg-app-line-5 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold text-app-fg">Esegui backup manuale</p>
-          <p className="text-xs text-app-fg-muted">
-            Esporta subito tutte le tabelle critiche in CSV
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void runBackupNow()}
-          disabled={running}
-          className="flex items-center gap-2 rounded-xl bg-app-cyan-500 px-4 py-2 text-sm font-semibold text-[#0a192f] transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          {running ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#0a192f] border-t-transparent" />
-          ) : (
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-            </svg>
-          )}
-          {running ? 'Esecuzione…' : 'Esegui backup ora'}
-        </button>
-      </div>
-
-      {runResult && (
-        <div
-          className={`rounded-xl px-4 py-3 text-sm font-medium ${
-            runResult.ok
-              ? 'bg-emerald-500/10 text-emerald-400'
-              : 'bg-red-500/10 text-red-400'
-          }`}
-        >
-          {runResult.ok ? '✓ ' : '✗ '}{runResult.message}
-        </div>
-      )}
+      </section>
 
       {/* Backup list — stesso guscio strip/summary (`AppPageHeaderStrip`) */}
       <section
