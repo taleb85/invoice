@@ -1141,7 +1141,7 @@ export default function SediPage() {
                     </div>
                   )}
 
-                  {adminListScope === 'global' && FILE_ATTACHMENT_RETENTION_UI_ENABLED ? (
+                  {FILE_ATTACHMENT_RETENTION_UI_ENABLED ? (
                     <>
                       {/* Conservazione allegati */}
                       <button type="button"
