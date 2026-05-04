@@ -99,10 +99,13 @@ async function readDuplicateReportNdjsonStream(
   throw new Error('Flusso interrotto prima del risultato')
 }
 
+import { BTN_SIZE_XS } from '@/lib/button-size-tokens'
+import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
+
 const toolbarStripBtnCls =
-  'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center gap-0.5 whitespace-nowrap rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-semibold leading-none text-app-fg transition-colors hover:border-app-line-50 hover:brightness-110 sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
+  `inline-flex shrink-0 items-center gap-1 whitespace-nowrap border border-app-line-35 app-workspace-inset-bg text-app-fg font-semibold leading-none transition-colors hover:border-app-line-50 hover:brightness-110 ${BTN_SIZE_XS}`
 const defaultBtnCls =
-  'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-950/35 px-3.5 text-xs font-semibold text-amber-100 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-950/55'
+  `inline-flex items-center gap-1.5 whitespace-nowrap border border-[rgba(34,211,238,0.15)] bg-amber-950/35 text-amber-100 font-semibold transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-950/55 ${BTN_SIZE_SM}`
 
 export default function DashboardDuplicateFattureButton({
   className,

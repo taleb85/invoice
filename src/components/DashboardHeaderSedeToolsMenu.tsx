@@ -18,8 +18,10 @@ import EmailSyncToolbarStatus from '@/components/EmailSyncToolbarStatus'
 const TOOLBAR_ROW_CLS =
   'flex min-w-0 max-w-full shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2 md:flex-nowrap'
 
+import { BTN_SIZE_XS, BTN_SIZE_MD } from '@/lib/button-size-tokens'
+
 const TOOLBAR_ICON_BTN_CLS =
-  'inline-flex h-7 min-h-7 max-h-7 shrink-0 items-center justify-center gap-0.5 rounded-md border border-app-line-35 app-workspace-inset-bg px-2 text-[10px] font-bold leading-none text-app-fg shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap touch-manipulation sm:gap-1 sm:rounded-lg sm:px-2.5 sm:text-[11px]'
+  `inline-flex shrink-0 items-center justify-center gap-0.5 border border-app-line-35 app-workspace-inset-bg text-app-fg font-bold leading-none shadow-sm transition-colors hover:border-app-a-45 hover:shadow-[0_0_18px_-6px_rgba(34,211,238,0.28)] hover:brightness-110 active:brightness-95 whitespace-nowrap touch-manipulation sm:gap-1 ${BTN_SIZE_XS}`
 
 type PanelRect = { top: number; left: number; width: number }
 
@@ -301,7 +303,7 @@ function WorkspaceEmailStrumentiMenu() {
           type="button"
           disabled={loading}
           onClick={() => void runForceSync()}
-          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-app-a-55 bg-app-line-30 text-xs font-bold text-app-fg shadow-sm transition-colors hover:bg-app-line-40 disabled:cursor-not-allowed disabled:opacity-55"
+          className={`inline-flex w-full items-center justify-center gap-2 border border-app-a-55 bg-app-line-30 text-app-fg font-bold shadow-sm transition-colors hover:bg-app-line-40 disabled:cursor-not-allowed disabled:opacity-55 ${BTN_SIZE_MD}`}
         >
           {loading ? (
             <>

@@ -170,7 +170,7 @@ export function BackupManager() {
       const j = (await res.json()) as { enabled?: boolean }
       if (typeof j.enabled === 'boolean') setCronAutomationEnabled(j.enabled)
     } catch {
-      setCronAutomationError(b.backupCronSaveError)
+      setCronAutomationError('Impossibile salvare l\'impostazione.')
     } finally {
       setCronAutomationSaving(false)
     }
@@ -193,9 +193,9 @@ export function BackupManager() {
           <div className="flex items-start justify-between gap-4 rounded-lg border border-app-line-28 bg-app-line-5 px-4 py-3.5">
             <div className="min-w-0 flex-1">
               <p id={cronAutomationHeadingId} className="text-sm font-semibold text-app-fg">
-                {b.backupCronAutomationLabel}
+                {'Backup automatico programmato (lunedì 02:00 UTC)'}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{b.backupCronAutomationHint}</p>
+              <p className="mt-1 text-xs leading-relaxed text-app-fg-muted">{'Se disattivo, il cron non genera export automatici finché non riattivi. I backup manuali restano sempre disponibili.'}</p>
               {cronAutomationError ? (
                 <p className="mt-2 text-xs font-medium text-red-400">{cronAutomationError}</p>
               ) : null}
@@ -222,7 +222,7 @@ export function BackupManager() {
             </button>
           </div>
           {cronAutomationSaving ? (
-            <p className="text-xs text-app-fg-muted">{b.backupCronSaving}</p>
+            <p className="text-xs text-app-fg-muted">{'Salvataggio…'}</p>
           ) : null}
 
           {/* Status bar */}
@@ -242,9 +242,9 @@ export function BackupManager() {
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">
               <p className="text-xs text-app-fg-muted">Prossimo backup</p>
               <p className="mt-1 text-sm font-semibold text-app-fg">
-                {cronAutomationEnabled ? nextMonday2am(locale) : b.backupCronNextPaused}
+                {cronAutomationEnabled ? nextMonday2am(locale) : 'In pausa — automazione disattivata'}
               </p>
-              <p className="text-xs text-app-fg-muted">{b.backupCronScheduleFootnote}</p>
+              <p className="text-xs text-app-fg-muted">{'Ogni lunedì alle 02:00 UTC'}</p>
             </div>
 
             <div className="rounded-lg border border-app-line-28 bg-app-line-5 p-4">

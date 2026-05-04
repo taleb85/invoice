@@ -240,7 +240,10 @@ export async function GET(req: NextRequest) {
 
   const { data: signed, error } = await service.storage
     .from(parsed.bucket)
-    .createSignedUrl(parsed.objectPath, SIGNED_TTL_SEC)
+    .createSignedUrl(parsed.objectPath, SIGNED_TTL_SEC, {
+      download: false,
+      transform: undefined,
+    })
 
   if (error || !signed?.signedUrl) {
     return NextResponse.json({ error: 'Could not create signed URL' }, { status: 502 })

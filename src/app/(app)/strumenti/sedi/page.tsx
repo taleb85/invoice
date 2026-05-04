@@ -1,1816 +1,221 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
-import type { Sede, Profile, SedeFileRetentionPolicy } from '@/types'
-import { useT } from '@/lib/use-t'
+import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
+import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
-import { getLocale, COUNTRY_OPTIONS } from '@/lib/localization'
-import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
-import { GlyphXMark } from '@/components/ui/glyph-icons'
-import { CURRENCIES, TIMEZONES } from '@/lib/translations'
-import { BackButton } from '@/components/BackButton'
+import { useActiveOperator } from '@/lib/active-operator-context'
+import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
+import { createClient } from '@/utils/supabase/client'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
+import { BackButton } from '@/components/BackButton'
 import {
-  APP_SECTION_DIVIDE_ROWS,
   APP_PAGE_HEADER_STRIP_H1_CLASS,
-  APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
+  APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
-import {
-  FILE_ATTACHMENT_RETENTION_UI_ENABLED,
-} from '@/lib/file-retention-config'
 
-/* ─── IP geo-detection ─────────────────────────────────────────────────────
-   Maps the ISO-2 country code returned by ipapi.co to our internal codes.
-   GB → UK; everything else: match if supported, else fall back to UK.      */
-const GEO_MAP: Record<string, string> = { GB: 'UK', UK: 'UK', FR: 'FR', DE: 'DE', IT: 'IT', ES: 'ES' }
-
-async function detectCountryByIp(): Promise<{ code: string; detected: boolean }> {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 5000)
-  try {
-    const res = await fetch('https://ipapi.co/json/', { signal: controller.signal })
-    clearTimeout(timer)
-    if (!res.ok) return { code: 'UK', detected: false }
-    const data = await res.json() as { country_code?: string }
-    const raw = (data.country_code ?? '').toUpperCase()
-    const code = GEO_MAP[raw] ?? 'UK'
-    return { code, detected: !!GEO_MAP[raw] }
-  } catch {
-    clearTimeout(timer)
-    return { code: 'UK', detected: false }
-  }
-}
-
-/** Errore PostgREST/Supabase quando mancano colonne `file_retention_*` su `sedi`. */
-function isFileRetentionSchemaCacheError(message: string): boolean {
-  const m = message.toLowerCase()
-  return m.includes('file_retention') && m.includes('schema cache')
-}
-
-interface SedeWithCounts extends Sede {
-  fornitori_count: number
-  users_count: number
-  imap_host: string | null
-  imap_port: number | null
+interface SedeRow {
+  id: string
+  nome: string
   imap_user: string | null
-  imap_password: string | null
-  imap_lookback_days: number | null
-  access_password: string | null
+  imap_host: string | null
+  country_code: string | null
+  operatori_count: number
+  fornitori_count: number
 }
 
-interface ProfileWithSede extends Profile {
-  sedi: Sede | null
+function SedeCard({ sede }: { sede: SedeRow }) {
+  const { t } = useLocale()
+  const imapConfigured = !!(sede.imap_host && sede.imap_user)
+
+  return (
+    <Link
+      href={`/sedi/${sede.id}`}
+      className="group block overflow-hidden rounded-lg border border-app-line-28 bg-app-line-10/30 transition-colors hover:border-app-a-45 hover:bg-app-line-10/50"
+    >
+      {/* Accent bar */}
+      <div className="h-1 w-full bg-gradient-to-r from-cyan-500/40 to-blue-500/25" />
+
+      {/* Sede header */}
+      <div className="flex items-center gap-3 border-b border-app-line-15 px-4 py-3.5">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/12 ring-1 ring-cyan-500/25">
+          <svg className="h-5 w-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-app-fg group-hover:text-cyan-300">{sede.nome}</p>
+          <p className="text-xs text-app-fg-muted">
+            {sede.operatori_count} operatore{sede.operatori_count !== 1 ? 'i' : ''} · {sede.fornitori_count} fornitore{sede.fornitori_count !== 1 ? 'i' : ''}
+          </p>
+        </div>
+        <svg
+          className="h-5 w-5 shrink-0 text-app-fg-muted transition-transform group-hover:translate-x-0.5 group-hover:text-cyan-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
+
+      {/* IMAP row */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        {imapConfigured ? (
+          <>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500" />
+            <span className="truncate text-xs text-app-fg-muted">{sede.imap_user}</span>
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+              <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {t.common.success}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500/70" />
+            <span className="truncate text-xs text-app-fg-muted">{t.sedi.notConfigured}</span>
+          </>
+        )}
+      </div>
+    </Link>
+  )
 }
 
-interface ImapForm {
-  imap_host: string
-  imap_port: string
-  imap_user: string
-  imap_password: string
-  imap_lookback_days: string
+function SedeCardSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-lg border border-app-line-28 bg-app-line-10/30">
+      <div className="h-1 w-full bg-gradient-to-r from-cyan-500/40 to-blue-500/25" />
+      <div className="flex items-center gap-3 border-b border-app-line-15 px-4 py-3.5">
+        <div className="h-10 w-10 shrink-0 animate-pulse rounded-xl bg-cyan-500/20" />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="h-4 w-36 animate-pulse rounded bg-app-line-20" />
+          <div className="h-3 w-24 animate-pulse rounded bg-app-line-15" />
+        </div>
+      </div>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="h-3 w-3 animate-pulse rounded-full bg-app-line-20" />
+        <div className="h-3 w-48 animate-pulse rounded bg-app-line-15" />
+      </div>
+    </div>
+  )
 }
 
 export default function SediPage() {
-  const router = useRouter()
-  const supabase = createClient()
-  const t = useT()
+  const { t } = useLocale()
   const { me } = useMe()
+  const { activeOperator } = useActiveOperator()
+  const supabase = createClient()
 
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
-  /** `sede` = admin con `profiles.sede_id`: solo quella sede, niente wizard / utenti senza sede. */
-  const [adminListScope, setAdminListScope] = useState<'global' | 'sede'>('global')
-  const [sedi, setSedi] = useState<SedeWithCounts[]>([])
-  const [profiles, setProfiles] = useState<ProfileWithSede[]>([])
+  const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
+  const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
+  const canView = masterPlane || isAdminSede
+
+  const [sedi, setSedi] = useState<SedeRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // ── Wizard nuova sede ──
-  const [showWizard, setShowWizard] = useState(false)
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1)
-  const [wizardSedeName, setWizardSedeName] = useState('')
-  const [wizardFileRetention, setWizardFileRetention] = useState<SedeFileRetentionPolicy>('delete_only')
-  const [wizardRetentionRunDay, setWizardRetentionRunDay] = useState('1')
-  const [wizardImap, setWizardImap] = useState<ImapForm>({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
-  const [wizardOperators, setWizardOperators] = useState<{ name: string; pin: string }[]>([])
-  const [wizardNewOpName, setWizardNewOpName] = useState('')
-  const [wizardNewOpPin, setWizardNewOpPin] = useState('')
-  const [wizardShowImap, setWizardShowImap] = useState(false)
-  const [wizardShowPin, setWizardShowPin] = useState(false)
-  const [creatingWizard, setCreatingWizard] = useState(false)
-  const [wizardError, setWizardError] = useState<string | null>(null)
+  const loadSedi = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const { data: sediData, error: sediErr } = await supabase
+        .from('sedi')
+        .select('id, nome, imap_user, imap_host, country_code')
+        .order('nome')
 
-  // ── Wizard — geo-detection ──
-  const [wizardCountryCode, setWizardCountryCode] = useState('UK')
-  const [wizardGeoStatus, setWizardGeoStatus] = useState<'detecting' | 'detected' | 'failed'>('detecting')
-
-  const openWizard = () => {
-    if (adminListScope === 'sede') return
-    setWizardStep(1); setWizardSedeName(''); setWizardError(null)
-    setWizardFileRetention('delete_only')
-    setWizardRetentionRunDay('1')
-    setWizardImap({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
-    setWizardOperators([]); setWizardNewOpName(''); setWizardNewOpPin('')
-    setWizardShowImap(false); setWizardShowPin(false)
-    setWizardCountryCode('UK'); setWizardGeoStatus('detecting')
-    setShowWizard(true)
-    detectCountryByIp().then(({ code, detected }) => {
-      setWizardCountryCode(code)
-      setWizardGeoStatus(detected ? 'detected' : 'failed')
-    })
-  }
-
-  const addWizardOperator = () => {
-    if (!wizardNewOpName.trim() || String(wizardNewOpPin).length < 4) return
-    setWizardOperators([...wizardOperators, { name: wizardNewOpName.trim(), pin: wizardNewOpPin }])
-    setWizardNewOpName(''); setWizardNewOpPin('')
-  }
-
-  const handleWizardCreate = async () => {
-    if (adminListScope === 'sede') return
-    setCreatingWizard(true); setWizardError(null)
-    const { data: newSede, error: sedeErr } = await supabase
-      .from('sedi').insert([{ nome: wizardSedeName.trim(), country_code: wizardCountryCode }]).select().single()
-    if (sedeErr || !newSede) { setWizardError(sedeErr?.message ?? t.appStrings.sedeErrCreating); setCreatingWizard(false); return }
-
-    const patch: Record<string, unknown> = {}
-    if (FILE_ATTACHMENT_RETENTION_UI_ENABLED) {
-      patch.file_retention_policy = wizardFileRetention
-      patch.file_retention_run_day = Math.min(28, Math.max(1, parseInt(wizardRetentionRunDay, 10) || 1))
-    }
-    if (wizardImap.imap_host.trim() && wizardImap.imap_user.trim()) {
-      patch.imap_host = wizardImap.imap_host.trim()
-      patch.imap_port = parseInt(wizardImap.imap_port, 10) || 993
-      patch.imap_user = wizardImap.imap_user.trim()
-      patch.imap_password = wizardImap.imap_password || null
-      const lb = parseInt(wizardImap.imap_lookback_days, 10)
-      patch.imap_lookback_days = !wizardImap.imap_lookback_days.trim() || Number.isNaN(lb) || lb <= 0 ? null : lb
-    }
-    if (Object.keys(patch).length > 0) {
-      const patchRes = await fetch(`/api/sedi/${newSede.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-      })
-      if (!patchRes.ok) {
-        const d = await patchRes.json().catch(() => ({}))
-        setWizardError(typeof d.error === 'string' ? d.error : t.appStrings.sedeErrUpdating)
-        setCreatingWizard(false)
+      if (sediErr) {
+        setError(sediErr.message)
         return
       }
-    }
 
-    for (const op of wizardOperators) {
-      await fetch('/api/create-user', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: op.name, pin: op.pin, sedeId: newSede.id, role: 'operatore' }),
-      })
-    }
-
-    setCreatingWizard(false); setShowWizard(false)
-    setSuccessMsg(t.appStrings.sedeCreatedSuccess.replace('{nome}', wizardSedeName))
-    setTimeout(() => setSuccessMsg(null), 3000)
-    await loadData()
-  }
-
-  // Edit sede name
-  const [editingSede, setEditingSede] = useState<{ id: string; nome: string } | null>(null)
-
-  // Edit utente inline
-  const [editingProfile, setEditingProfile] = useState<{ id: string; full_name: string; role: string } | null>(null)
-  const [savingProfile, setSavingProfile] = useState(false)
-  const handleSaveProfile = async () => {
-    if (!editingProfile) return
-    setSavingProfile(true)
-    const fn = editingProfile.full_name.trim().toUpperCase()
-    const res = await fetch(`/api/profiles/${editingProfile.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: fn || null, role: editingProfile.role }),
-    })
-    const data = await res.json().catch(() => ({}))
-    setSavingProfile(false)
-    if (!res.ok) {
-      setError(typeof data.error === 'string' ? data.error : t.appStrings.sedeErrSavingProfile)
-      return
-    }
-    setEditingProfile(null)
-    await loadData()
-  }
-
-  // Elimina utente
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
-
-  // Cambia PIN operatore
-  const [changingPinFor, setChangingPinFor]   = useState<string | null>(null)
-  const [newPin, setNewPin]                   = useState('')
-  const [savingPin, setSavingPin]             = useState(false)
-  const [pinMsg, setPinMsg]                   = useState<{ ok: boolean; text: string } | null>(null)
-
-  const handleChangePin = async (operatorId: string) => {
-    if (newPin.length < 4) return
-    setSavingPin(true)
-    setPinMsg(null)
-    const res = await fetch('/api/operator/change-pin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ operatorId, newPin }),
-    })
-    const data = await res.json() as { ok?: boolean; message?: string; error?: string }
-    setSavingPin(false)
-    if (res.ok) {
-      setPinMsg({ ok: true, text: data.message ?? t.appStrings.sedePinUpdated })
-      setNewPin('')
-      setTimeout(() => {
-        setChangingPinFor(null)
-        setPinMsg(null)
-      }, 2500)
-    } else {
-      setPinMsg({ ok: false, text: data.error ?? t.appStrings.sedeErrUpdatingPin })
-    }
-  }
-
-  const handleDeleteUser = async (userId: string, email: string) => {
-    if (!confirm(t.appStrings.deleteUserConfirm.replace('{email}', email))) return
-    setDeletingUserId(userId)
-    const res = await fetch('/api/delete-user', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    })
-    const data = await res.json()
-    setDeletingUserId(null)
-    if (!res.ok) { setError(data.error); return }
-    await loadData()
-  }
-
-  /** Elenco operatori per sede: accordion dentro la strip azioni */
-  const [operatorsListOpen, setOperatorsListOpen] = useState<string | null>(null)
-
-  // Crea operatore
-  const [createUserOpen, setCreateUserOpen] = useState<string | null>(null)
-  const [newUserPassword, setNewUserPassword] = useState('')
-  const [newUserName, setNewUserName] = useState('')
-  const [showNewUserPw, setShowNewUserPw] = useState(false)
-  const [creatingUser, setCreatingUser] = useState(false)
-  const [createUserMsg, setCreateUserMsg] = useState<{ ok: boolean; text: string } | null>(null)
-
-  const handleCreateUser = async (sedeId: string) => {
-    setCreatingUser(true)
-    setCreateUserMsg(null)
-    const res = await fetch('/api/create-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: newUserName.trim().toUpperCase(),
-        pin: newUserPassword,
-        sedeId,
-        role: 'operatore',
-      }),
-    })
-    const data = await res.json()
-    setCreatingUser(false)
-    if (res.ok) {
-      setCreateUserMsg({ ok: true, text: data.message })
-      setNewUserPassword('')
-      await loadData()
-    } else {
-      setCreateUserMsg({ ok: false, text: data.error })
-    }
-  }
-
-  // Codice accesso sede
-  const [accessPwOpen, setAccessPwOpen] = useState<string | null>(null)
-  const [accessPwValue, setAccessPwValue] = useState('')
-  const [showAccessPw, setShowAccessPw] = useState(false)
-  const [savingAccessPw, setSavingAccessPw] = useState(false)
-
-  const handleSaveAccessPassword = async (sedeId: string) => {
-    const digits = accessPwValue.replace(/\D/g, '').slice(0, 4)
-    if (digits.length > 0 && digits.length !== 4) {
-      setError(t.sedi.sedePinError4Digits)
-      return
-    }
-    setSavingAccessPw(true)
-    const res = await fetch(`/api/sedi/${sedeId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_password: digits.length ? digits : null }),
-    })
-    const d = await res.json().catch(() => ({}))
-    setSavingAccessPw(false)
-    if (!res.ok) {
-      setError(typeof d.error === 'string' ? d.error :  t.appStrings.sedeErrSavingPin)
-      return
-    }
-    setAccessPwOpen(null)
-    setAccessPwValue('')
-    await loadData()
-  }
-
-  // IMAP config per sede
-  const [imapOpen, setImapOpen] = useState<string | null>(null)
-  const [imapForm, setImapForm] = useState<ImapForm>({ imap_host: '', imap_port: '993', imap_user: '', imap_password: '', imap_lookback_days: '30' })
-  const [savingImap, setSavingImap] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [testingImap, setTestingImap] = useState(false)
-  const [imapTestResult, setImapTestResult] = useState<{ ok: boolean; message: string } | null>(null)
-
-  // Localizzazione sede (currency + timezone)
-  const [locOpen, setLocOpen]         = useState<string | null>(null)
-  const [locCurrency, setLocCurrency] = useState('GBP')
-  const [locTimezone, setLocTimezone] = useState('Europe/London')
-  const [savingLoc, setSavingLoc]     = useState(false)
-
-  const [retentionOpen, setRetentionOpen] = useState<string | null>(null)
-  const [retentionPolicy, setRetentionPolicy] = useState<SedeFileRetentionPolicy>('delete_only')
-  const [retentionRunDay, setRetentionRunDay] = useState('1')
-  const [savingRetention, setSavingRetention] = useState(false)
-
-  const openLocForm = (sede: SedeWithCounts) => {
-    setLocOpen(sede.id)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const s = sede as any
-    setLocCurrency(s.currency ?? 'GBP')
-    setLocTimezone(s.timezone ?? 'Europe/London')
-  }
-
-  const handleSaveLoc = async (sedeId: string) => {
-    setSavingLoc(true)
-    const res = await fetch(`/api/sedi/${sedeId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currency: locCurrency, timezone: locTimezone }),
-    })
-    setSavingLoc(false)
-    if (!res.ok) {
-      const d = await res.json()
-      setError(d.error ?? 'Error saving localisation')
-      return
-    }
-    setLocOpen(null)
-    setSuccessMsg(t.appStrings.sedeLocSaved)
-    setTimeout(() => setSuccessMsg(null), 3000)
-    await loadData()
-  }
-
-  const [error, setError] = useState<string | null>(null)
-  const [successMsg, setSuccessMsg] = useState<string | null>(null)
-
-  const loadData = async () => {
-    const res = await fetch('/api/sedi')
-
-    if (res.status === 401) { router.push('/login'); return }
-    if (res.status === 403) { setIsAdmin(false); setLoading(false); return }
-
-    if (!res.ok) {
-      const data = await res.json()
-      setError(data.error ?? t.appStrings.sedeErrLoadData)
+      const rows: SedeRow[] = []
+      for (const s of sediData ?? []) {
+        const [{ count: opCount }, { count: fornCount }] = await Promise.all([
+          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', s.id),
+          supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', s.id),
+        ])
+        rows.push({
+          id: s.id,
+          nome: s.nome,
+          imap_user: s.imap_user,
+          imap_host: s.imap_host,
+          country_code: s.country_code,
+          operatori_count: opCount ?? 0,
+          fornitori_count: fornCount ?? 0,
+        })
+      }
+      setSedi(rows)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Errore nel caricamento sedi')
+    } finally {
       setLoading(false)
-      return
     }
-
-    setIsAdmin(true)
-    const data = await res.json()
-    setAdminListScope(data.adminListScope ?? 'sede')
-    setSedi(data.sedi ?? [])
-    setProfiles((data.profiles ?? []) as ProfileWithSede[])
-    setLoading(false)
-  }
-
-  const openRetentionForm = (sede: SedeWithCounts) => {
-    setRetentionOpen(sede.id)
-    const pol = sede.file_retention_policy
-    setRetentionPolicy(pol === 'archive_then_delete' ? 'archive_then_delete' : 'delete_only')
-    setRetentionRunDay(String(sede.file_retention_run_day ?? 1))
-  }
-
-  const handleSaveRetention = async (sedeId: string) => {
-    setSavingRetention(true)
-    setError(null)
-    const body: Record<string, unknown> = {
-      file_retention_policy: retentionPolicy,
-      file_retention_run_day: Math.min(28, Math.max(1, parseInt(retentionRunDay, 10) || 1)),
-    }
-    const res = await fetch(`/api/sedi/${sedeId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    setSavingRetention(false)
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}))
-      setError(typeof d.error === 'string' ? d.error : t.appStrings.sedeErrUpdating)
-      return
-    }
-    setRetentionOpen(null)
-    setSuccessMsg(t.sedi.fileRetentionSaved)
-    setTimeout(() => setSuccessMsg(null), 3000)
-    await loadData()
-  }
-
-  const handleToggleRetention = async (sede: SedeWithCounts) => {
-    const isEnabled = sede.file_retention_policy === 'delete_only' || sede.file_retention_policy === 'archive_then_delete'
-    const newPolicy = isEnabled ? 'keep' : 'delete_only'
-    setSedi((prev) =>
-      prev.map((s) => s.id === sede.id ? { ...s, file_retention_policy: newPolicy } : s)
-    )
-    const res = await fetch(`/api/sedi/${sede.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        file_retention_policy: newPolicy,
-        ...(newPolicy !== 'keep' && { file_retention_run_day: sede.file_retention_run_day ?? 1 }),
-      }),
-    })
-    if (!res.ok) {
-      setSedi((prev) =>
-        prev.map((s) => s.id === sede.id ? { ...s, file_retention_policy: sede.file_retention_policy } : s)
-      )
-      const d = await res.json().catch(() => ({}))
-      setError(typeof d.error === 'string' ? d.error : t.appStrings.sedeErrUpdating)
-    }
-  }
-
-  useEffect(() => { loadData() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [supabase])
 
   useEffect(() => {
-    if (adminListScope === 'sede' && showWizard) setShowWizard(false)
-  }, [adminListScope, showWizard])
+    if (canView) void loadSedi()
+    else setLoading(false)
+  }, [canView, loadSedi])
 
-  const retentionUiEnabled = FILE_ATTACHMENT_RETENTION_UI_ENABLED
-  const wizardStepTotal = retentionUiEnabled ? 4 : 3
-  const wizardDisplayStep: number =
-    retentionUiEnabled ? wizardStep : wizardStep === 1 ? 1 : wizardStep === 3 ? 2 : 3
-
-  const handleUpdateSede = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingSede) return
-    setError(null)
-    const res = await fetch(`/api/sedi/${editingSede.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome: editingSede.nome.trim() }),
-    })
-    const d = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      setError(typeof d.error === 'string' ? d.error :  t.appStrings.sedeErrUpdating)
-      return
-    }
-    setEditingSede(null)
-    setSuccessMsg(t.appStrings.sedeUpdated)
-    setTimeout(() => setSuccessMsg(null), 3000)
-    await loadData()
-  }
-
-  const handleDeleteSede = async (id: string, nome: string) => {
-    if (adminListScope === 'sede') return
-    if (!confirm(t.appStrings.deleteSedeConfirm.replace('{nome}', nome))) return
-    setError(null)
-    const { error: err } = await supabase.from('sedi').delete().eq('id', id)
-    if (err) { setError(err.message); return }
-    setSuccessMsg(t.appStrings.sedeDeleted)
-    setTimeout(() => setSuccessMsg(null), 3000)
-    await loadData()
-  }
-
-  const openImapForm = (sede: SedeWithCounts) => {
-    setImapOpen(sede.id)
-    setImapTestResult(null)
-    setShowPassword(false)
-    setImapForm({
-      imap_host: sede.imap_host ?? '',
-      imap_port: String(sede.imap_port ?? 993),
-      imap_user: sede.imap_user ?? '',
-      imap_password: sede.imap_password ?? '',
-      imap_lookback_days: String(sede.imap_lookback_days ?? 30),
-    })
-  }
-
-  const handleSaveImap = async (sedeId: string) => {
-    setSavingImap(true)
-    setError(null)
-    const lookbackVal = parseInt(imapForm.imap_lookback_days)
-    const res = await fetch(`/api/sedi/${sedeId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        imap_host: imapForm.imap_host.trim() || null,
-        imap_port: parseInt(imapForm.imap_port) || 993,
-        imap_user: imapForm.imap_user.trim() || null,
-        imap_password: imapForm.imap_password || null,
-        imap_lookback_days: isNaN(lookbackVal) || lookbackVal <= 0 ? null : lookbackVal,
-      }),
-    })
-    const d = await res.json().catch(() => ({}))
-    setSavingImap(false)
-    if (!res.ok) {
-      setError(typeof d.error === 'string' ? d.error :  t.appStrings.sedeErrSavingImap)
-      return
-    }
-    setSuccessMsg(t.appStrings.emailSaved)
-    setTimeout(() => setSuccessMsg(null), 3000)
-    setImapOpen(null)
-    await loadData()
-  }
-
-  const handleTestImap = async (sedeId: string) => {
-    setTestingImap(true)
-    setImapTestResult(null)
-    try {
-      const res = await fetch('/api/test-imap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          host: imapForm.imap_host,
-          port: parseInt(imapForm.imap_port) || 993,
-          user: imapForm.imap_user,
-          password: imapForm.imap_password,
-          sedeId,
-        }),
-      })
-      const data = await res.json()
-      setImapTestResult({ ok: res.ok, message: data.message ?? data.error ?? 'Risposta sconosciuta' })
-    } catch {
-      setImapTestResult({ ok: false, message: t.ui.networkError })
-    }
-    setTestingImap(false)
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-app-cyan-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="p-8 max-w-lg">
-        <div className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-950/40 p-6 text-center">
-          <svg className="mx-auto mb-3 h-10 w-10 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          <p className="font-semibold text-red-200">{t.sedi.accessDenied}</p>
-          <p className="mt-1 text-sm text-red-300/90">{t.sedi.accessDeniedHint}</p>
-        </div>
-      </div>
-    )
-  }
-
-  const inputCls = 'w-full rounded-lg border border-app-line-25 app-workspace-surface-elevated px-3 py-2 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35'
-
-  const isSedeScopedAdmin = adminListScope === 'sede'
-  const showRetentionSchemaHint = !!error && isFileRetentionSchemaCacheError(error)
+  if (!canView) return null
 
   return (
-    <div className="w-full min-w-0 app-shell-page-padding">
-      <div className="app-card min-w-0 space-y-6 p-4 sm:p-5 md:space-y-8 md:p-6">
-
-      {error && (
-        <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {showRetentionSchemaHint ? (
-            <>
-              <p className="font-medium text-red-200">{t.sedi.fileRetentionDbSchemaMissing}</p>
-              <p className="mt-2 text-xs text-red-200/90">{t.sedi.fileRetentionDbSchemaMissingHint}</p>
-            </>
-          ) : (
-            error
-          )}
-        </div>
-      )}
-      {successMsg && <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{successMsg}</div>}
-
-      {adminListScope === 'global' && FILE_ATTACHMENT_RETENTION_UI_ENABLED && sedi.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-app-line-28">
-          <div className="px-4 py-3 border-b border-app-line-22 app-workspace-inset-bg-soft">
-            <p className="text-sm font-semibold text-app-fg">{t.sedi.fileRetentionSectionTitle}</p>
-            <p className="mt-0.5 text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
-          </div>
-          <div className="divide-y divide-app-line-18">
-            {sedi.map((sede) => {
-              const enabled = sede.file_retention_policy === 'delete_only' || sede.file_retention_policy === 'archive_then_delete'
-              return (
-                <div key={sede.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <span className="text-sm text-app-fg">{sede.nome}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleToggleRetention(sede)}
-                    aria-checked={enabled}
-                    role="switch"
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? 'bg-[#22d3ee]' : 'bg-app-line-30'}`}
-                  >
-                    <span
-                      className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0'}`}
-                      aria-hidden
-                    />
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Sedi list */}
-      <div>
-        {sedi.length === 0 ? (
-          <div className="app-workspace-inset-bg-soft border border-dashed border-app-line-25 rounded-xl p-8 text-center">
-            <p className="text-app-fg-muted text-sm mb-4">{t.sedi.noSedi}</p>
-            <a
-              href="/onboarding"
-              className="inline-flex items-center gap-2 rounded-xl bg-[#22d3ee] px-5 py-2.5 text-sm font-bold text-[#0a192f] transition hover:opacity-90"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-              {t.appStrings.sedeWizardStartSetup}
-            </a>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sedi.map((sede) => {
-              const sedeProfiles = profiles.filter((p) => p.sede_id === sede.id)
-              const operatorsExpanded = operatorsListOpen === sede.id
-              const operatorsRegionId = `sedi-oper-${sede.id}`
-              return (
-              <div key={sede.id} className="relative overflow-hidden rounded-2xl border border-app-line-28 bg-transparent">
-                {/* ── Header sede ── */}
-                <div className="flex items-center justify-between px-5 py-4">
-                  {editingSede?.id === sede.id ? (
-                    <form onSubmit={handleUpdateSede} className="mr-2 flex flex-1 flex-wrap items-center gap-2">
-                      <input
-                        type="text" required autoFocus value={editingSede.nome}
-                        onChange={(e) => setEditingSede({ ...editingSede, nome: e.target.value })}
-                        className="h-9 min-w-[min(100%,14rem)] flex-1 shrink rounded-lg border border-app-line-25 px-3 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setEditingSede(null)}
-                        className="inline-flex h-9 min-w-[7.25rem] shrink-0 items-center justify-center gap-1.5 rounded-lg border border-app-line-35 bg-black/14 px-3 text-xs font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-app-line-45 hover:bg-black/22 touch-manipulation"
-                      >
-                        <GlyphXMark className="h-3.5 w-3.5 shrink-0 text-app-fg" aria-hidden />
-                        <span>{t.common.cancel}</span>
-                      </button>
-                      <button
-                        type="submit"
-                        className="inline-flex h-9 min-w-[7.25rem] shrink-0 items-center justify-center rounded-lg bg-app-cyan-500 px-3 text-xs font-semibold text-white transition-colors hover:bg-cyan-600"
-                      >
-                        {t.common.save}
-                      </button>
-                    </form>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 bg-app-cyan-500 rounded-lg flex items-center justify-center shrink-0">
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-app-fg leading-tight">{sede.nome}</h3>
-                          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                            <span className="text-xs text-app-fg-muted">
-                              {t.sedi.sedeStats
-                                .replace('{operatori}', String(sede.users_count))
-                                .replace('{fornitori}', String(sede.fornitori_count))
-                              }
-                            </span>
-                            {sede.access_password && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/35">PIN</span>
-                            )}
-                            {sede.imap_user ? (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/35">
-                                <svg className="inline-block h-2.5 w-2.5 -mt-0.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                                </svg>
-                                Email
-                              </span>
-                            ) : (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-300/80 ring-1 ring-amber-500/25">
-                                {t.appStrings.sedeEmailNotConfigured}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {/* Accedi alla Sede — switcha il cookie e torna alla dashboard */}
-                        {!isSedeScopedAdmin && (
-                          <button
-                            type="button"
-                            title="Accedi alla sede"
-                            onClick={() => {
-                              document.cookie = 'fluxo-acting-role=; path=/; Max-Age=0; SameSite=Strict'
-                              document.cookie = `admin-sede-id=${encodeURIComponent(sede.id)}; path=/; SameSite=Strict`
-                              router.push('/')
-                              router.refresh()
-                            }}
-                            className="flex items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-100 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/18 touch-manipulation"
-                          >
-                            <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                            </svg>
-                            Accedi
-                          </button>
-                        )}
-                        <button onClick={() => setEditingSede({ id: sede.id, nome: sede.nome })}
-                          className="p-1.5 text-app-fg-muted hover:text-app-fg hover:bg-black/18 rounded-lg transition-colors" title={t.sedi.renameTitle}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                        {!isSedeScopedAdmin ? (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSede(sede.id, sede.nome)}
-                            className="p-1.5 text-app-fg-muted hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-colors"
-                            title={t.sedi.deleteTitle}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        ) : null}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* ── Azioni (accordion) ── */}
-                <div className={`border-t border-app-line-22 ${APP_SECTION_DIVIDE_ROWS}`}>
-
-                  {sedeProfiles.length > 0 ? (
-                    <>
-                      <button
-                        type="button"
-                        id={`${operatorsRegionId}-toggle`}
-                        aria-expanded={operatorsExpanded}
-                        aria-controls={operatorsExpanded ? operatorsRegionId : undefined}
-                        aria-label={
-                          operatorsExpanded
-                            ? t.sedi.operatorsDrawerAriaClose
-                            : t.sedi.operatorsDrawerAriaOpen
-                        }
-                        onClick={() =>
-                          setOperatorsListOpen((prev) => (prev === sede.id ? null : sede.id))
-                        }
-                        className="flex w-full items-center justify-between px-5 py-2.5 text-left text-xs font-medium text-app-fg-muted outline-none ring-app-cyan-500/40 transition-colors hover:bg-black/12 focus-visible:ring-2"
-                      >
-                        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                          <span className="flex items-center gap-1.5 uppercase tracking-wide">
-                            <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            <span>{t.sedi.operatoriHeader.replace('{n}', String(sedeProfiles.length))}</span>
-                          </span>
-                          {!operatorsExpanded ? (
-                            <span className="max-w-[min(100%,32rem)] pl-[22px] text-[11px] font-normal normal-case tracking-normal text-app-fg-muted">
-                              {t.sedi.operatorsDrawerCollapsedHint}
-                            </span>
-                          ) : null}
-                        </span>
-                        <svg
-                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${operatorsExpanded ? 'rotate-180' : ''}`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {operatorsExpanded ? (
-                        <div
-                          id={operatorsRegionId}
-                          role="region"
-                          aria-labelledby={`${operatorsRegionId}-toggle`}
-                          className="px-5 py-4 app-workspace-inset-bg-soft"
-                        >
-                          <div className="space-y-1">
-                            {sedeProfiles.map((p) => (
-                          <div key={p.id}>
-                            {editingProfile?.id === p.id ? (
-                              <form
-                                className="rounded-lg border border-app-line-28 app-workspace-surface-elevated px-3 py-2.5 ring-1 ring-app-line-10"
-                                onSubmit={(e) => {
-                                  e.preventDefault()
-                                  void handleSaveProfile()
-                                }}
-                              >
-                                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-end sm:gap-2">
-                                  <div className="grid min-h-0 min-w-0 flex-1 grid-cols-2 gap-2">
-                                    <div className="min-w-0">
-                                      <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">Nome</label>
-                                      <input
-                                        type="text"
-                                        autoFocus
-                                        autoCapitalize="characters"
-                                        value={editingProfile.full_name}
-                                        onChange={(e) =>
-                                          setEditingProfile({
-                                            ...editingProfile,
-                                            full_name: e.target.value.toUpperCase(),
-                                          })
-                                        }
-                                        className="h-9 w-full rounded-lg border border-app-line-25 px-2.5 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35 app-workspace-surface-elevated"
-                                      />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <label className="mb-1 block text-[10px] font-semibold uppercase text-app-fg-muted">Ruolo</label>
-                                      <select
-                                        value={editingProfile.role}
-                                        onChange={(e) => setEditingProfile({ ...editingProfile, role: e.target.value })}
-                                        className="h-9 w-full rounded-lg border border-app-line-25 px-2.5 text-sm focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35 app-workspace-surface-elevated"
-                                      >
-                                        <option value="operatore">Operatore</option>
-                                        <option value="admin_sede">{t.sedi.adminSedeRole}</option>
-                                        <option value="admin_tecnico">{t.sedi.adminTecnicoRole}</option>
-                                        {me?.is_admin ? (
-                                          <option value="admin">{t.sedi.profileRoleAdmin}</option>
-                                        ) : null}
-                                      </select>
-                                    </div>
-                                  </div>
-                                  <div className="flex shrink-0 justify-end gap-2 sm:justify-start">
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingProfile(null)}
-                                      className="inline-flex h-9 min-w-[4.75rem] flex-1 items-center justify-center rounded-lg border border-app-line-25 px-2.5 text-xs font-semibold text-app-fg-muted hover:bg-black/18 sm:flex-initial sm:min-w-[5rem]"
-                                    >
-                                      {t.common.cancel}
-                                    </button>
-                                    <button
-                                      type="submit"
-                                      disabled={savingProfile}
-                                      className="inline-flex h-9 min-w-[4.75rem] flex-1 items-center justify-center rounded-lg bg-app-cyan-500 px-2.5 text-xs font-semibold text-white shadow-sm hover:bg-cyan-600 active:bg-cyan-700 disabled:opacity-50 touch-manipulation sm:flex-initial sm:min-w-[5rem]"
-                                    >
-                                      {savingProfile ? t.appStrings.savingShort : t.common.save}
-                                    </button>
-                                  </div>
-                                </div>
-                              </form>
-                            ) : (
-                              <div className="flex items-center justify-between rounded-lg border border-app-line-22 py-1.5 px-3 app-workspace-inset-bg-soft">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-app-line-10">
-                                    <svg className="w-3 h-3 text-app-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                  </div>
-                                  <p className="text-xs font-semibold text-app-fg-muted truncate">
-                                    {p.full_name ?? p.email ?? '—'}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ring-1 ${
-                                    p.role === 'admin'
-                                      ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
-                                      : p.role === 'admin_sede' || p.role === 'admin_tecnico'
-                                        ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
-                                        : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
-                                  }`}>
-                                    {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_tecnico' ? t.sedi.adminTecnicoRoleShort : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
-                                  </span>
-                                  {p.role === 'operatore' && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setChangingPinFor(changingPinFor === p.id ? null : p.id)
-                                        setNewPin('')
-                                        setPinMsg(null)
-                                      }}
-                                      className="p-1 text-app-fg-muted hover:text-amber-400 hover:bg-amber-500/15 rounded transition-colors"
-                                      title={t.sedi.changePinTitle}
-                                    >
-                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                                      </svg>
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setEditingProfile({
-                                        id: p.id,
-                                        full_name: (p.full_name ?? '').toUpperCase(),
-                                        role: p.role,
-                                      })
-                                    }
-                                    className="p-1 text-app-fg-muted hover:text-app-cyan-500 hover:bg-app-line-10 rounded transition-colors"
-                                    title="Modifica"
-                                  >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteUser(p.id, p.email ?? '')}
-                                    disabled={deletingUserId === p.id}
-                                    className="p-1 text-app-fg-muted hover:text-red-400 hover:bg-red-500/15 rounded transition-colors disabled:opacity-40"
-                                    title="Elimina"
-                                  >
-                                    {deletingUserId === p.id
-                                      ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                                      : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    }
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                            {/* Inline PIN-change form — only visible when this operator is selected */}
-                            {changingPinFor === p.id && (
-                              <div className="mt-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/8 px-3 py-2.5 space-y-2">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">
-                                  {t.sedi.newPinFor.replace('{name}', p.full_name ?? '—')}
-                                </p>
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="password"
-                                    inputMode="numeric"
-                                    placeholder="Min 4 cifre"
-                                    maxLength={12}
-                                    value={newPin}
-                                    onChange={(e) => {
-                                      setNewPin(e.target.value.replace(/\D/g, ''))
-                                      setPinMsg(null)
-                                    }}
-                                    className="w-28 rounded-lg border border-app-line-25 bg-transparent px-2.5 py-1.5 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-[rgba(34,211,238,0.15)] focus:outline-none focus:ring-1 focus:ring-amber-500/50"
-                                    autoFocus
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => handleChangePin(p.id)}
-                                    disabled={newPin.length < 4 || savingPin}
-                                    className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-amber-950 transition-colors hover:bg-amber-400 active:bg-amber-600 disabled:opacity-40"
-                                  >
-                                    {savingPin ? t.appStrings.savingShort : t.common.save}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => { setChangingPinFor(null); setNewPin(''); setPinMsg(null) }}
-                                    className="text-xs text-app-fg-muted hover:text-app-fg"
-                                  >
-                                    Annulla
-                                  </button>
-                                </div>
-                                {pinMsg && (
-                                  <p className={`text-xs font-medium ${pinMsg.ok ? 'text-emerald-300' : 'text-red-300'}`}>
-                                    {pinMsg.text}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                          </div>
-                        </div>
-                      ) : null}
-                    </>
-                  ) : null}
-
-                  {/* Crea operatore */}
-                  <button type="button"
-                    onClick={() => { setCreateUserOpen(createUserOpen === sede.id ? null : sede.id); setCreateUserMsg(null); setNewUserPassword(''); setNewUserName('') }}
-                    className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-app-fg-muted hover:bg-black/12 transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                      </svg>
-                      {t.appStrings.addOperatorBtn}
-                    </span>
-                    <svg className={`w-3.5 h-3.5 transition-transform ${createUserOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                    </svg>
-                  </button>
-                  {createUserOpen === sede.id && (
-                    <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">Nome operatore</label>
-                          <input
-                            type="text"
-                            placeholder="MARIO ROSSI"
-                            autoCapitalize="characters"
-                            value={newUserName}
-                            onChange={(e) => setNewUserName(e.target.value.toUpperCase())}
-                            className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">PIN (min. 4 caratteri)</label>
-                          <div className="relative">
-                            <input type={showNewUserPw ? 'text' : 'password'} placeholder="es. 1234" value={newUserPassword}
-                              onChange={(e) => setNewUserPassword(e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9" />
-                            <button type="button" onClick={() => setShowNewUserPw(!showNewUserPw)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                {showNewUserPw
-                                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                  : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
-                                }
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {createUserMsg && (
-                        <div className={`text-xs px-3 py-2 rounded-lg border ${createUserMsg.ok ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200' : 'border-[rgba(34,211,238,0.15)] bg-red-500/10 text-red-300'}`}>
-                          {createUserMsg.text}
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => setCreateUserOpen(null)}
-                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
-                        <button type="button" onClick={() => handleCreateUser(sede.id)}
-                          disabled={creatingUser || !newUserName.trim() || newUserPassword.length < 4}
-                          className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
-                          {creatingUser ? t.sedi.creatingBtn : t.sedi.createBtn}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Codice accesso */}
-                  <button type="button"
-                    onClick={() => {
-                      if (accessPwOpen === sede.id) {
-                        setAccessPwOpen(null)
-                      } else {
-                        setAccessPwOpen(sede.id)
-                        const d = (sede.access_password ?? '').replace(/\D/g, '').slice(0, 4)
-                        setAccessPwValue(d)
-                        setShowAccessPw(false)
-                      }
-                    }}
-                    className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-app-fg-muted hover:bg-black/12 transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                      </svg>
-                      {t.sedi.sedeAccessCodeLabel}
-                    </span>
-                    <svg className={`w-3.5 h-3.5 transition-transform ${accessPwOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                    </svg>
-                  </button>
-                  {accessPwOpen === sede.id && (
-                    <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                      <div className="relative">
-                        <input
-                          type={showAccessPw ? 'text' : 'password'}
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={4}
-                          placeholder="••••"
-                          value={accessPwValue}
-                          onChange={(e) => setAccessPwValue(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                          className="w-full px-3 py-2 text-sm tracking-widest border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9 text-center"
-                        />
-                        <button type="button" onClick={() => setShowAccessPw(!showAccessPw)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {showAccessPw
-                              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                              : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
-                            }
-                          </svg>
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-app-fg-muted">{t.sedi.sedePinHint}</p>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => setAccessPwOpen(null)}
-                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
-                        <button type="button" onClick={() => handleSaveAccessPassword(sede.id)} disabled={savingAccessPw}
-                          className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
-                          {savingAccessPw ? t.appStrings.savingShort : t.common.save}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── Localizzazione (currency + timezone) ── */}
-                  <button type="button"
-                    onClick={() => { if (locOpen === sede.id) { setLocOpen(null) } else { openLocForm(sede) } }}
-                    className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-app-fg-muted hover:bg-black/12 transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
-                      </svg>
-                      {t.sedi.valutaFuso}
-                    </span>
-                    <svg className={`w-3.5 h-3.5 transition-transform ${locOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                    </svg>
-                  </button>
-                  {locOpen === sede.id && (
-                    <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">Valuta (ISO 4217)</label>
-                          <select value={locCurrency} onChange={(e) => setLocCurrency(e.target.value)} className={inputCls}>
-                            {CURRENCIES.map((c) => (
-                              <option key={c.code} value={c.code}>{c.symbol} {c.label} ({c.code})</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">Fuso orario</label>
-                          <select value={locTimezone} onChange={(e) => setLocTimezone(e.target.value)} className={inputCls}>
-                            {TIMEZONES.map((tz) => (
-                              <option key={tz.value} value={tz.value}>{tz.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => setLocOpen(null)}
-                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
-                        <button type="button" onClick={() => handleSaveLoc(sede.id)} disabled={savingLoc}
-                          className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
-                          {savingLoc ? t.common.loading : t.common.save}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {FILE_ATTACHMENT_RETENTION_UI_ENABLED ? (
-                    <>
-                      {/* Conservazione allegati */}
-                      <button type="button"
-                        onClick={() => { if (retentionOpen === sede.id) { setRetentionOpen(null) } else { openRetentionForm(sede) } }}
-                        className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-app-fg-muted hover:bg-black/12 transition-colors"
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-                          </svg>
-                          {t.sedi.fileRetentionEditLink}
-                        </span>
-                        <svg className={`w-3.5 h-3.5 transition-transform ${retentionOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                        </svg>
-                      </button>
-                      {retentionOpen === sede.id && (
-                        <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                          <p className="text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
-                          <div className="space-y-1.5">
-                            <p className="text-xs font-medium text-app-fg-muted">{t.sedi.fileRetentionPolicyLabel}</p>
-                            {(['delete_only', 'archive_then_delete'] as const).map((pol) => (
-                              <label key={pol} className="flex items-start gap-2 rounded-lg border border-app-line-25 px-3 py-2 cursor-pointer hover:bg-black/10">
-                                <input
-                                  type="radio"
-                                  name={`retention-${sede.id}`}
-                                  className="mt-1"
-                                  checked={retentionPolicy === pol}
-                                  onChange={() => setRetentionPolicy(pol)}
-                                />
-                                <span className="text-sm text-app-fg">
-                                  {pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                          <div className="grid grid-cols-1 gap-3 sm:max-w-md">
-                            <div>
-                              <p className="text-sm font-medium text-app-fg">{t.sedi.fileRetentionMonthsLabel}</p>
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
-                              <input
-                                type="number"
-                                min={1}
-                                max={28}
-                                value={retentionRunDay}
-                                onChange={(e) => setRetentionRunDay(e.target.value)}
-                                className={inputCls}
-                              />
-                              <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button type="button" onClick={() => setRetentionOpen(null)}
-                              className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
-                            <button type="button" onClick={() => handleSaveRetention(sede.id)} disabled={savingRetention}
-                              className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
-                              {savingRetention ? t.common.loading : t.common.save}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : null}
-
-                  {/* IMAP email */}
-                  <button type="button"
-                    onClick={() => { if (imapOpen === sede.id) { setImapOpen(null) } else { openImapForm(sede) } }}
-                    className="w-full flex items-center justify-between px-5 py-2.5 text-xs font-medium text-app-fg-muted hover:bg-black/12 transition-colors"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                      </svg>
-                      {t.sedi.imap}
-                    </span>
-                    <svg className={`w-3.5 h-3.5 transition-transform ${imapOpen === sede.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                    </svg>
-                  </button>
-                  {imapOpen === sede.id && (
-                    <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <div className="sm:col-span-2">
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.imapHost}</label>
-                          <input type="text" list="imap-providers" placeholder={t.sedi.imapHostPlaceholder}
-                            value={imapForm.imap_host}
-                            onChange={(e) => {
-                              const host = e.target.value
-                              const portMap: Record<string, string> = {
-                                'imap.gmail.com': '993', 'imap.googlemail.com': '993',
-                                'outlook.office365.com': '993', 'imap-mail.outlook.com': '993',
-                                'imap.mail.yahoo.com': '993', 'imap.apple.com': '993',
-                                'imap.fastmail.com': '993', 'imap.libero.it': '993',
-                                'imap.alice.it': '993', 'imap.tim.it': '993',
-                                'imap.virgilio.it': '993', 'imap.aruba.it': '993',
-                                'imapmail.aruba.it': '993', 'imap.tiscali.it': '993',
-                                'imap.pec.it': '993', 'mail.registro.it': '993',
-                                'imap.protonmail.ch': '993', 'imap.zoho.com': '993',
-                              }
-                              setImapForm({ ...imapForm, imap_host: host, imap_port: portMap[host] ?? imapForm.imap_port })
-                            }}
-                            className={inputCls} />
-                          <datalist id="imap-providers">
-                            <option value="imap.gmail.com">Gmail</option>
-                            <option value="imap.googlemail.com">Gmail (alt.)</option>
-                            <option value="outlook.office365.com">Outlook / M365</option>
-                            <option value="imap-mail.outlook.com">Outlook.com</option>
-                            <option value="imap.mail.yahoo.com">Yahoo</option>
-                            <option value="imap.apple.com">iCloud</option>
-                            <option value="imap.fastmail.com">Fastmail</option>
-                            <option value="imap.protonmail.ch">Proton</option>
-                            <option value="imap.zoho.com">Zoho</option>
-                            <option value="imap.libero.it">Libero</option>
-                            <option value="imap.alice.it">Alice/TIM</option>
-                            <option value="imap.tim.it">TIM</option>
-                            <option value="imap.virgilio.it">Virgilio</option>
-                            <option value="imap.aruba.it">Aruba</option>
-                            <option value="imapmail.aruba.it">Aruba PEC</option>
-                            <option value="imap.tiscali.it">Tiscali</option>
-                            <option value="mail.registro.it">Registro.it</option>
-                          </datalist>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.imapPort}</label>
-                          <input type="number" placeholder="993" value={imapForm.imap_port}
-                            onChange={(e) => setImapForm({ ...imapForm, imap_port: e.target.value })}
-                            className={inputCls} />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.imapUser}</label>
-                          <input type="email" placeholder="email@esempio.it" value={imapForm.imap_user}
-                            onChange={(e) => setImapForm({ ...imapForm, imap_user: e.target.value })}
-                            className={inputCls} />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.imapPassword}</label>
-                          <div className="relative">
-                            <input type={showPassword ? 'text' : 'password'} placeholder={t.sedi.imapPasswordPlaceholder}
-                              value={imapForm.imap_password}
-                              onChange={(e) => setImapForm({ ...imapForm, imap_password: e.target.value })}
-                              className={`${inputCls} pr-9`} />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                {showPassword
-                                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                  : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
-                                }
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Lookback days — usato per sync «storica» (mode historical); riduci dopo l’import iniziale */}
-                      <div>
-                        <label className="block text-xs font-medium text-app-fg-muted mb-1">
-                          {t.appStrings.imapLookbackLabel}
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="1"
-                            max="365"
-                            placeholder="30"
-                            value={imapForm.imap_lookback_days}
-                            onChange={(e) => setImapForm({ ...imapForm, imap_lookback_days: e.target.value })}
-                            className={`${inputCls} w-28`}
-                          />
-                          <span className="text-xs text-app-fg-muted">
-                            {imapForm.imap_lookback_days && parseInt(imapForm.imap_lookback_days) > 0
-                              ? t.appStrings.imapLookbackLastDays.replace('{n}', String(parseInt(imapForm.imap_lookback_days, 10) || 0))
-                              : t.appStrings.imapLookbackUnlimited}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-app-fg-muted mt-1">{t.appStrings.imapLookbackFootnote}</p>
-                      </div>
-
-                      {(imapForm.imap_host.includes('gmail') || imapForm.imap_host.includes('googlemail') || imapForm.imap_host.includes('outlook') || imapForm.imap_host.includes('office365')) && (
-                        <div className="flex gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                          <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                          </svg>
-                          <span>
-                            {imapForm.imap_host.includes('gmail') || imapForm.imap_host.includes('googlemail')
-                              ? <><strong>App Password richiesta.</strong> <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Google →</a></>
-                              : <><strong>App Password richiesta.</strong> <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Microsoft →</a></>
-                            }
-                          </span>
-                        </div>
-                      )}
-                      {imapTestResult && (
-                        <div className={`rounded-lg border px-3 py-2 text-xs ${imapTestResult.ok ? 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200' : 'border-[rgba(34,211,238,0.15)] bg-red-500/10 text-red-300'}`}>
-                          {imapTestResult.message}
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => handleTestImap(sede.id)}
-                          disabled={testingImap || !imapForm.imap_host || !imapForm.imap_user || !imapForm.imap_password}
-                          className="flex items-center gap-1.5 px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 disabled:opacity-50 text-app-fg-muted">
-                          {testingImap ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                            : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
-                          {t.sedi.testConnection}
-                        </button>
-                        <button type="button" onClick={() => setImapOpen(null)}
-                          className="px-3 py-2 text-sm border border-app-line-25 rounded-lg hover:bg-black/12 text-app-fg-muted">{t.common.cancel}</button>
-                        <button type="button" onClick={() => handleSaveImap(sede.id)} disabled={savingImap}
-                          className="flex-1 py-2 text-sm font-medium bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white rounded-lg transition-colors">
-                          {savingImap ? t.common.loading : t.sedi.saveConfig}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+    <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} w-full min-w-0 pb-10`}>
+      <div className="app-shell-page-padding mx-auto min-w-0 w-full max-w-[var(--app-layout-max-width)]">
+        <AppPageHeaderStrip
+          accent="teal"
+          leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+          icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
+        >
+          <AppPageHeaderTitleWithDashboardShortcut className="min-w-0 w-full flex-1 items-center gap-2 sm:gap-3">
+            <div className="flex w-full min-w-0 items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>
+                  {masterPlane ? t.nav.sediNavGroupMaster : t.nav.sediTitle}
+                </h1>
+                <p className="text-xs text-app-fg-muted mt-0.5">
+                  {sedi.length}
+                </p>
               </div>
-            )
-          })}
-          </div>
-        )}
-      </div>
-
-      {/* Utenti senza sede — solo amministratore principale (admin senza sede sul profilo) */}
-      {adminListScope === 'global'
-        ? (() => {
-        const unassigned = profiles.filter(p => !p.sede_id)
-        if (unassigned.length === 0) return null
-        return (
-          <div>
-            <h2 className="text-sm font-semibold text-app-fg-muted mb-3">Utenti senza sede ({unassigned.length})</h2>
-            <div className="app-workspace-surface-elevated border border-app-line-22 rounded-xl shadow-sm divide-y divide-app-line-12">
-              {unassigned.map((p) => (
-                <div key={p.id} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    {p.full_name && <p className="text-sm font-semibold text-app-fg">{p.full_name}</p>}
-                    <p className="text-sm text-app-fg-muted">{p.email ?? '—'}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ring-1 ${
-                        p.role === 'admin'
-                          ? 'bg-violet-500/20 text-violet-200 ring-violet-500/35'
-                          : p.role === 'admin_sede' || p.role === 'admin_tecnico'
-                            ? 'bg-emerald-500/20 text-emerald-200 ring-emerald-500/30'
-                            : 'bg-sky-500/15 text-sky-200 ring-sky-500/30'
-                      }`}
-                    >
-                      {p.role === 'admin' ? t.sedi.profileRoleAdmin : p.role === 'admin_tecnico' ? t.sedi.adminTecnicoRoleShort : p.role === 'admin_sede' ? t.sedi.adminSedeRoleShort : t.sedi.operatoreRoleShort}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteUser(p.id, p.email ?? '')}
-                      disabled={deletingUserId === p.id}
-                      className="p-1.5 text-app-fg-muted hover:text-red-400 hover:bg-red-500/15 rounded-lg transition-colors disabled:opacity-40"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
-          </div>
-        )
-      })()
-        : null}
+          </AppPageHeaderTitleWithDashboardShortcut>
+        </AppPageHeaderStrip>
 
-      </div>
-
-      {/* ── Wizard nuova sede ── */}
-      {showWizard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center app-workspace-scrim app-aurora-modal-overlay p-4 backdrop-blur-sm">
-          <div className="app-workspace-surface-elevated rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto">
-
-            {/* Wizard header */}
-            <div className="px-6 py-4 border-b border-app-line-22 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-app-fg">{t.sedi.newSede}</h2>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  {Array.from({ length: wizardStepTotal }, (_, i) => i + 1).map((s) => (
-                    <div key={s} className={`h-1 rounded-full transition-all ${s <= wizardDisplayStep ? 'w-8 bg-app-cyan-500' : 'w-4 bg-cyan-950/50'}`} />
-                  ))}
-                  <span className="text-xs text-app-fg-muted ml-1">
-                    {t.appStrings.sedeWizardStepOf
-                      .replace('{step}', String(wizardDisplayStep))
-                      .replace('{total}', String(wizardStepTotal))}
-                  </span>
-                </div>
-              </div>
-              <button onClick={() => setShowWizard(false)} className="rounded-lg p-2 text-app-fg-muted transition-colors hover:bg-app-line-12 hover:text-app-fg">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-                </svg>
+        <div className="mt-6 space-y-4">
+          {loading ? (
+            <>
+              <SedeCardSkeleton />
+              <SedeCardSkeleton />
+            </>
+          ) : error ? (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4">
+              <p className="text-sm font-semibold text-rose-200">{t.common.error}</p>
+              <p className="mt-1 text-xs text-rose-300">{error}</p>
+              <button
+                type="button"
+                onClick={() => void loadSedi()}
+                className="mt-3 inline-flex touch-manipulation items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/14 px-3 py-1.5 text-xs font-semibold text-rose-100 transition-colors hover:bg-rose-500/22"
+              >
+                {t.log.retry}
               </button>
             </div>
-
-            <div className="px-6 py-5">
-
-              {/* Step 1 — Nome sede + Geo-detection */}
-              {wizardStep === 1 && (() => {
-                const loc = getLocale(wizardCountryCode)
-                return (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardNameLabel}</p>
-                      <p className="text-xs text-app-fg-muted mb-4">Es. &quot;Ristorante Roma&quot; o &quot;Magazzino Nord&quot;</p>
-                      <input
-                        type="text" autoFocus placeholder="Nome sede…"
-                        value={wizardSedeName}
-                        onChange={(e) => setWizardSedeName(e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === 'Enter' &&
-                          wizardSedeName.trim() &&
-                          setWizardStep(FILE_ATTACHMENT_RETENTION_UI_ENABLED ? 2 : 3)}
-                        className="w-full rounded-xl border border-app-line-25 app-workspace-surface-elevated px-4 py-3 text-sm text-app-fg placeholder:text-app-fg-placeholder focus:border-app-cyan-500 focus:outline-none focus:ring-2 focus:ring-app-line-35"
-                      />
-                    </div>
-
-                    {/* ── Geo-detection banner ── */}
-                    <div className={`rounded-xl border px-4 py-3 text-xs transition-colors ${
-                      wizardGeoStatus === 'detecting'
-                        ? 'app-workspace-inset-bg-soft border-app-line-25 text-app-fg-muted'
-                        : wizardGeoStatus === 'detected'
-                        ? 'border-app-line-35 bg-app-line-10 text-app-fg-muted'
-                        : 'border-[rgba(34,211,238,0.15)] bg-amber-500/10 text-amber-100'
-                    }`}>
-                      {/* Status row */}
-                      <div className="flex items-center gap-2 mb-2.5">
-                        {wizardGeoStatus === 'detecting' ? (
-                          <>
-                            <svg className="w-3.5 h-3.5 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                            </svg>
-                            <span>Rilevamento posizione in corso…</span>
-                          </>
-                        ) : wizardGeoStatus === 'detected' ? (
-                          <>
-                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
-                            <span className="font-semibold">Rilevata posizione: {loc.name}.</span>
-                            <span className="text-blue-600">Termini fiscali impostati su <strong>{loc.vat}</strong> · <strong>{loc.vatLabel}</strong>.</span>
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            <span>Posizione non rilevata automaticamente. Termine predefinito: <strong>UK</strong>.</span>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Manual override — always visible */}
-                      <div className="flex items-center gap-2 pt-2 border-t border-current/10">
-                        <span className="text-[11px] opacity-70 shrink-0">Cambia manualmente:</span>
-                        <div className="relative">
-                          <select
-                            value={wizardCountryCode}
-                            onChange={e => { setWizardCountryCode(e.target.value); setWizardGeoStatus('failed') }}
-                            className="appearance-none pl-7 pr-6 py-1 text-xs border border-current/20 rounded-lg app-workspace-surface-elevated focus:outline-none focus:ring-2 focus:ring-app-line-30 cursor-pointer"
-                          >
-                            {COUNTRY_OPTIONS.map(o => (
-                              <option key={o.code} value={o.code}>{o.code} — {o.name}</option>
-                            ))}
-                          </select>
-                          <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 leading-none">
-                            <LocaleCodeChip code={wizardCountryCode} className="h-5 min-w-[1.5rem] text-[9px]" />
-                          </span>
-                          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <button
-                        onClick={() => setWizardStep(FILE_ATTACHMENT_RETENTION_UI_ENABLED ? 2 : 3)}
-                        disabled={!wizardSedeName.trim()}
-                        className="px-5 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
-                      >
-                        {t.appStrings.sedeWizardNext}
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {/* Step 2 — Conservazione allegati */}
-              {FILE_ATTACHMENT_RETENTION_UI_ENABLED && wizardStep === 2 && (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-semibold text-app-fg mb-1">{t.sedi.fileRetentionSectionTitle}</p>
-                    <p className="text-xs text-app-fg-muted">{t.sedi.fileRetentionSectionHint}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-app-fg-muted">{t.sedi.fileRetentionPolicyLabel}</p>
-                    {(['delete_only', 'archive_then_delete'] as const).map((pol) => (
-                      <label key={pol} className="flex items-start gap-2 rounded-lg border border-app-line-25 px-3 py-2 cursor-pointer hover:bg-black/10">
-                        <input
-                          type="radio"
-                          name="wizard-retention"
-                          className="mt-1"
-                          checked={wizardFileRetention === pol}
-                          onChange={() => setWizardFileRetention(pol)}
-                        />
-                        <span className="text-sm text-app-fg">
-                          {pol === 'delete_only' ? t.sedi.fileRetentionDeleteOnly : t.sedi.fileRetentionArchiveThenDelete}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:max-w-md">
-                    <div>
-                      <p className="text-sm font-medium text-app-fg">{t.sedi.fileRetentionMonthsLabel}</p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">{t.sedi.fileRetentionRunDayLabel}</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={28}
-                        value={wizardRetentionRunDay}
-                        onChange={(e) => setWizardRetentionRunDay(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg app-workspace-surface-elevated"
-                      />
-                      <p className="text-[11px] text-app-fg-muted mt-1">{t.sedi.fileRetentionRunDayHint}</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-between">
-                    <button type="button" onClick={() => setWizardStep(1)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
-                      {t.appStrings.sedeWizardBack}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(3)}
-                      className="px-5 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
-                    >
-                      {t.appStrings.sedeWizardNext}
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 3 — Configurazione email IMAP */}
-              {wizardStep === 3 && (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardEmailConfigTitle}</p>
-                    <p className="text-xs text-app-fg-muted mb-4">{t.appStrings.sedeWizardEmailConfigDesc}</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Server IMAP</label>
-                      <input type="text" list="wizard-imap-providers" placeholder="imap.gmail.com"
-                        value={wizardImap.imap_host}
-                        onChange={(e) => {
-                          const host = e.target.value
-                          const portMap: Record<string, string> = {
-                            'imap.gmail.com':'993','imap.googlemail.com':'993','outlook.office365.com':'993',
-                            'imap-mail.outlook.com':'993','imap.mail.yahoo.com':'993','imap.apple.com':'993',
-                            'imap.fastmail.com':'993','imap.libero.it':'993','imap.alice.it':'993',
-                            'imap.tim.it':'993','imap.virgilio.it':'993','imap.aruba.it':'993',
-                            'imapmail.aruba.it':'993','imap.tiscali.it':'993','imap.protonmail.ch':'993','imap.zoho.com':'993',
-                          }
-                          setWizardImap({ ...wizardImap, imap_host: host, imap_port: portMap[host] ?? wizardImap.imap_port })
-                        }}
-                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                      />
-                      <datalist id="wizard-imap-providers">
-                        <option value="imap.gmail.com">Gmail</option>
-                        <option value="imap.googlemail.com">Gmail (alt.)</option>
-                        <option value="outlook.office365.com">Outlook / M365</option>
-                        <option value="imap-mail.outlook.com">Outlook.com</option>
-                        <option value="imap.mail.yahoo.com">Yahoo</option>
-                        <option value="imap.apple.com">iCloud</option>
-                        <option value="imap.fastmail.com">Fastmail</option>
-                        <option value="imap.protonmail.ch">Proton</option>
-                        <option value="imap.zoho.com">Zoho</option>
-                        <option value="imap.libero.it">Libero</option>
-                        <option value="imap.alice.it">Alice/TIM</option>
-                        <option value="imap.virgilio.it">Virgilio</option>
-                        <option value="imap.aruba.it">Aruba</option>
-                        <option value="imapmail.aruba.it">Aruba PEC</option>
-                        <option value="imap.tiscali.it">Tiscali</option>
-                      </datalist>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Porta</label>
-                      <input type="number" placeholder="993" value={wizardImap.imap_port}
-                        onChange={(e) => setWizardImap({ ...wizardImap, imap_port: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Email account</label>
-                      <input type="email" placeholder="email@esempio.it" value={wizardImap.imap_user}
-                        onChange={(e) => setWizardImap({ ...wizardImap, imap_user: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-app-fg-muted mb-1">Password / App Password</label>
-                      <div className="relative">
-                        <input type={wizardShowImap ? 'text' : 'password'} placeholder="Password…" value={wizardImap.imap_password}
-                          onChange={(e) => setWizardImap({ ...wizardImap, imap_password: e.target.value })}
-                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9"
-                        />
-                        <button type="button" onClick={() => setWizardShowImap(!wizardShowImap)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            {wizardShowImap
-                              ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                              : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
-                            }
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  {(wizardImap.imap_host.includes('gmail') || wizardImap.imap_host.includes('outlook') || wizardImap.imap_host.includes('office365')) && (
-                    <div className="flex gap-2 rounded-lg border border-[rgba(34,211,238,0.15)] bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                      <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                      <span>
-                        {wizardImap.imap_host.includes('gmail')
-                          ? <><strong>App Password richiesta.</strong> <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Google →</a></>
-                          : <><strong>App Password richiesta.</strong> <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" className="text-app-cyan-500 underline transition-colors hover:text-app-fg-muted">Genera su Microsoft →</a></>
-                        }
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <button
-                      onClick={() => setWizardStep(FILE_ATTACHMENT_RETENTION_UI_ENABLED ? 2 : 1)}
-                      className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12"
-                    >
-                      {t.appStrings.sedeWizardBack}
-                    </button>
-                    <div className="flex gap-2">
-                      <button onClick={() => { setWizardImap({ imap_host:'', imap_port:'993', imap_user:'', imap_password:'', imap_lookback_days: '30' }); setWizardStep(4) }}
-                        className="px-4 py-2 text-sm text-app-fg-muted hover:text-app-fg rounded-xl hover:bg-black/12">
-                        {t.appStrings.sedeWizardSkip}
-                      </button>
-                      <button onClick={() => setWizardStep(4)}
-                        className="px-5 py-2 bg-app-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors flex items-center gap-2">
-                        {t.appStrings.sedeWizardNext}
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 4 — Operatori */}
-              {wizardStep === 4 && (
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-semibold text-app-fg-muted mb-1">{t.appStrings.sedeWizardAddOperatorsTitle}</p>
-                    <p className="text-xs text-app-fg-muted mb-4">{t.sedi.wizardOperatorHint}</p>
-                  </div>
-
-                  {/* Lista operatori aggiunti */}
-                  {wizardOperators.length > 0 && (
-                    <div className="space-y-1.5 mb-2">
-                      {wizardOperators.map((op, i) => (
-                        <div key={i} className="flex items-center justify-between rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/10 px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600">
-                              <span className="text-white text-[10px] font-bold">{op.name.charAt(0).toUpperCase()}</span>
-                            </div>
-                            <span className="text-sm font-medium text-app-fg">{op.name}</span>
-                            <span className="text-xs text-app-fg-muted">PIN: {'•'.repeat(op.pin.length)}</span>
-                          </div>
-                          <button onClick={() => setWizardOperators(wizardOperators.filter((_, j) => j !== i))}
-                            className="text-app-fg-muted hover:text-red-400 transition-colors">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Form nuovo operatore */}
-                  <div className="app-workspace-inset-bg-soft border border-app-line-25 rounded-xl p-3 space-y-2.5">
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-xs font-medium text-app-fg-muted mb-1">Nome operatore</label>
-                        <input
-                          type="text"
-                          placeholder="MARIO ROSSI"
-                          autoCapitalize="characters"
-                          value={wizardNewOpName}
-                          onChange={(e) => setWizardNewOpName(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
-                          className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-app-fg-muted mb-1">PIN (min. 4 cifre)</label>
-                        <div className="relative">
-                          <input
-                            type={wizardShowPin ? 'text' : 'password'}
-                            placeholder="es. 1234"
-                            value={wizardNewOpPin}
-                            onChange={(e) => setWizardNewOpPin(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && addWizardOperator()}
-                            className="w-full px-3 py-2 text-sm border border-app-line-25 rounded-lg focus:outline-none focus:ring-2 focus:ring-app-line-35 focus:border-app-cyan-500 app-workspace-surface-elevated pr-9"
-                          />
-                          <button type="button" onClick={() => setWizardShowPin(!wizardShowPin)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-app-fg-muted hover:text-app-fg">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              {wizardShowPin
-                                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
-                                : <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></>
-                              }
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <button type="button" onClick={addWizardOperator}
-                      disabled={!wizardNewOpName.trim() || String(wizardNewOpPin).length < 4}
-                      className="w-full py-2 text-sm font-medium border-2 border-dashed border-app-line-25 hover:border-app-cyan-500 hover:text-app-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed text-app-fg-muted rounded-lg transition-colors flex items-center justify-center gap-1.5">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
-                      </svg>
-                      {t.appStrings.addOperatorBtn}
-                    </button>
-                  </div>
-
-                  {wizardError && (
-                    <div className="rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-500/10 px-3 py-2 text-xs text-red-300">{wizardError}</div>
-                  )}
-
-                  <div className="flex justify-between pt-1">
-                    <button onClick={() => setWizardStep(3)} className="px-4 py-2 text-sm text-app-fg-muted border border-app-line-25 rounded-xl hover:bg-black/12">
-                      {t.appStrings.sedeWizardBack}
-                    </button>
-                    <button onClick={handleWizardCreate} disabled={creatingWizard}
-                      className="px-6 py-2.5 bg-app-cyan-500 hover:bg-cyan-600 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
-                      {creatingWizard ? (
-                        <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> {t.appStrings.sedeWizardCreatingBtn}</>
-                      ) : (
-                        <>{t.appStrings.sedeWizardCreateBtn.replace('{n}', String(wizardOperators.length))}</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
+          ) : sedi.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-app-line-25 bg-app-line-10/20 px-6 py-12 text-center">
+              <svg className="h-10 w-10 text-app-fg-muted/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <p className="text-sm text-app-fg-muted">{t.sedi.noSedi}</p>
             </div>
-          </div>
+          ) : (
+            sedi.map((sede) => (
+              <SedeCard key={sede.id} sede={sede} />
+            ))
+          )}
         </div>
-      )}
-
+      </div>
     </div>
   )
 }

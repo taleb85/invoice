@@ -227,11 +227,20 @@ export function UserProvider({
   useEffect(() => {
     const supabase = createClient()
     void (async () => {
-      const { error } = await supabase.auth.getSession()
+      const { data: sessionData, error } = await supabase.auth.getSession()
       if (!error || !isInvalidRefreshTokenError(error)) return
-      await supabase.auth.signOut({ scope: 'local' })
+      // Se getSession fallisce ma esiste ancora una sessione in localStorage,
+      // è probabile un refresh momentaneo andato male — non facciamo logout.
+      // Controlliamo se c'è almeno un access_token valido in memoria.
+      if (sessionData?.session?.access_token) return
       const path = window.location.pathname
       if (path === '/login' || path.startsWith('/login/')) return
+      // Fallimento persistente: logout soft senza chiamata server
+      try {
+        await supabase.auth.signOut({ scope: 'local' })
+      } catch {
+        /* ignore */
+      }
       try {
         window.location.replace('/login?session=invalid')
       } catch {

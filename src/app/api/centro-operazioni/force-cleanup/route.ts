@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { isAdminTecnicoRole, isMasterAdminRole } from '@/lib/roles'
 import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
 
 export const dynamic = 'force-dynamic'
@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
   if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
   const master = isMasterAdminRole(profile.role)
-  const sedeRole = isSedePrivilegedRole(profile.role)
-  if (!master && !sedeRole) {
+  const tecnico = isAdminTecnicoRole(profile.role)
+  if (!master && !tecnico) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 

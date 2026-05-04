@@ -12,7 +12,7 @@ export const APP_FORNITORE_FORM_PAGE_SHELL_CLASS =
 
 /** Stack verticale (header strip → contenuto) come la dashboard KPI; corpo trasparente sul canvas workspace. */
 export const APP_SHELL_SECTION_PAGE_STACK_CLASS =
-  'flex w-full min-w-0 flex-col gap-3 md:gap-4 app-shell-page-padding'
+  'mx-auto flex w-full min-w-0 max-w-[var(--app-layout-max-width)] flex-col gap-3 md:gap-4 app-shell-page-padding'
 
 /**
  * Fascia sticky in cima al contenuto scrollabile (`#app-main`): header (+ eventuali filtri).
@@ -122,10 +122,10 @@ export const APP_SECTION_TABLE_THEAD_STICKY =
   'sticky top-0 z-10 backdrop-blur-xl [-webkit-backdrop-filter:blur(16px)] bg-slate-900/85'
 
 export const APP_SECTION_TABLE_TH =
-  'px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-app-fg-muted md:px-5 md:py-3 lg:py-2'
+  'px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-[1.5px] text-app-fg-muted md:px-3 md:py-2.5 lg:py-1.5'
 
 export const APP_SECTION_TABLE_TH_RIGHT =
-  'px-4 py-2.5 text-right font-mono text-[11px] font-semibold uppercase tracking-[1.5px] tabular-nums text-app-fg-muted md:px-5 md:py-3 lg:py-2'
+  'px-2 py-2 text-right font-mono text-[11px] font-semibold uppercase tracking-[1.5px] tabular-nums text-app-fg-muted md:px-3 md:py-2.5 lg:py-1.5'
 
 /** Separazione righe in stack / liste (stesso token del tbody tabella). */
 export const APP_SECTION_DIVIDE_ROWS = 'divide-y divide-app-soft-border'
@@ -143,6 +143,9 @@ export const APP_SECTION_TABLE_TR_GROUP = APP_SECTION_TABLE_TR
 /** Celle dati tabella — padding compatto su mobile, normale su tablet, denso su desktop. */
 export const APP_SECTION_TABLE_TD = 'px-4 py-2.5 text-[13px] align-middle md:px-5 md:py-3 lg:py-2'
 
+/** Variante compatta per tabelle affollate (es. Fatture / Bolle). */
+export const APP_SECTION_TABLE_TD_COMPACT = 'px-2 py-2 text-[13px] align-middle md:px-3 md:py-2.5 lg:py-1.5'
+
 /** Importi / numeri confrontabili: monospace, allineati a destra. */
 export const APP_SECTION_TABLE_TD_NUMERIC = `${APP_SECTION_TABLE_TD} text-right font-mono tabular-nums`
 
@@ -157,7 +160,7 @@ export const APP_SECTION_TABLE_CELL_LINK =
   'font-medium text-app-fg-muted transition-colors hover:text-app-fg'
 
 /** Lista mobile sotto card dati. */
-export const APP_SECTION_MOBILE_LIST = 'divide-y divide-app-soft-border md:hidden'
+export const APP_SECTION_MOBILE_LIST = 'divide-y divide-app-soft-border min-[640px]:hidden'
 
 export const APP_SECTION_MOBILE_ROW = `px-4 py-4 ${APP_SECTION_TABLE_ROW_HOVER}`
 

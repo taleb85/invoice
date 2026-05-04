@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
 
 /** Classi condivise con `OpenDocumentInAppButton` (stesso aspetto del pill in tabella). */
 export const CYAN_TABLE_PILL_LINK_CLASSNAME =
-  'inline-flex items-center gap-1.5 rounded-lg bg-app-line-15 px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-25'
+  `inline-flex items-center gap-1.5 bg-app-line-15 font-medium text-app-fg-muted transition-colors hover:bg-app-line-25 ${BTN_SIZE_SM}`
 
 const pillClass = CYAN_TABLE_PILL_LINK_CLASSNAME
 

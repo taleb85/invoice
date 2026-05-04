@@ -1939,6 +1939,10 @@ type Translations = {
     approvazioni_approve: string
     approvazioni_reject: string
     approvazioni_threshold: string
+    approvazioni_checkAndApprove: string
+    approvazioni_checkingAi: string
+    approvazioni_checkFailed: string
+    approvazioni_checkApproved: string
     // Activity
     attivitaFilterAll: string
     attivitaFilterBolle: string
@@ -1987,14 +1991,6 @@ type Translations = {
     /** Backup page — title and description */
     backupPageTitle: string
     backupPageDesc: string
-    /** Backup — scheduled cron toggle */
-    backupCronAutomationLabel: string
-    backupCronAutomationHint: string
-    backupCronNextPaused: string
-    backupCronSaving: string
-    backupCronSaveError: string
-    /** Footer under “next run” date */
-    backupCronScheduleFootnote: string
     // RecuperoCreditiAudit component
     auditTitle: string
     auditDesc: string
@@ -3688,6 +3684,10 @@ const it: Translations = {
     approvazioni_approve: 'Approva',
     approvazioni_reject: 'Rifiuta',
     approvazioni_threshold: 'soglia',
+    approvazioni_checkAndApprove: 'Controlla e approva (AI)',
+    approvazioni_checkingAi: "L'AI sta controllando la fattura...",
+    approvazioni_checkFailed: 'Verifica non superata',
+    approvazioni_checkApproved: 'Approvata automaticamente dall\'AI ✓',
     attivitaFilterAll: 'Tutti',
     attivitaFilterBolle: 'Bolle',
     attivitaFilterFatture: 'Fatture',
@@ -3732,13 +3732,6 @@ const it: Translations = {
     analyticsSinceFY: 'da inizio FY',
     backupPageTitle: 'Backup Dati',
     backupPageDesc: 'Esportazioni CSV automatiche settimanali · Ogni lunedì alle 02:00 UTC',
-    backupCronAutomationLabel: 'Backup automatico programmato (lunedì 02:00 UTC)',
-    backupCronAutomationHint:
-      'Se disattivo, il cron non genera export automatici finché non riattivi. I backup manuali restano sempre disponibili.',
-    backupCronNextPaused: 'In pausa — automazione disattivata',
-    backupCronSaving: 'Salvataggio…',
-    backupCronSaveError: 'Impossibile aggiornare l’impostazione.',
-    backupCronScheduleFootnote: 'Ogni lunedì alle 02:00 UTC',
     auditTitle: 'Audit Recupero Crediti',
     auditDesc: 'Analizza tutte le fatture storiche per identificare sovraprezzi rispetto ai prezzi Rekki pattuiti',
     auditDateFrom: 'Da',
@@ -4536,6 +4529,10 @@ const en: Translations = {
     approvazioni_approve: 'Approve',
     approvazioni_reject: 'Reject',
     approvazioni_threshold: 'threshold',
+    approvazioni_checkAndApprove: 'Check & approve (AI)',
+    approvazioni_checkingAi: 'AI is checking the invoice...',
+    approvazioni_checkFailed: 'Check failed',
+    approvazioni_checkApproved: 'Auto-approved by AI ✓',
     attivitaFilterAll: 'All',
     attivitaFilterBolle: 'Delivery Notes',
     attivitaFilterFatture: 'Invoices',
@@ -4580,13 +4577,6 @@ const en: Translations = {
     analyticsSinceFY: 'since FY start',
     backupPageTitle: 'Data Backup',
     backupPageDesc: 'Automatic weekly CSV exports · Every Monday at 02:00 UTC',
-    backupCronAutomationLabel: 'Scheduled automatic backup (Monday 02:00 UTC)',
-    backupCronAutomationHint:
-      'When off, the weekly job skips exports until you turn it back on. Manual backups always work.',
-    backupCronNextPaused: 'Paused — automation off',
-    backupCronSaving: 'Saving…',
-    backupCronSaveError: 'Could not save this setting.',
-    backupCronScheduleFootnote: 'Every Monday at 02:00 UTC',
     auditTitle: 'Price Recovery Audit',
     auditDesc: 'Analyse all historical invoices to identify overcharges vs agreed Rekki prices',
     auditDateFrom: 'From',
@@ -5332,6 +5322,10 @@ const es: Translations = {
     approvazioni_approve: 'Aprobar',
     approvazioni_reject: 'Rechazar',
     approvazioni_threshold: 'umbral',
+    approvazioni_checkAndApprove: 'Revisar y aprobar (IA)',
+    approvazioni_checkingAi: 'La IA está revisando la factura...',
+    approvazioni_checkFailed: 'Revisión fallida',
+    approvazioni_checkApproved: 'Aprobada automáticamente por IA ✓',
     attivitaFilterAll: 'Todos',
     attivitaFilterBolle: 'Albaranes',
     attivitaFilterFatture: 'Facturas',
@@ -5376,13 +5370,6 @@ const es: Translations = {
     analyticsSinceFY: 'desde inicio del EF',
     backupPageTitle: 'Copia de Seguridad',
     backupPageDesc: 'Exportaciones CSV automáticas semanales · Cada lunes a las 02:00 UTC',
-    backupCronAutomationLabel: 'Copia automática programada (lunes 02:00 UTC)',
-    backupCronAutomationHint:
-      'Si está desactivada, el cron no exporta hasta que reactives. Las copias manuales siguen disponibles.',
-    backupCronNextPaused: 'En pausa — automatización desactivada',
-    backupCronSaving: 'Guardando…',
-    backupCronSaveError: 'No se pudo guardar el ajuste.',
-    backupCronScheduleFootnote: 'Todos los lunes a las 02:00 UTC',
     auditTitle: 'Auditoría de Recuperación',
     auditDesc: 'Analiza todas las facturas históricas para identificar sobreprecios respecto a los precios Rekki acordados',
     auditDateFrom: 'Desde',
@@ -6128,6 +6115,10 @@ const fr: Translations = {
     approvazioni_approve: 'Approuver',
     approvazioni_reject: 'Rejeter',
     approvazioni_threshold: 'seuil',
+    approvazioni_checkAndApprove: 'Vérifier et approuver (IA)',
+    approvazioni_checkingAi: 'L\'IA vérifie la facture...',
+    approvazioni_checkFailed: 'Vérification échouée',
+    approvazioni_checkApproved: 'Approuvée automatiquement par l\'IA ✓',
     attivitaFilterAll: 'Tous',
     attivitaFilterBolle: 'Bons de livraison',
     attivitaFilterFatture: 'Factures',
@@ -6172,13 +6163,6 @@ const fr: Translations = {
     analyticsSinceFY: 'depuis début EX',
     backupPageTitle: 'Sauvegarde des données',
     backupPageDesc: 'Exports CSV automatiques hebdomadaires · Chaque lundi à 02h00 UTC',
-    backupCronAutomationLabel: 'Sauvegarde automatique planifiée (lundi 02h00 UTC)',
-    backupCronAutomationHint:
-      'Désactivé : le cron n’exporte pas tant que vous ne réactivez pas. Les sauvegardes manuelles restent possibles.',
-    backupCronNextPaused: 'En pause — automatisation désactivée',
-    backupCronSaving: 'Enregistrement…',
-    backupCronSaveError: 'Impossible d’enregistrer le réglage.',
-    backupCronScheduleFootnote: 'Chaque lundi à 02h00 UTC',
     auditTitle: 'Audit de récupération de créances',
     auditDesc: 'Analyse toutes les factures historiques pour identifier les surfacturations par rapport aux prix Rekki convenus',
     auditDateFrom: 'Du',
@@ -6923,6 +6907,10 @@ const de: Translations = {
     approvazioni_approve: 'Genehmigen',
     approvazioni_reject: 'Ablehnen',
     approvazioni_threshold: 'Schwellenwert',
+    approvazioni_checkAndApprove: 'Prüfen & genehmigen (KI)',
+    approvazioni_checkingAi: 'KI prüft die Rechnung...',
+    approvazioni_checkFailed: 'Prüfung fehlgeschlagen',
+    approvazioni_checkApproved: 'Automatisch von KI genehmigt ✓',
     attivitaFilterAll: 'Alle',
     attivitaFilterBolle: 'Lieferscheine',
     attivitaFilterFatture: 'Rechnungen',
@@ -6967,13 +6955,6 @@ const de: Translations = {
     analyticsSinceFY: 'seit GJ-Beginn',
     backupPageTitle: 'Datensicherung',
     backupPageDesc: 'Automatische wöchentliche CSV-Exporte · Jeden Montag um 02:00 UTC',
-    backupCronAutomationLabel: 'Geplante automatische Sicherung (Montag 02:00 UTC)',
-    backupCronAutomationHint:
-      'Aus: Der Cron exportiert nicht, bis Sie es wieder aktivieren. Manuelle Backups funktionieren weiter.',
-    backupCronNextPaused: 'Pausiert — Automatisierung aus',
-    backupCronSaving: 'Wird gespeichert…',
-    backupCronSaveError: 'Einstellung konnte nicht gespeichert werden.',
-    backupCronScheduleFootnote: 'Jeden Montag um 02:00 UTC',
     auditTitle: 'Preisrückforderungs-Audit',
     auditDesc: 'Analysiert alle historischen Rechnungen auf Überpreise gegenüber vereinbarten Rekki-Preisen',
     auditDateFrom: 'Von',

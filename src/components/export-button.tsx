@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { exportToExcel, exportToPdf, type ExportRow, type ExportType } from '@/lib/export-report'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
 
 interface ExportButtonProps {
   rows: ExportRow[]
@@ -39,9 +40,7 @@ export function ExportButton({ rows, type, period, className = '' }: ExportButto
     <div className={`relative ${className}`}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-lg border border-app-line-30 
-          bg-app-line-10 px-3 py-2 text-sm text-app-fg-muted 
-          hover:border-app-a-45 hover:text-app-fg transition-colors"
+        className={`flex items-center gap-1.5 border border-app-line-30 bg-app-line-10 text-app-fg-muted transition-colors hover:border-app-a-45 hover:text-app-fg ${BTN_SIZE_SM}`}
       >
         <svg className={`h-4 w-4 ${icon.settingsTools}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

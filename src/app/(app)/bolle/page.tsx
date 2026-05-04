@@ -24,6 +24,7 @@ import {
   APP_SECTION_MOBILE_LIST,
   APP_SECTION_MOBILE_ROW,
   APP_SECTION_TABLE_CELL_LINK,
+  APP_SECTION_TABLE_TD_COMPACT,
   appSectionTableHeadRowAccentClass,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
@@ -356,7 +357,7 @@ export default async function BollePage(props: {
                 })}
               </div>
 
-              <table className="hidden w-full text-sm md:table">
+              <table className="hidden w-full text-sm min-[640px]:table">
                 <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
                   <tr className={appSectionTableHeadRowAccentClass('violet')}>
                     <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
@@ -374,13 +375,13 @@ export default async function BollePage(props: {
                     return (
                     <tr key={b.id} className={APP_SECTION_TABLE_TR_GROUP}>
                       <td
-                        className={`${APP_SECTION_TABLE_TD} whitespace-nowrap font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
+                        className={`${APP_SECTION_TABLE_TD_COMPACT} whitespace-nowrap font-medium ${overdueInv ? 'text-amber-200' : 'text-app-fg-muted'}`}
                       >
                         <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={APP_SECTION_TABLE_CELL_LINK}>
                           {formatDate(b.data)}
                         </ReturnToLink>
                       </td>
-                      <td className={`${APP_SECTION_TABLE_TD} max-w-[10rem] font-mono text-app-fg-muted`}>
+                      <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[10rem] font-mono text-app-fg-muted`}>
                         <ReturnToLink
                           to={`/bolle/${b.id}`}
                           from={bolleReturn}
@@ -398,12 +399,12 @@ export default async function BollePage(props: {
                           deleteFailedPrefix={t.appStrings.deleteFailed}
                         />
                       </td>
-                      <td className={`${APP_SECTION_TABLE_TD} font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
+                      <td className={`${APP_SECTION_TABLE_TD_COMPACT} font-medium ${overdueInv ? 'text-amber-100' : 'text-app-fg'}`}>
                         <ReturnToLink to={`/bolle/${b.id}`} from={bolleReturn} className={APP_SECTION_TABLE_CELL_LINK}>
                           {supplierLabel || <span className="text-app-fg-muted">—</span>}
                         </ReturnToLink>
                       </td>
-                      <td className={APP_SECTION_TABLE_TD}>
+                      <td className={APP_SECTION_TABLE_TD_COMPACT}>
                         <div className="flex flex-wrap items-center gap-2">
                           {overdueInv ? (
                             <span
@@ -430,8 +431,8 @@ export default async function BollePage(props: {
                           ) : null}
                         </div>
                       </td>
-                      <td className={APP_SECTION_TABLE_TD}>
-                        <div className="flex items-center justify-end gap-2">
+                      <td className={APP_SECTION_TABLE_TD_COMPACT}>
+                        <div className="flex flex-nowrap items-center justify-end gap-1.5">
                           {b.file_url && (
                             <OpenDocumentInAppButton bollaId={b.id} fileUrl={b.file_url}>
                               <Eye className="h-3.5 w-3.5" aria-hidden strokeWidth={2} />

@@ -16,10 +16,10 @@ import {
   APP_SECTION_ROW_ACTION_CHIP,
   APP_SECTION_TABLE_CELL_LINK,
   APP_SECTION_TABLE_TBODY,
-  APP_SECTION_TABLE_TD_NUMERIC,
+  APP_SECTION_TABLE_TD_COMPACT,
   APP_SECTION_TABLE_TH,
   APP_SECTION_TABLE_TH_RIGHT,
-  APP_SECTION_TABLE_TR,
+  APP_SECTION_TABLE_TR_GROUP,
   APP_SECTION_TABLE_THEAD_STICKY,
   appSectionTableHeadRowAccentClass,
 } from '@/lib/app-shell-layout'
@@ -204,13 +204,11 @@ export default function FattureListWithDuplicates({
         ))}
       </div>
 
-      <table className="hidden w-full text-sm md:table">
+      <table className="hidden min-[640px]:table w-full text-sm">
         <thead className={APP_SECTION_TABLE_THEAD_STICKY}>
           <tr className={appSectionTableHeadRowAccentClass('emerald')}>
-            <th className={APP_SECTION_TABLE_TH}>{t.common.supplier}</th>
-            <th className={APP_SECTION_TABLE_TH}>{t.common.date}</th>
+            <th className={APP_SECTION_TABLE_TH}>{t.common.supplier} / {t.common.date}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.colNumFattura}</th>
-            <th className={APP_SECTION_TABLE_TH}>{t.fatture.headerBolla}</th>
             <th className={APP_SECTION_TABLE_TH}>{t.fatture.headerAllegato}</th>
             <th className={APP_SECTION_TABLE_TH_RIGHT}>{t.statements.colAmount}</th>
             <th className={APP_SECTION_TABLE_TH} />
@@ -218,21 +216,23 @@ export default function FattureListWithDuplicates({
         </thead>
         <tbody className={APP_SECTION_TABLE_TBODY}>
           {rows.map((f) => (
-            <tr key={f.id} className={`${APP_SECTION_TABLE_TR} ${highlightedIds.has(f.id) ? highlightRowCls : ''}`}>
-              <td className="px-6 py-4">
-                {f.fornitore_id ? (
-                  <Link href={`/fornitori/${f.fornitore_id}`} className={APP_SECTION_TABLE_CELL_LINK}>
-                    {f.fornitoreNome ?? '—'}
-                  </Link>
-                ) : (
-                  <Link href={`/fatture/${f.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
-                    {f.fornitoreNome ?? '—'}
-                  </Link>
-                )}
+            <tr key={f.id} className={`${APP_SECTION_TABLE_TR_GROUP} ${highlightedIds.has(f.id) ? highlightRowCls : ''}`}>
+              <td className={APP_SECTION_TABLE_TD_COMPACT}>
+                <span className="inline-flex items-baseline gap-1.5">
+                  {f.fornitore_id ? (
+                    <Link href={`/fornitori/${f.fornitore_id}`} className={APP_SECTION_TABLE_CELL_LINK}>
+                      {f.fornitoreNome ?? '—'}
+                    </Link>
+                  ) : (
+                    <Link href={`/fatture/${f.id}`} className={APP_SECTION_TABLE_CELL_LINK}>
+                      {f.fornitoreNome ?? '—'}
+                    </Link>
+                  )}
+                  <span className="whitespace-nowrap text-app-fg-muted">{f.dataLabel}</span>
+                </span>
               </td>
-              <td className="whitespace-nowrap px-6 py-4 text-app-fg-muted">{f.dataLabel}</td>
-              <td className="max-w-[12rem] px-6 py-4 text-app-fg-muted">
-                <span className="line-clamp-2 break-words" title={f.numero_fattura?.trim() || undefined}>
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} max-w-[11rem]`}>
+                <span title={f.numero_fattura?.trim() || undefined}>
                   {f.numero_fattura?.trim() || '—'}
                   {memberSet.has(f.id) ? (
                     <button
@@ -262,30 +262,21 @@ export default function FattureListWithDuplicates({
                   </div>
                 ) : null}
               </td>
-              <td className="px-6 py-4">
-                {f.bolla_id ? (
-                  <Link href={`/bolle/${f.bolla_id}`} className={`text-xs ${APP_SECTION_TABLE_CELL_LINK} hover:underline`}>
-                    {t.fatture.openBill}
-                  </Link>
-                ) : (
-                  <span className="text-xs text-app-fg-muted">—</span>
-                )}
-              </td>
-              <td className="px-6 py-4">
+              <td className={APP_SECTION_TABLE_TD_COMPACT}>
                 {f.file_url ? (
                   <OpenDocumentInAppButton fatturaId={f.id} fileUrl={f.file_url}>
                     {t.fatture.apri}
                   </OpenDocumentInAppButton>
                 ) : (
-                  <span className="text-xs text-app-fg-muted">—</span>
+                  <span className="text-app-fg-muted">—</span>
                 )}
               </td>
               <td
-                className={
+                className={`${APP_SECTION_TABLE_TD_COMPACT} text-right font-mono tabular-nums whitespace-nowrap ${
                   f.importoLabel
-                    ? `${APP_SECTION_TABLE_TD_NUMERIC} ${APP_SECTION_AMOUNT_POSITIVE_CLASS}`
-                    : `${APP_SECTION_TABLE_TD_NUMERIC} text-app-fg-muted`
-                }
+                    ? APP_SECTION_AMOUNT_POSITIVE_CLASS
+                    : 'text-app-fg-muted'
+                }`}
               >
                 <div className="flex flex-col items-end gap-1">
                   <span>{f.importoLabel ?? '—'}</span>
@@ -303,7 +294,7 @@ export default function FattureListWithDuplicates({
                   ) : null}
                 </div>
               </td>
-              <td className="px-6 py-4 text-right">
+              <td className={`${APP_SECTION_TABLE_TD_COMPACT} text-right`}>
                 <DeleteButton id={f.id} table="fatture" confirmMessage={t.fatture.deleteConfirm} />
               </td>
             </tr>

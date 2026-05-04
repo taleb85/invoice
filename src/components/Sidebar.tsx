@@ -323,7 +323,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const navItems = isMasterAdmin
     ? (activeSede ? masterWithSedeItems : masterOnlyItems)
     : isAdminSede
-      ? [operatoreNavItems[0], analyticsNavItem, approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
+      ? [operatoreNavItems[0], approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
 
   /** Master: Backup sempre in striscia fissa (come Consumi AI), mai nella colonna scroll. */

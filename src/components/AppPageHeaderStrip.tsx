@@ -27,10 +27,10 @@ const innerClsDenseBase =
 
 /** Destra strip: wrap + shrink; `justify-end` allinea label + FY + tray verso il bordo destro (padding ridotto in `innerClsBase`). */
 const innerRightClsBase =
-  'flex min-h-0 min-w-0 max-w-full shrink flex-row flex-wrap content-end justify-end gap-x-3 gap-y-1 sm:items-center sm:gap-x-4 md:flex-nowrap md:gap-x-5'
+  'flex min-h-0 min-w-0 max-w-full shrink flex-row flex-nowrap content-end justify-end gap-x-3 gap-y-1 sm:items-center sm:gap-x-4 md:gap-x-5'
 
 const innerRightClsDenseBase =
-  'flex min-h-0 min-w-0 max-w-full shrink flex-wrap content-end justify-end gap-2 sm:flex-nowrap sm:gap-x-3 md:gap-3'
+  'flex min-h-0 min-w-0 max-w-full shrink flex-nowrap content-end justify-end gap-2 sm:gap-x-3 md:gap-3'
 
 /**
  * Titolo pagina con stesso effetto di `.app-card` + barra `.app-card-bar-accent` solo se `accent` è impostato.

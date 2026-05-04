@@ -6,12 +6,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
-import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
+import { effectiveIsAdminTecnicoUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { BackButton } from '@/components/BackButton'
 import {
-  APP_SHELL_SECTION_PAGE_CLASS,
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
@@ -148,8 +147,8 @@ export default function CentroOperazioniPage() {
   const { effectiveSedeId } = useManualDeliverySede()
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
-  const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
-  const canView = !!(masterPlane || isAdminSede)
+  const isAdminTecnico = effectiveIsAdminTecnicoUi(me, activeOperator)
+  const canView = !!(masterPlane || isAdminTecnico)
 
   const [data, setData] = useState<DashboardPayload | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -312,19 +311,12 @@ export default function CentroOperazioniPage() {
   }, [effectiveSedeId, s.historicSyncCompleted, s.historicSyncProgress, s.historicSyncResult])
 
   if (!canView) {
-    return (
-      <div className={`${APP_SHELL_SECTION_PAGE_CLASS} px-6 py-10`}>
-        <p className="text-sm text-app-fg-muted">Accesso riservato agli amministratori.</p>
-        <Link href="/" className="mt-4 inline-block text-sm text-cyan-300 underline">
-          Torna al dashboard
-        </Link>
-      </div>
-    )
+    return null
   }
 
   return (
     <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
-      <div className="mx-auto min-w-0 w-full max-w-[var(--app-layout-max-width)]">
+      <div className="app-shell-page-padding mx-auto min-w-0 w-full max-w-[var(--app-layout-max-width)]">
         <AppPageHeaderStrip
           accent="teal"
           leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}

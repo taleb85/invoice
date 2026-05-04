@@ -1,10 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useActiveOperator, ActiveOperator } from '@/lib/active-operator-context'
 import { useMe } from '@/lib/me-context'
 import { useT } from '@/lib/use-t'
-import { createClient } from '@/utils/supabase/client'
 import { PinNumpad } from '@/components/PinNumpad'
 
 const PIN_LENGTH = 4
@@ -25,6 +25,7 @@ function normalizeSedeDeskRole(raw: unknown): Operator['role'] {
 type Step = 'select' | 'pin'
 
 export default function OperatorSwitchModal() {
+  const router = useRouter()
   const { me } = useMe()
   const t = useT()
   const {
@@ -177,7 +178,6 @@ export default function OperatorSwitchModal() {
         setLoading(false)
         return
       }
-      await createClient().auth.refreshSession().catch(() => {})
       const deskRole = normalizeSedeDeskRole(data.role)
       const op: ActiveOperator = {
         id:        data.id,
@@ -202,8 +202,11 @@ export default function OperatorSwitchModal() {
       } catch {
         /* ignore */
       }
-      /** Hard refresh: stato RSC/cache browser allineato al nuovo operatore. */
-      window.location.reload()
+      /** Refresh lato client: aggiorna i server component senza ricaricare tutto.
+       *  La sessione Supabase rimane intatta — nessun refresh token forzato. */
+      setLoading(false)
+      handleClose()
+      router.refresh()
       return
     } catch {
       setError(t.ui.networkError)
@@ -231,7 +234,8 @@ export default function OperatorSwitchModal() {
       role="dialog"
       aria-modal
       aria-labelledby="operator-switch-modal-title"
-      className="fixed inset-0 z-[220] flex items-center justify-center app-workspace-scrim px-4 pt-4 ring-1 ring-inset ring-app-line-10 max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
+      className="fixed inset-0 z-[220] flex items-center justify-center px-4 pt-4 ring-1 ring-inset ring-app-line-10 max-md:pb-[max(1.25rem,env(safe-area-inset-bottom))] md:p-4"
+      style={{ backgroundColor: 'rgba(2, 6, 23, 0.72)', backdropFilter: 'blur(8px)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) handleClose()
       }}

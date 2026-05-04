@@ -6,6 +6,7 @@ import { useLocale } from '@/lib/locale-context'
 import { formatDate as formatDateLib } from '@/lib/locale'
 import { useToast } from '@/lib/toast-context'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
 
 type Props = {
   fatturaId: string
@@ -82,7 +83,7 @@ export default function FatturaRefreshDateButton({
       onClick={onClick}
       disabled={loading}
       title={t.fatture.refreshDateFromDocTitle}
-      className={`inline-flex shrink-0 items-center gap-1 rounded-md border border-app-line-30 bg-app-line-10 px-2 py-1 text-[10px] font-semibold text-app-fg-muted transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:opacity-50 ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1 border border-app-line-30 bg-app-line-10 text-app-fg-muted font-semibold transition-colors hover:border-cyan-500/40 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:opacity-50 ${BTN_SIZE_SM} ${className}`}
     >
       {loading ? (
         <span className="h-2.5 w-2.5 shrink-0 animate-spin rounded-full border border-current border-t-transparent" />

@@ -69,7 +69,7 @@ export default function GuidaPage() {
   const c = COLOR_MAP[current.color]
 
   return (
-    <div className="app-shell-page-padding max-w-6xl">
+    <div className="app-shell-page-padding mx-auto max-w-[var(--app-layout-max-width)]">
       <AppPageHeaderStrip
         accent="slate"
         leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}

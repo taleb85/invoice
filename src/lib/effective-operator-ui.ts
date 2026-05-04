@@ -48,6 +48,34 @@ export function effectiveIsAdminSedeUi(
 }
 
 /**
+ * Permessi UI da “solo admin tecnico” (vista tecnica/operativa, non manageriale):
+ * con operatore attivo segue il suo `role`, altrimenti il profilo di sessione.
+ * Esclude admin_sede.
+ */
+export function effectiveIsAdminTecnicoUi(
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
+  activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
+): boolean {
+  if (!me) return false
+  const profileIsAdminTecnico = Boolean(me.is_admin_tecnico && !me.is_admin)
+  if (me.is_admin && activeOperator) {
+    return activeOperator.role === 'admin_tecnico'
+  }
+  if (activeOperator) {
+    const r = activeOperator.role
+    if (r === 'admin_tecnico') return true
+    if (r === 'admin_sede' || r === 'operatore') return false
+    const sameAsSession =
+      Boolean(me.user?.id && activeOperator.id === me.user.id)
+    if (sameAsSession) {
+      return profileIsAdminTecnico
+    }
+    return false
+  }
+  return profileIsAdminTecnico
+}
+
+/**
  * Griglia fornitori: modifica / elimina senza step PIN operatore.
  * Master solo senza PIN; altrimenti solo se il ruolo effettivo è admin_sede.
  */
@@ -66,3 +94,4 @@ export function profileCanAccessSediListPage(
 ): boolean {
   return Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
 }
+

@@ -6,6 +6,7 @@ import { Loader2, Trash2 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
 
 interface Props {
   id: string
@@ -21,7 +22,7 @@ interface Props {
 }
 
 const defaultButtonClass =
-  'inline-flex items-center gap-1.5 rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/45 px-3 py-1.5 text-xs font-semibold text-red-200 shadow-sm shadow-red-950/30 ring-1 ring-inset ring-red-400/15 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/25 hover:text-red-50 hover:shadow-red-900/40'
+  `inline-flex items-center gap-1.5 border border-[rgba(34,211,238,0.15)] bg-red-950/45 font-semibold text-red-200 shadow-sm shadow-red-950/30 ring-1 ring-inset ring-red-400/15 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-600/25 hover:text-red-50 hover:shadow-red-900/40 ${BTN_SIZE_SM}`
 
 export default function DeleteButton({
   id,
