@@ -10,18 +10,29 @@ const DEFAULT_DATE_DISPLAY_OPTS: Intl.DateTimeFormatOptions = {
   year: 'numeric',
 }
 
+/**
+ * Data di calendario da Postgres (`date`) o serializzazioni «solo giorno» a mezzanotte UTC.
+ * In questi casi `new Date(iso)` + fuso utente può mostrare il giorno sbagliato (es. americhe).
+ */
+function calendarYmdFromDbString(s: string): { y: number; m: number; d: number } | null {
+  const t = s.trim()
+  const plain = t.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (plain) {
+    return { y: Number(plain[1]), m: Number(plain[2]), d: Number(plain[3]) }
+  }
+  const midnightUtc = t.match(/^(\d{4})-(\d{2})-(\d{2})T00:00:00(?:\.\d+)?(?:Z|[+-]00:00)?$/)
+  if (midnightUtc) {
+    return { y: Number(midnightUtc[1]), m: Number(midnightUtc[2]), d: Number(midnightUtc[3]) }
+  }
+  return null
+}
+
 export function formatDate(
   d: string,
   locale: Locale = 'it',
   timezone = 'Europe/Rome',
   opts?: Intl.DateTimeFormatOptions
 ) {
-  // `YYYY-MM-DD` da DB: parse come data civile, non come mezzanotte UTC (evita shift al giorno prima/dopo in alcuni fusi)
-  const ymd = d.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  const parsed = ymd
-    ? new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]))
-    : new Date(d)
-  if (!Number.isFinite(parsed.getTime())) return ''
   const intlLocale =
     locale === 'it' ? 'it-IT'
     : locale === 'en' ? 'en-GB'
@@ -29,7 +40,15 @@ export function formatDate(
     : locale === 'fr' ? 'fr-FR'
     : 'de-DE'
   const merged: Intl.DateTimeFormatOptions = { ...DEFAULT_DATE_DISPLAY_OPTS, ...opts }
-  let out = new Intl.DateTimeFormat(intlLocale, { ...merged, timeZone: timezone }).format(parsed)
+
+  const cal = calendarYmdFromDbString(d)
+  const parsed = cal
+    ? new Date(Date.UTC(cal.y, cal.m - 1, cal.d, 12, 0, 0))
+    : new Date(d)
+  if (!Number.isFinite(parsed.getTime())) return ''
+
+  const tz = cal ? 'UTC' : timezone
+  let out = new Intl.DateTimeFormat(intlLocale, { ...merged, timeZone: tz }).format(parsed)
   if (locale === 'it' && merged.month === 'short') {
     out = out.toLocaleLowerCase('it-IT')
   }
@@ -42,7 +61,10 @@ export function formatMonthYearUppercase(
   locale: Locale = 'it',
   timezone = 'Europe/Rome'
 ): string {
-  const parsed = new Date(d)
+  const cal = calendarYmdFromDbString(d)
+  const parsed = cal
+    ? new Date(Date.UTC(cal.y, cal.m - 1, cal.d, 12, 0, 0))
+    : new Date(d)
   if (!Number.isFinite(parsed.getTime())) return ''
   const intlLocale =
     locale === 'it' ? 'it-IT'
@@ -50,10 +72,11 @@ export function formatMonthYearUppercase(
     : locale === 'es' ? 'es-ES'
     : locale === 'fr' ? 'fr-FR'
     : 'de-DE'
+  const tz = cal ? 'UTC' : timezone
   const out = new Intl.DateTimeFormat(intlLocale, {
     month: 'long',
     year: 'numeric',
-    timeZone: timezone,
+    timeZone: tz,
   }).format(parsed)
   return out.toLocaleUpperCase(intlLocale)
 }
