@@ -21,6 +21,35 @@ type ApiOk = {
   truncated: boolean
 }
 
+type DupModalOcrPreview = {
+  current: { data: string; importo: number | null; numero_fattura: string | null }
+  read: {
+    data: string | null
+    importo: number | null
+    numero_fattura: string | null
+    ragione_sociale: string | null
+    tipo_documento: string | null
+    importo_raw: string | null
+  }
+  diff: { data: boolean; importo: boolean; numero_fattura: boolean }
+  hasChanges: boolean
+}
+
+function patchFatturaRowInDuplicateData(
+  prev: ApiOk | null,
+  fatturaId: string,
+  patch: { data?: string; importo?: number | null; numero_fattura?: string | null },
+): ApiOk | null {
+  if (!prev) return prev
+  return {
+    ...prev,
+    groups: prev.groups.map((g) => ({
+      ...g,
+      fatture: g.fatture.map((row) => (row.id === fatturaId ? { ...row, ...patch } : row)),
+    })),
+  }
+}
+
 function parseDuplicateReportNdjsonLine(
   trimmed: string,
   onProgress: (p: { scannedSoFar: number; sample: DuplicateFatturaScanProgressItem[] }) => void,
@@ -141,6 +170,9 @@ export default function DashboardDuplicateFattureButton({
   const [fornitoriBySede, setFornitoriBySede] = useState<Record<string, { id: string; nome: string }[]>>({})
   const [reassignSel, setReassignSel] = useState<Record<string, string>>({})
   const [reassignBusyId, setReassignBusyId] = useState<string | null>(null)
+  const [ocrPreviewById, setOcrPreviewById] = useState<Record<string, DupModalOcrPreview>>({})
+  const [ocrBusyPreviewId, setOcrBusyPreviewId] = useState<string | null>(null)
+  const [ocrBusyApplyId, setOcrBusyApplyId] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -193,6 +225,9 @@ export default function DashboardDuplicateFattureButton({
       setFornitoriBySede({})
       setReassignSel({})
       setReassignBusyId(null)
+      setOcrPreviewById({})
+      setOcrBusyPreviewId(null)
+      setOcrBusyApplyId(null)
     }
   }, [open])
 
@@ -287,6 +322,101 @@ export default function DashboardDuplicateFattureButton({
       router,
       t.dashboard.duplicateFattureError,
       t.dashboard.duplicateFattureReassignNeedChoice,
+    ],
+  )
+
+  const handleDupModalOcrPreview = useCallback(
+    async (fatturaId: string) => {
+      setOcrBusyPreviewId(fatturaId)
+      try {
+        const res = await fetch('/api/fatture/ocr-sync-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ fattura_id: fatturaId, phase: 'preview' }),
+        })
+        const j = (await res.json()) as {
+          error?: string
+          ok?: boolean
+          current?: DupModalOcrPreview['current']
+          read?: DupModalOcrPreview['read']
+          diff?: DupModalOcrPreview['diff']
+          hasChanges?: boolean
+        }
+        if (!res.ok) throw new Error(j.error ?? t.dashboard.duplicateFattureError)
+        if (!j.current || !j.read || !j.diff) throw new Error(t.dashboard.duplicateFattureError)
+        const pv: DupModalOcrPreview = {
+          current: j.current,
+          read: j.read,
+          diff: j.diff,
+          hasChanges: Boolean(j.hasChanges),
+        }
+        setOcrPreviewById((p) => ({ ...p, [fatturaId]: pv }))
+      } catch (e) {
+        window.alert(e instanceof Error ? e.message : t.dashboard.duplicateFattureError)
+      } finally {
+        setOcrBusyPreviewId(null)
+      }
+    },
+    [t.dashboard.duplicateFattureError],
+  )
+
+  const handleDupModalOcrApply = useCallback(
+    async (fatturaId: string, pv: DupModalOcrPreview) => {
+      const updates: { data?: string; importo?: number; numero_fattura?: string | null } = {}
+      if (pv.diff.data && pv.read.data) updates.data = pv.read.data
+      if (pv.diff.importo && pv.read.importo != null) updates.importo = pv.read.importo
+      if (pv.diff.numero_fattura && pv.read.numero_fattura != null) {
+        updates.numero_fattura = pv.read.numero_fattura
+      }
+      if (Object.keys(updates).length === 0) {
+        window.alert(t.dashboard.duplicateFattureOcrNoChangesToSave)
+        return
+      }
+      setOcrBusyApplyId(fatturaId)
+      try {
+        const res = await fetch('/api/fatture/ocr-sync-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ fattura_id: fatturaId, phase: 'apply', updates }),
+        })
+        const j = (await res.json()) as {
+          error?: string
+          applied?: { data?: string; importo?: number; numero_fattura?: string | null }
+        }
+        if (!res.ok) throw new Error(j.error ?? t.dashboard.duplicateFattureError)
+        const applied = j.applied ?? {}
+        setData((prev) =>
+          patchFatturaRowInDuplicateData(prev, fatturaId, {
+            ...(applied.data !== undefined ? { data: String(applied.data) } : {}),
+            ...(applied.importo !== undefined ? { importo: Number(applied.importo) } : {}),
+            ...(applied.numero_fattura !== undefined
+              ? { numero_fattura: applied.numero_fattura }
+              : {}),
+          }),
+        )
+        setOcrPreviewById((p) => {
+          const next = { ...p }
+          delete next[fatturaId]
+          return next
+        })
+        router.refresh()
+        window.alert(
+          `${t.dashboard.duplicateFattureOcrSavedMsg}\n\n${t.dashboard.duplicateFattureOcrRescanHint}`,
+        )
+      } catch (e) {
+        window.alert(e instanceof Error ? e.message : t.dashboard.duplicateFattureError)
+      } finally {
+        setOcrBusyApplyId(null)
+      }
+    },
+    [
+      router,
+      t.dashboard.duplicateFattureError,
+      t.dashboard.duplicateFattureOcrNoChangesToSave,
+      t.dashboard.duplicateFattureOcrRescanHint,
+      t.dashboard.duplicateFattureOcrSavedMsg,
     ],
   )
 
@@ -472,6 +602,11 @@ export default function DashboardDuplicateFattureButton({
                       const groupSedeId = resolveGroupSedeId(g)
                       const showReassign = canReassignSupplier && Boolean(groupSedeId)
                       const vendorList = groupSedeId ? fornitoriBySede[groupSedeId] : undefined
+                      const dupModalBusy =
+                        deletingId !== null ||
+                        reassignBusyId !== null ||
+                        ocrBusyPreviewId !== null ||
+                        ocrBusyApplyId !== null
                       return (
                       <div
                         key={`${g.sede_id ?? 'x'}-${g.fornitore_id}-${g.data}-${g.numero_normalizzato}`}
@@ -549,7 +684,7 @@ export default function DashboardDuplicateFattureButton({
                                 className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/35 px-2.5 py-2 text-red-200 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/55 disabled:cursor-not-allowed disabled:opacity-45"
                                 aria-label={t.dashboard.duplicateFattureDeleteAria}
                                 title={t.common.delete}
-                                disabled={deletingId !== null || reassignBusyId !== null}
+                                disabled={dupModalBusy}
                                 onClick={(e) => void handleDeleteDuplicate(e, f.id)}
                               >
                                 {deletingId === f.id ? (
@@ -582,7 +717,7 @@ export default function DashboardDuplicateFattureButton({
                                       onChange={(e) =>
                                         setReassignSel((s) => ({ ...s, [f.id]: e.target.value }))
                                       }
-                                      disabled={reassignBusyId !== null || deletingId !== null}
+                                      disabled={dupModalBusy}
                                       aria-label={t.dashboard.duplicateFattureReassignSelectPlaceholder}
                                     >
                                       <option value="">{t.dashboard.duplicateFattureReassignSelectPlaceholder}</option>
@@ -595,8 +730,7 @@ export default function DashboardDuplicateFattureButton({
                                     <button
                                       type="button"
                                       disabled={
-                                        reassignBusyId !== null ||
-                                        deletingId !== null ||
+                                        dupModalBusy ||
                                         !(reassignSel[f.id] ?? '').trim()
                                       }
                                       onClick={() => void handleReassignFornitore(f.id, groupSedeId)}
@@ -608,6 +742,144 @@ export default function DashboardDuplicateFattureButton({
                                     </button>
                                   </div>
                                 )
+                              ) : null}
+                              {f.file_url?.trim() ? (
+                                <div className="space-y-2 border-t border-white/10 pt-2">
+                                  <button
+                                    type="button"
+                                    title={t.dashboard.duplicateFattureOcrRereadTitle}
+                                    disabled={dupModalBusy}
+                                    onClick={() => void handleDupModalOcrPreview(f.id)}
+                                    className="rounded-md border border-violet-400/35 bg-violet-950/35 px-2 py-1 text-[11px] font-semibold text-violet-100 hover:bg-violet-950/55 disabled:cursor-not-allowed disabled:opacity-40"
+                                  >
+                                    {ocrBusyPreviewId === f.id
+                                      ? t.dashboard.duplicateFattureOcrAnalyzing
+                                      : t.dashboard.duplicateFattureOcrRereadBtn}
+                                  </button>
+                                  {(() => {
+                                    const pv = ocrPreviewById[f.id]
+                                    if (!pv) return null
+                                    const fmtAmt = (n: number | null) =>
+                                      n != null && Number.isFinite(n)
+                                        ? formatCurrency(n, currency, locale)
+                                        : '—'
+                                    const docDt = (ymd: string | null | undefined) =>
+                                      ymd && /^\d{4}-\d{2}-\d{2}/.test(ymd) ? formatDate(ymd) : '—'
+                                    const fmtDoc = (s: string | null) => (s?.trim() ? s : '—')
+                                    return (
+                                      <div className="rounded-lg border border-violet-500/30 bg-violet-950/20 px-2 py-2 text-[11px] text-app-fg-muted">
+                                        <p className="font-semibold text-violet-100/95">
+                                          {t.dashboard.duplicateFattureOcrPreviewHeading}
+                                        </p>
+                                        <div className="mt-2 grid grid-cols-[minmax(0,7rem)_1fr_1fr] gap-x-2 gap-y-1 text-[10px] items-start">
+                                          <div />
+                                          <div className="font-semibold text-app-fg-muted/90">
+                                            {t.dashboard.duplicateFattureOcrLabelArchived}
+                                          </div>
+                                          <div className="font-semibold text-app-fg-muted/90">
+                                            {t.dashboard.duplicateFattureOcrLabelFromPdf}
+                                          </div>
+                                          <div className="text-app-fg-muted/85">
+                                            {t.dashboard.duplicateFattureOcrFieldDate}
+                                          </div>
+                                          <div>{docDt(pv.current.data)}</div>
+                                          <div className={pv.diff.data ? 'font-semibold text-amber-200' : ''}>
+                                            {docDt(pv.read.data)}
+                                          </div>
+                                          <div className="text-app-fg-muted/85">
+                                            {t.dashboard.duplicateFattureOcrFieldAmount}
+                                          </div>
+                                          <div>{fmtAmt(pv.current.importo)}</div>
+                                          <div
+                                            className={pv.diff.importo ? 'font-semibold text-amber-200' : ''}
+                                          >
+                                            {fmtAmt(pv.read.importo)}
+                                          </div>
+                                          <div className="text-app-fg-muted/85">
+                                            {t.dashboard.duplicateFattureOcrFieldNumber}
+                                          </div>
+                                          <div className="break-all">{fmtDoc(pv.current.numero_fattura)}</div>
+                                          <div
+                                            className={
+                                              pv.diff.numero_fattura
+                                                ? 'break-all font-semibold text-amber-200'
+                                                : 'break-all'
+                                            }
+                                          >
+                                            {fmtDoc(pv.read.numero_fattura)}
+                                          </div>
+                                        </div>
+                                        {pv.read.ragione_sociale?.trim() ||
+                                        pv.read.tipo_documento?.trim() ||
+                                        pv.read.importo_raw?.trim() ? (
+                                          <div className="mt-2 space-y-0.5 border-t border-white/10 pt-2 text-[10px] text-app-fg-muted/90">
+                                            {pv.read.ragione_sociale?.trim() ? (
+                                              <p>
+                                                <span className="text-app-fg-muted/75">
+                                                  {t.dashboard.duplicateFattureOcrSupplierHint}:{' '}
+                                                </span>
+                                                {pv.read.ragione_sociale.trim()}
+                                              </p>
+                                            ) : null}
+                                            {pv.read.tipo_documento?.trim() ? (
+                                              <p>
+                                                <span className="text-app-fg-muted/75">
+                                                  {t.dashboard.duplicateFattureOcrTipoHint}:{' '}
+                                                </span>
+                                                {pv.read.tipo_documento.trim()}
+                                              </p>
+                                            ) : null}
+                                            {pv.read.importo_raw?.trim() ? (
+                                              <p>
+                                                <span className="text-app-fg-muted/75">
+                                                  {t.dashboard.duplicateFattureOcrImportoRaw}:{' '}
+                                                </span>
+                                                <span className="font-mono">{pv.read.importo_raw.trim()}</span>
+                                              </p>
+                                            ) : null}
+                                          </div>
+                                        ) : null}
+                                        {!pv.hasChanges ? (
+                                          <p className="mt-2 text-[10px] text-emerald-200/90">
+                                            {t.dashboard.duplicateFattureOcrNoChangesToSave}
+                                          </p>
+                                        ) : null}
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                          <button
+                                            type="button"
+                                            disabled={
+                                              dupModalBusy ||
+                                              !pv.hasChanges ||
+                                              ocrBusyApplyId === f.id
+                                            }
+                                            onClick={() => void handleDupModalOcrApply(f.id, pv)}
+                                            className="rounded-md border border-teal-500/45 bg-teal-600/35 px-2.5 py-1.5 text-[11px] font-semibold text-teal-50 hover:bg-teal-600/50 disabled:cursor-not-allowed disabled:opacity-40"
+                                          >
+                                            {ocrBusyApplyId === f.id
+                                              ? t.dashboard.duplicateFattureReassignBusy
+                                              : t.dashboard.duplicateFattureOcrSaveBtn}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            disabled={
+                                              ocrBusyApplyId === f.id || ocrBusyPreviewId !== null
+                                            }
+                                            onClick={() =>
+                                              setOcrPreviewById((p) => {
+                                                const next = { ...p }
+                                                delete next[f.id]
+                                                return next
+                                              })
+                                            }
+                                            className="rounded-md border border-white/15 bg-black/30 px-2.5 py-1.5 text-[11px] font-semibold text-app-fg-muted hover:bg-black/45 disabled:cursor-not-allowed disabled:opacity-40"
+                                          >
+                                            {t.dashboard.duplicateFattureOcrDismissBtn}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )
+                                  })()}
+                                </div>
                               ) : null}
                             </li>
                           ))}
