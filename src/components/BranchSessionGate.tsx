@@ -95,8 +95,9 @@ export default function BranchSessionGate({ children }: { children: React.ReactN
       if (typeof window === 'undefined') return
       if (window.location.pathname === ACCESSO_PATH) return
       const next = safeNextPath(pathname)
+      // `assign` di backup se `replace` in useLayoutEffect non ha completato (PWA / WebView).
       window.location.assign(`${ACCESSO_PATH}?next=${encodeURIComponent(next)}`)
-    }, 3_000)
+    }, 1_200)
     return () => {
       if (gateStuckRef.current) {
         clearTimeout(gateStuckRef.current)

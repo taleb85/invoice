@@ -215,8 +215,10 @@ export function UserProvider({
     },
   )
 
-  // data === null means a non-ok response (401/404) — fall back to initialMe
-  const me = data === null ? (initialMe ?? null) : (data ?? null)
+  // `undefined`: richiesta in corso / primo tick SWR; `null`: fetcher ha risposto non-ok (401/404).
+  // In entrambi i casi va usato `initialMe` se presente — altrimenti `me` resta null e la splash non si spegne
+  // pur avendo idratazione SSR valida (`data ?? null` trasformava undefined in null e buttava il fallback).
+  const me = data == null ? (initialMe ?? null) : data
   const loading = isLoading && me === null
 
   useEffect(() => {
