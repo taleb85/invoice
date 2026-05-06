@@ -4,6 +4,7 @@ import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import CountrySelector from '@/components/CountrySelector'
 import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
+import SedeBranchManagementPanel from '@/components/SedeBranchManagementPanel'
 import { getLocale } from '@/lib/localization'
 import { getT } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
@@ -26,12 +27,19 @@ interface SedeProfile {
   file_retention_days: number | null
 }
 
+type SedeOperatorRow = {
+  id: string
+  full_name: string | null
+  role: string | null
+}
+
 async function fetchSedePageData(sedeId: string): Promise<{
   sede: SedeProfile | null
+  operators: SedeOperatorRow[]
 }> {
   const service = createServiceClient()
 
-  const [sedeRes, fornCountRes, opCountRes] = await Promise.all([
+  const [sedeRes, fornCountRes, profilesRes] = await Promise.all([
     service
       .from('sedi')
       .select(
@@ -40,12 +48,14 @@ async function fetchSedePageData(sedeId: string): Promise<{
       .eq('id', sedeId)
       .maybeSingle(),
     service.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
-    service.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
+    service.from('profiles').select('id, full_name, role').eq('sede_id', sedeId).order('full_name', { ascending: true }),
   ])
 
-  if (!sedeRes.data) return { sede: null }
+  if (!sedeRes.data) return { sede: null, operators: [] }
 
   const row = sedeRes.data
+
+  const operators = (profilesRes.data ?? []) as SedeOperatorRow[]
 
   return {
     sede: {
@@ -57,11 +67,12 @@ async function fetchSedePageData(sedeId: string): Promise<{
       imap_lookback_days: (row as { imap_lookback_days?: number | null }).imap_lookback_days ?? null,
       country_code: (row as { country_code?: string }).country_code ?? 'UK',
       fornitori_count: fornCountRes.count ?? 0,
-      operators_count: opCountRes.count ?? 0,
+      operators_count: operators.length,
       file_retention_policy: (row as { file_retention_policy?: string | null }).file_retention_policy ?? null,
       file_retention_run_day: (row as { file_retention_run_day?: number | null }).file_retention_run_day ?? null,
       file_retention_days: (row as { file_retention_days?: number | null }).file_retention_days ?? null,
     },
+    operators,
   }
 }
 
@@ -70,7 +81,7 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
   if (!user) redirect('/login')
 
   const { sede_id } = await props.params
-  const { sede } = await fetchSedePageData(sede_id)
+  const { sede, operators } = await fetchSedePageData(sede_id)
   if (!sede) redirect('/sedi')
 
   const profile = await getProfile()
@@ -110,23 +121,31 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
                 {sede.fornitori_count}{' '}
                 {sede.fornitori_count === 1 ? 'fornitore' : 'fornitori'}
               </span>
-              <span className="text-app-fg-muted">·</span>
-              {imapConfigured ? (
-                <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Email configurata ({sede.imap_user})
-                </span>
-              ) : (
-                <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
-                  Email non configurata
-                </span>
-              )}
+              {!imapConfigured ? (
+                <>
+                  <span className="text-app-fg-muted">·</span>
+                  <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
+                    Email non configurata
+                  </span>
+                </>
+              ) : null}
             </div>
           </div>
         </div>
       </AppPageHeaderStrip>
+
+      {canManageSedeOperators ? (
+        <SedeBranchManagementPanel
+          sedeId={sede_id}
+          operators={operators}
+          imapInitial={{
+            host: sede.imap_host ?? '',
+            port: sede.imap_port ?? 993,
+            user: sede.imap_user ?? '',
+            lookbackDays: sede.imap_lookback_days,
+          }}
+        />
+      ) : null}
 
       {/* Paese / Localizzazione */}
       {(() => {
