@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
-import { useMe } from '@/lib/me-context'
+import { revalidateMe, useMe } from '@/lib/me-context'
 import type { Translations } from '@/lib/translations'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 
@@ -113,12 +113,19 @@ function SedeOperatorRowEditor({
     if (roleDirty && roleEditable) {
       body.role = roleDraft
     }
+    if (roleDirty && !roleEditable) {
+      window.alert(
+        'Il ruolo non è stato inviato: permessi insufficienti per il tuo account in questa sessione.',
+      )
+      return
+    }
     if (Object.keys(body).length === 0) return
     setProfileSaving(true)
     try {
       const res = await fetch(`/api/profiles/${encodeURIComponent(op.id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
@@ -126,6 +133,7 @@ function SedeOperatorRowEditor({
         window.alert(j.error ?? t.common.error)
         return
       }
+      revalidateMe()
       router.refresh()
     } finally {
       setProfileSaving(false)

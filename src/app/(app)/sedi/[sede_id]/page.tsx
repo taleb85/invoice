@@ -13,6 +13,9 @@ import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { isBranchSedeStaffRole } from '@/lib/roles'
 import SedeFileRetentionSection from '@/components/SedeFileRetentionSection'
 
+/** Elenco operatori / ruoli: dopo PATCH serve sempre snapshot fresco (no stale RSC). */
+export const dynamic = 'force-dynamic'
+
 interface SedeProfile {
   id: string
   nome: string

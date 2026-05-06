@@ -1,3 +1,4 @@
+import { revalidatePath } from 'next/cache'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
@@ -13,19 +14,35 @@ export async function PATCH(
 
   const svc = createServiceClient()
 
-  const { data: caller } = await svc
+  const { data: caller, error: callerErr } = await svc
     .from('profiles')
     .select('role, sede_id')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  const master = isMasterAdminRole(caller?.role)
-  const sedeStaff = isBranchSedeStaffRole(caller?.role)
+  if (callerErr) {
+    console.error('[PATCH profiles] caller:', callerErr.message)
+    return NextResponse.json({ error: callerErr.message }, { status: 500 })
+  }
+  if (!caller) {
+    return NextResponse.json(
+      { error: 'Profilo sessione non trovato nel database. Riavvia il login o contatta l’assistenza.' },
+      { status: 403 },
+    )
+  }
+
+  const master = isMasterAdminRole(caller.role)
+  const sedeStaff = isBranchSedeStaffRole(caller.role)
   if (!master && !sedeStaff) {
     return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
   }
 
-  const { id: targetId } = await segmentCtx.params
+  const rawParams = await Promise.resolve(segmentCtx.params)
+  const targetId = rawParams?.id?.trim()
+  if (!targetId) {
+    return NextResponse.json({ error: 'Id profilo non valido.' }, { status: 400 })
+  }
+
   const body = (await req.json()) as { full_name?: string | null; role?: string }
 
   const { data: target } = await svc
@@ -39,7 +56,7 @@ export async function PATCH(
   const targetRole = String(target.role ?? '').toLowerCase()
 
   if (sedeStaff) {
-    if (!caller?.sede_id || target.sede_id !== caller.sede_id) {
+    if (!caller.sede_id || target.sede_id !== caller.sede_id) {
       return NextResponse.json({ error: 'Puoi modificare solo profili della tua sede.' }, { status: 403 })
     }
     if (targetRole === 'admin') {
@@ -73,8 +90,29 @@ export async function PATCH(
     return NextResponse.json({ error: 'Nessun campo da aggiornare.' }, { status: 400 })
   }
 
-  const { error } = await svc.from('profiles').update(updates).eq('id', targetId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  const { data: patched, error } = await svc
+    .from('profiles')
+    .update(updates)
+    .eq('id', targetId)
+    .select('id, role, full_name')
+    .maybeSingle()
 
-  return NextResponse.json({ ok: true })
+  if (error) {
+    console.error('[PATCH profiles] update:', error.message)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+  if (!patched) {
+    return NextResponse.json(
+      { error: 'Aggiornamento non applicato: nessuna riga modificata (id non trovato?).' },
+      { status: 404 },
+    )
+  }
+
+  const sedeSlug = typeof target.sede_id === 'string' ? target.sede_id.trim() : ''
+  if (sedeSlug) {
+    revalidatePath(`/sedi/${sedeSlug}`)
+  }
+  revalidatePath('/sedi')
+
+  return NextResponse.json({ ok: true, profile: patched })
 }
