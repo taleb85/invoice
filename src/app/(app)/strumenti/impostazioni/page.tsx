@@ -127,7 +127,7 @@ function ProfileMobileHub() {
 function SollecitiSettingsLinkCard() {
   const { t } = useLocale()
   const imp = t.impostazioni
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(true)
   const [sollecitiInitial, setSollecitiInitial] = useState<SollecitiReminderSettings | null>(null)
   const [embeddedSession, setEmbeddedSession] = useState(0)
   const uid = useId()
@@ -269,7 +269,7 @@ export default function ImpostazioniPage() {
   // Local draft state — confirmed on Save
   const [draftCurrency, setDraftCurrency] = useState(currency)
   const [draftTimezone, setDraftTimezone] = useState(timezone)
-  const [localisationDrawerOpen, setLocalisationDrawerOpen] = useState(false)
+  const [localisationDrawerOpen, setLocalisationDrawerOpen] = useState(true)
   const localeDrawerUid = useId()
   const locToggleId = `imp-locale-drawer-toggle-${localeDrawerUid}`
   const locRegionId = `imp-locale-drawer-region-${localeDrawerUid}`
