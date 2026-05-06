@@ -1,5 +1,6 @@
 import type { MeData } from '@/lib/me-context'
 import type { ActiveOperator } from '@/lib/active-operator-context'
+import { isAdminTecnicoRole } from '@/lib/roles'
 
 /** Admin master che ha scelto un operatore con PIN (vista “da banco”). */
 export function actingAsMasterWithOperator(
@@ -77,12 +78,22 @@ export function effectiveIsAdminTecnicoUi(
   return profileIsAdminTecnico
 }
 
-/** Centro operazioni: solo piano master (senza PIN) o admin tecnico effettivo — non responsabile sede. */
+/**
+ * Centro operazioni: allineato a `/api/centro-operazioni/*` (profilo DB).
+ * — Master senza operatore PIN, oppure master con PIN solo se ruolo attivo `admin_tecnico`.
+ * — Profilo `admin_tecnico`: sempre consentito (il backend ignora il contesto PIN).
+ */
 export function canAccessCentroOperazioniPage(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user' | 'role'> | null | undefined,
   activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
 ): boolean {
-  return effectiveIsMasterAdminPlane(me, activeOperator) || effectiveIsAdminTecnicoUi(me, activeOperator)
+  if (!me) return false
+  const profileAdminTecnico =
+    isAdminTecnicoRole(me.role) || Boolean(me.is_admin_tecnico && !me.is_admin)
+  if (profileAdminTecnico) return true
+
+  if (effectiveIsMasterAdminPlane(me, activeOperator)) return true
+  return Boolean(me.is_admin && activeOperator?.role === 'admin_tecnico')
 }
 
 /**
