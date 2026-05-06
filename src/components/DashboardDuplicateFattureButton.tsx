@@ -91,6 +91,40 @@ async function fetchDupModalOcrPreviewFromApi(
   }
 }
 
+function compactSupplierKey(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^a-z0-9]+/g, '')
+}
+
+/** Conservative check: OCR supplier label vs archive name differ materially. */
+function duplicateModalSupplierNameLikelyMismatch(
+  archivedNome: string | null | undefined,
+  ocrRagioneSociale: string | null | undefined,
+): boolean {
+  const a = archivedNome?.trim()
+  const p = ocrRagioneSociale?.trim()
+  if (!a || !p || p.length < 5) return false
+  const ca = compactSupplierKey(a)
+  const cp = compactSupplierKey(p)
+  if (!ca || !cp || ca === cp) return false
+  if (ca.includes(cp) || cp.includes(ca)) return false
+  const longTokens = (raw: string) =>
+    raw
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((t) => t.length >= 5)
+  for (const t of longTokens(p)) {
+    if (ca.includes(compactSupplierKey(t))) return false
+  }
+  for (const t of longTokens(a)) {
+    if (cp.includes(compactSupplierKey(t))) return false
+  }
+  return true
+}
+
 function parseDuplicateReportNdjsonLine(
   trimmed: string,
   onProgress: (p: { scannedSoFar: number; sample: DuplicateFatturaScanProgressItem[] }) => void,
@@ -757,6 +791,9 @@ export default function DashboardDuplicateFattureButton({
                             <p className="mt-1 text-[11px] leading-snug text-app-fg-muted">
                               {t.dashboard.duplicateFatturePdfSummaryIntro}
                             </p>
+                            <p className="mt-1 text-[11px] leading-snug text-amber-100/85">
+                              {t.dashboard.duplicateFatturePdfSummaryAlignedSupplierNote}
+                            </p>
                           </div>
                           <button
                             type="button"
@@ -815,8 +852,20 @@ export default function DashboardDuplicateFattureButton({
                                     outcomeLabel = t.dashboard.duplicateFatturePdfStatusErr
                                     outcomeCls = 'text-red-300'
                                   } else if (pv) {
+                                    const archivedNomeRow =
+                                      f.fornitore?.nome ?? gg.fornitore_nome
+                                    const supplierMisaligned =
+                                      !pv.hasChanges &&
+                                      duplicateModalSupplierNameLikelyMismatch(
+                                        archivedNomeRow,
+                                        pv.read.ragione_sociale,
+                                      )
                                     if (pv.hasChanges) {
                                       outcomeLabel = t.dashboard.duplicateFatturePdfStatusDiff
+                                      outcomeCls = 'font-semibold text-amber-200'
+                                    } else if (supplierMisaligned) {
+                                      outcomeLabel =
+                                        t.dashboard.duplicateFatturePdfStatusAlignedSupplierMismatch
                                       outcomeCls = 'font-semibold text-amber-200'
                                     } else {
                                       outcomeLabel = t.dashboard.duplicateFatturePdfStatusAligned
@@ -1052,6 +1101,14 @@ export default function DashboardDuplicateFattureButton({
                                   {(() => {
                                     const pv = ocrPreviewById[f.id]
                                     if (!pv) return null
+                                    const archivedNomeRow =
+                                      f.fornitore?.nome ?? g.fornitore_nome ?? ''
+                                    const supplierMismatch =
+                                      !pv.hasChanges &&
+                                      duplicateModalSupplierNameLikelyMismatch(
+                                        archivedNomeRow,
+                                        pv.read.ragione_sociale,
+                                      )
                                     const fmtAmt = (n: number | null) =>
                                       n != null && Number.isFinite(n)
                                         ? formatCurrency(n, currency, locale)
@@ -1133,9 +1190,15 @@ export default function DashboardDuplicateFattureButton({
                                           </div>
                                         ) : null}
                                         {!pv.hasChanges ? (
-                                          <p className="mt-2 text-[10px] text-emerald-200/90">
-                                            {t.dashboard.duplicateFattureOcrNoChangesToSave}
-                                          </p>
+                                          supplierMismatch ? (
+                                            <p className="mt-2 text-[10px] text-amber-200/95">
+                                              {t.dashboard.duplicateFattureOcrSupplierMismatchInline}
+                                            </p>
+                                          ) : (
+                                            <p className="mt-2 text-[10px] text-emerald-200/90">
+                                              {t.dashboard.duplicateFattureOcrNoChangesToSave}
+                                            </p>
+                                          )
                                         ) : null}
                                         <div className="mt-2 flex flex-wrap gap-2">
                                           <button
