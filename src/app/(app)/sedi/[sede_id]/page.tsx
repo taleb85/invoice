@@ -124,7 +124,7 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
             </div>
           </div>
           <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-            <ScanEmailButton sedeId={sede_id} alwaysShowLabel />
+            <ScanEmailButton sedeId={sede_id} alwaysShowLabel placement="desktopHeader" />
           </div>
         </div>
       </AppPageHeaderStrip>
