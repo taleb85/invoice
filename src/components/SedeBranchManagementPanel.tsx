@@ -96,7 +96,7 @@ function SedeOperatorRowEditor({
 
   const rowToolbarPad = 'py-2 px-2.5 text-xs leading-snug'
   const controlCls = `${inputCls} ${rowToolbarPad} min-h-[38px]`
-  const selectCls = `${controlCls} min-w-0 flex-1 basis-0 !w-auto max-w-full cursor-pointer`
+  const selectCls = `${controlCls} min-w-0 max-w-[min(38vw,13rem)] shrink-[2] cursor-pointer sm:max-w-[14rem]`
 
   const [profileSaving, setProfileSaving] = useState(false)
   const saveProfile = async () => {
@@ -195,67 +195,63 @@ function SedeOperatorRowEditor({
   return (
     <li className="min-w-0 rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
       <div className="flex min-w-0 flex-nowrap items-center gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
-          <input
-            id={`${rowUid}-name`}
-            value={nameDraft}
-            onChange={(e) => setNameDraft(e.target.value.toUpperCase())}
-            className={`${controlCls} !w-[15rem] shrink-0`}
-            autoComplete="off"
-            placeholder={t.sedi.operatorDisplayNameLabel}
-            aria-label={t.sedi.operatorDisplayNameLabel}
-          />
-          {roleOptions.length > 0 ? (
-            <select
-              id={`${rowUid}-role`}
-              value={roleDraft}
-              disabled={!roleEditable}
-              onChange={(e) => setRoleDraft(e.target.value)}
-              className={selectCls}
-              aria-label={t.common.role}
-            >
-              {!knownRoleValues.has(roleDraft) && roleDraft ? (
-                <option value={roleDraft}>{roleShortLabel(roleDraft, t.sedi)}</option>
-              ) : null}
-              {roleOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span
-              className={`inline-flex h-[38px] min-w-[8rem] flex-1 items-center rounded-lg border border-app-line-25 bg-app-line-15 px-2.5 text-xs font-semibold leading-snug text-app-fg-muted`}
-            >
-              {roleShortLabel(op.role, t.sedi)}
-            </span>
-          )}
-        </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            disabled={profileSaving || !rowDirty}
-            onClick={() => void saveProfile()}
-            className={btnPrimary}
+        <input
+          id={`${rowUid}-name`}
+          value={nameDraft}
+          onChange={(e) => setNameDraft(e.target.value.toUpperCase())}
+          className={`${controlCls} min-w-0 flex-1 basis-0`}
+          autoComplete="off"
+          placeholder={t.sedi.operatorDisplayNameLabel}
+          aria-label={t.sedi.operatorDisplayNameLabel}
+        />
+        {roleOptions.length > 0 ? (
+          <select
+            id={`${rowUid}-role`}
+            value={roleDraft}
+            disabled={!roleEditable}
+            onChange={(e) => setRoleDraft(e.target.value)}
+            className={selectCls}
+            aria-label={t.common.role}
           >
-            {profileSaving ? t.common.loading : t.common.save}
-          </button>
-          {isOperatoreRow && !isSelf ? (
-            <>
-              <button type="button" className={btnSecondary} onClick={() => setPinOpen((o) => !o)}>
-                {t.sedi.changePinTitle}
-              </button>
-              <button
-                type="button"
-                className={btnDanger}
-                disabled={delBusy}
-                onClick={() => void deleteOperator()}
-              >
-                {delBusy ? t.common.loading : t.sedi.deleteTitle}
-              </button>
-            </>
-          ) : null}
-        </div>
+            {!knownRoleValues.has(roleDraft) && roleDraft ? (
+              <option value={roleDraft}>{roleShortLabel(roleDraft, t.sedi)}</option>
+            ) : null}
+            {roleOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span
+            className={`inline-flex h-[38px] max-w-[min(38vw,13rem)] shrink-0 items-center rounded-lg border border-app-line-25 bg-app-line-15 px-2.5 text-xs font-semibold leading-snug text-app-fg-muted sm:max-w-[14rem]`}
+          >
+            {roleShortLabel(op.role, t.sedi)}
+          </span>
+        )}
+        <button
+          type="button"
+          disabled={profileSaving || !rowDirty}
+          onClick={() => void saveProfile()}
+          className={btnPrimary}
+        >
+          {profileSaving ? t.common.loading : t.common.save}
+        </button>
+        {isOperatoreRow && !isSelf ? (
+          <>
+            <button type="button" className={btnSecondary} onClick={() => setPinOpen((o) => !o)}>
+              {t.sedi.changePinTitle}
+            </button>
+            <button
+              type="button"
+              className={btnDanger}
+              disabled={delBusy}
+              onClick={() => void deleteOperator()}
+            >
+              {delBusy ? t.common.loading : t.sedi.deleteTitle}
+            </button>
+          </>
+        ) : null}
       </div>
       {isOperatoreRow && !isSelf && pinOpen ? (
         <div className="mt-2 space-y-2 border-t border-app-line-18 pt-2">
