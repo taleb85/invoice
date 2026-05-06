@@ -58,8 +58,8 @@ function SedeOperatorRowEditor({
   const isMaster = Boolean(me?.is_admin)
   const canManageBranchUsers =
     Boolean(me?.user?.id) && (isMaster || me?.is_admin_sede || me?.is_admin_tecnico)
-  /** Ruolo: solo portale master o responsabile sede (`admin_sede`), non admin tecnico. */
-  const canAssignRoles = Boolean(me?.is_admin || me?.is_admin_sede)
+  /** Ruolo: portale master o staff filiale (`admin_sede`, `admin_tecnico`), allineato a PATCH `/api/profiles/[id]`. */
+  const canAssignRoles = Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
   const roleEditable = canManageBranchUsers && canAssignRoles
 
   const [nameDraft, setNameDraft] = useState(op.full_name?.trim() ?? '')
