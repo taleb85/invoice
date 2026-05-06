@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
-import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
+import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 const APP_ROLES = ['operatore', 'admin_sede', 'admin_tecnico', 'admin'] as const
 
@@ -27,6 +27,13 @@ export async function PATCH(
 
   const { id: targetId } = await segmentCtx.params
   const body = (await req.json()) as { full_name?: string | null; role?: string }
+
+  if (body.role !== undefined && !master && !isAdminSedeRole(caller?.role)) {
+    return NextResponse.json(
+      { error: 'Solo gli amministratori possono modificare i ruoli.' },
+      { status: 403 },
+    )
+  }
 
   const { data: target } = await svc
     .from('profiles')
