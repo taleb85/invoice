@@ -195,8 +195,12 @@ export default function FattureListWithDuplicates({
               </div>
               {f.file_url && (
                 <div className="mt-2">
-                  <OpenDocumentInAppButton fatturaId={f.id} fileUrl={f.file_url}>
-                    {t.fatture.apri}
+                  <OpenDocumentInAppButton
+                    fatturaId={f.id}
+                    fileUrl={f.file_url}
+                    title={t.common.openAttachment}
+                  >
+                    {t.common.openAttachment}
                   </OpenDocumentInAppButton>
                 </div>
               )}
@@ -264,8 +268,12 @@ export default function FattureListWithDuplicates({
               </td>
               <td className={APP_SECTION_TABLE_TD_COMPACT}>
                 {f.file_url ? (
-                  <OpenDocumentInAppButton fatturaId={f.id} fileUrl={f.file_url}>
-                    {t.fatture.apri}
+                  <OpenDocumentInAppButton
+                    fatturaId={f.id}
+                    fileUrl={f.file_url}
+                    title={t.common.openAttachment}
+                  >
+                    {t.common.openAttachment}
                   </OpenDocumentInAppButton>
                 ) : (
                   <span className="text-app-fg-muted">—</span>
