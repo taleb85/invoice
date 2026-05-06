@@ -138,6 +138,7 @@ export default function SedeAddOperatorForm({
     return (
       <div className="space-y-2">
         <p className="px-0.5 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">{t.sedi.addOperatorSedeTitle}</p>
+        <p className="px-0.5 text-xs leading-snug text-app-fg-muted">{t.sedi.addOperatorSedeDesc}</p>
         {inner}
       </div>
     )
@@ -147,6 +148,7 @@ export default function SedeAddOperatorForm({
     <div className="app-card mb-8 flex flex-col overflow-hidden">
       <div className="p-5">
         <h2 className="text-sm font-semibold text-app-fg">{t.sedi.addOperatorSedeTitle}</h2>
+        <p className="mb-4 mt-1 text-xs text-app-fg-muted">{t.sedi.addOperatorSedeDesc}</p>
         {inner}
       </div>
     </div>
