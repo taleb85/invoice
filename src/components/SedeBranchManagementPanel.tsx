@@ -67,6 +67,10 @@ export default function SedeBranchManagementPanel({
 
   const [copiedId, setCopiedId] = useState(false)
 
+  const [operatorsDrawerOpen, setOperatorsDrawerOpen] = useState(true)
+  const [pinDraft, setPinDraft] = useState('')
+
+  useEffect(() => {
     const run = () => {
       if (typeof window === 'undefined' || window.location.hash !== '#sede-operatori') return
       window.setTimeout(() => {
