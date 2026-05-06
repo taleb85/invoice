@@ -96,7 +96,7 @@ function SedeOperatorRowEditor({
 
   const rowToolbarPad = 'py-2 px-2.5 text-xs leading-snug'
   const controlCls = `${inputCls} ${rowToolbarPad} min-h-[38px]`
-  const selectCls = `${controlCls} min-w-[9rem] flex-[0_1_13rem] cursor-pointer max-md:min-w-[8rem]`
+  const selectCls = `${controlCls} min-w-0 max-w-[min(38vw,13rem)] shrink-[2] cursor-pointer sm:max-w-[14rem]`
 
   const [profileSaving, setProfileSaving] = useState(false)
   const saveProfile = async () => {
@@ -194,7 +194,7 @@ function SedeOperatorRowEditor({
 
   return (
     <li className="min-w-0 rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-nowrap items-center gap-2">
         <input
           id={`${rowUid}-name`}
           value={nameDraft}
@@ -224,7 +224,7 @@ function SedeOperatorRowEditor({
           </select>
         ) : (
           <span
-            className={`inline-flex h-[38px] shrink-0 items-center rounded-lg border border-app-line-25 bg-app-line-15 px-2.5 text-xs font-semibold leading-snug text-app-fg-muted`}
+            className={`inline-flex h-[38px] max-w-[min(38vw,13rem)] shrink-0 items-center rounded-lg border border-app-line-25 bg-app-line-15 px-2.5 text-xs font-semibold leading-snug text-app-fg-muted sm:max-w-[14rem]`}
           >
             {roleShortLabel(op.role, t.sedi)}
           </span>
@@ -669,7 +669,7 @@ export default function SedeBranchManagementPanel({
             {operators.length === 0 ? (
               <p className="mb-4 text-sm text-app-fg-muted">{t.sedi.nessunUtente}</p>
             ) : (
-              <ul className="mb-5 grid list-none grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <ul className="mb-5 grid list-none grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {operators.map((op) => (
                   <SedeOperatorRowEditor key={op.id} op={op} inputCls={inputCls} rowUid={`${uid}-op-${op.id}`} />
                 ))}
