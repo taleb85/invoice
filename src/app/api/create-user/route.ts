@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 import { logActivity } from '@/lib/activity-logger'
 
 export async function POST(req: NextRequest) {
@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
   const service = createServiceClient()
   const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
-  if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
+  const sedeStaff = isBranchSedeStaffRole(profile?.role)
+  if (!master && !sedeStaff) return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
 
   const { name, pin, sedeId, role } = await req.json()
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nome, PIN e sede sono obbligatori.' }, { status: 400 })
   }
 
-  if (sedeAdmin) {
+  if (sedeStaff) {
     if (!profile?.sede_id || sedeId !== profile.sede_id) {
       return NextResponse.json({ error: 'Puoi creare operatori solo per la tua sede.' }, { status: 403 })
     }

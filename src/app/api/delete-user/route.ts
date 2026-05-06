@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
-import { isAdminSedeRole, isMasterAdminRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 export async function DELETE(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -12,8 +12,8 @@ export async function DELETE(req: NextRequest) {
   const service = createServiceClient()
   const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
   const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isAdminSedeRole(profile?.role)
-  if (!master && !sedeAdmin) return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
+  const sedeStaff = isBranchSedeStaffRole(profile?.role)
+  if (!master && !sedeStaff) return NextResponse.json({ error: 'Accesso negato.' }, { status: 403 })
 
   const { userId } = await req.json()
   if (!userId) return NextResponse.json({ error: 'userId obbligatorio.' }, { status: 400 })
@@ -26,7 +26,7 @@ export async function DELETE(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  if (sedeAdmin) {
+  if (sedeStaff) {
     const { data: target } = await adminClient
       .from('profiles')
       .select('sede_id, role')
@@ -36,7 +36,7 @@ export async function DELETE(req: NextRequest) {
     if (!target?.sede_id || target.sede_id !== profile?.sede_id) {
       return NextResponse.json({ error: 'Puoi eliminare solo utenti della tua sede.' }, { status: 403 })
     }
-    if (tr === 'admin' || tr === 'admin_sede') {
+    if (tr === 'admin' || tr === 'admin_sede' || tr === 'admin_tecnico') {
       return NextResponse.json({ error: 'Non puoi eliminare questo profilo.' }, { status: 403 })
     }
   }
