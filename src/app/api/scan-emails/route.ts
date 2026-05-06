@@ -45,7 +45,7 @@ import {
   linkScanSenderToFornitore,
 } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 import { persistKnownFornitoreEmailScanWithFile } from '@/lib/email-scan-persist-known-with-file'
-import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { normalizeTipoDocumento, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
 import {
   evaluatePreGeminiDiscardRule,
   evaluatePostGeminiDiscardRuleTipo,
@@ -1998,32 +1998,37 @@ async function processEmails(
         else targetKind = null
 
         if (targetKind === 'fattura') {
-          const res = await insertEmailAutoFattura(supabase, {
-            fornitoreId: fornitore.id,
-            sedeId: documentSedeId,
-            dataDoc: dataDocLocal,
-            fileUrl: file_url,
-            meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
-          })
-          if ('id' in res) {
-            registratoAutoFatturaId = res.id
-            bozzaCreate++
-            mailDebugLog(`[AUTO] OK Fattura registrata: id=${res.id}`)
-            const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
-            fetch(`${baseUrl}/api/price-anomalies/check`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
-              },
-              body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
-            }).catch(() => {})
-          } else if ('duplicateId' in res) {
-            duplicateSkippedFatturaId = res.duplicateId
+          const bypassOcrTipoGuard = docKind === 'fattura'
+          if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
             needsDocRevision = true
-            mailDebugLog(`[AUTO] WARN Fattura già esistente (id=${res.duplicateId}) — in coda revisione`)
-          } else if ('error' in res) {
-            console.warn(`[AUTO] Fattura non registrata: ${res.error}`)
+          } else {
+            const res = await insertEmailAutoFattura(supabase, {
+              fornitoreId: fornitore.id,
+              sedeId: documentSedeId,
+              dataDoc: dataDocLocal,
+              fileUrl: file_url,
+              meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+            })
+            if ('id' in res) {
+              registratoAutoFatturaId = res.id
+              bozzaCreate++
+              mailDebugLog(`[AUTO] OK Fattura registrata: id=${res.id}`)
+              const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+              fetch(`${baseUrl}/api/price-anomalies/check`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+                },
+                body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+              }).catch(() => {})
+            } else if ('duplicateId' in res) {
+              duplicateSkippedFatturaId = res.duplicateId
+              needsDocRevision = true
+              mailDebugLog(`[AUTO] WARN Fattura già esistente (id=${res.duplicateId}) — in coda revisione`)
+            } else if ('error' in res) {
+              console.warn(`[AUTO] Fattura non registrata: ${res.error}`)
+            }
           }
         } else if (targetKind === 'bolla') {
           const numRef = ocr.numero_fattura?.trim() || null

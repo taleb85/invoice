@@ -7,7 +7,7 @@ import {
   type OcrResult,
 } from '@/lib/ocr-invoice'
 import { safeDate } from '@/lib/safe-date'
-import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { normalizeTipoDocumento, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
 import {
   emailSubjectLooksLikeStatement,
@@ -265,27 +265,31 @@ export async function processLegacyPendingDoc(
     const dataDocLocal = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
 
     if (targetKind === 'fattura') {
-      const res = await insertEmailAutoFattura(service, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc: dataDocLocal,
-        fileUrl: url,
-        meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
-      })
-      if ('id' in res) {
-        registratoAutoFatturaId = res.id
-        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
-        fetch(`${baseUrl}/api/price-anomalies/check`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
-          },
-          body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
-        }).catch(() => {})
-      } else if ('duplicateId' in res) {
-        duplicateSkippedFatturaId = res.duplicateId
+      if (!ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
+      } else {
+        const res = await insertEmailAutoFattura(service, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc: dataDocLocal,
+          fileUrl: url,
+          meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+        })
+        if ('id' in res) {
+          registratoAutoFatturaId = res.id
+          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+          fetch(`${baseUrl}/api/price-anomalies/check`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+            },
+            body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+          }).catch(() => {})
+        } else if ('duplicateId' in res) {
+          duplicateSkippedFatturaId = res.duplicateId
+          needsDocRevision = true
+        }
       }
     } else if (targetKind === 'bolla') {
       const numRef = ocr.numero_fattura?.trim() || null

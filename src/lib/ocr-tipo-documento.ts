@@ -11,6 +11,16 @@ export type NormalizedTipoDocumento =
   | 'comunicazione_cliente'
   | null
 
+/**
+ * Salvataggio automatico come riga `fatture` dalla scansione email: solo se l’OCR classifica
+ * esplicitamente una fattura. Oggetto/file che “sembrano” fattura ma `tipo_documento` null
+ * o altro → restano in coda manuale (evita DDT/comunicazioni registrati come fattura).
+ * Eccezione: scan con filtro documentKind=fattura (`docKind === 'fattura'`) può aggirare il controllo.
+ */
+export function ocrTipoAllowsEmailAutoFattura(tipoRaw: unknown): boolean {
+  return normalizeTipoDocumento(tipoRaw) === 'fattura'
+}
+
 export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   if (raw == null || raw === '') return null
   const s = String(raw).toLowerCase().replace(/\s+/g, ' ').trim()

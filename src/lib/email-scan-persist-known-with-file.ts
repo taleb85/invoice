@@ -13,7 +13,7 @@ import {
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
-import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { normalizeTipoDocumento, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
 import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts, type RekkiLine } from '@/lib/rekki-parser'
 import type { FornitoreScanFullRow } from '@/lib/scan-email-ocr-bootstrap-fornitore'
@@ -300,28 +300,33 @@ export async function persistKnownFornitoreEmailScanWithFile(
     else targetKind = null
 
     if (targetKind === 'fattura') {
-      const res = await insertEmailAutoFattura(supabase, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc: dataDocLocal,
-        fileUrl: file_url,
-        meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
-      })
-      if ('id' in res) {
-        registratoAutoFatturaId = res.id
-        counters.bozzaCreate++
-        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
-        fetch(`${baseUrl}/api/price-anomalies/check`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
-          },
-          body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
-        }).catch(() => {})
-      } else if ('duplicateId' in res) {
-        duplicateSkippedFatturaId = res.duplicateId
+      const bypassOcrTipoGuard = args.docKind === 'fattura'
+      if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
+      } else {
+        const res = await insertEmailAutoFattura(supabase, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc: dataDocLocal,
+          fileUrl: file_url,
+          meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+        })
+        if ('id' in res) {
+          registratoAutoFatturaId = res.id
+          counters.bozzaCreate++
+          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+          fetch(`${baseUrl}/api/price-anomalies/check`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+            },
+            body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+          }).catch(() => {})
+        } else if ('duplicateId' in res) {
+          duplicateSkippedFatturaId = res.duplicateId
+          needsDocRevision = true
+        }
       }
     } else if (targetKind === 'bolla') {
       const numRef = ocr.numero_fattura?.trim() || null
