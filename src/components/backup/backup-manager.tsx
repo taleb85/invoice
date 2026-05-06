@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useId } from 'react'
 import type { BackupDate } from '@/app/api/backup/list/route'
 import type { Locale } from '@/lib/translations'
 import { useLocale } from '@/lib/locale-context'
-import { useT } from '@/lib/use-t'
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 
 type BackupHistoryEntry = {
@@ -62,9 +61,7 @@ function tableLabel(name: string): string {
 }
 
 export function BackupManager() {
-  const t = useT()
   const { locale } = useLocale()
-  const b = t.appStrings
   const cronAutomationHeadingId = useId()
 
   const [backups, setBackups] = useState<BackupDate[]>([])

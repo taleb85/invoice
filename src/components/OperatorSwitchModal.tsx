@@ -212,7 +212,18 @@ export default function OperatorSwitchModal() {
       clearPin()
     }
     setLoading(false)
-  }, [selected, currentPin, setActiveOperator, clearPin, me?.is_admin, me?.user?.id, t.ui.networkError, t.ui.pinError])
+  }, [
+    selected,
+    currentPin,
+    setActiveOperator,
+    clearPin,
+    me?.is_admin,
+    me?.user?.id,
+    t.ui.networkError,
+    t.ui.pinError,
+    handleClose,
+    router,
+  ])
 
   /* ── Keyboard support ── */
   useEffect(() => {

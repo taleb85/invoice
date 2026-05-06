@@ -8,8 +8,6 @@ import {
   BTN_SIZE_MD,
   BTN_SIZE_SM,
   BTN_SIZE_XS,
-  STANDARD_BUTTON_SIZE_SM_PRIMARY,
-  STANDARD_BUTTON_SIZE_SM_SECONDARY,
 } from '@/components/ui/standard-button-classes'
 
 type Variant = 'primary' | 'secondary' | 'danger'

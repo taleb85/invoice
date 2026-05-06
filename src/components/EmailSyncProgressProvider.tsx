@@ -119,7 +119,7 @@ export function EmailSyncProgressProvider({ children }: { children: ReactNode })
       dismissEmailSyncCompletionBanner()
     }, EMAIL_SYNC_COMPLETION_AUTO_DISMISS_MS)
     return () => window.clearTimeout(id)
-  }, [progress.active, progress.phase, progress.toast?.type, progress.toast?.text])
+  }, [progress.active, progress.phase, progress.toast])
 
   const runEmailSyncRef = useRef(runEmailSync)
   runEmailSyncRef.current = runEmailSync

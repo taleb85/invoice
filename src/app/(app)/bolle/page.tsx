@@ -30,7 +30,6 @@ import {
   APP_SECTION_TABLE_TH_RIGHT,
   APP_SECTION_TABLE_TBODY,
   APP_SECTION_TABLE_TR_GROUP,
-  APP_SECTION_TABLE_TD,
   APP_SECTION_TABLE_THEAD_STICKY,
 } from '@/lib/app-shell-layout'
 import { analyzeBolleDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
