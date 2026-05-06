@@ -110,8 +110,7 @@ function SedeOperatorRowEditor({
       }
       body.full_name = fn
     }
-    if (roleDirty) {
-      if (!roleEditable) return
+    if (roleDirty && roleEditable) {
       body.role = roleDraft
     }
     if (Object.keys(body).length === 0) return
