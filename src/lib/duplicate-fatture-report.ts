@@ -22,6 +22,7 @@ export type DuplicateFatturaReportRow = {
   data: string
   numero_fattura: string | null
   importo: number | null
+  file_url: string | null
   fornitore: { nome: string } | null
   sede: { nome: string } | null
 }
@@ -81,6 +82,7 @@ function embedFornitoreSede(row: unknown): DuplicateFatturaReportRow {
     data: String(r.data ?? ''),
     numero_fattura: (r.numero_fattura as string | null) ?? null,
     importo: r.importo != null ? Number(r.importo) : null,
+    file_url: typeof r.file_url === 'string' && r.file_url.trim() ? r.file_url.trim() : null,
     fornitore: fornitore?.nome != null ? { nome: String(fornitore.nome) } : null,
     sede: sede?.nome != null ? { nome: String(sede.nome) } : null,
   }

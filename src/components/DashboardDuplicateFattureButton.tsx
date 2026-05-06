@@ -12,6 +12,7 @@ import type {
   DuplicateFatturaScanProgressItem,
 } from '@/lib/duplicate-fatture-report'
 import Link from 'next/link'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
 
 type ApiOk = {
   ok: true
@@ -376,21 +377,40 @@ export default function DashboardDuplicateFattureButton({
                         <ul className="flex flex-col gap-1.5">
                           {g.fatture.map((f) => (
                             <li key={f.id} className="flex items-stretch gap-2">
-                              <Link
-                                href={`/fatture/${f.id}`}
-                                className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-app-soft-border bg-cyan-950/20 px-2.5 py-2 text-xs transition-colors hover:border-app-a-40 hover:bg-cyan-950/35 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
-                                onClick={() => setOpen(false)}
-                              >
-                                <span className="font-mono text-[11px] text-app-fg-muted">{f.id.slice(0, 8)}…</span>
-                                <span className="font-semibold text-app-fg-muted sm:text-right">
-                                  {f.importo != null && !Number.isNaN(f.importo)
-                                    ? formatCurrency(f.importo, currency, locale)
-                                    : '—'}
-                                </span>
-                                <span className="col-span-2 text-app-fg-muted underline decoration-app-line-50 sm:col-span-1 sm:text-right">
-                                  {t.common.detail} →
-                                </span>
-                              </Link>
+                              {f.file_url ? (
+                                <OpenDocumentInAppButton
+                                  fatturaId={f.id}
+                                  fileUrl={f.file_url}
+                                  title={t.bolle.viewDocument}
+                                  className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-app-soft-border bg-cyan-950/20 px-2.5 py-2 text-left text-xs transition-colors hover:border-app-a-40 hover:bg-cyan-950/35 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                                >
+                                  <span className="font-mono text-[11px] text-app-fg-muted">{f.id.slice(0, 8)}…</span>
+                                  <span className="font-semibold text-app-fg-muted sm:text-right">
+                                    {f.importo != null && !Number.isNaN(f.importo)
+                                      ? formatCurrency(f.importo, currency, locale)
+                                      : '—'}
+                                  </span>
+                                  <span className="col-span-2 text-app-fg-muted underline decoration-app-line-50 sm:col-span-1 sm:text-right">
+                                    {t.common.detail} →
+                                  </span>
+                                </OpenDocumentInAppButton>
+                              ) : (
+                                <Link
+                                  href={`/fatture/${f.id}`}
+                                  className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg border border-app-soft-border bg-cyan-950/20 px-2.5 py-2 text-xs transition-colors hover:border-app-a-40 hover:bg-cyan-950/35 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                                  onClick={() => setOpen(false)}
+                                >
+                                  <span className="font-mono text-[11px] text-app-fg-muted">{f.id.slice(0, 8)}…</span>
+                                  <span className="font-semibold text-app-fg-muted sm:text-right">
+                                    {f.importo != null && !Number.isNaN(f.importo)
+                                      ? formatCurrency(f.importo, currency, locale)
+                                      : '—'}
+                                  </span>
+                                  <span className="col-span-2 text-app-fg-muted underline decoration-app-line-50 sm:col-span-1 sm:text-right">
+                                    {t.common.detail} →
+                                  </span>
+                                </Link>
+                              )}
                               <button
                                 type="button"
                                 className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/35 px-2.5 py-2 text-red-200 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/55 disabled:cursor-not-allowed disabled:opacity-45"
