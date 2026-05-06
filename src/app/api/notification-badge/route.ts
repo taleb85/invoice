@@ -7,6 +7,7 @@ import {
   countSyncLogErrors24hForSede,
 } from '@/lib/dashboard-notification-counts'
 import type { NotificationBadgePayload } from '@/types/notification-badge'
+import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
 /**
  * Conteggi per badge campanella (mobile + refresh client).
@@ -25,8 +26,8 @@ export async function GET(req: NextRequest) {
     .eq('id', user.id)
     .maybeSingle()
 
-  const isMasterAdmin = profile?.role === 'admin'
-  const isAdminSede = profile?.role === 'admin_sede'
+  const isMasterAdmin = isMasterAdminRole(profile?.role)
+  const isBranchStaff = isBranchSedeStaffRole(profile?.role)
 
   const logErrorsGlobal = isMasterAdmin ? await countSyncLogErrors24h(supabase) : 0
 
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
     } else {
       operatorPendingDocs = await countPendingDocumentiSessionScoped(supabase)
     }
-    if (isAdminSede && profile?.sede_id) {
+    if (isBranchStaff && profile?.sede_id) {
       operatorLogErrorsScoped = await countSyncLogErrors24hForSede(supabase, profile.sede_id)
     }
   }

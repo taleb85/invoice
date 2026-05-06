@@ -1,6 +1,7 @@
 /**
  * Ruoli applicativi (colonna `profiles.role` in Supabase).
- * `admin` = Admin Master (tutte le sedi). `admin_sede` | `admin_tecnico` = staff sede sulla propria `sede_id`.
+ * `admin` = Admin Master (tutte le sedi).
+ * `admin_sede` = responsabile filiale · `admin_tecnico` = amministratore tecnico: stesso perimetro sulla propria `sede_id` salvo dove il codice distingue (es. Centro operazioni).
  */
 export type AppRole = 'admin' | 'admin_sede' | 'admin_tecnico' | 'operatore'
 

@@ -87,7 +87,7 @@ export function canAccessCentroOperazioniPage(
 
 /**
  * Griglia fornitori: modifica / elimina senza step PIN operatore.
- * Master solo senza PIN; altrimenti solo se il ruolo effettivo è admin_sede.
+ * Master solo senza PIN; altrimenti staff filiale (`admin_sede` | `admin_tecnico` via `effectiveIsAdminSedeUi`).
  */
 export function effectiveIsFornitoreGridAdmin(
   me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,

@@ -27,7 +27,7 @@ import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { resolveOperationalSedeIdForAdminPortal } from '@/lib/admin-portal-operational-sede'
 import { fetchAdminGlobalPortalBundle } from '@/lib/dashboard-admin-sedi-overview'
 import { AdminGlobalDashboard } from '@/components/AdminGlobalDashboard'
-import { isAdminSedeRole, isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
+import { isBranchSedeStaffRole, isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,11 +49,14 @@ export default async function DashboardPage(props: {
     effectiveRole = data?.role ?? null
   }
   const isMasterAdmin = isMasterAdminRole(effectiveRole)
-  const isAdminSede = isAdminSedeRole(effectiveRole)
+  const branchStaff = isBranchSedeStaffRole(effectiveRole)
   const adminPick = isMasterAdmin ? cookieStore.get('admin-sede-id')?.value?.trim() || null : null
   const actingRoleCookie = cookieStore.get('fluxo-acting-role')?.value?.trim()
   const dashboardAdminSedeUi =
-    isAdminSede || (isMasterAdmin && actingRoleCookie === 'admin_sede' && !!adminPick)
+    branchStaff ||
+    (isMasterAdmin &&
+      !!adminPick &&
+      (actingRoleCookie === 'admin_sede' || actingRoleCookie === 'admin_tecnico'))
 
   /** Stessa logica di portale globale vs filiale di {@link resolveOperationalSedeIdForAdminPortal}. */
   const operationalSedeId = await resolveOperationalSedeIdForAdminPortal(
