@@ -4,7 +4,7 @@ import type { OcrResult } from '@/lib/ocr-invoice'
 import { ocrStatement, extractedPdfDatesToJson } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
-import { safeDate } from '@/lib/safe-date'
+import { documentDateYmdFromOcr } from '@/lib/safe-date'
 import { recordAiUsage } from '@/lib/ai-usage-log'
 import {
   emailSubjectLooksLikeStatement,
@@ -285,7 +285,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
         : 'fattura'
 
   if (fornitore.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
-    const dataDocLocal = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
+    const dataDocLocal = documentDateYmdFromOcr(ocr)
     const inferredKind = inferPendingDocumentKindForQueueRow({
       oggetto_mail: email.subject,
       file_name: storedFileName,
@@ -301,7 +301,9 @@ export async function persistKnownFornitoreEmailScanWithFile(
 
     if (targetKind === 'fattura') {
       const bypassOcrTipoGuard = args.docKind === 'fattura'
-      if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
+      if (!dataDocLocal) {
+        needsDocRevision = true
+      } else if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
       } else {
         const res = await insertEmailAutoFattura(supabase, {
@@ -329,18 +331,22 @@ export async function persistKnownFornitoreEmailScanWithFile(
         }
       }
     } else if (targetKind === 'bolla') {
-      const numRef = ocr.numero_fattura?.trim() || null
-      const rb = await insertEmailAutoBolla(supabase, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc: dataDocLocal,
-        fileUrl: file_url,
-        numeroBolla: numRef,
-        importo: ocr.totale_iva_inclusa ?? null,
-      })
-      if ('id' in rb) {
-        registratoAutoBollaId = rb.id
-        counters.bozzaCreate++
+      if (!dataDocLocal) {
+        needsDocRevision = true
+      } else {
+        const numRef = ocr.numero_fattura?.trim() || null
+        const rb = await insertEmailAutoBolla(supabase, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc: dataDocLocal,
+          fileUrl: file_url,
+          numeroBolla: numRef,
+          importo: ocr.totale_iva_inclusa ?? null,
+        })
+        if ('id' in rb) {
+          registratoAutoBollaId = rb.id
+          counters.bozzaCreate++
+        }
       }
     } else {
       needsDocRevision = true
@@ -393,7 +399,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
     file_url,
     file_name: storedFileName,
     content_type: storedContentType,
-    data_documento: safeDate(ocr.data_fattura),
+    data_documento: documentDateYmdFromOcr(ocr),
     stato: rowStato,
     is_statement: isStatementDoc,
     metadata,

@@ -22,7 +22,7 @@ import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
 import { resolveFornitoreFromScanEmail } from '@/lib/fornitore-resolve-scan-email'
 import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
-import { safeDate } from '@/lib/safe-date'
+import { documentDateYmdFromOcr } from '@/lib/safe-date'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 import type { EmailScanMailboxContext, EmailScanStreamEvent } from '@/lib/email-scan-stream'
 import {
@@ -265,7 +265,7 @@ async function insertDocumentoScartatoDaRegolaScan(
     file_url: p.filePublicUrl,
     file_name: p.storedFileName,
     content_type: p.storedContentType,
-    data_documento: safeDate(p.ocrMeta.data_fattura),
+    data_documento: documentDateYmdFromOcr(p.ocrMeta),
     stato: 'scartato',
     metadata: meta,
     note: p.ocrMeta.note_corpo_mail?.trim() ?? null,
@@ -1116,7 +1116,7 @@ async function processEmails(
             file_url: syn.publicUrl,
             file_name: SYNTHETIC_EMAIL_DOC_FILENAME,
             content_type: 'text/plain',
-            data_documento: safeDate(ocr.data_fattura),
+            data_documento: documentDateYmdFromOcr(ocr),
             stato: 'da_revisionare',
             metadata: {
               ...buildMetadata(ocr, 'unknown'),
@@ -1194,7 +1194,7 @@ async function processEmails(
           file_url:       syn.publicUrl,
           file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
           content_type:   'text/plain',
-          data_documento: safeDate(ocr.data_fattura),
+          data_documento: documentDateYmdFromOcr(ocr),
           stato:          'da_revisionare',
           metadata:       {
             ...buildMetadata(ocr, 'unknown'),
@@ -1277,7 +1277,7 @@ async function processEmails(
           file_url: publicRefIg,
           file_name: attachment.filename ?? null,
           content_type: attachment.contentType ?? null,
-          data_documento: safeDate(ocr.data_fattura),
+          data_documento: documentDateYmdFromOcr(ocr),
           stato: 'da_revisionare',
           metadata: {
             ...buildMetadata(ocr, 'unknown'),
@@ -1350,7 +1350,7 @@ async function processEmails(
         file_url:       publicRef,
         file_name:      attachment.filename ?? null,
         content_type:   attachment.contentType ?? null,
-        data_documento: safeDate(ocr.data_fattura),
+        data_documento: documentDateYmdFromOcr(ocr),
         stato:          'da_revisionare',
         metadata:       {
           ...buildMetadata(ocr, 'unknown'),
@@ -1486,7 +1486,7 @@ async function processEmails(
         file_url: syn.publicUrl,
         file_name: SYNTHETIC_EMAIL_DOC_FILENAME,
         content_type: 'text/plain',
-        data_documento: safeDate(ocr.data_fattura),
+        data_documento: documentDateYmdFromOcr(ocr),
         stato: 'da_revisionare',
         metadata: {
           ...buildMetadata(ocr, 'unknown'),
@@ -1564,7 +1564,7 @@ async function processEmails(
       file_url:       syn.publicUrl,
       file_name:      SYNTHETIC_EMAIL_DOC_FILENAME,
       content_type:   'text/plain',
-      data_documento: safeDate(ocr.data_fattura),
+      data_documento: documentDateYmdFromOcr(ocr),
       stato:          'da_revisionare',
       metadata:       {
         ...buildMetadata(ocr, 'unknown'),
@@ -1983,7 +1983,7 @@ async function processEmails(
             : 'fattura'
 
       if (fornitore.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
-        const dataDocLocal = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
+        const dataDocLocal = documentDateYmdFromOcr(ocr)
         const inferredKind = inferPendingDocumentKindForQueueRow({
           oggetto_mail: email.subject,
           file_name: storedFileName,
@@ -1999,7 +1999,9 @@ async function processEmails(
 
         if (targetKind === 'fattura') {
           const bypassOcrTipoGuard = docKind === 'fattura'
-          if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
+          if (!dataDocLocal) {
+            needsDocRevision = true
+          } else if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
             needsDocRevision = true
           } else {
             const res = await insertEmailAutoFattura(supabase, {
@@ -2031,19 +2033,23 @@ async function processEmails(
             }
           }
         } else if (targetKind === 'bolla') {
-          const numRef = ocr.numero_fattura?.trim() || null
-          const rb = await insertEmailAutoBolla(supabase, {
-            fornitoreId: fornitore.id,
-            sedeId: documentSedeId,
-            dataDoc: dataDocLocal,
-            fileUrl: file_url,
-            numeroBolla: numRef,
-            importo: ocr.totale_iva_inclusa ?? null,
-          })
-          if ('id' in rb) {
-            registratoAutoBollaId = rb.id
-            bozzaCreate++
-            mailDebugLog(`[AUTO] OK Bolla registrata (in attesa fattura): id=${rb.id}`)
+          if (!dataDocLocal) {
+            needsDocRevision = true
+          } else {
+            const numRef = ocr.numero_fattura?.trim() || null
+            const rb = await insertEmailAutoBolla(supabase, {
+              fornitoreId: fornitore.id,
+              sedeId: documentSedeId,
+              dataDoc: dataDocLocal,
+              fileUrl: file_url,
+              numeroBolla: numRef,
+              importo: ocr.totale_iva_inclusa ?? null,
+            })
+            if ('id' in rb) {
+              registratoAutoBollaId = rb.id
+              bozzaCreate++
+              mailDebugLog(`[AUTO] OK Bolla registrata (in attesa fattura): id=${rb.id}`)
+            }
           }
         } else {
           needsDocRevision = true
@@ -2106,7 +2112,7 @@ async function processEmails(
         file_url,
         file_name:      storedFileName,
         content_type:   storedContentType,
-        data_documento: safeDate(ocr.data_fattura),
+        data_documento: documentDateYmdFromOcr(ocr),
         stato:          rowStato,
         is_statement:   isStatementDoc,
         metadata,

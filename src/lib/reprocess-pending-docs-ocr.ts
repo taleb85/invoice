@@ -6,7 +6,7 @@ import {
   OcrTransientError,
   type OcrResult,
 } from '@/lib/ocr-invoice'
-import { safeDate } from '@/lib/safe-date'
+import { documentDateYmdFromOcr } from '@/lib/safe-date'
 import { normalizeTipoDocumento, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
 import {
@@ -199,7 +199,7 @@ export async function processLegacyPendingDoc(
         metadata,
         stato: normalizeDocumentoQueueStatoForDb('scartato'),
         note: noteFromEmailBody,
-        data_documento: safeDate(ocr.data_fattura),
+        data_documento: documentDateYmdFromOcr(ocr),
       })
       .eq('id', row.id)
     if (cvErr) return { status: 'error', message: cvErr.message }
@@ -262,10 +262,12 @@ export async function processLegacyPendingDoc(
         : 'fattura'
 
   if (fornitore?.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
-    const dataDocLocal = safeDate(ocr.data_fattura) ?? new Date().toISOString().slice(0, 10)
+    const dataDocLocal = documentDateYmdFromOcr(ocr)
 
     if (targetKind === 'fattura') {
-      if (!ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
+      if (!dataDocLocal) {
+        needsDocRevision = true
+      } else if (!ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
       } else {
         const res = await insertEmailAutoFattura(service, {
@@ -292,16 +294,20 @@ export async function processLegacyPendingDoc(
         }
       }
     } else if (targetKind === 'bolla') {
-      const numRef = ocr.numero_fattura?.trim() || null
-      const rb = await insertEmailAutoBolla(service, {
-        fornitoreId: fornitore.id,
-        sedeId: documentSedeId,
-        dataDoc: dataDocLocal,
-        fileUrl: url,
-        numeroBolla: numRef,
-        importo: ocr.totale_iva_inclusa ?? null,
-      })
-      if ('id' in rb) registratoAutoBollaId = rb.id
+      if (!dataDocLocal) {
+        needsDocRevision = true
+      } else {
+        const numRef = ocr.numero_fattura?.trim() || null
+        const rb = await insertEmailAutoBolla(service, {
+          fornitoreId: fornitore.id,
+          sedeId: documentSedeId,
+          dataDoc: dataDocLocal,
+          fileUrl: url,
+          numeroBolla: numRef,
+          importo: ocr.totale_iva_inclusa ?? null,
+        })
+        if ('id' in rb) registratoAutoBollaId = rb.id
+      }
     } else {
       needsDocRevision = true
     }
@@ -352,7 +358,7 @@ export async function processLegacyPendingDoc(
         options?.ignoreLinkedFornitore === true ? (fornitore?.id ?? null) : (fornitore?.id ?? row.fornitore_id),
       metadata,
       stato: normalizeDocumentoQueueStatoForDb(rowStato),
-      data_documento: safeDate(ocr.data_fattura),
+      data_documento: documentDateYmdFromOcr(ocr),
       note: noteFromEmailBody,
       is_statement: isStatementDoc || row.is_statement === true,
       ...(registratoAutoFatturaId ? { fattura_id: registratoAutoFatturaId } : {}),

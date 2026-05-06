@@ -52,3 +52,14 @@ export function safeDate(raw: string | null | undefined): string | null {
   console.warn(`[safe-date] Data non parsabile: "${raw}" — impostata a null`)
   return null
 }
+
+/**
+ * Data documento da OCR: preferisce `data_fattura`, poi alias legacy `data`
+ * (estrazioni vecchie / prompt che popolano solo `data`).
+ */
+export function documentDateYmdFromOcr(raw: {
+  data_fattura?: string | null
+  data?: string | null
+}): string | null {
+  return safeDate(raw.data_fattura) ?? safeDate(raw.data)
+}
