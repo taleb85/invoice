@@ -11,10 +11,7 @@ import { getT } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { isBranchSedeStaffRole } from '@/lib/roles'
-import {
-  FILE_ATTACHMENT_RETENTION_UI_ENABLED,
-  FILE_ATTACHMENT_RETENTION_DAYS,
-} from '@/lib/file-retention-config'
+import SedeFileRetentionSection from '@/components/SedeFileRetentionSection'
 
 interface SedeProfile {
   id: string
@@ -28,6 +25,7 @@ interface SedeProfile {
   operators_count: number
   file_retention_policy: string | null
   file_retention_run_day: number | null
+  file_retention_days: number | null
 }
 
 type SedeOperatorRow = {
@@ -46,7 +44,7 @@ async function fetchSedePageData(sedeId: string): Promise<{
     service
       .from('sedi')
       .select(
-        'id, nome, imap_user, imap_host, imap_port, imap_lookback_days, country_code, file_retention_policy, file_retention_run_day',
+        'id, nome, imap_user, imap_host, imap_port, imap_lookback_days, country_code, file_retention_policy, file_retention_run_day, file_retention_days',
       )
       .eq('id', sedeId)
       .maybeSingle(),
@@ -73,6 +71,7 @@ async function fetchSedePageData(sedeId: string): Promise<{
       operators_count: operators.length,
       file_retention_policy: (row as { file_retention_policy?: string | null }).file_retention_policy ?? null,
       file_retention_run_day: (row as { file_retention_run_day?: number | null }).file_retention_run_day ?? null,
+      file_retention_days: (row as { file_retention_days?: number | null }).file_retention_days ?? null,
     },
     operators,
   }
@@ -191,38 +190,13 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
         )
       })()}
 
-      {FILE_ATTACHMENT_RETENTION_UI_ENABLED && (
-        <div className="app-card mb-6 flex flex-col overflow-hidden">
-          <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-app-fg">{tDashboard.sedi.fileRetentionSectionTitle}</p>
-            </div>
-            <p className="text-xs text-app-fg-muted">{tDashboard.sedi.fileRetentionSectionHint}</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-app-fg-muted">{tDashboard.sedi.fileRetentionPolicyLabel}</label>
-                <p className="text-sm text-app-fg">
-                  {sede.file_retention_policy === "delete_only"
-                    ? tDashboard.sedi.fileRetentionDeleteOnly
-                    : sede.file_retention_policy === "archive_then_delete"
-                    ? tDashboard.sedi.fileRetentionArchiveThenDelete
-                    : tDashboard.sedi.fileRetentionKeep}
-                </p>
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-medium text-app-fg-muted">{tDashboard.sedi.fileRetentionMonthsLabel}</label>
-                <p className="text-sm text-app-fg">{FILE_ATTACHMENT_RETENTION_DAYS} giorni</p>
-              </div>
-              {sede.file_retention_run_day && (
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-app-fg-muted">{tDashboard.sedi.fileRetentionRunDayLabel}</label>
-                  <p className="text-sm text-app-fg">{sede.file_retention_run_day}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <SedeFileRetentionSection
+        sedeId={sede_id}
+        initialPolicy={sede.file_retention_policy}
+        initialDays={sede.file_retention_days}
+        initialRunDay={sede.file_retention_run_day}
+        canEdit={canManageSedeOperators}
+      />
 
       {/* IMAP not configured warning */}
       {!imapConfigured && (

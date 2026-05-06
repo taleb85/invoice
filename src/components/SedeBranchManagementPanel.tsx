@@ -214,7 +214,7 @@ export default function SedeBranchManagementPanel({
                 className="inline-flex shrink-0 touch-manipulation items-center justify-center gap-2 rounded-lg border border-app-line-35 bg-black/20 px-3 py-2 text-xs font-semibold text-app-fg transition-colors hover:border-app-a-45 hover:bg-black/30"
                 aria-label={t.sedi.copyTechnicalIdAria}
               >
-                {copiedId ? t.common.success : t.sedi.copyTechnicalIdAria}
+                {copiedId ? t.common.success : t.sedi.copyTechnicalIdButton}
               </button>
             </div>
           </div>

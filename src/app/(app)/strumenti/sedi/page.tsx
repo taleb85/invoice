@@ -15,6 +15,11 @@ import {
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
 
+import {
+  FILE_ATTACHMENT_RETENTION_UI_ENABLED,
+  FILE_ATTACHMENT_RETENTION_DAYS,
+} from '@/lib/file-retention-config'
+
 interface SedeRow {
   id: string
   nome: string
@@ -23,17 +28,100 @@ interface SedeRow {
   country_code: string | null
   operatori_count: number
   fornitori_count: number
+  file_retention_policy: string | null
 }
 
-function SedeCard({ sede }: { sede: SedeRow }) {
+function FileRetentionListToggle({
+  sedeId,
+  policy,
+  onUpdated,
+}: {
+  sedeId: string
+  policy: string | null
+  onUpdated: () => void
+}) {
+  const { t } = useLocale()
+  const effectivePolicy = policy ?? 'keep'
+  const active = effectivePolicy !== 'keep'
+  const [busy, setBusy] = useState(false)
+
+  const onToggle = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (busy) return
+    const nextActive = !active
+    setBusy(true)
+    try {
+      const body: Record<string, unknown> = {
+        file_retention_policy: nextActive ? 'delete_only' : 'keep',
+      }
+      if (nextActive) {
+        body.file_retention_days = FILE_ATTACHMENT_RETENTION_DAYS
+      }
+      const res = await fetch(`/api/sedi/${encodeURIComponent(sedeId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        window.alert(j.error ?? t.common.error)
+        return
+      }
+      onUpdated()
+    } catch {
+      window.alert(t.common.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      role="group"
+      className="flex items-center justify-between gap-3 border-t border-app-line-15 px-4 py-2.5 app-workspace-inset-bg-soft"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span className="min-w-0 flex-1 text-[11px] font-medium leading-snug text-app-fg-muted">
+        {t.sedi.fileRetentionListToggle}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={active}
+        disabled={busy}
+        aria-busy={busy}
+        onClick={(e) => void onToggle(e)}
+        className={`relative inline-flex h-7 w-11 shrink-0 cursor-pointer rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 disabled:cursor-not-allowed disabled:opacity-50 ${
+          active ? 'border-cyan-400/45 bg-cyan-500/25' : 'border-app-line-25 bg-app-line-15'
+        }`}
+      >
+        <span
+          className={`pointer-events-none absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow-sm ring-1 ring-black/10 transition-transform duration-200 ${
+            active ? 'translate-x-4' : 'translate-x-0'
+          }`}
+          aria-hidden
+        />
+      </button>
+    </div>
+  )
+}
+
+function SedeCard({
+  sede,
+  showRetentionToggle,
+  onRetentionUpdated,
+}: {
+  sede: SedeRow
+  showRetentionToggle: boolean
+  onRetentionUpdated: () => void
+}) {
   const { t } = useLocale()
   const imapConfigured = !!(sede.imap_host && sede.imap_user)
 
   return (
-    <Link
-      href={`/sedi/${sede.id}`}
-      className="group block overflow-hidden rounded-lg border border-app-line-28 bg-app-line-10/30 transition-colors hover:border-app-a-45 hover:bg-app-line-10/50"
-    >
+    <div className="overflow-hidden rounded-lg border border-app-line-28 bg-app-line-10/30 transition-colors hover:border-app-a-45 hover:bg-app-line-10/50">
+      <Link href={`/sedi/${sede.id}`} className="group block">
       {/* Accent bar */}
       <div className="h-1 w-full bg-gradient-to-r from-cyan-500/40 to-blue-500/25" />
 
@@ -82,7 +170,11 @@ function SedeCard({ sede }: { sede: SedeRow }) {
           </>
         )}
       </div>
-    </Link>
+      </Link>
+      {showRetentionToggle ? (
+        <FileRetentionListToggle sedeId={sede.id} policy={sede.file_retention_policy} onUpdated={onRetentionUpdated} />
+      ) : null}
+    </div>
   )
 }
 
@@ -125,7 +217,7 @@ export default function SediPage() {
     try {
       const { data: sediData, error: sediErr } = await supabase
         .from('sedi')
-        .select('id, nome, imap_user, imap_host, country_code')
+        .select('id, nome, imap_user, imap_host, country_code, file_retention_policy')
         .order('nome')
 
       if (sediErr) {
@@ -147,6 +239,7 @@ export default function SediPage() {
           country_code: s.country_code,
           operatori_count: opCount ?? 0,
           fornitori_count: fornCount ?? 0,
+          file_retention_policy: (s as { file_retention_policy?: string | null }).file_retention_policy ?? null,
         })
       }
       setSedi(rows)
@@ -161,6 +254,8 @@ export default function SediPage() {
     if (canView) void loadSedi()
     else setLoading(false)
   }, [canView, loadSedi])
+
+  const retentionToggleEnabled = FILE_ATTACHMENT_RETENTION_UI_ENABLED && canView
 
   if (!canView) return null
 
@@ -213,7 +308,12 @@ export default function SediPage() {
             </div>
           ) : (
             sedi.map((sede) => (
-              <SedeCard key={sede.id} sede={sede} />
+              <SedeCard
+                key={sede.id}
+                sede={sede}
+                showRetentionToggle={retentionToggleEnabled}
+                onRetentionUpdated={() => void loadSedi()}
+              />
             ))
           )}
         </div>
