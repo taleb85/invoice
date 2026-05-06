@@ -679,7 +679,6 @@ export default function SedeBranchManagementPanel({
                 ))}
               </ul>
             )}
-            <p className="mb-4 text-xs leading-relaxed text-app-fg-muted">{t.sedi.operatorsRosterReadOnlyHint}</p>
             <div className="border-t border-app-soft-border pt-4">
               <SedeAddOperatorForm sedeId={sedeId} embedded />
             </div>
