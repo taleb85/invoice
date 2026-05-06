@@ -21,6 +21,7 @@ import {
   fornitoreBollaDeepLink,
   fornitoreFatturaDeepLink,
   fornitoreSupplierClearDocParams,
+  fornitoreDocumentiQueueHref,
 } from '@/lib/fornitore-supplier-url'
 import { buildListLocationPath, hrefWithReturnTo, readReturnToFromGetter } from '@/lib/return-navigation'
 import { saveScrollForListPath } from '@/lib/return-navigation-client'
@@ -4902,6 +4903,7 @@ function FornitoreDetailClient({
       }
       const q = new URLSearchParams(searchParams.toString())
       fornitoreSupplierClearDocParams(q)
+      if (next !== 'documenti') q.delete('doc_queue')
       if (next === 'dashboard') q.delete('tab')
       else q.set('tab', next)
       const qs = q.toString()
@@ -5454,6 +5456,22 @@ function FornitoreDetailClient({
                   fornitoreId={fornitore.id}
                   fornitoreNome={fornitoreNomeVisual}
                   sedeId={fornitore.sede_id ?? null}
+                  onOpenDocumentQueue={
+                    pathname
+                      ? () =>
+                          router.push(fornitoreDocumentiQueueHref(pathname, searchParams, 'tutti'), {
+                            scroll: false,
+                          })
+                      : undefined
+                  }
+                  onOpenUnmatchedQueue={
+                    pathname
+                      ? () =>
+                          router.push(fornitoreDocumentiQueueHref(pathname, searchParams, 'da_associare'), {
+                            scroll: false,
+                          })
+                      : undefined
+                  }
                 />
               </div>
             </ErrorBoundary>
@@ -5853,6 +5871,23 @@ function FornitoreDetailClient({
                       fornitoreId={fornitore.id}
                       fornitoreNome={fornitoreNomeVisual}
                       sedeId={fornitore.sede_id ?? null}
+                      onOpenDocumentQueue={
+                        pathname
+                          ? () =>
+                              router.push(fornitoreDocumentiQueueHref(pathname, searchParams, 'tutti'), {
+                                scroll: false,
+                              })
+                          : undefined
+                      }
+                      onOpenUnmatchedQueue={
+                        pathname
+                          ? () =>
+                              router.push(
+                                fornitoreDocumentiQueueHref(pathname, searchParams, 'da_associare'),
+                                { scroll: false },
+                              )
+                          : undefined
+                      }
                     />
                   </div>
                 </ErrorBoundary>

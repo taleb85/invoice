@@ -37,3 +37,16 @@ export function fornitoreSupplierCloseDocHref(pathname: string, sp: ReadonlyURLS
   const qs = q.toString()
   return qs ? `${pathname}?${qs}` : pathname
 }
+
+/** Tab Documenti + filtro coda (`PendingMatchesTab` legge `doc_queue`). */
+export function fornitoreDocumentiQueueHref(
+  pathname: string,
+  sp: ReadonlyURLSearchParams,
+  queue: 'tutti' | 'da_associare',
+): string {
+  const q = new URLSearchParams(sp.toString())
+  fornitoreSupplierClearDocParams(q)
+  q.set('tab', 'documenti')
+  q.set('doc_queue', queue)
+  return `${pathname}?${q.toString()}`
+}

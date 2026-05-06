@@ -1000,7 +1000,12 @@ export function PendingMatchesTab({
   const { showToast } = useToast()
   const [docs, setDocs]                     = useState<Documento[]>([])
   const [loading, setLoading]               = useState(true)
-  const [filter, setFilter]                 = useState<'in_attesa' | 'tutti'>('in_attesa')
+  const [filter, setFilter]                 = useState<'in_attesa' | 'tutti' | 'da_associare'>(() => {
+    const q = pendingUrlSearchParams.get('doc_queue')
+    if (q === 'tutti') return 'tutti'
+    if (q === 'da_associare') return 'da_associare'
+    return 'in_attesa'
+  })
   const [bolleAperte, setBolleAperte]       = useState<BollaAperta[]>([])
   const [fornitori, setFornitori]           = useState<Fornitore[]>([])
   const [selezione, setSelezione]           = useState<Record<string, string[]>>({})
@@ -1096,6 +1101,8 @@ export function PendingMatchesTab({
     const params = new URLSearchParams()
     if (filter === 'in_attesa') {
       params.set('stati', 'da_revisionare')
+    } else if (filter === 'da_associare') {
+      params.set('stati', 'da_associare')
     } else {
       params.set('stati', 'in_attesa,da_associare,bozza_creata,da_revisionare')
     }
@@ -1115,6 +1122,34 @@ export function PendingMatchesTab({
     if (docsFetchSeqRef.current !== seq) return
     setLoading(false)
   }, [filter, sedeId, fornitoreId, year, month, ledgerDateFrom, ledgerDateToExclusive])
+
+  const applyPendingDocFilter = useCallback(
+    (f: 'in_attesa' | 'tutti' | 'da_associare') => {
+      setFilter(f)
+      if (!fornitoreId) return
+      const q = new URLSearchParams(pendingUrlSearchParams.toString())
+      if (f === 'tutti') q.set('doc_queue', 'tutti')
+      else if (f === 'da_associare') q.set('doc_queue', 'da_associare')
+      else q.delete('doc_queue')
+      const qs = q.toString()
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    },
+    [fornitoreId, pathname, pendingUrlSearchParams, router],
+  )
+
+  useEffect(() => {
+    const dq = pendingUrlSearchParams.get('doc_queue')
+    const tab = pendingUrlSearchParams.get('tab')
+    if (dq === 'tutti') {
+      setFilter('tutti')
+      return
+    }
+    if (dq === 'da_associare') {
+      setFilter('da_associare')
+      return
+    }
+    if (fornitoreId && tab === 'documenti') setFilter('in_attesa')
+  }, [fornitoreId, pendingUrlSearchParams])
 
   const fetchBolleAperte = useCallback(async () => {
     const seq = ++bolleFetchSeqRef.current
@@ -1977,7 +2012,7 @@ export function PendingMatchesTab({
       {/* Filter bar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <button onClick={() => setFilter('in_attesa')}
+          <button onClick={() => applyPendingDocFilter('in_attesa')}
             className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
               filter === 'in_attesa'
                 ? 'border border-[rgba(34,211,238,0.15)] bg-orange-500/15 text-orange-50 shadow-[0_0_20px_-8px_rgba(249,115,22,0.35)]'
@@ -1987,7 +2022,7 @@ export function PendingMatchesTab({
             }`}>
             {t.statements.tabPending} {inAttesa > 0 && <span className="ml-1 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950">{inAttesa}</span>}
           </button>
-          <button onClick={() => setFilter('tutti')}
+          <button onClick={() => applyPendingDocFilter('tutti')}
             className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
               filter === 'tutti'
                 ? supplierDocShell
@@ -1998,6 +2033,21 @@ export function PendingMatchesTab({
                   : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
             }`}>
             {t.statements.tabAll}
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPendingDocFilter('da_associare')}
+            className={`min-h-[44px] rounded-lg px-3 py-2 text-xs font-medium transition-colors touch-manipulation ${
+              filter === 'da_associare'
+                ? supplierDocShell
+                  ? 'border border-amber-400/35 bg-amber-500/10 text-app-fg ring-1 ring-amber-400/25'
+                  : 'border border-amber-400/35 bg-amber-500/10 text-amber-50 ring-1 ring-amber-400/20'
+                : supplierDocShell
+                  ? 'border border-transparent bg-transparent text-app-fg-muted hover:bg-amber-500/10 hover:text-app-fg'
+                  : 'border border-transparent bg-slate-800/70 text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            {t.appStrings.rekkiSyncUnmatched}
           </button>
         </div>
         <div className="flex min-h-[44px] flex-wrap items-center justify-end gap-x-2 gap-y-1 md:min-h-0 md:py-1">

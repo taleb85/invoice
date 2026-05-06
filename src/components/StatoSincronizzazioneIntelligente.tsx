@@ -35,10 +35,16 @@ export default function StatoSincronizzazioneIntelligente({
   fornitoreId,
   fornitoreNome,
   sedeId,
+  onOpenDocumentQueue,
+  onOpenUnmatchedQueue,
 }: {
   fornitoreId: string
   fornitoreNome: string
   sedeId: string | null | undefined
+  /** Rekki tile «Documenti»: apre tab Documenti con coda «tutti» gli stati. */
+  onOpenDocumentQueue?: () => void
+  /** Rekki tile «Da abbinare»: apre tab Documenti filtrato su `da_associare`. */
+  onOpenUnmatchedQueue?: () => void
 }) {
   type SyncPhase = 'queued' | 'connect' | 'search' | 'process' | 'persist' | 'done' | 'error'
   type SyncLog   = { phase: SyncPhase; label: string; percent: number }
@@ -463,18 +469,44 @@ export default function StatoSincronizzazioneIntelligente({
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncEmails}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_emails_scanned}</p>
                 </div>
-                <div className="rounded-lg border border-app-line-35 bg-white/[0.025] px-3 py-2.5 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncDocuments}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_products_found}</p>
-                </div>
+                {onOpenDocumentQueue ? (
+                  <button
+                    type="button"
+                    onClick={onOpenDocumentQueue}
+                    title={`${t.statements.tabDocumenti} (${t.appStrings.rekkiSyncDocuments})`}
+                    aria-label={`${t.statements.tabDocumenti} (${t.appStrings.rekkiSyncDocuments})`}
+                    className="rounded-lg border border-app-line-35 bg-white/[0.025] px-3 py-2.5 text-center transition-colors hover:bg-white/[0.055] hover:border-app-a-38 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncDocuments}</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_products_found}</p>
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-app-line-35 bg-white/[0.025] px-3 py-2.5 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">{t.appStrings.rekkiSyncDocuments}</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-app-fg">{status.total_products_found}</p>
+                  </div>
+                )}
                 <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2.5 text-center">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">{t.appStrings.rekkiSyncMatched}</p>
                   <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-200">{matched}</p>
                 </div>
-                <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">{t.appStrings.rekkiSyncUnmatched}</p>
-                  <p className="mt-1 text-2xl font-bold tabular-nums text-amber-200">{status.unmatched_count}</p>
-                </div>
+                {onOpenUnmatchedQueue ? (
+                  <button
+                    type="button"
+                    onClick={onOpenUnmatchedQueue}
+                    title={`${t.statements.tabDocumenti} (${t.appStrings.rekkiSyncUnmatched})`}
+                    aria-label={`${t.statements.tabDocumenti} (${t.appStrings.rekkiSyncUnmatched})`}
+                    className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-center transition-colors hover:bg-amber-500/14 hover:border-amber-400/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/35"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">{t.appStrings.rekkiSyncUnmatched}</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-amber-200">{status.unmatched_count}</p>
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2.5 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-300">{t.appStrings.rekkiSyncUnmatched}</p>
+                    <p className="mt-1 text-2xl font-bold tabular-nums text-amber-200">{status.unmatched_count}</p>
+                  </div>
+                )}
               </div>
             </div>
 
