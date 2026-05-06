@@ -316,13 +316,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
     backupNavItem,
   ]
 
-  // Gestionale senza cookie sede: in navItems compatti solo dashboard + backup (il backup è anche in striscia fissa).
-  // Analytics, approvazioni, attività, log: solo con sede attiva (`admin-sede-id`).
-  // consumiAiNavItem è renderizzato direttamente subito dopo Dashboard, non entra in navItems.
-  const masterOnlyItems = [adminNavItems[0], adminNavItems[6]]
   const masterWithSedeItems = [...adminNavItems]
+
+  // Master: tutte le voci operative sempre visibili nel cassetto (Analytics, Approvazioni, …).
+  // Le pagine gestiscono già “nessuna sede attiva” con messaggi mirati (es. analytics).
   const navItems = isMasterAdmin
-    ? (activeSede ? masterWithSedeItems : masterOnlyItems)
+    ? masterWithSedeItems
     : isAdminSede
       ? [operatoreNavItems[0], approvazioniNavItem, attivitaNavItem, logEmailNavItem, ...operatoreNavItems.slice(1)]
       : operatoreNavItems
