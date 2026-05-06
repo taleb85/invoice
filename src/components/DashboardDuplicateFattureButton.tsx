@@ -491,6 +491,16 @@ export default function DashboardDuplicateFattureButton({
                         <p className="mb-2 text-[11px] text-app-fg-muted">
                           {g.sede_nome ?? t.dashboard.duplicateFattureSedeUnassigned}
                         </p>
+                        <div className="mb-2 rounded-lg border border-amber-500/35 bg-amber-950/30 px-2.5 py-2 text-[11px] leading-snug text-amber-50/95">
+                          <p>{t.dashboard.duplicateFattureBadReadHint}</p>
+                          <Link
+                            href="/fornitori/new"
+                            onClick={() => setOpen(false)}
+                            className="mt-2 inline-flex font-semibold text-amber-200 underline decoration-amber-400/45 underline-offset-2 hover:text-amber-50"
+                          >
+                            {t.dashboard.duplicateFattureCreateSupplierCta}
+                          </Link>
+                        </div>
                         {showReassign ? (
                           <p className="mb-2 rounded-lg border border-cyan-500/25 bg-cyan-950/20 px-2.5 py-2 text-[11px] leading-snug text-cyan-100/90">
                             {t.dashboard.duplicateFattureWrongSupplierHint}
