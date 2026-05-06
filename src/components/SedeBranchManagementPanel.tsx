@@ -192,7 +192,7 @@ function SedeOperatorRowEditor({
 
   return (
     <li className="rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
-      <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 pb-0.5">
         <input
           id={`${rowUid}-name`}
           value={nameDraft}
