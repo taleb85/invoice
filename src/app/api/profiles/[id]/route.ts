@@ -99,6 +99,16 @@ export async function PATCH(
 
   if (error) {
     console.error('[PATCH profiles] update:', error.message)
+    const msg = error.message ?? ''
+    if (msg.includes('profiles_role_check') || (msg.includes('check constraint') && msg.includes('role'))) {
+      return NextResponse.json(
+        {
+          error:
+            'Il database rifiuta questo ruolo (vincolo su profiles.role). Per usare «amministratore tecnico» applica sul progetto Supabase la migration `20260501131500_profiles_role_admin_tecnico.sql`, oppure aggiorna il CHECK della colonna role.',
+        },
+        { status: 409 },
+      )
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   if (!patched) {
