@@ -199,7 +199,7 @@ function SedeOperatorRowEditor({
           id={`${rowUid}-name`}
           value={nameDraft}
           onChange={(e) => setNameDraft(e.target.value.toUpperCase())}
-          className={`${controlCls} min-w-0 flex-1 basis-0`}
+          className={`${controlCls} !w-[15rem] shrink-0`}
           autoComplete="off"
           placeholder={t.sedi.operatorDisplayNameLabel}
           aria-label={t.sedi.operatorDisplayNameLabel}
