@@ -96,7 +96,7 @@ function SedeOperatorRowEditor({
 
   const rowToolbarPad = 'py-2 px-2.5 text-xs leading-snug'
   const controlCls = `${inputCls} ${rowToolbarPad} min-h-[38px]`
-  const selectCls = `${controlCls} min-w-0 max-w-[min(38vw,13rem)] shrink-[2] cursor-pointer sm:max-w-[14rem]`
+  const selectCls = `${controlCls} min-w-0 flex-1 basis-0 !w-auto max-w-full cursor-pointer`
 
   const [profileSaving, setProfileSaving] = useState(false)
   const saveProfile = async () => {
@@ -195,7 +195,7 @@ function SedeOperatorRowEditor({
   return (
     <li className="min-w-0 rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
       <div className="flex min-w-0 flex-nowrap items-center gap-2">
-        <div className="flex min-w-0 shrink items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <input
             id={`${rowUid}-name`}
             value={nameDraft}
@@ -225,7 +225,7 @@ function SedeOperatorRowEditor({
             </select>
           ) : (
             <span
-              className={`inline-flex h-[38px] max-w-[min(38vw,13rem)] shrink-0 items-center rounded-lg border border-app-line-25 bg-app-line-15 px-2.5 text-xs font-semibold leading-snug text-app-fg-muted sm:max-w-[14rem]`}
+              className={`inline-flex h-[38px] min-w-[8rem] flex-1 items-center rounded-lg border border-app-line-25 bg-app-line-15 px-2.5 text-xs font-semibold leading-snug text-app-fg-muted`}
             >
               {roleShortLabel(op.role, t.sedi)}
             </span>
