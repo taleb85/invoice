@@ -193,8 +193,8 @@ function SedeOperatorRowEditor({
   const knownRoleValues = new Set(roleOptions.map((o) => o.value))
 
   return (
-    <li className="rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
-      <div className="flex min-w-0 flex-nowrap items-center gap-2">
+    <li className="min-w-0 rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         <input
           id={`${rowUid}-name`}
           value={nameDraft}
@@ -669,7 +669,7 @@ export default function SedeBranchManagementPanel({
             {operators.length === 0 ? (
               <p className="mb-4 text-sm text-app-fg-muted">{t.sedi.nessunUtente}</p>
             ) : (
-              <ul className="mb-5 space-y-2">
+              <ul className="mb-5 grid list-none grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {operators.map((op) => (
                   <SedeOperatorRowEditor key={op.id} op={op} inputCls={inputCls} rowUid={`${uid}-op-${op.id}`} />
                 ))}
