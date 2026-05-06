@@ -47,7 +47,9 @@ function SedeCard({ sede }: { sede: SedeRow }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-app-fg group-hover:text-cyan-300">{sede.nome}</p>
           <p className="text-xs text-app-fg-muted">
-            {sede.operatori_count} operatore{sede.operatori_count !== 1 ? 'i' : ''} · {sede.fornitori_count} fornitore{sede.fornitori_count !== 1 ? 'i' : ''}
+            {sede.operatori_count}{' '}
+            {sede.operatori_count === 1 ? 'operatore' : 'operatori'} · {sede.fornitori_count}{' '}
+            {sede.fornitori_count === 1 ? 'fornitore' : 'fornitori'}
           </p>
         </div>
         <svg

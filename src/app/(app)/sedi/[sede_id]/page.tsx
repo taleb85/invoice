@@ -99,11 +99,13 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
               <h1 className="app-page-title min-w-0 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl">{sede.nome}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-3">
                 <span className="text-sm text-app-fg-muted">
-                  {sede.operators_count} operatore{sede.operators_count !== 1 ? 'i' : ''}
+                  {sede.operators_count}{' '}
+                  {sede.operators_count === 1 ? 'operatore' : 'operatori'}
                 </span>
                 <span className="text-app-fg-muted">·</span>
                 <span className="text-sm text-app-fg-muted">
-                  {sede.fornitori_count} fornitore{sede.fornitori_count !== 1 ? 'i' : ''}
+                  {sede.fornitori_count}{' '}
+                  {sede.fornitori_count === 1 ? 'fornitore' : 'fornitori'}
                 </span>
                 <span className="text-app-fg-muted">·</span>
                 {imapConfigured ? (
