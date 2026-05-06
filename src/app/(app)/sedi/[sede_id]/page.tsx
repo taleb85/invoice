@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import ScanEmailButton from '@/components/ScanEmailButton'
 import CountrySelector from '@/components/CountrySelector'
 import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
-import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
+import SedeBranchManagementPanel from '@/components/SedeBranchManagementPanel'
 import { getLocale } from '@/lib/localization'
 import { getT } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
@@ -21,6 +21,8 @@ interface SedeProfile {
   nome: string
   imap_user: string | null
   imap_host: string | null
+  imap_port: number | null
+  imap_lookback_days: number | null
   country_code: string
   fornitori_count: number
   operators_count: number
@@ -28,31 +30,51 @@ interface SedeProfile {
   file_retention_run_day: number | null
 }
 
-async function fetchSedeProfile(sedeId: string): Promise<SedeProfile | null> {
+type SedeOperatorRow = {
+  id: string
+  full_name: string | null
+  role: string | null
+}
+
+async function fetchSedePageData(sedeId: string): Promise<{
+  sede: SedeProfile | null
+  operators: SedeOperatorRow[]
+}> {
   const service = createServiceClient()
-  const { data: sede } = await service
-    .from('sedi')
-    .select('id, nome, imap_user, imap_host, country_code, file_retention_policy, file_retention_run_day')
-    .eq('id', sedeId)
-    .single()
 
-  if (!sede) return null
-
-  const [{ count: fornitori_count }, { count: operators_count }] = await Promise.all([
+  const [sedeRes, fornCountRes, profilesRes] = await Promise.all([
+    service
+      .from('sedi')
+      .select(
+        'id, nome, imap_user, imap_host, imap_port, imap_lookback_days, country_code, file_retention_policy, file_retention_run_day',
+      )
+      .eq('id', sedeId)
+      .maybeSingle(),
     service.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
-    service.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
+    service.from('profiles').select('id, full_name, role').eq('sede_id', sedeId).order('full_name', { ascending: true }),
   ])
 
+  if (!sedeRes.data) return { sede: null, operators: [] }
+
+  const row = sedeRes.data
+
+  const operators = (profilesRes.data ?? []) as SedeOperatorRow[]
+
   return {
-    id: sede.id,
-    nome: sede.nome,
-    imap_user: sede.imap_user ?? null,
-    imap_host: sede.imap_host ?? null,
-    country_code: (sede as { country_code?: string }).country_code ?? 'UK',
-    fornitori_count: fornitori_count ?? 0,
-    operators_count: operators_count ?? 0,
-    file_retention_policy: (sede as { file_retention_policy?: string | null }).file_retention_policy ?? null,
-    file_retention_run_day: (sede as { file_retention_run_day?: number | null }).file_retention_run_day ?? null,
+    sede: {
+      id: row.id,
+      nome: row.nome,
+      imap_user: row.imap_user ?? null,
+      imap_host: row.imap_host ?? null,
+      imap_port: (row as { imap_port?: number | null }).imap_port ?? null,
+      imap_lookback_days: (row as { imap_lookback_days?: number | null }).imap_lookback_days ?? null,
+      country_code: (row as { country_code?: string }).country_code ?? 'UK',
+      fornitori_count: fornCountRes.count ?? 0,
+      operators_count: operators.length,
+      file_retention_policy: (row as { file_retention_policy?: string | null }).file_retention_policy ?? null,
+      file_retention_run_day: (row as { file_retention_run_day?: number | null }).file_retention_run_day ?? null,
+    },
+    operators,
   }
 }
 
@@ -61,7 +83,7 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
   if (!user) redirect('/login')
 
   const { sede_id } = await props.params
-  const sede = await fetchSedeProfile(sede_id)
+  const { sede, operators } = await fetchSedePageData(sede_id)
   if (!sede) redirect('/sedi')
 
   const profile = await getProfile()
@@ -129,6 +151,19 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
         </div>
       </AppPageHeaderStrip>
 
+      {canManageSedeOperators ? (
+        <SedeBranchManagementPanel
+          sedeId={sede_id}
+          operators={operators}
+          imapInitial={{
+            host: sede.imap_host ?? '',
+            port: sede.imap_port ?? 993,
+            user: sede.imap_user ?? '',
+            lookbackDays: sede.imap_lookback_days,
+          }}
+        />
+      ) : null}
+
       {/* Paese / Localizzazione */}
       {(() => {
         const loc = getLocale(sede.country_code)
@@ -156,13 +191,6 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
         )
       })()}
 
-      {canManageSedeOperators ? (
-        <section id="sede-operatori" className="scroll-mt-24">
-          <SedeAddOperatorForm sedeId={sede_id} />
-        </section>
-      ) : null}
-
-      {/* Conservazione allegati */}
       {FILE_ATTACHMENT_RETENTION_UI_ENABLED && (
         <div className="app-card mb-6 flex flex-col overflow-hidden">
           <div className="px-5 py-4 space-y-3 app-workspace-inset-bg-soft">
