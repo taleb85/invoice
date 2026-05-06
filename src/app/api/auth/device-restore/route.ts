@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createServiceClient } from '@/utils/supabase/server'
 import { createAuthSessionForEmailViaMagicOtp } from '@/lib/device-session-restore'
+import { isProfilesBranchDeskRole } from '@/lib/roles'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profilo non trovato' }, { status: 404 })
   }
   const role = String(prof.role ?? '').toLowerCase()
-  if (role !== 'operatore' && role !== 'admin_sede' && role !== 'admin_tecnico') {
+  if (!isProfilesBranchDeskRole(role)) {
     return NextResponse.json({ error: 'Profilo non valido per operatore' }, { status: 403 })
   }
 

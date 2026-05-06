@@ -11,7 +11,7 @@ export interface ActiveOperator {
   sede_id:   string
   sede_nome: string | null
   /** Profilo reale dopo verifica PIN. Assente = legacy → operatore. */
-  role?: 'operatore' | 'admin_sede' | 'admin_tecnico' | null
+  role?: 'operatore' | 'admin_sede' | null
 }
 
 interface ActiveOperatorContextValue {
@@ -51,7 +51,12 @@ export function ActiveOperatorProvider({ children }: { children: ReactNode }) {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       const bound = localStorage.getItem(BOUND_USER_KEY)
-      if (raw && bound) setActiveOperatorState(JSON.parse(raw))
+      if (raw && bound) {
+        const op = JSON.parse(raw) as ActiveOperator
+        const rr = String(op?.role ?? '').toLowerCase()
+        if (rr === 'admin_tecnico') op.role = 'admin_sede'
+        setActiveOperatorState(op)
+      }
     } catch { /* ignore */ }
   }, [])
 

@@ -36,7 +36,7 @@ export async function DELETE(req: NextRequest) {
     if (!target?.sede_id || target.sede_id !== profile?.sede_id) {
       return NextResponse.json({ error: 'Puoi eliminare solo utenti della tua sede.' }, { status: 403 })
     }
-    if (tr === 'admin' || tr === 'admin_sede' || tr === 'admin_tecnico') {
+    if (tr === 'admin' || isBranchSedeStaffRole(tr)) {
       return NextResponse.json({ error: 'Non puoi eliminare questo profilo.' }, { status: 403 })
     }
   }

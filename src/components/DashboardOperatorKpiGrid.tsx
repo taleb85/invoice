@@ -7,7 +7,7 @@ import type { Translations, Locale } from '@/lib/translations'
 import { type CSSProperties, type ReactNode, useMemo, useCallback } from 'react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
-import { effectiveIsAdminTecnicoUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
+import { effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { useReprocessDaAssociare } from '@/lib/use-reprocess-da-associare'
 import {
@@ -193,9 +193,7 @@ export default function DashboardOperatorKpiGrid({
   const { effectiveSedeId } = useManualDeliverySede()
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
-  const adminTecnicoUi = effectiveIsAdminTecnicoUi(me, activeOperator)
-  const showHistoricReprocessCta =
-    Boolean(glassShell) && Boolean(masterPlane || adminTecnicoUi)
+  const showHistoricReprocessCta = Boolean(glassShell) && Boolean(masterPlane)
 
   const reprocessStrings = useMemo(
     () => ({

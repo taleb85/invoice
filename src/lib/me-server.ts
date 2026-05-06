@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import type { MeData } from '@/lib/me-context'
-import { isAdminSedeRole, isAdminTecnicoRole, isMasterAdminRole } from '@/lib/roles'
+import { isMasterAdminRole } from '@/lib/roles'
 import { resolveActiveSedeIdForLists, firstSedeIdFromUser } from '@/lib/resolve-active-sede-for-lists'
 
 export type AppMeShellResult =
@@ -55,9 +55,21 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
     operationalSedeId = await firstSedeIdFromUser(supabase)
   }
 
-  const isAdmin = isMasterAdminRole(profile.role)
-  const isAdminSede = isAdminSedeRole(profile.role)
-  const isAdminTecnico = isAdminTecnicoRole(profile.role)
+  const rawRoleLower = String(profile.role ?? '').toLowerCase()
+  const normalizedRoleSlug =
+    rawRoleLower === 'admin_tecnico' ? 'admin_sede' : rawRoleLower
+
+  const role: MeData['role'] =
+    normalizedRoleSlug === 'admin'
+      ? 'admin'
+      : normalizedRoleSlug === 'admin_sede'
+        ? 'admin_sede'
+        : normalizedRoleSlug === 'operatore'
+          ? 'operatore'
+          : null
+
+  const isAdmin = role === 'admin'
+  const isAdminSede = role === 'admin_sede'
 
   let effectiveSedeNome: string | null = null
   let countryCode = 'UK'
@@ -84,18 +96,6 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
     allSedi = rows ?? []
   }
 
-  const rawRole = String(profile.role ?? '').toLowerCase()
-  const role: MeData['role'] =
-    rawRole === 'admin'
-      ? 'admin'
-      : rawRole === 'admin_sede'
-        ? 'admin_sede'
-        : rawRole === 'admin_tecnico'
-          ? 'admin_tecnico'
-          : rawRole === 'operatore'
-            ? 'operatore'
-            : null
-
   const fn = typeof profile.full_name === 'string' ? profile.full_name.trim() : ''
   const onboarding_complete = !isAdmin || allSedi.length > 0
 
@@ -112,7 +112,6 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
       timezone: timezone ?? 'Europe/London',
       is_admin: isAdmin,
       is_admin_sede: isAdminSede,
-      is_admin_tecnico: isAdminTecnico,
       all_sedi: allSedi,
       onboarding_complete,
     },

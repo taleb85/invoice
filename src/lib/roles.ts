@@ -1,15 +1,14 @@
 /**
  * Ruoli applicativi (colonna `profiles.role` in Supabase).
  * `admin` = Admin Master (tutte le sedi).
- * `admin_sede` = responsabile filiale · `admin_tecnico` = amministratore tecnico: stesso perimetro sulla propria `sede_id` salvo dove il codice distingue (es. Centro operazioni).
+ * `admin_sede` = responsabile filiale (perimetro sulla propria `sede_id`).
  */
-export type AppRole = 'admin' | 'admin_sede' | 'admin_tecnico' | 'operatore'
+export type AppRole = 'admin' | 'admin_sede' | 'operatore'
 
 export function parseAppRole(raw: string | null | undefined): AppRole | null {
   const r = String(raw ?? '').toLowerCase()
   if (r === 'admin') return 'admin'
   if (r === 'admin_sede') return 'admin_sede'
-  if (r === 'admin_tecnico') return 'admin_tecnico'
   if (r === 'operatore') return 'operatore'
   return null
 }
@@ -22,13 +21,10 @@ export function isAdminSedeRole(raw: string | null | undefined): boolean {
   return String(raw ?? '').toLowerCase() === 'admin_sede'
 }
 
-export function isAdminTecnicoRole(raw: string | null | undefined): boolean {
-  return String(raw ?? '').toLowerCase() === 'admin_tecnico'
-}
-
-/** Responsabile o tecnico di sede (stesso perimetro sulla `sede_id`, non sono master globali). */
+/** Responsabile filiale (legacy: valore rimosso `admin_tecnico` trattato come admin_sede finché non gira la migration). */
 export function isBranchSedeStaffRole(raw: string | null | undefined): boolean {
-  return isAdminSedeRole(raw) || isAdminTecnicoRole(raw)
+  const r = String(raw ?? '').toLowerCase()
+  return r === 'admin_sede' || r === 'admin_tecnico'
 }
 
 /**

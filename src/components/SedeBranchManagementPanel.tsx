@@ -25,13 +25,12 @@ type Props = {
 }
 
 function roleShortLabel(role: string | null, sedi: Translations['sedi']) {
-  switch (role) {
+  const r = role === 'admin_tecnico' ? 'admin_sede' : role
+  switch (r) {
     case 'operatore':
       return sedi.operatoreRoleShort
     case 'admin_sede':
       return sedi.adminSedeRoleShort
-    case 'admin_tecnico':
-      return sedi.adminTecnicoRoleShort
     case 'admin':
       return sedi.profileRoleAdmin
     default:
@@ -54,25 +53,26 @@ function SedeOperatorRowEditor({
 
   const displayLabel = op.full_name?.trim() || '—'
   const savedRole = String(op.role ?? '').toLowerCase()
+  const savedRoleCanonical = savedRole === 'admin_tecnico' ? 'admin_sede' : savedRole
   const isSelf = Boolean(me?.user?.id && op.id === me.user.id)
   const isMaster = Boolean(me?.is_admin)
   const canManageBranchUsers =
-    Boolean(me?.user?.id) && (isMaster || me?.is_admin_sede || me?.is_admin_tecnico)
-  /** Ruolo: portale master o staff filiale (`admin_sede`, `admin_tecnico`), allineato a PATCH `/api/profiles/[id]`. */
-  const canAssignRoles = Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
+    Boolean(me?.user?.id) && (isMaster || me?.is_admin_sede)
+  /** Ruolo: portale master o responsabile sede (`admin_sede`), allineato a PATCH `/api/profiles/[id]`. */
+  const canAssignRoles = Boolean(me?.is_admin || me?.is_admin_sede)
   const roleEditable = canManageBranchUsers && canAssignRoles
 
   const [nameDraft, setNameDraft] = useState(op.full_name?.trim() ?? '')
-  const [roleDraft, setRoleDraft] = useState(savedRole || 'operatore')
+  const [roleDraft, setRoleDraft] = useState(savedRoleCanonical || 'operatore')
   useEffect(() => {
     setNameDraft(op.full_name?.trim() ?? '')
-    setRoleDraft(savedRole || 'operatore')
-  }, [op.full_name, op.id, savedRole])
+    setRoleDraft(savedRoleCanonical || 'operatore')
+  }, [op.full_name, op.id, savedRoleCanonical])
 
   const normalizedSaved = (op.full_name ?? '').trim().toUpperCase()
   const normalizedDraft = nameDraft.trim().toUpperCase()
   const nameDirty = normalizedDraft !== normalizedSaved
-  const roleDirty = roleDraft !== savedRole
+  const roleDirty = roleDraft !== savedRoleCanonical
   const rowDirty = nameDirty || roleDirty
 
   const effectiveRole = roleDraft
@@ -83,14 +83,12 @@ function SedeOperatorRowEditor({
     roleOptions.push(
       { value: 'operatore', label: t.sedi.operatoreRole },
       { value: 'admin_sede', label: t.sedi.adminSedeRole },
-      { value: 'admin_tecnico', label: t.sedi.adminTecnicoRole },
       { value: 'admin', label: t.sedi.profileRoleAdmin },
     )
   } else if (canManageBranchUsers) {
     roleOptions.push(
       { value: 'operatore', label: t.sedi.operatoreRole },
       { value: 'admin_sede', label: t.sedi.adminSedeRole },
-      { value: 'admin_tecnico', label: t.sedi.adminTecnicoRole },
     )
   }
 

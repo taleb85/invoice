@@ -12,13 +12,12 @@ const PIN_LENGTH = 4
 interface Operator {
   id:        string
   full_name: string
-  role:      'operatore' | 'admin_sede' | 'admin_tecnico'
+  role:      'operatore' | 'admin_sede'
 }
 
 function normalizeSedeDeskRole(raw: unknown): Operator['role'] {
   const r = String(raw ?? '').toLowerCase()
-  if (r === 'admin_sede') return 'admin_sede'
-  if (r === 'admin_tecnico') return 'admin_tecnico'
+  if (r === 'admin_sede' || r === 'admin_tecnico') return 'admin_sede'
   return 'operatore'
 }
 
@@ -190,7 +189,7 @@ export default function OperatorSwitchModal() {
       if (me?.is_admin && typeof data.sede_id === 'string' && data.sede_id) {
         document.cookie = `admin-sede-id=${encodeURIComponent(data.sede_id)}; path=/; SameSite=Strict`
         const ar =
-          deskRole === 'admin_sede' ? 'admin_sede' : deskRole === 'admin_tecnico' ? 'admin_tecnico' : 'operatore'
+          deskRole === 'admin_sede' ? 'admin_sede' : 'operatore'
         document.cookie = `fluxo-acting-role=${encodeURIComponent(ar)}; path=/; SameSite=Strict`
       }
       try {

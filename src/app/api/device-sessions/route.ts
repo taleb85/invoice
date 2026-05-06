@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
+import { isProfilesBranchDeskRole } from '@/lib/roles'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -115,8 +116,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Profilo non trovato' }, { status: 400 })
   }
   const r = String(prof.role ?? '').toLowerCase()
-  if (r !== 'operatore' && r !== 'admin_sede' && r !== 'admin_tecnico') {
-    return NextResponse.json({ error: 'Solo operatore o staff sede (resp./tecnico)' }, { status: 403 })
+  if (!isProfilesBranchDeskRole(r)) {
+    return NextResponse.json({ error: 'Solo operatore o staff sede (responsabile di filiale)' }, { status: 403 })
   }
   if (String(prof.sede_id ?? '') !== sedeId) {
     return NextResponse.json({ error: 'sedeId non coerente con il profilo' }, { status: 400 })

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isBranchSedeStaffRole, isMasterAdminRole } from '@/lib/roles'
 
-const APP_ROLES = ['operatore', 'admin_sede', 'admin_tecnico', 'admin'] as const
+const APP_ROLES = ['operatore', 'admin_sede', 'admin'] as const
 
 export async function PATCH(
   req: NextRequest,
@@ -64,7 +64,7 @@ export async function PATCH(
     }
     if (body.role !== undefined) {
       const r = String(body.role).toLowerCase()
-      if (r !== 'operatore' && r !== 'admin_sede' && r !== 'admin_tecnico') {
+      if (r !== 'operatore' && r !== 'admin_sede') {
         return NextResponse.json({ error: 'Ruolo non consentito.' }, { status: 403 })
       }
     }
@@ -104,7 +104,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           error:
-            'Il database rifiuta questo ruolo (vincolo su profiles.role). Per usare «amministratore tecnico» applica sul progetto Supabase la migration `20260501131500_profiles_role_admin_tecnico.sql`, oppure aggiorna il CHECK della colonna role.',
+            'Il database rifiuta questo ruolo (vincolo su profiles.role). Aggiorna il CHECK della colonna `role` sul progetto Supabase (valori ammessi tipicamente: admin, admin_sede, operatore).',
         },
         { status: 409 },
       )

@@ -6,8 +6,8 @@
  *   node scripts/set-operator-role.mjs [nomeParziale] [ruolo]
  *
  * Esempi:
- *   node scripts/set-operator-role.mjs taleb admin_tecnico
- *   node scripts/set-operator-role.mjs TALEB admin_sede
+ *   node scripts/set-operator-role.mjs taleb admin_sede
+ *   node scripts/set-operator-role.mjs TALEB operatore
  *
  * Variabili (da .env.local o ambiente):
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -19,7 +19,7 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 
-const ALLOWED = ['operatore', 'admin_sede', 'admin_tecnico', 'admin']
+const ALLOWED = ['operatore', 'admin_sede', 'admin']
 
 function loadEnvLocal(p) {
   if (!existsSync(p)) return {}
@@ -49,7 +49,7 @@ const url = envMerged.NEXT_PUBLIC_SUPABASE_URL?.trim()
 const key = envMerged.SUPABASE_SERVICE_ROLE_KEY?.trim()
 
 const namePattern = (process.argv[2] ?? 'taleb').trim()
-const roleTarget = (process.argv[3] ?? 'admin_tecnico').trim().toLowerCase()
+const roleTarget = (process.argv[3] ?? 'admin_sede').trim().toLowerCase()
 
 if (!url || !key) {
   console.error('❌ Imposta NEXT_PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY (.env.local o shell).')
@@ -118,8 +118,8 @@ async function main() {
   if (upErr) {
     console.error('❌ Aggiornamento:', upErr.message)
     if (/check constraint|profiles_role_check/i.test(upErr.message)) {
-      console.error('\n   Suggerimento: sul DB manca admin_tecnico nel CHECK su profiles.role.')
-      console.error('   Applica la migration supabase/migrations/20260501131500_profiles_role_admin_tecnico.sql')
+      console.error('\n   Suggerimento: il CHECK su profiles.role sul DB non include il ruolo richiesto.')
+      console.error('   Esegui le migration Supabase del repo (o aggiungi il valore nel CHECK sul progetto).')
     }
     process.exit(1)
   }

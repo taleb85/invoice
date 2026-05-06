@@ -171,7 +171,7 @@ async function ensuredProfileBasics(
  * Per la **home/dashboard e analytics** il master senza cookie usa invece vista globale (`sede_id` assente
  * nelle query): vedi {@link resolveOperationalSedeIdForAdminPortal} in `admin-portal-operational-sede.ts`.
  *
- * Staff sede (`admin_sede`, `admin_tecnico`, `operatore`): `profiles.sede_id` dalla riga utente — nessuna SELECT su `sedi` (evita RLS).
+ * Staff sede (responsabile `admin_sede` o legacy `admin_tecnico`, e `operatore`): `profiles.sede_id` dalla riga utente — nessuna SELECT su `sedi` (evita RLS).
  * Eccezione senza `sede_id`: se c’è una sola sede → `UPDATE` profilo con client sessione; altrimenti (con service role) última `device_sessions` o heal service.
  * Master: cookie + prima sede lette con **client sessione** su `sedi` (no service obbligatorio); fallback service se mancano permessi.
  */

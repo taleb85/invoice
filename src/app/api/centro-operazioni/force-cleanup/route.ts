@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isAdminTecnicoRole, isMasterAdminRole } from '@/lib/roles'
+import { isMasterAdminRole } from '@/lib/roles'
 import { retroactiveCleanupDaRevisionare } from '@/lib/documenti-revisione-auto'
 
 export const dynamic = 'force-dynamic'
@@ -9,9 +9,7 @@ export async function POST(req: NextRequest) {
   const profile = await getProfile()
   if (!profile) return NextResponse.json({ error: 'Non autenticato' }, { status: 401 })
 
-  const master = isMasterAdminRole(profile.role)
-  const tecnico = isAdminTecnicoRole(profile.role)
-  if (!master && !tecnico) {
+  if (!isMasterAdminRole(profile.role)) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 
@@ -23,15 +21,7 @@ export async function POST(req: NextRequest) {
     bodySede = undefined
   }
 
-  let sedeFilter: string | null
-  if (master) {
-    sedeFilter = bodySede && bodySede.length > 0 ? bodySede : null
-  } else {
-    sedeFilter = profile.sede_id ?? null
-    if (!sedeFilter) {
-      return NextResponse.json({ error: 'Profilo senza sede' }, { status: 400 })
-    }
-  }
+  const sedeFilter = bodySede && bodySede.length > 0 ? bodySede : null
 
   const service = createServiceClient()
   const result = await retroactiveCleanupDaRevisionare(service, { sedeId: sedeFilter, maxRows: 200 })

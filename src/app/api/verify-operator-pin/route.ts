@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
   const pr = typeof profile.role === 'string' ? profile.role : ''
   if (!isProfilesBranchDeskRole(pr)) {
     return NextResponse.json(
-      { error: 'Questo account non è un operatore, un responsabile di sede o un amministratore tecnico.' },
+      { error: 'Questo account non è un operatore o un responsabile di sede.' },
       { status: 403 },
     )
   }
@@ -72,7 +72,9 @@ export async function POST(req: NextRequest) {
     full_name: profile.full_name,
     sede_id:   profile.sede_id,
     sede_nome: sede?.nome ?? null,
-    role:      pr.toLowerCase() as 'operatore' | 'admin_sede' | 'admin_tecnico',
+    role: (pr.toLowerCase() === 'admin_tecnico' ? 'admin_sede' : pr.toLowerCase()) as
+      | 'operatore'
+      | 'admin_sede',
   }
 
   const out = NextResponse.json(payload)

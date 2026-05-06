@@ -108,9 +108,9 @@ export default function AttivitaPage() {
   const [exporting, setExporting] = useState(false)
 
   const isMaster = Boolean(me?.is_admin)
-  /** Allineato a `/api/activity-log` e alla sidebar (`effectiveIsAdminSedeUi`): include `admin_tecnico`. */
+  /** Allineato a `/api/activity-log` e alla sidebar (`effectiveIsAdminSedeUi`). */
   const canViewAttivita =
-    isMaster || Boolean(me?.is_admin_sede || me?.is_admin_tecnico)
+    isMaster || Boolean(me?.is_admin_sede)
 
   // Load operatori list for user filter
   useEffect(() => {

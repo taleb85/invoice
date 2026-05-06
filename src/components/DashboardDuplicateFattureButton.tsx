@@ -324,10 +324,9 @@ export default function DashboardDuplicateFattureButton({
       const me = (await meRes.json()) as {
         is_admin?: boolean
         is_admin_sede?: boolean
-        is_admin_tecnico?: boolean
       }
       const can =
-        Boolean(me.is_admin) || Boolean(me.is_admin_sede) || Boolean(me.is_admin_tecnico)
+        Boolean(me.is_admin) || Boolean(me.is_admin_sede)
       if (cancelled) return
       setCanReassignSupplier(can)
       if (!can) return

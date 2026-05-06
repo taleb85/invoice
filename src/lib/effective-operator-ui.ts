@@ -1,5 +1,6 @@
 import type { MeData } from '@/lib/me-context'
 import type { ActiveOperator } from '@/lib/active-operator-context'
+import { isBranchSedeStaffRole } from '@/lib/roles'
 
 /** Admin master che ha scelto un operatore con PIN (vista “da banco”). */
 export function actingAsMasterWithOperator(
@@ -24,18 +25,17 @@ export function effectiveIsMasterAdminPlane(
  * altrimenti un admin_sede dopo il PIN non vedrebbe “Gestisci sede”.
  */
 export function effectiveIsAdminSedeUi(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'user'> | null | undefined,
   activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
 ): boolean {
   if (!me) return false
-  const profileBranchStaff =
-    Boolean((me.is_admin_sede || me.is_admin_tecnico) && !me.is_admin)
+  const profileBranchStaff = Boolean(me.is_admin_sede && !me.is_admin)
   if (me.is_admin && activeOperator) {
-    return activeOperator.role === 'admin_sede' || activeOperator.role === 'admin_tecnico'
+    return isBranchSedeStaffRole(activeOperator.role)
   }
   if (activeOperator) {
     const r = activeOperator.role
-    if (r === 'admin_sede' || r === 'admin_tecnico') return true
+    if (isBranchSedeStaffRole(r)) return true
     if (r === 'operatore') return false
     const sameAsSession =
       Boolean(me.user?.id && activeOperator.id === me.user.id)
@@ -47,50 +47,20 @@ export function effectiveIsAdminSedeUi(
   return profileBranchStaff
 }
 
-/**
- * Permessi UI da “solo admin tecnico” (vista tecnica/operativa, non manageriale):
- * con operatore attivo segue il suo `role`, altrimenti il profilo di sessione.
- * Esclude admin_sede.
- */
-export function effectiveIsAdminTecnicoUi(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
-  activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
-): boolean {
-  if (!me) return false
-  const profileIsAdminTecnico = Boolean(me.is_admin_tecnico && !me.is_admin)
-  if (me.is_admin && activeOperator) {
-    return activeOperator.role === 'admin_tecnico'
-  }
-  if (activeOperator) {
-    const r = activeOperator.role
-    if (r === 'admin_tecnico') return true
-    const sameAsSession =
-      Boolean(me.user?.id && activeOperator.id === me.user.id)
-    /** Profilo reale vince su `role` salvato nello storage (PIN legacy / dati obsoleti). */
-    if (sameAsSession && profileIsAdminTecnico) return true
-    if (r === 'admin_sede' || r === 'operatore') return false
-    if (sameAsSession) {
-      return profileIsAdminTecnico
-    }
-    return false
-  }
-  return profileIsAdminTecnico
-}
-
-/** Centro operazioni: solo piano master (senza PIN) o admin tecnico effettivo — non responsabile sede. */
+/** Centro operazioni: solo piano master (senza operatore con PIN). */
 export function canAccessCentroOperazioniPage(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'user'> | null | undefined,
   activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
 ): boolean {
-  return effectiveIsMasterAdminPlane(me, activeOperator) || effectiveIsAdminTecnicoUi(me, activeOperator)
+  return effectiveIsMasterAdminPlane(me, activeOperator)
 }
 
 /**
  * Griglia fornitori: modifica / elimina senza step PIN operatore.
- * Master solo senza PIN; altrimenti staff filiale (`admin_sede` | `admin_tecnico` via `effectiveIsAdminSedeUi`).
+ * Master solo senza PIN; altrimenti staff filiale responsabile (`effectiveIsAdminSedeUi`).
  */
 export function effectiveIsFornitoreGridAdmin(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'user'> | null | undefined,
   activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
 ): boolean {
   if (!me) return false
@@ -98,10 +68,9 @@ export function effectiveIsFornitoreGridAdmin(
   return effectiveIsAdminSedeUi(me, activeOperator)
 }
 
-/** Coerente con `proxy.ts` su `/sedi`: `admin`, `admin_sede` o `admin_tecnico` nel profilo reale (non basta il PIN come altro ruolo). */
+/** Coerente con `proxy.ts` su `/sedi`: `admin` o `admin_sede` nel profilo reale (non basta il PIN come altro ruolo). */
 export function profileCanAccessSediListPage(
-  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede'> | null | undefined,
 ): boolean {
-  return Boolean(me?.is_admin || me?.is_admin_sede || me?.is_admin_tecnico)
+  return Boolean(me?.is_admin || me?.is_admin_sede)
 }
-
