@@ -55,7 +55,7 @@ async function loadAppMeShellResult(): Promise<AppMeShellResult> {
     operationalSedeId = await firstSedeIdFromUser(supabase)
   }
 
-  const rawRoleLower = String(profile.role ?? '').toLowerCase()
+  const rawRoleLower = String(profile.role ?? '').trim().toLowerCase()
   const normalizedRoleSlug =
     rawRoleLower === 'admin_tecnico' ? 'admin_sede' : rawRoleLower
 

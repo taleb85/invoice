@@ -3,12 +3,12 @@
  *
  * Bump quando cambi strategia cache — activate pulisce le vecchie.
  */
-const CACHE_NAME = 'fluxo-v12'
+const CACHE_NAME = 'fluxo-v13'
 const OFFLINE_URL = '/offline'
 
 // API routes to cache with NetworkFirst strategy (fallback to cache when offline)
 // /api/me NON in lista: sessione/ruolo devono essere sempre freschi (evita UI «gestionale» con dati vecchi in PWA).
-const API_CACHE_NAME = 'fluxo-api-v3'
+const API_CACHE_NAME = 'fluxo-api-v4'
 const API_CACHE_ROUTES = {
   '/api/fornitori': 30 * 60,        // 30 minutes
   '/api/bolle-aperte': 5 * 60,      // 5 minutes

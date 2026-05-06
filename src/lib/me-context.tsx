@@ -72,7 +72,7 @@ export function markClientSessionJustEstablished(): void {
 }
 
 function parseMeResponse(data: Record<string, unknown>): MeData {
-  const raw = String(data.role ?? '').toLowerCase()
+  const raw = String(data.role ?? '').trim().toLowerCase()
   const role: MeData['role'] =
     raw === 'admin'
       ? 'admin'

@@ -5,8 +5,12 @@
  */
 export type AppRole = 'admin' | 'admin_sede' | 'operatore'
 
+function normRole(raw: string | null | undefined): string {
+  return String(raw ?? '').trim().toLowerCase()
+}
+
 export function parseAppRole(raw: string | null | undefined): AppRole | null {
-  const r = String(raw ?? '').toLowerCase()
+  const r = normRole(raw)
   if (r === 'admin') return 'admin'
   if (r === 'admin_sede') return 'admin_sede'
   if (r === 'operatore') return 'operatore'
@@ -14,16 +18,16 @@ export function parseAppRole(raw: string | null | undefined): AppRole | null {
 }
 
 export function isMasterAdminRole(raw: string | null | undefined): boolean {
-  return String(raw ?? '').toLowerCase() === 'admin'
+  return normRole(raw) === 'admin'
 }
 
 export function isAdminSedeRole(raw: string | null | undefined): boolean {
-  return String(raw ?? '').toLowerCase() === 'admin_sede'
+  return normRole(raw) === 'admin_sede'
 }
 
 /** Responsabile filiale (legacy: valore rimosso `admin_tecnico` trattato come admin_sede finché non gira la migration). */
 export function isBranchSedeStaffRole(raw: string | null | undefined): boolean {
-  const r = String(raw ?? '').toLowerCase()
+  const r = normRole(raw)
   return r === 'admin_sede' || r === 'admin_tecnico'
 }
 
@@ -31,7 +35,7 @@ export function isBranchSedeStaffRole(raw: string | null | undefined): boolean {
  * Profilo che usa Accesso sede / PIN sul proprio utente Auth (non il portale solo-master email+password).
  */
 export function isProfilesBranchDeskRole(raw: string | null | undefined): boolean {
-  const r = String(raw ?? '').toLowerCase()
+  const r = normRole(raw)
   return r === 'operatore' || r === 'admin_sede' || r === 'admin_tecnico'
 }
 
