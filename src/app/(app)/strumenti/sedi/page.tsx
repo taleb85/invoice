@@ -6,7 +6,6 @@ import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
-import { createClient } from '@/utils/supabase/client'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { BackButton } from '@/components/BackButton'
@@ -201,7 +200,6 @@ export default function SediPage() {
   const { t } = useLocale()
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
-  const supabase = createClient()
 
   const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
   const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
@@ -215,40 +213,45 @@ export default function SediPage() {
     setLoading(true)
     setError(null)
     try {
-      const { data: sediData, error: sediErr } = await supabase
-        .from('sedi')
-        .select('id, nome, imap_user, imap_host, country_code, file_retention_policy')
-        .order('nome')
-
-      if (sediErr) {
-        setError(sediErr.message)
+      /** `GET /api/sedi` conta i profili con service role: il client Supabase rispetta RLS → 0 operatori per staff sede. */
+      const res = await fetch('/api/sedi', { credentials: 'include', cache: 'no-store' })
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string
+        sedi?: Array<{
+          id: string
+          nome: string
+          imap_user?: string | null
+          imap_host?: string | null
+          country_code?: string | null
+          file_retention_policy?: string | null
+          fornitori_count?: number
+          users_count?: number
+        }>
+      }
+      if (!res.ok) {
+        setError(j.error ?? `HTTP ${res.status}`)
         return
       }
-
-      const rows: SedeRow[] = []
-      for (const s of sediData ?? []) {
-        const [{ count: opCount }, { count: fornCount }] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', s.id),
-          supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', s.id),
-        ])
-        rows.push({
+      const list = j.sedi ?? []
+      setSedi(
+        list.map((s) => ({
           id: s.id,
           nome: s.nome,
-          imap_user: s.imap_user,
-          imap_host: s.imap_host,
-          country_code: s.country_code,
-          operatori_count: opCount ?? 0,
-          fornitori_count: fornCount ?? 0,
-          file_retention_policy: (s as { file_retention_policy?: string | null }).file_retention_policy ?? null,
-        })
-      }
-      setSedi(rows)
+          imap_user: s.imap_user ?? null,
+          imap_host: s.imap_host ?? null,
+          country_code: s.country_code ?? null,
+          operatori_count: typeof s.users_count === 'number' ? s.users_count : 0,
+          fornitori_count: typeof s.fornitori_count === 'number' ? s.fornitori_count : 0,
+          file_retention_policy:
+            (s as { file_retention_policy?: string | null }).file_retention_policy ?? null,
+        })),
+      )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Errore nel caricamento sedi')
     } finally {
       setLoading(false)
     }
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     if (canView) void loadSedi()
