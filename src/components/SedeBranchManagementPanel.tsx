@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
+import { useMe } from '@/lib/me-context'
 import type { Translations } from '@/lib/translations'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 
@@ -36,6 +37,179 @@ function roleShortLabel(role: string | null, sedi: Translations['sedi']) {
     default:
       return role?.trim() || '—'
   }
+}
+
+function SedeOperatorRowEditor({
+  op,
+  inputCls,
+}: {
+  op: SedeOperatorRow
+  inputCls: string
+}) {
+  const { t } = useLocale()
+  const router = useRouter()
+  const { me } = useMe()
+
+  const displayLabel = op.full_name?.trim() || '—'
+  const isOperatore = String(op.role ?? '').toLowerCase() === 'operatore'
+  const isSelf = Boolean(me?.user?.id && op.id === me.user.id)
+
+  const [nameDraft, setNameDraft] = useState(op.full_name?.trim() ?? '')
+  useEffect(() => {
+    setNameDraft(op.full_name?.trim() ?? '')
+  }, [op.full_name, op.id])
+
+  const normalizedSaved = (op.full_name ?? '').trim().toUpperCase()
+  const normalizedDraft = nameDraft.trim().toUpperCase()
+  const nameDirty = normalizedDraft !== normalizedSaved
+
+  const [nameSaving, setNameSaving] = useState(false)
+  const saveName = async () => {
+    const fn = nameDraft.trim().toUpperCase()
+    if (!fn) {
+      window.alert(t.sedi.operatorNameRequired)
+      return
+    }
+    if (!nameDirty) return
+    setNameSaving(true)
+    try {
+      const res = await fetch(`/api/profiles/${encodeURIComponent(op.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fn }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        window.alert(j.error ?? t.common.error)
+        return
+      }
+      router.refresh()
+    } finally {
+      setNameSaving(false)
+    }
+  }
+
+  const [pinOpen, setPinOpen] = useState(false)
+  const [pinDraft, setPinDraft] = useState('')
+  const [pinSaving, setPinSaving] = useState(false)
+  const savePin = async () => {
+    if (pinDraft.length < 4) {
+      window.alert(t.sedi.operatorPinTooShort)
+      return
+    }
+    setPinSaving(true)
+    try {
+      const res = await fetch('/api/operator/change-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operatorId: op.id, newPin: pinDraft }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        window.alert(j.error ?? t.common.error)
+        return
+      }
+      setPinDraft('')
+      setPinOpen(false)
+      router.refresh()
+    } finally {
+      setPinSaving(false)
+    }
+  }
+
+  const [delBusy, setDelBusy] = useState(false)
+  const deleteOperator = async () => {
+    const nm = displayLabel === '—' ? op.id.slice(0, 8) : displayLabel
+    if (!window.confirm(t.sedi.operatorDeleteConfirm.replace('{name}', nm))) return
+    setDelBusy(true)
+    try {
+      const res = await fetch('/api/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: op.id }),
+      })
+      const j = (await res.json().catch(() => ({}))) as { error?: string }
+      if (!res.ok) {
+        window.alert(j.error ?? t.common.error)
+        return
+      }
+      router.refresh()
+    } finally {
+      setDelBusy(false)
+    }
+  }
+
+  const btnSecondary =
+    'inline-flex touch-manipulation items-center justify-center rounded-lg border border-app-line-35 bg-black/20 px-3 py-2 text-xs font-semibold text-app-fg transition-colors hover:border-app-a-45 hover:bg-black/30 disabled:opacity-45'
+  const btnDanger =
+    'inline-flex touch-manipulation items-center justify-center rounded-lg border border-rose-500/40 bg-rose-950/25 px-3 py-2 text-xs font-semibold text-rose-100 transition-colors hover:border-rose-400/55 hover:bg-rose-950/40 disabled:opacity-45'
+  const btnPrimary =
+    'inline-flex touch-manipulation items-center justify-center rounded-lg bg-app-cyan-500 px-3 py-2 text-xs font-bold text-cyan-950 shadow-sm transition-colors hover:bg-app-cyan-400 disabled:opacity-50'
+
+  return (
+    <li className="rounded-lg border border-app-line-20 bg-black/15 px-3 py-3 text-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
+        <div className="min-w-0 flex-1 space-y-1">
+          <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+            {t.sedi.operatorDisplayNameLabel}
+          </label>
+          <input
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value.toUpperCase())}
+            className={inputCls}
+            autoComplete="off"
+          />
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              disabled={nameSaving || !nameDirty}
+              onClick={() => void saveName()}
+              className={btnPrimary}
+            >
+              {nameSaving ? t.common.loading : t.common.save}
+            </button>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+          <span className="self-start rounded-md bg-app-line-15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+            {roleShortLabel(op.role, t.sedi)}
+          </span>
+          {isOperatore && !isSelf ? (
+            <div className="flex flex-wrap gap-2">
+              <button type="button" className={btnSecondary} onClick={() => setPinOpen((o) => !o)}>
+                {t.sedi.changePinTitle}
+              </button>
+              <button
+                type="button"
+                className={btnDanger}
+                disabled={delBusy}
+                onClick={() => void deleteOperator()}
+              >
+                {delBusy ? t.common.loading : t.sedi.deleteTitle}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {isOperatore && !isSelf && pinOpen ? (
+        <div className="mt-3 space-y-2 border-t border-app-line-18 pt-3">
+          <label className="block text-xs text-app-fg-muted">{t.sedi.newPinFor.replace('{name}', displayLabel)}</label>
+          <div className="flex flex-wrap items-end gap-2">
+            <input
+              type="password"
+              value={pinDraft}
+              onChange={(e) => setPinDraft(e.target.value)}
+              className={`${inputCls} max-w-[12rem]`}
+              autoComplete="new-password"
+            />
+            <button type="button" disabled={pinSaving} onClick={() => void savePin()} className={btnPrimary}>
+              {pinSaving ? t.common.loading : t.common.save}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </li>
+  )
 }
 
 export default function SedeBranchManagementPanel({
@@ -432,15 +606,7 @@ export default function SedeBranchManagementPanel({
             ) : (
               <ul className="mb-5 space-y-2">
                 {operators.map((op) => (
-                  <li
-                    key={op.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-app-line-20 bg-black/15 px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium text-app-fg">{op.full_name?.trim() || '—'}</span>
-                    <span className="rounded-md bg-app-line-15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
-                      {roleShortLabel(op.role, t.sedi)}
-                    </span>
-                  </li>
+                  <SedeOperatorRowEditor key={op.id} op={op} inputCls={inputCls} />
                 ))}
               </ul>
             )}
