@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { createServiceClient } from '@/utils/supabase/server'
 import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import ScanEmailButton from '@/components/ScanEmailButton'
 import CountrySelector from '@/components/CountrySelector'
 import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
 import SedeBranchManagementPanel from '@/components/SedeBranchManagementPanel'
@@ -109,43 +108,31 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
         }
         icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>}
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent">
-              <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <h1 className="app-page-title min-w-0 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl">{sede.nome}</h1>
-              <div className="mt-1 flex flex-wrap items-center gap-3">
-                <span className="text-sm text-app-fg-muted">
-                  {sede.operators_count}{' '}
-                  {sede.operators_count === 1 ? 'operatore' : 'operatori'}
-                </span>
-                <span className="text-app-fg-muted">·</span>
-                <span className="text-sm text-app-fg-muted">
-                  {sede.fornitori_count}{' '}
-                  {sede.fornitori_count === 1 ? 'fornitore' : 'fornitori'}
-                </span>
-                <span className="text-app-fg-muted">·</span>
-                {imapConfigured ? (
-                  <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Email configurata ({sede.imap_user})
-                  </span>
-                ) : (
-                  <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
-                    Email non configurata
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex min-w-0 w-full max-w-full flex-row flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end sm:gap-3 sm:shrink-0">
-            <ScanEmailButton sedeId={sede_id} alwaysShowLabel placement="desktopHeader" />
+        <div className="min-w-0 flex-1">
+          <h1 className="app-page-title min-w-0 truncate text-lg font-bold leading-snug sm:text-xl md:text-2xl">{sede.nome}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-app-fg-muted">
+              {sede.operators_count}{' '}
+              {sede.operators_count === 1 ? 'operatore' : 'operatori'}
+            </span>
+            <span className="text-app-fg-muted">·</span>
+            <span className="text-sm text-app-fg-muted">
+              {sede.fornitori_count}{' '}
+              {sede.fornitori_count === 1 ? 'fornitore' : 'fornitori'}
+            </span>
+            <span className="text-app-fg-muted">·</span>
+            {imapConfigured ? (
+              <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Email configurata ({sede.imap_user})
+              </span>
+            ) : (
+              <span className="rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-200">
+                Email non configurata
+              </span>
+            )}
           </div>
         </div>
       </AppPageHeaderStrip>
