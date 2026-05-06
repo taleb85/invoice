@@ -14,6 +14,7 @@ import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_SHELL_SECTION_PAGE_STACK_CLASS,
 } from '@/lib/app-shell-layout'
+import SedeBranchManagementPanel, { type SedeOperatorRow } from '@/components/SedeBranchManagementPanel'
 
 import {
   FILE_ATTACHMENT_RETENTION_UI_ENABLED,
@@ -25,10 +26,13 @@ interface SedeRow {
   nome: string
   imap_user: string | null
   imap_host: string | null
+  imap_port: number | null
+  imap_lookback_days: number | null
   country_code: string | null
   operatori_count: number
   fornitori_count: number
   file_retention_policy: string | null
+  operators: SedeOperatorRow[]
 }
 
 function FileRetentionListToggle({
@@ -217,7 +221,9 @@ export default function SediPage() {
     try {
       const { data: sediData, error: sediErr } = await supabase
         .from('sedi')
-        .select('id, nome, imap_user, imap_host, country_code, file_retention_policy')
+        .select(
+          'id, nome, imap_user, imap_host, imap_port, imap_lookback_days, country_code, file_retention_policy',
+        )
         .order('nome')
 
       if (sediErr) {
@@ -227,19 +233,27 @@ export default function SediPage() {
 
       const rows: SedeRow[] = []
       for (const s of sediData ?? []) {
-        const [{ count: opCount }, { count: fornCount }] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', s.id),
+        const [{ data: profilesData }, { count: fornCount }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('id, full_name, role')
+            .eq('sede_id', s.id)
+            .order('full_name'),
           supabase.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', s.id),
         ])
+        const operators = (profilesData ?? []) as SedeOperatorRow[]
         rows.push({
           id: s.id,
           nome: s.nome,
           imap_user: s.imap_user,
           imap_host: s.imap_host,
+          imap_port: (s as { imap_port?: number | null }).imap_port ?? null,
+          imap_lookback_days: (s as { imap_lookback_days?: number | null }).imap_lookback_days ?? null,
           country_code: s.country_code,
-          operatori_count: opCount ?? 0,
+          operatori_count: operators.length,
           fornitori_count: fornCount ?? 0,
           file_retention_policy: (s as { file_retention_policy?: string | null }).file_retention_policy ?? null,
+          operators,
         })
       }
       setSedi(rows)
@@ -256,6 +270,12 @@ export default function SediPage() {
   }, [canView, loadSedi])
 
   const retentionToggleEnabled = FILE_ATTACHMENT_RETENTION_UI_ENABLED && masterPlane
+
+  const canManageBranchForSede = (sedeId: string) =>
+    Boolean(
+      me?.is_admin ||
+        ((me?.is_admin_sede || me?.is_admin_tecnico) && me?.sede_id === sedeId),
+    )
 
   if (!canView) return null
 
@@ -308,12 +328,25 @@ export default function SediPage() {
             </div>
           ) : (
             sedi.map((sede) => (
-              <SedeCard
-                key={sede.id}
-                sede={sede}
-                showRetentionToggle={retentionToggleEnabled}
-                onRetentionUpdated={() => void loadSedi()}
-              />
+              <div key={sede.id} className="space-y-3">
+                <SedeCard
+                  sede={sede}
+                  showRetentionToggle={retentionToggleEnabled}
+                  onRetentionUpdated={() => void loadSedi()}
+                />
+                {canManageBranchForSede(sede.id) ? (
+                  <SedeBranchManagementPanel
+                    sedeId={sede.id}
+                    operators={sede.operators}
+                    imapInitial={{
+                      host: sede.imap_host ?? '',
+                      port: sede.imap_port ?? 993,
+                      user: sede.imap_user ?? '',
+                      lookbackDays: sede.imap_lookback_days,
+                    }}
+                  />
+                ) : null}
+              </div>
             ))
           )}
         </div>

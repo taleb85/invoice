@@ -4,7 +4,6 @@ import { getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import CountrySelector from '@/components/CountrySelector'
 import { LocaleCodeChip } from '@/components/ui/locale-code-chip'
-import SedeBranchManagementPanel from '@/components/SedeBranchManagementPanel'
 import { getLocale } from '@/lib/localization'
 import { getT } from '@/lib/locale-server'
 import { BackButton } from '@/components/BackButton'
@@ -27,19 +26,12 @@ interface SedeProfile {
   file_retention_days: number | null
 }
 
-type SedeOperatorRow = {
-  id: string
-  full_name: string | null
-  role: string | null
-}
-
 async function fetchSedePageData(sedeId: string): Promise<{
   sede: SedeProfile | null
-  operators: SedeOperatorRow[]
 }> {
   const service = createServiceClient()
 
-  const [sedeRes, fornCountRes, profilesRes] = await Promise.all([
+  const [sedeRes, fornCountRes, opCountRes] = await Promise.all([
     service
       .from('sedi')
       .select(
@@ -48,14 +40,12 @@ async function fetchSedePageData(sedeId: string): Promise<{
       .eq('id', sedeId)
       .maybeSingle(),
     service.from('fornitori').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
-    service.from('profiles').select('id, full_name, role').eq('sede_id', sedeId).order('full_name', { ascending: true }),
+    service.from('profiles').select('*', { count: 'exact', head: true }).eq('sede_id', sedeId),
   ])
 
-  if (!sedeRes.data) return { sede: null, operators: [] }
+  if (!sedeRes.data) return { sede: null }
 
   const row = sedeRes.data
-
-  const operators = (profilesRes.data ?? []) as SedeOperatorRow[]
 
   return {
     sede: {
@@ -67,12 +57,11 @@ async function fetchSedePageData(sedeId: string): Promise<{
       imap_lookback_days: (row as { imap_lookback_days?: number | null }).imap_lookback_days ?? null,
       country_code: (row as { country_code?: string }).country_code ?? 'UK',
       fornitori_count: fornCountRes.count ?? 0,
-      operators_count: operators.length,
+      operators_count: opCountRes.count ?? 0,
       file_retention_policy: (row as { file_retention_policy?: string | null }).file_retention_policy ?? null,
       file_retention_run_day: (row as { file_retention_run_day?: number | null }).file_retention_run_day ?? null,
       file_retention_days: (row as { file_retention_days?: number | null }).file_retention_days ?? null,
     },
-    operators,
   }
 }
 
@@ -81,7 +70,7 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
   if (!user) redirect('/login')
 
   const { sede_id } = await props.params
-  const { sede, operators } = await fetchSedePageData(sede_id)
+  const { sede } = await fetchSedePageData(sede_id)
   if (!sede) redirect('/sedi')
 
   const profile = await getProfile()
@@ -138,19 +127,6 @@ export default async function SedeProfilePage(props: { params: Promise<{ sede_id
           </div>
         </div>
       </AppPageHeaderStrip>
-
-      {canManageSedeOperators ? (
-        <SedeBranchManagementPanel
-          sedeId={sede_id}
-          operators={operators}
-          imapInitial={{
-            host: sede.imap_host ?? '',
-            port: sede.imap_port ?? 993,
-            user: sede.imap_user ?? '',
-            lookbackDays: sede.imap_lookback_days,
-          }}
-        />
-      ) : null}
 
       {/* Paese / Localizzazione */}
       {(() => {
