@@ -5456,6 +5456,8 @@ function FornitoreDetailClient({
                   fornitoreId={fornitore.id}
                   fornitoreNome={fornitoreNomeVisual}
                   sedeId={fornitore.sede_id ?? null}
+                  documentQueueCreatedFrom={ledgerPeriod.from}
+                  documentQueueCreatedToExclusive={ledgerDateToExclusive}
                   onOpenDocumentQueue={
                     pathname
                       ? () =>
@@ -5871,6 +5873,8 @@ function FornitoreDetailClient({
                       fornitoreId={fornitore.id}
                       fornitoreNome={fornitoreNomeVisual}
                       sedeId={fornitore.sede_id ?? null}
+                      documentQueueCreatedFrom={ledgerPeriod.from}
+                      documentQueueCreatedToExclusive={ledgerDateToExclusive}
                       onOpenDocumentQueue={
                         pathname
                           ? () =>

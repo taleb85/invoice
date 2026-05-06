@@ -10,7 +10,21 @@ export async function GET(req: NextRequest) {
   const fornitoreId = searchParams.get('fornitore_id')
   if (!fornitoreId) return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
 
+  /** Stesso `from`/`to` (esclusa) della lista `/api/documenti-da-processare` sulla scheda fornitore. */
+  const fromDate = searchParams.get('from')
+  const toDate = searchParams.get('to')
+
   const service = createServiceClient()
+
+  /** Applica il filtro `created_at` usato dall’API documenti sulla scheda. */
+  const applyCreatedWindow = <T extends { gte(column: string, value: string): T; lt(column: string, value: string): T }>(
+    q: T,
+  ): T => {
+    let out = q
+    if (fromDate?.trim()) out = out.gte('created_at', fromDate.trim()) as T
+    if (toDate?.trim()) out = out.lt('created_at', toDate.trim()) as T
+    return out
+  }
 
   const { data: fornitore, error: fornErr } = await service
     .from('fornitori')
@@ -54,24 +68,30 @@ export async function GET(req: NextRequest) {
       .eq('stato', 'successo')
 
     // ── Documenti totali trovati per questo fornitore ─────────────────────
-    const { count: documentiTotali } = await service
-      .from('documenti_da_processare')
-      .select('id', { count: 'exact', head: true })
-      .eq('fornitore_id', fornitoreId)
+    const { count: documentiTotali } = await applyCreatedWindow(
+      service
+        .from('documenti_da_processare')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId),
+    )
 
     // ── Documenti già abbinati ────────────────────────────────────────────
-    const { count: documentiAbbinati } = await service
-      .from('documenti_da_processare')
-      .select('id', { count: 'exact', head: true })
-      .eq('fornitore_id', fornitoreId)
-      .eq('stato', 'associato')
+    const { count: documentiAbbinati } = await applyCreatedWindow(
+      service
+        .from('documenti_da_processare')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .eq('stato', 'associato'),
+    )
 
     // ── Documenti ancora in coda / da abbinare ────────────────────────────
-    const { count: documentiDaAbbinare } = await service
-      .from('documenti_da_processare')
-      .select('id', { count: 'exact', head: true })
-      .eq('fornitore_id', fornitoreId)
-      .in('stato', ['da_associare', 'da_processare', 'in_attesa', 'bozza_creata', 'da_revisionare'])
+    const { count: documentiDaAbbinare } = await applyCreatedWindow(
+      service
+        .from('documenti_da_processare')
+        .select('id', { count: 'exact', head: true })
+        .eq('fornitore_id', fornitoreId)
+        .in('stato', ['da_associare', 'da_processare', 'in_attesa', 'bozza_creata', 'da_revisionare']),
+    )
 
     // ── Log recenti (ultimi 15) per questo fornitore ──────────────────────
     const { data: recentLogs } = await service

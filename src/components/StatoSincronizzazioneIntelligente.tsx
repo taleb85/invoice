@@ -35,12 +35,20 @@ export default function StatoSincronizzazioneIntelligente({
   fornitoreId,
   fornitoreNome,
   sedeId,
+  documentQueueCreatedFrom,
+  documentQueueCreatedToExclusive,
   onOpenDocumentQueue,
   onOpenUnmatchedQueue,
 }: {
   fornitoreId: string
   fornitoreNome: string
   sedeId: string | null | undefined
+  /**
+   * Stesso intervallo `created_at` del tab Documenti sulla scheda (periodo libro).
+   * Così i numeri Rekki coincidono con l’elenco (prima venivano contati tutti i documenti del fornitore).
+   */
+  documentQueueCreatedFrom?: string
+  documentQueueCreatedToExclusive?: string
   /** Rekki tile «Documenti»: apre tab Documenti con coda «tutti» gli stati. */
   onOpenDocumentQueue?: () => void
   /** Rekki tile «Da abbinare»: apre tab Documenti filtrato su `da_associare`. */
@@ -88,7 +96,10 @@ export default function StatoSincronizzazioneIntelligente({
 
   const loadStatus = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/rekki/sync-status?fornitore_id=${fornitoreId}`, {
+      const q = new URLSearchParams({ fornitore_id: fornitoreId })
+      if (documentQueueCreatedFrom?.trim()) q.set('from', documentQueueCreatedFrom.trim())
+      if (documentQueueCreatedToExclusive?.trim()) q.set('to', documentQueueCreatedToExclusive.trim())
+      const res = await fetch(`/api/rekki/sync-status?${q.toString()}`, {
         credentials: 'include',
         signal,
       })
@@ -101,7 +112,7 @@ export default function StatoSincronizzazioneIntelligente({
     } finally {
       if (mountedRef.current) setLoading(false)
     }
-  }, [fornitoreId])
+  }, [documentQueueCreatedFrom, documentQueueCreatedToExclusive, fornitoreId])
 
   useEffect(() => {
     abortRef.current?.abort()

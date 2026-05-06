@@ -1104,7 +1104,7 @@ export function PendingMatchesTab({
     } else if (filter === 'da_associare') {
       params.set('stati', 'da_associare')
     } else {
-      params.set('stati', 'in_attesa,da_associare,bozza_creata,da_revisionare')
+      params.set('stati', DOCUMENTI_PENDING_STATI_API_DEFAULT)
     }
     if (sedeId) params.set('sede_id', sedeId)
     if (fornitoreId) params.set('fornitore_id', fornitoreId)
