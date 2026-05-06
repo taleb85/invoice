@@ -42,7 +42,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [fornitoriOpen, setFornitoriOpen] = useState(true)
   const [fornitoriSearch, setFornitoriSearch] = useState('')
   const [langOpen, setLangOpen] = useState(false)
-  const [footerOpen, setFooterOpen] = useState(false)
+  /** Aperto di default: Impostazioni / Strumenti / Guida restano visibili senza clic sul chevron. */
+  const [footerOpen, setFooterOpen] = useState(true)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
 
   /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
