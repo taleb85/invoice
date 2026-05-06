@@ -669,7 +669,7 @@ export default function SedeBranchManagementPanel({
             {operators.length === 0 ? (
               <p className="mb-4 text-sm text-app-fg-muted">{t.sedi.nessunUtente}</p>
             ) : (
-              <ul className="mb-5 grid list-none grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <ul className="mb-5 flex list-none flex-col gap-3">
                 {operators.map((op) => (
                   <SedeOperatorRowEditor key={op.id} op={op} inputCls={inputCls} rowUid={`${uid}-op-${op.id}`} />
                 ))}
