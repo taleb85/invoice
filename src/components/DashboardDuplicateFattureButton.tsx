@@ -108,6 +108,12 @@ const toolbarStripBtnCls =
 const defaultBtnCls =
   `inline-flex items-center gap-1.5 whitespace-nowrap border border-[rgba(34,211,238,0.15)] bg-amber-950/35 text-amber-100 font-semibold transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-amber-950/55 ${BTN_SIZE_SM}`
 
+function resolveGroupSedeId(g: DuplicateFatturaReportGroup): string | null {
+  if (g.sede_id?.trim()) return g.sede_id.trim()
+  const row = g.fatture.find((f) => f.sede_id?.trim())
+  return row?.sede_id?.trim() ?? null
+}
+
 export default function DashboardDuplicateFattureButton({
   className,
   alwaysShowLabel = false,
@@ -131,6 +137,10 @@ export default function DashboardDuplicateFattureButton({
   const [progressScanned, setProgressScanned] = useState(0)
   const [progressSample, setProgressSample] = useState<DuplicateFatturaScanProgressItem[]>([])
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [canReassignSupplier, setCanReassignSupplier] = useState(false)
+  const [fornitoriBySede, setFornitoriBySede] = useState<Record<string, { id: string; nome: string }[]>>({})
+  const [reassignSel, setReassignSel] = useState<Record<string, string>>({})
+  const [reassignBusyId, setReassignBusyId] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -176,6 +186,109 @@ export default function DashboardDuplicateFattureButton({
       return { ...prev, groups }
     })
   }, [])
+
+  useEffect(() => {
+    if (!open) {
+      setCanReassignSupplier(false)
+      setFornitoriBySede({})
+      setReassignSel({})
+      setReassignBusyId(null)
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !data?.groups.length || loading) return
+    let cancelled = false
+    const supabase = createClient()
+    void (async () => {
+      const meRes = await fetch('/api/me', { credentials: 'include' })
+      if (!meRes.ok || cancelled) return
+      const me = (await meRes.json()) as {
+        is_admin?: boolean
+        is_admin_sede?: boolean
+        is_admin_tecnico?: boolean
+      }
+      const can =
+        Boolean(me.is_admin) || Boolean(me.is_admin_sede) || Boolean(me.is_admin_tecnico)
+      if (cancelled) return
+      setCanReassignSupplier(can)
+      if (!can) return
+
+      const sedeIds = [
+        ...new Set(data.groups.map(resolveGroupSedeId).filter((sid): sid is string => Boolean(sid))),
+      ]
+      if (sedeIds.length === 0) return
+
+      const batches = await Promise.all(
+        sedeIds.map(async (sid) => {
+          const { data: rows, error } = await supabase
+            .from('fornitori')
+            .select('id, nome')
+            .eq('sede_id', sid)
+            .order('nome')
+          if (cancelled) return { sid, rows: [] as { id: string; nome: string }[] }
+          if (!error && rows?.length) return { sid, rows: rows as { id: string; nome: string }[] }
+          return { sid, rows: [] as { id: string; nome: string }[] }
+        }),
+      )
+      if (cancelled) return
+      setFornitoriBySede((prev) => {
+        const next = { ...prev }
+        for (const { sid, rows } of batches) next[sid] = rows
+        return next
+      })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [open, data, loading])
+
+  const handleReassignFornitore = useCallback(
+    async (fatturaId: string, sedeScopeId: string | null) => {
+      const nuovo = reassignSel[fatturaId]?.trim()
+      if (!nuovo) {
+        window.alert(t.dashboard.duplicateFattureReassignNeedChoice)
+        return
+      }
+      if (!sedeScopeId) {
+        window.alert(t.dashboard.duplicateFattureError)
+        return
+      }
+      setReassignBusyId(fatturaId)
+      try {
+        const res = await fetch('/api/fatture/reassign-fornitore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            fattura_id: fatturaId,
+            nuovo_fornitore_id: nuovo,
+            sede_id: sedeScopeId,
+          }),
+        })
+        const j = (await res.json()) as { error?: string }
+        if (!res.ok) throw new Error(j.error ?? t.dashboard.duplicateFattureError)
+        pruneDeletedFattura(fatturaId)
+        setReassignSel((s) => {
+          const next = { ...s }
+          delete next[fatturaId]
+          return next
+        })
+        router.refresh()
+      } catch (e) {
+        window.alert(e instanceof Error ? e.message : t.dashboard.duplicateFattureError)
+      } finally {
+        setReassignBusyId(null)
+      }
+    },
+    [
+      pruneDeletedFattura,
+      reassignSel,
+      router,
+      t.dashboard.duplicateFattureError,
+      t.dashboard.duplicateFattureReassignNeedChoice,
+    ],
+  )
 
   const handleDeleteDuplicate = useCallback(
     async (event: React.MouseEvent, fatturaId: string) => {
@@ -355,7 +468,11 @@ export default function DashboardDuplicateFattureButton({
                         {t.dashboard.duplicateFattureTruncated}
                       </p>
                     ) : null}
-                    {data.groups.map((g) => (
+                    {data.groups.map((g) => {
+                      const groupSedeId = resolveGroupSedeId(g)
+                      const showReassign = canReassignSupplier && Boolean(groupSedeId)
+                      const vendorList = groupSedeId ? fornitoriBySede[groupSedeId] : undefined
+                      return (
                       <div
                         key={`${g.sede_id ?? 'x'}-${g.fornitore_id}-${g.data}-${g.numero_normalizzato}`}
                         className="rounded-xl border border-white/10 app-workspace-inset-bg-soft px-3 py-3 sm:px-4"
@@ -374,9 +491,15 @@ export default function DashboardDuplicateFattureButton({
                         <p className="mb-2 text-[11px] text-app-fg-muted">
                           {g.sede_nome ?? t.dashboard.duplicateFattureSedeUnassigned}
                         </p>
+                        {showReassign ? (
+                          <p className="mb-2 rounded-lg border border-cyan-500/25 bg-cyan-950/20 px-2.5 py-2 text-[11px] leading-snug text-cyan-100/90">
+                            {t.dashboard.duplicateFattureWrongSupplierHint}
+                          </p>
+                        ) : null}
                         <ul className="flex flex-col gap-1.5">
                           {g.fatture.map((f) => (
-                            <li key={f.id} className="flex items-stretch gap-2">
+                            <li key={f.id} className="flex flex-col gap-2 rounded-lg border border-white/5 bg-black/[0.14] p-2">
+                              <div className="flex items-stretch gap-2">
                               {f.file_url ? (
                                 <OpenDocumentInAppButton
                                   fatturaId={f.id}
@@ -416,7 +539,7 @@ export default function DashboardDuplicateFattureButton({
                                 className="inline-flex shrink-0 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-red-950/35 px-2.5 py-2 text-red-200 transition-colors hover:border-[rgba(34,211,238,0.15)] hover:bg-red-950/55 disabled:cursor-not-allowed disabled:opacity-45"
                                 aria-label={t.dashboard.duplicateFattureDeleteAria}
                                 title={t.common.delete}
-                                disabled={deletingId !== null}
+                                disabled={deletingId !== null || reassignBusyId !== null}
                                 onClick={(e) => void handleDeleteDuplicate(e, f.id)}
                               >
                                 {deletingId === f.id ? (
@@ -435,11 +558,53 @@ export default function DashboardDuplicateFattureButton({
                                   </svg>
                                 )}
                               </button>
+                              </div>
+                              {showReassign ? (
+                                vendorList === undefined ? (
+                                  <p className="text-[10px] text-app-fg-muted">{t.common.loading}</p>
+                                ) : vendorList.length === 0 ? (
+                                  <p className="text-[10px] text-app-fg-muted">{t.dashboard.duplicateFattureReassignNoSuppliers}</p>
+                                ) : (
+                                  <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-2">
+                                    <select
+                                      className="min-w-[11rem] flex-1 rounded-md border border-white/15 bg-black/35 px-2 py-1.5 text-[11px] text-app-fg"
+                                      value={reassignSel[f.id] ?? ''}
+                                      onChange={(e) =>
+                                        setReassignSel((s) => ({ ...s, [f.id]: e.target.value }))
+                                      }
+                                      disabled={reassignBusyId !== null || deletingId !== null}
+                                      aria-label={t.dashboard.duplicateFattureReassignSelectPlaceholder}
+                                    >
+                                      <option value="">{t.dashboard.duplicateFattureReassignSelectPlaceholder}</option>
+                                      {vendorList.map((fo) => (
+                                        <option key={fo.id} value={fo.id}>
+                                          {fo.nome?.trim() || fo.id.slice(0, 8)}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    <button
+                                      type="button"
+                                      disabled={
+                                        reassignBusyId !== null ||
+                                        deletingId !== null ||
+                                        !(reassignSel[f.id] ?? '').trim()
+                                      }
+                                      onClick={() => void handleReassignFornitore(f.id, groupSedeId)}
+                                      className="rounded-md border border-teal-500/45 bg-teal-600/30 px-2.5 py-1.5 text-[11px] font-semibold text-teal-50 hover:bg-teal-600/45 disabled:opacity-40"
+                                    >
+                                      {reassignBusyId === f.id
+                                        ? t.dashboard.duplicateFattureReassignBusy
+                                        : t.dashboard.duplicateFattureReassignApply}
+                                    </button>
+                                  </div>
+                                )
+                              ) : null}
                             </li>
                           ))}
                         </ul>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : null}
               </div>
