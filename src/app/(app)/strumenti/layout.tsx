@@ -3,17 +3,29 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
+import { useMe } from '@/lib/me-context'
+import { useActiveOperator } from '@/lib/active-operator-context'
+import { canAccessCentroOperazioniPage } from '@/lib/effective-operator-ui'
 
 export default function StrumentiLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLocale()
+  const { me, loading: meLoading } = useMe()
+  const { activeOperator } = useActiveOperator()
+  /** Durante il bootstrap evita di nascondere il tab a chi può accedere appena `me` è disponibile. */
+  const showCentroOperazioni =
+    meLoading || canAccessCentroOperazioniPage(me, activeOperator)
 
   const tabs = [
-    {
-      href: '/strumenti/centro-operazioni',
-      label: t.strumentiCentroOperazioni.pageTitle,
-      active: !!pathname?.startsWith('/strumenti/centro-operazioni'),
-    },
+    ...(showCentroOperazioni
+      ? [
+          {
+            href: '/strumenti/centro-operazioni',
+            label: t.strumentiCentroOperazioni.pageTitle,
+            active: !!pathname?.startsWith('/strumenti/centro-operazioni'),
+          },
+        ]
+      : []),
     {
       href: '/strumenti/sedi',
       label: t.nav.sedi,

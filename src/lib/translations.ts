@@ -1256,6 +1256,10 @@ type Translations = {
     ocrAbbinamentiCardDesc: string
     ocrAbbinamentiCta: string
     hintContextualShortcuts: string
+    accessDeniedSubtitle: string
+    accessDeniedBody: string
+    accessDeniedCtaSedi: string
+    accessDeniedCtaDashboard: string
   }
   log: {
     title: string
@@ -2371,6 +2375,11 @@ const it: Translations = {
     ocrAbbinamentiCta: 'Apri tab Abbinamenti',
     hintContextualShortcuts:
       'Promemoria: rianalisi OCR sulla singola riga bolla/fattura, «Sposta in fattura» sulla bolla, «Da fattura» / «Auto» / «Aggiungi» restano sulla scheda listino.',
+    accessDeniedSubtitle: 'Accesso non disponibile con questo contesto di login.',
+    accessDeniedBody:
+      'Il Centro operazioni è riservato all’Admin Master (senza operatore selezionato con PIN) o all’amministratore tecnico di sede. Se hai effettuato l’accesso con il PIN di un altro utente, apri il selettore in basso e accedi di nuovo con il tuo profilo tecnico.',
+    accessDeniedCtaSedi: 'Vai a Gestione sedi',
+    accessDeniedCtaDashboard: 'Torna alla dashboard',
   },
   common: {
     save: 'Salva',
@@ -4151,6 +4160,11 @@ const en: Translations = {
     ocrAbbinamentiCta: 'Open Matching tab',
     hintContextualShortcuts:
       'Reminder: row-level “Re-run (OCR)” on a delivery note / invoice, “Move to Invoices” on a note, “From invoice” / “Auto” / “Add” stay on the price list.',
+    accessDeniedSubtitle: 'This screen is not available with your current login context.',
+    accessDeniedBody:
+      'The Operations hub is limited to Master Admin (no branch PIN session selected) or branch technical admins. If you signed in with another user’s PIN, open the switcher at the bottom and sign in again with your technical profile.',
+    accessDeniedCtaSedi: 'Go to branch management',
+    accessDeniedCtaDashboard: 'Back to dashboard',
   },
   common: { save: 'Save', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', new: 'New', loading: 'Loading...', error: 'Error', success: 'Success', noData: 'No data', document: 'Document', actions: 'Actions', date: 'Date', status: 'Status', supplier: 'Supplier', notes: 'Notes', phone: 'Phone', saving: 'Saving...', attachment: 'Attachment', openAttachment: 'Open attachment', detail: 'Detail', add: 'Add', rename: 'Rename', role: 'Role', aiExtracted: 'AI Extracted Data', matched: 'Matched', notMatched: 'Not matched', recordSupplierLinked: 'Linked', company: 'Company', invoiceNum: 'Invoice No.', documentRef: 'Reference', total: 'Total', duplicateBadge: 'DUPLICATE', emailSyncAutoSavedBadge: 'Auto-saved', viewerZoomIn: 'Zoom in', viewerZoomOut: 'Zoom out', viewerZoomReset: '100%', viewerZoomHint: 'Ctrl+scroll or buttons' },
   status: { inAttesa: 'Pending', completato: 'Completed', completata: 'Completed' },
@@ -4948,6 +4962,11 @@ const es: Translations = {
     ocrAbbinamentiCta: 'Abrir pestaña de correspondencias',
     hintContextualShortcuts:
       'Recuerda: «Volver a analizar» en cada fila de albarán/factura, «Mover a facturas», «Desde factura» / «Auto» / «Añadir» siguen en el listín.',
+    accessDeniedSubtitle: 'Esta pantalla no está disponible con tu sesión actual.',
+    accessDeniedBody:
+      'El Centro de operaciones está limitado al Admin Master (sin PIN de otro usuario activo) o al administrador técnico de sede. Si iniciaste sesión con el PIN de otra persona, abre el selector inferior y vuelve a entrar con tu perfil técnico.',
+    accessDeniedCtaSedi: 'Ir a Gestión de sedes',
+    accessDeniedCtaDashboard: 'Volver al panel',
   },
   common: { save: 'Guardar', cancel: 'Cancelar', delete: 'Eliminar', edit: 'Editar', new: 'Nuevo', loading: 'Cargando...', error: 'Error', success: 'Éxito', noData: 'Sin datos', document: 'Documento', actions: 'Acciones', date: 'Fecha', status: 'Estado', supplier: 'Proveedor', notes: 'Notas', phone: 'Teléfono', saving: 'Guardando...', attachment: 'Adjunto', openAttachment: 'Abrir adjunto', detail: 'Detalle', add: 'Añadir', rename: 'Renombrar', role: 'Rol', aiExtracted: 'Datos extraídos por IA', matched: 'Asociado', notMatched: 'No asociado', recordSupplierLinked: 'Vinculado', company: 'Empresa', invoiceNum: 'N.º Factura', documentRef: 'Referencia', total: 'Total', duplicateBadge: 'DUPLICADO', emailSyncAutoSavedBadge: 'Guardado automático', viewerZoomIn: 'Aumentar zoom', viewerZoomOut: 'Reducir zoom', viewerZoomReset: '100 %', viewerZoomHint: 'Ctrl + rueda o botones' },
   status: { inAttesa: 'Pendiente', completato: 'Completado', completata: 'Completada' },
@@ -5741,6 +5760,11 @@ const fr: Translations = {
     ocrAbbinamentiCta: 'Ouvrir l’onglet Rattachements',
     hintContextualShortcuts:
       'Les actions ligne par ligne (réanalyse OCR sur BL/facture), « Vers factures », « Import auto / depuis facture / Ajouter » restent dans le tarif.',
+    accessDeniedSubtitle: 'Écran indisponible avec votre session actuelle.',
+    accessDeniedBody:
+      'Le centre opérations est réservé à l’admin Master (sans PIN « autre utilisateur » actif) ou à l’admin technique du site. Si vous vous êtes connecté avec le PIN d’un autre profil, ouvrez le sélecteur en bas et reconnectez-vous avec votre profil technique.',
+    accessDeniedCtaSedi: 'Aller à la gestion des sites',
+    accessDeniedCtaDashboard: 'Retour au tableau de bord',
   },
   common: { save: 'Enregistrer', cancel: 'Annuler', delete: 'Supprimer', edit: 'Modifier', new: 'Nouveau', loading: 'Chargement...', error: 'Erreur', success: 'Succès', noData: 'Aucune donnée', document: 'Document', actions: 'Actions', date: 'Date', status: 'Statut', supplier: 'Fournisseur', notes: 'Notes', phone: 'Téléphone', saving: 'Enregistrement...', attachment: 'Pièce jointe', openAttachment: 'Ouvrir la pièce jointe', detail: 'Détail', add: 'Ajouter', rename: 'Renommer', role: 'Rôle', aiExtracted: 'Données extraites par IA', matched: 'Associé', notMatched: 'Non associé', recordSupplierLinked: 'Lié', company: 'Société', invoiceNum: 'N° Facture', documentRef: 'Référence', total: 'Total', duplicateBadge: 'DOUBLON', emailSyncAutoSavedBadge: 'Enregistrement automatique', viewerZoomIn: 'Zoom +', viewerZoomOut: 'Zoom −', viewerZoomReset: '100 %', viewerZoomHint: 'Ctrl + molette ou boutons' },
   status: { inAttesa: 'En attente', completato: 'Complété', completata: 'Complétée' },
@@ -6534,6 +6558,11 @@ const de: Translations = {
     ocrAbbinamentiCta: 'Zuordnungen öffnen',
     hintContextualShortcuts:
       'Hinweis: Zeilenaktionen „OCR neu“ auf Schein/Rechnung; Auto/Import/Hinzufügen bleiben auf der Preisliste.',
+    accessDeniedSubtitle: 'Diese Ansicht ist mit Ihrer aktuellen Anmeldung nicht verfügbar.',
+    accessDeniedBody:
+      'Der Operations-Hub ist nur für den Master-Admin (ohne aktiven PIN eines anderen Benutzers) oder den technischen Standort-Admin gedacht. Wenn Sie sich mit dem PIN eines anderen Nutzers angemeldet haben, öffnen Sie unten den Wechsler und melden Sie sich erneut mit Ihrem technischen Profil an.',
+    accessDeniedCtaSedi: 'Zur Standortverwaltung',
+    accessDeniedCtaDashboard: 'Zurück zum Dashboard',
   },
   common: { save: 'Speichern', cancel: 'Abbrechen', delete: 'Löschen', edit: 'Bearbeiten', new: 'Neu', loading: 'Laden...', error: 'Fehler', success: 'Erfolg', noData: 'Keine Daten', document: 'Dokument', actions: 'Aktionen', date: 'Datum', status: 'Status', supplier: 'Lieferant', notes: 'Notizen', phone: 'Telefon', saving: 'Speichern...', attachment: 'Anhang', openAttachment: 'Anhang öffnen', detail: 'Detail', add: 'Hinzufügen', rename: 'Umbenennen', role: 'Rolle', aiExtracted: 'KI-extrahierte Daten', matched: 'Zugeordnet', notMatched: 'Nicht zugeordnet', recordSupplierLinked: 'Verknüpft', company: 'Unternehmen', invoiceNum: 'Rechnungs-Nr.', documentRef: 'Referenz', total: 'Gesamt', duplicateBadge: 'DUPLIKAT', emailSyncAutoSavedBadge: 'Automatisch gespeichert', viewerZoomIn: 'Vergrößern', viewerZoomOut: 'Verkleinern', viewerZoomReset: '100 %', viewerZoomHint: 'Strg+Mausrad oder Tasten' },
   status: { inAttesa: 'Ausstehend', completato: 'Abgeschlossen', completata: 'Abgeschlossen' },

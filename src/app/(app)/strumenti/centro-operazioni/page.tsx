@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
-import { effectiveIsAdminTecnicoUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
+import { canAccessCentroOperazioniPage } from '@/lib/effective-operator-ui'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { BackButton } from '@/components/BackButton'
@@ -142,13 +142,11 @@ export default function CentroOperazioniPage() {
   const { t } = useLocale()
   const s = t.strumentiCentroOperazioni
   const d = t.dashboard
-  const { me } = useMe()
+  const { me, loading: meLoading } = useMe()
   const { activeOperator } = useActiveOperator()
   const { effectiveSedeId } = useManualDeliverySede()
 
-  const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
-  const isAdminTecnico = effectiveIsAdminTecnicoUi(me, activeOperator)
-  const canView = !!(masterPlane || isAdminTecnico)
+  const canView = canAccessCentroOperazioniPage(me, activeOperator)
 
   const [data, setData] = useState<DashboardPayload | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -310,8 +308,47 @@ export default function CentroOperazioniPage() {
     }
   }, [effectiveSedeId, s.historicSyncCompleted, s.historicSyncProgress, s.historicSyncResult])
 
+  if (meLoading) {
+    return (
+      <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} flex min-h-[40vh] items-center justify-center pb-10`}>
+        <p className="text-sm text-app-fg-muted">{t.common.loading}</p>
+      </div>
+    )
+  }
+
   if (!canView) {
-    return null
+    return (
+      <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
+        <div className="app-shell-page-padding mx-auto min-w-0 w-full max-w-[var(--app-layout-max-width)]">
+          <AppPageHeaderStrip
+            accent="teal"
+            leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+          >
+            <AppPageHeaderTitleWithDashboardShortcut>
+              <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
+              <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{s.accessDeniedSubtitle}</p>
+            </AppPageHeaderTitleWithDashboardShortcut>
+          </AppPageHeaderStrip>
+          <div className="mt-6 app-card overflow-hidden p-6">
+            <p className="m-0 text-sm leading-relaxed text-app-fg-muted">{s.accessDeniedBody}</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/strumenti/sedi"
+                className="inline-flex items-center justify-center rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18"
+              >
+                {s.accessDeniedCtaSedi}
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center rounded-lg border border-app-line-25 bg-white/[0.04] px-4 py-2.5 text-xs font-bold text-app-fg transition-colors hover:bg-white/[0.07]"
+              >
+                {s.accessDeniedCtaDashboard}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

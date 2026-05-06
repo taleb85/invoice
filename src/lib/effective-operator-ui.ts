@@ -64,15 +64,25 @@ export function effectiveIsAdminTecnicoUi(
   if (activeOperator) {
     const r = activeOperator.role
     if (r === 'admin_tecnico') return true
-    if (r === 'admin_sede' || r === 'operatore') return false
     const sameAsSession =
       Boolean(me.user?.id && activeOperator.id === me.user.id)
+    /** Profilo reale vince su `role` salvato nello storage (PIN legacy / dati obsoleti). */
+    if (sameAsSession && profileIsAdminTecnico) return true
+    if (r === 'admin_sede' || r === 'operatore') return false
     if (sameAsSession) {
       return profileIsAdminTecnico
     }
     return false
   }
   return profileIsAdminTecnico
+}
+
+/** Centro operazioni: solo piano master (senza PIN) o admin tecnico effettivo — non responsabile sede. */
+export function canAccessCentroOperazioniPage(
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'is_admin_tecnico' | 'user'> | null | undefined,
+  activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
+): boolean {
+  return effectiveIsMasterAdminPlane(me, activeOperator) || effectiveIsAdminTecnicoUi(me, activeOperator)
 }
 
 /**
