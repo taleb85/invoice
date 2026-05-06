@@ -42,41 +42,83 @@ function roleShortLabel(role: string | null, sedi: Translations['sedi']) {
 function SedeOperatorRowEditor({
   op,
   inputCls,
+  rowUid,
 }: {
   op: SedeOperatorRow
   inputCls: string
+  rowUid: string
 }) {
   const { t } = useLocale()
   const router = useRouter()
   const { me } = useMe()
 
   const displayLabel = op.full_name?.trim() || '—'
-  const isOperatore = String(op.role ?? '').toLowerCase() === 'operatore'
+  const savedRole = String(op.role ?? '').toLowerCase()
   const isSelf = Boolean(me?.user?.id && op.id === me.user.id)
+  const isMaster = me?.role === 'admin'
+  const canManageBranchUsers =
+    Boolean(me?.user?.id) && (isMaster || me?.is_admin_sede || me?.is_admin_tecnico)
+  const roleEditable = canManageBranchUsers && !isSelf
 
   const [nameDraft, setNameDraft] = useState(op.full_name?.trim() ?? '')
+  const [roleDraft, setRoleDraft] = useState(savedRole || 'operatore')
   useEffect(() => {
     setNameDraft(op.full_name?.trim() ?? '')
-  }, [op.full_name, op.id])
+    setRoleDraft(savedRole || 'operatore')
+  }, [op.full_name, op.id, savedRole])
 
   const normalizedSaved = (op.full_name ?? '').trim().toUpperCase()
   const normalizedDraft = nameDraft.trim().toUpperCase()
   const nameDirty = normalizedDraft !== normalizedSaved
+  const roleDirty = roleDraft !== savedRole
+  const rowDirty = nameDirty || roleDirty
 
-  const [nameSaving, setNameSaving] = useState(false)
-  const saveName = async () => {
-    const fn = nameDraft.trim().toUpperCase()
-    if (!fn) {
-      window.alert(t.sedi.operatorNameRequired)
-      return
+  const effectiveRole = roleDraft
+  const isOperatoreRow = effectiveRole === 'operatore'
+
+  const roleOptions: { value: string; label: string }[] = []
+  if (isMaster) {
+    roleOptions.push(
+      { value: 'operatore', label: t.sedi.operatoreRole },
+      { value: 'admin_sede', label: t.sedi.adminSedeRole },
+      { value: 'admin_tecnico', label: t.sedi.adminTecnicoRole },
+      { value: 'admin', label: t.sedi.profileRoleAdmin },
+    )
+  } else if (canManageBranchUsers) {
+    roleOptions.push(
+      { value: 'operatore', label: t.sedi.operatoreRole },
+      { value: 'admin_sede', label: t.sedi.adminSedeRole },
+      { value: 'admin_tecnico', label: t.sedi.adminTecnicoRole },
+    )
+  }
+
+  const compactPad = 'py-1.5 px-2.5 text-[11px] leading-tight'
+  const controlCls = `${inputCls} ${compactPad} min-h-0`
+  const selectCls = `${controlCls} w-[min(11rem,42vw)] shrink-0 cursor-pointer`
+
+  const [profileSaving, setProfileSaving] = useState(false)
+  const saveProfile = async () => {
+    if (!rowDirty) return
+    const body: { full_name?: string; role?: string } = {}
+    if (nameDirty) {
+      const fn = nameDraft.trim().toUpperCase()
+      if (!fn) {
+        window.alert(t.sedi.operatorNameRequired)
+        return
+      }
+      body.full_name = fn
     }
-    if (!nameDirty) return
-    setNameSaving(true)
+    if (roleDirty) {
+      if (!roleEditable) return
+      body.role = roleDraft
+    }
+    if (Object.keys(body).length === 0) return
+    setProfileSaving(true)
     try {
       const res = await fetch(`/api/profiles/${encodeURIComponent(op.id)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: fn }),
+        body: JSON.stringify(body),
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
@@ -85,7 +127,7 @@ function SedeOperatorRowEditor({
       }
       router.refresh()
     } finally {
-      setNameSaving(false)
+      setProfileSaving(false)
     }
   }
 
@@ -140,66 +182,87 @@ function SedeOperatorRowEditor({
   }
 
   const btnSecondary =
-    'inline-flex touch-manipulation items-center justify-center rounded-lg border border-app-line-35 bg-black/20 px-3 py-2 text-xs font-semibold text-app-fg transition-colors hover:border-app-a-45 hover:bg-black/30 disabled:opacity-45'
+    `inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg border border-app-line-35 bg-black/20 ${compactPad} font-semibold text-app-fg transition-colors hover:border-app-a-45 hover:bg-black/30 disabled:opacity-45`
   const btnDanger =
-    'inline-flex touch-manipulation items-center justify-center rounded-lg border border-rose-500/40 bg-rose-950/25 px-3 py-2 text-xs font-semibold text-rose-100 transition-colors hover:border-rose-400/55 hover:bg-rose-950/40 disabled:opacity-45'
+    `inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg border border-rose-500/40 bg-rose-950/25 ${compactPad} font-semibold text-rose-100 transition-colors hover:border-rose-400/55 hover:bg-rose-950/40 disabled:opacity-45`
   const btnPrimary =
-    'inline-flex touch-manipulation items-center justify-center rounded-lg bg-app-cyan-500 px-3 py-2 text-xs font-bold text-cyan-950 shadow-sm transition-colors hover:bg-app-cyan-400 disabled:opacity-50'
+    `inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg bg-app-cyan-500 ${compactPad} font-bold text-cyan-950 shadow-sm transition-colors hover:bg-app-cyan-400 disabled:opacity-50`
+
+  const knownRoleValues = new Set(roleOptions.map((o) => o.value))
 
   return (
-    <li className="rounded-lg border border-app-line-20 bg-black/15 px-3 py-3 text-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
-        <div className="min-w-0 flex-1 space-y-1">
-          <label className="block text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
-            {t.sedi.operatorDisplayNameLabel}
-          </label>
-          <input
-            value={nameDraft}
-            onChange={(e) => setNameDraft(e.target.value.toUpperCase())}
-            className={inputCls}
-            autoComplete="off"
-          />
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              type="button"
-              disabled={nameSaving || !nameDirty}
-              onClick={() => void saveName()}
-              className={btnPrimary}
-            >
-              {nameSaving ? t.common.loading : t.common.save}
-            </button>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-          <span className="self-start rounded-md bg-app-line-15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+    <li className="rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
+      <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch]">
+        <input
+          id={`${rowUid}-name`}
+          value={nameDraft}
+          onChange={(e) => setNameDraft(e.target.value.toUpperCase())}
+          className={`${controlCls} min-w-[7rem] flex-1`}
+          autoComplete="off"
+          placeholder={t.sedi.operatorDisplayNameLabel}
+          aria-label={t.sedi.operatorDisplayNameLabel}
+        />
+        {roleOptions.length > 0 ? (
+          <select
+            id={`${rowUid}-role`}
+            value={roleDraft}
+            disabled={!roleEditable}
+            onChange={(e) => setRoleDraft(e.target.value)}
+            className={selectCls}
+            aria-label={t.common.role}
+          >
+            {!knownRoleValues.has(roleDraft) && roleDraft ? (
+              <option value={roleDraft}>{roleShortLabel(roleDraft, t.sedi)}</option>
+            ) : null}
+            {roleOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span
+            className={`inline-flex shrink-0 items-center rounded-lg border border-app-line-25 bg-app-line-15 ${compactPad} font-semibold text-app-fg-muted`}
+          >
             {roleShortLabel(op.role, t.sedi)}
           </span>
-          {isOperatore && !isSelf ? (
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className={btnSecondary} onClick={() => setPinOpen((o) => !o)}>
-                {t.sedi.changePinTitle}
-              </button>
-              <button
-                type="button"
-                className={btnDanger}
-                disabled={delBusy}
-                onClick={() => void deleteOperator()}
-              >
-                {delBusy ? t.common.loading : t.sedi.deleteTitle}
-              </button>
-            </div>
-          ) : null}
-        </div>
+        )}
+        <button
+          type="button"
+          disabled={profileSaving || !rowDirty}
+          onClick={() => void saveProfile()}
+          className={btnPrimary}
+        >
+          {profileSaving ? t.common.loading : t.common.save}
+        </button>
+        {isOperatoreRow && !isSelf ? (
+          <>
+            <button type="button" className={btnSecondary} onClick={() => setPinOpen((o) => !o)}>
+              {t.sedi.changePinTitle}
+            </button>
+            <button
+              type="button"
+              className={btnDanger}
+              disabled={delBusy}
+              onClick={() => void deleteOperator()}
+            >
+              {delBusy ? t.common.loading : t.sedi.deleteTitle}
+            </button>
+          </>
+        ) : null}
       </div>
-      {isOperatore && !isSelf && pinOpen ? (
-        <div className="mt-3 space-y-2 border-t border-app-line-18 pt-3">
-          <label className="block text-xs text-app-fg-muted">{t.sedi.newPinFor.replace('{name}', displayLabel)}</label>
-          <div className="flex flex-wrap items-end gap-2">
+      {isOperatoreRow && !isSelf && pinOpen ? (
+        <div className="mt-2 space-y-2 border-t border-app-line-18 pt-2">
+          <label className="block text-xs text-app-fg-muted" htmlFor={`${rowUid}-pin`}>
+            {t.sedi.newPinFor.replace('{name}', displayLabel)}
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
             <input
+              id={`${rowUid}-pin`}
               type="password"
               value={pinDraft}
               onChange={(e) => setPinDraft(e.target.value)}
-              className={`${inputCls} max-w-[12rem]`}
+              className={`${controlCls} max-w-[12rem]`}
               autoComplete="new-password"
             />
             <button type="button" disabled={pinSaving} onClick={() => void savePin()} className={btnPrimary}>
@@ -606,7 +669,7 @@ export default function SedeBranchManagementPanel({
             ) : (
               <ul className="mb-5 space-y-2">
                 {operators.map((op) => (
-                  <SedeOperatorRowEditor key={op.id} op={op} inputCls={inputCls} />
+                  <SedeOperatorRowEditor key={op.id} op={op} inputCls={inputCls} rowUid={`${uid}-op-${op.id}`} />
                 ))}
               </ul>
             )}

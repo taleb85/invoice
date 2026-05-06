@@ -255,7 +255,7 @@ export default function SediPage() {
     else setLoading(false)
   }, [canView, loadSedi])
 
-  const retentionToggleEnabled = FILE_ATTACHMENT_RETENTION_UI_ENABLED && canView
+  const retentionToggleEnabled = FILE_ATTACHMENT_RETENTION_UI_ENABLED && masterPlane
 
   if (!canView) return null
 
