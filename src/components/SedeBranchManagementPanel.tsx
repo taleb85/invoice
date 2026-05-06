@@ -55,10 +55,11 @@ function SedeOperatorRowEditor({
   const displayLabel = op.full_name?.trim() || '—'
   const savedRole = String(op.role ?? '').toLowerCase()
   const isSelf = Boolean(me?.user?.id && op.id === me.user.id)
-  const isMaster = me?.role === 'admin'
+  const isMaster = Boolean(me?.is_admin)
   const canManageBranchUsers =
     Boolean(me?.user?.id) && (isMaster || me?.is_admin_sede || me?.is_admin_tecnico)
-  const roleEditable = canManageBranchUsers && !isSelf
+  /** PIN/Elimina restano off limits sulla propria riga; ruolo e nome sì (API permette PATCH sul proprio profilo in sede). */
+  const roleEditable = canManageBranchUsers
 
   const [nameDraft, setNameDraft] = useState(op.full_name?.trim() ?? '')
   const [roleDraft, setRoleDraft] = useState(savedRole || 'operatore')
@@ -92,9 +93,9 @@ function SedeOperatorRowEditor({
     )
   }
 
-  const compactPad = 'py-1.5 px-2.5 text-[11px] leading-tight'
+  const compactPad = 'py-1 px-2 text-[10px] leading-tight'
   const controlCls = `${inputCls} ${compactPad} min-h-0`
-  const selectCls = `${controlCls} w-[min(11rem,42vw)] shrink-0 cursor-pointer`
+  const selectCls = `${controlCls} min-h-[30px] min-w-0 w-auto max-w-[min(28vw,9.75rem)] shrink cursor-pointer sm:max-w-[11rem]`
 
   const [profileSaving, setProfileSaving] = useState(false)
   const saveProfile = async () => {
@@ -182,22 +183,22 @@ function SedeOperatorRowEditor({
   }
 
   const btnSecondary =
-    `inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg border border-app-line-35 bg-black/20 ${compactPad} font-semibold text-app-fg transition-colors hover:border-app-a-45 hover:bg-black/30 disabled:opacity-45`
+    `inline-flex max-w-full shrink-0 touch-manipulation items-center justify-center whitespace-nowrap rounded-md border border-app-line-35 bg-black/20 ${compactPad} font-semibold text-app-fg transition-colors hover:border-app-a-45 hover:bg-black/30 disabled:opacity-45`
   const btnDanger =
-    `inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg border border-rose-500/40 bg-rose-950/25 ${compactPad} font-semibold text-rose-100 transition-colors hover:border-rose-400/55 hover:bg-rose-950/40 disabled:opacity-45`
+    `inline-flex max-w-full shrink-0 touch-manipulation items-center justify-center whitespace-nowrap rounded-md border border-rose-500/40 bg-rose-950/25 ${compactPad} font-semibold text-rose-100 transition-colors hover:border-rose-400/55 hover:bg-rose-950/40 disabled:opacity-45`
   const btnPrimary =
-    `inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg bg-app-cyan-500 ${compactPad} font-bold text-cyan-950 shadow-sm transition-colors hover:bg-app-cyan-400 disabled:opacity-50`
+    `inline-flex shrink-0 touch-manipulation items-center justify-center whitespace-nowrap rounded-md bg-app-cyan-500 ${compactPad} font-bold text-cyan-950 shadow-sm transition-colors hover:bg-app-cyan-400 disabled:opacity-50`
 
   const knownRoleValues = new Set(roleOptions.map((o) => o.value))
 
   return (
-    <li className="rounded-lg border border-app-line-20 bg-black/15 px-2 py-1.5 text-sm">
-      <div className="flex min-w-0 flex-wrap items-center gap-2 pb-0.5">
+    <li className="rounded-lg border border-app-line-20 bg-black/15 px-1.5 py-1 text-sm">
+      <div className="flex min-w-0 flex-nowrap items-center gap-1 sm:gap-1.5">
         <input
           id={`${rowUid}-name`}
           value={nameDraft}
           onChange={(e) => setNameDraft(e.target.value.toUpperCase())}
-          className={`${controlCls} min-w-[7rem] flex-1`}
+          className={`${controlCls} min-h-[30px] min-w-0 flex-1 basis-0`}
           autoComplete="off"
           placeholder={t.sedi.operatorDisplayNameLabel}
           aria-label={t.sedi.operatorDisplayNameLabel}
@@ -222,7 +223,7 @@ function SedeOperatorRowEditor({
           </select>
         ) : (
           <span
-            className={`inline-flex shrink-0 items-center rounded-lg border border-app-line-25 bg-app-line-15 ${compactPad} font-semibold text-app-fg-muted`}
+            className={`inline-flex min-h-[30px] shrink-0 items-center rounded-md border border-app-line-25 bg-app-line-15 ${compactPad} font-semibold text-app-fg-muted`}
           >
             {roleShortLabel(op.role, t.sedi)}
           </span>
@@ -616,7 +617,7 @@ export default function SedeBranchManagementPanel({
       </div>
 
       {/* Operatori — cassetto */}
-      <div id="sede-operatori" className="scroll-mt-24 app-card overflow-hidden">
+      <div id="sede-operatori" className="scroll-mt-24 app-card !overflow-visible">
         <button
           type="button"
           id={opToggleId}
