@@ -61,6 +61,7 @@ async function finalizePendingByTipo(
   if (
     tipo !== 'bolla' &&
     tipo !== 'fattura' &&
+    tipo !== 'nota_credito' &&
     tipo !== 'statement' &&
     tipo !== 'ordine' &&
     tipo !== 'listino'
@@ -70,12 +71,13 @@ async function finalizePendingByTipo(
   if (
     tipo !== 'bolla' &&
     tipo !== 'fattura' &&
+    tipo !== 'nota_credito' &&
     tipo !== 'statement' &&
     tipo !== 'ordine' &&
     tipo !== 'listino'
   ) {
     return NextResponse.json(
-      { error: 'Imposta il tipo di documento (estratto, bolla, fattura, listino o ordine).' },
+      { error: 'Imposta il tipo di documento (estratto, bolla, fattura, nota credito, listino o ordine).' },
       { status: 400 },
     )
   }
@@ -108,7 +110,7 @@ async function finalizePendingByTipo(
     )
   }
 
-  if (tipo === 'fattura') {
+  if (tipo === 'fattura' || tipo === 'nota_credito') {
     const numeroNorm =
       typeof m.numero_fattura === 'string' && m.numero_fattura.trim()
         ? normalizeNumeroFattura(m.numero_fattura)
@@ -193,10 +195,10 @@ async function finalizePendingByTipo(
     await recordLearnedKindFromDocMetadata(supabase, {
       fornitoreId: doc.fornitore_id,
       metadata: doc.metadata,
-      pendingKind: 'fattura',
+      pendingKind: isCreditNote ? 'nota_credito' : 'fattura',
     })
     // Fire-and-forget: check price anomalies (solo documenti fiscali, non listino comunicazioni prezzi)
-    if (tipo === 'fattura' && fattura.id && doc.fornitore_id) {
+    if (fattura.id && doc.fornitore_id) {
       const baseUrl =
         (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
       fetch(`${baseUrl}/api/price-anomalies/check`, {
