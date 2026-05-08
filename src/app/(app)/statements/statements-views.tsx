@@ -23,6 +23,7 @@ import {
   resolveBolleMatchForPendingInvoice,
 } from '@/lib/auto-resolve-pending-doc'
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
@@ -343,7 +344,11 @@ function normalizeOcrCompanyKey(s: string | null | undefined): string {
 /** Nessun chip tipo ancora persistito (né flag estratto legacy). */
 function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>): boolean {
   const pk = doc.metadata?.pending_kind
-  if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return false
+  if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'ordine') {
+    // Se pending_kind è 'fattura' ma il tipo documento OCR dice 'nota_credito', va ri-sincronizzato
+    if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === 'nota_credito') return true
+    return false
+  }
   if (statementDocs.has(doc.id) || doc.is_statement) return false
   return true
 }

@@ -141,6 +141,7 @@ function tipoFromQueueRow(opts: {
     })
     if (inferred === 'statement') return 'statement'
     if (inferred === 'fattura') return 'invoice'
+    if (inferred === 'nota_credito') return 'invoice'
     if (inferred === 'bolla') return 'ddt'
     if (inferred === 'ordine') return 'ordine'
 

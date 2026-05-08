@@ -197,7 +197,7 @@ export function inferPendingDocumentKindForQueueRow(opts: {
       }
     | null
     | undefined
-}): 'statement' | 'bolla' | 'fattura' | 'ordine' | null {
+}): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null {
   const md = opts.metadata
   const ocrForScan = {
     ragione_sociale: md?.ragione_sociale,
@@ -214,7 +214,8 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
   if (tipo === 'curriculum' || tipo === 'comunicazione_cliente') return null
   if (tipo === 'bolla') return 'bolla'
-  if (tipo === 'fattura' || tipo === 'nota_credito') return 'fattura'
+  if (tipo === 'fattura') return 'fattura'
+  if (tipo === 'nota_credito') return 'nota_credito'
 
   const ctxFat = scanContextSuggestsFattura(opts.oggetto_mail, opts.file_name)
   const ctxBol = scanContextSuggestsBolla(opts.oggetto_mail, opts.file_name)
