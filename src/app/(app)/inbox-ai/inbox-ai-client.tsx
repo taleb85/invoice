@@ -481,9 +481,12 @@ export default function InboxAiClient(props: {
             typeof s.azione_consigliata === 'string'
               ? s.azione_consigliata.trim().slice(0, 220)
               : null
+          const row = workingDocs.find((d) => d.id === s.doc_id)
           return {
             doc_id: s.doc_id,
             file_label: snapshotFileById.get(s.doc_id) ?? '—',
+            fornitore_nome: row?.fornitore?.nome ?? null,
+            file_url: row?.file_url ?? null,
             tipo_suggerito: tipo || '—',
             confidenza: suggestionConf01(s),
             outcome,
@@ -955,6 +958,9 @@ export default function InboxAiClient(props: {
                           <thead className="text-[10px] uppercase tracking-wide text-app-fg-muted">
                             <tr>
                               <th className="border-b border-white/10 pb-1 pe-3 font-semibold">
+                                {t.log.activityColSupplier}
+                              </th>
+                              <th className="border-b border-white/10 pb-1 pe-3 font-semibold">
                                 {t.log.inboxGeminiHistoryColFile}
                               </th>
                               <th className="border-b border-white/10 pb-1 pe-3 font-semibold">
@@ -971,13 +977,26 @@ export default function InboxAiClient(props: {
                           <tbody>
                             {run.lines.map((ln) => (
                               <tr key={ln.doc_id} className="align-top text-app-fg/95">
-                                <td className="max-w-[9rem] border-b border-white/[0.06] py-1.5 pe-3 sm:max-w-[16rem]">
+                                <td className="max-w-[7rem] border-b border-white/[0.06] py-1.5 pe-3 sm:max-w-[10rem]">
+                                  <span className="line-clamp-2 break-words">{ln.fornitore_nome ?? '—'}</span>
+                                </td>
+                                <td className="max-w-[8rem] border-b border-white/[0.06] py-1.5 pe-3 sm:max-w-[12rem]">
                                   <span className="line-clamp-2 break-words" title={ln.file_label}>
                                     {ln.file_label}
                                   </span>
                                   <span className="block font-mono text-[9px] text-app-fg-muted/90">
                                     {ln.doc_id.slice(0, 8)}…
                                   </span>
+                                  {ln.file_url ? (
+                                    <a
+                                      href={ln.file_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="mt-0.5 inline-block text-[10px] font-semibold text-cyan-400/95 hover:text-cyan-300 hover:underline"
+                                    >
+                                      {t.log.activityOpenDocument} →
+                                    </a>
+                                  ) : null}
                                 </td>
                                 <td className="border-b border-white/[0.06] py-1.5 pe-3">
                                   <span className="line-clamp-2 break-words">{ln.tipo_suggerito}</span>

@@ -14,6 +14,8 @@ export type InboxGeminiHistoryOutcome =
 export type InboxGeminiHistoryLine = {
   doc_id: string
   file_label: string
+  fornitore_nome: string | null
+  file_url: string | null
   tipo_suggerito: string
   confidenza: number
   outcome: InboxGeminiHistoryOutcome
