@@ -89,7 +89,7 @@ type OcrMetadata = {
   tipo_documento?:    'fattura' | 'bolla' | 'altro' | null
   note_corpo_mail?:   string | null
   /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
-  pending_kind?:      'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null
+  pending_kind?:      'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | 'listino' | null
   /** Scansione email: fattura già presente in archivio */
   duplicate_skipped_fattura_id?: string | null
   bozza_id?:          string | null
@@ -344,9 +344,10 @@ function normalizeOcrCompanyKey(s: string | null | undefined): string {
 /** Nessun chip tipo ancora persistito (né flag estratto legacy). */
 function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>): boolean {
   const pk = doc.metadata?.pending_kind
-  if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'ordine') {
-    // Se pending_kind è 'fattura' ma il tipo documento OCR dice 'nota_credito', va ri-sincronizzato
+  if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'ordine' || pk === 'listino') {
+    // Se pending_kind è in conflitto col tipo documento OCR, va ri-sincronizzato
     if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === 'nota_credito') return true
+    if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === 'altro') return true
     return false
   }
   if (statementDocs.has(doc.id) || doc.is_statement) return false
@@ -1084,14 +1085,57 @@ export function PendingMatchesTab({
     const out = new Map<string, { id: string; nome_azienda: string }>()
     for (const d of docs) {
       if (d.fornitore_id) continue
+
+      // 1. Match esatto per ragione sociale
       const ragSoc = (d.metadata?.ragione_sociale ?? '').trim().toLowerCase()
       if (ragSoc && potenzialiFornitori[ragSoc]) {
         out.set(d.id, { id: potenzialiFornitori[ragSoc].id, nome_azienda: potenzialiFornitori[ragSoc].nome_azienda })
         continue
       }
+
+      // 2. Match esatto per email mittente
       const mittente = (d.mittente ?? '').trim().toLowerCase()
       if (mittente && potenzialiFornitori[mittente]) {
         out.set(d.id, { id: potenzialiFornitori[mittente].id, nome_azienda: potenzialiFornitori[mittente].nome_azienda })
+        continue
+      }
+
+      // 3. Match parziale ragione sociale: il nome del fornitore potenziale è contenuto nella ragione sociale OCR
+      if (ragSoc) {
+        for (const [key, val] of Object.entries(potenzialiFornitori)) {
+          const nome = val.nome_azienda.toLowerCase().trim()
+          if (ragSoc.includes(nome) || nome.includes(ragSoc)) {
+            out.set(d.id, { id: val.id, nome_azienda: val.nome_azienda })
+            break
+          }
+        }
+        if (out.has(d.id)) continue
+      }
+
+      // 4. Match per dominio email (mittente contiene @dominio del fornitore potenziale)
+      if (mittente && mittente.includes('@')) {
+        const mittDomain = mittente.split('@')[1]
+        for (const [, val] of Object.entries(potenzialiFornitori)) {
+          if (val.email_contatto) {
+            const potDomain = val.email_contatto.toLowerCase().trim().split('@')[1]
+            if (potDomain && mittDomain === potDomain) {
+              out.set(d.id, { id: val.id, nome_azienda: val.nome_azienda })
+              break
+            }
+          }
+        }
+        if (out.has(d.id)) continue
+      }
+
+      // 5. Ragione sociale OCR inizia con lo stesso nome del fornitore potenziale
+      if (ragSoc) {
+        for (const [, val] of Object.entries(potenzialiFornitori)) {
+          const nome = val.nome_azienda.toLowerCase().trim()
+          if (ragSoc.startsWith(nome) || nome.startsWith(ragSoc.split(' ')[0])) {
+            out.set(d.id, { id: val.id, nome_azienda: val.nome_azienda })
+            break
+          }
+        }
       }
     }
     return out

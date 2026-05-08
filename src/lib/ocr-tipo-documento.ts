@@ -7,6 +7,7 @@ export type NormalizedTipoDocumento =
   | 'fattura'
   | 'nota_credito'
   | 'bolla'
+  | 'listino'
   | 'altro'
   | 'curriculum'
   | 'comunicazione_cliente'
@@ -101,6 +102,7 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     return 'fattura'
   }
   if (s === 'bolla' || s === 'ddt' || s === 'delivery' || s === 'delivery_note' || s === 'lieferschein' || s === 'albaran') return 'bolla'
+  if (s === 'listino' || s === 'listino_prezzi' || s === 'price_list' || s === 'catalogue' || s === 'catalog') return 'listino'
   if (
     s === 'altro' ||
     s === 'other' ||

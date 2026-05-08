@@ -88,6 +88,7 @@ export function shouldMigrateBollaRowToFattura(params: {
       | 'fattura'
       | 'nota_credito'
       | 'bolla'
+      | 'listino'
       | 'altro'
       | 'curriculum'
       | 'comunicazione_cliente'

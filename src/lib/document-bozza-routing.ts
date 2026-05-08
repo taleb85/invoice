@@ -180,6 +180,26 @@ export function scanContextSuggestsBolla(
   )
 }
 
+export function scanContextSuggestsListino(
+  subject: string | null | undefined,
+  fileName: string | null | undefined,
+): boolean {
+  const blob = `${subject ?? ''}\n${fileName ?? ''}`.toLowerCase().replace(/[_.\-]/g, ' ')
+  if (!blob.trim()) return false
+  return (
+    /\blistino\b/.test(blob) ||
+    /\bprice\s*list\b/.test(blob) ||
+    /\bpricelist\b/.test(blob) ||
+    /\bcatalogue?\b/.test(blob) ||
+    /\bcatalog\b/.test(blob) ||
+    /\bmenu\b/.test(blob) ||
+    /\bwine\s*list\b/.test(blob) ||
+    /\btariffa\b/.test(blob) ||
+    /\btariffs?\b/.test(blob) ||
+    /\b(price|prezzi)\s*(update|list|sheet)\b/.test(blob)
+  )
+}
+
 /**
  * Categoria documento per la coda “Da confermare” quando `metadata.pending_kind` non è ancora impostato.
  * Allineato alle euristiche di scan-email + tipo OCR; `null` se ambiguo (l’utente sceglie il chip).
@@ -197,7 +217,7 @@ export function inferPendingDocumentKindForQueueRow(opts: {
       }
     | null
     | undefined
-}): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null {
+}): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | 'listino' | null {
   const md = opts.metadata
   const ocrForScan = {
     ragione_sociale: md?.ragione_sociale,
@@ -216,6 +236,10 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   if (tipo === 'bolla') return 'bolla'
   if (tipo === 'fattura') return 'fattura'
   if (tipo === 'nota_credito') return 'nota_credito'
+  if (tipo === 'listino') return 'listino'
+
+  // Se il tipo documento non è riconosciuto ma nome file/oggetto suggerisce listino
+  if (scanContextSuggestsListino(opts.oggetto_mail, opts.file_name)) return 'listino'
 
   const ctxFat = scanContextSuggestsFattura(opts.oggetto_mail, opts.file_name)
   const ctxBol = scanContextSuggestsBolla(opts.oggetto_mail, opts.file_name)
