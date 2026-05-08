@@ -23,6 +23,8 @@ export const iconAccentClass = {
   success: 'text-green-400',
   /** Dashboard home / panoramica (uso nav principale). */
   home: 'text-teal-400',
+  /** Listino / prezzi */
+  listino: 'text-cyan-400',
 } as const
 
 export type IconAccentClassKey = keyof typeof iconAccentClass

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isMasterAdminRole } from '@/lib/roles'
+import { isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,7 @@ function startOfUtcDay(d: Date): string {
 
 export async function GET() {
   const profile = await getProfile()
-  if (!isMasterAdminRole(profile?.role)) {
+  if (!isSedePrivilegedRole(profile?.role)) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
 

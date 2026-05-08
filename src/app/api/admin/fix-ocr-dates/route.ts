@@ -11,6 +11,7 @@ import {
   bollaNeedsOcrPass,
   fatturaNeedsOcrPass,
   shouldMigrateBollaRowToFattura,
+  normalizeNumeroBolla,
 } from '@/lib/fix-ocr-dates-helpers'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 
@@ -570,7 +571,7 @@ export async function POST(req: NextRequest) {
         } else {
           /** Rianalizza su singola bolla: applica di nuovo numero/importo da OCR (non solo se vuoti). */
           const isForcedBolla = Boolean(bollaIdForce && b.id === bollaIdForce)
-          const numRaw = ocr.numero_fattura?.trim() ?? ''
+          const numRaw = normalizeNumeroBolla(ocr.numero_fattura) ?? ''
           const ocrNum = numRaw ? (numRaw.length > 200 ? numRaw.slice(0, 200) : numRaw) : null
           const hasNum = Boolean(b.numero_bolla?.trim())
           const hasImp = b.importo != null && !Number.isNaN(Number(b.importo))

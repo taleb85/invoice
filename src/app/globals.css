@@ -601,6 +601,15 @@
     box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
+  /** Context menu (tasto destro): sfondo completamente opaco per leggibilità. */
+  .app-workspace-surface-elevated[data-fluxo-context-menu] {
+    background: linear-gradient(
+      to bottom right,
+      rgb(15 23 42),
+      rgb(30 27 75)
+    ) !important;
+  }
+
   /** Popup «Sincronizza email»: fill più coprente del default elevated. */
   .app-workspace-surface-elevated[data-fluxo-email-sync-popover] {
     background: linear-gradient(
@@ -1519,6 +1528,15 @@ body:has([data-deep-aurora-integration])
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
+}
+
+/** Pannello duplicati in overlay: più coprente del default elevated in assenza di Aurora. */
+.app-aurora-modal-overlay > .app-workspace-surface-elevated {
+  background: linear-gradient(
+    to bottom right,
+    rgb(15 23 42 / 0.97),
+    rgb(30 27 75 / 0.93)
+  );
 }
 
 /** Anteprima documento duplicati: superficie sempre opaca (`app-card` generica resta soggetta a override tema). */

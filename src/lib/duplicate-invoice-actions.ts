@@ -1,35 +1,18 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+export type DuplicateTable = 'fatture' | 'bolle' | 'conferme_ordine'
+
 /**
- * Elimina una sola riga `fatture` per ID (copia duplicata).
+ * Elimina una riga duplicata per ID dalla tabella specificata.
  * La conferma va gestita dal chiamante (es. `window.confirm`).
  */
-export async function deleteDuplicateInvoice(
+export async function deleteDuplicateRow(
   supabase: SupabaseClient,
-  fatturaId: string
+  table: DuplicateTable,
+  id: string
 ): Promise<{ error: string | null }> {
-  const id = fatturaId?.trim()
-  if (!id) return { error: 'ID mancante' }
-  const { error } = await supabase.from('fatture').delete().eq('id', id)
-  return { error: error?.message ?? null }
-}
-
-export async function deleteDuplicateBolla(
-  supabase: SupabaseClient,
-  bollaId: string
-): Promise<{ error: string | null }> {
-  const id = bollaId?.trim()
-  if (!id) return { error: 'ID mancante' }
-  const { error } = await supabase.from('bolle').delete().eq('id', id)
-  return { error: error?.message ?? null }
-}
-
-export async function deleteDuplicateOrdine(
-  supabase: SupabaseClient,
-  ordineId: string
-): Promise<{ error: string | null }> {
-  const id = ordineId?.trim()
-  if (!id) return { error: 'ID mancante' }
-  const { error } = await supabase.from('conferme_ordine').delete().eq('id', id)
+  const trimmed = id?.trim()
+  if (!trimmed) return { error: 'ID mancante' }
+  const { error } = await supabase.from(table).delete().eq('id', trimmed)
   return { error: error?.message ?? null }
 }

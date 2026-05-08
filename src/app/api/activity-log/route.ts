@@ -84,7 +84,7 @@ export async function GET(req: NextRequest) {
     q = q.or(`entity_id.eq.${fornitoreIdParam},metadata.cs.${containsFornitore}`) as typeof q
   }
 
-  const { data, count, error } = await q
+  const { data, count, error } = await q.returns<RawRow[]>()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     sedi: { nome: string | null } | null
   }
 
-  const activities: ActivityLogRow[] = ((data ?? []) as unknown as RawRow[]).map((row) => ({
+  const activities: ActivityLogRow[] = (data ?? []).map((row) => ({
     id: row.id,
     action: row.action,
     actionLabel: activityLabel(row.action as ActivityAction),

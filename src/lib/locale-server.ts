@@ -9,10 +9,11 @@ import {
   CURRENCY_COOKIE,
   TIMEZONE_COOKIE,
   formatDate,
+  formatDateTime,
   formatCurrency,
 } from './locale-shared'
 
-export { LOCALE_COOKIE, CURRENCY_COOKIE, TIMEZONE_COOKIE, formatDate, formatCurrency }
+export { LOCALE_COOKIE, CURRENCY_COOKIE, TIMEZONE_COOKIE, formatDate, formatDateTime, formatCurrency }
 
 export async function getLocale(): Promise<Locale> {
   const store = await getCookieStore()
@@ -34,7 +35,7 @@ export async function getTimezone(): Promise<string> {
 
 export async function getT() {
   const locale = await getLocale()
-  return getTranslations(locale)
+  return await getTranslations(locale)
 }
 
 /** Effective sede_id: solo per Admin Master usa il cookie `admin-sede-id`. */

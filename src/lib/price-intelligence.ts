@@ -1,0 +1,326 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
+export type PriceTrend = {
+  prodotto: string
+  fornitore_id: string
+  fornitore_nome: string
+  prezzo_attuale: number
+  prezzo_precedente: number | null
+  variazione_percent: number | null
+  direzione: 'up' | 'down' | 'stable' | null
+  data_ultimo: string
+  data_precedente: string | null
+  num_rilevazioni: number
+  volatilita: number
+}
+
+export type PriceAnomalia = {
+  prodotto: string
+  fornitore_id: string
+  fornitore_nome: string
+  tipo: 'spike' | 'drop' | 'inflazione' | 'sotto_costo' | 'margine_ridotto'
+  gravita: 'alta' | 'media' | 'bassa'
+  prezzo_attuale: number
+  prezzo_riferimento: number
+  delta_percent: number
+  data: string
+  descrizione: string
+}
+
+export type Raccomandazione = {
+  tipo: 'rinnovo' | 'rinnovo_urgente' | 'ricontrattazione' | 'approfondimento' | 'opportunita' | 'alert'
+  prodotto: string
+  fornitore_id: string
+  fornitore_nome: string | null
+  titolo: string
+  descrizione: string
+  priorita: 'alta' | 'media' | 'bassa'
+  impatto_stimato: number | null
+}
+
+export type SupplierPriceHealth = {
+  fornitore_id: string
+  fornitore_nome: string
+  prodotti_analizzati: number
+  trend_complessivo: number
+  volatilita_media: number
+  anomalie_attive: number
+  raccomandazioni_attive: number
+  punteggio_salute: number
+  data_ultimo_aggiornamento: string | null
+}
+
+export type PriceIntelligenceReport = {
+  fornitore_id: string
+  fornitore_nome: string
+  data_analisi: string
+  trends: PriceTrend[]
+  anomalie: PriceAnomalia[]
+  raccomandazioni: Raccomandazione[]
+  salute: SupplierPriceHealth
+  riepilogo: {
+    totale_prodotti: number
+    in_aumento: number
+    in_calo: number
+    stabili: number
+    anomalie_critiche: number
+    raccomandazioni_alte: number
+    risparmio_potenziale: number
+  }
+}
+
+type PriceRow = {
+  id: string
+  fornitore_id: string
+  prodotto: string
+  prezzo: number
+  data_prezzo: string
+  note: string | null
+  fornitori?: { nome: string; display_name?: string | null } | { nome: string; display_name?: string | null }[]
+}
+
+function calcVolatility(prices: number[]): number {
+  if (prices.length < 3) return 0
+  const mean = prices.reduce((a, b) => a + b, 0) / prices.length
+  const variance = prices.reduce((a, b) => a + (b - mean) ** 2, 0) / prices.length
+  return Math.sqrt(variance) / mean
+}
+
+function detectDirection(variazioni: number[]): 'up' | 'down' | 'stable' | null {
+  if (variazioni.length === 0) return null
+  const avg = variazioni.reduce((a, b) => a + b, 0) / variazioni.length
+  if (avg > 0.03) return 'up'
+  if (avg < -0.03) return 'down'
+  return 'stable'
+}
+
+export async function analyzeSupplierPriceTrends(
+  supabase: SupabaseClient,
+  fornitoreId: string,
+): Promise<PriceIntelligenceReport> {
+  const { data: rows, error } = await supabase
+    .from('listino_prezzi')
+    .select('id, fornitore_id, prodotto, prezzo, data_prezzo, note, fornitori(nome, display_name)')
+    .eq('fornitore_id', fornitoreId)
+    .order('data_prezzo', { ascending: true })
+
+  if (error || !rows?.length) {
+    const fornitoreNome = ''
+    const { data: f } = await supabase.from('fornitori').select('nome').eq('id', fornitoreId).maybeSingle()
+    return {
+      fornitore_id: fornitoreId,
+      fornitore_nome: (f as { nome?: string } | null)?.nome ?? 'Sconosciuto',
+      data_analisi: new Date().toISOString().slice(0, 10),
+      trends: [],
+      anomalie: [],
+      raccomandazioni: [],
+      salute: {
+        fornitore_id: fornitoreId,
+        fornitore_nome: (f as { nome?: string } | null)?.nome ?? 'Sconosciuto',
+        prodotti_analizzati: 0,
+        trend_complessivo: 0,
+        volatilita_media: 0,
+        anomalie_attive: 0,
+        raccomandazioni_attive: 0,
+        punteggio_salute: 50,
+        data_ultimo_aggiornamento: null,
+      },
+      riepilogo: {
+        totale_prodotti: 0, in_aumento: 0, in_calo: 0, stabili: 0,
+        anomalie_critiche: 0, raccomandazioni_alte: 0, risparmio_potenziale: 0,
+      },
+    }
+  }
+
+  const rawRows = rows as PriceRow[]
+  const fornitoreNome = rawRows[0]?.fornitori
+    ? (Array.isArray(rawRows[0].fornitori)
+        ? rawRows[0].fornitori[0]?.nome
+        : (rawRows[0].fornitori as { nome: string; display_name?: string | null }).nome)
+    : 'Sconosciuto'
+
+  const prodotti = new Map<string, PriceRow[]>()
+  for (const row of rawRows) {
+    const p = row.prodotto.trim()
+    if (!prodotti.has(p)) prodotti.set(p, [])
+    prodotti.get(p)!.push(row)
+  }
+
+  const trends: PriceTrend[] = []
+  const anomalie: PriceAnomalia[] = []
+  const raccomandazioni: Raccomandazione[] = []
+
+  let totaleTrend = 0
+  let countTrend = 0
+  let inAumento = 0
+  let inCalo = 0
+  let stabili = 0
+
+  for (const [prodotto, entries] of prodotti) {
+    const sorted = entries.sort((a, b) => a.data_prezzo.localeCompare(b.data_prezzo))
+    const prices = sorted.map((r) => r.prezzo)
+    const dates = sorted.map((r) => r.data_prezzo)
+    const ultimo = sorted[sorted.length - 1]!
+    const precedente = sorted.length >= 2 ? sorted[sorted.length - 2] : null
+
+    const variazioni: number[] = []
+    for (let i = 1; i < prices.length; i++) {
+      variazioni.push((prices[i]! - prices[i - 1]!) / prices[i - 1]!)
+    }
+
+    const ultimaVariazione = precedente
+      ? (ultimo.prezzo - precedente.prezzo) / precedente.prezzo
+      : null
+
+    const direzione = detectDirection(variazioni)
+    const volatilita = calcVolatility(prices)
+
+    const trend: PriceTrend = {
+      prodotto,
+      fornitore_id: fornitoreId,
+      fornitore_nome: fornitoreNome,
+      prezzo_attuale: ultimo.prezzo,
+      prezzo_precedente: precedente?.prezzo ?? null,
+      variazione_percent: ultimaVariazione != null ? Math.round(ultimaVariazione * 10000) / 100 : null,
+      direzione,
+      data_ultimo: ultimo.data_prezzo,
+      data_precedente: precedente?.data_prezzo ?? null,
+      num_rilevazioni: prices.length,
+      volatilita: Math.round(volatilita * 100) / 100,
+    }
+    trends.push(trend)
+
+    if (direzione === 'up') inAumento++
+    else if (direzione === 'down') inCalo++
+    else stabili++
+
+    totaleTrend += ultimaVariazione ?? 0
+    if (ultimaVariazione != null) countTrend++
+
+    const ultimoDelta = ultimaVariazione ?? 0
+
+    if (ultimoDelta > 0.10) {
+      anomalie.push({
+        prodotto, fornitore_id: fornitoreId, fornitore_nome: fornitoreNome,
+        tipo: 'spike', gravita: ultimoDelta > 0.20 ? 'alta' : 'media',
+        prezzo_attuale: ultimo.prezzo,
+        prezzo_riferimento: precedente?.prezzo ?? ultimo.prezzo,
+        delta_percent: Math.round(ultimoDelta * 10000) / 100,
+        data: ultimo.data_prezzo,
+        descrizione: `Prezzo aumentato del ${(ultimoDelta * 100).toFixed(1)}% rispetto alla rilevazione precedente`,
+      })
+    } else if (ultimoDelta < -0.10) {
+      anomalie.push({
+        prodotto, fornitore_id: fornitoreId, fornitore_nome: fornitoreNome,
+        tipo: 'sotto_costo', gravita: ultimoDelta < -0.20 ? 'alta' : 'media',
+        prezzo_attuale: ultimo.prezzo,
+        prezzo_riferimento: precedente?.prezzo ?? ultimo.prezzo,
+        delta_percent: Math.round(ultimoDelta * 10000) / 100,
+        data: ultimo.data_prezzo,
+        descrizione: `Prezzo calato del ${Math.abs(ultimoDelta * 100).toFixed(1)}% rispetto alla rilevazione precedente`,
+      })
+    }
+
+    if (volatilita > 0.15 && prices.length >= 4) {
+      anomalie.push({
+        prodotto, fornitore_id: fornitoreId, fornitore_nome: fornitoreNome,
+        tipo: 'inflazione', gravita: volatilita > 0.25 ? 'alta' : 'media',
+        prezzo_attuale: ultimo.prezzo,
+        prezzo_riferimento: prices[0]!,
+        delta_percent: Math.round(((ultimo.prezzo - prices[0]!) / prices[0]!) * 10000) / 100,
+        data: ultimo.data_prezzo,
+        descrizione: `Alta volatilità sui prezzi (${(volatilita * 100).toFixed(1)}%) — il costo oscilla frequentemente`,
+      })
+    }
+
+    const giorniDaUltimo = Math.round(
+      (Date.now() - new Date(ultimo.data_prezzo).getTime()) / (1000 * 60 * 60 * 24),
+    )
+    if (giorniDaUltimo > 90 && prices.length >= 2) {
+      raccomandazioni.push({
+        tipo: 'rinnovo', prodotto, fornitore_id: fornitoreId, fornitore_nome: fornitoreNome,
+        titolo: `Listino da verificare: ${prodotto}`,
+        descrizione: `Ultimo aggiornamento del prezzo per "${prodotto}" risale a ${giorniDaUltimo} giorni fa. Richiedere listino aggiornato al fornitore.`,
+        priorita: giorniDaUltimo > 180 ? 'alta' : 'media',
+        impatto_stimato: ultimo.prezzo * 0.03,
+      })
+    }
+
+    if (ultimoDelta > 0.05) {
+      raccomandazioni.push({
+        tipo: 'ricontrattazione', prodotto, fornitore_id: fornitoreId, fornitore_nome: fornitoreNome,
+        titolo: `Rinegoziazione consigliata: ${prodotto}`,
+        descrizione: `Aumento del ${(ultimoDelta * 100).toFixed(1)}% rilevato. Valutare rinegoziazione con il fornitore o cercare alternative.`,
+        priorita: ultimoDelta > 0.10 ? 'alta' : 'media',
+        impatto_stimato: Math.round(ultimo.prezzo * ultimoDelta * 0.5 * 100) / 100,
+      })
+    }
+  }
+
+  const anomalieCritiche = anomalie.filter((a) => a.gravita === 'alta').length
+  const raccomandazioniAlte = raccomandazioni.filter((r) => r.priorita === 'alta').length
+  const risparmioPotenziale = raccomandazioni
+    .filter((r) => r.impatto_stimato != null && r.priorita === 'alta')
+    .reduce((a, r) => a + (r.impatto_stimato ?? 0), 0)
+
+  const trendComplessivo = countTrend > 0 ? Math.round((totaleTrend / countTrend) * 10000) / 100 : 0
+  const volatilitaMedia = trends.length > 0
+    ? Math.round((trends.reduce((a, t) => a + t.volatilita, 0) / trends.length) * 100) / 100
+    : 0
+
+  const punteggioBase = 70
+  const penalitaTrend = trendComplessivo > 0 ? Math.min(trendComplessivo * 50, 20) : 0
+  const penalitaVolatilita = Math.min(volatilitaMedia * 100, 15)
+  const penalitaAnomalie = Math.min(anomalieCritiche * 15, 30)
+  const punteggioSalute = Math.max(0, Math.min(100, punteggioBase - penalitaTrend - penalitaVolatilita - penalitaAnomalie))
+
+  const salute: SupplierPriceHealth = {
+    fornitore_id: fornitoreId,
+    fornitore_nome: fornitoreNome,
+    prodotti_analizzati: prodotti.size,
+    trend_complessivo: trendComplessivo,
+    volatilita_media: volatilitaMedia,
+    anomalie_attive: anomalie.length,
+    raccomandazioni_attive: raccomandazioni.length,
+    punteggio_salute: Math.round(punteggioSalute),
+    data_ultimo_aggiornamento: rawRows.reduce(
+      (latest, r) => (r.data_prezzo > latest ? r.data_prezzo : latest),
+      '',
+    ) || null,
+  }
+
+  return {
+    fornitore_id: fornitoreId,
+    fornitore_nome: fornitoreNome,
+    data_analisi: new Date().toISOString().slice(0, 10),
+    trends,
+    anomalie,
+    raccomandazioni,
+    salute,
+    riepilogo: {
+      totale_prodotti: prodotti.size,
+      in_aumento: inAumento,
+      in_calo: inCalo,
+      stabili: stabili,
+      anomalie_critiche: anomalieCritiche,
+      raccomandazioni_alte: raccomandazioniAlte,
+      risparmio_potenziale: Math.round(risparmioPotenziale * 100) / 100,
+    },
+  }
+}
+
+export async function analyzeAllSuppliers(
+  supabase: SupabaseClient,
+  fornitoreIds: string[],
+): Promise<SupplierPriceHealth[]> {
+  const results: SupplierPriceHealth[] = []
+  for (const id of fornitoreIds) {
+    try {
+      const report = await analyzeSupplierPriceTrends(supabase, id)
+      results.push(report.salute)
+    } catch {
+      continue
+    }
+  }
+  return results.sort((a, b) => a.punteggio_salute - b.punteggio_salute)
+}

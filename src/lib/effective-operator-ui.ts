@@ -47,12 +47,13 @@ export function effectiveIsAdminSedeUi(
   return profileBranchStaff
 }
 
-/** Centro operazioni: solo piano master (senza operatore con PIN). */
+/** Centro operazioni: admin master (senza PIN) o admin sede. */
 export function canAccessCentroOperazioniPage(
-  me: Pick<MeData, 'is_admin' | 'user'> | null | undefined,
+  me: Pick<MeData, 'is_admin' | 'is_admin_sede' | 'user'> | null | undefined,
   activeOperator: Pick<ActiveOperator, 'role' | 'id'> | null | undefined,
 ): boolean {
-  return effectiveIsMasterAdminPlane(me, activeOperator)
+  if (effectiveIsMasterAdminPlane(me, activeOperator)) return true
+  return effectiveIsAdminSedeUi(me, activeOperator)
 }
 
 /**

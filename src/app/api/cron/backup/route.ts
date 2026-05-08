@@ -31,11 +31,12 @@ export async function GET(req: NextRequest) {
         .from(tableName)
         .select(selectQuery)
         .order('created_at', { ascending: false })
+        .returns<Record<string, unknown>[]>()
 
       if (error) throw error
       if (!data || data.length === 0) return
 
-      const rows = data as unknown as Record<string, unknown>[]
+      const rows = data
       const headers = Object.keys(rows[0])
       const csvRows = [
         headers.join(','),

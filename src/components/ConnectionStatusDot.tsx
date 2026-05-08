@@ -2,14 +2,12 @@
 
 import { useNetworkStatusOptional } from '@/lib/network-context'
 import { useLocale } from '@/lib/locale-context'
-import { getTranslations, type Locale } from '@/lib/translations'
-
 /**
  * Pallino verde/rosso stato connessione (navigator + probe opzionale).
  */
 export default function ConnectionStatusDot() {
   const net = useNetworkStatusOptional()
-  const { locale } = useLocale()
+  const { locale, t: tr } = useLocale()
   if (!net) return null
 
   const mode: 'online' | 'reconnecting' | 'offline' = !net.online
@@ -17,10 +15,6 @@ export default function ConnectionStatusDot() {
     : net.reconnecting
       ? 'reconnecting'
       : 'online'
-
-  // Derive copy from `locale` + `getTranslations` so SSR and first client paint match
-  // even if a stale/default `t` from context were briefly out of sync during hydration.
-  const tr = getTranslations(locale as Locale)
   const label =
     mode === 'offline'
       ? tr.ui.connectionOffline

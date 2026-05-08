@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, use } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { useLocale } from '@/lib/locale-context'
@@ -258,6 +258,8 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   const [netflixSedeName, setNetflixSedeName] = useState<string | null>(null)
   /** Locale derived from the sede's country_code — used to translate the Netflix grid UI. */
   const [sedeLocale, setSedeLocale] = useState<Locale>('it')
+  const getTransPromise = useMemo(() => getTranslations(sedeLocale), [sedeLocale])
+  const sedeTranslations = use(getTransPromise)
 
   /* ── operatore ─────────────────────────────────────── */
   const [name, setName]         = useState('')
@@ -1304,7 +1306,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
 
   // ── Netflix: avatar grid ──
   if (netflixStep === 'grid') {
-    const sedeT = getTranslations(sedeLocale).login
+    const sedeT = sedeTranslations.login
     return (
       <>
         {deviceTrustUi}
@@ -1355,7 +1357,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
   }
 
   if (netflixStep === 'pin' && netflixSelected) {
-    const sedeT = getTranslations(sedeLocale).login
+    const sedeT = sedeTranslations.login
     const [fg, bg] = avatarColors(netflixSelected.full_name)
     const firstName = netflixSelected.full_name.trim().split(/\s+/)[0] ?? netflixSelected.full_name
     return (

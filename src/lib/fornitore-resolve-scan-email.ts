@@ -60,9 +60,9 @@ export async function resolveFornitoreFromScanEmail(
     .ilike('email', senderEmail)
     .limit(1)
   if (sedeFilter) aliasQuery.eq('fornitori.sede_id', sedeFilter)
-  const { data: aliasRows } = await aliasQuery
+  const { data: aliasRows } = await aliasQuery.returns<{ fornitore_id: string; fornitori: FornitoreScanRow }[]>()
   if (aliasRows?.length) {
-    const found = (aliasRows[0] as unknown as { fornitori: FornitoreScanRow }).fornitori
+    const found = aliasRows[0].fornitori
     return found
   }
 
@@ -72,8 +72,8 @@ export async function resolveFornitoreFromScanEmail(
     .ilike('email', senderEmail)
     .limit(1)
   if (sedeFilter) fornitoriQuery.eq('sede_id', sedeFilter)
-  const { data: fornitori } = await fornitoriQuery
-  if (fornitori?.length) return fornitori[0] as FornitoreScanRow
+  const { data: fornitori } = await fornitoriQuery.returns<FornitoreScanRow[]>()
+  if (fornitori?.length) return fornitori[0]
 
   return null
 }
@@ -101,10 +101,9 @@ export async function resolveFornitoreByEmailDomain(
     .ilike('email', pattern)
     .limit(80)
   if (sedeFilter) aliasQuery.eq('fornitori.sede_id', sedeFilter)
-  const { data: aliasRows } = await aliasQuery
+  const { data: aliasRows } = await aliasQuery.returns<{ fornitore_id: string; fornitori: FornitoreScanRow }[]>()
   for (const r of aliasRows ?? []) {
-    const row = r as unknown as { fornitori: FornitoreScanRow }
-    const f = row.fornitori
+    const f = r.fornitori
     if (f?.id) byId.set(f.id, f)
   }
 
@@ -113,11 +112,10 @@ export async function resolveFornitoreByEmailDomain(
     .select('id, nome, sede_id, language, rekki_link, rekki_supplier_id, email')
     .ilike('email', pattern)
     .limit(80)
-  if (sedeFilter) fq = fq.eq('sede_id', sedeFilter) as typeof fq
-  const { data: forRows } = await fq
+  if (sedeFilter) fq = fq.eq('sede_id', sedeFilter)
+  const { data: forRows } = await fq.returns<FornitoreScanRow[]>()
   for (const f of forRows ?? []) {
-    const fr = f as FornitoreScanRow
-    if (fr.id) byId.set(fr.id, fr)
+    if (f.id) byId.set(f.id, f)
   }
 
   if (byId.size === 0) return null

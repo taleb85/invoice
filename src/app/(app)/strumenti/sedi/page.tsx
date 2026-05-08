@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
+import { useToast } from '@/lib/toast-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -40,6 +41,7 @@ function FileRetentionListToggle({
   onUpdated: () => void
 }) {
   const { t } = useLocale()
+  const { showToast } = useToast()
   const effectivePolicy = policy ?? 'keep'
   const active = effectivePolicy !== 'keep'
   const [busy, setBusy] = useState(false)
@@ -64,12 +66,12 @@ function FileRetentionListToggle({
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        window.alert(j.error ?? t.common.error)
+        showToast(j.error ?? t.common.error, 'error')
         return
       }
       onUpdated()
     } catch {
-      window.alert(t.common.error)
+      showToast(t.common.error, 'error')
     } finally {
       setBusy(false)
     }

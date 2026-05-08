@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { getProfile, getRequestAuth, createServiceClient } from '@/utils/supabase/server'
 import { fetchOrdiniOverviewRows, fornitoreIdsForSede, type OrdineOverviewRow } from '@/lib/dashboard-operator-kpis'
 import {
   getT,
@@ -31,7 +31,7 @@ import {
   APP_SECTION_TABLE_TD_NUMERIC,
 } from '@/lib/app-shell-layout'
 import { withFiscalYearQuery } from '@/lib/fiscal-link'
-import { analyzeOrdineDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
+import { analyzeOrdineDuplicatesForDeletion, serializeFatturaDuplicateDeletionPayload, autoDeleteExcessDuplicates } from '@/lib/check-duplicates'
 import { DuplicateLedgerRowExtras } from '@/components/DuplicateLedgerRowExtras'
 import { unwrapSearchParams } from '@/lib/unwrap-next-search-params'
 import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
@@ -57,7 +57,7 @@ export default async function OrdiniOverviewPage(props: {
     supabase,
     profile ? { role: profile.role, sede_id: profile.sede_id } : undefined,
     (n) => cookieStore.get(n),
-  )
+  ) ?? (profile?.sede_id ?? null)
   const fornitoreIds = sedeId ? await fornitoreIdsForSede(supabase, sedeId) : []
 
   let rows: OrdineOverviewRow[] = []
@@ -86,6 +86,27 @@ export default async function OrdiniOverviewPage(props: {
       created_at: r.created_at,
     })),
   )
+  const ordExcessIds = [...ordDupAnalysis.excessIds]
+  if (ordExcessIds.length > 0) {
+    const service = createServiceClient()
+    const deleted = await autoDeleteExcessDuplicates(service, 'conferme_ordine', ordExcessIds)
+    if (deleted > 0) {
+      rows = rows.filter(r => !ordExcessIds.includes(r.id))
+      const cleanAnalysis = analyzeOrdineDuplicatesForDeletion(
+        rows.map((r) => ({
+          id: r.id,
+          fornitore_id: r.fornitore_id,
+          data_ordine: r.data_ordine,
+          numero_ordine: r.numero_ordine,
+          titolo: r.titolo,
+          created_at: r.created_at,
+        })),
+      )
+      ordDupAnalysis.memberIds = cleanAnalysis.memberIds
+      ordDupAnalysis.excessIds = cleanAnalysis.excessIds
+      ordDupAnalysis.surplusCount = cleanAnalysis.surplusCount
+    }
+  }
   const ordDupPayload = serializeFatturaDuplicateDeletionPayload(ordDupAnalysis)
 
   const ordiniMergedSummary = {

@@ -76,6 +76,7 @@ const MIGRATIONS = [
   'supabase/migrations/20260502180000_sedi_file_retention.sql',
   'supabase/migrations/20260503120000_sedi_file_retention_default_delete.sql',
   'supabase/migrations/20260503140000_sedi_file_retention_days.sql',
+  'supabase/migrations/20260507180000_protocollo_fornitori_potenziali.sql',
 ]
 
 function loadEnvLocal() {

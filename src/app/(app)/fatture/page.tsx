@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getProfile, getRequestAuth } from '@/utils/supabase/server'
+import { getProfile, getRequestAuth, createServiceClient } from '@/utils/supabase/server'
 import {
   getT,
   getLocale,
@@ -7,6 +7,7 @@ import {
   getCurrency,
   getCookieStore,
   formatDate as fmtDate,
+  formatDateTime as fmtDateTime,
 } from '@/lib/locale-server'
 import { fornitoreIdsForSede } from '@/lib/dashboard-operator-kpis'
 import { resolveFiscalFilterForSede, type FiscalPgBounds } from '@/lib/fiscal-year-page'
@@ -25,6 +26,7 @@ import {
 import {
   analyzeFatturaDuplicatesForDeletion,
   serializeFatturaDuplicateDeletionPayload,
+  autoDeleteExcessDuplicates,
 } from '@/lib/check-duplicates'
 import FattureListWithDuplicates from '@/components/FattureListWithDuplicates'
 import { ActionLink } from '@/components/ui/ActionButton'
@@ -46,25 +48,46 @@ type FatturaListRow = {
   fornitore: { nome: string } | null
   approval_status: string | null
   rejection_reason: string | null
+  created_at: string | null
+  updated_at: string | null
   email_sync_auto_saved_at: string | null
 }
+
+const BASE_SELECT = 'id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome), approval_status, rejection_reason, email_sync_auto_saved_at'
+const FULL_SELECT = `${BASE_SELECT}, created_at, updated_at`
 
 async function getFatture(
   supabase: SupabaseClient,
   fornitoreIds: string[] | null,
   fiscalBounds: FiscalPgBounds | null,
 ): Promise<FatturaListRow[]> {
-  let q = supabase
-    .from('fatture')
-    .select('id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome), approval_status, rejection_reason, email_sync_auto_saved_at')
-    .order('data', { ascending: false })
-  if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
-  if (fiscalBounds) {
-    q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
+  const buildQuery = (sel: string) => {
+    let q = supabase
+      .from('fatture')
+      .select(sel)
+      .order('data', { ascending: false })
+    if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+    if (fiscalBounds) {
+      q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
+    }
+    return q
   }
-  const { data } = await q
-  /* Tipi Supabase sull’embed `fornitore` possono essere array in inference; a runtime è un oggetto. */
-  return (data ?? []) as unknown as FatturaListRow[]
+
+  const first = await buildQuery(FULL_SELECT).returns<FatturaListRow[]>()
+  if (first.data) return first.data
+  const msg = (first.error?.message ?? '').toLowerCase()
+  if (msg.includes('does not exist') || msg.includes('42703') || msg.includes('schema cache')) {
+    const second = await buildQuery(BASE_SELECT).returns<FatturaListRow[]>()
+    if (second.data) {
+      for (const row of second.data) {
+        ;(row as Record<string, unknown>).created_at = null
+        ;(row as Record<string, unknown>).updated_at = null
+      }
+      return second.data
+    }
+    return second.data ?? []
+  }
+  return first.data ?? []
 }
 
 export default async function FatturePage(props: {
@@ -112,6 +135,27 @@ export default async function FatturePage(props: {
       data: f.data,
     })),
   )
+  const excessIds = [...dupDel.excessIds]
+  if (excessIds.length > 0) {
+    const service = createServiceClient()
+    const deleted = await autoDeleteExcessDuplicates(service, 'fatture', excessIds)
+    if (deleted > 0) {
+      fatture = fatture.filter(f => !excessIds.includes(f.id))
+      const cleanDel = analyzeFatturaDuplicatesForDeletion(
+        fatture.map((f) => ({
+          id: f.id,
+          numero_fattura: f.numero_fattura,
+          fornitore_id: f.fornitore_id ?? '',
+          importo: f.importo,
+          data: f.data,
+        })),
+      )
+      dupDel.memberIds = cleanDel.memberIds
+      dupDel.excessIds = cleanDel.excessIds
+      dupDel.surplusCount = cleanDel.surplusCount
+      dupDel.surplusImporto = cleanDel.surplusImporto
+    }
+  }
   const totaleImportoRaw = fatture.reduce((s, f) => s + (Number(f.importo) || 0), 0)
   const totaleImporto = Math.max(0, totaleImportoRaw - dupDel.surplusImporto)
   const duplicatePayload = serializeFatturaDuplicateDeletionPayload(dupDel)
@@ -149,6 +193,12 @@ export default async function FatturePage(props: {
         : null,
     approval_status: showApprovalBadge ? (f.approval_status ?? null) : null,
     rejection_reason: showApprovalBadge ? (f.rejection_reason ?? null) : null,
+    dataDocumentoLabel: formatDate(f.data),
+    dataDocumentoFull: f.data,
+    dataSincronizzazioneLabel: f.email_sync_auto_saved_at
+      ? fmtDateTime(f.email_sync_auto_saved_at, locale, tz, true)
+      : null,
+    dataSincronizzazioneFull: f.email_sync_auto_saved_at ?? null,
     email_sync_auto_saved_at: f.email_sync_auto_saved_at ?? null,
   }))
   return (

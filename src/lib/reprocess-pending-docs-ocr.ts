@@ -7,7 +7,7 @@ import {
   type OcrResult,
 } from '@/lib/ocr-invoice'
 import { documentDateYmdFromOcr } from '@/lib/safe-date'
-import { normalizeTipoDocumento, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
+import { normalizeTipoDocumento, ocrClassifiedAsFatturaButContentMissing, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
 import {
   emailSubjectLooksLikeStatement,
@@ -268,6 +268,8 @@ export async function processLegacyPendingDoc(
       if (!dataDocLocal) {
         needsDocRevision = true
       } else if (!ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
+        needsDocRevision = true
+      } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
       } else {
         const res = await insertEmailAutoFattura(service, {

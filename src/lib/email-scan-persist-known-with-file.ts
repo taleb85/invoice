@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ScannedEmail } from '@/lib/mail-scanner'
 import type { OcrResult } from '@/lib/ocr-invoice'
+import { normalizeNumeroBolla } from '@/lib/fix-ocr-dates-helpers'
 import { ocrStatement, extractedPdfDatesToJson } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
@@ -13,7 +14,7 @@ import {
 } from '@/lib/document-bozza-routing'
 import { fetchFornitorePendingKindHint, ocrTipoHintKey } from '@/lib/fornitore-doc-type-hints'
 import { insertEmailAutoBolla, insertEmailAutoFattura } from '@/lib/email-sync-auto-register-core'
-import { normalizeTipoDocumento, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
+import { normalizeTipoDocumento, ocrClassifiedAsFatturaButContentMissing, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
 import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts, type RekkiLine } from '@/lib/rekki-parser'
 import type { FornitoreScanFullRow } from '@/lib/scan-email-ocr-bootstrap-fornitore'
@@ -305,6 +306,8 @@ export async function persistKnownFornitoreEmailScanWithFile(
         needsDocRevision = true
       } else if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
+      } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
+        needsDocRevision = true
       } else {
         const res = await insertEmailAutoFattura(supabase, {
           fornitoreId: fornitore.id,
@@ -334,7 +337,7 @@ export async function persistKnownFornitoreEmailScanWithFile(
       if (!dataDocLocal) {
         needsDocRevision = true
       } else {
-        const numRef = ocr.numero_fattura?.trim() || null
+        const numRef = normalizeNumeroBolla(ocr.numero_fattura)
         const rb = await insertEmailAutoBolla(supabase, {
           fornitoreId: fornitore.id,
           sedeId: documentSedeId,

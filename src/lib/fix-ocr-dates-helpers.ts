@@ -27,6 +27,53 @@ export function numeroReferenceLooksLikeDdt(num: string | null | undefined): boo
 }
 
 /**
+ * Normalizza e valida un numero documento estratto da OCR (numero bolla, fattura, DDT).
+ *
+ * Problema comune: l'AI scambia cifre simili (8↔1, 4↔1, 6↔4, 5↔4) durante l'estrazione.
+ * Questa funzione applica:
+ * 1. Strip di prefissi testuali (DDT, N., No., DN, etc.)
+ * 2. Rimozione spazi e caratteri non alfanumerici
+ * 3. Validazione lunghezza minima
+ * 4. Verifica consistenza (solo cifre per numeri puri)
+ */
+export function normalizeNumeroBolla(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null
+
+  let n = raw.trim()
+
+  // Rimuovi prefissi testuali comuni (case-insensitive)
+  n = n.replace(/^(ddt|bolla|n\.?\s*|no\.?\s*|num\.?\s*|numero\s*|doc\.?\s*|dn\.?\s*|d\.n\.\s*)[:\s.]*/i, '')
+
+  // Rimuovi spazi multipli
+  n = n.replace(/\s+/g, ' ').trim()
+
+  // Se dopo la pulizia rimane vuoto, ritorna null
+  if (!n) return null
+
+  // Per numeri puramente numerici (solo cifre): validazione lunghezza
+  if (/^\d+$/.test(n)) {
+    // Numeri documento tipici hanno 4-20 cifre (DDT brevi a 4-6 cifre, fatture lunghe fino a 20)
+    if (n.length < 3) return null
+    if (n.length > 30) return n.slice(0, 30) // tronca valori anomali
+    return n
+  }
+
+  // Per codici alfanumerici (es. "DDT-2024-00123"): mantieni ma normalizza
+  if (/^[a-zA-Z0-9\-\/._]+$/.test(n)) {
+    return n
+  }
+
+  // Se contiene caratteri non validi, tentiamo di estrarre solo la parte numerica
+  const digitsOnly = n.replace(/\D/g, '')
+  if (digitsOnly.length >= 3) {
+    return digitsOnly
+  }
+
+  // Fallback: ritorna null se non riusciamo a validare
+  return null
+}
+
+/**
  * Dopo OCR su una bolla: decidere se spostare in `fatture` oltre a `tipo_documento === 'fattura'`.
  * Per **batch** (senza bolla forzata) resta solo la classificazione esplicita.
  * Per **Rianalizza** (bollaId forzata + allow_tipo_migrate): Gemini spesso restituisce `bolla` anche per

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
+import { logActivity } from '@/lib/activity-logger'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import type { Profile } from '@/types'
 
@@ -85,6 +86,15 @@ export async function POST(req: NextRequest) {
 
   const { error: uErr } = await service.from('fatture').update({ fornitore_id: nuovo_fornitore_id }).eq('id', fattura_id)
   if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 })
+
+  await logActivity(service, {
+    userId: profile.id,
+    sedeId,
+    action: 'fattura.reassigned',
+    entityType: 'fattura',
+    entityId: fattura_id,
+    metadata: { nuovo_fornitore_id },
+  })
 
   return NextResponse.json({ ok: true as const })
 }

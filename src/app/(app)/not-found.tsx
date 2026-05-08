@@ -13,7 +13,7 @@ export default async function AppNotFound() {
   const cookieStore = await cookies()
   const raw = cookieStore.get('app-locale')?.value ?? 'en'
   const locale: Locale = SUPPORTED.includes(raw as Locale) ? (raw as Locale) : 'en'
-  const t = getTranslations(locale)
+  const t = await getTranslations(locale)
 
   const secondary =
     'inline-flex flex-1 min-w-[8rem] items-center justify-center gap-2 rounded-lg border border-app-line-28 app-workspace-inset-bg-soft px-4 py-2.5 text-sm font-medium text-app-fg-muted transition-colors hover:border-app-a-45 hover:bg-app-line-10 hover:text-app-fg'

@@ -107,17 +107,7 @@ function buildStatementPrompt(languageHint?: string): string {
 }
 
 /** Extract plain text from a PDF buffer */
-async function extractPdfText(buffer: Buffer): Promise<string | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = (await import('pdf-parse')) as any
-    const pdfParse = mod.default ?? mod
-    const result = await pdfParse(buffer)
-    return result.text?.trim() || null
-  } catch {
-    return null
-  }
-}
+import { extractPdfText } from '@/lib/pdf-parse-utils'
 
 function toRows(arr: unknown[]): StatementRow[] {
   return arr.flatMap((r) => {

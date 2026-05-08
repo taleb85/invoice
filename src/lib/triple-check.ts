@@ -106,20 +106,20 @@ export async function runTripleCheck(
   // Scope: load all fatture/bolle for the given (sede, fornitore) pair.
   // In-memory ilike match replaces per-line .ilike() query.
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let fattureQ = (supabase as any)
+  const baseFattureQ = supabase
     .from('fatture')
     .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, fornitori(id, nome, email)')
+  let fattureQ: typeof baseFattureQ = baseFattureQ
   if (sede_id)      fattureQ = fattureQ.eq('sede_id',      sede_id)
   if (fornitore_id) fattureQ = fattureQ.eq('fornitore_id', fornitore_id)
   const { data: allFattureRaw } = await fattureQ
   const fatturePool = (allFattureRaw ?? []) as FatturaRow[]
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let bolleQ = (supabase as any)
+  const baseBolleQ = supabase
     .from('bolle')
     .select('id, numero_bolla, importo, data, fornitore_id')
     .eq('stato', 'completato')
+  let bolleQ: typeof baseBolleQ = baseBolleQ
   if (sede_id)      bolleQ = bolleQ.eq('sede_id',      sede_id)
   if (fornitore_id) bolleQ = bolleQ.eq('fornitore_id', fornitore_id)
   const { data: allBolleRaw } = await bolleQ

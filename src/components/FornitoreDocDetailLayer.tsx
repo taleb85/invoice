@@ -19,6 +19,7 @@ import { formatDate as formatDateLib } from '@/lib/locale'
 import type { Locale } from '@/lib/translations'
 import ToggleStato from '@/app/(app)/bolle/[id]/ToggleStato'
 import ReplaceFileButton from '@/app/(app)/fatture/[id]/ReplaceFileButton'
+import { AiAnalysisButton } from '@/components/AiAnalysisButton'
 import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useMe } from '@/lib/me-context'
@@ -500,7 +501,14 @@ function FatturaLayerBody({
           {listinoAdmin ? (
             <p className="mt-1 text-[10px] leading-snug text-app-fg-muted">{t.appStrings.listinoDocDetailImportHintAdmin}</p>
           ) : null}
-          {deleteBtn && <div className="mt-2">{deleteBtn}</div>}
+          <div className="mt-2 flex flex-wrap items-center gap-4">
+            <AiAnalysisButton
+              entityType="fattura"
+              entityId={fattura.id}
+              fornitoreId={fattura.fornitore_id}
+            />
+            {deleteBtn}
+          </div>
         </div>
       </div>
     )
@@ -667,7 +675,18 @@ function BollaLayerBody({
 
   if (bolla.file_url?.trim()) {
     return (
-      <FornitoreInlineDocPreview fill fileUrl={bolla.file_url} openKind="bolla" docId={bolla.id} />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <FornitoreInlineDocPreview fill fileUrl={bolla.file_url} openKind="bolla" docId={bolla.id} />
+        <div className="shrink-0 border-t border-app-line-22/90 app-workspace-inset-bg-soft px-4 py-2.5 md:px-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <AiAnalysisButton
+              entityType="bolla"
+              entityId={bolla.id}
+              fornitoreId={bolla.fornitore_id}
+            />
+          </div>
+        </div>
+      </div>
     )
   }
 

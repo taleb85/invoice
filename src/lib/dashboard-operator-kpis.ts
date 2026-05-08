@@ -109,7 +109,7 @@ export async function fetchFattureTotaleSummary(
   }
   const rows = (data ?? []) as FatturaDupProbe[]
   const dup = analyzeFatturaDuplicateGroups(rows)
-  const rawSum = sumImporti(rows as unknown as { importo: number | null }[])
+  const rawSum = sumImporti(rows)
   return {
     totaleImporto: Math.max(0, rawSum - dup.surplusImporto),
     fattureCount: rows.length,

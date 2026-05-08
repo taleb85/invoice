@@ -100,8 +100,9 @@ export async function detectDuplicateFatture(
       .order('data', { ascending: true })
       .order('id', { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
+      .returns<FatturaRow[]>()
     if (error || !data) break
-    all.push(...(data as unknown as FatturaRow[]))
+    all.push(...data)
     if (data.length < PAGE_SIZE) break
   }
 
@@ -212,8 +213,9 @@ export async function detectDuplicateBolle(
       .order('data', { ascending: true })
       .order('id', { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
+      .returns<BollaRow[]>()
     if (error || !data) break
-    all.push(...(data as unknown as BollaRow[]))
+    all.push(...data)
     if (data.length < PAGE_SIZE) break
   }
 
@@ -325,8 +327,9 @@ export async function detectDuplicateFornitori(
       .eq('sede_id', sedeId)
       .order('created_at', { ascending: true })
       .range(from, from + 499)
+      .returns<FornitoreRow[]>()
     if (error || !data) break
-    all.push(...(data as unknown as FornitoreRow[]))
+    all.push(...data)
     if (data.length < 500) break
   }
 

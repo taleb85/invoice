@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
+import { logActivity } from '@/lib/activity-logger'
 
 // ── POST /api/fornitori ────────────────────────────────────────────────────────
 // Creates a new fornitore for a given sede and registers its email in
@@ -48,12 +49,21 @@ export async function POST(req: NextRequest) {
   const { data: fornitore, error: fornitoreErr } = await service
     .from('fornitori')
     .insert({ nome, piva, email, sede_id })
-    .select('id, nome, piva, email, sede_id, created_at')
+    .select('id, nome, piva, email, sede_id')
     .single()
 
   if (fornitoreErr || !fornitore) {
     return NextResponse.json({ error: fornitoreErr?.message ?? 'Errore nel salvataggio' }, { status: 500 })
   }
+
+  await logActivity(service, {
+    userId: user.id,
+    sedeId: sede_id,
+    action: 'fornitore.created',
+    entityType: 'fornitore',
+    entityId: fornitore.id,
+    entityLabel: fornitore.nome,
+  })
 
   // 2. Register email in fornitore_emails for IMAP matching (ignore errors — non-blocking)
   let retroactive: { processed: number; scanned: number; errors: string[] } | null = null

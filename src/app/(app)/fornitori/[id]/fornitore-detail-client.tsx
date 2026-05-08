@@ -2179,7 +2179,6 @@ function BolleTab({
               <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
                 {t.statements.colAmount}
               </th>
-              <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{t.common.status}</th>
               <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
                 {t.common.actions}
               </th>
@@ -2222,17 +2221,6 @@ function BolleTab({
                 </td>
                 <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
                   {b.importo != null ? formatCurrency(b.importo, currency, locale) : '—'}
-                </td>
-                <td className="px-5 py-3">
-                  {b.stato === 'completato' ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(34,211,238,0.15)] bg-green-500/15 px-2 py-0.5 text-[11px] font-semibold text-green-300">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> {t.bolle.statoCompletato}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(34,211,238,0.15)] bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-200">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {t.bolle.statoInAttesa}
-                    </span>
-                  )}
                 </td>
                 <td className="px-5 py-3 text-right">
                   <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
@@ -2583,9 +2571,6 @@ function FattureTab({
                 <th className="px-5 py-2.5 text-right font-mono text-[10px] font-bold uppercase tracking-widest tabular-nums text-app-fg-muted">
                   {t.statements.colAmount}
                 </th>
-                <th className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                  {t.fatture.headerBolla}
-                </th>
                 <th className="px-5 py-2.5 text-right text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
                   {t.common.actions}
                 </th>
@@ -2638,17 +2623,6 @@ function FattureTab({
                     </td>
                     <td className="px-5 py-3 text-right font-mono text-sm font-semibold tabular-nums text-app-fg-muted">
                       {f.importo != null ? formatCurrency(f.importo, currency, locale) : '—'}
-                    </td>
-                    <td className="px-5 py-3">
-                      {f.bolla_id ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-app-line-30 bg-app-line-15 px-2 py-0.5 text-[11px] font-semibold text-app-fg-muted">
-                          {t.fatture.statusAssociata}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-app-line-28 app-workspace-inset-bg px-2 py-0.5 text-[11px] font-semibold text-app-fg-muted">
-                          {t.fatture.statusSenzaBolla}
-                        </span>
-                      )}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <Link
@@ -2802,18 +2776,22 @@ function ListinoTab({
   const [resolvingId, setResolvingId] = useState<string | null>(null)
 
   const loadListino = async () => {
-    const supabase = createClient()
-    const { data, error } = await supabase
-      .from('listino_prezzi')
-      .select('id, prodotto, prezzo, data_prezzo, note, rekki_product_id')
-      .eq('fornitore_id', fornitoreId)
-      .order('prodotto')
-      .order('data_prezzo')
-    if (error?.message?.includes('listino_prezzi')) {
-      setListTabloExists(false)
-    } else {
+    try {
+      const res = await fetch(`/api/listino/prezzi?fornitore_id=${encodeURIComponent(fornitoreId)}`, {
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        if (String(errData.error ?? '').includes('listino_prezzi')) {
+          setListTabloExists(false)
+        }
+        return
+      }
+      const data = await res.json()
       setListTabloExists(true)
       setListino((data ?? []) as ListinoProdotto[])
+    } catch {
+      // silenzioso
     }
   }
 
@@ -2855,9 +2833,9 @@ function ListinoTab({
         .eq('fornitore_id', fornitoreId).not('importo', 'is', null).order('data'),
       supabase.from('fatture').select('id, data, numero_fattura, importo')
         .eq('fornitore_id', fornitoreId).not('importo', 'is', null).order('data'),
-      supabase.from('listino_prezzi').select('id, prodotto, prezzo, data_prezzo, note, rekki_product_id')
-        .eq('fornitore_id', fornitoreId).order('prodotto').order('data_prezzo'),
-    ]).then(([bolleRes, fattureRes, listinoRes]) => {
+      fetch(`/api/listino/prezzi?fornitore_id=${encodeURIComponent(fornitoreId)}`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : []),
+    ]).then(([bolleRes, fattureRes, listinoData]) => {
       type BollaRaw   = { id: string; data: string; numero_bolla: string | null; importo: number | null }
       type FatturaRaw = { id: string; data: string; numero_fattura: string | null; importo: number | null }
 
@@ -2872,12 +2850,8 @@ function ListinoTab({
       )
       setRows(combined)
 
-      if (listinoRes.error?.message?.includes('listino_prezzi')) {
-        setListTabloExists(false)
-      } else {
-        setListTabloExists(true)
-        setListino((listinoRes.data ?? []) as ListinoProdotto[])
-      }
+      setListTabloExists(true)
+      setListino((listinoData ?? []) as ListinoProdotto[])
       setLoading(false)
     })
   }, [fornitoreId])
@@ -3056,17 +3030,8 @@ function ListinoTab({
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Errore sconosciuto')
       const items = Array.isArray(json.items) ? json.items : []
-      const supabase = createClient()
-      const { error: upErr } = await supabase
-        .from('fatture')
-        .update({ analizzata: true })
-        .eq('id', selectedFatturaId)
-        .eq('fornitore_id', fornitoreId)
-      if (upErr) {
-        console.warn('[listino] aggiornamento analizzata:', upErr.message)
-      }
       setImportFattureList((prev) =>
-        prev.map((f) => (f.id === selectedFatturaId ? { ...f, analizzata: true } : f)),
+        prev.map((f) => (f.id === selectedFatturaId ? { ...f, analizzata: false } : f)),
       )
       if (items.length === 0) {
         setImportError('Nessun prodotto trovato in questa fattura. Prova con un\'altra.')
@@ -3181,6 +3146,16 @@ function ListinoTab({
       setImportError(e instanceof Error ? e.message : String(e))
       setImportSaving(false)
       return
+    }
+    // Salvataggio riuscito → segna la fattura come analizzata
+    if (selectedFatturaId) {
+      try {
+        const supabase2 = createClient()
+        await supabase2.from('fatture').update({ analizzata: true }).eq('id', selectedFatturaId)
+      } catch { /* silenzioso */ }
+      setImportFattureList((prev) =>
+        prev.map((f) => (f.id === selectedFatturaId ? { ...f, analizzata: true } : f)),
+      )
     }
     setImportError(null)
     setShowImport(false)
@@ -3823,7 +3798,17 @@ function ListinoTab({
                             }`}
                           >
                             <span className={`min-w-0 flex-1 truncate font-medium ${sel.analizzata ? 'text-emerald-50' : 'text-app-fg'}`}>
-                              {sel.label}
+                              {sel.file_url ? (
+                                <OpenDocumentInAppButton
+                                  fatturaId={sel.id}
+                                  fileUrl={sel.file_url}
+                                  className="border-0 bg-transparent p-0 font-inherit text-inherit hover:underline"
+                                >
+                                  {sel.label}
+                                </OpenDocumentInAppButton>
+                              ) : (
+                                sel.label
+                              )}
                             </span>
                             {sel.analizzata ? (
                               <span className="shrink-0 rounded-full border border-[rgba(34,211,238,0.15)] bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">

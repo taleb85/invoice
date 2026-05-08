@@ -188,6 +188,28 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, inserted: toInsert.length, skipped })
 }
 
+/** GET /api/listino/prezzi?fornitore_id=<id> — Recupera listino prezzi per un fornitore (service role bypass RLS). */
+export async function GET(req: NextRequest) {
+  const { user } = await getRequestAuth()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const fornitoreId = req.nextUrl.searchParams.get('fornitore_id')?.trim()
+  if (!fornitoreId) {
+    return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
+  }
+
+  const service = createServiceClient()
+  const { data, error } = await service
+    .from('listino_prezzi')
+    .select('id, prodotto, prezzo, data_prezzo, note, rekki_product_id')
+    .eq('fornitore_id', fornitoreId)
+    .order('prodotto')
+    .order('data_prezzo')
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data ?? [])
+}
+
 /**
  * Eliminazione riga listino: verifica che la riga appartenga al fornitore indicato e che l’utente possa gestire quel fornitore.
  */

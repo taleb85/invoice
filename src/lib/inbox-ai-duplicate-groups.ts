@@ -110,8 +110,9 @@ export async function fetchEnrichedDuplicateFattureGroups(
       .order('data', { ascending: true })
       .order('id', { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
+      .returns<FRow[]>()
     if (error || !data) break
-    all.push(...(data as unknown as FRow[]))
+    all.push(...data)
     if (data.length < PAGE_SIZE) break
   }
 
@@ -247,8 +248,9 @@ export async function fetchEnrichedDuplicateBolleGroups(
       .order('data', { ascending: true })
       .order('id', { ascending: true })
       .range(from, from + PAGE_SIZE - 1)
+      .returns<BRow[]>()
     if (error || !data) break
-    all.push(...(data as unknown as BRow[]))
+    all.push(...data)
     if (data.length < PAGE_SIZE) break
   }
 

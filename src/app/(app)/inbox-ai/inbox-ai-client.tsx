@@ -404,7 +404,7 @@ export default function InboxAiClient(props: {
       })
       const j = (await res.json()) as { suggestions?: GeminiSuggestion[]; error?: string }
       if (!res.ok) {
-        window.alert(j.error ?? 'Analisi non riuscita')
+        showToast(j.error ?? 'Analisi non riuscita', 'error')
         return
       }
       const list = j.suggestions ?? []
@@ -437,7 +437,7 @@ export default function InboxAiClient(props: {
           setResolvedToday(bumpResolved(1))
           didMutateQueue = true
         } catch (e) {
-          window.alert(e instanceof Error ? e.message : 'Scarto automatico non riuscito')
+          showToast(e instanceof Error ? e.message : 'Scarto automatico non riuscito', 'error')
           break
         }
       }
@@ -533,7 +533,7 @@ export default function InboxAiClient(props: {
       setResolvedToday(n)
       return true
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Operazione non riuscita')
+      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
       return false
     } finally {
       setActionBusy(null)
@@ -563,8 +563,9 @@ export default function InboxAiClient(props: {
       queued.push({ row: d, kind })
     }
     if (queued.length === 0) {
-      window.alert(
+      showToast(
         'Nessun documento pronto per la conferma massiva: serve fornitore associato e tipo (fattura, bolla, listino, ordine, estratto) riconosciuto dall’AI.',
+        'info',
       )
       return
     }
@@ -721,7 +722,7 @@ export default function InboxAiClient(props: {
       await loadDuplicates()
       setResolvedToday(bumpResolved(del.length))
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Errore')
+      showToast(e instanceof Error ? e.message : 'Errore', 'error')
     } finally {
       setDupBusy(null)
     }
@@ -744,7 +745,7 @@ export default function InboxAiClient(props: {
       await loadDuplicates()
       setResolvedToday(bumpResolved(del.length))
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Errore')
+      showToast(e instanceof Error ? e.message : 'Errore', 'error')
     } finally {
       setDupBusy(null)
     }
@@ -780,7 +781,7 @@ export default function InboxAiClient(props: {
       setAuditRows((r) => r.filter((x) => x.id !== row.id))
       setResolvedToday(bumpResolved(1))
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Operazione non riuscita')
+      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
     } finally {
       setAuditBusy(null)
     }
@@ -789,7 +790,7 @@ export default function InboxAiClient(props: {
   const reassignFornitore = async (row: AuditMatchRow) => {
     const nuovo = reassignSel[row.id]?.trim()
     if (!nuovo) {
-      window.alert('Seleziona un fornitore')
+      showToast('Seleziona un fornitore', 'info')
       return
     }
     setAuditBusy(row.id)
@@ -814,7 +815,7 @@ export default function InboxAiClient(props: {
         return next
       })
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : 'Operazione non riuscita')
+      showToast(e instanceof Error ? e.message : 'Operazione non riuscita', 'error')
     } finally {
       setAuditBusy(null)
     }

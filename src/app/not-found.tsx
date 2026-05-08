@@ -10,7 +10,7 @@ export default async function NotFound() {
   const cookieStore = await cookies()
   const raw = cookieStore.get('app-locale')?.value ?? 'en'
   const locale: Locale = SUPPORTED.includes(raw as Locale) ? (raw as Locale) : 'en'
-  const t = getTranslations(locale)
+  const t = await getTranslations(locale)
 
   return (
     <LoginBrandedShell>

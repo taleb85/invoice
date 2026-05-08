@@ -4,11 +4,10 @@ import { useEffect } from 'react'
 import Link from 'next/link'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
 import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
-import { getTranslations } from '@/lib/translations'
-import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
+import en from '@/lib/translations/en'
 
 /**
- * Catches errors in the root layout’s child tree when no nested error boundary applies
+ * Catches errors in the root layout's child tree when no nested error boundary applies
  * (e.g. login route). No <html>/<body> — those belong in global-error.tsx only.
  */
 export default function RootErrorBoundary({
@@ -18,8 +17,8 @@ export default function RootErrorBoundary({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  const locale = useCookieLocaleFallback()
-  const t = getTranslations(locale)
+  const locale = 'en'
+  const t = en
 
   useEffect(() => {
     console.error('[RootErrorBoundary]', error)

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { AiAnalysisButton } from '@/components/AiAnalysisButton'
 import { getRequestAuth, getProfile } from '@/utils/supabase/server'
 import { getBollaForViewer, getFattureRowsForBollaAuthorized } from '@/lib/supabase-detail-for-viewer'
 import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
@@ -129,16 +130,23 @@ export default async function BollaDetailPage(props: { params: Promise<{ id: str
           <div className="app-card flex flex-col overflow-hidden rounded-xl border border-app-line-22">
             <div className="p-6">
             <h2 className="mb-3 text-sm font-semibold text-app-fg">{t.common.attachment}</h2>
-            <OpenDocumentInAppButton
-              bollaId={bolla.id}
-              fileUrl={bolla.file_url}
-              className="flex items-center gap-2 text-sm font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
-            >
-              <svg className={`h-4 w-4 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-              {t.common.openAttachment}
-            </OpenDocumentInAppButton>
+            <div className="flex flex-wrap items-center gap-4">
+              <OpenDocumentInAppButton
+                bollaId={bolla.id}
+                fileUrl={bolla.file_url}
+                className="flex items-center gap-2 text-sm font-medium text-app-cyan-500 transition-colors hover:text-app-fg-muted"
+              >
+                <svg className={`h-4 w-4 ${icon.bolle}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                {t.common.openAttachment}
+              </OpenDocumentInAppButton>
+              <AiAnalysisButton
+                entityType="bolla"
+                entityId={bolla.id}
+                fornitoreId={bolla.fornitore_id}
+              />
+            </div>
             </div>
           </div>
         )}

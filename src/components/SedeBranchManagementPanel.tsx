@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
+import { useToast } from '@/lib/toast-context'
 import { revalidateMe, useMe } from '@/lib/me-context'
 import type { Translations } from '@/lib/translations'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
@@ -50,6 +51,7 @@ function SedeOperatorRowEditor({
   const { t } = useLocale()
   const router = useRouter()
   const { me } = useMe()
+  const { showToast } = useToast()
 
   const displayLabel = op.full_name?.trim() || '—'
   const savedRole = String(op.role ?? '').toLowerCase()
@@ -103,7 +105,7 @@ function SedeOperatorRowEditor({
     if (nameDirty) {
       const fn = nameDraft.trim().toUpperCase()
       if (!fn) {
-        window.alert(t.sedi.operatorNameRequired)
+        showToast(t.sedi.operatorNameRequired, 'info')
         return
       }
       body.full_name = fn
@@ -112,8 +114,9 @@ function SedeOperatorRowEditor({
       body.role = roleDraft
     }
     if (roleDirty && !roleEditable) {
-      window.alert(
+      showToast(
         'Il ruolo non è stato inviato: permessi insufficienti per il tuo account in questa sessione.',
+        'info',
       )
       return
     }
@@ -128,7 +131,7 @@ function SedeOperatorRowEditor({
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        window.alert(j.error ?? t.common.error)
+        showToast(j.error ?? t.common.error, 'error')
         return
       }
       revalidateMe()
@@ -143,7 +146,7 @@ function SedeOperatorRowEditor({
   const [pinSaving, setPinSaving] = useState(false)
   const savePin = async () => {
     if (pinDraft.length < 4) {
-      window.alert(t.sedi.operatorPinTooShort)
+      showToast(t.sedi.operatorPinTooShort, 'info')
       return
     }
     setPinSaving(true)
@@ -155,7 +158,7 @@ function SedeOperatorRowEditor({
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        window.alert(j.error ?? t.common.error)
+        showToast(j.error ?? t.common.error, 'error')
         return
       }
       setPinDraft('')
@@ -179,7 +182,7 @@ function SedeOperatorRowEditor({
       })
       const j = (await res.json().catch(() => ({}))) as { error?: string }
       if (!res.ok) {
-        window.alert(j.error ?? t.common.error)
+        showToast(j.error ?? t.common.error, 'error')
         return
       }
       router.refresh()
@@ -289,6 +292,7 @@ export default function SedeBranchManagementPanel({
 }: Props) {
   const { t } = useLocale()
   const router = useRouter()
+  const { showToast } = useToast()
   const uid = useId()
   const opToggleId = `sede-op-drawer-${uid}`
   const opRegionId = `sede-op-region-${uid}`
@@ -341,7 +345,7 @@ export default function SedeBranchManagementPanel({
     const trimmed = pinDraft.trim()
     const digits = trimmed.replace(/\D/g, '').slice(0, 4)
     if (trimmed !== '' && digits.length !== 4) {
-      window.alert(t.sedi.sedePinError4Digits)
+      showToast(t.sedi.sedePinError4Digits, 'info')
       return
     }
     setPinSaving(true)
@@ -361,7 +365,7 @@ export default function SedeBranchManagementPanel({
       router.refresh()
     } catch (e) {
       setPinFeedback('err')
-      window.alert(e instanceof Error ? e.message : t.sedi.branchMgmtPinSaveErr)
+      showToast(e instanceof Error ? e.message : t.sedi.branchMgmtPinSaveErr, 'error')
     } finally {
       setPinSaving(false)
       window.setTimeout(() => setPinFeedback(null), 2500)
@@ -428,7 +432,7 @@ export default function SedeBranchManagementPanel({
       router.refresh()
     } catch (e) {
       setImapFeedback('err')
-      window.alert(e instanceof Error ? e.message : t.common.error)
+      showToast(e instanceof Error ? e.message : t.common.error, 'error')
     } finally {
       setImapSaving(false)
       window.setTimeout(() => setImapFeedback(null), 2500)

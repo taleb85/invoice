@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { parseAnyAmount } from '@/lib/ocr-amount'
 import { safeDate } from '@/lib/safe-date'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
+import { normalizeNumeroBolla } from '@/lib/fix-ocr-dates-helpers'
 import {
   geminiGenerateText,
   geminiGenerateVision,
@@ -234,7 +235,7 @@ ${lines}
 async function resolveIgnoredCustomerNamesForOcr(
   logContext: OcrInvoiceLogContext | undefined,
 ): Promise<string[]> {
-  const merged = new Set<string>(DEFAULT_NOMI_CLIENTE_DA_IGNORARE as unknown as string[])
+  const merged = new Set<string>(DEFAULT_NOMI_CLIENTE_DA_IGNORARE)
   if (!logContext?.sede_id || !logContext?.supabase) {
     return [...merged]
   }
@@ -393,7 +394,7 @@ function parseOcrJson(raw: string): ParseOcrOutcome {
         ? ''
         : (typeof dataRaw === 'string' ? dataRaw : String(dataRaw)).trim()
     const data_fattura = dataStr ? safeDate(dataStr) : null
-    const numero_fattura = parsed.numero_fattura ? String(parsed.numero_fattura) : null
+    const numero_fattura = normalizeNumeroBolla(parsed.numero_fattura)
     const tipo_documento = normalizeTipoDocumento(parsed.tipo_documento)
 
     const promessa_invio_documento =
@@ -499,17 +500,7 @@ async function finalizeParseOutcomeAndSanitize(
 /* ─────────────────────────────────────────────────────────────
    PDF text extraction
 ───────────────────────────────────────────────────────────── */
-async function extractPdfText(buffer: Buffer): Promise<string | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = (await import('pdf-parse')) as any
-    const pdfParse = mod.default ?? mod
-    const result = await pdfParse(buffer)
-    return result.text?.trim() || null
-  } catch {
-    return null
-  }
-}
+import { extractPdfText } from '@/lib/pdf-parse-utils'
 
 /* ─────────────────────────────────────────────────────────────
    Main OCR function

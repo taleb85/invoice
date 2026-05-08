@@ -12,7 +12,6 @@ export default function StrumentiLayout({ children }: { children: React.ReactNod
   const { t } = useLocale()
   const { me, loading: meLoading } = useMe()
   const { activeOperator } = useActiveOperator()
-  /** Durante il bootstrap evita di nascondere il tab a chi può accedere appena `me` è disponibile. */
   const showCentroOperazioni =
     meLoading || canAccessCentroOperazioniPage(me, activeOperator)
 
@@ -26,6 +25,11 @@ export default function StrumentiLayout({ children }: { children: React.ReactNod
           },
         ]
       : []),
+    {
+      href: '/strumenti/analisi-prezzi',
+      label: 'Analisi Prezzi',
+      active: !!pathname?.startsWith('/strumenti/analisi-prezzi'),
+    },
     {
       href: '/strumenti/sedi',
       label: t.nav.sedi,

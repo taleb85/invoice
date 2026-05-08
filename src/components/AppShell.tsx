@@ -38,6 +38,7 @@ import BranchSessionGate from '@/components/BranchSessionGate'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { DeepAuroraIntegration } from '@/components/deep-aurora/DeepAuroraIntegration'
 import { AppMainScrollRestoration } from '@/lib/return-navigation-client'
+import { ContextMenuProvider } from '@/components/ui/ContextMenuProvider'
 
 const SidebarController = dynamic(() => import('./SidebarController'), { ssr: false })
 const Sidebar = dynamic(() => import('./Sidebar'), { ssr: false })
@@ -207,7 +208,9 @@ export default function AppShell({
                 <OfflineBanner />
                 <EmailSyncProgressProvider>
                   <AppActivitiesProvider>
-                    <AppShellMain>{children}</AppShellMain>
+                    <ContextMenuProvider>
+                      <AppShellMain>{children}</AppShellMain>
+                    </ContextMenuProvider>
                   </AppActivitiesProvider>
                 </EmailSyncProgressProvider>
                 <DashboardMobileBottomNav />

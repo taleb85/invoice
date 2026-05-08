@@ -639,6 +639,24 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           )}
 
+          {(isMasterAdmin || isAdminSede) && (
+            <Link href="/strumenti/fornitori-potenziali" onClick={onClose} className={navLink(pathname === '/strumenti/fornitori-potenziali')}>
+              <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="truncate">Fornitori Potenziali</span>
+            </Link>
+          )}
+
+          {(isMasterAdmin || isAdminSede) && (
+            <Link href="/strumenti/analisi-prezzi" onClick={onClose} className={navLink(pathname === '/strumenti/analisi-prezzi')}>
+              <svg className={`w-4 h-4 shrink-0 ${icon.listino}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18M7 16l4-8 4 4 4-6" />
+              </svg>
+              <span className="truncate">Analisi Prezzi</span>
+            </Link>
+          )}
+
           {/* Main flat nav items — master: nel cassetto sotto Aziende; altri: qui. */}
           {!isMasterAdmin &&
             flatNavRestItems.map((item) => {
@@ -920,7 +938,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm8 9a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM6 17a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm14-11a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z" />
               </svg>
             </Link>
-
             {/* Help */}
             <Link
               href="/guida"

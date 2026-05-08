@@ -5,6 +5,7 @@ import { ocrInvoice, OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
 import { geminiGenerateText, getGeminiModelId, type GeminiUsage } from '@/lib/gemini-vision'
 import { logActivity } from '@/lib/activity-logger'
 import { recordAiUsage } from '@/lib/ai-usage-log'
+import { extractPdfText } from '@/lib/pdf-parse-utils'
 
 export type ScannerDocumentKind = 'ddt' | 'fattura' | 'supplier_card' | 'unknown'
 
@@ -158,12 +159,9 @@ export async function POST(req: NextRequest) {
     let textForKind = ''
     if (file.type === 'application/pdf') {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mod = (await import('pdf-parse')) as any
-        const pdfParse = mod.default ?? mod
         const pdfBuf = Buffer.from(buffer)
-        const result = await pdfParse(pdfBuf)
-        textForKind = (result.text ?? '').trim()
+        const text = await extractPdfText(pdfBuf)
+        textForKind = (text ?? '').trim()
       } catch {
         textForKind = [inv.nome, inv.numero_fattura, inv.piva].filter(Boolean).join(' ')
       }

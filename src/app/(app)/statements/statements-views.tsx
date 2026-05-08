@@ -1438,10 +1438,10 @@ export function PendingMatchesTab({
       }
 
       if (pendingDocIdsStableKey && !pendingSilentBulkRanRef.current) {
-        timerId = window.setTimeout(() => {
+        timerId = Number(window.setTimeout(() => {
           pendingSilentBulkRanRef.current = true
           void runRefreshAndBulkAutoMatch({ silent: true })
-        }, 1600) as unknown as number
+        }, 1600))
       }
     }
     return () => {

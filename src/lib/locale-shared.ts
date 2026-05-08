@@ -81,6 +81,40 @@ export function formatMonthYearUppercase(
   return out.toLocaleUpperCase(intlLocale)
 }
 
+export function formatDateTime(
+  d: string,
+  locale: Locale = 'it',
+  timezone = 'Europe/Rome',
+  showSeconds = false,
+) {
+  if (!d?.trim()) return ''
+  const intlLocale =
+    locale === 'it' ? 'it-IT'
+    : locale === 'en' ? 'en-GB'
+    : locale === 'es' ? 'es-ES'
+    : locale === 'fr' ? 'fr-FR'
+    : 'de-DE'
+  const parsed = new Date(d)
+  if (!Number.isFinite(parsed.getTime())) return ''
+
+  const datePart = new Intl.DateTimeFormat(intlLocale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: timezone,
+  }).format(parsed)
+
+  const timePart = new Intl.DateTimeFormat(intlLocale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(showSeconds ? { second: '2-digit' as const } : {}),
+    timeZone: timezone,
+    hour12: false,
+  }).format(parsed)
+
+  return `${datePart} ${timePart}`
+}
+
 export function formatCurrency(amount: number, currencyCode = 'EUR', locale: Locale = 'it') {
   const intlLocale =
     locale === 'it' ? 'it-IT'

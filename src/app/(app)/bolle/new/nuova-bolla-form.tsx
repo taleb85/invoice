@@ -23,8 +23,11 @@ import {
 import { useT } from '@/lib/use-t'
 import { useLocale } from '@/lib/locale-context'
 import { formatDate } from '@/lib/locale-shared'
-import { useActiveOperator } from '@/lib/active-operator-context'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
+import RegistratoDaField from '@/components/RegistratoDaField'
+import DataFieldWithOcrBadge from '@/components/DataFieldWithOcrBadge'
+import ScannerFileUploadSection from '@/components/ScannerFileUploadSection'
+import ScannerCameraModal from '@/components/ScannerCameraModal'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { BackButton } from '@/components/BackButton'
@@ -100,7 +103,6 @@ export default function NuovaBollaForm() {
   const { effectiveSedeId: sedeId } = useManualDeliverySede()
   const t = useT()
   const { locale, timezone } = useLocale()
-  const { activeOperator } = useActiveOperator()
   const emailSyncCtx = useEmailSyncProgressOptional()
   const emailSyncBannerVisible =
     !!emailSyncCtx?.progress &&
@@ -124,12 +126,6 @@ export default function NuovaBollaForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registratoDa, setRegistratoDa] = useState('')
-
-  useEffect(() => {
-    if (activeOperator?.full_name) {
-      setRegistratoDa(activeOperator.full_name.toUpperCase())
-    }
-  }, [activeOperator])
   const [scanIntent, setScanIntent] = useState<ScanIntent>('auto')
   const [registrationTarget, setRegistrationTarget] = useState<'bolla' | 'fattura'>('bolla')
 
@@ -651,116 +647,27 @@ export default function NuovaBollaForm() {
           </div>
         </div>
 
-        <div className="app-card overflow-hidden">
-          <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
-          <label className={fieldLabelCls}>
-            {t.bolle.fotoLabel}
-          </label>
+        <ScannerFileUploadSection
+          file={file}
+          scanPreviewUrl={scanPreviewUrl}
+          ocrStatus={ocrStatus}
+          fileRef={fileRef}
+          onFileSelect={handleFile}
+          onOpenCamera={() => void openCamera()}
+          onRemoveFile={handleRemoveFile}
+        />
 
-          {!file && (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-app-tint-300-45 py-5 text-app-fg-muted transition-colors hover:border-app-tint-300-45 hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15 sm:py-6"
-              >
-                <svg className="h-8 w-8 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-                <span className="text-center text-sm font-bold tracking-tight">{t.bolle.fileBtn} (PDF)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => void openCamera()}
-                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-app-tint-300-45 py-5 text-app-fg-muted transition-colors hover:border-app-tint-300-45 hover:bg-app-line-10 hover:text-app-fg active:bg-app-line-15 sm:py-6"
-              >
-                <svg className="h-8 w-8 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-center text-sm font-bold tracking-tight">{t.bolle.cameraBtn}</span>
-              </button>
-            </div>
-          )}
-
-          {file && (
-            <div className="relative rounded-xl border border-app-line-25 app-workspace-inset-bg-soft px-3 py-6 text-center text-sm font-semibold text-app-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-app-line-10">
-              {scanPreviewUrl ? (
-                // Anteprima da object URL (foto scattata / file immagine); next/image non adatto ai blob.
-                // eslint-disable-next-line @next/next/no-img-element -- preview locale scanner
-                <img
-                  src={scanPreviewUrl}
-                  alt=""
-                  className="mx-auto mb-3 max-h-[min(50vh,280px)] w-full rounded-lg border border-app-soft-border object-contain"
-                />
-              ) : null}
-              <p>{file.type === 'application/pdf' ? t.bolle.scannerPdfPreview : t.bolle.scannerImageAttached}</p>
-              <p className="mt-1.5 truncate text-xs font-medium text-app-fg-muted">{file.name}</p>
-              <button
-                type="button"
-                onClick={handleRemoveFile}
-                className="mt-3 text-xs font-bold text-red-300 underline decoration-red-400/50 underline-offset-2 hover:text-red-200"
-              >
-                {t.common.delete}
-              </button>
-              {ocrStatus === 'scanning' && (
-                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-app-fg-muted">
-                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                  {t.bolle.ocrAnalyzing}
-                </p>
-              )}
-              {ocrStatus === 'matched' && (
-                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-200">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                  </svg>
-                  {t.bolle.ocrMatched}
-                </p>
-              )}
-              {ocrStatus === 'not_found' && (
-                <p className="mt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-200">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  {t.bolle.ocrNotFound}
-                </p>
-              )}
-            </div>
-          )}
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/pdf,image/jpeg,image/png,image/webp"
-            onChange={handleFile}
-            className="hidden"
-          />
-          </div>
-        </div>
-
-        {file && (
-          <div className="app-card overflow-hidden ring-1 ring-app-a-30">
-            <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
-            <label className={fieldLabelCls}>
-              Registrato da
-            </label>
-            <input
-              type="text"
-              placeholder="Nome di chi ha registrato la bolla…"
-              value={registratoDa}
-              onChange={(e) => setRegistratoDa(e.target.value.toUpperCase())}
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-              autoFocus
-              className={registeredByInputCls}
-            />
-            </div>
-          </div>
-        )}
+        <RegistratoDaField
+          value={registratoDa}
+          onChange={setRegistratoDa}
+          show={!!file}
+          upperCase
+          autoFocus
+          placeholder="Nome di chi ha registrato la bolla…"
+          wrapperClassName="app-card overflow-hidden ring-1 ring-app-a-30"
+          innerClassName="border-t border-app-line-10 app-workspace-inset-bg p-4"
+          inputClassName={registeredByInputCls}
+        />
 
         <div className="app-card overflow-hidden">
           <div className="border-t border-app-line-10 app-workspace-inset-bg p-4">
@@ -878,41 +785,21 @@ export default function NuovaBollaForm() {
           </div>
         </div>
 
-        <div className="app-card overflow-hidden">
-          <div className={`border-t border-app-line-10 p-4 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : 'app-workspace-inset-bg-soft'}`}>
-            <div className="mb-1.5 flex items-center justify-between">
-              <label className={`min-w-0 shrink ${fieldLabelTextCls}`}>
-                {registrationTarget === 'fattura' ? t.fatture.dataFattura : t.bolle.dataLabel}
-              </label>
-              {dateFromOcr ? (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-bold text-emerald-200 ring-1 ring-emerald-400/40">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                  </svg>
-                  {t.bolle.ocrAutoRecognized}
-                </span>
-              ) : (
-                <span className="text-[11px] font-semibold text-app-fg-muted">{t.bolle.dateFromDocumentHint}</span>
-              )}
-            </div>
-            <input
-              type="date"
-              required
-              value={data}
-              onChange={(e) => { setData(e.target.value); setDateFromOcr(false) }}
-              className={`${fieldInputCls} [color-scheme:dark]`}
-            />
-          </div>
-
-          <div className="app-workspace-inset-footer-row">
-            <span className="text-xs font-bold uppercase tracking-wider text-app-fg-muted">
-              {t.appStrings.uploadDateLabel}
-            </span>
-            <span className="text-sm font-bold text-app-fg">
-              {todayRegistrationLabel} — {t.appStrings.uploadDateAutomatic}
-            </span>
-          </div>
-        </div>
+        <DataFieldWithOcrBadge
+          value={data}
+          onChange={(v) => { setData(v); setDateFromOcr(false) }}
+          label={registrationTarget === 'fattura' ? t.fatture.dataFattura : t.bolle.dataLabel}
+          dateFromOcr={dateFromOcr}
+          ocrRecognizedLabel={t.bolle.ocrAutoRecognized}
+          hintLabel={t.bolle.dateFromDocumentHint}
+          uploadDateLabel={t.appStrings.uploadDateLabel}
+          uploadDateAutomatic={t.appStrings.uploadDateAutomatic}
+          todayFormatted={todayRegistrationLabel}
+          wrapperClassName="app-card overflow-hidden"
+          innerClassName={`border-t border-app-line-10 p-4 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : 'app-workspace-inset-bg-soft'}`}
+          inputClassName={`${fieldInputCls} [color-scheme:dark]`}
+          footerClassName="app-workspace-inset-footer-row"
+        />
 
         {error && (
           <p className="rounded-xl border border-[rgba(34,211,238,0.15)] bg-red-950/50 px-3 py-2 text-sm font-semibold text-red-200">{error}</p>
@@ -933,41 +820,14 @@ export default function NuovaBollaForm() {
         </button>
       </form>
 
-      {cameraOpen ? (
-        <div
-          className="app-workspace-overlay fixed inset-0 z-[130] flex flex-col p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="nuova-bolla-camera-title"
-        >
-          <p id="nuova-bolla-camera-title" className="sr-only">
-            {t.bolle.cameraBtn}
-          </p>
-          <video
-            ref={videoRef}
-            className="min-h-0 w-full flex-1 rounded-xl border border-app-line-25 bg-black object-contain"
-            playsInline
-            muted
-            autoPlay
-          />
-          <div className="mt-3 flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={closeCameraModal}
-              className="flex-1 rounded-xl border border-app-line-30 app-workspace-inset-bg-soft py-3 text-sm font-bold text-app-fg-muted transition-colors hover:border-app-a-45 hover:brightness-110 hover:text-app-fg"
-            >
-              {t.common.cancel}
-            </button>
-            <button
-              type="button"
-              onClick={capturePhoto}
-              className="app-glow-cyan flex-1 rounded-xl border border-app-line-35 bg-app-cyan-500 py-3 text-sm font-extrabold text-cyan-950 transition-colors hover:bg-app-cyan-400 active:bg-cyan-600"
-            >
-              {t.bolle.scannerCameraCapture}
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <ScannerCameraModal
+        open={cameraOpen}
+        onClose={closeCameraModal}
+        onCapture={capturePhoto}
+        videoRef={videoRef}
+        cancelLabel={t.common.cancel}
+        captureLabel={t.bolle.scannerCameraCapture}
+      />
     </div>
   )
 }

@@ -29,6 +29,9 @@ const nextConfig: NextConfig = {
    * Fast Refresh (client): attivo di default con `next dev`; l’unico flag CLI che lo altera è
    * `--no-server-fast-refresh` (solo refresh lato server). Turbopack: `next dev --turbopack` (equiv. `--turbo`).
    */
+  /** Abilita domini per accesso dev (rete locale). */
+  allowedDevOrigins: ["192.168.64.81"],
+
   /** Espone su client versione (`package.json`) e metadati deploy Vercel al build. */
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,

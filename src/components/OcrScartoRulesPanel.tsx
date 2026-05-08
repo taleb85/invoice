@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { OCR_SCARTO_RULE_TIPOS, type OcrScartoRuleTipo } from '@/lib/ocr-scarto-rules'
 import { useLocale } from '@/lib/locale-context'
+import { useToast } from '@/lib/toast-context'
 
 type RuleRow = {
   id: string
@@ -37,6 +38,7 @@ export default function OcrScartoRulesPanel({
 }) {
   const { t } = useLocale()
   const tg = t.log
+  const { showToast } = useToast()
 
   const [rows, setRows] = useState<RuleRow[] | null>(null)
   const [loadErr, setLoadErr] = useState(false)
@@ -84,7 +86,7 @@ export default function OcrScartoRulesPanel({
       setValore('')
       setMotivo('')
       void reload()
-      window.alert(tg.ocrDiscardRulesSavedToast)
+      showToast(tg.ocrDiscardRulesSavedToast, 'success')
     } finally {
       setBusy(false)
     }

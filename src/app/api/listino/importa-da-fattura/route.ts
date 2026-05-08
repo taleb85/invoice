@@ -37,17 +37,7 @@ Rules:
 - prodotto: use the original language as written on the invoice; prefer the description text over the code.
 - If no line items can be extracted, return { "items": [], "data_fattura": null }.`
 
-async function extractPdfText(buffer: Buffer): Promise<string | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod = (await import('pdf-parse')) as any
-    const pdfParse = mod.default ?? mod
-    const result = await pdfParse(buffer)
-    return result.text?.trim() || null
-  } catch {
-    return null
-  }
-}
+import { extractPdfText } from '@/lib/pdf-parse-utils'
 
 function parseLineItems(raw: string): { items: LineItem[]; data_fattura: string | null } {
   try {
@@ -164,17 +154,6 @@ export async function POST(req: NextRequest) {
   }
 
   const { items, data_fattura } = parseLineItems(rawResponse)
-
-  const { error: analErr } = await service
-    .from('fatture')
-    .update({ analizzata: true })
-    .eq('id', fattura_id)
-  if (analErr) {
-    const msg = analErr.message ?? ''
-    if (!msg.includes('analizzata') && !msg.includes('42703')) {
-      console.warn('[listino/importa-da-fattura] aggiornamento analizzata:', msg)
-    }
-  }
 
   return NextResponse.json({
     items,

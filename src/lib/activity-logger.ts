@@ -8,6 +8,7 @@ export type ActivityAction =
   | 'fattura.associated'
   | 'fattura.approved'
   | 'fattura.rejected'
+  | 'fattura.reassigned'
   | 'documento.processed'
   | 'documento.discarded'
   | 'fornitore.created'
@@ -20,6 +21,13 @@ export type ActivityAction =
   | 'email.scan.prefiltro'
   | 'price_anomaly.resolved'
   | 'gemini.ocr'
+  | 'potential_supplier.created'
+  | 'potential_supplier.stato.da_valutare'
+  | 'potential_supplier.stato.in_valutazione'
+  | 'potential_supplier.stato.approfondimento'
+  | 'potential_supplier.stato.approvato'
+  | 'potential_supplier.stato.rifiutato'
+  | 'potential_supplier.stato.archiviato'
 
 /** ID stabile per icona SVG nel feed attività (JSON-safe dalla API). */
 export type ActivityGlyphId =
@@ -44,6 +52,7 @@ export function activityGlyphId(action: ActivityAction): ActivityGlyphId {
   if (action.startsWith('price')) return 'currency'
   if (action === 'duplicate.bulk_deleted') return 'trash'
   if (action === 'gemini.ocr') return 'sparkles'
+  if (action.startsWith('potential_supplier')) return 'building-store'
   return 'adjustments-horizontal'
 }
 
@@ -89,6 +98,7 @@ export function activityLabel(action: ActivityAction): string {
     'fattura.deleted': 'Fattura eliminata',
     'fattura.associated': 'Fattura associata a bolle',
     'fattura.approved': 'Fattura approvata',
+    'fattura.reassigned': 'Fattura riassegnata a fornitore',
     'fattura.rejected': 'Fattura rifiutata',
     'documento.processed': 'Documento elaborato',
     'documento.discarded': 'Documento scartato',
@@ -102,6 +112,13 @@ export function activityLabel(action: ActivityAction): string {
     'email.scan.prefiltro': 'Scansione email — pre-filtro',
     'price_anomaly.resolved': 'Anomalia prezzo risolta',
     'gemini.ocr': 'Documento elaborato con Gemini',
+    'potential_supplier.created': 'Fornitore potenziale registrato',
+    'potential_supplier.stato.da_valutare': 'Stato: da valutare',
+    'potential_supplier.stato.in_valutazione': 'Stato: in valutazione',
+    'potential_supplier.stato.approfondimento': 'Stato: approfondimento',
+    'potential_supplier.stato.approvato': 'Fornitore potenziale approvato',
+    'potential_supplier.stato.rifiutato': 'Fornitore potenziale rifiutato',
+    'potential_supplier.stato.archiviato': 'Fornitore potenziale archiviato',
   }
   return labels[action] ?? action
 }

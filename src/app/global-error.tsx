@@ -5,8 +5,7 @@ import Link from 'next/link'
 import './globals.css'
 import LoginBrandedShell from '@/components/LoginBrandedShell'
 import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
-import { getTranslations } from '@/lib/translations'
-import { useCookieLocaleFallback } from '@/lib/use-cookie-locale-fallback'
+import en from '@/lib/translations/en'
 
 /**
  * Root layout error boundary — must render its own <html> and <body>.
@@ -19,8 +18,8 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
-  const locale = useCookieLocaleFallback()
-  const t = getTranslations(locale)
+  const locale = 'en'
+  const t = en
 
   useEffect(() => {
     console.error('[GlobalError]', error)

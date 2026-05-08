@@ -4,7 +4,8 @@ import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import type { FatturaDuplicateDeletionPayload } from '@/lib/check-duplicates'
-import { deleteDuplicateBolla, deleteDuplicateInvoice, deleteDuplicateOrdine } from '@/lib/duplicate-invoice-actions'
+import { deleteDuplicateRow, type DuplicateTable } from '@/lib/duplicate-invoice-actions'
+import { useToast } from '@/lib/toast-context'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ActionButton } from '@/components/ui/ActionButton'
 
@@ -34,6 +35,7 @@ export function DuplicateLedgerRowExtras({
 }) {
   const router = useRouter()
   const supabase = createClient()
+  const { showToast } = useToast()
   const [deleting, setDeleting] = useState(false)
 
   const memberSet = payload.memberIds.includes(rowId)
@@ -43,15 +45,11 @@ export function DuplicateLedgerRowExtras({
     if (!excess) return
     if (!window.confirm(duplicateDeleteConfirm)) return
     setDeleting(true)
-    const { error } =
-      kind === 'bolla'
-        ? await deleteDuplicateBolla(supabase, rowId)
-        : kind === 'ordine'
-          ? await deleteDuplicateOrdine(supabase, rowId)
-          : await deleteDuplicateInvoice(supabase, rowId)
+    const table: DuplicateTable = kind === 'bolla' ? 'bolle' : kind === 'ordine' ? 'conferme_ordine' : 'fatture'
+    const { error } = await deleteDuplicateRow(supabase, table, rowId)
     setDeleting(false)
     if (error) {
-      window.alert(`${deleteFailedPrefix} ${error}`)
+      showToast(`${deleteFailedPrefix} ${error}`, 'error')
       return
     }
     onAfterDelete?.()

@@ -97,39 +97,37 @@ async function finalizePendingByTipo(
     numero_fattura?: string | null
   }
 
-  /** Listino prezzi: registra come fattura tecnica (stesso percorso «Analizza» listino sul PDF). */
-  if (tipo === 'fattura' || tipo === 'listino') {
+  /** Listino prezzi: resta in coda da processare. */
+  if (tipo === 'listino') {
+    return NextResponse.json(
+      { error: 'Listino prezzi: rimane in coda documenti. Apri il link e consulta il PDF direttamente.' },
+      { status: 400 },
+    )
+  }
+
+  if (tipo === 'fattura') {
     const numeroNorm =
       typeof m.numero_fattura === 'string' && m.numero_fattura.trim()
         ? normalizeNumeroFattura(m.numero_fattura)
         : null
-    if (numeroNorm) {
-      const dupId = await findDuplicateFatturaId(supabase, {
-        sedeId: sedeDefinitiva,
-        fornitoreId: doc.fornitore_id,
-        data: dataDoc,
-        numeroFattura: numeroNorm,
-      })
-      if (dupId) {
-        return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
-      }
-    } else if (m.totale_iva_inclusa != null) {
-      const imp = Number(m.totale_iva_inclusa)
-      if (Number.isFinite(imp)) {
-        const dupSans = await findDuplicateFatturaSansNumeroByImporto(supabase, {
-          sedeId: sedeDefinitiva,
-          fornitoreId: doc.fornitore_id,
-          data: dataDoc,
-          importo: imp,
-        })
-        if (dupSans) {
-          return NextResponse.json(
-            { error: FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT, code: 'duplicate_fattura_sans_numero_importo' },
-            { status: 409 },
-          )
-        }
-      }
+
+    if (!numeroNorm) {
+      return NextResponse.json(
+        { error: 'Numero fattura non rilevato. Inseriscilo manualmente prima di confermare.' },
+        { status: 400 },
+      )
     }
+
+    const dupId = await findDuplicateFatturaId(supabase, {
+      sedeId: sedeDefinitiva,
+      fornitoreId: doc.fornitore_id,
+      data: dataDoc,
+      numeroFattura: numeroNorm,
+    })
+    if (dupId) {
+      return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
+    }
+
     const fatturaImporto = m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null
 
     // Determine approval_status before insert

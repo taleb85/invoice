@@ -26,6 +26,7 @@ import {
   ReactNode,
 } from 'react'
 import { type Locale, getTranslations, type Translations } from './translations'
+import en from './translations/en'
 
 /* ─── Supported locales ─────────────────────────────────────────────── */
 const SUPPORTED: Locale[] = ['it', 'en', 'fr', 'de', 'es']
@@ -81,7 +82,7 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue>({
   locale:      'en',
-  t:           getTranslations('en'),
+  t:           en,
   setLocale:   () => {},
   currency:    'GBP',
   setCurrency: () => {},
@@ -98,6 +99,7 @@ export function LocaleProvider({ children, initialLocale }: { children: ReactNod
       : 'en'
 
   const [locale, setLocaleState]     = useState<Locale>(resolvedInitial)
+  const [t, setT]                    = useState<Translations>(en)
   const [currency, setCurrencyState] = useState<string>('GBP')
   const [timezone, setTimezoneState] = useState<string>('UTC')
   const [isFirstSession, setIsFirstSession] = useState(false)
@@ -121,6 +123,10 @@ export function LocaleProvider({ children, initialLocale }: { children: ReactNod
     if (savedTz) setTimezoneState(savedTz)
   }, [])
 
+  useEffect(() => {
+    getTranslations(locale).then(setT)
+  }, [locale])
+
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l)
     writeCookie(LOCALE_COOKIE, l)
@@ -141,7 +147,7 @@ export function LocaleProvider({ children, initialLocale }: { children: ReactNod
 
   return (
     <LocaleContext.Provider value={{
-      locale, t: getTranslations(locale), setLocale,
+      locale, t, setLocale,
       currency, setCurrency,
       timezone, setTimezone,
       isFirstSession,

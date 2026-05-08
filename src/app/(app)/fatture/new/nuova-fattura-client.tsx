@@ -10,8 +10,9 @@ import {
   normalizeNumeroFattura,
 } from '@/lib/fattura-duplicate-check'
 import { useT } from '@/lib/use-t'
-import { useActiveOperator } from '@/lib/active-operator-context'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
+import RegistratoDaField from '@/components/RegistratoDaField'
+import DataFieldWithOcrBadge from '@/components/DataFieldWithOcrBadge'
 import AppPageHeaderDesktopTray from '@/components/AppPageHeaderDesktopTray'
 import { BackButton } from '@/components/BackButton'
 import { AuroraPanelShell } from '@/components/aurora/AuroraPanelShell'
@@ -38,7 +39,6 @@ export default function NuovaFatturaForm() {
   const fileRef = useRef<HTMLInputElement>(null)
   const { effectiveSedeId: sedeId } = useManualDeliverySede()
   const t = useT()
-  const { activeOperator } = useActiveOperator()
 
   const bollaIdParam    = searchParams.get('bolla_id') ?? ''
   const fornitoreIdParam = searchParams.get('fornitore_id') ?? ''
@@ -51,13 +51,6 @@ export default function NuovaFatturaForm() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [registratoDa, setRegistratoDa] = useState('')
-
-  // Auto-fill registratoDa dall'operatore attivo
-  useEffect(() => {
-    if (activeOperator?.full_name) {
-      setRegistratoDa(activeOperator.full_name)
-    }
-  }, [activeOperator])
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>('idle')
   const [dateFromOcr, setDateFromOcr] = useState(false)
 
@@ -409,57 +402,28 @@ export default function NuovaFatturaForm() {
           </div>
         </AuroraPanelShell>
 
-        {/* Registrato da */}
-        {file && (
-          <AuroraPanelShell className="relative border border-app-soft-border">
-            <div className="p-5">
-            <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
-              Registrato da
-            </label>
-            <input type="text" placeholder="Nome di chi ha registrato la fattura…"
-              value={registratoDa} onChange={e => setRegistratoDa(e.target.value)}
-              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg placeholder:text-app-fg-placeholder focus:outline-none focus:ring-0"
-            />
-            </div>
-          </AuroraPanelShell>
-        )}
+        <RegistratoDaField
+          value={registratoDa}
+          onChange={setRegistratoDa}
+          show={!!file}
+          placeholder="Nome di chi ha registrato la fattura…"
+          wrapperClassName="relative border border-app-soft-border"
+        />
 
-        {/* Data fattura */}
         <AuroraPanelShell>
-          <div className={`p-5 transition-colors ${dateFromOcr ? 'bg-emerald-500/10' : ''}`}>
-            <div className="mb-2 flex items-center justify-between">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-app-fg-muted">
-                {t.fatture.dataFattura}
-              </label>
-              {ocrStatus === 'scanning' && (
-                <span className="flex items-center gap-1 text-xs text-app-fg-muted">
-                  <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                  Analisi…
-                </span>
-              )}
-              {dateFromOcr && (
-                <span className="flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-semibold text-emerald-300">
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
-                  </svg>
-                  {t.bolle.ocrAutoRecognized}
-                </span>
-              )}
-            </div>
-            <input type="date" required value={data}
-              onChange={e => { setData(e.target.value); setDateFromOcr(false) }}
-              className="-mx-1 w-full border-0 bg-transparent py-1 text-base text-app-fg [color-scheme:dark] focus:outline-none focus:ring-0"
-            />
-          </div>
-          <div className="flex items-center justify-between border-t border-app-line-22 app-workspace-inset-bg-soft px-5 py-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">Data caricamento</span>
-            <span className="text-sm font-medium text-app-fg-muted">
-              {new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })} — automatica
-            </span>
-          </div>
+          <DataFieldWithOcrBadge
+            value={data}
+            onChange={(v) => { setData(v); setDateFromOcr(false) }}
+            label={t.fatture.dataFattura}
+            dateFromOcr={dateFromOcr}
+            ocrRecognizedLabel={t.bolle.ocrAutoRecognized}
+            scanning={ocrStatus === 'scanning'}
+            scanningLabel="Analisi…"
+            uploadDateLabel="Data caricamento"
+            uploadDateAutomatic="automatica"
+            todayFormatted={new Date().toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            footerClassName="flex items-center justify-between border-t border-app-line-22 app-workspace-inset-bg-soft px-5 py-3"
+          />
         </AuroraPanelShell>
 
         {error && (

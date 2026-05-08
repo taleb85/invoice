@@ -49,55 +49,6 @@ export function serializeFatturaDuplicateDeletionPayload(
   }
 }
 
-/**
- * Duplicati per stesso fornitore + numero + importo: mantiene la fattura con **data più vecchia**
- * (a parità di data, `id` lessicografico minore). Le altre righe sono `excessIds`.
- */
-export function analyzeFatturaDuplicatesForDeletion(rows: FatturaDupListRow[]): FatturaDuplicateDeletionAnalysis {
-  const byKey = new Map<string, FatturaDupListRow[]>()
-  for (const r of rows) {
-    const k = fatturaDupKey(r)
-    if (!k) continue
-    const arr = byKey.get(k) ?? []
-    arr.push(r)
-    byKey.set(k, arr)
-  }
-  const memberIds = new Set<string>()
-  const excessIds = new Set<string>()
-  const canonicalIdByGroupKey = new Map<string, string>()
-  const groupMembers = new Map<string, string[]>()
-  let surplusCount = 0
-  let surplusImportoCents = 0
-  for (const [k, arr] of byKey) {
-    if (arr.length <= 1) continue
-    arr.sort((a, b) => {
-      if (a.data !== b.data) return a.data < b.data ? -1 : a.data > b.data ? 1 : 0
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
-    })
-    const canonId = arr[0]!.id
-    canonicalIdByGroupKey.set(k, canonId)
-    groupMembers.set(
-      k,
-      arr.map((x) => x.id),
-    )
-    const cents = importoCents(arr[0]!.importo)!
-    surplusCount += arr.length - 1
-    surplusImportoCents += (arr.length - 1) * cents
-    for (const row of arr) {
-      memberIds.add(row.id)
-      if (row.id !== canonId) excessIds.add(row.id)
-    }
-  }
-  return {
-    memberIds,
-    excessIds,
-    canonicalIdByGroupKey,
-    groupMembers,
-    surplusCount,
-    surplusImporto: surplusImportoCents / 100,
-  }
-}
-
 /** `data` = data documento bolla (YYYY-MM-DD), inclusa nel criterio duplicato. */
 export type BollaDupProbe = {
   id: string
@@ -117,11 +68,8 @@ export type OrdineDupListRow = {
 }
 
 export type DuplicateGroupAnalysis = {
-  /** Per ogni gruppo con >1 riga: (n − 1) copie in eccesso. */
   surplusCount: number
-  /** Tutti gli id appartenenti a un gruppo con almeno 2 righe (per badge UI). */
   memberIds: Set<string>
-  /** Importo da sottrarre alla somma grezza (stesso importo nel gruppo). */
   surplusImporto: number
 }
 
@@ -156,11 +104,61 @@ function ordineDupKey(r: OrdineDupListRow): string | null {
   return `${r.fornitore_id}\u0000${d}\u0000${num.toLowerCase()}`
 }
 
-/** Duplicati bolle: stessa data + fornitore + numero; canonical = data più vecchia poi `id`. */
-export function analyzeBolleDuplicatesForDeletion(rows: BollaDupProbe[]): FatturaDuplicateDeletionAnalysis {
-  const byKey = new Map<string, BollaDupProbe[]>()
+// ── Helpers generici ──────────────────────────────────────────
+
+type DupRowLike = { id: string }
+
+/**
+ * Fetch paginato con range per una tabella duplicati.
+ */
+async function fetchAllDupRows<T extends DupRowLike>(
+  supabase: SupabaseClient,
+  table: string,
+  select: string,
+  orderColumn: string,
+  fornitoreIds: string[] | null,
+  fiscalBounds: FiscalPgBounds | null,
+  fiscalColumn: 'data' | 'created_at',
+): Promise<T[]> {
+  const out: T[] = []
+  for (let from = 0; from < DUPLICATE_SCAN_MAX_ROWS; from += PAGE_SIZE) {
+    let q = supabase
+      .from(table)
+      .select(select)
+      .order(orderColumn, { ascending: false })
+      .range(from, from + PAGE_SIZE - 1)
+    if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
+    if (fiscalBounds) {
+      const [fromKey, toKey] = fiscalColumn === 'created_at'
+        ? ['tsFrom' as const, 'tsToExclusive' as const]
+        : ['dateFrom' as const, 'dateToExclusive' as const]
+      q = q.gte(fiscalColumn, fiscalBounds[fromKey]).lt(fiscalColumn, fiscalBounds[toKey])
+    }
+    const { data, error } = await q
+    if (error) break
+    const chunk = (data ?? []) as unknown as T[]
+    out.push(...chunk)
+    if (chunk.length < PAGE_SIZE) break
+  }
+  return out.slice(0, DUPLICATE_SCAN_MAX_ROWS)
+}
+
+type CompareFn<T> = (a: T, b: T) => number
+
+/**
+ * Analisi generica duplicati per cancellazione: raggruppa per chiave, ordina,
+ * calcola canonical (primo) e excess (restanti).
+ */
+function analyzeDuplicatesForDeletion<T extends { id: string }>(
+  rows: T[],
+  getKey: (r: T) => string | null,
+  sortFn: CompareFn<T>,
+  withImporto: boolean,
+  getImporto?: (r: T) => number | null,
+): FatturaDuplicateDeletionAnalysis {
+  const byKey = new Map<string, T[]>()
   for (const r of rows) {
-    const k = bollaDupKey(r)
+    const k = getKey(r)
     if (!k) continue
     const arr = byKey.get(k) ?? []
     arr.push(r)
@@ -170,230 +168,200 @@ export function analyzeBolleDuplicatesForDeletion(rows: BollaDupProbe[]): Fattur
   const excessIds = new Set<string>()
   const canonicalIdByGroupKey = new Map<string, string>()
   const groupMembers = new Map<string, string[]>()
-  let surplusCount = 0
-  for (const [k, arr] of byKey) {
-    if (arr.length <= 1) continue
-    arr.sort((a, b) => {
-      if (a.data !== b.data) return a.data < b.data ? -1 : a.data > b.data ? 1 : 0
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
-    })
-    const canonId = arr[0]!.id
-    canonicalIdByGroupKey.set(k, canonId)
-    groupMembers.set(
-      k,
-      arr.map((x) => x.id),
-    )
-    surplusCount += arr.length - 1
-    for (const row of arr) {
-      memberIds.add(row.id)
-      if (row.id !== canonId) excessIds.add(row.id)
-    }
-  }
-  return {
-    memberIds,
-    excessIds,
-    canonicalIdByGroupKey,
-    groupMembers,
-    surplusCount,
-    surplusImporto: 0,
-  }
-}
-
-/** Duplicati ordini (conferme): canonical = `created_at` più vecchio poi `id`. */
-export function analyzeOrdineDuplicatesForDeletion(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
-  const byKey = new Map<string, OrdineDupListRow[]>()
-  for (const r of rows) {
-    const k = ordineDupKey(r)
-    if (!k) continue
-    const arr = byKey.get(k) ?? []
-    arr.push(r)
-    byKey.set(k, arr)
-  }
-  const memberIds = new Set<string>()
-  const excessIds = new Set<string>()
-  const canonicalIdByGroupKey = new Map<string, string>()
-  const groupMembers = new Map<string, string[]>()
-  let surplusCount = 0
-  for (const [k, arr] of byKey) {
-    if (arr.length <= 1) continue
-    arr.sort((a, b) => {
-      const ca = a.created_at
-      const cb = b.created_at
-      if (ca !== cb) return ca < cb ? -1 : ca > cb ? 1 : 0
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
-    })
-    const canonId = arr[0]!.id
-    canonicalIdByGroupKey.set(k, canonId)
-    groupMembers.set(
-      k,
-      arr.map((x) => x.id),
-    )
-    surplusCount += arr.length - 1
-    for (const row of arr) {
-      memberIds.add(row.id)
-      if (row.id !== canonId) excessIds.add(row.id)
-    }
-  }
-  return {
-    memberIds,
-    excessIds,
-    canonicalIdByGroupKey,
-    groupMembers,
-    surplusCount,
-    surplusImporto: 0,
-  }
-}
-
-/** Raggruppa per fornitore + numero fattura normalizzato + importo (centesimi). */
-export function analyzeFatturaDuplicateGroups(rows: FatturaDupProbe[]): DuplicateGroupAnalysis {
-  const groups = new Map<string, { ids: string[]; importoCents: number }>()
-  for (const r of rows) {
-    const k = fatturaDupKey(r)
-    if (!k) continue
-    const cents = importoCents(r.importo)!
-    let g = groups.get(k)
-    if (!g) {
-      g = { ids: [], importoCents: cents }
-      groups.set(k, g)
-    }
-    g.ids.push(r.id)
-  }
   let surplusCount = 0
   let surplusImportoCents = 0
-  const memberIds = new Set<string>()
-  for (const g of groups.values()) {
-    if (g.ids.length <= 1) continue
-    surplusCount += g.ids.length - 1
-    surplusImportoCents += (g.ids.length - 1) * g.importoCents
-    for (const id of g.ids) memberIds.add(id)
+  for (const [k, arr] of byKey) {
+    if (arr.length <= 1) continue
+    arr.sort(sortFn)
+    const canonId = arr[0]!.id
+    canonicalIdByGroupKey.set(k, canonId)
+    groupMembers.set(k, arr.map((x) => x.id))
+    surplusCount += arr.length - 1
+    if (withImporto && getImporto) {
+      const cents = importoCents(getImporto(arr[0]!))
+      if (cents != null) surplusImportoCents += (arr.length - 1) * cents
+    }
+    for (const row of arr) {
+      memberIds.add(row.id)
+      if (row.id !== canonId) excessIds.add(row.id)
+    }
   }
   return {
-    surplusCount,
     memberIds,
+    excessIds,
+    canonicalIdByGroupKey,
+    groupMembers,
+    surplusCount,
     surplusImporto: surplusImportoCents / 100,
   }
 }
 
-/** Raggruppa per fornitore + numero bolla normalizzato (senza importo). */
-export function analyzeBolleDuplicateGroups(rows: BollaDupProbe[]): DuplicateGroupAnalysis {
+/**
+ * Analisi gruppi duplicati (senza canonical): raggruppa per chiave e conta surplus.
+ */
+function analyzeDuplicateGroups<T extends { id: string }>(
+  rows: T[],
+  getKey: (r: T) => string | null,
+  withImporto: boolean,
+  getImporto?: (r: T) => number | null,
+): DuplicateGroupAnalysis {
   const groups = new Map<string, string[]>()
+  const importoByKey = new Map<string, number>()
   for (const r of rows) {
-    const k = bollaDupKey(r)
+    const k = getKey(r)
     if (!k) continue
     const arr = groups.get(k) ?? []
     arr.push(r.id)
     groups.set(k, arr)
+    if (withImporto && getImporto) {
+      const cents = importoCents(getImporto(r))
+      if (cents != null) importoByKey.set(k, cents)
+    }
   }
   let surplusCount = 0
+  let surplusImportoCents = 0
   const memberIds = new Set<string>()
-  for (const ids of groups.values()) {
+  for (const [k, ids] of groups) {
     if (ids.length <= 1) continue
     surplusCount += ids.length - 1
+    if (withImporto) {
+      const cents = importoByKey.get(k)
+      if (cents != null) surplusImportoCents += (ids.length - 1) * cents
+    }
     for (const id of ids) memberIds.add(id)
   }
-  return { surplusCount, memberIds, surplusImporto: 0 }
+  return { surplusCount, memberIds, surplusImporto: surplusImportoCents / 100 }
+}
+
+const byDataThenId: CompareFn<{ id: string; data: string }> = (a, b) => {
+  if (a.data !== b.data) return a.data < b.data ? -1 : a.data > b.data ? 1 : 0
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+}
+
+const byCreatedAtThenId: CompareFn<{ id: string; created_at: string }> = (a, b) => {
+  if (a.created_at !== b.created_at) return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+}
+
+// ── Fatture ───────────────────────────────────────────────────
+
+function fattureSortFn(a: FatturaDupListRow, b: FatturaDupListRow): number {
+  return byDataThenId(a, b)
+}
+
+function fatturaImporto(r: FatturaDupProbe): number | null {
+  return r.importo
+}
+
+/** Duplicati per stesso fornitore + numero + importo: mantiene la fattura con **data più vecchia**
+ * (a parità di data, `id` lessicografico minore). Le altre righe sono `excessIds`. */
+export function analyzeFatturaDuplicatesForDeletion(rows: FatturaDupListRow[]): FatturaDuplicateDeletionAnalysis {
+  return analyzeDuplicatesForDeletion(rows, fatturaDupKey, fattureSortFn, true, fatturaImporto)
+}
+
+/** Raggruppa per fornitore + numero fattura normalizzato + importo (centesimi). */
+export function analyzeFatturaDuplicateGroups(rows: FatturaDupProbe[]): DuplicateGroupAnalysis {
+  return analyzeDuplicateGroups(rows, fatturaDupKey, true, fatturaImporto)
 }
 
 async function fetchAllFattureDupRows(
   supabase: SupabaseClient,
   fornitoreIds: string[] | null,
-  fiscalBounds: FiscalPgBounds | null
+  fiscalBounds: FiscalPgBounds | null,
 ): Promise<FatturaDupProbe[]> {
-  const out: FatturaDupProbe[] = []
-  for (let from = 0; from < DUPLICATE_SCAN_MAX_ROWS; from += PAGE_SIZE) {
-    let q = supabase
-      .from('fatture')
-      .select('id, importo, numero_fattura, fornitore_id')
-      .order('id', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1)
-    if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
-    if (fiscalBounds) {
-      q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
-    }
-    const { data, error } = await q
-    if (error) break
-    const chunk = (data ?? []) as FatturaDupProbe[]
-    out.push(...chunk)
-    if (chunk.length < PAGE_SIZE) break
-  }
-  return out.slice(0, DUPLICATE_SCAN_MAX_ROWS)
+  return fetchAllDupRows<FatturaDupProbe>(
+    supabase, 'fatture', 'id, importo, numero_fattura, fornitore_id', 'id',
+    fornitoreIds, fiscalBounds, 'data',
+  )
 }
 
-async function fetchAllBolleDupRows(
-  supabase: SupabaseClient,
-  fornitoreIds: string[] | null,
-  fiscalBounds: FiscalPgBounds | null
-): Promise<BollaDupProbe[]> {
-  const out: BollaDupProbe[] = []
-  for (let from = 0; from < DUPLICATE_SCAN_MAX_ROWS; from += PAGE_SIZE) {
-    let q = supabase
-      .from('bolle')
-      .select('id, numero_bolla, fornitore_id, data')
-      .order('id', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1)
-    if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
-    if (fiscalBounds) {
-      q = q.gte('data', fiscalBounds.dateFrom).lt('data', fiscalBounds.dateToExclusive)
-    }
-    const { data, error } = await q
-    if (error) break
-    const chunk = (data ?? []) as BollaDupProbe[]
-    out.push(...chunk)
-    if (chunk.length < PAGE_SIZE) break
-  }
-  return out.slice(0, DUPLICATE_SCAN_MAX_ROWS)
-}
-
-/**
- * Conteggio copie in eccesso: per ogni gruppo (stesso `numero_fattura` normalizzato, `fornitore_id`, stesso importo)
- * con almeno 2 fatture, si aggiunge (n − 1).
- */
 export async function getDuplicateInvoicesCount(
   supabase: SupabaseClient,
-  opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null }
+  opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null },
 ): Promise<number> {
   const rows = await fetchAllFattureDupRows(supabase, opts.fornitoreIds, opts.fiscalBounds)
   return analyzeFatturaDuplicateGroups(rows).surplusCount
 }
 
-/** Stessa logica sulle bolle: `numero_bolla` + `fornitore_id`. */
+// ── Bolle ─────────────────────────────────────────────────────
+
+function bolleSortFn(a: BollaDupProbe, b: BollaDupProbe): number {
+  return byDataThenId(a as { id: string; data: string }, b as { id: string; data: string })
+}
+
+/** Duplicati bolle: stessa data + fornitore + numero; canonical = data più vecchia poi `id`. */
+export function analyzeBolleDuplicatesForDeletion(rows: BollaDupProbe[]): FatturaDuplicateDeletionAnalysis {
+  return analyzeDuplicatesForDeletion(rows, bollaDupKey, bolleSortFn, false)
+}
+
+/** Raggruppa per fornitore + numero bolla normalizzato (senza importo). */
+export function analyzeBolleDuplicateGroups(rows: BollaDupProbe[]): DuplicateGroupAnalysis {
+  return analyzeDuplicateGroups(rows, bollaDupKey, false)
+}
+
+async function fetchAllBolleDupRows(
+  supabase: SupabaseClient,
+  fornitoreIds: string[] | null,
+  fiscalBounds: FiscalPgBounds | null,
+): Promise<BollaDupProbe[]> {
+  return fetchAllDupRows<BollaDupProbe>(
+    supabase, 'bolle', 'id, numero_bolla, fornitore_id, data', 'id',
+    fornitoreIds, fiscalBounds, 'data',
+  )
+}
+
 export async function getDuplicateBolleCount(
   supabase: SupabaseClient,
-  opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null }
+  opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null },
 ): Promise<number> {
   const rows = await fetchAllBolleDupRows(supabase, opts.fornitoreIds, opts.fiscalBounds)
   return analyzeBolleDuplicatesForDeletion(rows).surplusCount
 }
 
+// ── Ordini (conferme) ─────────────────────────────────────────
+
+function ordiniSortFn(a: OrdineDupListRow, b: OrdineDupListRow): number {
+  return byCreatedAtThenId(a, b)
+}
+
+/** Duplicati ordini (conferme): canonical = `created_at` più vecchio poi `id`. */
+export function analyzeOrdineDuplicatesForDeletion(rows: OrdineDupListRow[]): FatturaDuplicateDeletionAnalysis {
+  return analyzeDuplicatesForDeletion(rows, ordineDupKey, ordiniSortFn, false)
+}
+
 async function fetchAllOrdiniDupRows(
   supabase: SupabaseClient,
   fornitoreIds: string[] | null,
-  fiscalBounds: FiscalPgBounds | null
+  fiscalBounds: FiscalPgBounds | null,
 ): Promise<OrdineDupListRow[]> {
-  const out: OrdineDupListRow[] = []
-  for (let from = 0; from < DUPLICATE_SCAN_MAX_ROWS; from += PAGE_SIZE) {
-    let q = supabase
-      .from('conferme_ordine')
-      .select('id, fornitore_id, data_ordine, numero_ordine, titolo, created_at')
-      .order('created_at', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1)
-    if (fornitoreIds?.length) q = q.in('fornitore_id', fornitoreIds)
-    if (fiscalBounds) {
-      q = q.gte('created_at', fiscalBounds.tsFrom).lt('created_at', fiscalBounds.tsToExclusive)
-    }
-    const { data, error } = await q
-    if (error) break
-    const chunk = (data ?? []) as OrdineDupListRow[]
-    out.push(...chunk)
-    if (chunk.length < PAGE_SIZE) break
-  }
-  return out.slice(0, DUPLICATE_SCAN_MAX_ROWS)
+  return fetchAllDupRows<OrdineDupListRow>(
+    supabase, 'conferme_ordine', 'id, fornitore_id, data_ordine, numero_ordine, titolo, created_at', 'created_at',
+    fornitoreIds, fiscalBounds, 'created_at',
+  )
 }
 
 export async function getDuplicateOrdiniCount(
   supabase: SupabaseClient,
-  opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null }
+  opts: { fornitoreIds: string[] | null; fiscalBounds: FiscalPgBounds | null },
 ): Promise<number> {
   const rows = await fetchAllOrdiniDupRows(supabase, opts.fornitoreIds, opts.fiscalBounds)
   return analyzeOrdineDuplicatesForDeletion(rows).surplusCount
+}
+
+/**
+ * Elimina automaticamente i record duplicati in eccesso (copie extra).
+ * Usa service-role bypass RLS. Ritorna il numero di eliminazioni.
+ */
+export async function autoDeleteExcessDuplicates(
+  supabase: SupabaseClient,
+  table: 'bolle' | 'fatture' | 'conferme_ordine',
+  excessIds: string[],
+): Promise<number> {
+  if (!excessIds.length) return 0
+  const { error } = await supabase.from(table).delete().in('id', excessIds)
+  if (error) {
+    console.error(`[autoDeleteExcessDuplicates] Errore su ${table}:`, error.message)
+    return 0
+  }
+  return excessIds.length
 }

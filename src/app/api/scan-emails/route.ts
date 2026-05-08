@@ -45,7 +45,7 @@ import {
   linkScanSenderToFornitore,
 } from '@/lib/scan-email-ocr-bootstrap-fornitore'
 import { persistKnownFornitoreEmailScanWithFile } from '@/lib/email-scan-persist-known-with-file'
-import { normalizeTipoDocumento, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
+import { normalizeTipoDocumento, ocrClassifiedAsFatturaButContentMissing, ocrTipoAllowsEmailAutoFattura } from '@/lib/ocr-tipo-documento'
 import {
   evaluatePreGeminiDiscardRule,
   evaluatePostGeminiDiscardRuleTipo,
@@ -55,6 +55,7 @@ import {
   type OcrScartoRuleRow,
 } from '@/lib/ocr-scarto-rules'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
+import { autoCreatePotentialSupplierFromScan } from '@/lib/auto-potential-supplier'
 import {
   loadEmailScanBlacklistSet,
   senderMatchesEmailScanBlacklist,
@@ -1234,6 +1235,10 @@ async function processEmails(
                 (email.from ? ` | Mittente: ${email.from}` : ''),
             }),
           })
+          autoCreatePotentialSupplierFromScan(
+            supabase, ocr, { from: email.from, subject: email.subject },
+            attachment.filename ?? null, syn.publicUrl, unknownDocSedeId, null,
+          ).catch((e: unknown) => console.error('[auto-potential-supplier]', e))
           ricevuti++
           bumpAttach(email.uid)
         }
@@ -1391,6 +1396,10 @@ async function processEmails(
               (email.from ? ` | Mittente: ${email.from}` : ''),
           }),
         })
+        autoCreatePotentialSupplierFromScan(
+          supabase, ocr, { from: email.from, subject: email.subject },
+          attachment.filename ?? null, publicRef, unknownDocSedeId, null,
+        ).catch((e: unknown) => console.error('[auto-potential-supplier]', e))
         ricevuti++
         bumpAttach(email.uid)
       }
@@ -2002,6 +2011,8 @@ async function processEmails(
           if (!dataDocLocal) {
             needsDocRevision = true
           } else if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
+            needsDocRevision = true
+          } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
             needsDocRevision = true
           } else {
             const res = await insertEmailAutoFattura(supabase, {

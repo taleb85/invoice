@@ -21,6 +21,24 @@ export function ocrTipoAllowsEmailAutoFattura(tipoRaw: unknown): boolean {
   return normalizeTipoDocumento(tipoRaw) === 'fattura'
 }
 
+/**
+ * Controllo post-OCR: il modello ha classificato il documento come "fattura" ma i dati
+ * estratti non hanno le caratteristiche minime di una fattura (né numero documento né importo).
+ * In questo caso è probabile una classificazione errata (es. comunicazione cliente, avviso,
+ * chiusura) → il documento non deve essere auto-salvato ma restare in coda per revisione
+ * manuale.
+ */
+export function ocrClassifiedAsFatturaButContentMissing(ocr: {
+  tipo_documento: unknown
+  numero_fattura: string | null | undefined
+  totale_iva_inclusa: number | null | undefined
+}): boolean {
+  if (normalizeTipoDocumento(ocr.tipo_documento) !== 'fattura') return false
+  const hasNumero = !!ocr.numero_fattura?.trim()
+  const hasImporto = ocr.totale_iva_inclusa != null
+  return !hasNumero && !hasImporto
+}
+
 export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   if (raw == null || raw === '') return null
   const s = String(raw).toLowerCase().replace(/\s+/g, ' ').trim()
