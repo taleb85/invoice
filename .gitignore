@@ -46,6 +46,6 @@ supabase/.temp/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-_check_doc.mjs
-_fix_doc.mjs
-_test_dup.mjs
+# Script di test/debug locali — non committare
+_*.mjs
+_*.ts
