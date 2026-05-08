@@ -51,9 +51,10 @@ type FatturaListRow = {
   created_at: string | null
   updated_at: string | null
   email_sync_auto_saved_at: string | null
+  is_credit_note: boolean | null
 }
 
-const BASE_SELECT = 'id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome), approval_status, rejection_reason, email_sync_auto_saved_at'
+const BASE_SELECT = 'id, data, numero_fattura, file_url, bolla_id, fornitore_id, importo, fornitore:fornitori(nome), approval_status, rejection_reason, email_sync_auto_saved_at, is_credit_note'
 const FULL_SELECT = `${BASE_SELECT}, created_at, updated_at`
 
 async function getFatture(
@@ -157,7 +158,10 @@ export default async function FatturePage(props: {
     }
   }
   const totaleImportoRaw = fatture.reduce((s, f) => s + (Number(f.importo) || 0), 0)
-  const totaleImporto = Math.max(0, totaleImportoRaw - dupDel.surplusImporto)
+  const creditNoteTotal = fatture
+    .filter(f => f.is_credit_note === true)
+    .reduce((s, f) => s + (Number(f.importo) || 0), 0)
+  const totaleImporto = Math.max(0, totaleImportoRaw - dupDel.surplusImporto - creditNoteTotal)
   const duplicatePayload = serializeFatturaDuplicateDeletionPayload(dupDel)
   const fattureMergedSummary = {
     label: t.common.total,
@@ -200,6 +204,7 @@ export default async function FatturePage(props: {
       : null,
     dataSincronizzazioneFull: f.email_sync_auto_saved_at ?? null,
     email_sync_auto_saved_at: f.email_sync_auto_saved_at ?? null,
+    is_credit_note: f.is_credit_note === true,
   }))
   return (
     <div className={APP_SHELL_SECTION_PAGE_STACK_CLASS}>

@@ -86,6 +86,7 @@ export function shouldMigrateBollaRowToFattura(params: {
   ocr: {
     tipo_documento:
       | 'fattura'
+      | 'nota_credito'
       | 'bolla'
       | 'altro'
       | 'curriculum'

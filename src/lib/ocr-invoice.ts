@@ -29,7 +29,7 @@ export interface OcrResult {
    * Model classification: delivery note vs tax invoice vs other commercial PDF.
    * Used by email scan to choose bolla vs fattura bozza without misrouting DDT numbers.
    */
-  tipo_documento: 'fattura' | 'bolla' | 'altro' | 'curriculum' | 'comunicazione_cliente' | null
+  tipo_documento: 'fattura' | 'nota_credito' | 'bolla' | 'altro' | 'curriculum' | 'comunicazione_cliente' | null
   /**
    * Email body promises a fiscal document soon while no PDF/fiscal attachment is in this extraction.
    * Set by the model per prompt rules; used for follow-up / reminder workflows.
@@ -301,7 +301,7 @@ function buildSystemPrompt(
   return `${modeIntro}Supported document types (all treated equivalently):
 - Invoice (EN) = Fattura (IT) = Factura (ES) = Facture (FR) = Rechnung (DE)
 - Delivery note (EN) = Bolla/DDT (IT) = Albarán (ES) = Bon de livraison (FR) = Lieferschein (DE)
-- Credit note (EN) = Nota credito (IT) = Nota de crédito (ES) = Avoir (FR) = Gutschrift (DE)
+- Credit note (EN) = Nota credito (IT) = Nota de crédito (ES) = Avoir (FR) = Gutschrift (DE) — classify as **nota_credito** (not fattura)
 
 Return ONLY valid JSON — no markdown, no explanation:
 {
@@ -310,7 +310,7 @@ Return ONLY valid JSON — no markdown, no explanation:
   "indirizzo": "Supplier registered or trading address as a single line (street, postal code, city) if visible — or null",
   "data_fattura": "Document date in YYYY-MM-DD format — or null",
   "numero_fattura": "Document reference: invoice number, DDT/bolla number, credit note number — or null if none visible",
-  "tipo_documento": "Exactly one of: fattura | ddt | bolla | ordine | estratto_conto | comunicazione_cliente | altro | curriculum | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
+  "tipo_documento": "Exactly one of: fattura | nota_credito | ddt | bolla | ordine | estratto_conto | comunicazione_cliente | altro | curriculum | null — see detailed rules in the system prompt. Never use free-text sentences; use a single lower-case token or null only.",
   "promessa_invio_documento": false,
   "totale_iva_inclusa": "The gross total amount — return the RAW string exactly as it appears (e.g. '1.234,56' or '£1,234.56' or '1234.56') so the caller can detect the numeric format",
   "note_corpo_mail": "If an EMAIL BODY section was provided WITH a document: operational/logistics notes from the email only (e.g. missing goods, delivery time changes, substitutions, special instructions) that are NOT already stated on the document — or null. For EMAIL-ONLY input: null unless you need a short free-text summary of product lines that do not fit other fields.",

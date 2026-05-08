@@ -51,6 +51,7 @@ export type FattureDuplicateListRow = {
   dataSincronizzazioneFull?: string | null
   /** Impostato se la riga viene dalla scansione email OCR automatica */
   email_sync_auto_saved_at?: string | null
+  is_credit_note?: boolean
 }
 
 type SortKey = 'dataDocumento' | 'dataSincronizzazione'
@@ -273,6 +274,11 @@ export default function FattureListWithDuplicates({
                       {f.importoLabel}
                     </span>
                   ) : null}
+                  {f.is_credit_note ? (
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/35">
+                      Credit Note
+                    </span>
+                  ) : null}
                   {f.approval_status && f.approval_status !== 'approved' && (
                     <ApprovalBadge
                       status={f.approval_status as 'pending' | 'approved' | 'rejected'}
@@ -482,6 +488,11 @@ export default function FattureListWithDuplicates({
               >
                 <div className="flex flex-col items-end gap-1">
                   <span>{f.importoLabel ?? '—'}</span>
+                  {f.is_credit_note ? (
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/35">
+                      Credit Note
+                    </span>
+                  ) : null}
                   {f.approval_status && f.approval_status !== 'approved' && (
                     <ApprovalBadge
                       status={f.approval_status as 'pending' | 'approved' | 'rejected'}

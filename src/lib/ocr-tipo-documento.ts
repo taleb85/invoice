@@ -5,6 +5,7 @@
  */
 export type NormalizedTipoDocumento =
   | 'fattura'
+  | 'nota_credito'
   | 'bolla'
   | 'altro'
   | 'curriculum'
@@ -72,6 +73,19 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   }
 
   if (
+    s === 'nota_credito' ||
+    s === 'credito' ||
+    s === 'credit_note' ||
+    s === 'credit' ||
+    s === 'nota_di_credito' ||
+    s === 'note_de_credit' ||
+    s === 'avoir' ||
+    s === 'gutschrift'
+  ) {
+    return 'nota_credito'
+  }
+
+  if (
     s === 'fattura' ||
     s === 'invoice' ||
     s === 'tax_invoice' ||
@@ -82,10 +96,7 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     s === 'sales_invoice' ||
     s === 'e_invoice' ||
     s === 'e-invoice' ||
-    s === 'einvoice' ||
-    s === 'nota_credito' ||
-    s === 'credito' ||
-    s === 'credit_note'
+    s === 'einvoice'
   ) {
     return 'fattura'
   }
@@ -111,14 +122,18 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
     /\bfacture\b/.test(s) ||
     /\bfactura\b/.test(s) ||
     /\brechnung\b/.test(s) ||
-    /nota\s+credito/.test(s) ||
-    /credit[\s_-]?note/.test(s) ||
-    /\bavoir\b/.test(s) ||
-    /\bgutschrift\b/.test(s) ||
     /\bself[\s-]?billed\b/.test(s) ||
     /\bself[\s-]?billing\b/.test(s)
   ) {
     return 'fattura'
+  }
+  if (
+    /nota\s+credito/.test(s) ||
+    /credit[\s_-]?note/.test(s) ||
+    /\bavoir\b/.test(s) ||
+    /\bgutschrift\b/.test(s)
+  ) {
+    return 'nota_credito'
   }
   if (
     /\bddt\b/.test(s) ||

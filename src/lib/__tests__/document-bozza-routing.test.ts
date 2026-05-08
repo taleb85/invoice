@@ -16,7 +16,7 @@ describe('normalizeTipoDocumento', () => {
     expect(normalizeTipoDocumento('VAT invoice')).toBe('fattura')
     expect(normalizeTipoDocumento('tax_invoice')).toBe('fattura')
     expect(normalizeTipoDocumento('e-invoice')).toBe('fattura')
-    expect(normalizeTipoDocumento('credit_note')).toBe('fattura')
+    expect(normalizeTipoDocumento('credit_note')).toBe('nota_credito')
   })
 
   it('riconosce bolla/DDT in vari formati', () => {

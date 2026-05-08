@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   ] = await Promise.all([
     service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
     service.from('bolle').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).eq('stato', 'in attesa').gte('data', from).lt('data', to),
-    service.from('fatture').select('id, data, importo, numero_fattura').eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
+    service.from('fatture').select('id, data, importo, numero_fattura, is_credit_note').eq('fornitore_id', fornitoreId).gte('data', from).lt('data', to),
     service.from('listino_prezzi').select('prodotto').eq('fornitore_id', fornitoreId).gte('data_prezzo', from).lt('data_prezzo', to).limit(8000),
     service.from('statements').select('missing_rows, received_at, extracted_pdf_dates').eq('fornitore_id', fornitoreId).order('received_at', { ascending: false }).limit(800),
     service.from('conferme_ordine').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).gte('created_at', from).lt('created_at', to),
@@ -41,8 +41,11 @@ export async function GET(req: NextRequest) {
     service.from('documenti_da_processare').select('id', { count: 'exact', head: true }).eq('fornitore_id', fornitoreId).in('stato', ['in_attesa', 'da_processare', 'da_associare']).gte('created_at', from).lt('created_at', to),
   ])
 
-  const fattureRows = (fattureRes.data ?? []) as { importo: number | null }[]
+  const fattureRows = (fattureRes.data ?? []) as { importo: number | null; is_credit_note?: boolean | null }[]
   const totaleSpesaLordo = fattureRows.reduce((s, f) => s + (f.importo ?? 0), 0)
+  const creditNoteTotal = fattureRows
+    .filter(f => f.is_credit_note === true)
+    .reduce((s, f) => s + (f.importo ?? 0), 0)
   const dup = analyzeFatturaDuplicatesForDeletion(
     (fattureRes.data ?? []).map((f: Record<string, unknown>) => ({
       id: f.id as string,
@@ -52,7 +55,7 @@ export async function GET(req: NextRequest) {
       numero_fattura: f.numero_fattura as string | null,
     }))
   )
-  const totaleSpesa = Math.max(0, totaleSpesaLordo - dup.surplusImporto)
+  const totaleSpesa = Math.max(0, totaleSpesaLordo - dup.surplusImporto - creditNoteTotal)
 
   const listinoRowsData = (listinoRes.data ?? []) as { prodotto: string }[]
   const listinoRows = listinoRowsData.length

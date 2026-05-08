@@ -10,6 +10,7 @@ import {
   normalizeNumeroFattura,
   numeroFatturaFromDocMetadata,
 } from '@/lib/fattura-duplicate-check'
+import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { DOCUMENTI_PENDING_FILTER_STATES } from '@/lib/documenti-queue-stato'
 import { OcrInvoiceConfigurationError } from '@/lib/ocr-invoice'
@@ -93,7 +94,11 @@ async function finalizePendingByTipo(
   const m = meta as {
     totale_iva_inclusa?: number | null
     numero_fattura?: string | null
+    tipo_documento?: string | null
   }
+
+  const ocrTipo = normalizeTipoDocumento(m.tipo_documento ?? meta.tipo_documento)
+  const isCreditNote = ocrTipo === 'nota_credito'
 
   /** Listino prezzi: resta in coda da processare. */
   if (tipo === 'listino') {
@@ -166,6 +171,7 @@ async function finalizePendingByTipo(
         importo: fatturaImporto,
         verificata_estratto_conto: false,
         numero_fattura: numeroNorm,
+        is_credit_note: isCreditNote,
         approval_status: approvalStatus,
         ...(approvalStatus === 'approved' ? { approved_at: new Date().toISOString() } : {}),
       }])
