@@ -5,8 +5,6 @@ import { recordManualSupplierAssociation } from '@/lib/mittente-fornitore-assoc'
 import { mergeFornitoreMissingFromDocMetadata } from '@/lib/fornitore-merge-from-doc-metadata'
 import { recordLearnedKindFromDocMetadata } from '@/lib/fornitore-doc-type-hints'
 import {
-  FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT,
-  FATTURA_DUPLICATE_USER_MESSAGE_IT,
   findDuplicateFatturaId,
   findDuplicateFatturaSansNumeroByImporto,
   normalizeNumeroFattura,
@@ -125,7 +123,16 @@ async function finalizePendingByTipo(
       numeroFattura: numeroNorm,
     })
     if (dupId) {
-      return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
+      await supabase
+        .from('documenti_da_processare')
+        .update({
+          stato: 'associato',
+          fattura_id: dupId,
+          bolla_id: null,
+          ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+        })
+        .eq('id', id)
+      return NextResponse.json({ ok: true, fattura_id: dupId, duplicate: true })
     }
 
     const fatturaImporto = m.totale_iva_inclusa != null ? Number(m.totale_iva_inclusa) : null
@@ -741,7 +748,16 @@ export async function POST(req: NextRequest) {
         numeroFattura: numeroDaMeta,
       })
       if (dupId) {
-        return NextResponse.json({ error: FATTURA_DUPLICATE_USER_MESSAGE_IT, code: 'duplicate_fattura' }, { status: 409 })
+        await supabase
+          .from('documenti_da_processare')
+          .update({
+            stato: 'associato',
+            fattura_id: dupId,
+            bolla_id: null,
+            ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+          })
+          .eq('id', doc.id)
+        return NextResponse.json({ ok: true, fattura_id: dupId, duplicate: true })
       }
     } else {
       const insImporto = importoTotale > 0 ? importoTotale : null
@@ -753,10 +769,16 @@ export async function POST(req: NextRequest) {
           importo: insImporto,
         })
         if (dupSans) {
-          return NextResponse.json(
-            { error: FATTURA_DUPLICATE_SANS_NUMERO_IMPORTO_IT, code: 'duplicate_fattura_sans_numero_importo' },
-            { status: 409 },
-          )
+          await supabase
+            .from('documenti_da_processare')
+            .update({
+              stato: 'associato',
+              fattura_id: dupSans,
+              bolla_id: null,
+              ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+            })
+            .eq('id', doc.id)
+          return NextResponse.json({ ok: true, fattura_id: dupSans, duplicate: true })
         }
       }
     }

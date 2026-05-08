@@ -435,117 +435,26 @@ function useSupplierPeriodStats(
     setLoading(true)
     const from = fromInclusive
     const to = toExclusive
-    const supabase = createClient()
 
-    const pendingCountPromise = fetch(
-      `/api/documenti-da-processare?fornitore_id=${encodeURIComponent(fornitoreId)}&stati=in_attesa,da_processare,da_associare&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
-    )
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d: unknown) => (Array.isArray(d) ? d.length : 0))
-      .catch(() => 0)
-
-    Promise.all([
-      supabase
-        .from('bolle')
-        .select('id', { count: 'exact', head: true })
-        .eq('fornitore_id', fornitoreId)
-        .gte('data', from)
-        .lt('data', to),
-      supabase
-        .from('bolle')
-        .select('id', { count: 'exact', head: true })
-        .eq('fornitore_id', fornitoreId)
-        .eq('stato', 'in attesa')
-        .gte('data', from)
-        .lt('data', to),
-      supabase
-        .from('fatture')
-        .select('id, data, numero_fattura, importo, fornitore_id', { count: 'exact' })
-        .eq('fornitore_id', fornitoreId)
-        .gte('data', from)
-        .lt('data', to),
-      pendingCountPromise,
-      supabase
-        .from('listino_prezzi')
-        .select('prodotto')
-        .eq('fornitore_id', fornitoreId)
-        .gte('data_prezzo', from)
-        .lt('data_prezzo', to)
-        .limit(8000),
-      supabase
-        .from('statements')
-        .select('missing_rows, received_at, extracted_pdf_dates')
-        .eq('fornitore_id', fornitoreId)
-        .order('received_at', { ascending: false })
-        .limit(800),
-      supabase
-        .from('conferme_ordine')
-        .select('id', { count: 'exact', head: true })
-        .eq('fornitore_id', fornitoreId)
-        .gte('created_at', from)
-        .lt('created_at', to),
-      countSupplierMonthRekkiPriceAnomalies(supabase, fornitoreId, from, to),
-      supabase
-        .from('price_anomalies')
-        .select('id', { count: 'exact', head: true })
-        .eq('fornitore_id', fornitoreId)
-        .eq('resolved', false),
-    ])
-      .then(([bolleRes, bolleAperteRes, fattureRes, pendingCount, listinoRes, stmtsRes, ordiniRes, rekkiAnom, anomalieRes]) => {
+    fetch(`/api/fornitori/${encodeURIComponent(fornitoreId)}/stats?fornitore_id=${encodeURIComponent(fornitoreId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, {
+      cache: 'no-store',
+      credentials: 'include',
+    })
+      .then(r => r.ok ? r.json() : (() => { throw new Error('API error') })())
+      .then(data => {
         if (cancelled) return
-        const fattureRows = (fattureRes.data ?? []) as {
-          id: string
-          data: string
-          numero_fattura: string | null
-          importo: number | null
-          fornitore_id: string
-        }[]
-        const totaleSpesaLordo = fattureRows.reduce((s, f) => s + (f.importo ?? 0), 0)
-        const dup = analyzeFatturaDuplicatesForDeletion(fattureRows)
-        const totaleSpesa = Math.max(0, totaleSpesaLordo - dup.surplusImporto)
-        const listinoRowsData = (listinoRes.data ?? []) as { prodotto: string }[]
-        const listinoRows = listinoRes.error ? 0 : listinoRowsData.length
-        const listinoProdottiDistinti = listinoRes.error
-          ? 0
-          : new Set(listinoRowsData.map((r) => String(r.prodotto ?? '').trim()).filter(Boolean)).size
-        const stmtData = stmtsRes.error
-          ? []
-          : ((stmtsRes.data ?? []) as {
-              missing_rows: number | null
-              received_at: string
-              extracted_pdf_dates: unknown
-            }[])
-        const stmtInMonth = stmtData.filter((s) => statementMatchesCalendarWindow(s, from, to))
-        const statementsInPeriod = stmtInMonth.length
-        const statementsWithIssues = stmtInMonth.filter((s) => (s.missing_rows ?? 0) > 0).length
-        const ordiniNelPeriodo = ordiniRes.error ? 0 : (ordiniRes.count ?? 0)
-        setStats({
-          bolleTotal: bolleRes.count ?? 0,
-          bolleAperte: bolleAperteRes.count ?? 0,
-          fattureTotal: fattureRes.count ?? 0,
-          ordiniNelPeriodo,
-          pending: pendingCount,
-          totaleSpesaLordo,
-          totaleSpesa,
-          listinoRows,
-          listinoProdottiDistinti,
-          statementsInPeriod,
-          statementsWithIssues,
-          rekkiPriceAnomalies: typeof rekkiAnom === 'number' ? rekkiAnom : 0,
-          listinoAnomaliesCount:
-            anomalieRes && !anomalieRes.error ? (anomalieRes.count ?? 0) : 0,
-        })
+        setStats(data as SupplierPeriodStats)
       })
       .catch(() => {
-        if (!cancelled) setStats(null)
+        if (cancelled) return
+        setStats(null)
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fornitoreId, fromInclusive, toExclusive, reloadEpoch])
 
   return { stats, loading }
@@ -1685,6 +1594,135 @@ function DashboardTab({
 
       </div>
 
+    </div>
+  )
+}
+
+function DashboardSpendSummary({
+  fornitoreId,
+  readOnly,
+}: {
+  fornitoreId: string
+  readOnly?: boolean
+}) {
+  const t = useT()
+  const { locale } = useLocale()
+  const today = useMemo(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [])
+
+  const [period, setPeriod] = useState<'all' | 'cm' | 'pm' | '3m' | 'fy'>('all')
+  const [spendFilter, setSpendFilter] = useState<'all' | 'fatture' | 'bolle'>('all')
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<{ totaleSpesa: number; totBolle: number; totFatture: number }>({
+    totaleSpesa: 0, totBolle: 0, totFatture: 0,
+  })
+
+  const periodFrom = useMemo(() => {
+    if (period === 'all') return '2000-01-01'
+    const now = new Date()
+    const y = now.getFullYear()
+    const m = now.getMonth()
+    const day = now.getDate()
+    if (period === 'cm') return `${y}-${String(m + 1).padStart(2, '0')}-01`
+    if (period === 'pm') {
+      const prevY = m === 0 ? y - 1 : y
+      const prevM = m === 0 ? 12 : m
+      return `${prevY}-${String(prevM).padStart(2, '0')}-01`
+    }
+    if (period === '3m') {
+      const d3 = new Date(y, m - 3, day)
+      return `${d3.getFullYear()}-${String(d3.getMonth() + 1).padStart(2, '0')}-${String(d3.getDate()).padStart(2, '0')}`
+    }
+    if (period === 'fy') {
+      const fyStart = (m > 3 || (m === 3 && day >= 6)) ? `${y}-04-06` : `${y - 1}-04-06`
+      return fyStart
+    }
+    return '2000-01-01'
+  }, [period])
+
+  useEffect(() => {
+    setLoading(true)
+    const nextDay = new Date(today)
+    nextDay.setDate(nextDay.getDate() + 1)
+    const to = nextDay.toISOString().slice(0, 10)
+
+    fetch(`/api/fornitori/${encodeURIComponent(fornitoreId)}/stats?fornitore_id=${encodeURIComponent(fornitoreId)}&from=${encodeURIComponent(periodFrom)}&to=${encodeURIComponent(to)}`, {
+      credentials: 'include',
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setStats({
+            totaleSpesa: data.totaleSpesa ?? 0,
+            totBolle: 0,
+            totFatture: data.totaleSpesaLordo ?? 0,
+          })
+        }
+      })
+      .finally(() => setLoading(false))
+  }, [fornitoreId, periodFrom, today])
+
+  const periodButtons = [
+    { key: 'all' as const, label: t.fornitori.listinoPeriodAll },
+    { key: 'cm' as const,  label: t.fornitori.listinoPeriodCurrentMonth },
+    { key: 'pm' as const,  label: t.fornitori.listinoPeriodPreviousMonth },
+    { key: '3m' as const,  label: t.fornitori.listinoPeriodLast3Months },
+    { key: 'fy' as const,  label: t.fornitori.listinoPeriodFiscalYear },
+  ]
+
+  const cards = [
+    { key: 'all' as const,     label: t.fornitori.listinoTotale,   value: stats.totaleSpesa, cls: 'border-app-line-22 bg-transparent text-app-fg' },
+    { key: 'bolle' as const,   label: t.fornitori.listinoDaBolle,  value: stats.totBolle,    cls: 'border-[rgba(34,211,238,0.15)] bg-blue-500/10 text-blue-200' },
+    { key: 'fatture' as const, label: t.fornitori.listinoDaFatture,value: stats.totFatture,  cls: 'border-[rgba(34,211,238,0.15)] bg-emerald-500/10 text-emerald-200' },
+  ]
+
+  const currency = 'GBP'
+
+  return (
+    <div className="px-5 py-4 space-y-4">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted mr-1">{t.fornitori.listinoPeriodLabel}</span>
+        {periodButtons.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setPeriod(key)}
+            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+              period === key
+                ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-200'
+                : 'border-app-line-25 bg-app-line-10/50 text-app-fg-muted hover:border-app-line-40 hover:text-app-fg'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {loading ? (
+        <div className="flex justify-center py-4">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-app-line-40 border-t-app-cyan-400" />
+        </div>
+      ) : (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {cards.map(({ key, label, value, cls }) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={spendFilter === key}
+            onClick={() => setSpendFilter((prev) => (prev === key ? 'all' : key))}
+            className={`relative flex flex-col overflow-hidden rounded-xl border text-left shadow-none transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-[0_0_24px_-8px_rgba(6,182,212,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
+              spendFilter === key ? 'ring-2 ring-cyan-400/45 ring-offset-2 ring-offset-slate-950' : ''
+            } ${cls}`}
+          >
+            <div className="p-4">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
+              <p className="text-xl font-bold tabular-nums">{formatCurrency(value, currency, locale)}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+      )}
     </div>
   )
 }
@@ -5811,6 +5849,14 @@ function FornitoreDetailClient({
             <SupplierDesktopKpiGrid loading={periodStatsLoading} stats={periodStats} onTabChange={setTab} />
             {displayTab === 'dashboard' ? (
               <>
+                {/* ── Spesa per periodo (riepilogo) ── */}
+                <div className="supplier-detail-tab-shell overflow-hidden mb-5">
+                  <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.dashboard.bar}`} aria-hidden />
+                  <div className="px-5 py-3 border-b border-app-line-22">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-app-fg-muted">{t.fornitori.listinoTotale}</p>
+                  </div>
+                  <DashboardSpendSummary fornitoreId={fornitore.id} readOnly={supplierReadOnlyMobile} />
+                </div>
                 <SupplierDesktopMonthlyDocSummary
                   fornitoreId={fornitore.id}
                   endYear={monthlySummaryPeriod.y}
