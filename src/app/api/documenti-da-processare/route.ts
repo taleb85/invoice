@@ -458,8 +458,8 @@ export async function POST(req: NextRequest) {
     bolla_ids?: string[]       // new multi-bolla
     fornitore_id?: string
     is_statement?: boolean
-    /** document classification: statement vs delivery note vs invoice vs order (pending queue UI) */
-    kind?: 'statement' | 'bolla' | 'fattura' | 'ordine' | 'listino'
+    /** document classification: statement vs delivery note vs invoice vs credit note vs order (pending queue UI) */
+    kind?: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | 'listino'
     /** Usato con azione `associa` per finalizzare senza bolle (stesso handler già deployato ovunque). */
     finalizza_da_tipo?: boolean
   }
@@ -479,6 +479,7 @@ export async function POST(req: NextRequest) {
       kind === 'statement' ||
       kind === 'bolla' ||
       kind === 'fattura' ||
+      kind === 'nota_credito' ||
       kind === 'ordine' ||
       kind === 'listino'
     if (classifies) {
@@ -518,12 +519,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // ── set_pending_kind — estratto / bolla / fattura (metadata + is_statement) ──
+  // ── set_pending_kind — estratto / bolla / fattura / nota_credito (metadata + is_statement) ──
   if (azioneNorm === 'set_pending_kind') {
   if (
     kind !== 'statement' &&
     kind !== 'bolla' &&
     kind !== 'fattura' &&
+    kind !== 'nota_credito' &&
     kind !== 'ordine' &&
     kind !== 'listino'
   ) {

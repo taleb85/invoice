@@ -88,7 +88,7 @@ type OcrMetadata = {
   tipo_documento?:    'fattura' | 'bolla' | 'altro' | null
   note_corpo_mail?:   string | null
   /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
-  pending_kind?:      'statement' | 'bolla' | 'fattura' | 'ordine' | null
+  pending_kind?:      'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null
   /** Scansione email: fattura già presente in archivio */
   duplicate_skipped_fattura_id?: string | null
   bozza_id?:          string | null
@@ -348,14 +348,14 @@ function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>
   return true
 }
 
-/** Categoria documento in coda Da confermare (estratto / bolla / fattura / ordine). */
+/** Categoria documento in coda Da confermare (estratto / bolla / fattura / nota_credito / ordine). */
 function pendingKindForDoc(
   doc: Documento,
   statementDocs: Set<string>,
-): 'statement' | 'bolla' | 'fattura' | 'ordine' | null {
+): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null {
   const pk = doc.metadata?.pending_kind
   if (pk === 'statement') return 'statement'
-  if (pk === 'bolla' || pk === 'fattura' || pk === 'ordine') return pk
+  if (pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'ordine') return pk
   if (statementDocs.has(doc.id) || doc.is_statement) return 'statement'
   return null
 }
@@ -994,7 +994,7 @@ export function PendingMatchesTab({
   const pendingListReturnPath = buildListLocationPath(pathname, pendingUrlSearchParams)
   const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
   const [bulkFinalizeKindBusy, setBulkFinalizeKindBusy] = useState<
-    'statement' | 'bolla' | 'fattura' | 'ordine' | null
+    'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null
   >(null)
   const { me } = useMe()
   const { showToast } = useToast()
@@ -1022,6 +1022,8 @@ export function PendingMatchesTab({
   } | null>(null)
   /** In abbinamento fattura–bolla: mostra anche bolle di altri fornitori (stessa sede) o tutta la sede se il doc non ha ancora `fornitore_id`. */
   const [matchIncludeAllSuppliersBolles, setMatchIncludeAllSuppliersBolles] = useState<Record<string, boolean>>({})
+  /** Potenziali fornitori: lookup per email mittente o ragione sociale OCR. */
+  const [potenzialiFornitori, setPotenzialiFornitori] = useState<Record<string, { id: string; nome_azienda: string; email_contatto: string | null }>>({})
 
   const autoLinkTriedRef = useRef(new Set<string>())
   const autoAssocTriedRef = useRef(new Set<string>())
@@ -1071,6 +1073,24 @@ export function PendingMatchesTab({
     }
     return out
   }, [docs])
+
+  /** Per i documenti senza fornitore: cerca match con potenziali fornitori per email mittente o ragione sociale OCR. */
+  const potentialSupplierByDocId = useMemo(() => {
+    const out = new Map<string, { id: string; nome_azienda: string }>()
+    for (const d of docs) {
+      if (d.fornitore_id) continue
+      const ragSoc = (d.metadata?.ragione_sociale ?? '').trim().toLowerCase()
+      if (ragSoc && potenzialiFornitori[ragSoc]) {
+        out.set(d.id, { id: potenzialiFornitori[ragSoc].id, nome_azienda: potenzialiFornitori[ragSoc].nome_azienda })
+        continue
+      }
+      const mittente = (d.mittente ?? '').trim().toLowerCase()
+      if (mittente && potenzialiFornitori[mittente]) {
+        out.set(d.id, { id: potenzialiFornitori[mittente].id, nome_azienda: potenzialiFornitori[mittente].nome_azienda })
+      }
+    }
+    return out
+  }, [docs, potenzialiFornitori])
 
   /** Stabile rispetto a metadata: evita reset continui del debounce sul silent bulk quando cambiano solo campi di riga. */
   const pendingDocIdsStableKey = useMemo(
@@ -1182,6 +1202,23 @@ export function PendingMatchesTab({
     const { data } = await q
     setFornitori(data ?? [])
   }, [sedeId, fornitoreId])
+
+  /** Carica i potenziali fornitori per mostrare badge "Fornitore potenziale" sui documenti senza fornitore_id. */
+  const fetchPotenzialiFornitori = useCallback(async () => {
+    try {
+      const res = await fetch('/api/potential-suppliers')
+      if (!res.ok) return
+      const list = await res.json() as { id: string; nome_azienda: string; email_contatto: string | null; fornitore_creato_id: string | null; stato: string }[]
+      const byKey: Record<string, { id: string; nome_azienda: string; email_contatto: string | null }> = {}
+      for (const p of list) {
+        if (p.fornitore_creato_id) continue
+        if (p.stato === 'rifiutato' || p.stato === 'archiviato') continue
+        if (p.email_contatto) byKey[p.email_contatto.toLowerCase().trim()] = p
+        byKey[p.nome_azienda.toLowerCase().trim()] = p
+      }
+      setPotenzialiFornitori(byKey)
+    } catch { /* ignore */ }
+  }, [])
 
   useEffect(() => {
     if (loading || bulkAnalyzing || docs.length === 0) return
@@ -1424,7 +1461,7 @@ export function PendingMatchesTab({
     t.statements.bulkAutoMatchSummary,
   ])
 
-  useEffect(() => { fetchDocs(); fetchBolleAperte(); fetchFornitori() }, [fetchDocs, fetchBolleAperte, fetchFornitori])
+  useEffect(() => { fetchDocs(); fetchBolleAperte(); fetchFornitori(); fetchPotenzialiFornitori() }, [fetchDocs, fetchBolleAperte, fetchFornitori, fetchPotenzialiFornitori])
 
   /** Dopo il caricamento elenco: un passaggio «Abbina tutto» senza toast (ripetuto quando cambia l’insieme doc in lavorazione o l’insieme delle bolle aperte). */
   useEffect(() => {
@@ -1792,7 +1829,7 @@ export function PendingMatchesTab({
     }
   }
 
-  async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura' | 'ordine') {
+  async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine') {
     setMarkingStatement(docId)
     try {
       // Usa mark_statement + kind: compatibile con API vecchie (solo is_statement) e nuove (metadata.pending_kind).
@@ -1910,16 +1947,17 @@ export function PendingMatchesTab({
   const isPdf = (url: string) => url.toLowerCase().includes('.pdf')
   const inAttesa = docs.filter(d => docNeedsManualProcessing(d.stato)).length
   const unknownSenderQuickDocs = useMemo(
-    () => docs.filter((d) => docNeedsManualProcessing(d.stato) && !d.fornitore_id),
-    [docs],
+    () => docs.filter((d) => docNeedsManualProcessing(d.stato) && !d.fornitore_id && !potentialSupplierByDocId.has(d.id)),
+    [docs, potentialSupplierByDocId],
   )
 
   /** Documenti in lista con tipo già scelto e fornitore collegato: pronti per `finalizza_da_tipo` come sulla riga. */
   const finalizeReadyIdsByKind = useMemo(() => {
-    const out: Record<'ordine' | 'bolla' | 'fattura' | 'statement', string[]> = {
+    const out: Record<'ordine' | 'bolla' | 'fattura' | 'nota_credito' | 'statement', string[]> = {
       ordine: [],
       bolla: [],
       fattura: [],
+      nota_credito: [],
       statement: [],
     }
     for (const d of docs) {
@@ -1932,7 +1970,7 @@ export function PendingMatchesTab({
   }, [docs, statementDocs])
 
   const runBulkFinalizeForKind = useCallback(
-    async (kind: 'statement' | 'bolla' | 'fattura' | 'ordine') => {
+    async (kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine') => {
       const ids = finalizeReadyIdsByKind[kind]
       if (!ids.length) return
       setBulkFinalizeKindBusy(kind)
@@ -2061,13 +2099,13 @@ export function PendingMatchesTab({
           <p className={`text-xs font-medium ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>
             {bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}
           </p>
-          {(['ordine', 'bolla', 'fattura', 'statement'] as const).some((k) => finalizeReadyIdsByKind[k].length > 0) && (
+          {(['ordine', 'bolla', 'fattura', 'nota_credito', 'statement'] as const).some((k) => finalizeReadyIdsByKind[k].length > 0) && (
             <div
               role="group"
               aria-label={t.statements.bulkFinalizeToolbarGroupAria}
               className="flex flex-wrap items-center justify-end gap-1"
             >
-              {(['ordine', 'bolla', 'fattura', 'statement'] as const).map((kind) => {
+              {(['ordine', 'bolla', 'fattura', 'nota_credito', 'statement'] as const).map((kind) => {
                 const n = finalizeReadyIdsByKind[kind].length
                 if (n === 0) return null
                 const kindLabel =
@@ -2077,7 +2115,9 @@ export function PendingMatchesTab({
                       ? t.statements.docKindBolla
                       : kind === 'fattura'
                         ? t.statements.docKindFattura
-                        : t.statements.docKindEstratto
+                        : kind === 'nota_credito'
+                          ? t.statements.docKindNotaCredito
+                          : t.statements.docKindEstratto
                 const tip = t.statements.bulkFinalizeKindTooltip
                   .replace(/\{kind\}/g, kindLabel)
                   .replace(/\{n\}/g, String(n))
@@ -2087,9 +2127,11 @@ export function PendingMatchesTab({
                     ? 'border-fuchsia-500/40 bg-fuchsia-500/[0.12] text-fuchsia-100 hover:bg-fuchsia-500/20'
                     : kind === 'bolla'
                       ? 'border-amber-500/40 bg-amber-500/[0.12] text-amber-100 hover:bg-amber-500/20'
-                      : kind === 'fattura'
-                        ? 'border-emerald-500/40 bg-emerald-500/[0.12] text-emerald-100 hover:bg-emerald-500/20'
-                        : 'border-cyan-500/40 bg-cyan-500/[0.12] text-cyan-100 hover:bg-cyan-500/20'
+                      : kind === 'nota_credito'
+                        ? 'border-amber-500/40 bg-amber-500/[0.12] text-amber-100 hover:bg-amber-500/20'
+                        : kind === 'fattura'
+                          ? 'border-emerald-500/40 bg-emerald-500/[0.12] text-emerald-100 hover:bg-emerald-500/20'
+                          : 'border-cyan-500/40 bg-cyan-500/[0.12] text-cyan-100 hover:bg-cyan-500/20'
                 return (
                   <button
                     key={kind}
@@ -2369,14 +2411,22 @@ export function PendingMatchesTab({
                       <div className="relative flex min-w-0 items-center gap-1.5">
                         <p
                           className={`truncate text-sm font-semibold ${
-                            isUnknown ? 'text-orange-200' : supplierDocShell ? 'text-slate-100' : 'text-app-fg'
+                            isUnknown
+                              ? potentialSupplierByDocId.has(doc.id) ? 'text-amber-200' : 'text-orange-200'
+                              : supplierDocShell ? 'text-slate-100' : 'text-app-fg'
                           }`}
                         >
                           {nomeFornitore ?? (
-                            <span className="inline-flex items-center gap-1">
-                              <GlyphWarningTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" aria-hidden />
-                              {t.statements.unknownSender}
-                            </span>
+                            (() => {
+                              const match = potentialSupplierByDocId.get(doc.id)
+                              if (match) return match.nome_azienda
+                              return (
+                                <span className="inline-flex items-center gap-1">
+                                  <GlyphWarningTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" aria-hidden />
+                                  {t.statements.unknownSender}
+                                </span>
+                              )
+                            })()
                           )}
                         </p>
                         {docAllowsAssociationFlow(doc.stato) && (
@@ -2409,11 +2459,17 @@ export function PendingMatchesTab({
                             const pk = pendingKindForDoc(doc, statementDocs)
                             const busy = markingStatement === doc.id
                             const chips: {
-                              kind: 'statement' | 'bolla' | 'fattura' | 'ordine'
+                              kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine'
                               label: string
                               title: string
                               activeCls: string
                             }[] = [
+                              {
+                                kind: 'nota_credito',
+                                label: t.statements.docKindNotaCredito,
+                                title: t.statements.docKindHintNotaCredito,
+                                activeCls: 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200',
+                              },
                               {
                                 kind: 'ordine',
                                 label: t.statements.docKindOrdine,
@@ -2481,18 +2537,22 @@ export function PendingMatchesTab({
                                       className={`min-h-[36px] shrink-0 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40 touch-manipulation ${
                                         pk === 'ordine'
                                           ? 'border-[rgba(34,211,238,0.15)] bg-fuchsia-500/15 text-fuchsia-100 hover:bg-fuchsia-500/25'
-                                          : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
+                                          : pk === 'nota_credito'
+                                            ? 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-100 hover:bg-amber-500/25'
+                                            : 'border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-100 hover:bg-emerald-500/25'
                                       }`}
                                     >
                                       {finalizingTipoId === doc.id
                                         ? t.statements.btnFinalizing
-                                        : pk === 'fattura'
-                                          ? t.statements.btnFinalizeFattura
-                                          : pk === 'bolla'
-                                            ? t.statements.btnFinalizeBolla
-                                            : pk === 'ordine'
-                                              ? t.statements.btnFinalizeOrdine
-                                              : t.statements.btnFinalizeStatement}
+                                        : pk === 'nota_credito'
+                                          ? 'Registra nota credito'
+                                          : pk === 'fattura'
+                                            ? t.statements.btnFinalizeFattura
+                                            : pk === 'bolla'
+                                              ? t.statements.btnFinalizeBolla
+                                              : pk === 'ordine'
+                                                ? t.statements.btnFinalizeOrdine
+                                                : t.statements.btnFinalizeStatement}
                                     </button>
                                   ))}
                               </div>
@@ -2517,6 +2577,66 @@ export function PendingMatchesTab({
                             <span className="rounded-full bg-emerald-600/25 px-2 py-0.5 text-[10px] font-semibold text-emerald-100 ring-1 ring-emerald-500/40" title={t.statements.badgeAiRecognizedTitle}>
                               {t.statements.badgeAiRecognized}
                             </span>
+                          ) : potentialSupplierByDocId.has(doc.id) ? (
+                            <>
+                              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-100 ring-1 ring-amber-500/40" title="Questo mittente è già nei fornitori potenziali">
+                                Fornitore potenziale
+                              </span>
+                              <button
+                                type="button"
+                                disabled={actions[doc.id] === 'loading'}
+                                onClick={() => {
+                                  const match = potentialSupplierByDocId.get(doc.id)
+                                  if (!match) return
+                                  setActions(a => ({ ...a, [doc.id]: 'loading' }))
+                                  void (async () => {
+                                    try {
+                                      const res = await fetch('/api/fornitori', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          nome: match.nome_azienda,
+                                          email: doc.mittente?.trim() || '',
+                                          sede_id: sedeId || undefined,
+                                        }),
+                                      })
+                                      if (!res.ok) {
+                                        const j = await res.json() as { error?: string }
+                                        showToast(j.error ?? 'Errore creazione fornitore', 'error')
+                                        return
+                                      }
+                                      const { fornitore } = await res.json() as { fornitore: { id: string } }
+                                      // Link the potential supplier to the newly created fornitore
+                                      await fetch(`/api/potential-suppliers?id=${match.id}`, {
+                                        method: 'PATCH',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ fornitore_creato_id: fornitore.id, esito: 'approvato', stato: 'approvato' }),
+                                      })
+                                      // Associate document with the new supplier
+                                      const assocRes = await fetch('/api/documenti-da-processare', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ id: doc.id, azione: 'aggiorna_fornitore', fornitore_id: fornitore.id }),
+                                      })
+                                      if (assocRes.ok) {
+                                        showToast(`Fornitore "${match.nome_azienda}" creato e associato al documento`, 'success')
+                                        void fetchDocs()
+                                        void fetchPotenzialiFornitori()
+                                      } else {
+                                        showToast('Fornitore creato ma associazione documento fallita', 'error')
+                                      }
+                                    } catch (e) {
+                                      showToast(e instanceof Error ? e.message : 'Errore', 'error')
+                                    } finally {
+                                      setActions(a => ({ ...a, [doc.id]: 'idle' }))
+                                    }
+                                  })()
+                                }}
+                                className="rounded-full border border-amber-500/35 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-semibold text-amber-100 transition-colors hover:bg-amber-500/25"
+                              >
+                                {actions[doc.id] === 'loading' ? 'Creazione…' : 'Crea fornitore'}
+                              </button>
+                            </>
                           ) : (
                             <span className="rounded-full bg-orange-600/25 px-2 py-0.5 text-[10px] font-semibold text-orange-100 ring-1 ring-orange-500/40" title={t.statements.badgeNeedsHuman}>
                               {t.statements.badgeNeedsHuman}

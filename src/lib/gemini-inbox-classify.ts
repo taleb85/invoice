@@ -11,7 +11,7 @@ const CLASSIFY_SYSTEM = `Sei un assistente per documenti contabili italiani (ris
 Analizza il documento allegato e rispondi SOLO con un oggetto JSON valido, senza markdown, senza testo fuori dal JSON.
 
 Chiavi obbligatorie:
-- "tipo_suggerito": uno tra "fattura" | "bolla" | "ddt" | "estratto_conto" | "ordine" | "listino" | "altro"
+- "tipo_suggerito": uno tra "fattura" | "nota_credito" | "bolla" | "ddt" | "estratto_conto" | "ordine" | "listino" | "altro"
 
 When to choose each type — read carefully (English hints for common filenames/emails):
 
@@ -21,10 +21,13 @@ When to choose each type — read carefully (English hints for common filenames/
 
 • Use "fattura" ONLY for VAT/tax invoices / proper fiscal invoices.
 
+• Use "nota_credito" for CREDIT NOTES / credit memos / note di credito / credit note documents. These are documents that reduce or cancel a previous invoice — they typically have negative amounts, the heading "Credit Note" / "Nota di Credito" / "Avoir" / "Gutschrift", and reference the original invoice number. Never classify a credit note as "fattura".
+
 • Use "altro" for CVs, resumes, contracts that are not invoices, internal memos, or anything that does not match the types above.
 
 Also in Italian:
 - "listino" SOLO per comunicazioni prezzi fornitori / listini acquisto. Mai per CV, curriculum, candidature lavoro, lettere di presentazione: per quelli usa "altro".
+- "nota_credito" per Note di Credito, documenti con importi negativi che rettificano una fattura precedente. Mai classificarle come "fattura".
 
 - "fornitore_suggerito": nome leggibile sul documento, oppure null
 - "azione_consigliata": breve frase (italiano ok)
@@ -184,6 +187,7 @@ export async function classifyDocumentWithGemini(
     `RULES:\n` +
     `- NEVER use tipo_suggerito "listino" for a CV, curriculum vitae, résumé / resume, job application or hiring paper — those must be "altro".\n` +
     `- Use "listino" only for supplier PRICE communications (e.g. "Price Update", price list with products/prices for purchasing).\n` +
+    `- Use "nota_credito" for CREDIT NOTES / Credit Memos / Note di Credito / Avoir / Gutschrift with negative amounts or credit wording.\n` +
     `Return only the requested JSON.`
 
   try {
