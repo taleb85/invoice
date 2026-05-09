@@ -5233,6 +5233,13 @@ function FornitoreDetailClient({
     periodLedgerEpoch,
   )
 
+  useEffect(() => {
+    if (!periodStatsLoading && !periodStats) {
+      console.warn('[useSupplierPeriodStats] Errore caricamento statistiche fornitore')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodStatsLoading, periodStats])
+
   const ordiniCount = periodStats?.ordiniNelPeriodo ?? 0
 
   /** Allineati ai KPI sopra la griglia (stesso filtro `data` sul periodo), non ai totali storici da caricamento pagina. */

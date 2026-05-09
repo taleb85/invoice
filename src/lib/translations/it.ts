@@ -751,6 +751,7 @@ const translations: Translations = {
     supplierMonthlyDocFiscalSelected: '{year}',
     supplierMonthlyDocAriaGoToTabMonth: 'Apri {tab} per il periodo {month}',
     supplierDesktopRegionAria: 'Scheda fornitore, vista desktop',
+    statsLoadError: 'Errore caricamento statistiche fornitore',
     listinoPeriodLabel: 'Periodo',
     listinoPeriodAll: 'Tutto',
     listinoPeriodCurrentMonth: 'Mese corrente',

@@ -1080,6 +1080,7 @@ export type Translations = {
     supplierMonthlyDocFiscalSelected: string
     supplierMonthlyDocAriaGoToTabMonth: string
     supplierDesktopRegionAria: string
+    statsLoadError: string
     listinoPeriodLabel: string
     listinoPeriodAll: string
     listinoPeriodCurrentMonth: string
