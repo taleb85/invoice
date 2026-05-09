@@ -215,6 +215,9 @@ async function finalizePendingByTipo(
       }).catch(() => {})
     }
     if (userId) {
+      const fornNome = doc.fornitore_id
+        ? (await supabase.from('fornitori').select('nome').eq('id', doc.fornitore_id).maybeSingle()).data?.nome ?? null
+        : null
       logActivity(createServiceClient(), {
         userId,
         sedeId: sedeDefinitiva,
@@ -222,7 +225,7 @@ async function finalizePendingByTipo(
         entityType: 'fattura',
         entityId: fattura.id,
         entityLabel: numeroNorm ?? undefined,
-        metadata: { fornitore_id: doc.fornitore_id ?? undefined },
+        metadata: { fornitore_id: doc.fornitore_id ?? undefined, fornitore_nome: fornNome ?? undefined },
       }).catch(() => {})
     }
     return NextResponse.json({ ok: true, fattura_id: fattura.id })

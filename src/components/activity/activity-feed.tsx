@@ -281,7 +281,7 @@ export function ActivityFeed({
                       </span>
                       {row.entityLabel && !compact && (
                         <span className="inline max-w-prose text-xs font-medium leading-snug text-white/90">
-                          · {row.entityLabel}
+                          · {row.metadata?.fornitore_nome ? `${row.metadata.fornitore_nome} · ` : ''}{row.entityLabel}
                         </span>
                       )}
                     </div>
