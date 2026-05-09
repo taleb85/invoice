@@ -119,7 +119,7 @@ export default async function RevisioneInboxPage(props: {
           <div className={`${SUMMARY_HIGHLIGHT_CARD_INNER_PADDING_CLASS} space-y-4`}>
             <p className="text-sm leading-relaxed text-app-fg-muted">{t.dashboard.inboxUrgentePageIntro}</p>
             <ul className="space-y-2">
-              {nav.map((item) => (
+              {nav.filter((item) => item.count > 0).map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
