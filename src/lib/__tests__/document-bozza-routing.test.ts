@@ -139,14 +139,14 @@ describe('inferPendingDocumentKindForQueueRow', () => {
     ).toBeNull()
   })
 
-  it('restituisce null per comunicazione_cliente (solo discorsivo, senza bozza)', () => {
+  it('classifica come comunicazione quando OCR dice "comunicazione_cliente"', () => {
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: null,
         file_name: null,
         metadata: { tipo_documento: 'comunicazione_cliente' },
       }),
-    ).toBeNull()
+    ).toBe('comunicazione')
   })
 
   // ── classificazione tramite contesto email / nome file ──────────────────

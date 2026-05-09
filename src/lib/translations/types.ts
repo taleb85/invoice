@@ -1537,10 +1537,12 @@ export type Translations = {
     docKindBolla: string
     docKindFattura: string
     docKindNotaCredito: string
+    docKindComunicazione: string
     docKindOrdine: string
     docKindHintBolla: string
     docKindHintFattura: string
     docKindHintNotaCredito: string
+    docKindHintComunicazione: string
     docKindHintOrdine: string
     docKindGroupAria: string
     finalizeNeedsSupplier: string

@@ -58,7 +58,7 @@ export function invoiceTipoClassifiedAsFattura(metadata: MetaLike | null | undef
 
 export function shouldAutoRegisterPendingFattura(opts: {
   fornitoreId: string | null
-  pendingKind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null
+  pendingKind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | null
   metadata: MetaLike | null | undefined
   openBolleSameSupplierCount: number
 }): boolean {

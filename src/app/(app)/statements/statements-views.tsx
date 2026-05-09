@@ -89,7 +89,7 @@ type OcrMetadata = {
   tipo_documento?:    'fattura' | 'bolla' | 'altro' | null
   note_corpo_mail?:   string | null
   /** User-selected tipo documento in coda (estratto vs bolla vs fattura vs ordine) */
-  pending_kind?:      'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | 'listino' | null
+  pending_kind?:      'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | 'listino' | null
   /** Scansione email: fattura già presente in archivio */
   duplicate_skipped_fattura_id?: string | null
   bozza_id?:          string | null
@@ -344,7 +344,7 @@ function normalizeOcrCompanyKey(s: string | null | undefined): string {
 /** Nessun chip tipo ancora persistito (né flag estratto legacy). */
 function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>): boolean {
   const pk = doc.metadata?.pending_kind
-  if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'ordine' || pk === 'listino') {
+  if (pk === 'statement' || pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'comunicazione' || pk === 'ordine' || pk === 'listino') {
     // Se pending_kind è in conflitto col tipo documento OCR, va ri-sincronizzato
     if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === 'nota_credito') return true
     if (pk === 'fattura' && normalizeTipoDocumento(doc.metadata?.tipo_documento) === 'altro') return true
@@ -358,10 +358,10 @@ function docLacksPersistedPendingKind(doc: Documento, statementDocs: Set<string>
 function pendingKindForDoc(
   doc: Documento,
   statementDocs: Set<string>,
-): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null {
+): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | null {
   const pk = doc.metadata?.pending_kind
   if (pk === 'statement') return 'statement'
-  if (pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'ordine') return pk
+  if (pk === 'bolla' || pk === 'fattura' || pk === 'nota_credito' || pk === 'comunicazione' || pk === 'ordine') return pk
   if (statementDocs.has(doc.id) || doc.is_statement) return 'statement'
   return null
 }
@@ -1000,7 +1000,7 @@ export function PendingMatchesTab({
   const pendingListReturnPath = buildListLocationPath(pathname, pendingUrlSearchParams)
   const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
   const [bulkFinalizeKindBusy, setBulkFinalizeKindBusy] = useState<
-    'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | null
+    'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | null
   >(null)
   const { me } = useMe()
   const { showToast } = useToast()
@@ -1935,7 +1935,7 @@ export function PendingMatchesTab({
     }
   }
 
-  async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine') {
+  async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine') {
     setMarkingStatement(docId)
     try {
       // Usa mark_statement + kind: compatibile con API vecchie (solo is_statement) e nuove (metadata.pending_kind).
@@ -2059,11 +2059,12 @@ export function PendingMatchesTab({
 
   /** Documenti in lista con tipo già scelto e fornitore collegato: pronti per `finalizza_da_tipo` come sulla riga. */
   const finalizeReadyIdsByKind = useMemo(() => {
-    const out: Record<'ordine' | 'bolla' | 'fattura' | 'nota_credito' | 'statement', string[]> = {
+    const out: Record<'ordine' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'statement', string[]> = {
       ordine: [],
       bolla: [],
       fattura: [],
       nota_credito: [],
+      comunicazione: [],
       statement: [],
     }
     for (const d of docs) {
@@ -2076,7 +2077,7 @@ export function PendingMatchesTab({
   }, [docs, statementDocs])
 
   const runBulkFinalizeForKind = useCallback(
-    async (kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine') => {
+    async (kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine') => {
       const ids = finalizeReadyIdsByKind[kind]
       if (!ids.length) return
       setBulkFinalizeKindBusy(kind)
@@ -2205,13 +2206,13 @@ export function PendingMatchesTab({
           <p className={`text-xs font-medium ${supplierDocShell ? 'text-app-fg-muted' : 'text-slate-300'}`}>
             {bolleAperte.length} {bolleAperte.length === 1 ? t.statements.bolleAperteOne : t.statements.bolleApertePlural}
           </p>
-          {(['ordine', 'bolla', 'fattura', 'nota_credito', 'statement'] as const).some((k) => finalizeReadyIdsByKind[k].length > 0) && (
+          {(['ordine', 'bolla', 'fattura', 'nota_credito', 'comunicazione', 'statement'] as const).some((k) => finalizeReadyIdsByKind[k].length > 0) && (
             <div
               role="group"
               aria-label={t.statements.bulkFinalizeToolbarGroupAria}
               className="flex flex-wrap items-center justify-end gap-1"
             >
-              {(['ordine', 'bolla', 'fattura', 'nota_credito', 'statement'] as const).map((kind) => {
+              {(['ordine', 'bolla', 'fattura', 'nota_credito', 'comunicazione', 'statement'] as const).map((kind) => {
                 const n = finalizeReadyIdsByKind[kind].length
                 if (n === 0) return null
                 const kindLabel =
@@ -2223,7 +2224,9 @@ export function PendingMatchesTab({
                         ? t.statements.docKindFattura
                         : kind === 'nota_credito'
                           ? t.statements.docKindNotaCredito
-                          : t.statements.docKindEstratto
+                          : kind === 'comunicazione'
+                            ? t.statements.docKindComunicazione
+                            : t.statements.docKindEstratto
                 const tip = t.statements.bulkFinalizeKindTooltip
                   .replace(/\{kind\}/g, kindLabel)
                   .replace(/\{n\}/g, String(n))
@@ -2235,9 +2238,11 @@ export function PendingMatchesTab({
                       ? 'border-amber-500/40 bg-amber-500/[0.12] text-amber-100 hover:bg-amber-500/20'
                       : kind === 'nota_credito'
                         ? 'border-amber-500/40 bg-amber-500/[0.12] text-amber-100 hover:bg-amber-500/20'
-                        : kind === 'fattura'
-                          ? 'border-emerald-500/40 bg-emerald-500/[0.12] text-emerald-100 hover:bg-emerald-500/20'
-                          : 'border-cyan-500/40 bg-cyan-500/[0.12] text-cyan-100 hover:bg-cyan-500/20'
+                        : kind === 'comunicazione'
+                          ? 'border-sky-500/40 bg-sky-500/[0.12] text-sky-100 hover:bg-sky-500/20'
+                          : kind === 'fattura'
+                            ? 'border-emerald-500/40 bg-emerald-500/[0.12] text-emerald-100 hover:bg-emerald-500/20'
+                            : 'border-cyan-500/40 bg-cyan-500/[0.12] text-cyan-100 hover:bg-cyan-500/20'
                 return (
                   <button
                     key={kind}
@@ -2565,7 +2570,7 @@ export function PendingMatchesTab({
                             const pk = pendingKindForDoc(doc, statementDocs)
                             const busy = markingStatement === doc.id
                             const chips: {
-                              kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine'
+                              kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine'
                               label: string
                               title: string
                               activeCls: string
@@ -2575,6 +2580,12 @@ export function PendingMatchesTab({
                                 label: t.statements.docKindNotaCredito,
                                 title: t.statements.docKindHintNotaCredito,
                                 activeCls: 'border-[rgba(34,211,238,0.15)] bg-amber-500/15 text-amber-200',
+                              },
+                              {
+                                kind: 'comunicazione',
+                                label: t.statements.docKindComunicazione,
+                                title: t.statements.docKindHintComunicazione,
+                                activeCls: 'border-[rgba(34,211,238,0.15)] bg-sky-500/15 text-sky-200',
                               },
                               {
                                 kind: 'ordine',
@@ -2652,13 +2663,15 @@ export function PendingMatchesTab({
                                         ? t.statements.btnFinalizing
                                         : pk === 'nota_credito'
                                           ? 'Registra nota credito'
-                                          : pk === 'fattura'
-                                            ? t.statements.btnFinalizeFattura
-                                            : pk === 'bolla'
-                                              ? t.statements.btnFinalizeBolla
-                                              : pk === 'ordine'
-                                                ? t.statements.btnFinalizeOrdine
-                                                : t.statements.btnFinalizeStatement}
+                                          : pk === 'comunicazione'
+                                            ? 'Archivia comunicazione'
+                                            : pk === 'fattura'
+                                              ? t.statements.btnFinalizeFattura
+                                              : pk === 'bolla'
+                                                ? t.statements.btnFinalizeBolla
+                                                : pk === 'ordine'
+                                                  ? t.statements.btnFinalizeOrdine
+                                                  : t.statements.btnFinalizeStatement}
                                     </button>
                                   ))}
                               </div>

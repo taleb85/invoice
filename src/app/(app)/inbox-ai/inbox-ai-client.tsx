@@ -116,10 +116,11 @@ function parseInitialTab(raw: string | undefined): TabId {
   return 'docs'
 }
 
-function tipoAiToPendingKind(tipo: string): 'fattura' | 'nota_credito' | 'bolla' | 'statement' | 'ordine' | 'listino' | null {
+function tipoAiToPendingKind(tipo: string): 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'statement' | 'ordine' | 'listino' | null {
   const k = tipo.toLowerCase().trim()
   if (k === 'fattura') return 'fattura'
   if (k === 'nota_credito') return 'nota_credito'
+  if (k === 'comunicazione_cliente') return 'comunicazione'
   if (k === 'bolla' || k === 'ddt') return 'bolla'
   if (k === 'estratto_conto') return 'statement'
   if (k === 'ordine') return 'ordine'
@@ -521,7 +522,7 @@ export default function InboxAiClient(props: {
 
   const finalizeWithKind = async (
     docId: string,
-    kind: 'fattura' | 'nota_credito' | 'bolla' | 'statement' | 'ordine' | 'listino',
+    kind: 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'statement' | 'ordine' | 'listino',
   ): Promise<boolean> => {
     setActionBusy(docId)
     try {
@@ -544,10 +545,10 @@ export default function InboxAiClient(props: {
     }
   }
 
-  /** Registra come fattura, nota credito, bolla o listino (pulsanti manuali sulla riga). */
+  /** Registra come fattura, nota credito, bolla, listino o comunicazione (pulsanti manuali sulla riga). */
   const finalizeAs = async (
     docId: string,
-    kind: 'fattura' | 'nota_credito' | 'bolla' | 'listino',
+    kind: 'fattura' | 'nota_credito' | 'comunicazione' | 'bolla' | 'listino',
   ) => {
     const ok = await finalizeWithKind(docId, kind)
     if (ok) await loadDocs({ silent: true })

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
-export type LearnedPendingKind = 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine'
+export type LearnedPendingKind = 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine'
 
 const HINT_TABLE = 'fornitore_ocr_tipo_pending_kind_hints' as const
 

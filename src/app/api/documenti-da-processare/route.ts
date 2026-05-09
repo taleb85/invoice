@@ -62,6 +62,7 @@ async function finalizePendingByTipo(
     tipo !== 'bolla' &&
     tipo !== 'fattura' &&
     tipo !== 'nota_credito' &&
+    tipo !== 'comunicazione' &&
     tipo !== 'statement' &&
     tipo !== 'ordine' &&
     tipo !== 'listino'
@@ -72,12 +73,13 @@ async function finalizePendingByTipo(
     tipo !== 'bolla' &&
     tipo !== 'fattura' &&
     tipo !== 'nota_credito' &&
+    tipo !== 'comunicazione' &&
     tipo !== 'statement' &&
     tipo !== 'ordine' &&
     tipo !== 'listino'
   ) {
     return NextResponse.json(
-      { error: 'Imposta il tipo di documento (estratto, bolla, fattura, nota credito, listino o ordine).' },
+      { error: 'Imposta il tipo di documento (estratto, bolla, fattura, nota credito, comunicazione, listino o ordine).' },
       { status: 400 },
     )
   }
@@ -224,6 +226,19 @@ async function finalizePendingByTipo(
       }).catch(() => {})
     }
     return NextResponse.json({ ok: true, fattura_id: fattura.id })
+  }
+
+  if (tipo === 'comunicazione') {
+    await supabase
+      .from('documenti_da_processare')
+      .update({
+        stato: 'associato',
+        bolla_id: null,
+        fattura_id: null,
+        ...(sedeDefinitiva && !doc.sede_id ? { sede_id: sedeDefinitiva } : {}),
+      })
+      .eq('id', id)
+    return NextResponse.json({ ok: true })
   }
 
   if (tipo === 'ordine') {
@@ -460,8 +475,8 @@ export async function POST(req: NextRequest) {
     bolla_ids?: string[]       // new multi-bolla
     fornitore_id?: string
     is_statement?: boolean
-    /** document classification: statement vs delivery note vs invoice vs credit note vs order (pending queue UI) */
-    kind?: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'ordine' | 'listino'
+    /** document classification: statement vs delivery note vs invoice vs credit note vs communication vs order (pending queue UI) */
+    kind?: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | 'listino'
     /** Usato con azione `associa` per finalizzare senza bolle (stesso handler già deployato ovunque). */
     finalizza_da_tipo?: boolean
   }
@@ -482,6 +497,7 @@ export async function POST(req: NextRequest) {
       kind === 'bolla' ||
       kind === 'fattura' ||
       kind === 'nota_credito' ||
+      kind === 'comunicazione' ||
       kind === 'ordine' ||
       kind === 'listino'
     if (classifies) {
@@ -528,6 +544,7 @@ export async function POST(req: NextRequest) {
     kind !== 'bolla' &&
     kind !== 'fattura' &&
     kind !== 'nota_credito' &&
+    kind !== 'comunicazione' &&
     kind !== 'ordine' &&
     kind !== 'listino'
   ) {
