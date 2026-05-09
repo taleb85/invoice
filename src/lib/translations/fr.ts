@@ -392,7 +392,7 @@ const translations: Translations = {
     autoLinkedSupplierOne: 'Fournisseur associé automatiquement : {name}.',
     autoLinkedSupplierMany: '{count} documents associés automatiquement à des fournisseurs.',
     bulkAutoMatchSummary:
-      'Analyse terminée : {linked} fournisseur(s) lié(s), {associated} document(s) associé(s) aux bons de livraison.',
+      'Analyse terminée : {linked} fournisseur(s) lié(s), {associated} BL(s) associé(s), {classified} document(s) classifié(s), {registered} document(s) enregistré(s).',
     bulkAutoMatchNone: 'Aucun rapprochement automatique applicable aux documents de la liste.',
     bulkAutoMatchButtonLabel: 'Tout rapprocher',
     bulkAutoMatchButtonTitle:

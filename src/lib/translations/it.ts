@@ -1418,7 +1418,7 @@ const translations: Translations = {
     autoLinkedSupplierOne: 'Fornitore collegato automaticamente: {name}.',
     autoLinkedSupplierMany: '{count} documenti collegati automaticamente ai fornitori.',
     bulkAutoMatchSummary:
-      'Analisi completata: {linked} fornitore/i collegati, {associated} documento/i associati alle bolle.',
+      'Analisi completata: {linked} fornitore/i collegati, {associated} bolla/e associate, {classified} documento/i classificati, {registered} documento/i registrati.',
     bulkAutoMatchNone: 'Nessun abbinamento automatico applicabile ai documenti in elenco.',
     bulkAutoMatchButtonLabel: 'Abbina tutto',
     bulkAutoMatchButtonTitle:

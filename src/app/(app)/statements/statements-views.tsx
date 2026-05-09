@@ -1387,6 +1387,8 @@ export function PendingMatchesTab({
       const supabase = createClient()
       let linked = 0
       let associated = 0
+      let classified = 0
+      let registered = 0
       let postErrCount = 0
       let firstPostErr = ''
 
@@ -1454,6 +1456,59 @@ export function PendingMatchesTab({
         }
       }
 
+      // ── Phase 3: Auto-classify pending_kind from OCR tipo_documento ────────────
+      for (const doc of working) {
+        if (!doc.fornitore_id) continue
+        const pk = doc.metadata?.pending_kind
+        if (pk) continue
+        const tipo = normalizeTipoDocumento(doc.metadata?.tipo_documento)
+        if (!tipo || tipo === 'curriculum' || tipo === 'comunicazione_cliente' || tipo === 'altro') continue
+        let inferredKind: string | null = null
+        if (tipo === 'fattura' || tipo === 'nota_credito') inferredKind = tipo
+        else if (tipo === 'bolla') inferredKind = 'bolla'
+        else if (tipo === 'listino') inferredKind = 'listino'
+        if (!inferredKind) continue
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: doc.id, azione: 'mark_statement', kind: inferredKind, is_statement: false }),
+        })
+        if (res.ok) {
+          doc.metadata = { ...(doc.metadata ?? {}), pending_kind: inferredKind }
+          classified++
+        } else {
+          postErrCount++
+          if (!firstPostErr) firstPostErr = await parsePendingQueueMutationError(res)
+        }
+      }
+
+      // ── Phase 4: Auto-register fatture/note credito senza bolle ───────────────
+      const usedBollaSet = usedBollaIds
+      for (const doc of working) {
+        if (!docAllowsAssociationFlow(doc.stato)) continue
+        if (!doc.fornitore_id) continue
+        const pk = doc.metadata?.pending_kind
+        if (pk !== 'fattura' && pk !== 'nota_credito') continue
+        // Skip if there are open bolle for this supplier that weren't matched (user should match manually)
+        const openBolle = freshBolle.filter(
+          (b) => b.fornitore_id === doc.fornitore_id && b.importo != null && b.importo > 0 && !usedBollaSet.has(b.id),
+        )
+        if (openBolle.length > 0) continue
+        const ocr = doc.metadata?.totale_iva_inclusa ?? null
+        if (ocr == null || ocr <= 0) continue
+        const res = await fetch('/api/documenti-da-processare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: doc.id, azione: 'associa', finalizza_da_tipo: true, bolla_ids: [] }),
+        })
+        if (res.ok) {
+          registered++
+        } else {
+          postErrCount++
+          if (!firstPostErr) firstPostErr = await parsePendingQueueMutationError(res)
+        }
+      }
+
       await fetchDocs()
       await fetchBolleAperte()
       await fetchFornitori()
@@ -1468,7 +1523,7 @@ export function PendingMatchesTab({
         if (bolleFetchErr) {
           showToast(bolleFetchErr, 'error')
         }
-        const total = linked + associated
+        const total = linked + associated + classified + registered
         if (total === 0) {
           if (postErrCount && firstPostErr) {
             showToast(firstPostErr, 'error')
@@ -1480,7 +1535,9 @@ export function PendingMatchesTab({
             showToast(
               t.statements.bulkAutoMatchSummary
                 .replace(/\{linked\}/g, String(linked))
-                .replace(/\{associated\}/g, String(associated)),
+                .replace(/\{associated\}/g, String(associated))
+                .replace(/\{classified\}/g, String(classified))
+                .replace(/\{registered\}/g, String(registered)),
               'success',
             )
           }

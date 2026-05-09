@@ -391,7 +391,7 @@ const translations: Translations = {
     autoLinkedSupplierOne: 'Lieferant automatisch verknüpft: {name}.',
     autoLinkedSupplierMany: '{count} Dokumente automatisch mit Lieferanten verknüpft.',
     bulkAutoMatchSummary:
-      'Analyse abgeschlossen: {linked} Lieferant(en) verknüpft, {associated} Dokument(e) mit Lieferscheinen abgeglichen.',
+      'Analyse abgeschlossen: {linked} Lieferant(en) verknüpft, {associated} Lieferschein(e) abgeglichen, {classified} Dokument(e) klassifiziert, {registered} Dokument(e) registriert.',
     bulkAutoMatchNone: 'Für die Dokumente in der Liste war kein automatischer Abgleich möglich.',
     bulkAutoMatchButtonLabel: 'Alles abgleichen',
     bulkAutoMatchButtonTitle:

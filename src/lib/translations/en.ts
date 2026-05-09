@@ -443,7 +443,7 @@ const translations: Translations = {
     autoLinkedSupplierOne: 'Supplier linked automatically: {name}.',
     autoLinkedSupplierMany: '{count} documents linked to suppliers automatically.',
     bulkAutoMatchSummary:
-      'Analysis complete: {linked} supplier(s) linked, {associated} document(s) matched to delivery notes.',
+      'Analysis complete: {linked} supplier(s) linked, {associated} delivery note(s) matched, {classified} document(s) classified, {registered} document(s) registered.',
     bulkAutoMatchNone: 'No automatic matches applied to the documents in this list.',
     bulkAutoMatchButtonLabel: 'Match all',
     bulkAutoMatchButtonTitle:

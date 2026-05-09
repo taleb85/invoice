@@ -392,7 +392,7 @@ const translations: Translations = {
     autoLinkedSupplierOne: 'Proveedor vinculado automáticamente: {name}.',
     autoLinkedSupplierMany: '{count} documentos vinculados automáticamente a proveedores.',
     bulkAutoMatchSummary:
-      'Análisis completado: {linked} proveedor(es) vinculado(s), {associated} documento(s) asociado(s) a albaranes.',
+      'Análisis completado: {linked} proveedor(es) vinculado(s), {associated} albarán(es) asociado(s), {classified} documento(s) clasificado(s), {registered} documento(s) registrado(s).',
     bulkAutoMatchNone: 'No se pudo aplicar ningún emparejamiento automático a los documentos de la lista.',
     bulkAutoMatchButtonLabel: 'Emparejar todo',
     bulkAutoMatchButtonTitle:
