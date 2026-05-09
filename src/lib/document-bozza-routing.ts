@@ -219,6 +219,20 @@ export function inferPendingDocumentKindForQueueRow(opts: {
     | undefined
 }): 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine' | 'listino' | null {
   const md = opts.metadata
+  const tipo = normalizeTipoDocumento(md?.tipo_documento)
+
+  // L'OCR tipo_documento (Gemini) ha priorità sull'euristica email
+  if (tipo === 'curriculum' || tipo === 'comunicazione_cliente') return 'comunicazione'
+  if (tipo === 'bolla') return 'bolla'
+  if (tipo === 'fattura') return 'fattura'
+  if (tipo === 'nota_credito') return 'nota_credito'
+  if (tipo === 'listino') return 'listino'
+
+  // Se l'OCR ha classificato (anche come "altro" / "statement" / "estratto_conto"),
+  // non usare l'euristica email — l'OCR è più accurato
+  if (tipo !== null) return 'comunicazione'
+
+  // Solo se OCR non ha classificato affatto, usa euristica da oggetto/nome file
   const ocrForScan = {
     ragione_sociale: md?.ragione_sociale,
     note_corpo_mail: md?.note_corpo_mail,
@@ -230,14 +244,6 @@ export function inferPendingDocumentKindForQueueRow(opts: {
     ocrForScan,
   )
   if (fromMail === 'ordine' || fromMail === 'statement') return fromMail
-
-  const tipo = normalizeTipoDocumento(md?.tipo_documento)
-  if (tipo === 'curriculum') return 'comunicazione'
-  if (tipo === 'comunicazione_cliente') return 'comunicazione'
-  if (tipo === 'bolla') return 'bolla'
-  if (tipo === 'fattura') return 'fattura'
-  if (tipo === 'nota_credito') return 'nota_credito'
-  if (tipo === 'listino') return 'listino'
 
   // Se il tipo documento non è riconosciuto ma nome file/oggetto suggerisce listino
   if (scanContextSuggestsListino(opts.oggetto_mail, opts.file_name)) return 'listino'
