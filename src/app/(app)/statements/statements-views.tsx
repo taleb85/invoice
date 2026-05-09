@@ -3448,6 +3448,7 @@ export function VerificationStatusTab({
 }) {
   const router = useRouter()
   const [stmtHeaderRefreshPending, startStmtHeaderRefresh] = useTransition()
+  const [stmtRecheckBusy, setStmtRecheckBusy] = useState(false)
   const now = new Date()
   const loc = getLocale(countryCode)
   const resolvedCurrency = currency ?? loc.currency ?? 'EUR'
@@ -4067,12 +4068,17 @@ export function VerificationStatusTab({
             </div>
             <button
               type="button"
-              onClick={() =>
-                fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`).then(() => loadStatementRows(selectedStmt))
-              }
+              onClick={() => {
+                setStmtRecheckBusy(true)
+                fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
+                  .then(() => loadStatementRows(selectedStmt))
+                  .finally(() => setStmtRecheckBusy(false))
+              }}
+              disabled={stmtRecheckBusy}
+              aria-busy={stmtRecheckBusy}
               className="inline-flex shrink-0 items-center gap-1 self-start rounded-lg border border-app-line-28 bg-transparent px-2.5 py-1.5 text-xs font-semibold text-app-fg transition-colors hover:border-app-cyan-500/40 hover:bg-cyan-500/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-line-40"
             >
-              <svg className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <svg className={`h-3.5 w-3.5 shrink-0 opacity-90 ${icon.emailSync} app-refresh-icon`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
