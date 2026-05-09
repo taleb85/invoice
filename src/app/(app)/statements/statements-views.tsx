@@ -1424,6 +1424,7 @@ export function PendingMatchesTab({
         if (!doc.fornitore_id) continue
         if (doc.is_statement || doc.metadata?.pending_kind === 'statement') continue
         if (doc.metadata?.pending_kind === 'ordine') continue
+        if (doc.metadata?.pending_kind === 'comunicazione') continue
         const ocr = doc.metadata?.totale_iva_inclusa ?? null
         if (ocr == null || ocr <= 0) continue
         const relevant = freshBolle.filter(

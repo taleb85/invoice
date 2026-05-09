@@ -84,8 +84,8 @@ describe('scanContextSuggestsBolla', () => {
 
 describe('inferPendingDocumentKindForQueueRow', () => {
   // ── caso del bug segnalato ──────────────────────────────────────────────
-  it('NON classifica come fattura un doc con solo numero e totale (DDT senza tipo OCR)', () => {
-    // Questo era il bug: numero + totale → 'fattura'. Ora → null.
+  it('classifica come comunicazione un doc con solo numero e totale (DDT senza tipo OCR)', () => {
+    // Questo era il bug: numero + totale → 'fattura'. Ora → comunicazione.
     const result = inferPendingDocumentKindForQueueRow({
       oggetto_mail: 'Allegati',
       file_name: 'documento_50229873.pdf',
@@ -95,7 +95,7 @@ describe('inferPendingDocumentKindForQueueRow', () => {
         totale_iva_inclusa: 1234.56,
       },
     })
-    expect(result).toBeNull()
+    expect(result).toBe('comunicazione')
   })
 
   // ── classificazione tramite OCR tipo_documento ──────────────────────────
@@ -129,14 +129,14 @@ describe('inferPendingDocumentKindForQueueRow', () => {
     ).toBe('bolla')
   })
 
-  it('restituisce null quando OCR indica curriculum/CV (non forzare fattura da nome file)', () => {
+  it('classifica come comunicazione quando OCR indica curriculum/CV (non forzare fattura da nome file)', () => {
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: null,
         file_name: 'invoice_resume.pdf',
         metadata: { tipo_documento: 'curriculum' },
       }),
-    ).toBeNull()
+    ).toBe('comunicazione')
   })
 
   it('classifica come comunicazione quando OCR dice "comunicazione_cliente"', () => {
@@ -170,14 +170,14 @@ describe('inferPendingDocumentKindForQueueRow', () => {
     ).toBe('bolla')
   })
 
-  it('restituisce null se sia "invoice" che "ddt" compaiono nel blob (ambiguo)', () => {
+  it('classifica come comunicazione se sia "invoice" che "ddt" compaiono nel blob (ambiguo)', () => {
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: 'invoice DDT',
         file_name: null,
         metadata: { tipo_documento: null },
       }),
-    ).toBeNull()
+    ).toBe('comunicazione')
   })
 
   // ── statement e ordine ──────────────────────────────────────────────────
@@ -202,23 +202,23 @@ describe('inferPendingDocumentKindForQueueRow', () => {
   })
 
   // ── valori edge ─────────────────────────────────────────────────────────
-  it('restituisce null con metadata completamente assente', () => {
+  it('classifica come comunicazione con metadata completamente assente', () => {
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: null,
         file_name: null,
         metadata: null,
       }),
-    ).toBeNull()
+    ).toBe('comunicazione')
   })
 
-  it('restituisce null con solo il totale (senza numero né tipo)', () => {
+  it('classifica come comunicazione con solo il totale (senza numero né tipo)', () => {
     expect(
       inferPendingDocumentKindForQueueRow({
         oggetto_mail: null,
         file_name: null,
         metadata: { tipo_documento: null, totale_iva_inclusa: 999 },
       }),
-    ).toBeNull()
+    ).toBe('comunicazione')
   })
 })

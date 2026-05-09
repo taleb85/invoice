@@ -232,7 +232,7 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   if (fromMail === 'ordine' || fromMail === 'statement') return fromMail
 
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
-  if (tipo === 'curriculum') return null
+  if (tipo === 'curriculum') return 'comunicazione'
   if (tipo === 'comunicazione_cliente') return 'comunicazione'
   if (tipo === 'bolla') return 'bolla'
   if (tipo === 'fattura') return 'fattura'
@@ -244,9 +244,11 @@ export function inferPendingDocumentKindForQueueRow(opts: {
 
   const ctxFat = scanContextSuggestsFattura(opts.oggetto_mail, opts.file_name)
   const ctxBol = scanContextSuggestsBolla(opts.oggetto_mail, opts.file_name)
-  if (ctxFat && ctxBol) return null
+  if (ctxFat && ctxBol) return 'comunicazione'
   if (ctxFat) return 'fattura'
   if (ctxBol) return 'bolla'
 
-  return null
+  // Tutto ciò che non è classificabile come ordine, bolla, fattura, nota credito, estratto conto, listino
+  // viene salvato come comunicazione
+  return 'comunicazione'
 }
