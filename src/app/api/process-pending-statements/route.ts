@@ -111,7 +111,20 @@ export async function POST(req: NextRequest) {
       const msg = `Nessuna riga estratta dal PDF per doc ${doc.id}`
       console.warn(`[PENDING-STMT] ${msg}`)
       errors.push(msg)
-      // Still create a statement record so we don't retry indefinitely
+      // Still create a statement record with error status so we don't retry indefinitely
+      await supabase
+        .from('statements')
+        .insert([{
+          sede_id: doc.sede_id,
+          fornitore_id: doc.fornitore_id,
+          email_subject: doc.oggetto_mail,
+          received_at: doc.created_at,
+          file_url: doc.file_url,
+          status: 'error',
+          total_rows: 0,
+          missing_rows: 0,
+        }])
+      continue
     }
 
     const sedeId      = doc.sede_id

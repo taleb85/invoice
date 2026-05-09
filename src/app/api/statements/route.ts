@@ -67,7 +67,10 @@ export async function GET(req: NextRequest) {
       .select('numero_doc, importo')
       .eq('statement_id', statementId)
 
-    if (!existingRows?.length) return NextResponse.json({ ok: true, rechecked: 0 })
+    if (!existingRows?.length) {
+      await service.from('statements').update({ status: 'error' }).eq('id', statementId)
+      return NextResponse.json({ ok: true, rechecked: 0, status: 'error' })
+    }
 
     const lines = existingRows.map(r => ({ numero: r.numero_doc, importo: Number(r.importo) }))
     const { results } = await runTripleCheck(supabase, lines, stmt.sede_id, stmt.fornitore_id)
