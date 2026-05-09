@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, useState, useTransition } from 'react'
+import { useId, useEffect, useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useLocale } from '@/lib/locale-context'
 import { BackButton } from '@/components/BackButton'
@@ -37,6 +37,22 @@ export default function SollecitiSettingsClient({ initial, variant = 'page', onP
   const [errorDetail, setErrorDetail] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
+  // Sincronizza lo stato locale quando il prop initial cambia
+  // (es. genitore aggiorna il dato dopo un salvataggio riuscito)
+  useEffect(() => {
+    setAutoOn(initial.autoSollecitiEnabled)
+    setBolla(String(initial.giorniTolBolla))
+    setProm(String(initial.giorniTolPromessa))
+    setStmt(String(initial.giorniTolEstrattoMismatch))
+  }, [initial.autoSollecitiEnabled, initial.giorniTolBolla, initial.giorniTolPromessa, initial.giorniTolEstrattoMismatch])
+
+  // Auto-dismiss del messaggio "salvato" dopo 4 secondi
+  useEffect(() => {
+    if (msg !== 'saved') return
+    const id = setTimeout(() => setMsg('idle'), 4000)
+    return () => clearTimeout(id)
+  }, [msg])
+
   const payload: SaveSollecitiSettingsPayload = useMemo(
     () => ({
       autoSolleciti: autoOn ? 1 : 0,
@@ -51,16 +67,24 @@ export default function SollecitiSettingsClient({ initial, variant = 'page', onP
   const submit = () => {
     setMsg('idle')
     setErrorDetail(null)
+    // Validazione: valori numerici devono essere validi
+    const bollaVal = Math.min(366, Math.max(0, numOrZero(bolla)))
+    const promVal = Math.min(366, Math.max(0, numOrZero(prom)))
+    const stmtVal = Math.min(366, Math.max(0, numOrZero(stmt)))
     startTransition(async () => {
-      const res = await saveSollecitiSettingsAction(payload)
+      const res = await saveSollecitiSettingsAction({ ...payload, giorniTolBolla: bollaVal, giorniTolPromessa: promVal, giorniTolEstrattoMismatch: stmtVal })
       if (res.ok) {
         setMsg('saved')
+        // Riallinea lo stato locale ai valori appena salvati
+        setBolla(String(bollaVal))
+        setProm(String(promVal))
+        setStmt(String(stmtVal))
         try {
           await onPersisted?.({
             autoSollecitiEnabled: autoOn,
-            giorniTolBolla: payload.giorniTolBolla,
-            giorniTolPromessa: payload.giorniTolPromessa,
-            giorniTolEstrattoMismatch: payload.giorniTolEstrattoMismatch,
+            giorniTolBolla: bollaVal,
+            giorniTolPromessa: promVal,
+            giorniTolEstrattoMismatch: stmtVal,
           })
         } catch {
           /* optional refetch failed */
