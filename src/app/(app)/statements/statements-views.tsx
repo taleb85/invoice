@@ -3687,9 +3687,18 @@ export function VerificationStatusTab({
     setCheckResults(null)
     setCheckError(null)
     if (stmt.status === 'processing') {
-      setCheckError(t.statements.stmtProcessing)
-      return
-    }
+        setCheckLoading(true)
+        const recheckRes = await fetch(`/api/statements?id=${stmt.id}&action=recheck`)
+        if (recheckRes.ok) {
+          const updated = await recheckRes.json() as { status?: string }
+          if (updated.status === 'done' || updated.status === 'error') {
+            stmt = { ...stmt, status: updated.status }
+            setSelectedStmt(stmt)
+            setStmts(prev => prev.map(s => s.id === stmt.id ? stmt : s))
+          }
+        }
+        // fall through: carica le righe anche se il recheck non è riuscito
+      }
     setCheckLoading(true)
     const res = await fetch(`/api/statements?id=${stmt.id}`)
     if (!res.ok) {
@@ -4071,7 +4080,15 @@ export function VerificationStatusTab({
               onClick={() => {
                 setStmtRecheckBusy(true)
                 fetch(`/api/statements?id=${selectedStmt.id}&action=recheck`)
-                  .then(() => loadStatementRows(selectedStmt))
+                  .then(async (res) => {
+                    if (res.ok) {
+                      const updated = await res.json() as { status?: string }
+                      if (updated.status === 'done' || updated.status === 'error') {
+                        setStmts(prev => prev.map(s => s.id === selectedStmt.id ? { ...s, status: updated.status as StmtRecord['status'] } : s))
+                      }
+                    }
+                    loadStatementRows(selectedStmt)
+                  })
                   .finally(() => setStmtRecheckBusy(false))
               }}
               disabled={stmtRecheckBusy}
