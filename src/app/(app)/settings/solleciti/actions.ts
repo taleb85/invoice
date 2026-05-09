@@ -4,10 +4,12 @@ import { revalidatePath } from 'next/cache'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import {
+  DEFAULT_AUTO_SOLLECITI_ENABLED,
   DEFAULT_SOLLECITI_TOLERANCE,
   SOLLECITI_APP_DESCRIZIONI,
   SOLLECITI_APP_TO_LEGACY_CHIAVE,
   SOLLECITI_CONFIG_CHIAVI,
+  type SollecitiReminderSettings,
 } from '@/lib/sollecito-aging'
 import { isSedePrivilegedRole } from '@/lib/roles'
 
@@ -244,4 +246,56 @@ export async function saveSollecitiSettingsAction(
     console.warn('[saveSollecitiSettingsAction] revalidatePath', revalidateErr)
   }
   return { ok: true }
+}
+
+/**
+ * Server action: legge le impostazioni solleciti dal DB con service role client,
+ * bypassando eventuali problemi di RLS / schema cache del client anon.
+ */
+export async function fetchSollecitiSettingsAction(): Promise<SollecitiReminderSettings> {
+  try {
+    const service = createServiceClient()
+    const [appRes, legRes] = await Promise.all([
+      service.from('configurazioni_app').select('chiave, valore'),
+      service.from('configurazioni_solleciti').select('chiave, valore'),
+    ])
+    const merged: { chiave: string; valore: string }[] = []
+    if (!legRes.error && legRes.data?.length) merged.push(...(legRes.data as { chiave: string; valore: string }[]))
+    if (!appRes.error && appRes.data?.length) merged.push(...(appRes.data as { chiave: string; valore: string }[]))
+
+    const byKey = new Map<string, string>()
+    for (const r of merged) { if (r?.chiave) byKey.set(r.chiave.trim(), r.valore) }
+
+    const SOLLECITI_KEY_ORDER = {
+      autoEnabled: ['solleciti_automatici_attivi', 'auto_solleciti_enabled'] as const,
+      bolla: ['giorni_attesa_bolla', 'giorni_tolleranza_bolla'] as const,
+      promessa: ['giorni_attesa_promessa', 'giorni_tolleranza_promessa_documento'] as const,
+      estratto: ['giorni_attesa_mismatch_estratto', 'giorni_tolleranza_estratto_mismatch'] as const,
+    }
+
+    function pick(keys: readonly string[]): string | undefined {
+      for (const k of keys) { const v = byKey.get(k); if (v !== undefined && String(v).trim() !== '') return v }
+      return undefined
+    }
+    function parseNum(raw: string | undefined, fb: number): number {
+      if (raw == null) return fb; const n = Number.parseInt(raw.trim(), 10); return Number.isFinite(n) && n >= 0 ? n : fb
+    }
+    function parseRaw(raw: string | undefined | null): boolean {
+      if (raw == null || String(raw).trim() === '') return DEFAULT_AUTO_SOLLECITI_ENABLED
+      return ['true', '1', 'yes', 'si', 'sì', 'on'].includes(String(raw).trim().toLowerCase())
+    }
+
+    return {
+      autoSollecitiEnabled: parseRaw(pick(SOLLECITI_KEY_ORDER.autoEnabled)),
+      giorniTolBolla: parseNum(pick(SOLLECITI_KEY_ORDER.bolla), DEFAULT_SOLLECITI_TOLERANCE.giorniTolBolla),
+      giorniTolPromessa: parseNum(pick(SOLLECITI_KEY_ORDER.promessa), DEFAULT_SOLLECITI_TOLERANCE.giorniTolPromessa),
+      giorniTolEstrattoMismatch: parseNum(pick(SOLLECITI_KEY_ORDER.estratto), DEFAULT_SOLLECITI_TOLERANCE.giorniTolEstrattoMismatch),
+    }
+  } catch (e) {
+    console.error('[fetchSollecitiSettingsAction]', e)
+    return {
+      autoSollecitiEnabled: DEFAULT_AUTO_SOLLECITI_ENABLED,
+      ...DEFAULT_SOLLECITI_TOLERANCE,
+    }
+  }
 }

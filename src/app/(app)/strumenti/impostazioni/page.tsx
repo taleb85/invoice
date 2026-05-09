@@ -9,7 +9,8 @@ import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { createClient } from '@/utils/supabase/client'
-import { fetchSollecitiReminderSettings, type SollecitiReminderSettings } from '@/lib/sollecito-aging'
+import { type SollecitiReminderSettings } from '@/lib/sollecito-aging'
+import { fetchSollecitiSettingsAction } from '@/app/(app)/settings/solleciti/actions'
 import { clearSessionOperatorGate } from '@/lib/session-operator-gate'
 import SedeAddOperatorForm from '@/components/SedeAddOperatorForm'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
@@ -137,14 +138,17 @@ function SollecitiSettingsLinkCard() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const supabase = createClient()
-      const data = await fetchSollecitiReminderSettings(supabase)
-      if (!cancelled) setSollecitiInitial(data)
+      try {
+        const data = await fetchSollecitiSettingsAction()
+        if (!cancelled) setSollecitiInitial(data)
+      } catch {
+        if (!cancelled) setSollecitiInitial(null)
+      }
     })()
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [embeddedSession])
 
   const reloadSollecitiAfterSave = (saved: SollecitiReminderSettings) => {
     setSollecitiInitial(saved)
