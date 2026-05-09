@@ -582,7 +582,7 @@ export async function POST(req: NextRequest) {
     if (!fornitore_id) return NextResponse.json({ error: 'fornitore_id richiesto' }, { status: 400 })
     const { data: docRow } = await supabase
       .from('documenti_da_processare')
-      .select('mittente')
+      .select('mittente, metadata')
       .eq('id', id)
       .maybeSingle()
     // Aggiorna anche sede_id prendendo quello del fornitore scelto
@@ -600,6 +600,11 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Backfill fornitore con dati OCR dal documento (P.IVA, indirizzo, ragione sociale, email)
+    if (docRow?.metadata || docRow?.mittente) {
+      await mergeFornitoreMissingFromDocMetadata(supabase, fornitore_id, docRow.metadata, docRow.mittente)
+    }
 
     let suggestRememberAssociation = false
     let mittenteEmail: string | null = null

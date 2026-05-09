@@ -2716,6 +2716,7 @@ export function PendingMatchesTab({
                                         body: JSON.stringify({
                                           nome: match.nome_azienda,
                                           email: doc.mittente?.trim() || '',
+                                          piva: doc.metadata?.p_iva || undefined,
                                           sede_id: sedeId || undefined,
                                         }),
                                       })
