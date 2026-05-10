@@ -15,7 +15,7 @@ export type ReclassifyResultRow = {
 export default function ReclassifyPendingKindCard() {
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
-  const sedeId = useManualDeliverySede()
+  const sedeCtx = useManualDeliverySede()
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<{ checked: number; updated: number; skipped: number; results: ReclassifyResultRow[] } | null>(null)
 
@@ -31,10 +31,15 @@ export default function ReclassifyPendingKindCard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ sede_id: sedeId ?? undefined, limit: 200 }),
+        body: JSON.stringify({ sede_id: sedeCtx.effectiveSedeId || undefined, limit: 200 }),
       })
       const json = await res.json()
-      setResult(json)
+      setResult({
+        checked: json.checked ?? 0,
+        updated: json.updated ?? 0,
+        skipped: json.skipped ?? 0,
+        results: json.results ?? [],
+      })
     } catch {
       setResult({ checked: 0, updated: 0, skipped: 0, results: [] })
     } finally {
@@ -71,7 +76,7 @@ export default function ReclassifyPendingKindCard() {
             </span>
             {' · '}Invariati: {result.skipped}
           </p>
-          {result.results && result.results.length > 0 && (
+          {result.results.length > 0 && (
             <details className="mt-2">
               <summary className="cursor-pointer text-app-fg-muted hover:text-app-fg">
                 Dettaglio ({result.results.length} modifiche)
