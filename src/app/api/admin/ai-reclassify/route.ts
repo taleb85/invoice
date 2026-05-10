@@ -14,6 +14,7 @@ const AI_KINDS_MAP: Record<string, 'fattura' | 'bolla' | 'nota_credito' | 'comun
   fattura: 'fattura',
   invoice: 'fattura',
   tax_invoice: 'fattura',
+  sales_invoice: 'fattura',
   bolla: 'bolla',
   ddt: 'bolla',
   delivery_note: 'bolla',
@@ -42,21 +43,22 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
 
-  let body: { sede_id?: string; pending_kind?: string; limit?: number; continue_token?: string }
+  let body: { sede_id?: string; pending_kind?: string; limit?: number }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'JSON non valido' }, { status: 400 })
   }
 
-  const requestedLimit = Math.min(body.limit ?? BATCH, 20)
-  const limit = Math.min(requestedLimit, BATCH)
+  const limit = Math.min(body.limit ?? BATCH, BATCH)
 
   let q = service
     .from('documenti_da_processare')
     .select('id, file_url, file_name, content_type, stato, oggetto_mail, metadata')
     .not('file_url', 'is', null)
     .not('file_url', 'eq', '')
+    // Esclude documenti già processati da AI (hanno ai_classified_at nel metadata)
+    .is('metadata->>ai_classified_at', null)
     .order('created_at', { ascending: false })
     .limit(limit)
 
@@ -71,7 +73,7 @@ export async function POST(req: NextRequest) {
   const { data: docs, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!docs?.length) {
-    return NextResponse.json({ ok: true, checked: 0, updated: 0, errors: 0, message: 'Nessun documento da processare' })
+    return NextResponse.json({ ok: true, checked: 0, updated: 0, errors: 0, message: 'Nessun documento da processare o tutti già analizzati da AI' })
   }
 
   type DocRow = { id: string; file_url: string | null; file_name: string | null; content_type: string | null; stato: string | null; oggetto_mail: string | null; metadata: Record<string, unknown> | null }
@@ -98,9 +100,9 @@ export async function POST(req: NextRequest) {
       const tipoAi = (suggestion.tipo_suggerito ?? '').toLowerCase().replace(/\s+/g, '_').trim()
 
       // Map AI classification to pending_kind
-      let newKind: string | null = AI_KINDS_MAP[tipoAi] ?? null
+      let newKind: string | null = AI_KINDS_MAP[tipoAi] ?? 'comunicazione'
 
-      // If AI says "altro", check subject/file name heuristic as fallback
+      // If AI says "altro"/generic, check subject/file name heuristic as fallback
       if (newKind === 'comunicazione') {
         const subj = doc.oggetto_mail
         const fname = doc.file_name
@@ -118,17 +120,18 @@ export async function POST(req: NextRequest) {
       }
 
       const currentKind = (doc.metadata?.pending_kind as string) ?? null
-      if (!newKind || newKind === currentKind) {
-        results.push({ id: doc.id, tipo_ai: tipoAi, old_kind: currentKind, new_kind: currentKind })
-        continue
-      }
 
+      // Aggiorna SEMPRE metadata per segnare che è stato processato da AI,
+      // anche se pending_kind non cambia
       const prevMeta = { ...(doc.metadata ?? {}) }
-      prevMeta.pending_kind = newKind
       prevMeta.ai_classified_at = new Date().toISOString()
-      prevMeta.ai_classified_from = currentKind
       prevMeta.ai_tipo_suggerito = tipoAi
       prevMeta.ai_confidenza = suggestion.confidenza
+
+      if (newKind && newKind !== currentKind) {
+        prevMeta.pending_kind = newKind
+        prevMeta.ai_classified_from = currentKind
+      }
 
       const { error: uErr } = await service
         .from('documenti_da_processare')
@@ -141,8 +144,8 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      results.push({ id: doc.id, tipo_ai: tipoAi, old_kind: currentKind, new_kind: newKind })
-      updated++
+      if (newKind && newKind !== currentKind) updated++
+      results.push({ id: doc.id, tipo_ai: tipoAi, old_kind: currentKind, new_kind: newKind && newKind !== currentKind ? newKind : currentKind })
     } catch (e) {
       results.push({ id: doc.id, tipo_ai: 'errore', old_kind: null, new_kind: null, error: e instanceof Error ? e.message : String(e) })
       errors++
