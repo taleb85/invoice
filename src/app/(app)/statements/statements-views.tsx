@@ -3458,19 +3458,20 @@ function ConvertStmtToInvoiceButton({
   }
 
   return (
-    <button
-      type="button"
-      disabled={busy}
+    <span
+      role="button"
+      tabIndex={0}
       onClick={(e) => { e.stopPropagation(); void handleConvert() }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); void handleConvert() } }}
       title={emailSubject ?? statementId}
-      className="shrink-0 touch-manipulation rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2 py-1 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 disabled:opacity-50"
+      className={`inline-flex shrink-0 touch-manipulation items-center justify-center rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2 py-1 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 ${busy ? 'opacity-50 pointer-events-none' : 'cursor-pointer'}`}
     >
       {busy ? (
-        <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
+        <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
       ) : (
         'Sposta in Fatture'
       )}
-    </button>
+    </span>
   )
 }
 

@@ -254,9 +254,28 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   if (tipo === 'nota_credito') return 'nota_credito'
   if (tipo === 'listino') return 'listino'
 
-  // Se l'OCR ha classificato (anche come "altro" / "statement" / "estratto_conto"),
-  // non usare l'euristica email — l'OCR è più accurato
-  if (tipo !== null) return 'comunicazione'
+  // Se l'OCR ha classificato come "altro" / "statement" / "estratto_conto" / "ordine",
+  // controlliamo comunque l'euristica email: l'oggetto/nome file è più affidabile
+  // dell'OCR per capire se è una fattura, bolla, listino etc.
+  if (tipo !== null) {
+    // L'OCR dice 'altro' ma l'oggetto/nome file è esplicito
+    const subj = opts.oggetto_mail
+    const fname = opts.file_name
+    if (subjectLooksLikeInvoice(subj) || subjectLooksLikeInvoice(fname)) {
+      const ctxFat = scanContextSuggestsFattura(subj, fname)
+      const ctxBol = scanContextSuggestsBolla(subj, fname)
+      if (ctxFat && !ctxBol) return 'fattura'
+      if (ctxBol && !ctxFat) return 'bolla'
+      if (ctxFat && ctxBol) return 'comunicazione'
+      // Se subjectLooksLikeInvoice ha matchato ma scanContextSuggests non ha rilevato
+      // è comunque più probabile una fattura che una comunicazione
+      return 'fattura'
+    }
+    if (scanContextSuggestsListino(subj, fname)) return 'listino'
+    if (scanContextSuggestsBolla(subj, fname)) return 'bolla'
+    if (scanContextSuggestsFattura(subj, fname)) return 'fattura'
+    return 'comunicazione'
+  }
 
   // Solo se OCR non ha classificato affatto, usa euristica da oggetto/nome file
   const ocrForScan = {
