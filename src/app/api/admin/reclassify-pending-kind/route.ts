@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const { profile } = auth
   const service = createServiceClient()
 
-  let body: { sede_id?: string; limit?: number }
+  let body: { sede_id?: string; limit?: number; pending_kind?: string }
   try {
     body = await req.json()
   } catch {
@@ -34,6 +34,10 @@ export async function POST(req: NextRequest) {
 
   if (body.sede_id) {
     query = query.eq('sede_id', body.sede_id)
+  }
+
+  if (body.pending_kind) {
+    query = query.filter('metadata->>pending_kind', 'eq', body.pending_kind)
   }
 
   const { data: docs, error } = await query

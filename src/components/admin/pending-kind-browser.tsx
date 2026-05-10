@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
@@ -45,6 +45,12 @@ export default function PendingKindBrowser() {
   const [error, setError] = useState<string | null>(null)
   const [selectedYear, setSelectedYear] = useState(NOW.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(NOW.getMonth() + 1)
+  const [reclassKind, setReclassKind] = useState<string | null>(null)
+  const [reclassResult, setReclassResult] = useState<{
+    kind: string
+    checked: number
+    updated: number
+  } | null>(null)
 
   const canView = effectiveIsMasterAdminPlane(me, activeOperator) || effectiveIsAdminSedeUi(me, activeOperator)
   if (!canView) return null
@@ -54,7 +60,7 @@ export default function PendingKindBrowser() {
     return Array.from({ length: 6 }, (_, i) => y - i)
   }, [])
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     setLoading(true)
     setError(null)
     const params = new URLSearchParams({ year: String(selectedYear), month: String(selectedMonth) })
@@ -72,6 +78,29 @@ export default function PendingKindBrowser() {
         setLoading(false)
       })
   }, [sedeId, selectedYear, selectedMonth])
+
+  useEffect(() => { loadStats() }, [loadStats])
+
+  const handleReclassify = async (kind: string) => {
+    const pendingKind = kind.replace('coda_', '')
+    setReclassKind(pendingKind)
+    setReclassResult(null)
+    try {
+      const res = await fetch('/api/admin/reclassify-pending-kind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ pending_kind: pendingKind, sede_id: sedeId ?? undefined, limit: 200 }),
+      })
+      const json = await res.json()
+      setReclassResult({ kind: pendingKind, checked: json.checked ?? 0, updated: json.updated ?? 0 })
+      loadStats()
+    } catch {
+      setReclassResult({ kind: pendingKind, checked: 0, updated: 0 })
+    } finally {
+      setReclassKind(null)
+    }
+  }
 
   // Gruppi principali
   const finalized = stats.filter((s) => !s.kind.startsWith('coda_'))
@@ -112,6 +141,16 @@ export default function PendingKindBrowser() {
         </div>
       </div>
 
+      {reclassResult && (
+        <div className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-xs text-cyan-200">
+          <span className="font-medium">{reclassResult.kind}</span>:{' '}
+          {reclassResult.checked} controllati,{' '}
+          <span className={reclassResult.updated > 0 ? 'font-semibold text-amber-300' : ''}>
+            {reclassResult.updated} riclassificati
+          </span>
+        </div>
+      )}
+
       {loading && <p className="text-xs text-app-fg-muted py-6 text-center">Caricamento…</p>}
       {error && <p className="text-xs text-red-400 py-2">{error}</p>}
 
@@ -138,28 +177,38 @@ export default function PendingKindBrowser() {
             </div>
           </div>
 
-          {/* Documenti in coda */}
+          {/* Documenti in coda — cliccabili per riclassificare */}
           <div>
             <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">
               In coda da processare ({inQueue.reduce((s, st) => s + st.count, 0)})
+              <span className="ml-2 font-normal text-app-fg-muted">— clicca per riclassificare</span>
             </h4>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-              {inQueue.filter((st) => st.count > 0 || st.kind === 'coda_altro').map((st) => (
-                <div
-                  key={st.kind}
-                  className={`rounded-lg border px-3 py-2.5 text-center transition-colors hover:brightness-110 ${
-                    st.count > 0
-                      ? 'bg-amber-500/12 text-amber-200 border-amber-500/25'
-                      : 'bg-slate-500/8 text-slate-400 border-slate-500/15'
-                  }`}
-                >
-                  <p className="text-lg">{st.icon}</p>
-                  <p className={`mt-1 text-lg font-bold tabular-nums ${st.count > 0 ? '' : 'opacity-50'}`}>
-                    {st.count.toLocaleString('it-IT')}
-                  </p>
-                  <p className="text-[10px] font-medium opacity-80">{st.label.replace('In coda → ', '')}</p>
-                </div>
-              ))}
+              {inQueue.filter((st) => st.count > 0 || st.kind === 'coda_altro').map((st) => {
+                const pendingKind = st.kind.replace('coda_', '')
+                const busy = reclassKind === pendingKind
+                const isAltro = st.kind === 'coda_altro'
+                const noDocs = st.count === 0
+                return (
+                  <button
+                    key={st.kind}
+                    type="button"
+                    disabled={busy || isAltro || noDocs}
+                    onClick={() => void handleReclassify(st.kind)}
+                    className={`rounded-lg border px-3 py-2.5 text-center transition-colors ${
+                      noDocs || isAltro
+                        ? 'bg-slate-500/8 text-slate-400 border-slate-500/15 cursor-default'
+                        : 'bg-amber-500/12 text-amber-200 border-amber-500/25 hover:bg-amber-500/20 hover:border-amber-400/40 hover:shadow-[0_0_12px_-4px_rgba(251,191,36,0.15)] cursor-pointer'
+                    } disabled:opacity-50 disabled:cursor-wait`}
+                  >
+                    <p className="text-lg">{busy ? '⏳' : st.icon}</p>
+                    <p className={`mt-1 text-lg font-bold tabular-nums ${st.count > 0 ? '' : 'opacity-50'}`}>
+                      {busy ? '…' : st.count.toLocaleString('it-IT')}
+                    </p>
+                    <p className="text-[10px] font-medium opacity-80">{st.label.replace('In coda → ', '')}</p>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
