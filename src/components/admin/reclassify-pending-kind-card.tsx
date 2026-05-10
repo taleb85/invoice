@@ -71,7 +71,7 @@ export default function ReclassifyPendingKindCard() {
             </span>
             {' · '}Invariati: {result.skipped}
           </p>
-          {result.results.length > 0 && (
+          {result.results && result.results.length > 0 && (
             <details className="mt-2">
               <summary className="cursor-pointer text-app-fg-muted hover:text-app-fg">
                 Dettaglio ({result.results.length} modifiche)
