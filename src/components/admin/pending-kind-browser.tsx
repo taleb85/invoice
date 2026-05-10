@@ -180,8 +180,8 @@ export default function PendingKindBrowser() {
           {/* Documenti in coda — cliccabili per riclassificare */}
           <div>
             <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-app-fg-muted">
-              In coda da processare ({inQueue.reduce((s, st) => s + st.count, 0)})
-              <span className="ml-2 font-normal text-app-fg-muted">— clicca per riclassificare</span>
+              In attesa di classificazione ({inQueue.reduce((s, st) => s + st.count, 0)})
+              <span className="ml-2 font-normal text-app-fg-muted">— clicca per riclassificare tutti</span>
             </h4>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
               {inQueue.filter((st) => st.count > 0 || st.kind === 'coda_altro').map((st) => {

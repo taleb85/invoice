@@ -58,16 +58,14 @@ export async function GET(req: NextRequest) {
 
   for (const kind of CodaKinds) {
     let q = service.from('documenti_da_processare').select('*', { count: 'exact', head: true })
-      .in('stato', ['in_attesa', 'da_processare', 'da_associare', 'mittente_sconosciuto'])
       .filter('metadata->>pending_kind', 'eq', kind) as any
     if (sedeId) q = q.eq('sede_id', sedeId)
     const { count } = await q
     codaKindCounts[kind] = count ?? 0
   }
 
-  // Coda totale (qualsiasi pending_kind) negli stessi stati
-  let codaAllQ = service.from('documenti_da_processare').select('*', { count: 'exact', head: true })
-    .in('stato', ['in_attesa', 'da_processare', 'da_associare', 'mittente_sconosciuto']) as any
+  // Coda totale (qualsiasi pending_kind) in tutta la tabella
+  let codaAllQ = service.from('documenti_da_processare').select('*', { count: 'exact', head: true }) as any
   if (sedeId) codaAllQ = codaAllQ.eq('sede_id', sedeId)
   const { count: codaAll } = await codaAllQ
 

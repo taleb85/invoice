@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
   let query = service
     .from('documenti_da_processare')
     .select('id, sede_id, fornitore_id, oggetto_mail, file_name, metadata, stato')
-    .in('stato', ['in_attesa', 'da_processare', 'da_associare', 'mittente_sconosciuto'])
     .not('metadata', 'is', null)
     .order('created_at', { ascending: false })
     .limit(limit)
