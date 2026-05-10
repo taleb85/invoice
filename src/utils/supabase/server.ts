@@ -20,7 +20,9 @@ export const getRequestAuth = cache(
       error,
     } = await supabase.auth.getUser()
     if (error && isInvalidRefreshTokenError(error)) {
-      await supabase.auth.signOut()
+      // Non chiamare signOut() qui — cancella i cookie di sessione permanentemente
+      // anche se l'errore è momentaneo (es. refresh token race cond. durante navigazione).
+      // Il client lato browser gestirà il logout se l'errore persiste.
       return { supabase, user: null }
     }
     return { supabase, user: user ?? null }
