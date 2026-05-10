@@ -64,9 +64,33 @@ export function snippetFieldsLookLikeStatementDoc(
   )
 }
 
+/** L'oggetto dice esplicitamente che si tratta di una fattura. */
+function subjectLooksLikeInvoice(s: string | null | undefined): boolean {
+  const subj = (s ?? '').toLowerCase().replace(/[_.\-]/g, ' ')
+  if (!subj.trim()) return false
+  return (
+    /\binvoice\b/.test(subj) ||
+    /\bfattura\b/.test(subj) ||
+    /\bfacture\b/.test(subj) ||
+    /\bfactura\b/.test(subj) ||
+    /\brechnung\b/.test(subj) ||
+    /\btax\s?invoice\b/.test(subj) ||
+    /\bsales\s?invoice\b/.test(subj) ||
+    /\bvat\s?invoice\b/.test(subj) ||
+    /\bcredit\s?note\b/.test(subj) ||
+    /nota\s+credito/.test(subj) ||
+    /\bddt\b/.test(subj) ||
+    /\bbolla\b/.test(subj) ||
+    /delivery\s?note/.test(subj)
+  )
+}
+
 /**
  * Estratto classico (oggetto) + ricevute/payment (oggetto/allegato) + stessi segnali nel corpo mail
  * o nel testo estratto dall’OCR (prime pagine / note).
+ *
+ * Se l'oggetto dice esplicitamente "invoice" / "fattura", la classificazione
+ * non viene forzata a statement, anche se il corpo contiene "payment receipt".
  */
 export function emailLooksLikeStatementInboxDoc(
   subject: string | null | undefined,
@@ -74,6 +98,8 @@ export function emailLooksLikeStatementInboxDoc(
   bodySnippet?: string | null | undefined,
   ocr?: { ragione_sociale?: string | null; note_corpo_mail?: string | null } | null,
 ): boolean {
+  // Se oggetto o nome file dice fattura/bolla, non è un estratto conto — l'OCR deciderà
+  if (subjectLooksLikeInvoice(subject) || subjectLooksLikeInvoice(firstAttachmentFileName)) return false
   if (emailSubjectLooksLikeStatement(subject)) return true
   if (scanContextLooksLikeStatementCategoryDoc(subject, firstAttachmentFileName)) return true
   if (snippetFieldsLookLikeStatementDoc(bodySnippet, ocr)) return true
