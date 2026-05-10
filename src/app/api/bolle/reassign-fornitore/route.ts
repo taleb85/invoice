@@ -8,22 +8,22 @@ export async function POST(req: NextRequest) {
   if (authErr) return NextResponse.json(authErr, { status: authErr.status })
   if (!sedeId) return NextResponse.json({ error: 'sede non selezionata' }, { status: 400 })
 
-  let body: { sede_id?: string; fattura_id?: string; nuovo_fornitore_id?: string }
+  let body: { sede_id?: string; bolla_id?: string; nuovo_fornitore_id?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'JSON non valido' }, { status: 400 })
   }
 
-  const fatturaId = body.fattura_id?.trim()
+  const bollaId = body.bolla_id?.trim()
   const nuovoFornitoreId = body.nuovo_fornitore_id?.trim()
 
-  if (!fatturaId || !nuovoFornitoreId) {
-    return NextResponse.json({ error: 'fattura_id e nuovo_fornitore_id richiesti' }, { status: 400 })
+  if (!bollaId || !nuovoFornitoreId) {
+    return NextResponse.json({ error: 'bolla_id e nuovo_fornitore_id richiesti' }, { status: 400 })
   }
 
-  const result = await reassignEntityFornitore('fatture', {
-    entityId: fatturaId,
+  const result = await reassignEntityFornitore('bolle', {
+    entityId: bollaId,
     nuovoFornitoreId,
     sedeId,
     userId: profile.id,

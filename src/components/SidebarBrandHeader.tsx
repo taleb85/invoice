@@ -1,9 +1,7 @@
 'use client'
 
-import AppBuildInfo from '@/components/AppBuildInfo'
-
 /**
- * Fascia brand in cima all’`aside` (AppShell): logo + versione, senza navigazione
+ * Fascia brand in cima all’`aside` (AppShell): logo, senza navigazione
  * (rimane sulla route corrente; niente redirect alla dashboard).
  */
 export function SidebarRailBrand() {
@@ -30,12 +28,9 @@ export function SidebarRailBrand() {
           </svg>
         </div>
 
-        <div className="flex min-w-0 flex-1 items-baseline justify-between gap-2 leading-none">
-          <div className="flex min-w-0 items-baseline gap-1">
-            <span className="font-outfit text-[18px] font-semibold tracking-tight text-[#38bdf8]">Smart</span>
-            <span className="font-outfit text-[18px] font-light tracking-tight text-white">Pair</span>
-          </div>
-          <AppBuildInfo variant="rail" className="m-0 shrink-0" />
+        <div className="flex min-w-0 items-baseline gap-1 leading-none">
+          <span className="font-outfit text-[18px] font-semibold tracking-tight text-[#38bdf8]">Smart</span>
+          <span className="font-outfit text-[18px] font-light tracking-tight text-white">Pair</span>
         </div>
       </div>
     </div>

@@ -902,6 +902,7 @@ body {
   }
 }
 .dashboard-operator-desktop-column {
+  display: none;
   min-height: 0;
   width: 100%;
   min-width: 0;
@@ -910,13 +911,13 @@ body {
 }
 @media (min-width: 768px) {
   .dashboard-operator-desktop-column {
+    display: flex;
     gap: 1rem;
   }
 }
 
 /** Tablet/desktop Aurora: KPI, SmartPair, Scanner in colonna. */
 .dashboard-operator-aurora-grid {
-  display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
@@ -1465,9 +1466,9 @@ body:has([data-deep-aurora-integration]) .app-duplicate-manager-footer {
 }
 
 body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay {
-  background: rgb(2 6 23 / 0.45) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: rgb(2 6 23 / 0.55) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 }
 
 /** Dettaglio bolla / consegna fornitore: scrim senza blur (gradiente body resta percepibile). */
@@ -1574,8 +1575,13 @@ body:has([data-deep-aurora-integration])
  */
 body:has([data-deep-aurora-integration]) .app-aurora-doc-modal-shell {
   border: 1px solid var(--app-surface-border) !important;
-  background: var(--app-surface-fill) !important;
-  background-image: none !important;
+  background: rgb(15 23 42 / 0.96) !important;
+  background-image: linear-gradient(
+    to bottom right,
+    rgb(30 41 59 / 0.98),
+    rgb(15 23 42 / 0.98),
+    rgb(30 27 75 / 0.94)
+  ) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   box-shadow: 0 28px 64px -14px rgb(0 0 0 / 0.42) !important;

@@ -1804,6 +1804,41 @@ function BolleTab({
   /** 1…3: passi mostrati durante Rianalizza (OCR) — allineati al lavoro lato server */
   const [ocrProgressStep, setOcrProgressStep] = useState(0)
   const ocrStepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [reassignBollaId, setReassignBollaId] = useState<string | null>(null)
+  const [fornitoriList, setFornitoriList] = useState<{ id: string; nome: string }[]>([])
+  const [reassignBusyId, setReassignBusyId] = useState<string | null>(null)
+  const [reassignPos, setReassignPos] = useState<{ top: number; left: number } | null>(null)
+
+  const openSupplierPicker = useCallback((e: React.MouseEvent, bollaId: string, sedeId: string | null) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setReassignPos({ top: rect.bottom + 4, left: Math.max(8, rect.left) })
+    setReassignBollaId(bollaId)
+    setFornitoriList([])
+    const supabase = createClient()
+    supabase
+      .from('fornitori')
+      .select('id, nome')
+      .eq('sede_id', sedeId ?? '')
+      .order('nome', { ascending: true })
+      .then(({ data }: { data: { id: string; nome: string }[] | null }) => setFornitoriList((data ?? []) as { id: string; nome: string }[]))
+      .catch(() => {})
+  }, [])
+
+  const handleReassignSupplier = useCallback(async (bollaId: string, nuovoFornitoreId: string, sedeId: string | null) => {
+    setReassignBusyId(bollaId)
+    try {
+      await fetch('/api/bolle/reassign-fornitore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ bolla_id: bollaId, nuovo_fornitore_id: nuovoFornitoreId, sede_id: sedeId }),
+      })
+    } catch { /* ignore */ }
+    setReassignBollaId(null)
+    setReassignBusyId(null)
+    setReassignPos(null)
+    window.location.reload()
+  }, [])
 
   const canRianalizzaOcr = Boolean(me?.is_admin || me?.is_admin_sede)
   const supplierReturnPath = useMemo(
@@ -2060,6 +2095,7 @@ function BolleTab({
   }
 
   return (
+    <>
     <div className={`supplier-detail-tab-shell flex flex-col overflow-hidden`}>
       <div className={`app-card-bar-accent ${SUPPLIER_DETAIL_TAB_HIGHLIGHT.bolle.bar}`} aria-hidden />
       {ocrBusyId && ocrProgressStep > 0 ? (
@@ -2191,6 +2227,21 @@ function BolleTab({
                   {convertBusyId === b.id ? '…' : t.bolle.convertiInFattura}
                 </button>
               ) : null}
+              {!readOnly && canRianalizzaOcr && (
+                <div className="relative inline-flex">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openSupplierPicker(e, b.id, b.sede_id)
+                    }}
+                    disabled={reassignBusyId === b.id}
+                    className="shrink-0 touch-manipulation rounded-lg border border-indigo-500/35 bg-indigo-500/8 px-2 py-1 text-[11px] font-semibold text-indigo-200/95 transition-colors hover:bg-indigo-500/15 disabled:opacity-50"
+                  >
+                    {reassignBusyId === b.id ? '…' : 'Cambia fornitore'}
+                  </button>
+                </div>
+              )}
               {b.file_url && (
                 <OpenDocumentInAppButton
                   bollaId={b.id}
@@ -2310,6 +2361,25 @@ function BolleTab({
                         <span className="hidden min-w-0 truncate xl:inline">{t.bolle.convertiInFattura}</span>
                       </button>
                     ) : null}
+                    {!readOnly && canRianalizzaOcr ? (
+                      <div className="relative inline-flex">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openSupplierPicker(e, b.id, b.sede_id)
+                          }}
+                          disabled={reassignBusyId === b.id}
+                          title="Cambia fornitore assegnato a questa bolla"
+                          className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-lg border border-indigo-500/35 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-200/95 transition-colors hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span className="hidden min-w-0 truncate xl:inline">Cambia fornitore</span>
+                        </button>
+                      </div>
+                    ) : null}
                     {b.file_url && (
                       <OpenDocumentInAppButton
                         bollaId={b.id}
@@ -2342,6 +2412,29 @@ function BolleTab({
       </div>
       </div>
     </div>
+    {reassignPos && reassignBollaId && fornitoriList.length > 0 && createPortal(
+      <div
+        className="fixed z-[100] max-h-48 w-52 overflow-y-auto rounded-lg border border-app-line-30 bg-slate-900 shadow-xl ring-1 ring-black/40"
+        style={{ top: reassignPos.top, left: reassignPos.left }}
+        onClick={() => { setReassignPos(null); setReassignBollaId(null) }}
+      >
+        {fornitoriList.map((f) => (
+          <button
+            key={f.id}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              void handleReassignSupplier(reassignBollaId, f.id, null)
+            }}
+            className="block w-full px-3 py-2 text-left text-xs font-medium text-app-fg transition-colors hover:bg-indigo-500/15"
+          >
+            {f.nome}
+          </button>
+        ))}
+      </div>,
+      document.body
+    )}
+  </>
   )
 }
 

@@ -266,14 +266,14 @@ export default async function DashboardPage(props: {
       ) : null}
 
       {!operatorScoped ? (
-        <div className="dashboard-operator-desktop-column hidden min-h-0 w-full min-w-0 flex-col md:flex">
+        <div className="dashboard-operator-desktop-column min-h-0 w-full min-w-0">
           <DashboardOperatorKpiGrid glassShell kpis={kpis} t={t} locale={locale} currency={currency} />
         </div>
       ) : null}
 
       {operatorScoped ? (
         <>
-          <div className="dashboard-operator-desktop-column dashboard-operator-aurora-grid hidden min-h-0 w-full min-w-0 md:flex">
+          <div className="dashboard-operator-desktop-column dashboard-operator-aurora-grid min-h-0 w-full min-w-0">
             <div className="dashboard-operator-aurora-area-kpi min-w-0">
               <Suspense fallback={<DashboardOperatorKpiSkeleton glassShell />}>
                 <DashboardOperatorKpiGrid

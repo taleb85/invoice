@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
-import { isSedePrivilegedRole, isMasterAdminRole } from '@/lib/roles'
+import { createServiceClient } from '@/utils/supabase/server'
+import { requireAdmin } from '@/lib/api-auth'
+import { isMasterAdminRole } from '@/lib/roles'
 import { autoProcessAfterFornitoreEmailAdded } from '@/lib/documenti-revisione-auto'
 import { logActivity } from '@/lib/activity-logger'
 
@@ -9,9 +10,10 @@ import { logActivity } from '@/lib/activity-logger'
 // fornitore_emails so the IMAP scan can recognise it automatically.
 
 export async function POST(req: NextRequest) {
-  const { user } = await getRequestAuth()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireAdmin()
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
+  const { profile } = auth
   const service = createServiceClient()
 
   const body = await req.json() as {
@@ -33,16 +35,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'La Sede è obbligatoria' }, { status: 400 })
   }
 
-  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
-  const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isSedePrivilegedRole(profile?.role)
-  if (!master && !sedeAdmin) {
-    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
-  }
-  if (sedeAdmin) {
-    if (!profile?.sede_id || profile.sede_id !== sede_id) {
-      return NextResponse.json({ error: 'Puoi creare fornitori solo per la tua sede' }, { status: 403 })
-    }
+  if (!isMasterAdminRole(profile.role) && profile.sede_id && profile.sede_id !== sede_id) {
+    return NextResponse.json({ error: 'Puoi creare fornitori solo per la tua sede' }, { status: 403 })
   }
 
   // 1. Insert the fornitore record
@@ -57,7 +51,7 @@ export async function POST(req: NextRequest) {
   }
 
   await logActivity(service, {
-    userId: user.id,
+    userId: profile.id,
     sedeId: sede_id,
     action: 'fornitore.created',
     entityType: 'fornitore',
@@ -88,25 +82,19 @@ export async function POST(req: NextRequest) {
 // if configured, otherwise we clean them up manually).
 
 export async function DELETE(req: NextRequest) {
-  const { user } = await getRequestAuth()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireAdmin()
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
 
+  const { profile } = auth
   const service = createServiceClient()
 
   const { searchParams } = new URL(req.url)
   const id = searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'ID mancante' }, { status: 400 })
 
-  const { data: profile } = await service.from('profiles').select('role, sede_id').eq('id', user.id).single()
-  const master = isMasterAdminRole(profile?.role)
-  const sedeAdmin = isSedePrivilegedRole(profile?.role)
-  if (!master && !sedeAdmin) {
-    return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
-  }
-
-  if (sedeAdmin) {
+  if (!isMasterAdminRole(profile.role)) {
     const { data: row } = await service.from('fornitori').select('sede_id').eq('id', id).maybeSingle()
-    if (!profile?.sede_id || row?.sede_id !== profile.sede_id) {
+    if (!profile.sede_id || row?.sede_id !== profile.sede_id) {
       return NextResponse.json({ error: 'Non autorizzato' }, { status: 403 })
     }
   }

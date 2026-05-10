@@ -1,33 +1,37 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type ActivityAction =
-  | 'bolla.created'
-  | 'bolla.deleted'
-  | 'fattura.created'
-  | 'fattura.deleted'
-  | 'fattura.associated'
-  | 'fattura.approved'
-  | 'fattura.rejected'
-  | 'fattura.reassigned'
-  | 'documento.processed'
-  | 'documento.discarded'
-  | 'fornitore.created'
-  | 'fornitore.updated'
-  | 'fornitore.deleted'
-  | 'duplicate.bulk_deleted'
-  | 'operatore.created'
-  | 'operatore.pin_changed'
-  | 'email.synced'
-  | 'email.scan.prefiltro'
-  | 'price_anomaly.resolved'
-  | 'gemini.ocr'
-  | 'potential_supplier.created'
-  | 'potential_supplier.stato.da_valutare'
-  | 'potential_supplier.stato.in_valutazione'
-  | 'potential_supplier.stato.approfondimento'
-  | 'potential_supplier.stato.approvato'
-  | 'potential_supplier.stato.rifiutato'
-  | 'potential_supplier.stato.archiviato'
+export const ACTIVITY_ACTIONS = {
+  BOLLA_CREATED: 'bolla.created',
+  BOLLA_DELETED: 'bolla.deleted',
+  BOLLA_REASSIGNED: 'bolla.reassigned',
+  FATTURA_CREATED: 'fattura.created',
+  FATTURA_DELETED: 'fattura.deleted',
+  FATTURA_ASSOCIATED: 'fattura.associated',
+  FATTURA_APPROVED: 'fattura.approved',
+  FATTURA_REJECTED: 'fattura.rejected',
+  FATTURA_REASSIGNED: 'fattura.reassigned',
+  DOCUMENTO_PROCESSED: 'documento.processed',
+  DOCUMENTO_DISCARDED: 'documento.discarded',
+  FORNITORE_CREATED: 'fornitore.created',
+  FORNITORE_UPDATED: 'fornitore.updated',
+  FORNITORE_DELETED: 'fornitore.deleted',
+  DUPLICATE_BULK_DELETED: 'duplicate.bulk_deleted',
+  OPERATORE_CREATED: 'operatore.created',
+  OPERATORE_PIN_CHANGED: 'operatore.pin_changed',
+  EMAIL_SYNCED: 'email.synced',
+  EMAIL_SCAN_PREFILTRO: 'email.scan.prefiltro',
+  PRICE_ANOMALY_RESOLVED: 'price_anomaly.resolved',
+  GEMINI_OCR: 'gemini.ocr',
+  POTENTIAL_SUPPLIER_CREATED: 'potential_supplier.created',
+  POTENTIAL_SUPPLIER_DA_VALUTARE: 'potential_supplier.stato.da_valutare',
+  POTENTIAL_SUPPLIER_IN_VALUTAZIONE: 'potential_supplier.stato.in_valutazione',
+  POTENTIAL_SUPPLIER_APPROFONDIMENTO: 'potential_supplier.stato.approfondimento',
+  POTENTIAL_SUPPLIER_APPROVATO: 'potential_supplier.stato.approvato',
+  POTENTIAL_SUPPLIER_RIFIUTATO: 'potential_supplier.stato.rifiutato',
+  POTENTIAL_SUPPLIER_ARCHIVIATO: 'potential_supplier.stato.archiviato',
+} as const
+
+export type ActivityAction = typeof ACTIVITY_ACTIONS[keyof typeof ACTIVITY_ACTIONS]
 
 /** ID stabile per icona SVG nel feed attività (JSON-safe dalla API). */
 export type ActivityGlyphId =
@@ -42,17 +46,22 @@ export type ActivityGlyphId =
   | 'sparkles'
   | 'adjustments-horizontal'
 
+const GLYPH_MAP: [string, ActivityGlyphId][] = [
+  ['bolla', 'package'],
+  ['fattura', 'document-text'],
+  ['documento', 'clipboard-list'],
+  ['fornitore', 'building-store'],
+  ['operatore', 'user'],
+  ['email', 'mail'],
+  ['price', 'currency'],
+]
+
 export function activityGlyphId(action: ActivityAction): ActivityGlyphId {
-  if (action.startsWith('bolla')) return 'package'
-  if (action.startsWith('fattura')) return 'document-text'
-  if (action.startsWith('documento')) return 'clipboard-list'
-  if (action.startsWith('fornitore')) return 'building-store'
-  if (action.startsWith('operatore')) return 'user'
-  if (action.startsWith('email')) return 'mail'
-  if (action.startsWith('price')) return 'currency'
-  if (action === 'duplicate.bulk_deleted') return 'trash'
-  if (action === 'gemini.ocr') return 'sparkles'
-  if (action.startsWith('potential_supplier')) return 'building-store'
+  for (const [prefix, glyph] of GLYPH_MAP) {
+    if (action.startsWith(prefix)) return glyph
+  }
+  if (action === ACTIVITY_ACTIONS.DUPLICATE_BULK_DELETED) return 'trash'
+  if (action === ACTIVITY_ACTIONS.GEMINI_OCR) return 'sparkles'
   return 'adjustments-horizontal'
 }
 
@@ -90,43 +99,45 @@ export async function logActivity(
   }
 }
 
+const LABEL_MAP: Record<ActivityAction, string> = {
+  [ACTIVITY_ACTIONS.BOLLA_CREATED]: 'Bolla registrata',
+  [ACTIVITY_ACTIONS.BOLLA_DELETED]: 'Bolla eliminata',
+  [ACTIVITY_ACTIONS.BOLLA_REASSIGNED]: 'Bolla riassegnata a fornitore',
+  [ACTIVITY_ACTIONS.FATTURA_CREATED]: 'Fattura registrata',
+  [ACTIVITY_ACTIONS.FATTURA_DELETED]: 'Fattura eliminata',
+  [ACTIVITY_ACTIONS.FATTURA_ASSOCIATED]: 'Fattura associata a bolle',
+  [ACTIVITY_ACTIONS.FATTURA_APPROVED]: 'Fattura approvata',
+  [ACTIVITY_ACTIONS.FATTURA_REJECTED]: 'Fattura rifiutata',
+  [ACTIVITY_ACTIONS.FATTURA_REASSIGNED]: 'Fattura riassegnata a fornitore',
+  [ACTIVITY_ACTIONS.DOCUMENTO_PROCESSED]: 'Documento elaborato',
+  [ACTIVITY_ACTIONS.DOCUMENTO_DISCARDED]: 'Documento scartato',
+  [ACTIVITY_ACTIONS.FORNITORE_CREATED]: 'Fornitore creato',
+  [ACTIVITY_ACTIONS.FORNITORE_UPDATED]: 'Fornitore aggiornato',
+  [ACTIVITY_ACTIONS.FORNITORE_DELETED]: 'Fornitore eliminato',
+  [ACTIVITY_ACTIONS.DUPLICATE_BULK_DELETED]: 'Duplicati eliminati',
+  [ACTIVITY_ACTIONS.OPERATORE_CREATED]: 'Operatore creato',
+  [ACTIVITY_ACTIONS.OPERATORE_PIN_CHANGED]: 'PIN operatore cambiato',
+  [ACTIVITY_ACTIONS.EMAIL_SYNCED]: 'Email sincronizzata',
+  [ACTIVITY_ACTIONS.EMAIL_SCAN_PREFILTRO]: 'Scansione email — pre-filtro',
+  [ACTIVITY_ACTIONS.PRICE_ANOMALY_RESOLVED]: 'Anomalia prezzo risolta',
+  [ACTIVITY_ACTIONS.GEMINI_OCR]: 'Documento elaborato con Gemini',
+  [ACTIVITY_ACTIONS.POTENTIAL_SUPPLIER_CREATED]: 'Fornitore potenziale registrato',
+  [ACTIVITY_ACTIONS.POTENTIAL_SUPPLIER_DA_VALUTARE]: 'Stato: da valutare',
+  [ACTIVITY_ACTIONS.POTENTIAL_SUPPLIER_IN_VALUTAZIONE]: 'Stato: in valutazione',
+  [ACTIVITY_ACTIONS.POTENTIAL_SUPPLIER_APPROFONDIMENTO]: 'Stato: approfondimento',
+  [ACTIVITY_ACTIONS.POTENTIAL_SUPPLIER_APPROVATO]: 'Fornitore potenziale approvato',
+  [ACTIVITY_ACTIONS.POTENTIAL_SUPPLIER_RIFIUTATO]: 'Fornitore potenziale rifiutato',
+  [ACTIVITY_ACTIONS.POTENTIAL_SUPPLIER_ARCHIVIATO]: 'Fornitore potenziale archiviato',
+}
+
 export function activityLabel(action: ActivityAction): string {
-  const labels: Record<ActivityAction, string> = {
-    'bolla.created': 'Bolla registrata',
-    'bolla.deleted': 'Bolla eliminata',
-    'fattura.created': 'Fattura registrata',
-    'fattura.deleted': 'Fattura eliminata',
-    'fattura.associated': 'Fattura associata a bolle',
-    'fattura.approved': 'Fattura approvata',
-    'fattura.reassigned': 'Fattura riassegnata a fornitore',
-    'fattura.rejected': 'Fattura rifiutata',
-    'documento.processed': 'Documento elaborato',
-    'documento.discarded': 'Documento scartato',
-    'fornitore.created': 'Fornitore creato',
-    'fornitore.updated': 'Fornitore aggiornato',
-    'fornitore.deleted': 'Fornitore eliminato',
-    'duplicate.bulk_deleted': 'Duplicati eliminati',
-    'operatore.created': 'Operatore creato',
-    'operatore.pin_changed': 'PIN operatore cambiato',
-    'email.synced': 'Email sincronizzata',
-    'email.scan.prefiltro': 'Scansione email — pre-filtro',
-    'price_anomaly.resolved': 'Anomalia prezzo risolta',
-    'gemini.ocr': 'Documento elaborato con Gemini',
-    'potential_supplier.created': 'Fornitore potenziale registrato',
-    'potential_supplier.stato.da_valutare': 'Stato: da valutare',
-    'potential_supplier.stato.in_valutazione': 'Stato: in valutazione',
-    'potential_supplier.stato.approfondimento': 'Stato: approfondimento',
-    'potential_supplier.stato.approvato': 'Fornitore potenziale approvato',
-    'potential_supplier.stato.rifiutato': 'Fornitore potenziale rifiutato',
-    'potential_supplier.stato.archiviato': 'Fornitore potenziale archiviato',
-  }
-  return labels[action] ?? action
+  return LABEL_MAP[action] ?? action
 }
 
 export function activityColor(action: ActivityAction): 'green' | 'red' | 'blue' | 'amber' | 'purple' | 'gray' {
-  if (action.endsWith('.created') || action.endsWith('.associated') || action === 'email.synced') return 'green'
-  if (action.endsWith('.deleted') || action.endsWith('.rejected') || action === 'duplicate.bulk_deleted') return 'red'
-  if (action.endsWith('.approved') || action === 'price_anomaly.resolved') return 'blue'
+  if (action.endsWith('.created') || action.endsWith('.associated') || action === ACTIVITY_ACTIONS.EMAIL_SYNCED) return 'green'
+  if (action.endsWith('.deleted') || action.endsWith('.rejected') || action === ACTIVITY_ACTIONS.DUPLICATE_BULK_DELETED) return 'red'
+  if (action.endsWith('.approved') || action === ACTIVITY_ACTIONS.PRICE_ANOMALY_RESOLVED) return 'blue'
   if (action.endsWith('.updated') || action.endsWith('.pin_changed')) return 'amber'
   if (action.startsWith('operatore') || action.startsWith('fornitore')) return 'purple'
   if (action.startsWith('email.scan')) return 'blue'

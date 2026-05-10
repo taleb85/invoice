@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Trash2 } from 'lucide-react'
-import { createClient } from '@/utils/supabase/client'
 import { useT } from '@/lib/use-t'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { BTN_SIZE_SM } from '@/lib/button-size-tokens'
@@ -36,18 +35,23 @@ export default function DeleteButton({
   const t = useT()
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleDelete = async () => {
     const msg = confirmMessage ?? t.appStrings.deleteGenericConfirm
     if (!confirm(msg)) return
 
     setLoading(true)
-    const { error } = await supabase.from(table).delete().eq('id', id)
+    const res = await fetch('/api/delete-record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ table, id }),
+    })
     setLoading(false)
 
-    if (error) {
-      alert(`${t.appStrings.deleteFailed} ${error.message}`)
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({ error: t.appStrings.deleteFailed }))
+      alert(j.error ?? t.appStrings.deleteFailed)
       return
     }
 

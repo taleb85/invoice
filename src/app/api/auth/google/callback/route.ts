@@ -16,14 +16,14 @@ export async function GET(req: NextRequest) {
   
   // Handle user denial
   if (error) {
-    const redirectUrl = new URL('/settings', req.nextUrl.origin)
+    const redirectUrl = new URL('/strumenti/impostazioni', req.nextUrl.origin)
     redirectUrl.searchParams.set('gmail_error', error)
     return NextResponse.redirect(redirectUrl, { status: 302 })
   }
 
   // Validate code (redirect HTTP 302 — evita 200 su richieste senza code, vedi QA Vercel)
   if (!code) {
-    const redirectUrl = new URL('/settings', req.nextUrl.origin)
+    const redirectUrl = new URL('/strumenti/impostazioni', req.nextUrl.origin)
     redirectUrl.searchParams.set('gmail_error', 'no_code')
     return NextResponse.redirect(redirectUrl, { status: 302 })
   }
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
     console.log(`[GMAIL-CALLBACK] Successfully connected Gmail for user ${userId}: ${emailAddress}`)
     
     // Redirect to settings page with success message
-    const redirectUrl = new URL('/settings', req.nextUrl.origin)
+    const redirectUrl = new URL('/strumenti/impostazioni', req.nextUrl.origin)
     redirectUrl.searchParams.set('gmail_success', '1')
     if (emailAddress) {
       redirectUrl.searchParams.set('gmail_email', emailAddress)
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     const errMsg = err instanceof Error ? err.message : 'Errore sconosciuto'
     console.error('[GMAIL-CALLBACK] Error:', err)
     
-    const redirectUrl = new URL('/settings', req.nextUrl.origin)
+    const redirectUrl = new URL('/strumenti/impostazioni', req.nextUrl.origin)
     redirectUrl.searchParams.set('gmail_error', 'token_exchange_failed')
     redirectUrl.searchParams.set('gmail_error_detail', errMsg)
     

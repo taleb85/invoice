@@ -24,7 +24,6 @@ import type { BollaStato } from '@/types'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useMe } from '@/lib/me-context'
 import ListinoDocReferenceTable from '@/components/ListinoDocReferenceTable'
-import { createClient } from '@/utils/supabase/client'
 import { fornitoreNomeMaiuscolo } from '@/lib/fornitore-display'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 
@@ -439,11 +438,16 @@ function FatturaLayerBody({
     if (!fattura) return
     if (!confirm(t.fatture.deleteConfirm)) return
     setDeleting(true)
-    const supabase = createClient()
-    const { error } = await supabase.from('fatture').delete().eq('id', fattura.id)
+    const res = await fetch('/api/delete-record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ table: 'fatture', id: fattura.id }),
+    })
     setDeleting(false)
-    if (error) {
-      alert(`${t.appStrings.deleteFailed} ${error.message}`)
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({ error: t.appStrings.deleteFailed }))
+      alert(j.error ?? t.appStrings.deleteFailed)
       return
     }
     onAfterDelete?.()

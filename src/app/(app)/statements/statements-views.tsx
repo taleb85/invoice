@@ -229,7 +229,9 @@ type StmtExtractedPdfDates = {
   last_payment_amount?: number | null
 }
 
-function stmtOfficialDateIso(s: { extracted_pdf_dates?: StmtExtractedPdfDates | null }): string | null {
+function stmtOfficialDateIso(s: { document_date?: string | null; extracted_pdf_dates?: StmtExtractedPdfDates | null }): string | null {
+  const docDate = s.document_date?.trim()
+  if (docDate) return docDate
   const pdf = s.extracted_pdf_dates
   const issued = pdf?.issued_date?.trim()
   if (issued) return issued
@@ -1169,18 +1171,18 @@ export function PendingMatchesTab({
     // with sede_id = NULL (global IMAP / unknown sender) are visible to all users.
     const params = new URLSearchParams()
     if (filter === 'in_attesa') {
-      params.set('stati', 'da_revisionare')
+      params.set('stati', 'in_attesa,da_processare,da_associare')
     } else if (filter === 'da_associare') {
       params.set('stati', 'da_associare')
     } else {
       params.set('stati', DOCUMENTI_PENDING_STATI_API_DEFAULT)
     }
-    if (sedeId) params.set('sede_id', sedeId)
+    if (sedeId && !fornitoreId) params.set('sede_id', sedeId)
     if (fornitoreId) params.set('fornitore_id', fornitoreId)
-    if (fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
+    if (!fornitoreId && ledgerDateFrom && ledgerDateToExclusive) {
       params.set('from', ledgerDateFrom)
       params.set('to', ledgerDateToExclusive)
-    } else if (year && month) {
+    } else if (!fornitoreId && year && month) {
       params.set('from', `${year}-${String(month).padStart(2, '0')}-01`)
       params.set('to', new Date(year, month, 1).toISOString().split('T')[0])
     }
@@ -3417,6 +3419,61 @@ function MigrationCard() {
 
 export type SupplierDesktopVerificaMode = 'full' | 'classicToolbar' | 'statementsPanel'
 
+function ConvertStmtToInvoiceButton({
+  statementId,
+  emailSubject,
+}: {
+  statementId: string
+  emailSubject?: string | null
+}) {
+  const { showToast } = useToast()
+  const { me } = useMe()
+  const [busy, setBusy] = useState(false)
+
+  const canConvert = Boolean(me?.is_admin || me?.is_admin_sede)
+  if (!canConvert) return null
+
+  const handleConvert = async () => {
+    if (!confirm('Spostare questo documento in Fatture?')) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/statements/convert-to-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ statement_id: statementId }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({ error: 'Errore' }))
+        showToast(j.error ?? 'Errore', 'error')
+        return
+      }
+      showToast('Documento spostato in Fatture', 'success')
+      window.dispatchEvent(new Event(STATEMENTS_LAYOUT_REFRESH_EVENT))
+    } catch {
+      showToast('Errore di connessione', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={(e) => { e.stopPropagation(); void handleConvert() }}
+      title={emailSubject ?? statementId}
+      className="shrink-0 touch-manipulation rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2 py-1 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 disabled:opacity-50"
+    >
+      {busy ? (
+        <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
+      ) : (
+        'Sposta in Fatture'
+      )}
+    </button>
+  )
+}
+
 export function VerificationStatusTab({
   sedeId,
   fornitoreId,
@@ -3489,6 +3546,7 @@ export function VerificationStatusTab({
     id: string
     email_subject: string | null
     received_at: string
+    document_date: string | null
     extracted_pdf_dates?: StmtExtractedPdfDates | null
     file_url: string | null
     status: 'processing' | 'done' | 'error'
@@ -3633,21 +3691,23 @@ export function VerificationStatusTab({
     if (sedeId)      params.set('sede_id',      sedeId)
     if (fornitoreId) params.set('fornitore_id', fornitoreId)
     const qs  = params.toString() ? `?${params.toString()}` : ''
-    const res = await fetch(`/api/statements${qs}`)
-    if (res.ok) {
-      const json = await res.json() as { statements: StmtRecord[]; needsMigration?: boolean }
-      const list = json.statements ?? []
-      setStmts(list)
-      setNeedsMigration(json.needsMigration ?? false)
+    try {
+      const res = await fetch(`/api/statements${qs}`)
+      if (res.ok) {
+        const json = await res.json() as { statements: StmtRecord[]; needsMigration?: boolean }
+        const list = json.statements ?? []
+        setStmts(list)
+        setNeedsMigration(json.needsMigration ?? false)
 
-      // Auto-open the most recent done statement (with or without anomalies)
-      if (autoOpenLatest && list.length > 0) {
-        const latest = list.find(s => s.status === 'done') ?? list[0]
-        if (latest) {
-          setTimeout(() => loadStatementRows(latest), 50)
+        // Auto-open the most recent done statement (with or without anomalies)
+        if (autoOpenLatest && list.length > 0) {
+          const latest = list.find(s => s.status === 'done') ?? list[0]
+          if (latest) {
+            setTimeout(() => loadStatementRows(latest), 50)
+          }
         }
       }
-    }
+    } catch { /* non-critical — stale data is fine */ }
     setStmtsLoading(false)
   // loadStatementRows is stable (defined below) — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -4001,6 +4061,7 @@ export function VerificationStatusTab({
                   ) : s.status === 'error' ? (
                     <span className="text-xs text-red-500 font-medium">{t.statements.stmtListParseError}</span>
                   ) : (
+                    <>
                     <div className="text-right shrink-0">
                       <p className="text-xs font-semibold text-app-fg-muted">
                         {t.statements.stmtRowsCount.replace(/\{n\}/g, String(s.total_rows))}
@@ -4016,6 +4077,11 @@ export function VerificationStatusTab({
                         </span>
                       )}
                     </div>
+                    <ConvertStmtToInvoiceButton
+                      statementId={s.id}
+                      emailSubject={s.email_subject}
+                    />
+                    </>
                   )}
                   <svg
                     className="w-4 h-4 shrink-0 opacity-80 text-app-fg-muted"
