@@ -1,6 +1,6 @@
 {
   "name": "invoice",
-  "version": "0.1.163",
+  "version": "0.1.164",
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev --turbopack",
@@ -71,7 +71,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vercel": "^53.3.1",
+    "vercel": "53.3.1",
     "vitest": "^4.1.5"
   }
 }
