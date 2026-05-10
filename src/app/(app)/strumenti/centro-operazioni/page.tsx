@@ -19,6 +19,7 @@ import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import { useReprocessDaAssociare } from '@/lib/use-reprocess-da-associare'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
+import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
 
 function OpsSectionTitle({ id, children }: { id?: string; children: ReactNode }) {
   return (
@@ -499,6 +500,7 @@ export default function CentroOperazioniPage() {
 
                 <div className="flex min-h-0 min-w-0 flex-col gap-4">
                   <FixOcrDatesCard anchorId="ops-fix-ocr-dates" />
+                  <ReclassifyPendingKindCard />
 
                   <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">
                     <p className="text-sm text-app-fg-muted">{s.ocrAbbinamentiCardDesc}</p>
