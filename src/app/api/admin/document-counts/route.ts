@@ -43,7 +43,6 @@ export async function GET(req: NextRequest) {
     bolleRes,
     statementsRes,
     ordiniRes,
-    codaRes,
     potenzialiRes,
   ] = await Promise.all([
     dateFilter(scope(service.from('fatture').select('*', { count: 'exact', head: true }).eq('is_credit_note', false), 'sede_id'), 'data'),
@@ -51,7 +50,6 @@ export async function GET(req: NextRequest) {
     dateFilter(scope(service.from('bolle').select('*', { count: 'exact', head: true }), 'sede_id'), 'data'),
     dateFilter(scope(service.from('statements').select('*', { count: 'exact', head: true }), 'sede_id'), 'received_at'),
     dateFilter(scope(service.from('conferme_ordine').select('*', { count: 'exact', head: true }), 'sede_id'), 'data_ordine'),
-    scope(service.from('documenti_da_processare').select('*', { count: 'exact', head: true }), 'sede_id'),
     scope(service.from('comunicazioni_fornitori_potenziali').select('*', { count: 'exact', head: true }), 'sede_id'),
   ])
 
@@ -60,11 +58,18 @@ export async function GET(req: NextRequest) {
 
   for (const kind of CodaKinds) {
     let q = service.from('documenti_da_processare').select('*', { count: 'exact', head: true })
+      .in('stato', ['in_attesa', 'da_processare', 'da_associare', 'mittente_sconosciuto'])
       .filter('metadata->>pending_kind', 'eq', kind) as any
     if (sedeId) q = q.eq('sede_id', sedeId)
     const { count } = await q
     codaKindCounts[kind] = count ?? 0
   }
+
+  // Coda totale (qualsiasi pending_kind) negli stessi stati
+  let codaAllQ = service.from('documenti_da_processare').select('*', { count: 'exact', head: true })
+    .in('stato', ['in_attesa', 'da_processare', 'da_associare', 'mittente_sconosciuto']) as any
+  if (sedeId) codaAllQ = codaAllQ.eq('sede_id', sedeId)
+  const { count: codaAll } = await codaAllQ
 
   const stats: KindStats[] = [
     { kind: 'fattura', label: 'Fatture', icon: '🧾', table: 'fatture', count: fattureRes.count ?? 0 },
@@ -97,7 +102,7 @@ export async function GET(req: NextRequest) {
     label: 'In coda → Altro/senza categoria',
     icon: '⏳',
     table: 'documenti_da_processare',
-    count: Math.max(0, (codaRes.count ?? 0) - codaTotal),
+    count: Math.max(0, (codaAll ?? 0) - codaTotal),
   })
 
   const total = stats.reduce((s, st) => s + st.count, 0)
