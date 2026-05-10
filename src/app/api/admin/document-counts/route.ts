@@ -41,14 +41,12 @@ export async function GET(req: NextRequest) {
     fattureRes,
     noteCreditoRes,
     bolleRes,
-    statementsRes,
     ordiniRes,
     potenzialiRes,
   ] = await Promise.all([
     dateFilter(scope(service.from('fatture').select('*', { count: 'exact', head: true }).eq('is_credit_note', false), 'sede_id'), 'data'),
     dateFilter(scope(service.from('fatture').select('*', { count: 'exact', head: true }).eq('is_credit_note', true), 'sede_id'), 'data'),
     dateFilter(scope(service.from('bolle').select('*', { count: 'exact', head: true }), 'sede_id'), 'data'),
-    dateFilter(scope(service.from('statements').select('*', { count: 'exact', head: true }), 'sede_id'), 'received_at'),
     dateFilter(scope(service.from('conferme_ordine').select('*', { count: 'exact', head: true }), 'sede_id'), 'data_ordine'),
     scope(service.from('comunicazioni_fornitori_potenziali').select('*', { count: 'exact', head: true }), 'sede_id'),
   ])
@@ -73,7 +71,6 @@ export async function GET(req: NextRequest) {
     { kind: 'fattura', label: 'Fatture', icon: '🧾', table: 'fatture', count: fattureRes.count ?? 0 },
     { kind: 'nota_credito', label: 'Note credito', icon: '💳', table: 'fatture (is_credit_note=true)', count: noteCreditoRes.count ?? 0 },
     { kind: 'bolla', label: 'Bolle', icon: '📦', table: 'bolle', count: bolleRes.count ?? 0 },
-    { kind: 'statement', label: 'Estratti conto', icon: '📊', table: 'statements', count: statementsRes.count ?? 0 },
     { kind: 'ordine', label: 'Conferme ordine', icon: '📋', table: 'conferme_ordine', count: ordiniRes.count ?? 0 },
     { kind: 'potenziale', label: 'Fornitori potenziali', icon: '🤝', table: 'comunicazioni_fornitori_potenziali', count: potenzialiRes.count ?? 0 },
   ]

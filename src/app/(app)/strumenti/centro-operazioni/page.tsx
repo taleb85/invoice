@@ -20,6 +20,7 @@ import { useReprocessDaAssociare } from '@/lib/use-reprocess-da-associare'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
+import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
 import PendingKindBrowser from '@/components/admin/pending-kind-browser'
 
 function OpsSectionTitle({ id, children }: { id?: string; children: ReactNode }) {
@@ -502,6 +503,7 @@ export default function CentroOperazioniPage() {
                 <div className="flex min-h-0 min-w-0 flex-col gap-4">
                   <FixOcrDatesCard anchorId="ops-fix-ocr-dates" />
                   <ReclassifyPendingKindCard />
+                  <AiReclassifyCard />
 
                   <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">
                     <p className="text-sm text-app-fg-muted">{s.ocrAbbinamentiCardDesc}</p>

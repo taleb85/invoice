@@ -6,7 +6,7 @@ import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 
 export const dynamic = 'force-dynamic'
 
-const BATCH = 50
+const BATCH = 1000
 
 export async function POST(req: NextRequest) {
   const auth = await requireAdmin()
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'JSON non valido' }, { status: 400 })
   }
 
-  const limit = Math.min(body.limit ?? BATCH, 200)
+  const limit = Math.min(body.limit ?? BATCH, 5000)
 
   let query = service
     .from('documenti_da_processare')

@@ -31,7 +31,7 @@ export default function ReclassifyPendingKindCard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ sede_id: sedeCtx.effectiveSedeId || undefined, limit: 200 }),
+        body: JSON.stringify({ sede_id: sedeCtx.effectiveSedeId || undefined, limit: 5000 }),
       })
       const json = await res.json()
       setResult({

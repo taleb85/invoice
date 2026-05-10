@@ -23,7 +23,6 @@ const KIND_COLORS: Record<string, string> = {
   fattura: 'bg-emerald-500/15 text-emerald-200 border-emerald-500/30',
   nota_credito: 'bg-purple-500/15 text-purple-200 border-purple-500/30',
   bolla: 'bg-indigo-500/15 text-indigo-200 border-indigo-500/30',
-  statement: 'bg-amber-500/15 text-amber-200 border-amber-500/30',
   ordine: 'bg-sky-500/15 text-sky-200 border-sky-500/30',
   potenziale: 'bg-pink-500/15 text-pink-200 border-pink-500/30',
 }
@@ -90,7 +89,7 @@ export default function PendingKindBrowser() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ pending_kind: pendingKind, sede_id: sedeId ?? undefined, limit: 200 }),
+        body: JSON.stringify({ pending_kind: pendingKind, sede_id: sedeId ?? undefined, limit: 5000 }),
       })
       const json = await res.json()
       setReclassResult({ kind: pendingKind, checked: json.checked ?? 0, updated: json.updated ?? 0 })
