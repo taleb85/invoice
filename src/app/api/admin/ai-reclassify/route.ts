@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const { data: docs, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!docs?.length) {
-    return NextResponse.json({ ok: true, checked: 0, updated: 0, errors: 0, message: 'Nessun documento da processare o tutti già analizzati da AI' })
+    return NextResponse.json({ ok: true, checked: 0, updated: 0, errors: 0, has_more: false, message: 'Nessun documento da processare o tutti già analizzati da AI' })
   }
 
   type DocRow = { id: string; file_url: string | null; file_name: string | null; content_type: string | null; stato: string | null; oggetto_mail: string | null; metadata: Record<string, unknown> | null }
@@ -171,5 +171,6 @@ export async function POST(req: NextRequest) {
     updated,
     errors,
     results,
+    has_more: docs.length >= limit,
   })
 }

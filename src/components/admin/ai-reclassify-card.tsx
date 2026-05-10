@@ -1,25 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
 import { effectiveIsAdminSedeUi, effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+
+type BatchResult = {
+  checked: number
+  updated: number
+  errors: number
+  has_more: boolean
+  results: { id: string; tipo_ai: string; old_kind: string | null; new_kind: string | null; error?: string }[]
+}
 
 export default function AiReclassifyCard() {
   const { me } = useMe()
   const { activeOperator } = useActiveOperator()
   const sedeCtx = useManualDeliverySede()
   const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<{ checked: number; updated: number; errors: number; results: { id: string; tipo_ai: string; old_kind: string | null; new_kind: string | null; error?: string }[] } | null>(null)
+  const [progress, setProgress] = useState<{ totalChecked: number; totalUpdated: number; totalErrors: number } | null>(null)
+  const [logs, setLogs] = useState<{ id: string; tipo_ai: string; old_kind: string | null; new_kind: string | null; error?: string }[]>([])
+  const abortRef = useRef(false)
 
   const canReclassify = effectiveIsMasterAdminPlane(me, activeOperator) || effectiveIsAdminSedeUi(me, activeOperator)
   if (!canReclassify) return null
 
-  const handleReclassify = async () => {
-    if (!confirm('Usare Gemini AI per classificare i documenti?')) return
-    setBusy(true)
-    setResult(null)
+  const processBatch = useCallback(async (): Promise<boolean> => {
+    if (abortRef.current) return false
     try {
       const res = await fetch('/api/admin/ai-reclassify', {
         method: 'POST',
@@ -27,13 +35,43 @@ export default function AiReclassifyCard() {
         credentials: 'include',
         body: JSON.stringify({ sede_id: sedeCtx.effectiveSedeId || undefined, limit: 5 }),
       })
-      const json = await res.json()
-      setResult(json)
+      const json: BatchResult = await res.json()
+
+      setProgress((prev) => ({
+        totalChecked: (prev?.totalChecked ?? 0) + json.checked,
+        totalUpdated: (prev?.totalUpdated ?? 0) + json.updated,
+        totalErrors: (prev?.totalErrors ?? 0) + json.errors,
+      }))
+
+      if (json.results?.length) {
+        setLogs((prev) => [...prev, ...json.results])
+      }
+
+      return json.has_more ?? json.checked > 0
     } catch {
-      setResult({ checked: 0, updated: 0, errors: 0, results: [] })
-    } finally {
-      setBusy(false)
+      return false
     }
+  }, [sedeCtx.effectiveSedeId])
+
+  const handleStart = async () => {
+    if (!confirm('Avviare la classificazione AI completa? Gemini analizzerà TUTTI i documenti non ancora processati in batch da 5.')) return
+    abortRef.current = false
+    setBusy(true)
+    setProgress(null)
+    setLogs([])
+
+    let hasMore = true
+    while (hasMore) {
+      hasMore = await processBatch()
+      if (abortRef.current) break
+    }
+
+    setBusy(false)
+  }
+
+  const handleStop = () => {
+    abortRef.current = true
+    setBusy(false)
   }
 
   return (
@@ -45,43 +83,63 @@ export default function AiReclassifyCard() {
             <span className="ml-2 rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold text-purple-200">Beta</span>
           </h3>
           <p className="mt-1 text-xs text-app-fg-muted">
-            Gemini analizza il contenuto dei PDF e suggerisce la categoria corretta.
-            Processa 5 documenti per volta (limite Vercel). Clicca più volte per processare tutti.
+            Gemini analizza il contenuto dei PDF e classifica automaticamente tutti i documenti non ancora processati.
+            Batch da 5 documenti, in sequenza fino al completamento.
           </p>
         </div>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={handleReclassify}
-          className="shrink-0 touch-manipulation rounded-lg border border-purple-500/35 bg-purple-500/8 px-3 py-1.5 text-xs font-semibold text-purple-200/95 transition-colors hover:bg-purple-500/15 disabled:opacity-50"
-        >
-          {busy ? 'AI sta classificando…' : 'Classifica con AI'}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {busy && (
+            <button
+              type="button"
+              onClick={handleStop}
+              className="touch-manipulation rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition-colors hover:bg-red-500/18"
+            >
+              Stop
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleStart}
+            className="shrink-0 touch-manipulation rounded-lg border border-purple-500/35 bg-purple-500/8 px-3 py-1.5 text-xs font-semibold text-purple-200/95 transition-colors hover:bg-purple-500/15 disabled:opacity-50"
+          >
+            {busy ? 'Classificazione in corso…' : 'Classifica tutto con AI'}
+          </button>
+        </div>
       </div>
 
       {busy && (
         <div className="mt-3 flex items-center gap-2 text-xs text-purple-300">
           <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-purple-300 border-t-transparent" />
-          Gemini sta analizzando i PDF…
+          {progress
+            ? `Elaborati ${progress.totalChecked} documenti · ${progress.totalUpdated} riclassificati · ${progress.totalErrors} errori`
+            : 'Gemini sta analizzando i PDF…'}
         </div>
       )}
 
-      {result && (
+      {(progress || logs.length > 0) && !busy && (
         <div className="mt-3 rounded-lg border border-app-line-25 bg-app-line-10 px-4 py-3 text-xs">
           <p className="font-medium text-app-fg">
-            Analizzati: {result.checked} · Riclassificati:{' '}
-            <span className={result.updated > 0 ? 'text-purple-300 font-semibold' : 'text-emerald-300'}>
-              {result.updated}
-            </span>
-            {' · '}Errori: <span className={result.errors > 0 ? 'text-red-400' : 'text-emerald-300'}>{result.errors}</span>
+            {progress ? (
+              <>
+                Elaborati: {progress.totalChecked} · Riclassificati:{' '}
+                <span className={progress.totalUpdated > 0 ? 'text-purple-300 font-semibold' : 'text-emerald-300'}>
+                  {progress.totalUpdated}
+                </span>
+                {' · '}Errori: <span className={progress.totalErrors > 0 ? 'text-red-400' : 'text-emerald-300'}>{progress.totalErrors}</span>
+                {progress.totalChecked > 0 && progress.totalUpdated === 0 && progress.totalErrors === 0 && (
+                  <span className="ml-2 text-app-fg-muted">— Tutti già classificati ✓</span>
+                )}
+              </>
+            ) : null}
           </p>
-          {result.results.length > 0 && (
+          {logs.length > 0 && (
             <details className="mt-2">
               <summary className="cursor-pointer text-app-fg-muted hover:text-app-fg">
-                Dettaglio ({result.results.length} documenti)
+                Dettaglio ({logs.length} documenti)
               </summary>
               <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
-                {result.results.map((r) => (
+                {logs.map((r) => (
                   <li key={r.id} className="truncate text-app-fg-muted">
                     <code className="text-[10px]">{r.id.slice(0, 12)}…</code>{' '}
                     <span className="text-purple-400">AI: {r.tipo_ai}</span>
