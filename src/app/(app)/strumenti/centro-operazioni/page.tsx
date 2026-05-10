@@ -20,6 +20,7 @@ import { useReprocessDaAssociare } from '@/lib/use-reprocess-da-associare'
 import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
+import PendingKindBrowser from '@/components/admin/pending-kind-browser'
 
 function OpsSectionTitle({ id, children }: { id?: string; children: ReactNode }) {
   return (
@@ -521,6 +522,13 @@ export default function CentroOperazioniPage() {
                     {s.hintContextualShortcuts}
                   </p>
                 </aside>
+              </section>
+
+              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-classificazione">
+                <OpsSectionTitle id="ops-section-classificazione">Classificazione documenti</OpsSectionTitle>
+                <div className="flex min-h-0 min-w-0 flex-col gap-4">
+                  <PendingKindBrowser />
+                </div>
               </section>
 
               <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-manutenzione">
