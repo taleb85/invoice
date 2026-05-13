@@ -52,7 +52,6 @@ export default function PendingKindBrowser() {
   } | null>(null)
 
   const canView = effectiveIsMasterAdminPlane(me, activeOperator) || effectiveIsAdminSedeUi(me, activeOperator)
-  if (!canView) return null
 
   const years = useMemo(() => {
     const y = NOW.getFullYear()
@@ -79,6 +78,8 @@ export default function PendingKindBrowser() {
   }, [sedeId, selectedYear, selectedMonth])
 
   useEffect(() => { loadStats() }, [loadStats])
+
+  if (!canView) return null
 
   const handleReclassify = async (kind: string) => {
     const pendingKind = kind.replace('coda_', '')

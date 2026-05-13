@@ -4,6 +4,7 @@ import { createServiceClient } from '@/utils/supabase/server'
 import { gmailService, type GmailMessage } from '@/lib/gmail-service'
 import { parseRekkiFromEmailParts, isLikelyRekkiEmail } from '@/lib/rekki-parser'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
+import { logger } from '@/lib/logger'
 
 export const maxDuration = 300 // 5 minutes for cron job
 
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
       })
     }
     
-    console.log(`[REKKI-AUTO] Found ${messageIds.length} unread Rekki emails`)
+    logger.info(`[REKKI-AUTO] Found ${messageIds.length} unread Rekki emails`)
     
     // 2. Process each email
     for (const messageId of messageIds) {
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
           .maybeSingle()
         
         if (existing) {
-          console.log(`[REKKI-AUTO] Message ${messageId} already processed, skipping`)
+          logger.info(`[REKKI-AUTO] Message ${messageId} already processed, skipping`)
           result.details.push({
             messageId,
             fornitore: '(duplicate)',
@@ -117,7 +118,7 @@ export async function GET(req: NextRequest) {
         
         // Verify it's a Rekki email
         if (!isLikelyRekkiEmail(message.subject, message.from, message.bodyText || message.bodyHtml)) {
-          console.log(`[REKKI-AUTO] Message ${messageId} doesn't look like Rekki order, skipping`)
+          logger.info(`[REKKI-AUTO] Message ${messageId} doesn't look like Rekki order, skipping`)
           result.details.push({
             messageId,
             fornitore: '(not Rekki)',
@@ -135,7 +136,7 @@ export async function GET(req: NextRequest) {
         })
         
         if (rekkiLines.length === 0) {
-          console.log(`[REKKI-AUTO] No products extracted from ${messageId}`)
+          logger.info(`[REKKI-AUTO] No products extracted from ${messageId}`)
           result.errors.push(`No products extracted from message ${messageId}`)
           result.details.push({
             messageId,
@@ -167,7 +168,7 @@ export async function GET(req: NextRequest) {
         // In production, you'd parse supplier name from email or use other heuristics
         const fornitore = fornitori[0]
         
-        console.log(`[REKKI-AUTO] Processing order for ${fornitore.nome} with ${rekkiLines.length} products`)
+        logger.info(`[REKKI-AUTO] Processing order for ${fornitore.nome} with ${rekkiLines.length} products`)
         
         // Process the order (update listino + create statement)
         const processResult = await processRekkiOrder(supabase, {
@@ -210,7 +211,7 @@ export async function GET(req: NextRequest) {
           status: 'success',
         })
         
-        console.log(`[REKKI-AUTO] ✅ Successfully processed order for ${fornitore.nome}`)
+        logger.info(`[REKKI-AUTO] ✅ Successfully processed order for ${fornitore.nome}`)
         
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Unknown error'

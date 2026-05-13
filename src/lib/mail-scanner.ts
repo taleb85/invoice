@@ -1,6 +1,7 @@
 import { simpleParser } from 'mailparser'
 import { withImapSession, type ImapCredentials } from '@/lib/imap-session'
 import { isFiscalDocumentAttachment } from '@/lib/fiscal-document-attachments'
+import { imapTlsOptions } from '@/lib/imap-tls'
 
 export interface EmailAttachment {
   filename: string
@@ -61,7 +62,7 @@ function globalImapCreds(): ImapCredentials {
     user: process.env.IMAP_USER!,
     password: process.env.IMAP_PASSWORD!,
     secure: port !== 143,
-    tls: { rejectUnauthorized: false },
+    tls: imapTlsOptions(),
   }
 }
 

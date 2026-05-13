@@ -1,5 +1,5 @@
 'use client'
-
+'use no memo'
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -174,7 +174,7 @@ export default function FattureListWithDuplicates({
       setFocusedGroupKey(null)
       router.refresh()
     },
-    [router, supabase, t.appStrings.deleteFailed, t.fatture.duplicateDeleteConfirm],
+    [router, supabase, showToast, t.appStrings.deleteFailed, t.fatture.duplicateDeleteConfirm],
   )
 
   const handleContextMenu = useCallback(

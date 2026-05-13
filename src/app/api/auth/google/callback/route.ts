@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { gmailService } from '@/lib/gmail-service'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/auth/google/callback
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
     // Get user's email address for confirmation
     const emailAddress = await gmailService.getUserEmail(userId)
     
-    console.log(`[GMAIL-CALLBACK] Successfully connected Gmail for user ${userId}: ${emailAddress}`)
+    logger.info(`[GMAIL-CALLBACK] Successfully connected Gmail for user ${userId}: ${emailAddress}`)
     
     // Redirect to settings page with success message
     const redirectUrl = new URL('/strumenti/impostazioni', req.nextUrl.origin)

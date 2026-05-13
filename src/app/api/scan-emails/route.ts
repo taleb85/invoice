@@ -6,6 +6,7 @@ import { createServiceClient } from '@/utils/supabase/server'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { simpleParser } from 'mailparser'
 import { withImapSession } from '@/lib/imap-session'
+import { imapTlsOptions } from '@/lib/imap-tls'
 import {
   ocrInvoice,
   ocrInvoiceFromEmailBody,
@@ -360,7 +361,7 @@ async function fetchFromImap(
       user,
       password,
       secure: port !== 143,
-      tls: { rejectUnauthorized: false },
+      tls: imapTlsOptions(),
     },
     async (client) => {
       mailDebugLog(`[IMAP] Connessione stabilita: ${host}`)

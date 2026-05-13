@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { gmailService } from '@/lib/gmail-service'
+import { logger } from '@/lib/logger'
 
 /**
  * POST /api/auth/google/disconnect
@@ -18,7 +19,7 @@ export async function POST() {
     // Delete tokens from database
     await gmailService.disconnect(user.id)
     
-    console.log(`[GMAIL-DISCONNECT] User ${user.id} disconnected Gmail`)
+    logger.info(`[GMAIL-DISCONNECT] User ${user.id} disconnected Gmail`)
     
     return NextResponse.json({
       success: true,

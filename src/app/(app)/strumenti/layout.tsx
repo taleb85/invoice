@@ -36,6 +36,11 @@ export default function StrumentiLayout({ children }: { children: React.ReactNod
       active: pathname === '/strumenti/sedi',
     },
     {
+      href: '/strumenti/verifica-documenti',
+      label: 'Verifica documenti',
+      active: !!pathname?.startsWith('/strumenti/verifica-documenti'),
+    },
+    {
       href: '/strumenti/impostazioni',
       label: t.nav.impostazioni,
       active: pathname === '/strumenti/impostazioni',

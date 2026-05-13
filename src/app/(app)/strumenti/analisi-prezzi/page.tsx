@@ -176,7 +176,7 @@ export default function AnalisiPrezziPage() {
 
           {data.totali === 0 && (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center">
-              <p className="text-sm text-white/40">Nessun fornitore con dati prezzi sufficienti per l'analisi.</p>
+              <p className="text-sm text-white/40">Nessun fornitore con dati prezzi sufficienti per l&apos;analisi.</p>
               <p className="mt-1 text-xs text-white/30">
                 Sono necessari almeno 2 rilevazioni prezzo per prodotto per generare trend e raccomandazioni.
               </p>
@@ -187,7 +187,7 @@ export default function AnalisiPrezziPage() {
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center">
           <p className="text-sm text-white/40">Nessun dato disponibile.</p>
           <p className="mt-1 text-xs text-white/30">
-            Importa listini o sincronizza prezzi dalle fatture per attivare l'analisi intelligente.
+            Importa listini o sincronizza prezzi dalle fatture per attivare l&apos;analisi intelligente.
           </p>
         </div>
       )}

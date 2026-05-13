@@ -13,6 +13,7 @@
  * Returns an array of CheckResult objects.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 
 export type CheckStatus =
   | 'ok'                       // ✅ verde   — fattura + bolle + importi OK
@@ -71,7 +72,7 @@ export interface CheckSummary {
 }
 
 /** Tolleranza generale triple-check (fattura ↔ riga estratto ↔ bolle). */
-export const TRIPLE_CHECK_TOLERANCE = 0.02
+export const TRIPLE_CHECK_TOLERANCE = 0.05
 
 /**
  * Tolleranza stretta Rekki: totale ordine app vs importo fattura.
@@ -127,10 +128,10 @@ export async function runTripleCheck(
   const bollePool = (allBolleRaw ?? []) as BollaPoolRow[]
 
   for (const line of lines) {
-    // ── STEP 1: Find matching invoice (in-memory ilike) ─────────────────
-    const numLower = line.numero.toLowerCase()
+    // ── STEP 1: Find matching invoice (in-memory, normalized exact match) ────
+    const numNorm = normalizeNumeroFattura(line.numero)
     const rawFattura = fatturePool.find(
-      (f) => f.numero_fattura != null && f.numero_fattura.toLowerCase().includes(numLower),
+      (f) => f.numero_fattura != null && normalizeNumeroFattura(f.numero_fattura) === numNorm,
     )
 
     if (!rawFattura) {

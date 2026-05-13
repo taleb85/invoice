@@ -460,7 +460,7 @@ const translations: Translations = {
     kpiDocumentiDaRevisionareSub:
       'Somma nell’anno fiscale selezionato (per posta/elaborazioni): «da associare» + duplicati + righe dubbie + anomalie Rekki',
     kpiDocumentiDaRevisionareGlassExplain:
-      'Anno fiscale {fyLabel}: «da associare» in posta = {da_associare}. Il numero grande sopra è {total} perché conta anche duplicati e anomalie Rekki nello stesso periodo.',
+      '{total} = {da_associare} «da associare» + duplicati + anomalie Rekki ({fyLabel}).',
     inboxUrgentePageTitle: 'Inbox urgente',
     inboxUrgentePageIntro:
       'Punto unico per le criticità operative: documenti da associare, anomalie prezzo e duplicati da verificare nelle liste.',

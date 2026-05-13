@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ImapFlow } from 'imapflow'
+import { imapTlsOptions } from '@/lib/imap-tls'
 
 async function tryConnect(host: string, port: number, secure: boolean, user: string, password: string) {
   const client = new ImapFlow({
@@ -8,7 +9,7 @@ async function tryConnect(host: string, port: number, secure: boolean, user: str
     secure,
     auth: { user, pass: password },
     logger: false,
-    tls: { rejectUnauthorized: false },
+    tls: imapTlsOptions(),
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,

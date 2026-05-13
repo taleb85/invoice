@@ -20,21 +20,19 @@ import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
 import { runTripleCheck } from '@/lib/triple-check'
+import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
+import { logger } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
   const { user } = await getRequestAuth()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-
-
-  const service = createServiceClient()
+  const supabase = createServiceClient()
   const body = await req.json().catch(() => ({})) as {
     sede_id?:      string | null
     fornitore_id?: string | null
   }
   const { sede_id, fornitore_id } = body
-
-  const supabase = createServiceClient()
 
   // ── Check that the statements table exists ──────────────────────────────
   const { error: tableCheck } = await supabase
@@ -98,7 +96,7 @@ export async function POST(req: NextRequest) {
       contentType = doc.content_type ?? dl.contentType ?? 'application/pdf'
     } catch (err) {
       const msg = `Download fallito per doc ${doc.id}: ${(err as Error).message}`
-      console.error(`[PENDING-STMT] ${msg}`)
+      logger.error(`[PENDING-STMT] ${msg}`)
       errors.push(msg)
       continue
     }
@@ -109,7 +107,7 @@ export async function POST(req: NextRequest) {
     const extractedPdfDates = extractedPdfDatesToJson(ocr.extractedPdfDates)
     if (!rows.length) {
       const msg = `Nessuna riga estratta dal PDF per doc ${doc.id}`
-      console.warn(`[PENDING-STMT] ${msg}`)
+      logger.warn(`[PENDING-STMT] ${msg}`)
       errors.push(msg)
       // Still create a statement record with error status so we don't retry indefinitely
       await supabase
@@ -149,7 +147,7 @@ export async function POST(req: NextRequest) {
 
     if (stmtErr || !stmtRow) {
       const msg = `Errore creazione statement per doc ${doc.id}: ${stmtErr?.message}`
-      console.error(`[PENDING-STMT] ${msg}`)
+      logger.error(`[PENDING-STMT] ${msg}`)
       errors.push(msg)
       continue
     }
@@ -163,11 +161,12 @@ export async function POST(req: NextRequest) {
     const { results: checkResults } = await runTripleCheck(supabase, lines, sedeId, fornitoreId)
 
     // ── 5. Insert statement_rows ────────────────────────────────────────────
+    const rowsByNumero = new Map(rows.map(r => [r.numero, r]))
     const rowInserts = checkResults.map(r => ({
       statement_id:   statementId,
       numero_doc:     r.numero,
       importo:        r.importoStatement,
-      data_doc:       rows.find(row => row.numero === r.numero)?.data ?? null,
+      data_doc:       rowsByNumero.get(r.numero)?.data ?? null,
       check_status:   r.status,
       delta_importo:  r.deltaImporto,
       fattura_id:     r.fattura?.id ?? null,
@@ -181,15 +180,15 @@ export async function POST(req: NextRequest) {
       .insert(rowInserts)
 
     if (rowsErr) {
-      console.error(`[PENDING-STMT] Errore insert rows per ${statementId}:`, rowsErr.message)
+      logger.error(`[PENDING-STMT] Errore insert rows per ${statementId}:`, rowsErr.message)
       errors.push(`Errore salvataggio righe: ${rowsErr.message}`)
-      await service.from('statements').update({ status: 'error' }).eq('id', statementId)
+      await supabase.from('statements').delete().eq('id', statementId)
       continue
     }
 
     // ── 6. Update summary counts ─────────────────────────────────────────────
     const missingRows = checkResults.filter(r => r.status !== 'ok').length
-    await service.from('statements').update({
+    await supabase.from('statements').update({
       status:       'done',
       total_rows:   checkResults.length,
       missing_rows: missingRows,
@@ -197,6 +196,30 @@ export async function POST(req: NextRequest) {
 
     results.push({ id: statementId, total: checkResults.length, missing: missingRows })
   }
+
+  const fornitoreIds = [...new Set(pending.map(d => d.fornitore_id).filter(Boolean) as string[])]
+  let fornitoreNames: string[] = []
+  if (fornitoreIds.length > 0) {
+    const { data: fornitori } = await supabase
+      .from('fornitori')
+      .select('nome')
+      .in('id', fornitoreIds)
+    if (fornitori) fornitoreNames = fornitori.map(f => f.nome).filter(Boolean)
+  }
+
+  await logActivity(supabase, {
+    userId: user.id,
+    sedeId: null,
+    action: ACTIVITY_ACTIONS.DOCUMENTO_PROCESSED,
+    entityType: 'statement',
+    metadata: {
+      statements: true,
+      processed: results.length,
+      skipped: alreadyProcessedUrls.size,
+      errors: errors.length,
+      fornitori: fornitoreNames,
+    },
+  })
 
   return NextResponse.json({
     processed:  results.length,

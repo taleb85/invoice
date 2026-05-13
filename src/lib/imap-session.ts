@@ -1,6 +1,7 @@
 import type { ConnectionOptions } from 'tls'
 import { ImapFlow, type ImapFlowOptions } from 'imapflow'
 import { classifyImapError } from '@/lib/imap-error-classifier'
+import { imapTlsOptions } from '@/lib/imap-tls'
 
 /** imapflow definisce questa classe in `lib/tools.js` ma non la re-esporta dal `main` → spesso `undefined` in bundle. */
 function isImapAuthenticationFailure(err: unknown): boolean {
@@ -78,7 +79,7 @@ export function imapFlowOptionsFromCredentials(c: ImapCredentials): ImapFlowOpti
     connectionTimeout: IMAP_CONNECTION_TIMEOUT_MS,
     greetingTimeout: IMAP_GREETING_TIMEOUT_MS,
     socketTimeout: IMAP_SOCKET_TIMEOUT_MS,
-    tls: c.tls ?? { rejectUnauthorized: false },
+    tls: c.tls ?? imapTlsOptions(),
   }
 }
 

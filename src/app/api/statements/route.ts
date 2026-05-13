@@ -44,9 +44,18 @@ export async function GET(req: NextRequest) {
       for (const f of fRows ?? []) fMap[f.id] = f
     }
 
+    // Resolve fattura dates separately (same reason — avoid FK join issues)
+    const fatturaIds = [...new Set((rows ?? []).map((r: { fattura_id: string | null }) => r.fattura_id).filter(Boolean))]
+    const fatturaDateMap: Record<string, string> = {}
+    if (fatturaIds.length) {
+      const { data: fRows } = await service.from('fatture').select('id, data').in('id', fatturaIds)
+      for (const f of fRows ?? []) fatturaDateMap[f.id] = f.data
+    }
+
     const enriched = (rows ?? []).map((r: Record<string, unknown>) => ({
       ...r,
       fornitori: fMap[(r.fornitore_id as string) ?? ''] ?? null,
+      fattura_data: fatturaDateMap[(r.fattura_id as string) ?? ''] ?? null,
     }))
 
     return NextResponse.json(enriched)

@@ -3776,6 +3776,7 @@ export function VerificationStatusTab({
       bolle_json: CheckResult['bolle'] | null
       fornitore_id: string | null
       fornitori: { id: string; nome: string; email: string | null } | null
+      fattura_data: string | null
     }
     const raw = await res.json()
     if (!Array.isArray(raw)) {
@@ -3792,7 +3793,7 @@ export function VerificationStatusTab({
       data_doc:         r.data_doc ?? null,
       fattura:          r.fattura_id ? {
         id: r.fattura_id, numero_fattura: r.fattura_numero, importo: Number(r.importo),
-        data: r.data_doc ?? '', file_url: null, fornitore_id: r.fornitore_id ?? '',
+        data: r.fattura_data ?? '', file_url: null, fornitore_id: r.fornitore_id ?? '',
       } : null,
       bolle:            r.bolle_json ?? [],
       deltaImporto:     r.delta_importo,

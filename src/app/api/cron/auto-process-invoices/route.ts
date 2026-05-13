@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/utils/supabase/server'
+import { logger } from '@/lib/logger'
 
 export const maxDuration = 300 // 5 minutes
 
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
     }
     
     result.invoicesFound = fatture.length
-    console.log(`[AUTO-INVOICE] Found ${fatture.length} recent invoices from Rekki suppliers`)
+    logger.info(`[AUTO-INVOICE] Found ${fatture.length} recent invoices from Rekki suppliers`)
     
     // 2. Process each invoice
     for (const fattura of fatture) {
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest) {
           .maybeSingle()
         
         if (!latestOrder) {
-          console.log(`[AUTO-INVOICE] No Rekki order found for ${fornitore.nome}, skipping`)
+          logger.info(`[AUTO-INVOICE] No Rekki order found for ${fornitore.nome}, skipping`)
           result.details.push({
             invoiceId: fattura.id,
             fornitore: fornitore.nome,
@@ -141,7 +142,7 @@ export async function GET(req: NextRequest) {
         const { items: invoiceItems } = await extractRes.json()
         
         if (!invoiceItems || invoiceItems.length === 0) {
-          console.log(`[AUTO-INVOICE] No items extracted from ${fattura.numero_fattura}`)
+          logger.info(`[AUTO-INVOICE] No items extracted from ${fattura.numero_fattura}`)
           continue
         }
         
@@ -187,7 +188,7 @@ export async function GET(req: NextRequest) {
           result.anomaliesDetected += anomalyCount
           
           // Create notification / alert
-          console.log(`[AUTO-INVOICE] ⚠️ ${anomalyCount} price anomalies detected in ${fattura.numero_fattura} for ${fornitore.nome}`)
+          logger.info(`[AUTO-INVOICE] ⚠️ ${anomalyCount} price anomalies detected in ${fattura.numero_fattura} for ${fornitore.nome}`)
           
           // Log to database for audit
           await supabase.from('log_sincronizzazione').insert([{
@@ -208,7 +209,7 @@ export async function GET(req: NextRequest) {
           anomalies: anomalyCount,
         })
         
-        console.log(`[AUTO-INVOICE] ✅ Processed ${fattura.numero_fattura} for ${fornitore.nome} - ${anomalyCount} anomalies`)
+        logger.info(`[AUTO-INVOICE] ✅ Processed ${fattura.numero_fattura} for ${fornitore.nome} - ${anomalyCount} anomalies`)
         
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Unknown error'

@@ -1,4 +1,5 @@
 'use client'
+'use no memo'
 
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -63,6 +64,7 @@ export function DuplicateLedgerRowExtras({
     refreshRouter,
     rowId,
     router,
+    showToast,
     supabase,
   ])
 

@@ -24,7 +24,6 @@ export default function AiReclassifyCard() {
   const abortRef = useRef(false)
 
   const canReclassify = effectiveIsMasterAdminPlane(me, activeOperator) || effectiveIsAdminSedeUi(me, activeOperator)
-  if (!canReclassify) return null
 
   const processBatch = useCallback(async (): Promise<boolean> => {
     if (abortRef.current) return false
@@ -73,6 +72,8 @@ export default function AiReclassifyCard() {
     abortRef.current = true
     setBusy(false)
   }
+
+  if (!canReclassify) return null
 
   return (
     <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">

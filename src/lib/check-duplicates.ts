@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizeNumeroFattura } from '@/lib/fattura-duplicate-check'
 import type { FiscalPgBounds } from '@/lib/fiscal-year-page'
+import { logger } from '@/lib/logger'
 
 /** Allineato al report duplicati: non oltre questo campione per KPI / totali. */
 export const DUPLICATE_SCAN_MAX_ROWS = 50_000
@@ -360,7 +361,7 @@ export async function autoDeleteExcessDuplicates(
   if (!excessIds.length) return 0
   const { error } = await supabase.from(table).delete().in('id', excessIds)
   if (error) {
-    console.error(`[autoDeleteExcessDuplicates] Errore su ${table}:`, error.message)
+    logger.error(`[autoDeleteExcessDuplicates] Errore su ${table}:`, error.message)
     return 0
   }
   return excessIds.length

@@ -43,7 +43,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [fornitoriSearch, setFornitoriSearch] = useState('')
   const [langOpen, setLangOpen] = useState(false)
   /** Aperto di default: Impostazioni / Strumenti / Guida restano visibili senza clic sul chevron. */
-  const [footerOpen, setFooterOpen] = useState(true)
+  const [footerOpen, setFooterOpen] = useState(false)
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0)
 
   /** Cookie `admin-sede-id` può cambiare senza aggiornare `me` — niente memo. */
@@ -157,7 +157,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       href: '/',
       iconColor: icon.home,
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       ),
@@ -167,7 +167,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       href: '/fornitori',
       iconColor: icon.fornitori,
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
@@ -206,7 +206,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     badge: false,
     iconColor: icon.emailSync,
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
       </svg>
     ),
@@ -237,7 +237,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     href: '/analytics',
     iconColor: icon.analytics,
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
     ),
@@ -249,7 +249,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     count: pendingApprovalCount,
     iconColor: icon.approvazioni,
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
       </svg>
     ),
@@ -260,7 +260,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     href: '/attivita',
     iconColor: icon.analytics,
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
       </svg>
     ),
@@ -271,7 +271,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     href: '/backup',
     iconColor: icon.settingsTools,
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582 4-8 4s8 1.79 8 4"/>
       </svg>
     ),
@@ -282,7 +282,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
     href: '/consumi-ai',
     iconColor: icon.analytics,
     icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
       </svg>
     ),
@@ -294,7 +294,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       href: '/',
       iconColor: icon.home,
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       ),
@@ -307,7 +307,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       href: '/fornitori',
       iconColor: icon.fornitori,
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
@@ -626,19 +626,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
           )}
 
           <div className="app-shell-rail-panel min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden py-2 pb-3">
-          {/* Admin sede: stessa pagina gestione operatori / IMAP / PIN (vista solo propria sede). */}
-          {isAdminSede &&
-            !isMasterAdmin &&
-            me?.sede_id &&
-            sessionCanNavigateSediList && (
-            <Link href="/strumenti/sedi" onClick={onClose} className={navLink(pathname === '/strumenti/sedi')}>
-              <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              <span className="truncate">{gestisciSediLinkLabel}</span>
-            </Link>
-          )}
-
           {(isMasterAdmin || isAdminSede) && (
             <Link href="/strumenti/fornitori-potenziali" onClick={onClose} className={navLink(pathname === '/strumenti/fornitori-potenziali')}>
               <svg className={`w-4 h-4 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -823,6 +810,59 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   <span className="min-w-0 truncate">{sedeNome}</span>
                 </div>
               )}
+              {/* Lingua */}
+              <div className="relative">
+                <button
+                  onClick={() => setLangOpen(o => !o)}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg"
+                >
+                  {LOCALES.find(l => l.code === locale)?.code ? (
+                    <LocaleCodeChip code={LOCALES.find(l => l.code === locale)!.code} className="h-5 min-w-[1.25rem] px-1 text-[8px]" />
+                  ) : (
+                    <GlyphGlobe className="h-3.5 w-3.5 text-app-fg-subtle" aria-hidden />
+                  )}
+                  <span className="truncate">{LOCALES.find(l => l.code === locale)?.label ?? locale}</span>
+                </button>
+                {langOpen && (
+                  <div className="app-sidebar-locale-menu absolute bottom-full left-0 z-[120] mb-1 w-40 max-h-[min(240px,calc(100vh-6rem))] overflow-y-auto overflow-x-hidden rounded-lg border border-app-line-28 app-workspace-surface-elevated text-app-fg shadow-[0_16px_40px_-8px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-app-line-15">
+                    {LOCALES.map(l => (
+                      <button
+                        key={l.code}
+                        onClick={() => {
+                          if (l.code === locale) { setLangOpen(false); return }
+                          setLocale(l.code)
+                          setLangOpen(false)
+                        }}
+                        className={`flex w-full items-center gap-2.5 px-3 py-2 text-[11px] font-medium transition-colors ${
+                          locale === l.code
+                            ? 'bg-app-a-25 text-app-fg'
+                            : 'text-app-fg-muted hover:bg-app-line-10 hover:text-app-fg'
+                        }`}
+                      >
+                        <LocaleCodeChip code={l.code} className="h-5 min-w-[1.25rem] px-1 text-[8px]" />
+                        <span>{l.label}</span>
+                        {locale === l.code && (
+                          <svg className="ml-auto h-3 w-3 text-app-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {isAdminSede && !isMasterAdmin && me?.sede_id && sessionCanNavigateSediList && (
+                <Link
+                  href="/strumenti/sedi"
+                  onClick={() => setFooterOpen(false)}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-xs font-semibold transition-colors text-app-fg-subtle hover:bg-app-line-10 hover:text-app-fg"
+                >
+                  <svg className={`h-3.5 w-3.5 shrink-0 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span className="truncate">{gestisciSediLinkLabel}</span>
+                </Link>
+              )}
               {/* Settings */}
               <Link
                 href="/strumenti/impostazioni"
@@ -916,6 +956,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 </div>
               )}
             </div>
+
+            {isAdminSede && !isMasterAdmin && me?.sede_id && sessionCanNavigateSediList && (
+              <Link
+                href="/strumenti/sedi"
+                title={gestisciSediLinkLabel}
+                className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-app-line-10 text-app-fg-subtle hover:text-app-fg"
+              >
+                <svg className={`h-4 w-4 ${icon.fornitori}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </Link>
+            )}
 
             {/* Settings */}
             <Link

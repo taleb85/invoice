@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { ImapFlow } from 'imapflow'
+import { imapTlsOptions } from '@/lib/imap-tls'
 
 // ── MIME structure helper ─────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ async function scanInboxHeaders(
     secure: port !== 143,
     auth: { user, pass: password },
     logger: false,
-    tls: { rejectUnauthorized: false },
+    tls: imapTlsOptions(),
   })
 
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)

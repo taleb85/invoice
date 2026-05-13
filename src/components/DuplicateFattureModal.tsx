@@ -211,7 +211,7 @@ export default function DuplicateFattureModal({ open, onClose, onRefresh }: Prop
         setReassignBusyId(null)
       }
     },
-    [pruneDeletedFattura, reassignSel, onRefresh, t.dashboard.duplicateFattureError, t.dashboard.duplicateFattureReassignNeedChoice],
+    [pruneDeletedFattura, reassignSel, onRefresh, showToast, t.dashboard.duplicateFattureError, t.dashboard.duplicateFattureReassignNeedChoice],
   )
 
   const handleDupModalOcrPreview = useCallback(
@@ -226,7 +226,7 @@ export default function DuplicateFattureModal({ open, onClose, onRefresh }: Prop
         setOcrBusyPreviewId(null)
       }
     },
-    [t.dashboard.duplicateFattureError],
+    [showToast, t.dashboard.duplicateFattureError],
   )
 
   const applyDupModalOcrOnce = useCallback(
@@ -290,7 +290,7 @@ export default function DuplicateFattureModal({ open, onClose, onRefresh }: Prop
         setOcrBusyApplyId(null)
       }
     },
-    [applyDupModalOcrOnce, onRefresh, t.dashboard.duplicateFattureError, t.dashboard.duplicateFattureOcrNoChangesToSave, t.dashboard.duplicateFattureOcrRescanHint, t.dashboard.duplicateFattureOcrSavedMsg],
+    [applyDupModalOcrOnce, onRefresh, showToast, t.dashboard.duplicateFattureError, t.dashboard.duplicateFattureOcrNoChangesToSave, t.dashboard.duplicateFattureOcrRescanHint, t.dashboard.duplicateFattureOcrSavedMsg],
   )
 
   const handleOcrGroup = useCallback(
@@ -438,7 +438,7 @@ export default function DuplicateFattureModal({ open, onClose, onRefresh }: Prop
       })
       onRefresh()
     },
-    [fornitoriBySede, t, onRefresh, pruneDeletedFattura],
+    [fornitoriBySede, showToast, t, onRefresh, pruneDeletedFattura],
   )
 
   const dupModalBusy =
@@ -463,7 +463,7 @@ export default function DuplicateFattureModal({ open, onClose, onRefresh }: Prop
       pruneDeletedFattura(fatturaId)
       onRefresh()
     },
-    [pruneDeletedFattura, onRefresh, t.appStrings.deleteFailed, t.dashboard.duplicateFattureDeleteConfirm],
+    [pruneDeletedFattura, onRefresh, showToast, t.appStrings.deleteFailed, t.dashboard.duplicateFattureDeleteConfirm],
   )
 
   const runScan = useCallback(async () => {

@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     ? new Date(Number(year), Number(month), 1).toISOString().split('T')[0]
     : null
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const scope = <T>(q: T, field: string): T => {
     if (!sedeId) return q
     return (q as any).eq(field, sedeId) as T
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest) {
     if (dateTo) qq = (qq as any).lt(field, dateTo) as T
     return qq
   }
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   const [
     fattureRes,
@@ -56,14 +58,14 @@ export async function GET(req: NextRequest) {
 
   for (const kind of CodaKinds) {
     let q = service.from('documenti_da_processare').select('*', { count: 'exact', head: true })
-      .filter('metadata->>pending_kind', 'eq', kind) as any
+      .filter('metadata->>pending_kind', 'eq', kind)
     if (sedeId) q = q.eq('sede_id', sedeId)
     const { count } = await q
     codaKindCounts[kind] = count ?? 0
   }
 
   // Coda totale (qualsiasi pending_kind) in tutta la tabella
-  let codaAllQ = service.from('documenti_da_processare').select('*', { count: 'exact', head: true }) as any
+  let codaAllQ = service.from('documenti_da_processare').select('*', { count: 'exact', head: true })
   if (sedeId) codaAllQ = codaAllQ.eq('sede_id', sedeId)
   const { count: codaAll } = await codaAllQ
 

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   let q = service
     .from('documenti_da_processare')
-    .select('id, file_url, file_name, content_type, stato, oggetto_mail, metadata')
+    .select('id, fornitore_id, file_url, file_name, content_type, stato, oggetto_mail, metadata')
     .not('file_url', 'is', null)
     .not('file_url', 'eq', '')
     // Esclude documenti già processati da AI (hanno ai_classified_at nel metadata)
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, checked: 0, updated: 0, errors: 0, has_more: false, message: 'Nessun documento da processare o tutti già analizzati da AI' })
   }
 
-  type DocRow = { id: string; file_url: string | null; file_name: string | null; content_type: string | null; stato: string | null; oggetto_mail: string | null; metadata: Record<string, unknown> | null }
+  type DocRow = { id: string; fornitore_id: string | null; file_url: string | null; file_name: string | null; content_type: string | null; stato: string | null; oggetto_mail: string | null; metadata: Record<string, unknown> | null }
 
   let updated = 0
   let errors = 0
@@ -152,6 +152,17 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const fornitoreIds = [...new Set(docs.map(d => d.fornitore_id).filter(Boolean) as string[])]
+  let fornitoreNames: string[] = []
+  if (fornitoreIds.length > 0) {
+    const { data: fornitori } = await service
+      .from('fornitori')
+      .select('nome')
+      .in('id', fornitoreIds)
+    if (fornitori) fornitoreNames = fornitori.map(f => f.nome).filter(Boolean)
+  }
+  const tipi = [...new Set(results.map(r => r.new_kind).filter(Boolean) as string[])]
+
   await logActivity(service, {
     userId: profile.id,
     sedeId: body.sede_id ?? null,
@@ -162,6 +173,8 @@ export async function POST(req: NextRequest) {
       checked: docs.length,
       updated,
       errors,
+      fornitori: fornitoreNames,
+      tipi,
     },
   })
 

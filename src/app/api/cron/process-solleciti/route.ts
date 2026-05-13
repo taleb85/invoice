@@ -16,6 +16,7 @@ import {
   wholeDaysSinceUtc,
 } from '@/lib/sollecito-aging'
 import { createServiceClient } from '@/utils/supabase/server'
+import { logger } from '@/lib/logger'
 
 export const maxDuration = 300
 
@@ -59,7 +60,7 @@ async function wasCronSollecitoRecent(
     .limit(1)
 
   if (error) {
-    console.warn('[CRON process-solleciti] dedup log_sincronizzazione:', error.message)
+    logger.warn('[CRON process-solleciti] dedup log_sincronizzazione:', error.message)
     return false
   }
   return (data?.length ?? 0) > 0
@@ -115,7 +116,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (!autoSollecitiEnabled) {
-    console.log('[CRON] Esecuzione interrotta: automazione disattivata')
+    logger.info('[CRON] Esecuzione interrotta: automazione disattivata')
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -152,7 +153,7 @@ export async function GET(req: NextRequest) {
     const days = giorniPassati(anchor, now)
     const daysLabel = days === null ? 'n/d' : String(days)
 
-    console.log(`[CHECK] Doc: ${id} | Tipo: ${tipo} | Giorni passati: ${daysLabel} | Soglia: ${sogliaBolla}`)
+    logger.info(`[CHECK] Doc: ${id} | Tipo: ${tipo} | Giorni passati: ${daysLabel} | Soglia: ${sogliaBolla}`)
 
     const overdueBolla = isBollaOverdue({
       stato: b.stato,
@@ -163,13 +164,13 @@ export async function GET(req: NextRequest) {
 
     if (!overdueBolla || days === null) {
       skippedAging++
-      console.log(`[SKIP] ID ${id}: Troppo recente.`)
+      logger.info(`[SKIP] ID ${id}: Troppo recente.`)
       continue
     }
 
     if (await wasCronSollecitoRecent(supabase, 'bolla', id)) {
       skippedDedup++
-      console.log(`[SKIP] ID ${id}: Già sollecitato negli ultimi 7gg.`)
+      logger.info(`[SKIP] ID ${id}: Già sollecitato negli ultimi 7gg.`)
       continue
     }
 
@@ -177,7 +178,7 @@ export async function GET(req: NextRequest) {
     const email = fornitore?.email?.trim()
     if (!email) {
       skippedNoEmail++
-      console.log(`[SKIP] ID ${id}: Email destinatario assente.`)
+      logger.info(`[SKIP] ID ${id}: Email destinatario assente.`)
       continue
     }
 
@@ -203,7 +204,7 @@ export async function GET(req: NextRequest) {
     }
 
     inviati++
-    console.log(`[SEND] Sollecito inviato con successo a ${email}.`)
+    logger.info(`[SEND] Sollecito inviato con successo a ${email}.`)
 
     await supabase.from('log_sincronizzazione').insert([
       {
@@ -250,19 +251,19 @@ export async function GET(req: NextRequest) {
     const days = giorniPassati(anchorOk, now)
     const daysLabel = days === null ? 'n/d' : String(days)
 
-    console.log(`[CHECK] Doc: ${id} | Tipo: ${tipo} | Giorni passati: ${daysLabel} | Soglia: ${sogliaPromessa}`)
+    logger.info(`[CHECK] Doc: ${id} | Tipo: ${tipo} | Giorni passati: ${daysLabel} | Soglia: ${sogliaPromessa}`)
 
     const overduePromessa = isPromisedDocOverdue(meta, row.created_at, sogliaPromessa, now)
 
     if (!overduePromessa || days === null) {
       skippedAging++
-      console.log(`[SKIP] ID ${id}: Troppo recente.`)
+      logger.info(`[SKIP] ID ${id}: Troppo recente.`)
       continue
     }
 
     if (await wasCronSollecitoRecent(supabase, 'promessa_doc', id)) {
       skippedDedup++
-      console.log(`[SKIP] ID ${id}: Già sollecitato negli ultimi 7gg.`)
+      logger.info(`[SKIP] ID ${id}: Già sollecitato negli ultimi 7gg.`)
       continue
     }
 
@@ -270,7 +271,7 @@ export async function GET(req: NextRequest) {
     const email = fornitore?.email?.trim() ?? parseEmailFromMittente(row.mittente ?? undefined)
     if (!email) {
       skippedNoEmail++
-      console.log(`[SKIP] ID ${id}: Email destinatario assente.`)
+      logger.info(`[SKIP] ID ${id}: Email destinatario assente.`)
       continue
     }
 
@@ -294,7 +295,7 @@ export async function GET(req: NextRequest) {
     }
 
     inviati++
-    console.log(`[SEND] Sollecito inviato con successo a ${email}.`)
+    logger.info(`[SEND] Sollecito inviato con successo a ${email}.`)
 
     await supabase.from('log_sincronizzazione').insert([
       {

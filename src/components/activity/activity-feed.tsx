@@ -279,9 +279,22 @@ export function ActivityFeed({
                         <ActivityGlyph id={row.actionGlyph} className="h-3 w-3 shrink-0 opacity-95" aria-hidden />
                         {row.actionLabel}
                       </span>
-                      {row.entityLabel && !compact && (
+                      {!compact && (row.entityLabel || !!row.metadata?.fornitore_nome) && (
                         <span className="inline max-w-prose text-xs font-medium leading-snug text-white/90">
-                          · {row.metadata?.fornitore_nome ? `${row.metadata.fornitore_nome} · ` : ''}{row.entityLabel}
+                          · {[(row.metadata?.fornitore_nome as string | undefined) ?? '', row.entityLabel].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                      {!compact && ((row.metadata?.fornitori as string[] | undefined)?.length || (row.metadata?.tipi as string[] | undefined)?.length) && (
+                        <span className="inline max-w-prose text-xs font-medium leading-snug text-white/90">
+                          · {[(row.metadata?.fornitori as string[] | undefined)?.join(', '), (row.metadata?.tipi as string[] | undefined)?.join(', ')].filter(Boolean).join(' — ')}
+                        </span>
+                      )}
+                      {!compact && !row.entityLabel && !row.metadata?.fornitore_nome && !(row.metadata?.fornitori as string[] | undefined)?.length && row.metadata && Object.keys(row.metadata).length > 0 && (
+                        <span className="inline max-w-prose text-xs font-medium leading-snug text-white/80">
+                          · {Object.entries(row.metadata)
+                            .filter(([, v]) => typeof v === 'number')
+                            .map(([k, v]) => `${({ checked: 'verif', updated: 'agg', errors: 'err', skipped: 'salti', ai_reclassified: 'AI' })[k] ?? k} ${v}`)
+                            .join(' · ')}
                         </span>
                       )}
                     </div>

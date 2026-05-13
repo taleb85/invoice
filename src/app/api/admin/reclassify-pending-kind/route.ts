@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
   type DocRow = {
     id: string
     sede_id: string | null
+    fornitore_id: string | null
     oggetto_mail: string | null
     file_name: string | null
     metadata: Record<string, unknown> | null
@@ -88,6 +89,17 @@ export async function POST(req: NextRequest) {
     updated++
   }
 
+  const fornitoreIds = [...new Set(docs.map(d => d.fornitore_id).filter(Boolean) as string[])]
+  let fornitoreNames: string[] = []
+  if (fornitoreIds.length > 0) {
+    const { data: fornitori } = await service
+      .from('fornitori')
+      .select('nome')
+      .in('id', fornitoreIds)
+    if (fornitori) fornitoreNames = fornitori.map(f => f.nome).filter(Boolean)
+  }
+  const tipi = [...new Set(results.map(r => r.to).filter(Boolean) as string[])]
+
   await logActivity(service, {
     userId: profile.id,
     sedeId: body.sede_id ?? null,
@@ -98,6 +110,8 @@ export async function POST(req: NextRequest) {
       checked: docs.length,
       updated,
       skipped,
+      fornitori: fornitoreNames,
+      tipi,
     },
   })
 
