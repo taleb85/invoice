@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
@@ -9,6 +10,8 @@ import { canAccessCentroOperazioniPage } from '@/lib/effective-operator-ui'
 import AppPageHeaderStrip from '@/components/AppPageHeaderStrip'
 import { AppPageHeaderTitleWithDashboardShortcut } from '@/components/AppPageHeaderDashboardShortcut'
 import { BackButton } from '@/components/BackButton'
+import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import { formatDate, formatDateTime } from '@/lib/locale'
 import {
   APP_PAGE_HEADER_STRIP_H1_CLASS,
   APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS,
@@ -52,6 +55,7 @@ type AuditData = {
   statement_con_problemi: {
     id: string
     fornitore_id: string | null
+    fornitore_nome: string | null
     file_url: string | null
     missing_rows: number | null
     created_at: string | null
@@ -87,30 +91,35 @@ function CollapsibleSection({
   count,
   countColor,
   defaultOpen,
+  action,
   children,
 }: {
   title: string
   count: number
   countColor: string
   defaultOpen?: boolean
+  action?: ReactNode
   children: ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
   return (
     <div className="app-card overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between p-4 text-left transition-colors hover:bg-white/[0.03]"
-      >
-        <div className="flex items-center gap-3">
-          <span className={`text-sm font-semibold ${countColor}`}>{title}</span>
-          <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold ${countColor} bg-white/[0.06]`}>
-            {count}
-          </span>
-        </div>
-        <span className={`text-app-fg-muted transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
-      </button>
+      <div className="flex items-center justify-between gap-2 p-4">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="flex items-center gap-3 text-left transition-colors hover:opacity-80"
+        >
+          <div className="flex items-center gap-3">
+            <span className={`text-sm font-semibold ${countColor}`}>{title}</span>
+            <span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[10px] font-bold ${countColor} bg-white/[0.06]`}>
+              {count}
+            </span>
+          </div>
+          <span className={`text-app-fg-muted transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+        </button>
+        {action}
+      </div>
       {open ? <div className="border-t border-app-line-10 p-4">{children}</div> : null}
     </div>
   )
@@ -126,7 +135,7 @@ function StatoBadge({ stato }: { stato: string }) {
 }
 
 export default function VerificaDocumentiPage() {
-  const { t } = useLocale()
+  const { t, locale } = useLocale()
   const { me, loading: meLoading } = useMe()
   const { activeOperator } = useActiveOperator()
   const canView = canAccessCentroOperazioniPage(me, activeOperator)
@@ -134,6 +143,10 @@ export default function VerificaDocumentiPage() {
   const [data, setData] = useState<AuditData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [actionLoading, setActionLoading] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [logActionLoading, setLogActionLoading] = useState<Set<string>>(new Set())
+  const [bulkLogLoading, setBulkLogLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -156,6 +169,103 @@ export default function VerificaDocumentiPage() {
   useEffect(() => {
     if (canView) void load()
   }, [canView, load])
+
+  const handleScarta = useCallback(async (id: string) => {
+    setActionLoading(prev => new Set(prev).add(id))
+    try {
+      const res = await fetch('/api/documenti-da-processare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, azione: 'scarta' }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? `HTTP ${res.status}`)
+      }
+      await load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Errore')
+    } finally {
+      setActionLoading(prev => { const next = new Set(prev); next.delete(id); return next })
+    }
+  }, [load])
+
+  const handleRiprocessa = useCallback(async (id: string) => {
+    setActionLoading(prev => new Set(prev).add(id))
+    try {
+      const res = await fetch('/api/admin/reprocess-log-documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_ids: [id] }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? `HTTP ${res.status}`)
+      }
+      await load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Errore')
+    } finally {
+      setActionLoading(prev => { const next = new Set(prev); next.delete(id); return next })
+    }
+  }, [load])
+
+  const handleRiprocessaTutti = useCallback(async () => {
+    if (!data?.documenti_bloccati.length) return
+    setBulkLoading(true)
+    try {
+      const ids = data.documenti_bloccati.map(d => d.id)
+      const res = await fetch('/api/admin/reprocess-log-documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_ids: ids }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? `HTTP ${res.status}`)
+      }
+      await load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Errore')
+    } finally {
+      setBulkLoading(false)
+    }
+  }, [load, data?.documenti_bloccati])
+
+  const handleRetryLog = useCallback(async (id: string) => {
+    setLogActionLoading(prev => new Set(prev).add(id))
+    try {
+      const res = await fetch(`/api/retry-log/${id}`, { method: 'POST' })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? `HTTP ${res.status}`)
+      }
+      await load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Errore')
+    } finally {
+      setLogActionLoading(prev => { const next = new Set(prev); next.delete(id); return next })
+    }
+  }, [load])
+
+  const handleRiprocessaTuttiLog = useCallback(async () => {
+    if (!data?.errori_sincronizzazione_recenti.length) return
+    setBulkLogLoading(true)
+    try {
+      const results = await Promise.allSettled(
+        data.errori_sincronizzazione_recenti.map(err =>
+          fetch(`/api/retry-log/${err.id}`, { method: 'POST' })
+        )
+      )
+      const failed = results.filter(r => r.status === 'rejected').length
+      if (failed > 0) alert(`${failed} log non hanno potuto essere riprocessati.`)
+      await load()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Errore')
+    } finally {
+      setBulkLogLoading(false)
+    }
+  }, [load, data?.errori_sincronizzazione_recenti])
 
   if (meLoading) {
     return (
@@ -294,6 +404,23 @@ export default function VerificaDocumentiPage() {
                 title="Documenti bloccati (>7 giorni)"
                 count={s?.totale_bloccati ?? 0}
                 countColor={s && s.totale_bloccati > 0 ? 'text-rose-300' : 'text-emerald-300'}
+                action={data.documenti_bloccati.length > 0 ? (
+                  <button
+                    type="button"
+                    disabled={bulkLoading}
+                    onClick={handleRiprocessaTutti}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-40"
+                  >
+                    {bulkLoading ? (
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
+                    ) : (
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                    Riprocessa tutti
+                  </button>
+                ) : undefined}
               >
                 {data.documenti_bloccati.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">Nessun documento bloccato.</p>
@@ -308,6 +435,7 @@ export default function VerificaDocumentiPage() {
                           <th className="pb-2 pr-3 font-semibold">Pending kind</th>
                           <th className="pb-2 pr-3 font-semibold">Giorni</th>
                           <th className="pb-2 pr-3 font-semibold">Creato il</th>
+                          <th className="pb-2 pr-3 font-semibold">Azioni</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
@@ -318,14 +446,14 @@ export default function VerificaDocumentiPage() {
                             <td className="py-2 pr-3 max-w-[200px] truncate" title={doc.file_name ?? ''}>
                               {doc.file_name ? (
                                 doc.file_url ? (
-                                  <a
-                                    href={doc.file_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                  <OpenDocumentInAppButton
+                                    documentoId={doc.id}
+                                    fileUrl={doc.file_url}
+                                    title={doc.file_name ?? undefined}
                                     className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
                                   >
                                     {doc.file_name}
-                                  </a>
+                                  </OpenDocumentInAppButton>
                                 ) : (
                                   doc.file_name
                                 )
@@ -338,7 +466,34 @@ export default function VerificaDocumentiPage() {
                             </td>
                             <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}g</td>
                             <td className="py-2 pr-3 text-app-fg-muted">
-                              {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '—'}
+                              {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
+                            </td>
+                            <td className="py-2 pr-3">
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={actionLoading.has(doc.id)}
+                                  onClick={() => handleRiprocessa(doc.id)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15 disabled:opacity-40"
+                                >
+                                  {actionLoading.has(doc.id) ? (
+                                    <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
+                                  ) : (
+                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                  )}
+                                  Riprocessa
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={actionLoading.has(doc.id)}
+                                  onClick={() => handleScarta(doc.id)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/8 px-2 py-1 text-[10px] font-bold text-rose-200 transition-colors hover:bg-rose-500/15 disabled:opacity-40"
+                                >
+                                  Scarta
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -365,6 +520,7 @@ export default function VerificaDocumentiPage() {
                           <th className="pb-2 pr-3 font-semibold">Pending kind</th>
                           <th className="pb-2 pr-3 font-semibold">Giorni in stato</th>
                           <th className="pb-2 pr-3 font-semibold">Creato il</th>
+                          <th className="pb-2 pr-3 font-semibold">Azione</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
@@ -374,14 +530,14 @@ export default function VerificaDocumentiPage() {
                             <td className="py-2 pr-3 max-w-[200px] truncate" title={doc.file_name ?? ''}>
                               {doc.file_name ? (
                                 doc.file_url ? (
-                                  <a
-                                    href={doc.file_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                  <OpenDocumentInAppButton
+                                    documentoId={doc.id}
+                                    fileUrl={doc.file_url}
+                                    title={doc.file_name ?? undefined}
                                     className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
                                   >
                                     {doc.file_name}
-                                  </a>
+                                  </OpenDocumentInAppButton>
                                 ) : (
                                   doc.file_name
                                 )
@@ -394,7 +550,18 @@ export default function VerificaDocumentiPage() {
                             </td>
                             <td className="py-2 pr-3 font-semibold tabular-nums text-rose-200">{doc.giorni_in_stato}g</td>
                             <td className="py-2 pr-3 text-app-fg-muted">
-                              {doc.created_at ? new Date(doc.created_at).toLocaleDateString() : '—'}
+                              {doc.created_at ? formatDate(doc.created_at, locale) : '—'}
+                            </td>
+                            <td className="py-2 pr-3">
+                              <Link
+                                href="/inbox-ai"
+                                className="inline-flex items-center gap-1 rounded-md border border-indigo-500/30 bg-indigo-500/8 px-2 py-1 text-[10px] font-bold text-indigo-200 transition-colors hover:bg-indigo-500/15"
+                              >
+                                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                                Revisiona
+                              </Link>
                             </td>
                           </tr>
                         ))}
@@ -416,31 +583,48 @@ export default function VerificaDocumentiPage() {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="text-app-fg-muted">
-                          <th className="pb-2 pr-3 font-semibold">Fornitore ID</th>
+                          <th className="pb-2 pr-3 font-semibold">Fornitore</th>
                           <th className="pb-2 pr-3 font-semibold">File</th>
                           <th className="pb-2 pr-3 font-semibold">Righe mancanti</th>
                           <th className="pb-2 pr-3 font-semibold">Creato il</th>
+                          <th className="pb-2 pr-3 font-semibold">Azioni</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
                         {data.statement_con_problemi.map((stmt) => (
                           <tr key={stmt.id} className="text-app-fg hover:bg-white/[0.02]">
-                            <td className="py-2 pr-3 font-mono text-[10px]">{stmt.fornitore_id ?? '—'}</td>
+                            <td className="py-2 pr-3 font-medium text-app-fg">{stmt.fornitore_nome ?? stmt.fornitore_id ?? '—'}</td>
                             <td className="py-2 pr-3 max-w-[200px] truncate" title={stmt.file_url ?? ''}>
                               {stmt.file_url ? (
-                                <a
-                                  href={stmt.file_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <OpenDocumentInAppButton
+                                  statementId={stmt.id}
+                                  fileUrl={stmt.file_url}
                                   className="text-cyan-300 underline decoration-cyan-500/35 underline-offset-2 hover:text-cyan-200"
                                 >
                                   {stmt.file_url.split('/').pop() ?? stmt.file_url}
-                                </a>
+                                </OpenDocumentInAppButton>
                               ) : '—'}
                             </td>
                             <td className="py-2 pr-3 font-semibold tabular-nums text-amber-200">{stmt.missing_rows}</td>
                             <td className="py-2 pr-3 text-app-fg-muted">
-                              {stmt.created_at ? new Date(stmt.created_at).toLocaleDateString() : '—'}
+                              {stmt.created_at ? formatDate(stmt.created_at, locale) : '—'}
+                            </td>
+                            <td className="py-2 pr-3">
+                              <button
+                                type="button"
+                                disabled={actionLoading.has(stmt.id)}
+                                onClick={() => handleRiprocessa(stmt.id)}
+                                className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15 disabled:opacity-40"
+                              >
+                                {actionLoading.has(stmt.id) ? (
+                                  <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
+                                ) : (
+                                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                )}
+                                Riprocessa
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -454,6 +638,23 @@ export default function VerificaDocumentiPage() {
                 title="Errori sincronizzazione (24h)"
                 count={s?.totale_errori_sincro ?? 0}
                 countColor={s && s.totale_errori_sincro > 0 ? 'text-rose-300' : 'text-emerald-300'}
+                action={data.errori_sincronizzazione_recenti.length > 0 ? (
+                  <button
+                    type="button"
+                    disabled={bulkLogLoading}
+                    onClick={handleRiprocessaTuttiLog}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/35 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-40"
+                  >
+                    {bulkLogLoading ? (
+                      <span className="inline-block h-3 w-3 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
+                    ) : (
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                    Riprocessa tutti
+                  </button>
+                ) : undefined}
               >
                 {data.errori_sincronizzazione_recenti.length === 0 ? (
                   <p className="text-sm text-emerald-200/90">Nessun errore di sincronizzazione nelle ultime 24 ore.</p>
@@ -466,6 +667,7 @@ export default function VerificaDocumentiPage() {
                           <th className="pb-2 pr-3 font-semibold">Sede</th>
                           <th className="pb-2 pr-3 font-semibold">Messaggio</th>
                           <th className="pb-2 pr-3 font-semibold">Data</th>
+                          <th className="pb-2 pr-3 font-semibold">Azioni</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-app-line-10">
@@ -481,7 +683,24 @@ export default function VerificaDocumentiPage() {
                               {err.message ?? '—'}
                             </td>
                             <td className="py-2 pr-3 text-app-fg-muted">
-                              {err.data ? new Date(err.data).toLocaleString() : '—'}
+                              {err.data ? formatDateTime(err.data, locale) : '—'}
+                            </td>
+                            <td className="py-2 pr-3">
+                              <button
+                                type="button"
+                                disabled={logActionLoading.has(err.id)}
+                                onClick={() => handleRetryLog(err.id)}
+                                className="inline-flex items-center gap-1 rounded-md border border-cyan-500/30 bg-cyan-500/8 px-2 py-1 text-[10px] font-bold text-cyan-200 transition-colors hover:bg-cyan-500/15 disabled:opacity-40"
+                              >
+                                {logActionLoading.has(err.id) ? (
+                                  <span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-cyan-300 border-t-transparent" />
+                                ) : (
+                                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                )}
+                                Riprocessa
+                              </button>
                             </td>
                           </tr>
                         ))}

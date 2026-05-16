@@ -1466,9 +1466,13 @@ body:has([data-deep-aurora-integration]) .app-duplicate-manager-footer {
 }
 
 body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay {
-  background: rgb(2 6 23 / 0.55) !important;
+  background: rgb(2 6 23 / 0.82) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
+}
+
+.app-aurora-modal-overlay {
+  background: rgb(2 6 23 / 0.92) !important;
 }
 
 /** Dettaglio bolla / consegna fornitore: scrim senza blur (gradiente body resta percepibile). */
@@ -1496,7 +1500,7 @@ body:has([data-deep-aurora-integration])
 .app-aurora-modal-overlay > .app-card {
   border-radius: 16px !important;
   border: 1px solid var(--app-surface-border) !important;
-  background: var(--app-surface-fill) !important;
+  background: rgb(15 23 42 / 0.96) !important;
   background-image: none !important;
   box-shadow: 0 16px 56px rgb(0 0 0 / 0.45) !important;
   backdrop-filter: none !important;
@@ -1505,7 +1509,7 @@ body:has([data-deep-aurora-integration])
 
 body:has([data-deep-aurora-integration]) .app-aurora-modal-overlay > .app-card {
   border: 1px solid var(--app-surface-border) !important;
-  background: var(--app-surface-fill) !important;
+  background: rgb(15 23 42 / 0.96) !important;
   background-image: none !important;
   box-shadow: 0 16px 56px rgb(0 0 0 / 0.38) !important;
 }

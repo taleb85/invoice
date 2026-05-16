@@ -8,6 +8,9 @@
  * tabular document listing multiple transactions, not a single invoice.
  */
 import { geminiGenerateText, geminiGenerateVision, type GeminiUsage } from '@/lib/gemini-vision'
+import { logger } from '@/lib/logger'
+import { validateDocument, logValidationWarnings } from '@/lib/document-validator'
+import { extractDocumentText, isTextBasedExtractable } from '@/lib/document-extractors'
 
 export interface OcrStatementOptions {
   onUsage?: (usage: GeminiUsage) => void
@@ -238,28 +241,45 @@ export async function ocrStatement(
   options?: OcrStatementOptions,
 ): Promise<StatementOcrResult> {
   if (!process.env.GEMINI_API_KEY) {
-    console.warn('[OCR-STMT] GEMINI_API_KEY not configured — skipping statement parsing')
+    logger.warn('[OCR-STMT] GEMINI_API_KEY non configurata — elaborazione estratti conto saltata')
     return { rows: [], extractedPdfDates: null }
   }
 
   const buf = Buffer.from(buffer)
   const SYSTEM_PROMPT = buildStatementPrompt(languageHint)
 
+  const validation = validateDocument(buf, contentType)
+  logValidationWarnings('ocrStatement', validation)
+
+  if (validation.warnings.some((w) => w.code === 'PDF_ENCRYPTED' || w.code === 'PDF_CORRUPT')) {
+    for (const w of validation.warnings) {
+      if (w.code === 'PDF_ENCRYPTED' || w.code === 'PDF_CORRUPT') {
+        logger.error(`[OCR-STMT] ${w.message}`)
+      }
+    }
+    return { rows: [], extractedPdfDates: null }
+  }
+
   if (contentType === 'application/pdf') {
+    logger.info('[OCR-STMT] Elaborazione PDF estratto conto', { sizeKB: (buf.length / 1024).toFixed(0) })
+
     const text = await extractPdfText(buf)
 
     if (text) {
       try {
+        logger.info('[OCR-STMT] Testo PDF estratto — invio a Gemini testo')
         const res = await geminiGenerateText(SYSTEM_PROMPT, text.slice(0, 8000), 2500)
         options?.onUsage?.(res.usage)
         return mergeOcrParse(res.text)
       } catch (err) {
-        console.error('[OCR-STMT] Errore Gemini su PDF testo:', err)
+        logger.error('[OCR-STMT] Errore Gemini su PDF testo:', err)
         return { rows: [], extractedPdfDates: null }
       }
     }
 
-    // Scanned/image-based PDF — send directly to Gemini vision
+    logger.info('[OCR-STMT] PDF senza testo estraibile — invio a Gemini vision', {
+      sizeKB: (buf.length / 1024).toFixed(0),
+    })
     try {
       const base64 = buf.toString('base64')
       const res = await geminiGenerateVision(
@@ -272,13 +292,35 @@ export async function ocrStatement(
       options?.onUsage?.(res.usage)
       return mergeOcrParse(res.text)
     } catch (err) {
-      console.error('[OCR-STMT] Errore Gemini vision su PDF:', err)
+      logger.error('[OCR-STMT] Errore Gemini vision su PDF:', err)
+      return { rows: [], extractedPdfDates: null }
+    }
+  }
+
+  if (isTextBasedExtractable(contentType) && contentType !== 'application/pdf') {
+    logger.info('[OCR-STMT] Elaborazione documento testo', { contentType, sizeKB: (buf.length / 1024).toFixed(0) })
+    const extracted = await extractDocumentText(buf, contentType)
+    if (!extracted.text) {
+      logger.error(`[OCR-STMT] Impossibile estrarre testo da ${contentType}: ${extracted.errorMessage}`)
+      return { rows: [], extractedPdfDates: null }
+    }
+    logger.info('[OCR-STMT] Testo estratto — invio a Gemini testo', { chars: extracted.text.length })
+    try {
+      const res = await geminiGenerateText(SYSTEM_PROMPT, extracted.text.slice(0, 8000), 2500)
+      options?.onUsage?.(res.usage)
+      return mergeOcrParse(res.text)
+    } catch (err) {
+      logger.error(`[OCR-STMT] Errore Gemini su ${contentType}:`, err)
       return { rows: [], extractedPdfDates: null }
     }
   }
 
   const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
   if (imageTypes.includes(contentType)) {
+    logger.info('[OCR-STMT] Elaborazione immagine estratto conto', {
+      contentType,
+      sizeKB: (buf.length / 1024).toFixed(0),
+    })
     try {
       const base64 = buf.toString('base64')
       const res = await geminiGenerateVision(
@@ -291,11 +333,11 @@ export async function ocrStatement(
       options?.onUsage?.(res.usage)
       return mergeOcrParse(res.text)
     } catch (err) {
-      console.error('[OCR-STMT] Errore Gemini su immagine:', err)
+      logger.error('[OCR-STMT] Errore Gemini su immagine:', err)
       return { rows: [], extractedPdfDates: null }
     }
   }
 
-  console.warn(`[OCR-STMT] Tipo non supportato: ${contentType}`)
+  logger.warn(`[OCR-STMT] Tipo non supportato: ${contentType} — formati accettati: PDF, JPEG, PNG, WebP, GIF, DOCX, TXT`)
   return { rows: [], extractedPdfDates: null }
 }

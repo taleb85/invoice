@@ -11,8 +11,9 @@
  *
  * Safe to call multiple times — already-processed docs are skipped.
  *
+ * Body (required):
+ *   sede_id      — branch to process (mandatory)
  * Body (optional):
- *   sede_id      — limit to a specific branch
  *   fornitore_id — limit to a specific supplier
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -34,10 +35,18 @@ export async function POST(req: NextRequest) {
   }
   const { sede_id, fornitore_id } = body
 
+  if (!sede_id) {
+    return NextResponse.json({
+      error: 'sede_id obbligatorio',
+      message: 'Il parametro sede_id è obbligatorio per elaborare gli statement.',
+    }, { status: 400 })
+  }
+
   // ── Check that the statements table exists ──────────────────────────────
   const { error: tableCheck } = await supabase
     .from('statements')
     .select('id')
+    .eq('sede_id', sede_id)
     .limit(1)
 
   if (tableCheck?.code === '42P01') {
@@ -53,9 +62,9 @@ export async function POST(req: NextRequest) {
     .from('documenti_da_processare')
     .select('id, file_url, file_name, content_type, oggetto_mail, fornitore_id, sede_id, created_at')
     .eq('is_statement', true)
+    .eq('sede_id', sede_id)
     .order('created_at', { ascending: false })
 
-  if (sede_id)      docsQuery = docsQuery.eq('sede_id', sede_id)
   if (fornitore_id) docsQuery = docsQuery.eq('fornitore_id', fornitore_id)
 
   const { data: allDocs } = await docsQuery as { data: {
@@ -85,6 +94,10 @@ export async function POST(req: NextRequest) {
   const results: { id: string; total: number; missing: number }[] = []
 
   for (const doc of pending) {
+    // Salta se stesso file_url già processato in questo batch (duplicati in documenti_da_processare)
+    if (alreadyProcessedUrls.has(doc.file_url)) continue
+    alreadyProcessedUrls.add(doc.file_url)
+
     // ── 1. Download file ──────────────────────────────────────────────────
     let buffer: Buffer
     let contentType: string

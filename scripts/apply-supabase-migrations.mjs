@@ -77,6 +77,8 @@ const MIGRATIONS = [
   'supabase/migrations/20260503120000_sedi_file_retention_default_delete.sql',
   'supabase/migrations/20260503140000_sedi_file_retention_days.sql',
   'supabase/migrations/20260507180000_protocollo_fornitori_potenziali.sql',
+  'supabase/migrations/20260515100000_sync_verifica_actions_to_ai_learning.sql',
+  'supabase/migrations/20260515110000_v_coda_unificata_v3.sql',
 ]
 
 function loadEnvLocal() {

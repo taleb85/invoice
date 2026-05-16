@@ -3670,22 +3670,24 @@ export function VerificationStatusTab({
     setStmtsLoading(true)
 
     // Step 1: process any pending statement docs that haven't been parsed yet
-    try {
-      const body = JSON.stringify({ sede_id: sedeId ?? null, fornitore_id: fornitoreId ?? null })
-      const proc = await fetch('/api/process-pending-statements', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
-      })
-      if (proc.status === 409) {
-        // Tables don't exist yet
-        setNeedsMigration(true)
-        setStmtsLoading(false)
-        return
-      }
-      if (proc.ok) {
-        const procJson = await proc.json() as { processed?: number }
-        if ((procJson.processed ?? 0) > 0) autoOpenLatest = true
-      }
-    } catch { /* non-critical — tables may not exist */ }
+    if (sedeId) {
+      try {
+        const body = JSON.stringify({ sede_id: sedeId, fornitore_id: fornitoreId ?? null })
+        const proc = await fetch('/api/process-pending-statements', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+        })
+        if (proc.status === 409) {
+          // Tables don't exist yet
+          setNeedsMigration(true)
+          setStmtsLoading(false)
+          return
+        }
+        if (proc.ok) {
+          const procJson = await proc.json() as { processed?: number }
+          if ((procJson.processed ?? 0) > 0) autoOpenLatest = true
+        }
+      } catch { /* non-critical — tables may not exist */ }
+    }
 
     // Step 2: fetch the list
     const params = new URLSearchParams()

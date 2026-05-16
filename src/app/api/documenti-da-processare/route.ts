@@ -467,6 +467,7 @@ export async function POST(req: NextRequest) {
     azione:
       | 'associa'
       | 'scarta'
+      | 'ignora_mittente'
       | 'aggiorna_fornitore'
       | 'mark_statement'
       | 'set_pending_kind'
@@ -540,7 +541,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // ── set_pending_kind — estratto / bolla / fattura / nota_credito (metadata + is_statement) ──
+  // ── set_pending_kind — classificazione documento + associazione (esce dalla coda) ──
   if (azioneNorm === 'set_pending_kind') {
   if (
     kind !== 'statement' &&
@@ -567,6 +568,7 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase
       .from('documenti_da_processare')
       .update({
+        stato: 'associato',
         is_statement: kind === 'statement',
         metadata: prevMeta,
       })
@@ -730,20 +732,97 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (docError || !doc) return NextResponse.json({ error: 'Documento non trovato' }, { status: 404 })
+
+  // ── finalizza_tipo — alias esplicito (stessa logica di associa + finalizza_da_tipo) ──
+  // Gestito prima del check processableStates per permettere finalizzazione
+  // anche su documenti già in stato 'associato' dalla pagina verifica associazioni
+  if (azioneNorm === 'finalizza_tipo') {
+    const kindToUse = kind ?? (body as Record<string, unknown>).tipo_documento as string | undefined
+
+    if (kindToUse) {
+      const prevMeta =
+        doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+          ? { ...(doc.metadata as Record<string, unknown>) }
+          : {}
+      prevMeta.pending_kind = kindToUse
+      doc.metadata = prevMeta
+      if (kindToUse === 'statement') doc.is_statement = true
+      await supabase
+        .from('documenti_da_processare')
+        .update({
+          metadata: prevMeta,
+          ...(kindToUse === 'statement' ? { is_statement: true } : {}),
+        })
+        .eq('id', id)
+    }
+
+    if (doc.stato === 'associato') {
+      const meta =
+        doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+          ? (doc.metadata as Record<string, unknown>)
+          : {}
+      let tipo = meta.pending_kind as string | undefined
+      if (
+        tipo !== 'bolla' &&
+        tipo !== 'fattura' &&
+        tipo !== 'nota_credito' &&
+        tipo !== 'comunicazione' &&
+        tipo !== 'statement' &&
+        tipo !== 'ordine' &&
+        tipo !== 'listino'
+      ) {
+        tipo = doc.is_statement ? 'statement' : undefined
+      }
+
+      if ((tipo === 'fattura' || tipo === 'nota_credito') && doc.fattura_id) {
+        return NextResponse.json({ ok: true, already_processed: true })
+      }
+      if (tipo === 'bolla' && doc.bolla_id) {
+        return NextResponse.json({ ok: true, already_processed: true })
+      }
+      if (tipo === 'comunicazione' || tipo === 'statement') {
+        return NextResponse.json({ ok: true, already_processed: true })
+      }
+    }
+    return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
+  }
+
+  // ── Check processableStates per tutte le altre azioni ──
   const processableStates = [...DOCUMENTI_PENDING_FILTER_STATES, 'in_attesa']
   if (!processableStates.includes(doc.stato)) {
     return NextResponse.json({ error: 'Documento già processato' }, { status: 400 })
-  }
-
-  // ── finalizza_tipo — alias esplicito (stessa logica di associa + finalizza_da_tipo) ──
-  if (azioneNorm === 'finalizza_tipo') {
-    return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
   }
 
   // ── scarta ────────────────────────────────────────────────────────────────
   if (azioneNorm === 'scarta') {
     await supabase.from('documenti_da_processare').update({ stato: 'scartato' }).eq('id', id)
     return NextResponse.json({ ok: true })
+  }
+
+  // ── ignora_mittente ───────────────────────────────────────────────────────
+  if (azioneNorm === 'ignora_mittente') {
+    const mittRaw = String(doc.mittente ?? '').trim()
+    const sedeDelDoc = doc.sede_id ?? body.sede_id ?? null
+
+    if (mittRaw && sedeDelDoc) {
+      const { error: blErr } = await supabase
+        .from('email_scan_blacklist')
+        .upsert(
+          {
+            sede_id: sedeDelDoc,
+            mittente: mittRaw.toLowerCase(),
+            motivo: 'non_fornitore',
+            aggiunto_da: user.id,
+          },
+          { onConflict: 'sede_id,mittente' },
+        )
+      if (blErr) {
+        console.error('[ignora_mittente] blacklist insert error:', blErr.message)
+      }
+    }
+
+    await supabase.from('documenti_da_processare').update({ stato: 'scartato' }).eq('id', id)
+    return NextResponse.json({ ok: true, ignored: true })
   }
 
   // ── associa ───────────────────────────────────────────────────────────────

@@ -173,13 +173,11 @@ export async function runTripleCheck(
       status = 'bolle_mancanti'
     } else if (!importiCombaciano) {
       status = 'errore_importo'
+    } else if (bolle.length > 0) {
+      const bollaeDeltaOk = Math.abs(bolleSum - line.importo) <= TRIPLE_CHECK_TOLERANCE
+      status = bollaeDeltaOk ? 'ok' : 'bolle_mancanti'
     } else {
       status = 'ok'
-    }
-
-    if (status !== 'bolle_mancanti') {
-      const bollaeDeltaOk = bolle.length === 0 || Math.abs(bolleSum - line.importo) <= TRIPLE_CHECK_TOLERANCE
-      if (!importiCombaciano || !bollaeDeltaOk) status = 'errore_importo'
     }
 
     // Rekki: fattura e bolle coerenti tra loro, ma totale ordine app ≠ prezzo fatturato → ambra dedicata

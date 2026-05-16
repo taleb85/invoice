@@ -10,6 +10,9 @@ import {
   GeminiTransientError,
   type GeminiUsage,
 } from '@/lib/gemini-vision'
+import { logger } from '@/lib/logger'
+import { validateDocument, logValidationWarnings } from '@/lib/document-validator'
+import { extractDocumentText, isTextBasedExtractable } from '@/lib/document-extractors'
 
 export { normalizeTipoDocumento }
 
@@ -462,7 +465,7 @@ async function finalizeParseOutcome(
     (outcome.rawPreview ? ` | anteprima risposta: ${outcome.rawPreview.slice(0, 800)}` : '') +
     (logContext?.file_name ? ` | file: ${logContext.file_name}` : '')
 
-  console.error(`[OCR] ${detail}`)
+  logger.error(`[OCR] ${detail}`)
 
   if (logContext) {
     try {
@@ -481,7 +484,7 @@ async function finalizeParseOutcome(
         },
       ])
     } catch (logErr) {
-      console.error('[OCR] Scrittura log_sincronizzazione fallita:', logErr)
+      logger.error('[OCR] Scrittura log_sincronizzazione fallita:', logErr)
     }
   }
 
@@ -500,7 +503,7 @@ async function finalizeParseOutcomeAndSanitize(
 /* ─────────────────────────────────────────────────────────────
    PDF text extraction
 ───────────────────────────────────────────────────────────── */
-import { extractPdfText } from '@/lib/pdf-parse-utils'
+import { extractPdfText, extractPdfTextDetailed } from '@/lib/pdf-parse-utils'
 
 /* ─────────────────────────────────────────────────────────────
    Main OCR function
@@ -516,12 +519,25 @@ export async function ocrInvoice(
 ): Promise<OcrResult> {
   if (!process.env.GEMINI_API_KEY?.trim()) {
     const err = new OcrInvoiceConfigurationError()
-    console.error(`[OCR] ${err.message}`)
+    logger.error(`[OCR] ${err.message}`)
     throw err
   }
 
   const buf = Buffer.from(buffer)
   const logContext = options?.logContext
+  const ctxLabel = logContext?.file_name ?? 'unknown'
+
+  const validation = validateDocument(buf, contentType)
+  logValidationWarnings(`ocrInvoice(${ctxLabel})`, validation)
+
+  if (!validation.valid && validation.warnings.some((w) => w.code === 'PDF_ENCRYPTED' || w.code === 'PDF_CORRUPT')) {
+    const encWarn = validation.warnings.find((w) => w.code === 'PDF_ENCRYPTED' || w.code === 'PDF_CORRUPT')
+    if (encWarn) {
+      logger.error(`[OCR] ${ctxLabel}: ${encWarn.message}`)
+    }
+    return EMPTY_OCR
+  }
+
   const ignoredCustomerNames = await resolveIgnoredCustomerNamesForOcr(logContext)
   const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'with_attachment', {
     ignoredCustomerNames,
@@ -547,8 +563,37 @@ export async function ocrInvoice(
     rianalizzaVisionSuffix
 
   if (contentType === 'application/pdf') {
-    const text = await extractPdfText(buf)
+    logger.info('[OCR] Elaborazione PDF', {
+      file: ctxLabel,
+      sizeBytes: buf.length,
+      preferVision: options?.preferVisionForPdf,
+    })
+
+    const pdfResult = await extractPdfTextDetailed(buf)
+    const text = pdfResult.text
     const mustUseVision = !text?.trim() || options?.preferVisionForPdf === true
+
+    if (pdfResult.failureReason === 'password_protected') {
+      logger.error(`[OCR] ${ctxLabel}: PDF protetto da password — impossibile elaborare.`)
+      return EMPTY_OCR
+    }
+
+    if (pdfResult.failureReason === 'corrupted' && !text) {
+      logger.error(`[OCR] ${ctxLabel}: PDF corrotto — impossibile estrarre testo o inviare a Vision.`, {
+        error: pdfResult.errorMessage,
+      })
+      return EMPTY_OCR
+    }
+
+    if (pdfResult.failureReason === 'unknown_error' && !text) {
+      logger.error(`[OCR] ${ctxLabel}: Errore sconosciuto durante parsing PDF.`, {
+        error: pdfResult.errorMessage,
+      })
+    }
+
+    if (pdfResult.pageCount !== null && pdfResult.pageCount > 50) {
+      logger.warn(`[OCR] ${ctxLabel}: PDF con ${pdfResult.pageCount} pagine — potrebbe causare timeout o consumo eccessivo di token.`)
+    }
 
     if (!mustUseVision && text) {
       try {
@@ -560,15 +605,15 @@ export async function ocrInvoice(
         if (err instanceof GeminiTransientError) {
           throw new OcrTransientError(`PDF testo: ${err.message}`, err)
         }
-        console.error('[OCR] Gemini error on PDF testo:', err)
+        logger.error(`[OCR] ${ctxLabel}: Gemini error on PDF testo:`, err)
         return EMPTY_OCR
       }
     }
 
     if (text?.trim() && options?.preferVisionForPdf) {
-      console.info('[OCR] preferVisionForPdf: skip text-only pass — use Gemini vision on full PDF (layout + tipo_documento)')
+      logger.info(`[OCR] ${ctxLabel}: preferVisionForPdf — uso Gemini vision su PDF intero (layout + tipo_documento)`)
     } else {
-      console.info('[OCR] PDF senza testo estraibile — invio diretto a Gemini vision')
+      logger.info(`[OCR] ${ctxLabel}: PDF senza testo estraibile — invio diretto a Gemini vision (${(buf.length / 1024).toFixed(0)} KB)`)
     }
     try {
       const base64 = buf.toString('base64')
@@ -586,14 +631,36 @@ export async function ocrInvoice(
       if (err instanceof GeminiTransientError) {
         throw new OcrTransientError(`PDF vision: ${err.message}`, err)
       }
-      console.error('[OCR] Gemini vision error on PDF:', err)
+      logger.error(`[OCR] ${ctxLabel}: Gemini vision error on PDF:`, err)
+      return EMPTY_OCR
+    }
+  }
+
+  if (isTextBasedExtractable(contentType) && contentType !== 'application/pdf') {
+    logger.info(`[OCR] ${ctxLabel}: Elaborazione documento testo (${contentType})`)
+    const extracted = await extractDocumentText(buf, contentType)
+    if (!extracted.text) {
+      logger.error(`[OCR] ${ctxLabel}: Impossibile estrarre testo da ${contentType}: ${extracted.errorMessage}`)
+      return EMPTY_OCR
+    }
+    logger.info(`[OCR] ${ctxLabel}: Testo estratto (${extracted.text.length} caratteri) — invio a Gemini testo`)
+    try {
+      const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(extracted.text), 900)
+      onUsage?.(res.usage)
+      const outcome = parseOcrJson(res.text)
+      return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
+    } catch (err) {
+      if (err instanceof GeminiTransientError) {
+        throw new OcrTransientError(`${contentType} testo: ${err.message}`, err)
+      }
+      logger.error(`[OCR] ${ctxLabel}: Gemini error su ${contentType}:`, err)
       return EMPTY_OCR
     }
   }
 
   const imageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
   if (!imageTypes.includes(contentType)) {
-    console.warn(`[OCR] Unsupported type: ${contentType}`)
+    logger.warn(`[OCR] ${ctxLabel}: Tipo non supportato: ${contentType} — formati accettati: PDF, JPEG, PNG, WebP, GIF, DOCX, TXT`)
     return EMPTY_OCR
   }
 
@@ -613,7 +680,7 @@ export async function ocrInvoice(
     if (err instanceof GeminiTransientError) {
       throw new OcrTransientError(`Vision immagine: ${err.message}`, err)
     }
-    console.error('[OCR] Gemini error on image:', err)
+    logger.error(`[OCR] ${ctxLabel}: Gemini error on image:`, err)
     return EMPTY_OCR
   }
 }
@@ -629,7 +696,7 @@ export async function ocrInvoiceFromEmailBody(
 ): Promise<OcrResult> {
   if (!process.env.GEMINI_API_KEY?.trim()) {
     const err = new OcrInvoiceConfigurationError()
-    console.error(`[OCR] ${err.message}`)
+    logger.error(`[OCR] ${err.message}`)
     throw err
   }
 
@@ -637,10 +704,14 @@ export async function ocrInvoiceFromEmailBody(
   if (!trimmed) return { ...EMPTY_OCR, estrazione_utile: false }
 
   const logContext = options?.logContext
+  const ctxLabel = 'email-body'
   const ignoredCustomerNames = await resolveIgnoredCustomerNamesForOcr(logContext)
   const SYSTEM_PROMPT = buildSystemPrompt(languageHint, 'email_body_only', {
     ignoredCustomerNames,
   })
+
+  const emailLen = trimmed.length
+  logger.info(`[OCR] ${ctxLabel}: Analisi testo email (${emailLen} caratteri)`)
 
   try {
     const res = await geminiGenerateText(
@@ -655,7 +726,7 @@ export async function ocrInvoiceFromEmailBody(
     if (err instanceof GeminiTransientError) {
       throw new OcrTransientError(`Email body: ${err.message}`, err)
     }
-    console.error('[OCR] Gemini error on email-body-only parse:', err)
+    logger.error(`[OCR] ${ctxLabel}: Gemini error on email-body-only parse:`, err)
     return EMPTY_OCR
   }
 }

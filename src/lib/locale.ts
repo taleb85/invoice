@@ -7,6 +7,7 @@ export {
   CURRENCY_COOKIE,
   TIMEZONE_COOKIE,
   formatDate,
+  formatDateTime,
   formatMonthYearUppercase,
   formatCurrency,
 } from './locale-shared'

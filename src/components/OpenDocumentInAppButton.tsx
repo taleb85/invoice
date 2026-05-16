@@ -2,10 +2,47 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { CategoriaDropdown } from '@/components/CategoriaDropdown'
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { attachmentKindFromFileUrl, embedSrcForInlineViewer } from '@/lib/attachment-kind'
 import { useT } from '@/lib/use-t'
 import { CYAN_TABLE_PILL_LINK_CLASSNAME } from '@/components/CyanTablePillLink'
+
+type ActionAnomalia = {
+  tipo: string
+}
+
+type AzioneConsigliata = {
+  action: 'resetta' | 'scarta' | 'elimina_duplicato'
+  label: string
+  color: string
+  border: string
+  bg: string
+}
+
+function viewerAnalizzaAzioneConsigliata(anomalie: ActionAnomalia[]): AzioneConsigliata | null {
+  if (anomalie.length === 0) return null
+  const tipi = new Set(anomalie.map((a) => a.tipo))
+  if (tipi.has('documento_duplicato')) {
+    return { action: 'elimina_duplicato', label: 'Elimina duplicato', color: 'text-purple-200', border: 'border-purple-500/30', bg: 'bg-purple-500/10' }
+  }
+  if (tipi.has('riferimento_inesistente') || tipi.has('riferimento_assente')) {
+    return { action: 'resetta', label: 'Resetta', color: 'text-amber-200', border: 'border-amber-500/30', bg: 'bg-amber-500/10' }
+  }
+  if (tipi.has('file_mancante')) {
+    return { action: 'scarta', label: 'Scarta', color: 'text-rose-200', border: 'border-rose-500/30', bg: 'bg-rose-500/10' }
+  }
+  if (tipi.has('fornitore_mancante') || tipi.has('sede_mancante') || tipi.has('associazione_vecchia')) {
+    return { action: 'resetta', label: 'Resetta', color: 'text-amber-200', border: 'border-amber-500/30', bg: 'bg-amber-500/10' }
+  }
+  return { action: 'resetta', label: 'Resetta', color: 'text-amber-200', border: 'border-amber-500/30', bg: 'bg-amber-500/10' }
+}
+
+type ViewerAction<A extends string> = {
+  action: A
+  label: string
+  onClick: () => void
+}
 
 type Props = {
   bollaId?: string
@@ -25,6 +62,13 @@ type Props = {
    * Usa es. `z-[292]` quando il trigger è dentro una modale con z &gt; 215 (es. anteprima Gestione duplicati).
    */
   viewerOverlayClassName?: string
+  /** Se fornito, mostra una toolbar azioni dentro il viewer. */
+  anomalie?: ActionAnomalia[]
+  viewerActions?: ViewerAction<'scarta' | 'resetta' | 'elimina_duplicato'>[]
+  /** Categoria del documento da mostrare nella toolbar (es. Fattura, Bolla, Estratto conto). */
+  categoria?: string
+  /** Quando fornito, la categoria diventa editabile tramite dropdown. */
+  onCategoriaChange?: (nuovaCategoria: string) => void
 }
 
 function resolveOpenHrefs(p: Pick<Props, 'bollaId' | 'fatturaId' | 'logId' | 'documentoId' | 'statementId'>): {
@@ -103,6 +147,10 @@ export function OpenDocumentInAppButton({
   stopTriggerPropagation,
   title,
   viewerOverlayClassName,
+  anomalie,
+  viewerActions,
+  categoria,
+  onCategoriaChange,
 }: Props) {
   const t = useT()
   const [open, setOpen] = useState(false)
@@ -116,7 +164,7 @@ export function OpenDocumentInAppButton({
   const hrefs = resolveOpenHrefs({ bollaId, fatturaId, logId, documentoId, statementId })
   const jsonHref = hrefs?.jsonHref ?? ''
   const tabHref = hrefs?.tabHref ?? ''
-  const canOpen = Boolean(hrefs && fileUrl?.trim())
+  const canOpen = Boolean(hrefs)
   const kind = fileUrl?.trim() ? attachmentKindFromFileUrl(fileUrl) : 'pdf'
 
   useLayoutEffect(() => {
@@ -257,6 +305,70 @@ export function OpenDocumentInAppButton({
           >
             {t.statements.btnClose}
           </button>
+          {anomalie && anomalie.length > 0 && viewerActions && viewerActions.length > 0 && (
+            <div className="absolute left-2 right-2 top-2 z-20 flex flex-wrap items-center gap-1.5 sm:right-auto sm:left-16">
+              {categoria && onCategoriaChange ? (
+                <CategoriaDropdown
+                  categoria={categoria}
+                  documentoId={documentoId ?? ''}
+                  onCategoriaChange={onCategoriaChange}
+                />
+              ) : categoria ? (
+                <span className="inline-flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 text-[10px] font-bold text-app-fg-muted">
+                  {categoria}
+                </span>
+              ) : null}
+              {(() => {
+                const consiglio = viewerAnalizzaAzioneConsigliata(anomalie)
+                return consiglio ? (
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[10px] font-bold ${consiglio.border} ${consiglio.bg} ${consiglio.color}`}
+                  >
+                    <svg className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{consiglio.label}</span>
+                    <span className="ml-0.5 text-[9px] opacity-60">Consigliato</span>
+                  </span>
+                ) : null
+              })()}
+              {viewerActions.map((a) => (
+                <button
+                  key={a.action}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    a.onClick()
+                    setOpen(false)
+                  }}
+                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-bold transition-colors hover:opacity-80 ${
+                    a.action === 'scarta'
+                      ? 'border-rose-500/30 bg-rose-500/8 text-rose-200'
+                      : a.action === 'elimina_duplicato'
+                        ? 'border-purple-500/30 bg-purple-500/8 text-purple-200'
+                        : 'border-amber-500/30 bg-amber-500/8 text-amber-200'
+                  }`}
+                >
+                  {a.label === 'Scarta' && (
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
+                  {a.label === 'Resetta' && (
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  )}
+                  {a.label === 'Elimina duplicato' && (
+                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M23 1l-6 6m0 0l6 6m-6-6H1" />
+                    </svg>
+                  )}
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="app-aurora-viewer-fill flex min-h-0 flex-1 flex-col overflow-hidden pt-12 bg-slate-950/35">
             {loading ? (
               <div className="flex min-h-0 flex-1 items-center justify-center">

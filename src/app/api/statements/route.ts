@@ -167,6 +167,15 @@ export async function GET(req: NextRequest) {
     fornitore_nome: nomeMap[(s.fornitore_id as string) ?? ''] ?? null,
   }))
 
-  const hasMissing = statements.some((s: { missing_rows?: number }) => (s.missing_rows ?? 0) > 0)
-  return NextResponse.json({ statements, hasMissing })
+  // Deduplica per file_url: stesso documento fisico non deve apparire piu' volte
+  const seen = new Set<string>()
+  const deduped = statements.filter(s => {
+    const key = (s.file_url as string) ?? (s.id as string)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  const hasMissing = deduped.some((s: { missing_rows?: number }) => (s.missing_rows ?? 0) > 0)
+  return NextResponse.json({ statements: deduped, hasMissing })
 }

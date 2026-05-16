@@ -6,6 +6,8 @@ import {
 } from '@/lib/gemini-vision'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { inferContentTypeFromBuffer } from '@/lib/fix-ocr-dates-helpers'
+import { validateDocument, logValidationWarnings } from '@/lib/document-validator'
+import { logger } from '@/lib/logger'
 
 const CLASSIFY_SYSTEM = `Sei un assistente per documenti contabili italiani (ristorazione / fornitori).
 Analizza il documento allegato e rispondi SOLO con un oggetto JSON valido, senza markdown, senza testo fuori dal JSON.
@@ -181,6 +183,31 @@ export async function classifyDocumentWithGemini(
     mime = 'application/pdf'
   }
 
+  const ctxLabel = row.file_name ?? row.id ?? 'unknown'
+  const validation = validateDocument(data, mime)
+  logValidationWarnings(`classifyDocumentWithGemini(${ctxLabel})`, validation)
+
+  if (
+    !validation.valid &&
+    validation.warnings.some(
+      (w) => w.code === 'PDF_ENCRYPTED' || w.code === 'PDF_CORRUPT',
+    )
+  ) {
+    const encWarn = validation.warnings.find(
+      (w) => w.code === 'PDF_ENCRYPTED' || w.code === 'PDF_CORRUPT',
+    )
+    const errorMsg = encWarn?.message ?? 'Documento non elaborabile per la classificazione AI'
+    logger.error(`[Classify] ${ctxLabel}: ${errorMsg}`)
+    return {
+      doc_id: row.id,
+      tipo_suggerito: 'altro',
+      fornitore_suggerito: null,
+      azione_consigliata: errorMsg,
+      confidenza: 0,
+      error: errorMsg,
+    }
+  }
+
   const base64 = data.toString('base64')
   const userPrompt =
     `Nome file: ${row.file_name ?? 'sconosciuto'}\n\n` +
@@ -189,6 +216,8 @@ export async function classifyDocumentWithGemini(
     `- Use "listino" only for supplier PRICE communications (e.g. "Price Update", price list with products/prices for purchasing).\n` +
     `- Use "nota_credito" for CREDIT NOTES / Credit Memos / Note di Credito / Avoir / Gutschrift with negative amounts or credit wording.\n` +
     `Return only the requested JSON.`
+
+  logger.info(`[Classify] Invio a Gemini Vision: ${ctxLabel}, sizeKB: ${(data.length / 1024).toFixed(1)}, mime: ${mime}`)
 
   try {
     const { text } = await geminiGenerateVision(CLASSIFY_SYSTEM, mime, base64, userPrompt, 700)

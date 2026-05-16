@@ -8,6 +8,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 const STUCK_DAYS_THRESHOLD = 7
+const AI_DIAG_DAYS = 7
 
 type StatoCount = {
   stato: string
@@ -28,6 +29,7 @@ type StuckDocument = {
 type StatementIssue = {
   id: string
   fornitore_id: string | null
+  fornitore_nome: string | null
   file_url: string | null
   missing_rows: number | null
   created_at: string | null
@@ -39,6 +41,21 @@ type SyncError = {
   stato: string
   sede_id: string | null
   message?: string | null
+}
+
+type AiDiagnosticError = {
+  id: string
+  data: string | null
+  stato: string
+  errore_dettaglio: string | null
+  allegato_nome: string | null
+  fornitore_id: string | null
+  categoria: 'pdf_critto' | 'pdf_corrotto' | 'gemini_errore' | 'documento_non_leggibile' | 'altro'
+}
+
+type AiFormatCount = {
+  content_type: string
+  count: number
 }
 
 type AuditResult = {
@@ -56,6 +73,12 @@ type AuditResult = {
     totale_da_revisionare: number
     totale_statement_issues: number
     totale_errori_sincro: number
+  }
+  diagnostica_ai: {
+    errori_classificazione: AiDiagnosticError[]
+    documenti_con_file_bloccati: number
+    distribuzione_formati: AiFormatCount[]
+    totale_errori_ai: number
   }
 }
 
@@ -106,7 +129,9 @@ export async function GET(req: NextRequest) {
     if (sedeId) daRevQ = daRevQ.or(`sede_id.eq.${sedeId},sede_id.is.null`)
     const { data: daRevRaw, error: daRevErr } = await daRevQ
 
-    const [statementsWithIssuesRes, syncErrorsRes] = await Promise.all([
+    const sogliaAi = new Date(oggi.getTime() - AI_DIAG_DAYS * 24 * 60 * 60 * 1000).toISOString()
+
+    const [statementsWithIssuesRes, syncErrorsRes, aiErrorsRes, contentTypesRes] = await Promise.all([
       (() => {
         let q = supabase
           .from('statements')
@@ -128,7 +153,54 @@ export async function GET(req: NextRequest) {
         if (sedeId) q = q.eq('sede_id', sedeId)
         return q
       })(),
+      (() => {
+        let q = supabase
+          .from('log_sincronizzazione')
+          .select('id, data, stato, errore_dettaglio, allegato_nome, fornitore_id')
+          .eq('stato', 'bolla_non_trovata')
+          .gte('data', sogliaAi)
+          .order('data', { ascending: false })
+          .limit(100)
+        if (sedeId) q = q.eq('sede_id', sedeId)
+        return q
+      })(),
+      (() => {
+        let q = supabase
+          .from('documenti_da_processare')
+          .select('content_type')
+          .not('content_type', 'is', null)
+          .limit(5000)
+        if (sedeId) q = q.or(`sede_id.eq.${sedeId},sede_id.is.null`)
+        return q
+      })(),
     ])
+
+    const aiErrors: AiDiagnosticError[] = (aiErrorsRes.data ?? []).map((r) => {
+      const dettaglio = (r.errore_dettaglio ?? '').toLowerCase()
+      let categoria: AiDiagnosticError['categoria'] = 'altro'
+      if (/password|protetto|encrypt|crypt/i.test(dettaglio)) categoria = 'pdf_critto'
+      else if (/corrotto|corrupt|invalid.*pdf|not a pdf/i.test(dettaglio)) categoria = 'pdf_corrotto'
+      else if (/gemini|configuration|transient|api.key/i.test(dettaglio)) categoria = 'gemini_errore'
+      else if (/vuoto|empty|non leggibile|unreadable|no text|estrazione/i.test(dettaglio)) categoria = 'documento_non_leggibile'
+      return {
+        id: r.id,
+        data: r.data,
+        stato: r.stato,
+        errore_dettaglio: (r.errore_dettaglio as string | null) ?? null,
+        allegato_nome: (r.allegato_nome as string | null) ?? null,
+        fornitore_id: (r.fornitore_id as string | null) ?? null,
+        categoria,
+      }
+    })
+
+    const formatCountMap = new Map<string, number>()
+    for (const row of (contentTypesRes.data ?? [])) {
+      const ct = (row.content_type as string | null) ?? 'unknown'
+      formatCountMap.set(ct, (formatCountMap.get(ct) ?? 0) + 1)
+    }
+    const distribuzioneFormati: AiFormatCount[] = Array.from(formatCountMap.entries())
+      .map(([content_type, count]) => ({ content_type, count }))
+      .sort((a, b) => b.count - a.count)
 
     const stuckDocuments: StuckDocument[] = (stuckRaw ?? []).map((r) => {
       const created = r.created_at ? new Date(r.created_at) : null
@@ -169,10 +241,27 @@ export async function GET(req: NextRequest) {
     const statementsWithIssues: StatementIssue[] = (statementsWithIssuesRes.data ?? []).map((r) => ({
       id: r.id,
       fornitore_id: r.fornitore_id,
+      fornitore_nome: null,
       file_url: r.file_url,
       missing_rows: r.missing_rows,
       created_at: r.created_at,
     }))
+
+    const fornitoreIds = statementsWithIssues
+      .map((s) => s.fornitore_id)
+      .filter((id): id is string => id !== null)
+    if (fornitoreIds.length > 0) {
+      const { data: fornitori } = await supabase
+        .from('fornitori')
+        .select('id, nome')
+        .in('id', fornitoreIds)
+      const nameMap = new Map((fornitori ?? []).map((f) => [f.id, f.nome]))
+      for (const s of statementsWithIssues) {
+        if (s.fornitore_id && nameMap.has(s.fornitore_id)) {
+          s.fornitore_nome = nameMap.get(s.fornitore_id)!
+        }
+      }
+    }
 
     const syncErrors: SyncError[] = (syncErrorsRes.data ?? []).map((r) => ({
       id: r.id,
@@ -193,6 +282,8 @@ export async function GET(req: NextRequest) {
       .reduce((sum, s) => sum + s.count, 0)
     const tasso = totaleReale > 0 ? Math.round((terminalCount / totaleReale) * 10000) / 100 : 0
 
+    const docConFileBloccati = stuckDocuments.filter((d) => d.file_url).length
+
     const result: AuditResult = {
       riepilogo: {
         totale: totaleReale,
@@ -208,6 +299,12 @@ export async function GET(req: NextRequest) {
         totale_da_revisionare: totalDaRevisionare,
         totale_statement_issues: totalStatementIssues,
         totale_errori_sincro: totalErroriSincro,
+      },
+      diagnostica_ai: {
+        errori_classificazione: aiErrors,
+        documenti_con_file_bloccati: docConFileBloccati,
+        distribuzione_formati: distribuzioneFormati,
+        totale_errori_ai: aiErrors.length,
       },
     }
 

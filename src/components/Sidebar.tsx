@@ -644,6 +644,24 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </Link>
           )}
 
+          {(isMasterAdmin || isAdminSede) && (
+            <>
+              <Link href="/centro-controllo" onClick={onClose} className={navLink(pathname === '/centro-controllo')}>
+                <svg className={`w-4 h-4 shrink-0 ${icon.analytics}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="truncate">Centro Controllo</span>
+              </Link>
+              <Link href="/centro-controllo/apprendimento" onClick={onClose} className={`${navLink(pathname.startsWith('/centro-controllo/apprendimento'))} pl-8`}>
+                 <svg className="w-4 h-4 shrink-0 text-app-fg-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+                 </svg>
+                 <span className="truncate">Apprendimento AI</span>
+               </Link>
+            </>
+          )}
+
           {/* Main flat nav items — master: nel cassetto sotto Aziende; altri: qui. */}
           {!isMasterAdmin &&
             flatNavRestItems.map((item) => {
