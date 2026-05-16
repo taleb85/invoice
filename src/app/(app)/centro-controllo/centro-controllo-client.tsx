@@ -329,18 +329,21 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
             <span className={`text-app-fg-muted transition-transform ${associatiOpen ? 'rotate-180' : ''}`}>▾</span>
           </button>
           {associatiOpen && associatiDocs.length > 0 && (
-            <div className="border-t border-app-line-15">
-              {associatiDocs.slice(0, 20).map((doc: Record<string, unknown>) => (
-                <div key={doc.id as string} className="flex items-center gap-3 border-b border-app-line-10 px-4 py-2.5 text-xs last:border-0">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-app-fg">{doc.fornitore ? (doc.fornitore as Record<string, unknown>).nome as string : '—'}</p>
-                    <p className="truncate text-app-fg-muted">{doc.file_name as string ?? ''}</p>
-                  </div>
-                  <span className="inline-flex items-center rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
-                    {(doc.anomalie as unknown[]).length} anomalie
-                  </span>
-                </div>
-              ))}
+             <div className="border-t border-app-line-15">
+               {associatiDocs.slice(0, 20).map((doc: unknown) => {
+                 const d = doc as Record<string, unknown>
+                 return (
+                 <div key={d.id as string} className="flex items-center gap-3 border-b border-app-line-10 px-4 py-2.5 text-xs last:border-0">
+                   <div className="min-w-0 flex-1">
+                     <p className="truncate font-medium text-app-fg">{d.fornitore ? (d.fornitore as Record<string, unknown>).nome as string : '—'}</p>
+                     <p className="truncate text-app-fg-muted">{d.file_name as string ?? ''}</p>
+                   </div>
+                   <span className="inline-flex items-center rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
+                     {(d.anomalie as unknown[]).length} anomalie
+                   </span>
+                 </div>
+                 )
+               })}
             </div>
           )}
         </div>

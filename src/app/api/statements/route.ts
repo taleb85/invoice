@@ -169,7 +169,7 @@ export async function GET(req: NextRequest) {
 
   // Deduplica per file_url: stesso documento fisico non deve apparire piu' volte
   const seen = new Set<string>()
-  const deduped = statements.filter(s => {
+  const deduped = statements.filter((s: Record<string, unknown>) => {
     const key = (s.file_url as string) ?? (s.id as string)
     if (seen.has(key)) return false
     seen.add(key)

@@ -138,14 +138,15 @@ async function buildVerificaAnomalie(
 
     // Conta ogni coppia una volta sola (id < dup.id) per evitare doppio conteggio
     for (const dup of duplicati) {
-      if (id > dup.id) continue
+      const dupId = dup.id as string
+      if (id > dupId) continue
       anomalie.push({
-        id: `dup-${id}-${dup.id}`,
+        id: `dup-${id}-${dupId}`,
         tipo: 'documento_duplicato',
         gravita: 'alta',
-        descrizione: `Possibile duplicato del documento ${dup.id}. Stesso fornitore e ${numFattura ? `stesso numero fattura (${numFattura})` : importo != null ? `stesso importo (€${importo})` : 'stessi dati'}.`,
+        descrizione: `Possibile duplicato del documento ${dupId}. Stesso fornitore e ${numFattura ? `stesso numero fattura (${numFattura})` : importo != null ? `stesso importo (€${importo})` : 'stessi dati'}.`,
         documento_id: id,
-        riferimento_id: dup.id as string,
+        riferimento_id: dupId,
       })
     }
   }
