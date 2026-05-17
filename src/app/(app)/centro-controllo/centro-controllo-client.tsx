@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useT } from '@/lib/use-t'
 import { useToast } from '@/lib/toast-context'
 import {
   AlertCircle,
@@ -13,6 +12,10 @@ import {
   Search,
   X,
   Zap,
+  RefreshCw,
+  UserCheck,
+  ScanLine,
+  Calendar,
 } from 'lucide-react'
 import { GlyphCheck } from '@/components/ui/glyph-icons'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
@@ -25,6 +28,11 @@ import {
 } from '@/lib/command-system/registry'
 import { suggerisciAzione, registraConfermaApprendimento, registraEsecuzioneDiretta } from '@/lib/action-learning/engine'
 import { formattaPriorita, labelPendingKind } from '@/lib/command-system/utils'
+import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
+import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
+import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
+import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
+import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import AssociaFornitoreDialog from './_dialogs/associa-fornitore-dialog'
 import AggiornaCategoriaDialog from './_dialogs/aggiorna-categoria-dialog'
 import RifiutaFatturaDialog from './_dialogs/rifiuta-fattura-dialog'
@@ -34,15 +42,41 @@ INITIALIZE_COMMANDS()
 
 interface Props {
   sedeId: string | null
-  isMasterAdmin: boolean
 }
 
 type FiltroOrigine = 'tutti' | 'documento_da_processare' | 'riga_statement' | 'fattura' | 'errore_sincronizzazione' | 'bolla_aperta'
 
-export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) {
-  const t = useT()
-  const { showToast } = useToast()
+// ─── Sezione wrapper ─────────────────────────────────────────────────────────
+function SectionCard({ title, badge, action, children, className }: {
+  title: string
+  badge?: string | number | null
+  action?: React.ReactNode
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={`app-card overflow-hidden ${className ?? ''}`}>
+      <div className="flex items-center justify-between gap-2 border-b border-app-line-15 px-4 py-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-semibold text-app-fg-muted uppercase tracking-wide truncate">{title}</span>
+          {badge != null && (
+            <span className="inline-flex items-center rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-300 shrink-0">
+              {badge}
+            </span>
+          )}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}
 
+export default function CentroControlloClient({ sedeId }: Props) {
+  const { showToast } = useToast()
+  const { effectiveSedeId } = useManualDeliverySede()
+
+  // ── Coda documenti ───────────────────────────────────────────────────────
   const [items, setItems] = useState<CodaItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,33 +85,66 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
   const [eseguendoId, setEseguendoId] = useState<string | null>(null)
   const [cmdPaletteAperta, setCmdPaletteAperta] = useState(false)
   const [ricercaCmd, setRicercaCmd] = useState('')
-  const [autoResolving, setAutoResolving] = useState(false)
-  const [autoResolveStep, setAutoResolveStep] = useState(0)
-  const [autoResolveDocs, setAutoResolveDocs] = useState<Record<string, { id: string; file_name: string | null; status: 'processing' | 'scartato' | 'resettato' | 'categorizzato' | 'saltato'; kind?: string }>>({})
-  const autoResolveSteps = [
-    'Caricamento documenti…',
-    'Verifica file archivio…',
-    'Analisi apprendimento AI…',
-    'Risoluzione anomalie…',
-  ]
 
-  useEffect(() => {
-    if (!autoResolving) {
-      setAutoResolveStep(0)
-      return
-    }
-    const interval = setInterval(() => {
-      setAutoResolveStep(prev => Math.min(prev + 1, autoResolveSteps.length - 1))
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [autoResolving])
-  const [associatiStats, setAssociatiStats] = useState<{ totale: number; con_anomalie: number; anomalie_totali: number } | null>(null)
-  const [associatiDocs, setAssociatiDocs] = useState<unknown[]>([])
-  const [associatiOpen, setAssociatiOpen] = useState(false)
+  // ── Statement ────────────────────────────────────────────────────────────
+  const [stmtAnomalieOpen, setStmtAnomalieOpen] = useState(false)
+  const [stmtPendingOpen, setStmtPendingOpen] = useState(false)
+  const [statementStats, setStatementStats] = useState<{
+    total: number
+    con_anomalie: number
+    anomalie_totali: number
+    pending_count: number
+    pending_list: Array<{
+      id: string
+      file_name: string | null
+      email_subject: string | null
+      created_at: string
+      fornitore_nome: string | null
+    }>
+    recenti: Array<{
+      id: string
+      file_url: string | null
+      email_subject: string | null
+      status: string
+      total_rows: number
+      missing_rows: number
+      created_at: string
+      fornitore_nome: string | null
+    }>
+  } | null>(null)
+  const [processingStatements, setProcessingStatements] = useState(false)
+  const [processStmtResult, setProcessStmtResult] = useState<{
+    processed: number
+    skipped: number
+    errors: string[]
+    message: string
+  } | null>(null)
+
+  // ── Monitoraggio sistema ─────────────────────────────────────────────────
+  const [sysMonitor, setSysMonitor] = useState<{
+    lastCleanupAt: string | null
+    lastCleanupProcessed: number | null
+    lastCleanupScanned: number | null
+    lastCycleErrors: string[]
+    documentsAutoProcessedToday: number
+    scopeSedeId: string | null
+  } | null>(null)
+  const [sysMonitorLoading, setSysMonitorLoading] = useState(false)
+  const [forceCleanupLoading, setForceCleanupLoading] = useState(false)
+
+  // ── Sync storica ─────────────────────────────────────────────────────────
+  const [historicSyncLoading, setHistoricSyncLoading] = useState(false)
+  const [historicSyncError, setHistoricSyncError] = useState<string | null>(null)
+  const [historicSyncResult, setHistoricSyncResult] = useState<string | null>(null)
+  const [historicProgressLine, setHistoricProgressLine] = useState<string | null>(null)
+
+  // ── Duplicati ────────────────────────────────────────────────────────────
+  const [dupOpen, setDupOpen] = useState(false)
 
   type DialogType = 'associa' | 'categoria' | 'rifiuta_fattura' | 'assegna_fattura'
   const [dialogAperto, setDialogAperto] = useState<{ tipo: DialogType; item: CodaItem } | null>(null)
 
+  // ── Caricamento coda ─────────────────────────────────────────────────────
   const caricaCoda = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -119,42 +186,149 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
     } finally {
       setLoading(false)
     }
-  }, [sedeId])
+  }, [sedeId, showToast])
 
-  const caricaAssociati = useCallback(async () => {
-    const params = new URLSearchParams()
-    if (sedeId) params.set('sede_id', sedeId)
-    params.set('report', 'true')
+  // ── Caricamento statement ───────────────────────────────────────────────
+  const caricaStatement = useCallback(async () => {
+    if (!sedeId) return
     try {
-      const res2 = await fetch(`/api/documenti-associati?${params}`)
-      if (res2.ok) {
-        const data2 = await res2.json()
-        if (data2.success) {
-          setAssociatiStats({
-            totale: data2.statistiche?.totale ?? 0,
-            con_anomalie: data2.statistiche?.totale_con_anomalie ?? 0,
-            anomalie_totali: data2.statistiche?.anomalie?.totali ?? 0,
-          })
-        }
-      }
-      const paramsList = new URLSearchParams()
-      if (sedeId) paramsList.set('sede_id', sedeId)
-      paramsList.set('limit', '50')
-      paramsList.set('anomalie_only', 'true')
-      const res3 = await fetch(`/api/documenti-associati?${paramsList}`)
-      if (res3.ok) {
-        const data3 = await res3.json()
-        if (data3.success && data3.data?.length) {
-          setAssociatiDocs(data3.data.slice(0, 50))
-        }
+      const res = await fetch(`/api/statements/recent?sede_id=${encodeURIComponent(sedeId)}`)
+      if (res.ok) {
+        const data = await res.json()
+        setStatementStats(data)
       }
     } catch { /* non-critical */ }
   }, [sedeId])
 
+  // ── Elaborazione statement ──────────────────────────────────────────────
+  const handleProcessaStatement = async () => {
+    if (!sedeId) return
+    setProcessingStatements(true)
+    setProcessStmtResult(null)
+    try {
+      const res = await fetch('/api/process-pending-statements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sede_id: sedeId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setProcessStmtResult({
+          processed: data.processed ?? 0,
+          skipped: data.skipped ?? 0,
+          errors: data.errors ?? [],
+          message: data.message ?? 'Operazione completata.',
+        })
+      } else {
+        setProcessStmtResult({
+          processed: 0,
+          skipped: 0,
+          errors: [data.error || data.message || `Errore ${res.status}`],
+          message: 'Errore durante l\'elaborazione.',
+        })
+      }
+      await caricaStatement()
+    } catch (e) {
+      setProcessStmtResult({
+        processed: 0,
+        skipped: 0,
+        errors: [e instanceof Error ? e.message : 'Richiesta fallita'],
+        message: 'Errore di rete.',
+      })
+    } finally {
+      setProcessingStatements(false)
+    }
+  }
+
+  // ── Monitoraggio sistema ────────────────────────────────────────────────
+  const caricaMonitoraggio = useCallback(async () => {
+    setSysMonitorLoading(true)
+    try {
+      const res = await fetch('/api/centro-operazioni/dashboard', { cache: 'no-store' })
+      if (res.ok) {
+        const j = await res.json()
+        setSysMonitor(j)
+      }
+    } catch { /* non-critical */ }
+    finally { setSysMonitorLoading(false) }
+  }, [])
+
+  const handleForceCleanup = async () => {
+    setForceCleanupLoading(true)
+    try {
+      const res = await fetch('/api/centro-operazioni/force-cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const j = await res.json()
+      if (res.ok) {
+        showToast(`Cleanup: ${j.processed ?? 0} processati, ${j.scanned ?? 0} esaminati`, 'success')
+        await caricaMonitoraggio()
+      } else {
+        showToast(j.error || 'Errore cleanup', 'error')
+      }
+    } catch (e) {
+      showToast(`Errore: ${e instanceof Error ? e.message : 'Richiesta fallita'}`, 'error')
+    } finally {
+      setForceCleanupLoading(false)
+    }
+  }
+
+  // ── Sync storica ────────────────────────────────────────────────────────
+  const handleHistoricSync = async () => {
+    setHistoricSyncLoading(true)
+    setHistoricSyncError(null)
+    setHistoricSyncResult(null)
+    setHistoricProgressLine(null)
+    let cumulativeRicevuti = 0
+    try {
+      for (;;) {
+        const res = await fetch('/api/scan-emails', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'historical',
+            client_locale: typeof navigator !== 'undefined' && typeof navigator.language === 'string'
+              ? navigator.language : undefined,
+            ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
+          }),
+        })
+        const j = await res.json() as { error?: string; done?: boolean; ricevuti?: number; progressLabel?: string }
+        if (!res.ok) {
+          setHistoricSyncError(j.error ?? `HTTP ${res.status}`)
+          return
+        }
+        if (typeof j.done !== 'boolean') {
+          setHistoricSyncError('Risposta sync storica non valida')
+          return
+        }
+        const r = typeof j.ricevuti === 'number' && Number.isFinite(j.ricevuti) ? j.ricevuti : 0
+        cumulativeRicevuti += r
+        const label = typeof j.progressLabel === 'string' ? j.progressLabel : ''
+        if (!j.done && label) {
+          setHistoricProgressLine(`Elaborazione: ${label}…`)
+        } else {
+          setHistoricProgressLine(null)
+        }
+        if (j.done === true) break
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+      }
+      setHistoricProgressLine(null)
+      setHistoricSyncResult(`Completato!\n${cumulativeRicevuti} documenti importati dall'anno precedente`)
+    } catch (e) {
+      setHistoricSyncError(e instanceof Error ? e.message : 'Errore di rete')
+    } finally {
+      setHistoricSyncLoading(false)
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     caricaCoda()
-    caricaAssociati()
-  }, [caricaCoda, caricaAssociati])
+    caricaStatement()
+    caricaMonitoraggio()
+  }, [caricaCoda, caricaStatement, caricaMonitoraggio])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -181,6 +355,7 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
     fattura: items.filter((i) => i.origine === 'fattura').length,
     errore_sincronizzazione: items.filter((i) => i.origine === 'errore_sincronizzazione').length,
     bolla_aperta: items.filter((i) => i.origine === 'bolla_aperta').length,
+    riga_statement: items.filter((i) => i.origine === 'riga_statement').length,
   }), [items])
 
   const eseguiComando = async (item: CodaItem, commandId: CommandId) => {
@@ -242,54 +417,25 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
     }
   }
 
-  const handleAutoResolve = async () => {
-    setAutoResolving(true)
-    const docsMap: Record<string, { id: string; file_name: string | null; status: 'processing' | 'scartato' | 'resettato' | 'categorizzato' | 'saltato'; kind?: string }> = {}
-    for (const d of (associatiDocs as Record<string, unknown>[])) {
-      const id = d.id as string
-      docsMap[id] = { id, file_name: (d.file_name as string) ?? null, status: 'processing' }
-    }
-    setAutoResolveDocs(docsMap)
-    try {
-      const res = await fetch('/api/documenti-associati/auto-resolve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      const data = await res.json()
-      if (data.success) {
-        const updated = { ...docsMap }
-        for (const r of (data.risultati ?? []) as { id: string; action: string; file_name?: string | null }[]) {
-          if (updated[r.id]) {
-            updated[r.id] = { ...updated[r.id], status: r.action === 'scarta' ? 'scartato' : 'resettato' }
-          }
-        }
-        for (const h of (data.hint_applicati_dettaglio ?? []) as { id: string; kind: string; file_name?: string | null }[]) {
-          if (updated[h.id]) {
-            updated[h.id] = { ...updated[h.id], status: 'categorizzato', kind: h.kind }
-          }
-        }
-        for (const id of Object.keys(updated)) {
-          if (updated[id].status === 'processing') {
-            updated[id].status = 'saltato'
-          }
-        }
-        setAutoResolveDocs(updated)
-        showToast(data.message, 'success')
-      } else {
-        showToast(data.error || 'Errore auto-resolve', 'error')
-      }
-      await caricaCoda()
-      await caricaAssociati()
-    } catch (e) {
-      showToast(`Errore: ${e instanceof Error ? e.message : 'Richiesta fallita'}`, 'error')
-    } finally {
-      setAutoResolving(false)
-    }
+  function formatAgo(iso: string | null): string {
+    if (!iso) return '—'
+    const d = new Date(iso).getTime()
+    if (Number.isNaN(d)) return '—'
+    const m = Math.max(0, Math.floor((Date.now() - d) / 60000))
+    if (m < 1) return 'Meno di 1 minuto fa'
+    if (m === 1) return '1 minuto fa'
+    if (m < 60) return `${m} minuti fa`
+    const h = Math.floor(m / 60)
+    if (h === 1) return 'Circa 1 ora fa'
+    if (h < 48) return `Circa ${h} ore fa`
+    const dd = Math.floor(h / 24)
+    return `Circa ${dd} giorni fa`
   }
 
   return (
-    <div className="space-y-4 pb-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="space-y-6 pb-6">
+      {/* ── Stat cards ───────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <StatCard
           label="Totale"
           valore={conteggi.tutti}
@@ -315,14 +461,6 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
           onClick={() => setFiltroOrigine('fattura')}
         />
         <StatCard
-          label="Errori sincro"
-          valore={conteggi.errore_sincronizzazione}
-          icona={<X className="w-5 h-5" />}
-          colore="text-rose-400"
-          attivo={filtroOrigine === 'errore_sincronizzazione'}
-          onClick={() => setFiltroOrigine('errore_sincronizzazione')}
-        />
-        <StatCard
           label="Bolle aperte"
           valore={conteggi.bolla_aperta}
           icona={<ExternalLink className="w-5 h-5" />}
@@ -330,172 +468,414 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
           attivo={filtroOrigine === 'bolla_aperta'}
           onClick={() => setFiltroOrigine('bolla_aperta')}
         />
+        <StatCard
+          label="Statement"
+          valore={conteggi.riga_statement}
+          icona={<FileText className="w-5 h-5" />}
+          colore="text-purple-400"
+          attivo={filtroOrigine === 'riga_statement'}
+          onClick={() => setFiltroOrigine('riga_statement')}
+        />
+        <StatCard
+          label="Errori sincro"
+          valore={conteggi.errore_sincronizzazione}
+          icona={<X className="w-5 h-5" />}
+          colore="text-rose-400"
+          attivo={filtroOrigine === 'errore_sincronizzazione'}
+          onClick={() => setFiltroOrigine('errore_sincronizzazione')}
+        />
       </div>
 
-      <div className="flex items-center justify-between gap-3">
-        {autoResolving ? (
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
-              <span className="text-xs font-semibold text-purple-300">Auto-risolvo anomalie…</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-purple-950/50">
-                <div
-                  className="h-full rounded-full bg-purple-500 transition-all duration-700 ease-out"
-                  style={{ width: `${((autoResolveStep + 1) / autoResolveSteps.length) * 100}%` }}
-                />
-              </div>
-              <span className="shrink-0 text-[10px] font-medium text-purple-300/70">
-                {autoResolveSteps[autoResolveStep]}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={handleAutoResolve}
-            disabled={autoResolving}
-            className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-purple-500 disabled:opacity-50"
+      {/* ── Layout 2-colonne ──────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1fr] xl:gap-8">
+
+        {/* ════════════════════════════════════════════════════════════════════
+            COLONNA 1: MONITORAGGIO & STATO
+           ════════════════════════════════════════════════════════════════════ */}
+        <div className="flex min-w-0 flex-col gap-6">
+          <SectionCard
+            title="Monitoraggio sistema"
+            badge={sysMonitor?.documentsAutoProcessedToday != null ? `${sysMonitor.documentsAutoProcessedToday} oggi` : null}
+            action={
+              <button
+                type="button"
+                onClick={caricaMonitoraggio}
+                disabled={sysMonitorLoading}
+                className="inline-flex items-center gap-1 rounded-lg bg-app-line-15 px-2 py-1 text-[11px] font-medium text-app-fg-muted transition-colors hover:bg-app-line-25 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 ${sysMonitorLoading ? 'animate-spin' : ''}`} />
+              </button>
+            }
           >
-            <Zap className="w-3.5 h-3.5" />
-            Auto-risolvi anomalie
-          </button>
-        )}
-        <a
-          href="/centro-controllo/apprendimento"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-app-line-15 px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-25"
-        >
-          <Brain className="w-3.5 h-3.5" />
-          Apprendimento AI
-        </a>
-      </div>
-
-      {Object.keys(autoResolveDocs).length > 0 && (
-        <div className="app-card overflow-hidden">
-          <div className="flex items-center gap-2 border-b border-app-line-15 px-4 py-2.5">
-            <span className="text-xs font-semibold text-app-fg-muted uppercase tracking-wide">
-              Documenti processati
-            </span>
-            <span className="inline-flex items-center rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-300">
-              {Object.keys(autoResolveDocs).length}
-            </span>
-          </div>
-          <div className="max-h-64 divide-y divide-app-line-10 overflow-y-auto">
-            {Object.values(autoResolveDocs).map((ad) => (
-              <div key={ad.id} className="flex items-center gap-3 px-4 py-2 text-xs">
-                {ad.status === 'processing' ? (
-                  <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-purple-400" />
-                ) : ad.status === 'scartato' ? (
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400">✗</span>
-                ) : ad.status === 'resettato' ? (
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[9px] font-bold text-amber-400">⟳</span>
-                ) : ad.status === 'categorizzato' ? (
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[9px] font-bold text-emerald-400">✓</span>
-                ) : (
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-500/20 text-[9px] font-bold text-slate-400">⏭</span>
+            {sysMonitorLoading && !sysMonitor ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-4 h-4 animate-spin text-app-fg-muted" />
+              </div>
+            ) : sysMonitor ? (
+              <div className="divide-y divide-app-line-10">
+                <div className="px-4 py-2.5 text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-app-fg-muted">Ultimo cleanup</span>
+                    <span className="font-medium text-app-fg text-right">{formatAgo(sysMonitor.lastCleanupAt)}</span>
+                  </div>
+                  {sysMonitor.lastCleanupAt && (
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-app-fg-muted">Data esatta</span>
+                      <span className="text-app-fg-muted/70">{new Date(sysMonitor.lastCleanupAt).toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <span className="text-app-fg-muted">Ultimo ciclo</span>
+                    <span className="font-medium text-app-fg">
+                      {sysMonitor.lastCleanupProcessed != null ? `${sysMonitor.lastCleanupProcessed} processati` : '—'}
+                      {sysMonitor.lastCleanupScanned != null ? ` / ${sysMonitor.lastCleanupScanned} esaminati` : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-app-fg-muted">Auto-processati oggi</span>
+                    <span className="font-medium text-emerald-400">{sysMonitor.documentsAutoProcessedToday}</span>
+                  </div>
+                </div>
+                {sysMonitor.lastCycleErrors.length > 0 && (
+                  <div className="px-4 py-2 text-[11px] text-rose-300/70 space-y-0.5 max-h-20 overflow-y-auto">
+                    <p className="font-medium text-rose-300 mb-1">Errori ultimo ciclo:</p>
+                    {sysMonitor.lastCycleErrors.map((e, i) => (
+                      <p key={i} className="truncate">{e}</p>
+                    ))}
+                  </div>
                 )}
-                <span className="min-w-0 flex-1 truncate text-app-fg">
-                  {ad.file_name ?? ad.id.slice(0, 12)}
-                </span>
-                <span className={`shrink-0 font-medium ${
-                  ad.status === 'processing' ? 'text-purple-300' :
-                  ad.status === 'scartato' ? 'text-rose-400' :
-                  ad.status === 'resettato' ? 'text-amber-400' :
-                  ad.status === 'categorizzato' ? 'text-emerald-400' :
-                  'text-slate-400'
-                }`}>
-                  {ad.status === 'processing' ? 'In elaborazione…' :
-                   ad.status === 'scartato' ? 'Scartato' :
-                   ad.status === 'resettato' ? 'Riassegnato' :
-                   ad.status === 'categorizzato' ? `Categorizzato (${ad.kind ?? '—'})` :
-                   'Nessuna anomalia'}
-                </span>
+                <div className="px-4 py-2.5">
+                  <button
+                    type="button"
+                    onClick={handleForceCleanup}
+                    disabled={forceCleanupLoading}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18 disabled:opacity-50"
+                  >
+                    {forceCleanupLoading ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Zap className="w-3 h-3" />
+                    )}
+                    Forza cleanup ora
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            ) : (
+              <div className="px-4 py-4 text-xs text-app-fg-muted text-center">Nessun dato disponibile</div>
+            )}
+          </SectionCard>
 
-      {associatiStats && associatiStats.con_anomalie > 0 && (
-        <div className="app-card overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setAssociatiOpen(!associatiOpen)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-app-line-5"
-          >
-            <div className="flex items-center gap-3">
-              <span className={`text-sm font-semibold ${associatiOpen ? 'text-amber-300' : 'text-app-fg-muted'}`}>
-                Documenti associati con anomalie
-              </span>
-              <span className="inline-flex items-center justify-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                {associatiStats.con_anomalie}
-              </span>
-              <span className="text-xs text-app-fg-muted">
-                ({associatiStats.anomalie_totali} anomalie)
-              </span>
-            </div>
-            <span className={`text-app-fg-muted transition-transform ${associatiOpen ? 'rotate-180' : ''}`}>▾</span>
-          </button>
-          {associatiOpen && associatiDocs.length > 0 && (
-             <div className="border-t border-app-line-15">
-               {associatiDocs.slice(0, 20).map((doc: unknown) => {
-                 const d = doc as Record<string, unknown>
-                 return (
-                 <div key={d.id as string} className="flex items-center gap-3 border-b border-app-line-10 px-4 py-2.5 text-xs last:border-0">
-                   <div className="min-w-0 flex-1">
-                     <p className="truncate font-medium text-app-fg">{d.fornitore ? (d.fornitore as Record<string, unknown>).nome as string : '—'}</p>
-                     <p className="truncate text-app-fg-muted">{d.file_name as string ?? ''}</p>
-                   </div>
-                   <span className="inline-flex items-center rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">
-                     {(d.anomalie as unknown[]).length} anomalie
-                   </span>
-                 </div>
-                 )
-               })}
+          {/* ── Coda documenti ── */}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-app-fg-muted" />
+              <span className="ml-2 text-sm text-app-fg-muted">Caricamento coda...</span>
             </div>
           )}
-        </div>
-      )}
 
-      {loading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-app-fg-muted" />
-          <span className="ml-2 text-app-fg-muted">Caricamento coda...</span>
-        </div>
-      )}
+          {error && (
+            <div className="p-4 bg-rose-950/30 border border-rose-800/40 rounded-lg text-rose-300 text-sm">
+              {error}
+              <button onClick={caricaCoda} className="ml-2 underline hover:no-underline">Riprova</button>
+            </div>
+          )}
 
-      {error && (
-        <div className="p-4 bg-rose-950/30 border border-rose-800/40 rounded-lg text-rose-300 text-sm">
-          {error}
-          <button onClick={caricaCoda} className="ml-2 underline hover:no-underline">Riprova</button>
-        </div>
-      )}
+          {!loading && !error && itemsFiltrati.length === 0 && (
+            <SectionCard title="Coda documenti">
+              <div className="text-center py-8 text-app-fg-muted">
+                <CheckCircle className="w-10 h-10 mx-auto mb-2 text-white/[0.12]" />
+                <p className="text-sm font-medium">Nessun documento in coda</p>
+                <p className="text-xs">Tutti i documenti sono stati processati</p>
+              </div>
+            </SectionCard>
+          )}
 
-      {!loading && !error && itemsFiltrati.length === 0 && (
-        <div className="text-center py-12 text-app-fg-muted">
-          <CheckCircle className="w-12 h-12 mx-auto mb-3 text-white/[0.12]" />
-          <p className="text-lg font-medium">Nessun documento in coda</p>
-          <p className="text-sm">Tutti i documenti sono stati processati</p>
+          {!loading && !error && itemsFiltrati.length > 0 && (
+            <SectionCard title="Coda documenti" badge={itemsFiltrati.length}>
+              <div className="divide-y divide-app-line-10">
+                {itemsFiltrati.map((item) => (
+                  <RigaDocumento
+                    key={item.id}
+                    item={item}
+                    sedeId={sedeId}
+                    suggerimento={suggerimenti.get(item.id) ?? null}
+                    eseguendoId={eseguendoId}
+                    onEsegui={eseguiComando}
+                    onConfermaSuggerimento={confermaSuggerimento}
+                    onRifiutaSuggerimento={rifiutaSuggerimento}
+                  />
+                ))}
+              </div>
+            </SectionCard>
+          )}
         </div>
-      )}
 
-      {!loading && !error && itemsFiltrati.length > 0 && (
-        <div className="space-y-2">
-          {itemsFiltrati.map((item) => (
-            <RigaDocumento
-              key={item.id}
-              item={item}
-              sedeId={sedeId}
-              suggerimento={suggerimenti.get(item.id) ?? null}
-              eseguendoId={eseguendoId}
-              onEsegui={eseguiComando}
-              onConfermaSuggerimento={confermaSuggerimento}
-              onRifiutaSuggerimento={rifiutaSuggerimento}
-            />
-          ))}
+        {/* ════════════════════════════════════════════════════════════════════
+            COLONNA 2: STRUMENTI OPERATIVI
+           ════════════════════════════════════════════════════════════════════ */}
+        <div className="flex min-w-0 flex-col gap-6">
+          {/* ── Statement ── */}
+          {statementStats && (
+            <SectionCard
+              title="Statement"
+              badge={statementStats.total}
+              action={
+                <a
+                  href="/statements/da-processare"
+                  className="inline-flex items-center gap-1 rounded-lg bg-app-line-15 px-2.5 py-1 text-[11px] font-medium text-app-fg-muted transition-colors hover:bg-app-line-25"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Vedi tutti
+                </a>
+              }
+            >
+              <div className="divide-y divide-app-line-10">
+                <div className="px-4 py-3">
+                  {statementStats.pending_count === 0 ? (
+                    <div className="flex items-center gap-2 text-xs text-app-fg-muted">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                      Nessuno statement in sospeso
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleProcessaStatement}
+                          disabled={processingStatements}
+                          className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-purple-500 disabled:opacity-50"
+                        >
+                          {processingStatements ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Zap className="w-3.5 h-3.5" />
+                          )}
+                          {processingStatements
+                            ? `Elaborazione ${statementStats.pending_list.length} statement…`
+                            : 'Elabora statement in sospeso'}
+                          {!processingStatements && statementStats.pending_count > 0 && (
+                            <span className="inline-flex items-center rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold">
+                              {statementStats.pending_count}
+                            </span>
+                          )}
+                        </button>
+                        {!processingStatements && statementStats.pending_list.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setStmtPendingOpen(!stmtPendingOpen)}
+                            className="text-[11px] font-medium text-app-fg-muted underline decoration-app-line-15 underline-offset-2 hover:text-app-fg transition-colors"
+                          >
+                            {stmtPendingOpen ? 'Nascondi elenco' : `Vedi ${statementStats.pending_list.length} file`}
+                          </button>
+                        )}
+                      </div>
+                      {processingStatements && (
+                        <p className="text-xs text-purple-300/70 animate-pulse">
+                          Elaborazione in corso — verranno processati {statementStats.pending_list.length} file
+                        </p>
+                      )}
+                      {stmtPendingOpen && !processingStatements && (
+                        <div className="max-h-40 divide-y divide-app-line-10 overflow-y-auto rounded-lg border border-app-line-15 bg-app-line-5/50">
+                          {statementStats.pending_list.slice(0, 20).map((p) => (
+                            <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 text-[11px]">
+                              <FileText className="w-3 h-3 shrink-0 text-purple-400" />
+                              <span className="truncate text-app-fg">{p.file_name ?? p.email_subject ?? '—'}</span>
+                              {p.fornitore_nome && (
+                                <span className="shrink-0 text-app-fg-muted">{p.fornitore_nome}</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {processStmtResult && (
+                  <div className="px-4 py-2.5 text-xs space-y-1">
+                    <div className="flex items-center gap-4">
+                      <span className="text-emerald-400 font-medium">Processati: {processStmtResult.processed}</span>
+                      <span className="text-slate-400">Saltati: {processStmtResult.skipped}</span>
+                      {processStmtResult.errors.length > 0 && (
+                        <span className="text-rose-400">Errori: {processStmtResult.errors.length}</span>
+                      )}
+                    </div>
+                    {processStmtResult.errors.length > 0 && (
+                      <div className="max-h-20 overflow-y-auto space-y-0.5">
+                        {processStmtResult.errors.map((e, i) => (
+                          <p key={i} className="text-[11px] text-rose-300/70 truncate">{e}</p>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-app-fg-muted">{processStmtResult.message}</p>
+                  </div>
+                )}
+
+                {statementStats.recenti.length > 0 && (
+                  <>
+                    <div className="px-4 py-1.5 text-[10px] font-semibold text-app-fg-muted uppercase tracking-wide bg-app-line-5">
+                      Ultimi elaborati
+                    </div>
+                    <div className="max-h-48 divide-y divide-app-line-10 overflow-y-auto">
+                      {statementStats.recenti.slice(0, 8).map((s) => (
+                        <div key={s.id} className="flex items-center gap-3 px-4 py-2 text-xs">
+                          {s.missing_rows > 0 ? (
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400">!</span>
+                          ) : s.status === 'error' ? (
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400">✗</span>
+                          ) : (
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[9px] font-bold text-emerald-400">✓</span>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-app-fg">{s.fornitore_nome ?? 'Senza fornitore'}</p>
+                            <p className="truncate text-app-fg-muted">{s.email_subject ?? s.file_url?.split('/').pop() ?? '—'}</p>
+                          </div>
+                          <span className={`shrink-0 font-medium ${s.missing_rows > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                            {s.missing_rows > 0 ? `${s.missing_rows}/${s.total_rows} anomalie` : `${s.total_rows} righe OK`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {statementStats.con_anomalie > 0 && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setStmtAnomalieOpen(!stmtAnomalieOpen)}
+                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-app-line-5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-semibold ${stmtAnomalieOpen ? 'text-rose-300' : 'text-app-fg-muted'}`}>
+                          Statement con anomalie
+                        </span>
+                        <span className="inline-flex items-center justify-center rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-300">{statementStats.con_anomalie}</span>
+                        <span className="text-xs text-app-fg-muted">({statementStats.anomalie_totali} anomalie)</span>
+                      </div>
+                      <span className={`text-app-fg-muted transition-transform ${stmtAnomalieOpen ? 'rotate-180' : ''}`}>▾</span>
+                    </button>
+                    {stmtAnomalieOpen && (
+                      <div className="border-t border-app-line-15">
+                        {statementStats.recenti.filter(s => s.missing_rows > 0).slice(0, 8).map((s) => (
+                          <div key={s.id} className="flex items-center gap-3 border-b border-app-line-10 px-4 py-2.5 text-xs last:border-0">
+                            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400">!</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-medium text-app-fg">{s.fornitore_nome ?? 'Senza fornitore'}</p>
+                              <p className="truncate text-app-fg-muted">{s.email_subject ?? s.file_url?.split('/').pop() ?? '—'}</p>
+                            </div>
+                            <span className="inline-flex items-center rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-300">{s.missing_rows}/{s.total_rows} anomalie</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
+
+          {/* ── OCR & Qualità ── */}
+          <SectionCard title="OCR & Qualità">
+            <div className="divide-y divide-app-line-10">
+              <div className="px-4 py-3">
+                <ReclassifyPendingKindCard />
+              </div>
+              <div className="px-4 py-3">
+                <FixOcrDatesCard anchorId="cc-ocr-dates" />
+              </div>
+              <div className="px-4 py-3">
+                <AiReclassifyCard />
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* ── Sync & Email ── */}
+          <SectionCard title="Sync & Email">
+            <div className="divide-y divide-app-line-10">
+              <div className="px-4 py-3">
+                <p className="text-xs font-semibold text-app-fg">Sync storica (anno precedente)</p>
+                <p className="mt-1 text-xs text-app-fg-muted">
+                  Scarica tutte le email degli ultimi 365 giorni per il confronto con l'anno fiscale.
+                </p>
+                <p className="mt-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-[11px] text-amber-100/90">
+                  Operazione lenta — può richiedere diversi minuti. Esegui solo una volta.
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={historicSyncLoading}
+                    onClick={handleHistoricSync}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/45 bg-violet-500/12 px-3 py-1.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:opacity-50"
+                  >
+                    {historicSyncLoading ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Calendar className="w-3 h-3" />
+                    )}
+                    Avvia sync storica
+                  </button>
+                  {historicSyncError && <span className="text-xs text-rose-300">{historicSyncError}</span>}
+                </div>
+                {historicProgressLine && (
+                  <p className="mt-2 text-xs text-app-fg-muted">{historicProgressLine}</p>
+                )}
+                {historicSyncResult && (
+                  <p className="mt-2 whitespace-pre-line text-xs text-emerald-200/90">{historicSyncResult}</p>
+                )}
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* ── Manutenzione ── */}
+          <SectionCard title="Manutenzione">
+            <div className="divide-y divide-app-line-10">
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-app-fg">Cerca duplicati fatture</p>
+                  <p className="text-xs text-app-fg-muted">Stesso fornitore, stessa data e stesso numero fattura.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDupOpen(true)}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18"
+                >
+                  <ScanLine className="w-3 h-3" />
+                  Scansiona
+                </button>
+              </div>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-app-fg">Audit abbinamenti fornitore</p>
+                  <p className="text-xs text-app-fg-muted">Allinea email mittente e fornitori assegnati.</p>
+                </div>
+                <a
+                  href="/inbox-ai?tab=audit"
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
+                >
+                  <UserCheck className="w-3 h-3" />
+                  Apri audit
+                </a>
+              </div>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-app-fg">Apprendimento AI</p>
+                  <p className="text-xs text-app-fg-muted">Statistiche e pattern di apprendimento automatico.</p>
+                </div>
+                <a
+                  href="/centro-controllo/apprendimento"
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
+                >
+                  <Brain className="w-3 h-3" />
+                  Apri
+                </a>
+              </div>
+            </div>
+          </SectionCard>
         </div>
-      )}
+      </div>
+
+      {/* ── Modali e overlay ── */}
 
       {cmdPaletteAperta && (
         <CommandPalette
@@ -539,9 +919,13 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
         onClose={() => setDialogAperto(null)}
         onSuccess={handleDialogSuccess}
       />
+
+      <DuplicateManager open={dupOpen} onOpenChange={setDupOpen} />
     </div>
   )
 }
+
+// ─── Componenti interni ─────────────────────────────────────────────────────
 
 function StatCard({
   label,
@@ -567,7 +951,7 @@ function StatCard({
           : 'border-app-line-22 hover:border-app-line-28'
       }`}
     >
-      <div className={`mb-2 flex items-center gap-2`}>
+      <div className="mb-2 flex items-center gap-2">
         <span className={colore}>{icona}</span>
         <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{label}</p>
       </div>
@@ -647,7 +1031,6 @@ function RigaDocumento({
       <div className={`app-card-bar-accent ${priorita.colore.split(' ')[0].replace('text-', 'bg-')}`} aria-hidden />
       <div className="flex items-start gap-3 p-3 md:gap-4 md:p-4">
         <div className="flex-1 min-w-0">
-          {/* ── Riga 1: priorità · tipo · fornitore · importo ── */}
           <div className="flex items-center gap-2 mb-0.5">
             <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${priorita.colore}`}>
               {priorita.label}
@@ -663,7 +1046,6 @@ function RigaDocumento({
             )}
           </div>
 
-          {/* ── Riga 2: riferimento / numero documento ── */}
           {hasDoc ? (
             <div className="mb-0.5">
               <OpenDocumentInAppButton
@@ -684,12 +1066,10 @@ function RigaDocumento({
             </p>
           )}
 
-          {/* ── Riga 3: nome file (se diverso dal riferimento) ── */}
           {item.nome_file && item.nome_file !== item.riferimenti && item.nome_file !== item.numero_documento && (
             <p className="text-[11px] text-app-fg-muted/50 truncate mb-0.5">{item.nome_file}</p>
           )}
 
-          {/* ── Riga 4: mittente · oggetto mail ── */}
           {(item.mittente || item.oggetto_mail) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mb-0.5 text-[11px] text-app-fg-muted/60">
               {item.mittente && <span>{item.mittente}</span>}
@@ -701,7 +1081,6 @@ function RigaDocumento({
             </div>
           )}
 
-          {/* ── Riga 5: info OCR ── */}
           {ocrInfo.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-2 mb-0.5">
               {ocrInfo.map((info, i) => (
@@ -712,7 +1091,6 @@ function RigaDocumento({
             </div>
           )}
 
-          {/* ── Riga 6: date ── */}
           <div className="flex items-center gap-3 text-[11px] text-app-fg-muted/50">
             {item.data_doc && <span>Data doc: {item.data_doc}</span>}
             {item.data_inserimento && <span>Inserito: {item.data_inserimento}</span>}
@@ -723,14 +1101,12 @@ function RigaDocumento({
             )}
           </div>
 
-          {/* ── Riga 7: dettaglio errore sincro ── */}
           {erroreDettaglio && (
             <div className="mt-1 text-[11px] text-rose-300/70 truncate max-w-full" title={erroreDettaglio}>
               {erroreDettaglio}
             </div>
           )}
 
-          {/* ── Riga 8: contesto estratto conto (delta, fattura, bolle) ── */}
           {item.origine === 'riga_statement' && (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
               {deltaImporto != null && (
@@ -752,7 +1128,6 @@ function RigaDocumento({
             </div>
           )}
 
-          {/* ── Suggerimento AI ── */}
           {suggerimento && (
             <div className="mt-2 flex flex-wrap items-center gap-2 p-2 bg-teal-950/30 border border-teal-800/40 rounded text-sm">
               <span className="text-teal-300 font-medium">Suggerimento:</span>
@@ -783,7 +1158,6 @@ function RigaDocumento({
             </div>
           )}
 
-          {/* ── Pulsanti azione ── */}
           {azioniDisponibili.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-app-line-15 pt-3">
               {azioniDisponibili.map((cmd) => (

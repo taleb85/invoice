@@ -287,6 +287,13 @@ export async function persistKnownFornitoreEmailScanWithFile(
 
   if (fornitore.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
     const dataDocLocal = documentDateYmdFromOcr(ocr)
+    // Se OCR non estrae una data, usa oggi come fallback.
+    // La bolla/fattura viene comunque creata (visibile nei KPI), ma
+    // il documento va in revisione così l'utente può correggere la data.
+    const todayYmd = new Date().toISOString().slice(0, 10)
+    const dataDoc = dataDocLocal ?? todayYmd
+    const hasDocDateFallback = !dataDocLocal
+
     const inferredKind = inferPendingDocumentKindForQueueRow({
       oggetto_mail: email.subject,
       file_name: storedFileName,
@@ -302,54 +309,51 @@ export async function persistKnownFornitoreEmailScanWithFile(
 
     if (targetKind === 'fattura') {
       const bypassOcrTipoGuard = args.docKind === 'fattura'
-      if (!dataDocLocal) {
+      if (hasDocDateFallback) {
         needsDocRevision = true
       } else if (!bypassOcrTipoGuard && !ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
       } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
-      } else {
-        const res = await insertEmailAutoFattura(supabase, {
-          fornitoreId: fornitore.id,
-          sedeId: documentSedeId,
-          dataDoc: dataDocLocal,
-          fileUrl: file_url,
-          meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
-        })
-        if ('id' in res) {
-          registratoAutoFatturaId = res.id
-          counters.bozzaCreate++
-          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
-          fetch(`${baseUrl}/api/price-anomalies/check`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
-            },
-            body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
-          }).catch(() => {})
-        } else if ('duplicateId' in res) {
-          duplicateSkippedFatturaId = res.duplicateId
-          needsDocRevision = true
-        }
+      }
+      // Crea sempre la fattura con la data disponibile (fallback = oggi)
+      const res = await insertEmailAutoFattura(supabase, {
+        fornitoreId: fornitore.id,
+        sedeId: documentSedeId,
+        dataDoc,
+        fileUrl: file_url,
+        meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+      })
+      if ('id' in res) {
+        registratoAutoFatturaId = res.id
+        counters.bozzaCreate++
+        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+        fetch(`${baseUrl}/api/price-anomalies/check`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+          },
+          body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+        }).catch(() => {})
+      } else if ('duplicateId' in res) {
+        duplicateSkippedFatturaId = res.duplicateId
+        needsDocRevision = true
       }
     } else if (targetKind === 'bolla') {
-      if (!dataDocLocal) {
-        needsDocRevision = true
-      } else {
-        const numRef = normalizeNumeroBolla(ocr.numero_fattura)
-        const rb = await insertEmailAutoBolla(supabase, {
-          fornitoreId: fornitore.id,
-          sedeId: documentSedeId,
-          dataDoc: dataDocLocal,
-          fileUrl: file_url,
-          numeroBolla: numRef,
-          importo: ocr.totale_iva_inclusa ?? null,
-        })
-        if ('id' in rb) {
-          registratoAutoBollaId = rb.id
-          counters.bozzaCreate++
-        }
+      if (hasDocDateFallback) needsDocRevision = true
+      const numRef = normalizeNumeroBolla(ocr.numero_fattura)
+      const rb = await insertEmailAutoBolla(supabase, {
+        fornitoreId: fornitore.id,
+        sedeId: documentSedeId,
+        dataDoc,
+        fileUrl: file_url,
+        numeroBolla: numRef,
+        importo: ocr.totale_iva_inclusa ?? null,
+      })
+      if ('id' in rb) {
+        registratoAutoBollaId = rb.id
+        counters.bozzaCreate++
       }
     } else {
       needsDocRevision = true

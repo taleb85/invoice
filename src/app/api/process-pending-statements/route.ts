@@ -1,21 +1,3 @@
-/**
- * POST /api/process-pending-statements
- *
- * Finds all documents in `documenti_da_processare` that are flagged as
- * statements (is_statement = true) but have no corresponding record in the
- * `statements` table, then:
- *   1. Downloads the file from Storage
- *   2. Runs ocrStatement to extract rows
- *   3. Saves to `statements` + `statement_rows`
- *   4. Runs the triple-check and stores results per row
- *
- * Safe to call multiple times — already-processed docs are skipped.
- *
- * Body (required):
- *   sede_id      — branch to process (mandatory)
- * Body (optional):
- *   fornitore_id — limit to a specific supplier
- */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
@@ -77,24 +59,54 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ processed: 0, skipped: 0, errors: [], message: 'Nessun documento statement in attesa.' })
   }
 
-  // ── Find which file_urls are already processed (avoids schema-cache issues on doc_id) ──
+  // ── Find which file_urls are already processed ─────────────────────────
   const { data: existingStmts } = await supabase
     .from('statements')
     .select('file_url')
     .in('file_url', allDocs.map(d => d.file_url))
 
   const alreadyProcessedUrls = new Set((existingStmts ?? []).map((s: { file_url: string | null }) => s.file_url))
-  const pending = allDocs.filter(d => !alreadyProcessedUrls.has(d.file_url))
+
+  // Deduplica per file_url e filtra quelli già elaborati
+  const seenFileUrls = new Set<string>()
+  const pending = allDocs.filter(d => {
+    if (alreadyProcessedUrls.has(d.file_url)) return false
+    if (!d.file_url || seenFileUrls.has(d.file_url)) return false
+    seenFileUrls.add(d.file_url)
+    return true
+  })
 
   if (!pending.length) {
     return NextResponse.json({ processed: 0, skipped: allDocs.length, errors: [], message: 'Tutti i documenti sono già stati processati.' })
+  }
+
+  /**
+   * Dopo aver processato un file_url con successo o errore, marca tutte le righe
+   * in documenti_da_processare con lo stesso file_url come "associato".
+   * In questo modo:
+   *  - Le righe duplicate vengono automaticamente rimosse dalla coda
+   *  - Query future con is_statement = true non le includono più
+   *  - Non serve più caricarli in memoria a ogni chiamata API
+   */
+  async function markDocRowsAsProcessed(fileUrl: string) {
+    const { error: markErr } = await supabase
+      .from('documenti_da_processare')
+      .update({
+        is_statement: false,
+        stato: 'associato',
+      })
+      .eq('file_url', fileUrl)
+      .eq('sede_id', sede_id)
+      .in('stato', ['da_processare', 'da_associare', 'da_revisionare'])
+    if (markErr) {
+      logger.warn(`[PENDING-STMT] Impossibile marcare duplicati come processati per ${fileUrl}: ${markErr.message}`)
+    }
   }
 
   const errors: string[] = []
   const results: { id: string; total: number; missing: number }[] = []
 
   for (const doc of pending) {
-    // Salta se stesso file_url già processato in questo batch (duplicati in documenti_da_processare)
     if (alreadyProcessedUrls.has(doc.file_url)) continue
     alreadyProcessedUrls.add(doc.file_url)
 
@@ -122,7 +134,7 @@ export async function POST(req: NextRequest) {
       const msg = `Nessuna riga estratta dal PDF per doc ${doc.id}`
       logger.warn(`[PENDING-STMT] ${msg}`)
       errors.push(msg)
-      // Still create a statement record with error status so we don't retry indefinitely
+      // Crea statement con status 'error' così il file_url viene registrato
       await supabase
         .from('statements')
         .insert([{
@@ -135,13 +147,15 @@ export async function POST(req: NextRequest) {
           total_rows: 0,
           missing_rows: 0,
         }])
+      // Marca i duplicati come processati
+      await markDocRowsAsProcessed(doc.file_url)
       continue
     }
 
     const sedeId      = doc.sede_id
     const fornitoreId = doc.fornitore_id
 
-    // ── 3. Create statement record ──────────────────────────────────────────
+    // ── 3. Create statement record (safe concurrent insert) ──────────────────
     const { data: stmtRow, error: stmtErr } = await supabase
       .from('statements')
       .insert([{
@@ -156,9 +170,18 @@ export async function POST(req: NextRequest) {
         extracted_pdf_dates:  extractedPdfDates,
       }])
       .select('id')
-      .single()
+      .maybeSingle()
 
     if (stmtErr || !stmtRow) {
+      // Se l'errore è dovuto a UNIQUE VIOLATION (file_url già presente),
+      // significa che un'altra richiesta concorrente ha già processato questo file.
+      // Marca comunque i duplicati e salta.
+      if (stmtErr?.message?.includes('unique') || stmtErr?.code === '23505') {
+        logger.info(`[PENDING-STMT] Documento già processato da richiesta concorrente: ${doc.file_url}`)
+        await markDocRowsAsProcessed(doc.file_url)
+        errors.push(`Documento già processato: ${doc.file_name ?? doc.file_url}`)
+        continue
+      }
       const msg = `Errore creazione statement per doc ${doc.id}: ${stmtErr?.message}`
       logger.error(`[PENDING-STMT] ${msg}`)
       errors.push(msg)
@@ -166,8 +189,6 @@ export async function POST(req: NextRequest) {
     }
 
     const statementId = stmtRow.id
-
-    if (!rows.length) continue
 
     // ── 4. Run triple-check ──────────────────────────────────────────────────
     const lines = rows.map(r => ({ numero: r.numero, importo: r.importo, data: r.data }))
@@ -195,7 +216,10 @@ export async function POST(req: NextRequest) {
     if (rowsErr) {
       logger.error(`[PENDING-STMT] Errore insert rows per ${statementId}:`, rowsErr.message)
       errors.push(`Errore salvataggio righe: ${rowsErr.message}`)
-      await supabase.from('statements').delete().eq('id', statementId)
+      // NON eliminare lo statement: lascialo con status 'processing'
+      // così il file_url resta registrato ed evita che richieste future
+      // riprocessino lo stesso file in un loop infinito.
+      await markDocRowsAsProcessed(doc.file_url)
       continue
     }
 
@@ -206,6 +230,9 @@ export async function POST(req: NextRequest) {
       total_rows:   checkResults.length,
       missing_rows: missingRows,
     }).eq('id', statementId)
+
+    // Marca i duplicati in documenti_da_processare come processati
+    await markDocRowsAsProcessed(doc.file_url)
 
     results.push({ id: statementId, total: checkResults.length, missing: missingRows })
   }
@@ -220,6 +247,8 @@ export async function POST(req: NextRequest) {
     if (fornitori) fornitoreNames = fornitori.map(f => f.nome).filter(Boolean)
   }
 
+  const realSkipped = allDocs.length - pending.length
+
   await logActivity(supabase, {
     userId: user.id,
     sedeId: null,
@@ -228,7 +257,7 @@ export async function POST(req: NextRequest) {
     metadata: {
       statements: true,
       processed: results.length,
-      skipped: alreadyProcessedUrls.size,
+      skipped: realSkipped,
       errors: errors.length,
       fornitori: fornitoreNames,
     },
@@ -236,7 +265,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     processed:  results.length,
-    skipped:    alreadyProcessedUrls.size,
+    skipped:    realSkipped,
     errors,
     statements: results,
     message: results.length

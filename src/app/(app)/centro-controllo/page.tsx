@@ -8,7 +8,6 @@ import {
 } from '@/lib/app-shell-layout'
 import { BackButton } from '@/components/BackButton'
 import { resolveActiveSedeIdForLists } from '@/lib/resolve-active-sede-for-lists'
-import { isMasterAdminRole } from '@/lib/roles'
 import CentroControlloClient from './centro-controllo-client'
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +20,6 @@ export default async function CentroControlloPage() {
     getRequestAuth(),
   ])
 
-  const isMasterAdmin = isMasterAdminRole(profile?.role)
   const sedeId = await resolveActiveSedeIdForLists(
     supabase,
     profile ? { role: profile.role, sede_id: profile.sede_id } : undefined,
@@ -44,7 +42,6 @@ export default async function CentroControlloPage() {
 
       <CentroControlloClient
         sedeId={sedeId}
-        isMasterAdmin={isMasterAdmin}
       />
     </div>
   )

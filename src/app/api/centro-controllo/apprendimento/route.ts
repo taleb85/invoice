@@ -67,7 +67,6 @@ export async function GET(req: Request) {
     'documento.finalizza_come_statement': 'Archivia come estratto conto',
     'documento.finalizza_come_ordine': 'Registra come ordine',
     'documento.finalizza_come_comunicazione': 'Archivia come comunicazione',
-    'documento.finalizza_come_listino': 'Registra come listino',
     'documento.rianalizza_ocr': 'Rianalizza OCR',
     'documento.ignora_mittente': 'Ignora mittente',
     'documento.apri': 'Apri documento',

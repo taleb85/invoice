@@ -253,8 +253,9 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   if (tipo === 'fattura') return 'fattura'
   if (tipo === 'nota_credito') return 'nota_credito'
   if (tipo === 'listino') return 'listino'
+  if (tipo === 'ordine') return 'ordine'
 
-  // Se l'OCR ha classificato come "altro" / "statement" / "estratto_conto" / "ordine",
+  // Se l'OCR ha classificato come "altro" / "statement" / "estratto_conto",
   // controlliamo comunque l'euristica email: l'oggetto/nome file è più affidabile
   // dell'OCR per capire se è una fattura, bolla, listino etc.
   if (tipo !== null) {

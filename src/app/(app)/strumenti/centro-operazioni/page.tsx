@@ -21,7 +21,6 @@ import DuplicateManager from '@/components/duplicates/duplicate-manager'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
 import AiReclassifyCard from '@/components/admin/ai-reclassify-card'
-import PendingKindBrowser from '@/components/admin/pending-kind-browser'
 
 function OpsSectionTitle({ id, children }: { id?: string; children: ReactNode }) {
   return (
@@ -155,8 +154,6 @@ export default function CentroOperazioniPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [forceLoading, setForceLoading] = useState(false)
   const [forceError, setForceError] = useState<string | null>(null)
-  const [emailSyncLoading, setEmailSyncLoading] = useState(false)
-  const [emailSyncError, setEmailSyncError] = useState<string | null>(null)
   const [historicSyncLoading, setHistoricSyncLoading] = useState(false)
   const [historicSyncError, setHistoricSyncError] = useState<string | null>(null)
   const [historicSyncResult, setHistoricSyncResult] = useState<string | null>(null)
@@ -230,30 +227,6 @@ export default function CentroOperazioniPage() {
       setForceLoading(false)
     }
   }, [load])
-
-  const onForceEmailSync = useCallback(async () => {
-    setEmailSyncLoading(true)
-    setEmailSyncError(null)
-    try {
-      const res = await fetch('/api/scan-emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mode: 'manual',
-          ...(effectiveSedeId ? { user_sede_id: effectiveSedeId } : {}),
-        }),
-      })
-      const j = (await res.json().catch(() => ({}))) as { error?: string }
-      if (!res.ok) {
-        setEmailSyncError(j.error ?? `HTTP ${res.status}`)
-        return
-      }
-    } catch (e) {
-      setEmailSyncError(e instanceof Error ? e.message : 'Errore di rete')
-    } finally {
-      setEmailSyncLoading(false)
-    }
-  }, [effectiveSedeId])
 
   const onHistoricEmailSync = useCallback(async () => {
     setHistoricSyncLoading(true)
@@ -371,28 +344,6 @@ export default function CentroOperazioniPage() {
               <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-sync">
                 <OpsSectionTitle id="ops-section-sync">{s.sectionSyncEmail}</OpsSectionTitle>
                 <div className="flex min-h-0 min-w-0 flex-col gap-4">
-                  <div className="app-card overflow-hidden p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.manualImapSyncTitle}</p>
-                    <p className="mt-2 text-sm text-app-fg-muted">{s.manualImapSyncDesc}</p>
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={emailSyncLoading}
-                        onClick={onForceEmailSync}
-                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {emailSyncLoading ? (
-                          <>
-                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-cyan-100 border-t-transparent" />
-                            {t.common.loading}
-                          </>
-                        ) : (
-                          d.emailSyncForceSync
-                        )}
-                      </button>
-                      {emailSyncError ? <span className="text-xs text-rose-300">{emailSyncError}</span> : null}
-                    </div>
-                  </div>
 
                   <div className="app-card overflow-hidden p-5">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.historicSyncSectionLabel}</p>
@@ -476,24 +427,6 @@ export default function CentroOperazioniPage() {
                       <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
                     ) : null}
                   </div>
-
-                  <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">
-                    <p className="text-sm leading-relaxed text-app-fg-muted">{s.documentiAnalyCardDesc}</p>
-                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4">
-                      <Link
-                        href="/inbox-ai"
-                        className="text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-                      >
-                        {s.documentiAnalyInboxLink} →
-                      </Link>
-                      <Link
-                        href="/fornitori"
-                        className="text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-                      >
-                        {s.documentiAnalyFornitoreLink} →
-                      </Link>
-                    </div>
-                  </article>
                 </div>
               </section>
 
@@ -504,32 +437,6 @@ export default function CentroOperazioniPage() {
                   <FixOcrDatesCard anchorId="ops-fix-ocr-dates" />
                   <ReclassifyPendingKindCard />
                   <AiReclassifyCard />
-
-                  <article className="app-card min-h-0 min-w-0 overflow-hidden p-5">
-                    <p className="text-sm text-app-fg-muted">{s.ocrAbbinamentiCardDesc}</p>
-                    <Link
-                      href="/inbox-ai?tab=audit"
-                      className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-                    >
-                      {s.ocrAbbinamentiCta} →
-                    </Link>
-                  </article>
-                </div>
-
-                <aside
-                  role="note"
-                  className="min-w-0 rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3"
-                >
-                  <p className="m-0 text-xs leading-relaxed text-pretty text-app-fg-muted">
-                    {s.hintContextualShortcuts}
-                  </p>
-                </aside>
-              </section>
-
-              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-classificazione">
-                <OpsSectionTitle id="ops-section-classificazione">Classificazione documenti</OpsSectionTitle>
-                <div className="flex min-h-0 min-w-0 flex-col gap-4">
-                  <PendingKindBrowser />
                 </div>
               </section>
 

@@ -32,7 +32,7 @@ export interface OcrResult {
    * Model classification: delivery note vs tax invoice vs other commercial PDF.
    * Used by email scan to choose bolla vs fattura bozza without misrouting DDT numbers.
    */
-  tipo_documento: 'fattura' | 'nota_credito' | 'bolla' | 'listino' | 'altro' | 'curriculum' | 'comunicazione_cliente' | null
+  tipo_documento: 'fattura' | 'nota_credito' | 'bolla' | 'listino' | 'ordine' | 'altro' | 'curriculum' | 'comunicazione_cliente' | null
   /**
    * Email body promises a fiscal document soon while no PDF/fiscal attachment is in this extraction.
    * Set by the model per prompt rules; used for follow-up / reminder workflows.

@@ -136,19 +136,6 @@ const COMANDI_DOCUMENTO: Command[] = [
     }),
   },
   {
-    id: 'documento.finalizza_come_listino',
-    label: 'Registra come listino',
-    descrizione: 'Salva il documento come listino prezzi',
-    gruppo: 'documento',
-    icona: 'DollarSign',
-    predicato: (ctx) => ctx.item.origine === 'documento_da_processare',
-    esegui: (ctx) => callApi('/api/documenti-da-processare', {
-      id: ctx.item.id,
-      azione: 'finalizza_tipo',
-      kind: 'listino',
-    }),
-  },
-  {
     id: 'documento.rianalizza_ocr',
     label: 'Rianalizza con OCR',
     descrizione: 'Invia nuovamente il documento all\'analisi OCR',

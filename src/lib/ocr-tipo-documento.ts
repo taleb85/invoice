@@ -8,6 +8,7 @@ export type NormalizedTipoDocumento =
   | 'nota_credito'
   | 'bolla'
   | 'listino'
+  | 'ordine'
   | 'altro'
   | 'curriculum'
   | 'comunicazione_cliente'
@@ -103,12 +104,10 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   }
   if (s === 'bolla' || s === 'ddt' || s === 'delivery' || s === 'delivery_note' || s === 'lieferschein' || s === 'albaran') return 'bolla'
   if (s === 'listino' || s === 'listino_prezzi' || s === 'price_list' || s === 'catalogue' || s === 'catalog') return 'listino'
+  if (s === 'ordine' || s === 'purchase_order' || s === 'po') return 'ordine'
   if (
     s === 'altro' ||
     s === 'other' ||
-    s === 'ordine' ||
-    s === 'purchase_order' ||
-    s === 'po' ||
     s === 'estratto_conto' ||
     s === 'estratto' ||
     s === 'statement' ||
@@ -148,8 +147,11 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   ) {
     return 'bolla'
   }
-  if (/preventivo|quotation|\bquote\b|pro[\s_-]?forma|order\s+confirmation|\bordine\b/.test(s)) {
+  if (/preventivo|quotation|\bquote\b|pro[\s_-]?forma/.test(s)) {
     return 'altro'
+  }
+  if (/order\s+confirmation|\bordine\b/.test(s)) {
+    return 'ordine'
   }
   return null
 }

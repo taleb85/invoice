@@ -263,53 +263,52 @@ export async function processLegacyPendingDoc(
 
   if (fornitore?.id && documentSedeId && !skipAutoBozza && !ocr.ocr_cliente_estratto_come_fornitore) {
     const dataDocLocal = documentDateYmdFromOcr(ocr)
+    const todayYmd = new Date().toISOString().slice(0, 10)
+    const dataDoc = dataDocLocal ?? todayYmd
+    const hasDocDateFallback = !dataDocLocal
 
     if (targetKind === 'fattura') {
-      if (!dataDocLocal) {
+      if (hasDocDateFallback) {
         needsDocRevision = true
       } else if (!ocrTipoAllowsEmailAutoFattura(ocr.tipo_documento)) {
         needsDocRevision = true
       } else if (ocrClassifiedAsFatturaButContentMissing(ocr)) {
         needsDocRevision = true
-      } else {
-        const res = await insertEmailAutoFattura(service, {
-          fornitoreId: fornitore.id,
-          sedeId: documentSedeId,
-          dataDoc: dataDocLocal,
-          fileUrl: url,
-          meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
-        })
-        if ('id' in res) {
-          registratoAutoFatturaId = res.id
-          const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
-          fetch(`${baseUrl}/api/price-anomalies/check`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
-            },
-            body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
-          }).catch(() => {})
-        } else if ('duplicateId' in res) {
-          duplicateSkippedFatturaId = res.duplicateId
-          needsDocRevision = true
-        }
+      }
+      const res = await insertEmailAutoFattura(service, {
+        fornitoreId: fornitore.id,
+        sedeId: documentSedeId,
+        dataDoc,
+        fileUrl: url,
+        meta: { numero_fattura: ocr.numero_fattura, totale_iva_inclusa: ocr.totale_iva_inclusa },
+      })
+      if ('id' in res) {
+        registratoAutoFatturaId = res.id
+        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '') || 'http://localhost:3000'
+        fetch(`${baseUrl}/api/price-anomalies/check`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+          },
+          body: JSON.stringify({ fattura_id: res.id, fornitore_id: fornitore.id }),
+        }).catch(() => {})
+      } else if ('duplicateId' in res) {
+        duplicateSkippedFatturaId = res.duplicateId
+        needsDocRevision = true
       }
     } else if (targetKind === 'bolla') {
-      if (!dataDocLocal) {
-        needsDocRevision = true
-      } else {
-        const numRef = ocr.numero_fattura?.trim() || null
-        const rb = await insertEmailAutoBolla(service, {
-          fornitoreId: fornitore.id,
-          sedeId: documentSedeId,
-          dataDoc: dataDocLocal,
-          fileUrl: url,
-          numeroBolla: numRef,
-          importo: ocr.totale_iva_inclusa ?? null,
-        })
-        if ('id' in rb) registratoAutoBollaId = rb.id
-      }
+      if (hasDocDateFallback) needsDocRevision = true
+      const numRef = ocr.numero_fattura?.trim() || null
+      const rb = await insertEmailAutoBolla(service, {
+        fornitoreId: fornitore.id,
+        sedeId: documentSedeId,
+        dataDoc,
+        fileUrl: url,
+        numeroBolla: numRef,
+        importo: ocr.totale_iva_inclusa ?? null,
+      })
+      if ('id' in rb) registratoAutoBollaId = rb.id
     } else {
       needsDocRevision = true
     }
