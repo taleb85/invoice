@@ -52,6 +52,25 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
   const [cmdPaletteAperta, setCmdPaletteAperta] = useState(false)
   const [ricercaCmd, setRicercaCmd] = useState('')
   const [autoResolving, setAutoResolving] = useState(false)
+  const [autoResolveStep, setAutoResolveStep] = useState(0)
+  const [autoResolveDocs, setAutoResolveDocs] = useState<Record<string, { id: string; file_name: string | null; status: 'processing' | 'scartato' | 'resettato' | 'categorizzato' | 'saltato'; kind?: string }>>({})
+  const autoResolveSteps = [
+    'Caricamento documenti…',
+    'Verifica file archivio…',
+    'Analisi apprendimento AI…',
+    'Risoluzione anomalie…',
+  ]
+
+  useEffect(() => {
+    if (!autoResolving) {
+      setAutoResolveStep(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setAutoResolveStep(prev => Math.min(prev + 1, autoResolveSteps.length - 1))
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [autoResolving])
   const [associatiStats, setAssociatiStats] = useState<{ totale: number; con_anomalie: number; anomalie_totali: number } | null>(null)
   const [associatiDocs, setAssociatiDocs] = useState<unknown[]>([])
   const [associatiOpen, setAssociatiOpen] = useState(false)
@@ -225,6 +244,12 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
 
   const handleAutoResolve = async () => {
     setAutoResolving(true)
+    const docsMap: Record<string, { id: string; file_name: string | null; status: 'processing' | 'scartato' | 'resettato' | 'categorizzato' | 'saltato'; kind?: string }> = {}
+    for (const d of (associatiDocs as Record<string, unknown>[])) {
+      const id = d.id as string
+      docsMap[id] = { id, file_name: (d.file_name as string) ?? null, status: 'processing' }
+    }
+    setAutoResolveDocs(docsMap)
     try {
       const res = await fetch('/api/documenti-associati/auto-resolve', {
         method: 'POST',
@@ -232,11 +257,29 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
       })
       const data = await res.json()
       if (data.success) {
+        const updated = { ...docsMap }
+        for (const r of (data.risultati ?? []) as { id: string; action: string; file_name?: string | null }[]) {
+          if (updated[r.id]) {
+            updated[r.id] = { ...updated[r.id], status: r.action === 'scarta' ? 'scartato' : 'resettato' }
+          }
+        }
+        for (const h of (data.hint_applicati_dettaglio ?? []) as { id: string; kind: string; file_name?: string | null }[]) {
+          if (updated[h.id]) {
+            updated[h.id] = { ...updated[h.id], status: 'categorizzato', kind: h.kind }
+          }
+        }
+        for (const id of Object.keys(updated)) {
+          if (updated[id].status === 'processing') {
+            updated[id].status = 'saltato'
+          }
+        }
+        setAutoResolveDocs(updated)
         showToast(data.message, 'success')
       } else {
         showToast(data.error || 'Errore auto-resolve', 'error')
       }
       await caricaCoda()
+      await caricaAssociati()
     } catch (e) {
       showToast(`Errore: ${e instanceof Error ? e.message : 'Richiesta fallita'}`, 'error')
     } finally {
@@ -290,15 +333,35 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={handleAutoResolve}
-          disabled={autoResolving}
-          className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-purple-500 disabled:opacity-50"
-        >
-          <Zap className="w-3.5 h-3.5" />
-          {autoResolving ? 'Auto-risolvo...' : 'Auto-risolvi anomalie'}
-        </button>
+        {autoResolving ? (
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+              <span className="text-xs font-semibold text-purple-300">Auto-risolvo anomalie…</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-purple-950/50">
+                <div
+                  className="h-full rounded-full bg-purple-500 transition-all duration-700 ease-out"
+                  style={{ width: `${((autoResolveStep + 1) / autoResolveSteps.length) * 100}%` }}
+                />
+              </div>
+              <span className="shrink-0 text-[10px] font-medium text-purple-300/70">
+                {autoResolveSteps[autoResolveStep]}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAutoResolve}
+            disabled={autoResolving}
+            className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-purple-500 disabled:opacity-50"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Auto-risolvi anomalie
+          </button>
+        )}
         <a
           href="/centro-controllo/apprendimento"
           className="inline-flex items-center gap-1.5 rounded-lg bg-app-line-15 px-3 py-1.5 text-xs font-medium text-app-fg-muted transition-colors hover:bg-app-line-25"
@@ -307,6 +370,52 @@ export default function CentroControlloClient({ sedeId, isMasterAdmin }: Props) 
           Apprendimento AI
         </a>
       </div>
+
+      {Object.keys(autoResolveDocs).length > 0 && (
+        <div className="app-card overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-app-line-15 px-4 py-2.5">
+            <span className="text-xs font-semibold text-app-fg-muted uppercase tracking-wide">
+              Documenti processati
+            </span>
+            <span className="inline-flex items-center rounded-full bg-purple-500/15 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+              {Object.keys(autoResolveDocs).length}
+            </span>
+          </div>
+          <div className="max-h-64 divide-y divide-app-line-10 overflow-y-auto">
+            {Object.values(autoResolveDocs).map((ad) => (
+              <div key={ad.id} className="flex items-center gap-3 px-4 py-2 text-xs">
+                {ad.status === 'processing' ? (
+                  <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-purple-400" />
+                ) : ad.status === 'scartato' ? (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-[9px] font-bold text-rose-400">✗</span>
+                ) : ad.status === 'resettato' ? (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-[9px] font-bold text-amber-400">⟳</span>
+                ) : ad.status === 'categorizzato' ? (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-[9px] font-bold text-emerald-400">✓</span>
+                ) : (
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-500/20 text-[9px] font-bold text-slate-400">⏭</span>
+                )}
+                <span className="min-w-0 flex-1 truncate text-app-fg">
+                  {ad.file_name ?? ad.id.slice(0, 12)}
+                </span>
+                <span className={`shrink-0 font-medium ${
+                  ad.status === 'processing' ? 'text-purple-300' :
+                  ad.status === 'scartato' ? 'text-rose-400' :
+                  ad.status === 'resettato' ? 'text-amber-400' :
+                  ad.status === 'categorizzato' ? 'text-emerald-400' :
+                  'text-slate-400'
+                }`}>
+                  {ad.status === 'processing' ? 'In elaborazione…' :
+                   ad.status === 'scartato' ? 'Scartato' :
+                   ad.status === 'resettato' ? 'Riassegnato' :
+                   ad.status === 'categorizzato' ? `Categorizzato (${ad.kind ?? '—'})` :
+                   'Nessuna anomalia'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {associatiStats && associatiStats.con_anomalie > 0 && (
         <div className="app-card overflow-hidden">

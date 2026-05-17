@@ -1023,6 +1023,7 @@ export function PendingMatchesTab({
   const [statementDocs, setStatementDocs]   = useState<Set<string>>(new Set())  // tracked locally
   const [markingStatement, setMarkingStatement] = useState<string | null>(null)
   const [finalizingTipoId, setFinalizingTipoId] = useState<string | null>(null)
+  const [manualNumeroFattura, setManualNumeroFattura] = useState<Record<string, string>>({})
   const [reanalyzingDocId, setReanalyzingDocId] = useState<string | null>(null)
   const [rememberBar, setRememberBar] = useState<{
     fornitoreId: string
@@ -1982,16 +1983,20 @@ export function PendingMatchesTab({
   async function finalizzaTipo(docId: string) {
     setFinalizingTipoId(docId)
     try {
-      // Usa `associa` + flag: stesso ramo API già presente su tutti i deploy (evita «Azione non valida» se manca il nome `finalizza_tipo`).
+      const manualNum = (manualNumeroFattura[docId] ?? '').trim()
+      const payload: Record<string, unknown> = {
+        id: docId,
+        azione: 'associa',
+        finalizza_da_tipo: true,
+        bolla_ids: [],
+      }
+      if (manualNum) {
+        payload.numero_fattura = manualNum
+      }
       const res = await fetch('/api/documenti-da-processare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: docId,
-          azione: 'associa',
-          finalizza_da_tipo: true,
-          bolla_ids: [],
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         let msg = t.statements.assignFailed
@@ -2642,6 +2647,26 @@ export function PendingMatchesTab({
                                     </button>
                                   ))}
                                 </div>
+                                {(pk === 'fattura' || pk === 'nota_credito') &&
+                                  !doc.metadata?.numero_fattura?.trim() && (
+                                  <div className="flex w-full items-center gap-2 pt-1.5">
+                                    <label className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-app-fg-muted">
+                                      N° {pk === 'nota_credito' ? 'Nota Credito' : 'Fattura'}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={manualNumeroFattura[doc.id] ?? ''}
+                                      onChange={(e) =>
+                                        setManualNumeroFattura(prev => ({
+                                          ...prev,
+                                          [doc.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="Es. FAT-2026-001"
+                                      className="min-w-0 flex-1 rounded-md border border-app-line-28 bg-transparent px-2 py-1 text-xs text-app-fg placeholder:text-app-fg-muted/50 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+                                    />
+                                  </div>
+                                )}
                                 {pk !== null &&
                                   (!doc.fornitore_id ? (
                                     <p className="max-w-[11rem] text-right text-[11px] leading-snug text-orange-200/95 sm:max-w-none sm:text-left">

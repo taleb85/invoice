@@ -86,7 +86,8 @@ export async function registraConfermaApprendimento(
     p_fornitore_id: contesto.fornitore_id,
     p_contesto: contestoToJsonb(contesto),
     p_azione_id: azioneId,
-    p_confermata: confermata,
+    p_era_suggerimento: true,
+    p_seguito_consiglio: confermata,
   })
 
   if (error) {
@@ -109,7 +110,8 @@ export async function registraEsecuzioneDiretta(
     p_fornitore_id: contesto.fornitore_id,
     p_contesto: contestoToJsonb(contesto),
     p_azione_id: azioneId,
-    p_confermata: true,
+    p_era_suggerimento: false,
+    p_seguito_consiglio: true,
   })
 
   if (error) {

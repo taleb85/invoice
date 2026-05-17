@@ -784,6 +784,21 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, already_processed: true })
       }
     }
+
+    const rawNumeroFt = (body as Record<string, unknown>).numero_fattura
+    if (typeof rawNumeroFt === 'string' && rawNumeroFt.trim()) {
+      const prevMeta =
+        doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+          ? { ...(doc.metadata as Record<string, unknown>) }
+          : {}
+      prevMeta.numero_fattura = rawNumeroFt.trim()
+      doc.metadata = prevMeta
+      await supabase
+        .from('documenti_da_processare')
+        .update({ metadata: prevMeta })
+        .eq('id', id)
+    }
+
     return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
   }
 
@@ -828,6 +843,18 @@ export async function POST(req: NextRequest) {
   // ── associa ───────────────────────────────────────────────────────────────
   if (azioneNorm === 'associa') {
     if (body.finalizza_da_tipo === true) {
+      const rawNumero = (body as Record<string, unknown>).numero_fattura
+      if (typeof rawNumero === 'string' && rawNumero.trim()) {
+        const prevMeta = doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+          ? { ...(doc.metadata as Record<string, unknown>) }
+          : {}
+        prevMeta.numero_fattura = rawNumero.trim()
+        doc.metadata = prevMeta
+        await supabase
+          .from('documenti_da_processare')
+          .update({ metadata: prevMeta })
+          .eq('id', id)
+      }
       return finalizePendingByTipo(supabase, id, doc as DocRowFinalizza, user.id)
     }
     if (!bollaIds.length) return NextResponse.json({ error: 'Nessuna bolla selezionata' }, { status: 400 })

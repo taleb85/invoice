@@ -102,7 +102,7 @@ export async function POST() {
           .eq('id', doc.id as string)
 
         if (!updErr) {
-          hintApplicati.push({ id: doc.id as string, kind: learnedKind })
+          hintApplicati.push({ id: doc.id as string, kind: learnedKind, file_name: doc.file_name as string | null })
         }
       }
     }
@@ -133,7 +133,7 @@ export async function POST() {
         .eq('id', doc.id as string)
 
       if (!updErr) {
-        risultati.push({ id: doc.id as string, action: consiglio })
+        risultati.push({ id: doc.id as string, action: consiglio, file_name: doc.file_name as string | null })
         if (consiglio === 'scarta') scartati++
         else resettati++
       }
@@ -147,6 +147,8 @@ export async function POST() {
       resettati,
       hint_applicati: hintApplicati.length,
       saltati,
+      risultati,
+      hint_applicati_dettaglio: hintApplicati,
       message: [
         risultati.length ? `${risultati.length} risolti (${scartati} scartati, ${resettati} riassegnati)` : '',
         hintApplicati.length ? `${hintApplicati.length} categorizzati da apprendimento AI` : '',
