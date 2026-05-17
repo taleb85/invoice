@@ -82,7 +82,7 @@ export async function POST() {
     }
 
     // Applica hint di apprendimento
-    const hintApplicati: { id: string; kind: string }[] = []
+    const hintApplicati: { id: string; kind: string; file_name: string | null }[] = []
 
     for (const doc of docsUnici) {
       const fornitoreId = doc.fornitore_id as string | null
@@ -113,7 +113,7 @@ export async function POST() {
     let resettati = 0
     let saltati = 0
     const batchId = crypto.randomUUID()
-    const risultati: { id: string; action: string }[] = []
+    const risultati: { id: string; action: string; file_name: string | null }[] = []
 
     for (const doc of docsUnici) {
       if (docsConHint.has(doc.id as string)) continue
