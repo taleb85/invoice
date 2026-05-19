@@ -1021,7 +1021,6 @@ export function PendingMatchesTab({
   const [preview, setPreview]               = useState<string | null>(null)
   const [editSupplier, setEditSupplier]     = useState<string | null>(null)
   const [statementDocs, setStatementDocs]   = useState<Set<string>>(new Set())  // tracked locally
-  const [markingStatement, setMarkingStatement] = useState<string | null>(null)
   const [finalizingTipoId, setFinalizingTipoId] = useState<string | null>(null)
   const [manualNumeroFattura, setManualNumeroFattura] = useState<Record<string, string>>({})
   const [reanalyzingDocId, setReanalyzingDocId] = useState<string | null>(null)
@@ -1186,6 +1185,11 @@ export function PendingMatchesTab({
     } else if (!fornitoreId && year && month) {
       params.set('from', `${year}-${String(month).padStart(2, '0')}-01`)
       params.set('to', new Date(year, month, 1).toISOString().split('T')[0])
+    } else if (!fornitoreId && filter !== 'tutti') {
+      // Default: ultimi 12 mesi per non mostrare documenti vecchi (2023/2024)
+      const from = new Date()
+      from.setFullYear(from.getFullYear() - 1)
+      params.set('from', from.toISOString().slice(0, 10))
     }
     const res = await fetch(`/api/documenti-da-processare?${params.toString()}`)
     const data = res.ok ? await res.json() : []
@@ -1301,7 +1305,7 @@ export function PendingMatchesTab({
         }
       }
     })()
-  }, [loading, bulkAnalyzing, docs])
+  }, [loading, bulkAnalyzing])
 
   useEffect(() => {
     if (!sedeId) {
@@ -1575,16 +1579,9 @@ export function PendingMatchesTab({
 
   /** Dopo il caricamento elenco: un passaggio «Abbina tutto» senza toast (ripetuto quando cambia l’insieme doc in lavorazione o l’insieme delle bolle aperte). */
   useEffect(() => {
-    /** `window.setTimeout` returns `number` in DOM; bundled Node timer typings disagree — treat as numeric id here. */
     let timerId: number | undefined
     if (!(loading || bulkAnalyzing)) {
-      const key = `${pendingDocIdsStableKey}|${bolleAperteStableKey}`
-      if (prevSilentBulkPendingIdsKeyRef.current !== key) {
-        prevSilentBulkPendingIdsKeyRef.current = key
-        pendingSilentBulkRanRef.current = false
-      }
-
-      if (pendingDocIdsStableKey && !pendingSilentBulkRanRef.current) {
+      if (!pendingSilentBulkRanRef.current) {
         timerId = Number(window.setTimeout(() => {
           pendingSilentBulkRanRef.current = true
           void runRefreshAndBulkAutoMatch({ silent: true })
@@ -1784,7 +1781,7 @@ export function PendingMatchesTab({
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, bulkAnalyzing, bolleAperte, docs])
+  }, [loading, bulkAnalyzing, bolleAperte])
 
   // Auto-finalizza ordini Rekki: se pending_kind=ordine e fornitore già collegato, registra senza input manuale
   const autoFinalizeOrdineTriedRef = useRef(new Set<string>())
@@ -1814,7 +1811,7 @@ export function PendingMatchesTab({
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, bulkAnalyzing, docs])
+  }, [loading, bulkAnalyzing])
 
   // Registrazione automatica fattura (solo se sede ha flag + criteri AI/sede)
   useEffect(() => {
@@ -1872,7 +1869,7 @@ export function PendingMatchesTab({
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, bulkAnalyzing, docs, bolleAperte, autoRegisterSetting, statementDocs])
+  }, [loading, bulkAnalyzing, bolleAperte, autoRegisterSetting])
 
   // Auto-suggest when both docs and bolle are loaded
   useEffect(() => {
@@ -1940,55 +1937,39 @@ export function PendingMatchesTab({
   }
 
   async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine') {
-    setMarkingStatement(docId)
-    try {
-      // Usa mark_statement + kind: compatibile con API vecchie (solo is_statement) e nuove (metadata.pending_kind).
-      const res = await fetch('/api/documenti-da-processare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: docId,
-          azione: 'mark_statement',
-          is_statement: kind === 'statement',
-          kind,
-        }),
+    // Solo aggiornamento locale del chip — nessuna chiamata API.
+    // Il salvataggio effettivo avviene quando l'utente clicca il pulsante di conferma.
+    setDocs(prev =>
+      prev.map(d => {
+        if (d.id !== docId) return d
+        const meta = { ...(d.metadata ?? {}), pending_kind: kind } as OcrMetadata
+        return { ...d, is_statement: kind === 'statement', metadata: meta } as Documento
       })
-      if (!res.ok) {
-        let msg = t.statements.assignFailed
-        try {
-          const j = (await res.json()) as { error?: string }
-          if (j.error?.trim()) msg = j.error.trim()
-        } catch { /* ignore */ }
-        showToast(msg, 'error')
-        return
-      }
-      setDocs(prev =>
-        prev.map(d => {
-          if (d.id !== docId) return d
-          const meta = { ...(d.metadata ?? {}), pending_kind: kind } as OcrMetadata
-          return { ...d, is_statement: kind === 'statement', metadata: meta } as Documento
-        })
-      )
-      setStatementDocs(prev => {
-        const next = new Set(prev)
-        if (kind === 'statement') next.add(docId)
-        else next.delete(docId)
-        return next
-      })
-    } finally {
-      setMarkingStatement(null)
-    }
+    )
+    setStatementDocs(prev => {
+      const next = new Set(prev)
+      if (kind === 'statement') next.add(docId)
+      else next.delete(docId)
+      return next
+    })
   }
 
   async function finalizzaTipo(docId: string) {
     setFinalizingTipoId(docId)
     try {
+      // Legge il pending_kind dallo stato locale (impostato dal chip, senza API)
+      const doc = docs.find(d => d.id === docId)
+      const kind = doc?.metadata?.pending_kind as string | undefined
+      if (!kind || !['bolla', 'fattura', 'nota_credito', 'comunicazione', 'ordine', 'statement', 'listino'].includes(kind)) {
+        showToast('Seleziona una categoria prima di confermare', 'error')
+        return
+      }
+
       const manualNum = (manualNumeroFattura[docId] ?? '').trim()
       const payload: Record<string, unknown> = {
         id: docId,
-        azione: 'associa',
-        finalizza_da_tipo: true,
-        bolla_ids: [],
+        azione: 'finalizza_tipo',
+        kind,
       }
       if (manualNum) {
         payload.numero_fattura = manualNum
@@ -2576,7 +2557,6 @@ export function PendingMatchesTab({
                         {docAllowsAssociationFlow(doc.stato) &&
                           (() => {
                             const pk = pendingKindForDoc(doc, statementDocs)
-                            const busy = markingStatement === doc.id
                             const chips: {
                               kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine'
                               label: string
@@ -2631,7 +2611,6 @@ export function PendingMatchesTab({
                                     <button
                                       key={kind}
                                       type="button"
-                                      disabled={busy}
                                       onClick={() => {
                                         if (pk !== kind) void setPendingKind(doc.id, kind)
                                       }}

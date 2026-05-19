@@ -59,8 +59,7 @@ export async function POST(req: NextRequest) {
   for (const doc of docs as DocRow[]) {
     if (!doc.metadata) { skipped++; continue }
 
-    const currentKind = doc.metadata.pending_kind as string | null | undefined
-    if (!currentKind) { skipped++; continue }
+    const currentKind = (doc.metadata.pending_kind as string | undefined) ?? null
 
     const newKind = inferPendingDocumentKindForQueueRow({
       oggetto_mail: doc.oggetto_mail,

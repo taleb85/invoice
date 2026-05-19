@@ -247,8 +247,7 @@ export function inferPendingDocumentKindForQueueRow(opts: {
   const md = opts.metadata
   const tipo = normalizeTipoDocumento(md?.tipo_documento)
 
-  // L'OCR tipo_documento (Gemini) ha priorità sull'euristica email
-  if (tipo === 'curriculum' || tipo === 'comunicazione_cliente') return 'comunicazione'
+  if (tipo === 'curriculum') return 'comunicazione'
   if (tipo === 'bolla') return 'bolla'
   if (tipo === 'fattura') return 'fattura'
   if (tipo === 'nota_credito') return 'nota_credito'
@@ -275,6 +274,7 @@ export function inferPendingDocumentKindForQueueRow(opts: {
     if (scanContextSuggestsListino(subj, fname)) return 'listino'
     if (scanContextSuggestsBolla(subj, fname)) return 'bolla'
     if (scanContextSuggestsFattura(subj, fname)) return 'fattura'
+    if (scanContextLooksLikeOrderConfirmationDoc(subj, fname)) return 'ordine'
     return 'comunicazione'
   }
 

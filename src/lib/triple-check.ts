@@ -135,6 +135,19 @@ export async function runTripleCheck(
     )
 
     if (!rawFattura) {
+      // Nessuna fattura trovata: prova a matchare il numero come bolla/DDT.
+      // Gli estratti conto spesso elencano numeri DDT (non fatture).
+      // Se troviamo una bolla → "bolle_mancanti" (manca la fattura di collegamento).
+      const bollaMatch = bollePool.find(
+        (b) => b.numero_bolla != null && normalizeNumeroFattura(b.numero_bolla) === numNorm,
+      )
+      if (bollaMatch) {
+        results.push({
+          numero: line.numero, importoStatement: line.importo,
+          status: 'bolle_mancanti', fattura: null, bolle: [bollaMatch], deltaImporto: null, fornitore: null,
+        })
+        continue
+      }
       results.push({
         numero: line.numero, importoStatement: line.importo,
         status: 'fattura_mancante', fattura: null, bolle: [], deltaImporto: null, fornitore: null,

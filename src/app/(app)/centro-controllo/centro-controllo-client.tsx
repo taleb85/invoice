@@ -120,6 +120,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
     message: string
   } | null>(null)
 
+  // ── Reprocess triple-check ────────────────────────────────────────────────
+  const [reprocessingChecks, setReprocessingChecks] = useState(false)
+  const [reprocessChecksResult, setReprocessChecksResult] = useState<string | null>(null)
+
   // ── Monitoraggio sistema ─────────────────────────────────────────────────
   const [sysMonitor, setSysMonitor] = useState<{
     lastCleanupAt: string | null
@@ -164,21 +168,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
         const sugg = await suggerisciAzione(item)
         if (!sugg) continue
 
-        if (sugg.autoEsegui) {
-          const cmd = getComando(sugg.azione_id)
-          if (cmd) {
-            const result = await cmd.esegui({ item, sedeId })
-            if (result.success) {
-              await registraEsecuzioneDiretta(item, sugg.azione_id)
-              showToast(`⚡ ${sugg.label} — eseguito automaticamente (confidenza ${(sugg.confidenza * 100).toFixed(0)}%)`, 'success')
-            } else {
-              showToast(`Auto-esecuzione fallita: ${result.error || 'Errore'}`, 'error')
-              suggMap.set(item.id, sugg)
-            }
-          }
-        } else {
-          suggMap.set(item.id, sugg)
-        }
+        suggMap.set(item.id, sugg)
       }
       setSuggerimenti(suggMap)
     } catch (e) {
@@ -186,7 +176,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [sedeId, showToast])
+  }, [sedeId])
 
   // ── Caricamento statement ───────────────────────────────────────────────
   const caricaStatement = useCallback(async () => {
@@ -237,6 +227,31 @@ export default function CentroControlloClient({ sedeId }: Props) {
       })
     } finally {
       setProcessingStatements(false)
+    }
+  }
+
+  // ── Reprocess triple-check su statement esistenti ─────────────────────
+  const handleReprocessChecks = async () => {
+    if (!sedeId) return
+    setReprocessingChecks(true)
+    setReprocessChecksResult(null)
+    try {
+      const res = await fetch('/api/reprocess-statement-checks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sede_id: sedeId, limit: 500 }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setReprocessChecksResult(data.message)
+        await caricaStatement()
+      } else {
+        setReprocessChecksResult(data.error || 'Errore')
+      }
+    } catch (e) {
+      setReprocessChecksResult(e instanceof Error ? e.message : 'Richiesta fallita')
+    } finally {
+      setReprocessingChecks(false)
     }
   }
 
@@ -632,9 +647,31 @@ export default function CentroControlloClient({ sedeId }: Props) {
               <div className="divide-y divide-app-line-10">
                 <div className="px-4 py-3">
                   {statementStats.pending_count === 0 ? (
-                    <div className="flex items-center gap-2 text-xs text-app-fg-muted">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                      Nessuno statement in sospeso
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-app-fg-muted">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                        Nessuno statement in sospeso
+                      </div>
+                      {statementStats.con_anomalie > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleReprocessChecks}
+                            disabled={reprocessingChecks}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
+                          >
+                            {reprocessingChecks ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3 h-3" />
+                            )}
+                            {reprocessingChecks ? 'Riprocesso…' : `Riprocessa triple-check (${statementStats.con_anomalie} anomalie)`}
+                          </button>
+                          {reprocessChecksResult && (
+                            <span className="text-[11px] text-emerald-300">{reprocessChecksResult}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">

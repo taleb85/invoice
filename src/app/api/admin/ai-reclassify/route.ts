@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/utils/supabase/server'
 import { requireAdmin } from '@/lib/api-auth'
 import { classifyDocumentWithGemini, type GeminiInboxClassification } from '@/lib/gemini-inbox-classify'
-import { scanContextSuggestsFattura, scanContextSuggestsBolla, scanContextSuggestsListino } from '@/lib/document-bozza-routing'
+import { scanContextSuggestsFattura, scanContextSuggestsBolla, scanContextSuggestsListino, scanContextLooksLikeOrderConfirmationDoc } from '@/lib/document-bozza-routing'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ export const maxDuration = 300
 
 const BATCH = 5
 
-const AI_KINDS_MAP: Record<string, 'fattura' | 'bolla' | 'nota_credito' | 'comunicazione' | 'listino'> = {
+const AI_KINDS_MAP: Record<string, 'fattura' | 'bolla' | 'nota_credito' | 'comunicazione' | 'listino' | 'ordine'> = {
   fattura: 'fattura',
   invoice: 'fattura',
   tax_invoice: 'fattura',
@@ -22,9 +22,10 @@ const AI_KINDS_MAP: Record<string, 'fattura' | 'bolla' | 'nota_credito' | 'comun
   credit_note: 'nota_credito',
   listino: 'listino',
   price_list: 'listino',
-  ordine: 'comunicazione',
-  order: 'comunicazione',
-  purchase_order: 'comunicazione',
+  ordine: 'ordine',
+  order: 'ordine',
+  purchase_order: 'ordine',
+  order_confirmation: 'ordine',
   comunicazione: 'comunicazione',
   altro: 'comunicazione',
   other: 'comunicazione',
@@ -107,15 +108,20 @@ export async function POST(req: NextRequest) {
         const subj = doc.oggetto_mail
         const fname = doc.file_name
         const subjOrName = ((subj ?? '') + '\n' + (fname ?? '')).toLowerCase().replace(/[_.\-]/g, ' ')
-        const looksLikeInvoice = /\binvoice\b/.test(subjOrName) || /\bfattura\b/.test(subjOrName) || /\bsales\s?invoice\b/.test(subjOrName) || /\btax\s?invoice\b/.test(subjOrName) || /\bcredit\s?note\b/.test(subjOrName) || /nota\s+credito/.test(subjOrName) || /\bddt\b/.test(subjOrName) || /\bbolla\b/.test(subjOrName) || /delivery\s?note/.test(subjOrName)
-        if (looksLikeInvoice) {
-          const ctxFat = scanContextSuggestsFattura(subj, fname)
-          const ctxBol = scanContextSuggestsBolla(subj, fname)
-          if (ctxFat && !ctxBol) newKind = 'fattura'
-          else if (ctxBol && !ctxFat) newKind = 'bolla'
+        if (scanContextLooksLikeOrderConfirmationDoc(subj, fname)) {
+          newKind = 'ordine'
         }
-        if (newKind === 'comunicazione' && scanContextSuggestsListino(subj, fname)) {
-          newKind = 'listino'
+        if (newKind === 'comunicazione') {
+          const looksLikeInvoice = /\binvoice\b/.test(subjOrName) || /\bfattura\b/.test(subjOrName) || /\bsales\s?invoice\b/.test(subjOrName) || /\btax\s?invoice\b/.test(subjOrName) || /\bcredit\s?note\b/.test(subjOrName) || /nota\s+credito/.test(subjOrName) || /\bddt\b/.test(subjOrName) || /\bbolla\b/.test(subjOrName) || /delivery\s?note/.test(subjOrName)
+          if (looksLikeInvoice) {
+            const ctxFat = scanContextSuggestsFattura(subj, fname)
+            const ctxBol = scanContextSuggestsBolla(subj, fname)
+            if (ctxFat && !ctxBol) newKind = 'fattura'
+            else if (ctxBol && !ctxFat) newKind = 'bolla'
+          }
+          if (newKind === 'comunicazione' && scanContextSuggestsListino(subj, fname)) {
+            newKind = 'listino'
+          }
         }
       }
 

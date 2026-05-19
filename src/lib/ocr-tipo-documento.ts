@@ -104,7 +104,7 @@ export function normalizeTipoDocumento(raw: unknown): NormalizedTipoDocumento {
   }
   if (s === 'bolla' || s === 'ddt' || s === 'delivery' || s === 'delivery_note' || s === 'lieferschein' || s === 'albaran') return 'bolla'
   if (s === 'listino' || s === 'listino_prezzi' || s === 'price_list' || s === 'catalogue' || s === 'catalog') return 'listino'
-  if (s === 'ordine' || s === 'purchase_order' || s === 'po') return 'ordine'
+  if (s === 'ordine' || s === 'order' || s === 'purchase_order' || s === 'po') return 'ordine'
   if (
     s === 'altro' ||
     s === 'other' ||

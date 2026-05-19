@@ -68,12 +68,14 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
 
   const pendingFileUrls = [...new Set((pendingDocs ?? []).map(d => d.file_url).filter(Boolean))]
-  const { data: existingStmts } = await supabase
+  // Evita .in() con troppi URL che tronca la richiesta HTTP
+  const { data: allStmts } = await supabase
     .from('statements')
     .select('file_url')
-    .in('file_url', pendingFileUrls)
+    .eq('sede_id', sedeId)
 
-  const existingUrls = new Set((existingStmts ?? []).map(s => s.file_url))
+  const allExistingUrls = new Set((allStmts ?? []).map(s => s.file_url).filter(Boolean))
+  const existingUrls = new Set(pendingFileUrls.filter(u => allExistingUrls.has(u)))
 
   // Deduplica per file_url e filtra quelli già processati
   const seenUrls = new Set<string>()
