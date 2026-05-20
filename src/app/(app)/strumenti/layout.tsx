@@ -5,17 +5,35 @@ import { usePathname } from 'next/navigation'
 import { useLocale } from '@/lib/locale-context'
 import { useMe } from '@/lib/me-context'
 import { useActiveOperator } from '@/lib/active-operator-context'
-import { canAccessCentroOperazioniPage } from '@/lib/effective-operator-ui'
+import {
+  canAccessCentroOperazioniPage,
+  effectiveIsAdminSedeUi,
+  effectiveIsMasterAdminPlane,
+} from '@/lib/effective-operator-ui'
 
 export default function StrumentiLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useLocale()
   const { me, loading: meLoading } = useMe()
   const { activeOperator } = useActiveOperator()
+  const masterPlane = effectiveIsMasterAdminPlane(me, activeOperator)
+  const isAdminSede = effectiveIsAdminSedeUi(me, activeOperator)
   const showCentroOperazioni =
     meLoading || canAccessCentroOperazioniPage(me, activeOperator)
+  const showCentroControllo = showCentroOperazioni
+  const showAnalisiPrezzi = meLoading || masterPlane || isAdminSede
+  const showSedi = meLoading || masterPlane || isAdminSede
 
   const tabs = [
+    ...(showCentroControllo
+      ? [
+          {
+            href: '/strumenti/centro-controllo',
+            label: t.strumentiCentroControllo.pageTitle,
+            active: !!pathname?.startsWith('/strumenti/centro-controllo'),
+          },
+        ]
+      : []),
     ...(showCentroOperazioni
       ? [
           {
@@ -25,16 +43,24 @@ export default function StrumentiLayout({ children }: { children: React.ReactNod
           },
         ]
       : []),
-    {
-      href: '/strumenti/analisi-prezzi',
-      label: 'Analisi Prezzi',
-      active: !!pathname?.startsWith('/strumenti/analisi-prezzi'),
-    },
-    {
-      href: '/strumenti/sedi',
-      label: t.nav.sedi,
-      active: pathname === '/strumenti/sedi',
-    },
+    ...(showAnalisiPrezzi
+      ? [
+          {
+            href: '/strumenti/analisi-prezzi',
+            label: t.strumentiAnalisiPrezzi.pageTitle,
+            active: !!pathname?.startsWith('/strumenti/analisi-prezzi'),
+          },
+        ]
+      : []),
+    ...(showSedi
+      ? [
+          {
+            href: '/strumenti/sedi',
+            label: t.nav.sedi,
+            active: pathname === '/strumenti/sedi' || pathname?.startsWith('/strumenti/sedi/'),
+          },
+        ]
+      : []),
     {
       href: '/strumenti/impostazioni',
       label: t.nav.impostazioni,

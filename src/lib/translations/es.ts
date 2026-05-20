@@ -103,6 +103,15 @@ const translations: Translations = {
     accessoSwitchOperator: 'Cambiar operador',
   },
   nav: { dashboard: 'Panel', dashboardAdmin: 'Admin', operatori: 'Operadores', fornitori: 'Proveedores', bolle: 'Albaranes', fatture: 'Facturas', ordini: 'Pedidos', archivio: 'Archivo', logEmail: 'Registro de email', sedi: 'Sede y Usuarios', sediTitle: 'Sede', sediNavGroupMaster: 'Sedes', gestisciSedeNamed: 'Gestionar {name}', gestisciSedi: 'Gestionar sedes', tuttiFornitori: 'Todos los proveedores', cerca: 'Buscar…', nessunRisultato: 'Sin resultados', altriRisultati: 'más — busca arriba', impostazioni: 'Configuración', nuovaBolla: 'Nuevo Albarán', ricevuto: 'Recibo', operatorActiveHint: 'Indica quién está operando', esci: 'Cerrar sesión', guida: 'Ayuda', sedeGlobalOverview: 'Vista global', bottomNavBackToSede: 'Volver a la sede', bottomNavScannerAi: 'Escáner IA', bottomNavProfile: 'Perfil', bottomNavSediMap: 'Mapa de sedes', bottomNavGlobalReports: 'Informes globales', bottomNavNewOrder: 'Nuevo pedido', bottomNavPriceHistory: 'Historial de precios', bottomNavContact: 'Contactar', addNewDelivery: 'Nuevo albarán', openRekki: 'Rekki', ariaMain: 'Navegación principal', ariaAdmin: 'Navegación de administrador', ariaFornitore: 'Navegación de proveedor', ariaCallSupplier: 'Llamar al proveedor', notifications: 'Notificaciones', noNotifications: 'Sin notificaciones', errorAlert: 'Errores de sincronización (24h)', analytics: 'Analytics', approvazioni: 'Aprobaciones', attivita: 'Actividad', backup: 'Copia de seguridad', consumiAi: 'Consumo IA', strumenti: 'Herramientas' },
+  strumentiCentroControllo: {
+    pageTitle: 'Centro de control',
+    pageSubtitle: 'Cola unificada de documentos — gestiona todo desde una pantalla',
+    apprendimentoTitle: 'Aprendizaje IA',
+    apprendimentoSubtitle: 'Estadísticas y patrones del sistema de sugerencias automáticas',
+  },
+  strumentiAnalisiPrezzi: {
+    pageTitle: 'Análisis de precios',
+  },
   strumentiCentroOperazioni: {
     pageTitle: 'Centro de operaciones',
     pageSubtitle:

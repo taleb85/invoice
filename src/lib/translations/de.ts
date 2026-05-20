@@ -103,6 +103,15 @@ const translations: Translations = {
     accessoSwitchOperator: 'Benutzer wechseln',
   },
   nav: { dashboard: 'Dashboard', dashboardAdmin: 'Admin', operatori: 'Operatoren', fornitori: 'Lieferanten', bolle: 'Lieferscheine', fatture: 'Rechnungen', ordini: 'Bestellungen', archivio: 'Archiv', logEmail: 'E-Mail-Log', sedi: 'Standort & Nutzer', sediTitle: 'Standort', sediNavGroupMaster: 'Standorte', gestisciSedeNamed: '{name} verwalten', gestisciSedi: 'Standorte verwalten', tuttiFornitori: 'Alle Lieferanten', cerca: 'Suchen…', nessunRisultato: 'Keine Ergebnisse', altriRisultati: 'weitere — suche oben', impostazioni: 'Einstellungen', nuovaBolla: 'Neuer Lieferschein', ricevuto: 'Beleg', operatorActiveHint: 'Wer ist gerade aktiv?', esci: 'Abmelden', guida: 'Hilfe', sedeGlobalOverview: 'Globale Übersicht', bottomNavBackToSede: 'Zurück zum Standort', bottomNavScannerAi: 'KI-Scanner', bottomNavProfile: 'Profil', bottomNavSediMap: 'Standortkarte', bottomNavGlobalReports: 'Globale Berichte', bottomNavNewOrder: 'Neue Bestellung', bottomNavPriceHistory: 'Preisverlauf', bottomNavContact: 'Kontakt', addNewDelivery: 'Neuer Lieferschein', openRekki: 'Rekki', ariaMain: 'Hauptnavigation', ariaAdmin: 'Administrator-Navigation', ariaFornitore: 'Lieferanten-Navigation', ariaCallSupplier: 'Lieferanten anrufen', notifications: 'Benachrichtigungen', noNotifications: 'Keine Benachrichtigungen', errorAlert: 'Sync-Fehler (24h)', analytics: 'Analytics', approvazioni: 'Genehmigungen', attivita: 'Aktivität', backup: 'Sicherung', consumiAi: 'KI-Verbrauch', strumenti: 'Werkzeuge' },
+  strumentiCentroControllo: {
+    pageTitle: 'Kontrollzentrum',
+    pageSubtitle: 'Einheitliche Dokumentenwarteschlange — alles auf einem Bildschirm',
+    apprendimentoTitle: 'KI-Lernen',
+    apprendimentoSubtitle: 'Statistiken und Muster aus automatischen Vorschlägen',
+  },
+  strumentiAnalisiPrezzi: {
+    pageTitle: 'Preisanalyse',
+  },
   strumentiCentroOperazioni: {
     pageTitle: 'Operationszentrale',
     pageSubtitle:

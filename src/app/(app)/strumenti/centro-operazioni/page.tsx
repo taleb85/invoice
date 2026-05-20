@@ -60,8 +60,9 @@ function CentroOperazioniDashboard(props: {
   data: DashboardPayload | null
   loadError: string | null
   forceError: string | null
+  centroControlloLabel: string
 }) {
-  const { data, loadError, forceLoading, onForce, forceError } = props
+  const { data, loadError, forceLoading, onForce, forceError, centroControlloLabel } = props
   return (
     <div className="space-y-4">
       <div className="app-card overflow-hidden p-5">
@@ -132,7 +133,11 @@ function CentroOperazioniDashboard(props: {
       </div>
 
       <p className="rounded-xl border border-app-line-25 bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-app-fg-muted">
-        Per la posta in arrivo e la coda «Documenti da elaborare» usa la sincronizzazione email dalle sedi o dalla scheda
+        Per la coda unificata documenti e lo stato in tempo reale usa{' '}
+        <Link href="/strumenti/centro-controllo" className="font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200">
+          {centroControlloLabel}
+        </Link>
+        . Per la posta in arrivo e la coda «Documenti da elaborare» usa la sincronizzazione email dalle sedi o dalla scheda
         fornitore. Per un controllo completo su un fornitore usa <strong className="text-app-fg">Analisi completa</strong>{' '}
         nella scheda fornitore.
       </p>
@@ -295,32 +300,30 @@ export default function CentroOperazioniPage() {
   if (!canView) {
     return (
       <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
-        <div className="app-shell-page-padding mx-auto min-w-0 w-full max-w-[var(--app-layout-max-width)]">
-          <AppPageHeaderStrip
-            accent="teal"
-            leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
-          >
-            <AppPageHeaderTitleWithDashboardShortcut>
-              <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
-              <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{s.accessDeniedSubtitle}</p>
-            </AppPageHeaderTitleWithDashboardShortcut>
-          </AppPageHeaderStrip>
-          <div className="mt-6 app-card overflow-hidden p-6">
-            <p className="m-0 text-sm leading-relaxed text-app-fg-muted">{s.accessDeniedBody}</p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/strumenti/sedi"
-                className="inline-flex items-center justify-center rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18"
-              >
-                {s.accessDeniedCtaSedi}
-              </Link>
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center rounded-lg border border-app-line-25 bg-white/[0.04] px-4 py-2.5 text-xs font-bold text-app-fg transition-colors hover:bg-white/[0.07]"
-              >
-                {s.accessDeniedCtaDashboard}
-              </Link>
-            </div>
+        <AppPageHeaderStrip
+          accent="teal"
+          leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+        >
+          <AppPageHeaderTitleWithDashboardShortcut>
+            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
+            <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{s.accessDeniedSubtitle}</p>
+          </AppPageHeaderTitleWithDashboardShortcut>
+        </AppPageHeaderStrip>
+        <div className="app-card overflow-hidden p-6">
+          <p className="m-0 text-sm leading-relaxed text-app-fg-muted">{s.accessDeniedBody}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/strumenti/sedi"
+              className="inline-flex items-center justify-center rounded-lg border border-cyan-500/45 bg-cyan-500/12 px-4 py-2.5 text-xs font-bold text-cyan-100 transition-colors hover:bg-cyan-500/18"
+            >
+              {s.accessDeniedCtaSedi}
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center rounded-lg border border-app-line-25 bg-white/[0.04] px-4 py-2.5 text-xs font-bold text-app-fg transition-colors hover:bg-white/[0.07]"
+            >
+              {s.accessDeniedCtaDashboard}
+            </Link>
           </div>
         </div>
       </div>
@@ -329,160 +332,154 @@ export default function CentroOperazioniPage() {
 
   return (
     <div className={`${APP_SHELL_SECTION_PAGE_STACK_CLASS} pb-10`}>
-      <div className="app-shell-page-padding mx-auto min-w-0 w-full max-w-[var(--app-layout-max-width)]">
-        <AppPageHeaderStrip
-          accent="teal"
-          leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
-        >
-          <AppPageHeaderTitleWithDashboardShortcut>
-            <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
-            <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{s.pageSubtitle}</p>
-          </AppPageHeaderTitleWithDashboardShortcut>
-        </AppPageHeaderStrip>
-        <div className="mt-6 space-y-10">
-          <div className="grid min-w-0 w-full grid-cols-1 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:gap-y-10 xl:gap-x-10">
-              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-sync">
-                <OpsSectionTitle id="ops-section-sync">{s.sectionSyncEmail}</OpsSectionTitle>
-                <div className="flex min-h-0 min-w-0 flex-col gap-4">
-
-                  <div className="app-card overflow-hidden p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.historicSyncSectionLabel}</p>
-                    <p className="mt-2 text-base font-semibold text-app-fg">{s.historicSyncTitle}</p>
-                    <p className="mt-2 text-sm text-app-fg-muted">{s.historicSyncDesc}</p>
-                    <p className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
-                      {s.historicSyncWarning}
-                    </p>
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={historicSyncLoading}
-                        onClick={onHistoricEmailSync}
-                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-violet-500/45 bg-violet-500/12 px-4 py-2.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {historicSyncLoading ? (
-                          <>
-                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-violet-100 border-t-transparent" />
-                            {t.common.loading}
-                          </>
-                        ) : (
-                          s.historicSyncCta
-                        )}
-                      </button>
-                      {historicSyncError ? <span className="text-xs text-rose-300">{historicSyncError}</span> : null}
-                    </div>
-                    {historicProgressLine ? (
-                      <p className="mt-3 text-xs text-app-fg-muted">{historicProgressLine}</p>
-                    ) : null}
-                    {historicSyncResult ? (
-                      <p className="mt-3 whitespace-pre-line text-sm text-emerald-200/95">{historicSyncResult}</p>
-                    ) : null}
-                  </div>
-                </div>
-              </section>
-
-              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-documenti">
-                <OpsSectionTitle id="ops-section-documenti">{s.sectionDocumenti}</OpsSectionTitle>
-                <div className="flex min-h-0 min-w-0 flex-col gap-4">
-                  <div className="app-card overflow-hidden p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
-                      {s.reprocessDaAssociareTitle}
-                    </p>
-                    <p className="mt-2 text-sm text-app-fg-muted">{s.reprocessDaAssociareDesc}</p>
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        aria-busy={reprocessLoading}
-                        disabled={reprocessLoading}
-                        onClick={() => void onReprocessDaAssociare()}
-                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-emerald-500/45 bg-emerald-500/12 px-4 py-2.5 text-xs font-bold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {reprocessLoading ? (
-                          <>
-                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100 border-t-transparent" />
-                            {t.common.loading}
-                          </>
-                        ) : (
-                          s.reprocessDaAssociareCta
-                        )}
-                      </button>
-                      {reprocessError ? <span className="text-xs text-rose-300">{reprocessError}</span> : null}
-                    </div>
-                    {reprocessLoading ? (
-                      <div
-                        role="status"
-                        aria-live="polite"
-                        aria-atomic="true"
-                        className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-400/35 bg-emerald-500/[0.07] px-3 py-2.5 text-left"
-                      >
-                        <span
-                          className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-emerald-600/70 border-t-transparent dark:border-emerald-100 dark:border-t-transparent"
-                          aria-hidden
-                        />
-                        <span className="text-xs font-semibold leading-snug text-app-fg">
-                          {reprocessRunningStatus}
-                        </span>
-                      </div>
-                    ) : null}
-                    {reprocessResult ? (
-                      <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
-                    ) : null}
-                  </div>
-                </div>
-              </section>
-
-              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-ocr">
-                <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
-
-                <div className="flex min-h-0 min-w-0 flex-col gap-4">
-                  <FixOcrDatesCard anchorId="ops-fix-ocr-dates" />
-                  <ReclassifyPendingKindCard />
-                  <AiReclassifyCard />
-                </div>
-              </section>
-
-              <section className="flex min-h-0 min-w-0 flex-col gap-6" aria-labelledby="ops-section-manutenzione">
-                <OpsSectionTitle id="ops-section-manutenzione">{s.sectionManutenzione}</OpsSectionTitle>
-                <div className="flex min-h-0 min-w-0 flex-col gap-4">
-                  <div className="app-card overflow-hidden p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardDupScanTitle}</p>
-                    <p className="mt-2 text-sm text-app-fg-muted">{s.cardDupScanDesc}</p>
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setDupOpen(true)}
-                        className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/45 bg-amber-500/12 px-4 py-2.5 text-xs font-bold text-amber-100 transition-colors hover:bg-amber-500/18"
-                      >
-                        {d.duplicateFattureScanButton}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="app-card overflow-hidden p-5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardAuditTitle}</p>
-                    <p className="mt-2 text-sm text-app-fg-muted">{s.cardAuditDesc}</p>
-                    <Link
-                      href="/inbox-ai?tab=audit"
-                      className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
-                    >
-                      {s.cardOpenAudit} →
-                    </Link>
-                  </div>
-
-                  <CentroOperazioniDashboard
-                    data={data}
-                    loadError={loadError}
-                    forceLoading={forceLoading}
-                    forceError={forceError}
-                    onForce={onForce}
-                  />
-                </div>
-              </section>
-
+      <AppPageHeaderStrip
+        accent="teal"
+        leadingAccessory={<BackButton href="/" label={t.nav.dashboard} iconOnly className="mb-0 shrink-0" />}
+      >
+        <AppPageHeaderTitleWithDashboardShortcut>
+          <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{s.pageTitle}</h1>
+          <p className={`${APP_PAGE_HEADER_STRIP_SUBTITLE_CLASS} !max-w-none`}>{s.pageSubtitle}</p>
+        </AppPageHeaderTitleWithDashboardShortcut>
+      </AppPageHeaderStrip>
+      <div className="grid w-full grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-x-8 xl:gap-x-10">
+        <section className="flex w-full min-w-0 flex-col gap-6" aria-labelledby="ops-section-sync">
+          <OpsSectionTitle id="ops-section-sync">{s.sectionSyncEmail}</OpsSectionTitle>
+          <div className="flex w-full min-w-0 flex-col gap-4">
+            <div className="app-card overflow-hidden p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.historicSyncSectionLabel}</p>
+              <p className="mt-2 text-base font-semibold text-app-fg">{s.historicSyncTitle}</p>
+              <p className="mt-2 text-sm text-app-fg-muted">{s.historicSyncDesc}</p>
+              <p className="mt-3 rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/95">
+                {s.historicSyncWarning}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={historicSyncLoading}
+                  onClick={onHistoricEmailSync}
+                  className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-violet-500/45 bg-violet-500/12 px-4 py-2.5 text-xs font-bold text-violet-100 transition-colors hover:bg-violet-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {historicSyncLoading ? (
+                    <>
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-violet-100 border-t-transparent" />
+                      {t.common.loading}
+                    </>
+                  ) : (
+                    s.historicSyncCta
+                  )}
+                </button>
+                {historicSyncError ? <span className="text-xs text-rose-300">{historicSyncError}</span> : null}
+              </div>
+              {historicProgressLine ? (
+                <p className="mt-3 text-xs text-app-fg-muted">{historicProgressLine}</p>
+              ) : null}
+              {historicSyncResult ? (
+                <p className="mt-3 whitespace-pre-line text-sm text-emerald-200/95">{historicSyncResult}</p>
+              ) : null}
+            </div>
           </div>
+        </section>
 
-          <DuplicateManager open={dupOpen} onOpenChange={setDupOpen} />
-        </div>
+        <section className="flex w-full min-w-0 flex-col gap-6" aria-labelledby="ops-section-documenti">
+          <OpsSectionTitle id="ops-section-documenti">{s.sectionDocumenti}</OpsSectionTitle>
+          <div className="flex w-full min-w-0 flex-col gap-4">
+            <div className="app-card overflow-hidden p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">
+                {s.reprocessDaAssociareTitle}
+              </p>
+              <p className="mt-2 text-sm text-app-fg-muted">{s.reprocessDaAssociareDesc}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  aria-busy={reprocessLoading}
+                  disabled={reprocessLoading}
+                  onClick={() => void onReprocessDaAssociare()}
+                  className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-emerald-500/45 bg-emerald-500/12 px-4 py-2.5 text-xs font-bold text-emerald-100 transition-colors hover:bg-emerald-500/18 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {reprocessLoading ? (
+                    <>
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-100 border-t-transparent" />
+                      {t.common.loading}
+                    </>
+                  ) : (
+                    s.reprocessDaAssociareCta
+                  )}
+                </button>
+                {reprocessError ? <span className="text-xs text-rose-300">{reprocessError}</span> : null}
+              </div>
+              {reprocessLoading ? (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                  className="mt-3 flex items-start gap-2 rounded-lg border border-emerald-400/35 bg-emerald-500/[0.07] px-3 py-2.5 text-left"
+                >
+                  <span
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-emerald-600/70 border-t-transparent dark:border-emerald-100 dark:border-t-transparent"
+                    aria-hidden
+                  />
+                  <span className="text-xs font-semibold leading-snug text-app-fg">
+                    {reprocessRunningStatus}
+                  </span>
+                </div>
+              ) : null}
+              {reprocessResult ? (
+                <p className="mt-3 text-sm text-emerald-200/95">{reprocessResult}</p>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section className="flex w-full min-w-0 flex-col gap-6" aria-labelledby="ops-section-ocr">
+          <OpsSectionTitle id="ops-section-ocr">{s.sectionOcrQualita}</OpsSectionTitle>
+          <div className="flex w-full min-w-0 flex-col gap-4">
+            <FixOcrDatesCard anchorId="ops-fix-ocr-dates" />
+            <ReclassifyPendingKindCard />
+            <AiReclassifyCard />
+          </div>
+        </section>
+
+        <section className="flex w-full min-w-0 flex-col gap-6" aria-labelledby="ops-section-manutenzione">
+          <OpsSectionTitle id="ops-section-manutenzione">{s.sectionManutenzione}</OpsSectionTitle>
+          <div className="flex w-full min-w-0 flex-col gap-4">
+            <div className="app-card overflow-hidden p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardDupScanTitle}</p>
+              <p className="mt-2 text-sm text-app-fg-muted">{s.cardDupScanDesc}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDupOpen(true)}
+                  className="inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg border border-amber-500/45 bg-amber-500/12 px-4 py-2.5 text-xs font-bold text-amber-100 transition-colors hover:bg-amber-500/18"
+                >
+                  {d.duplicateFattureScanButton}
+                </button>
+              </div>
+            </div>
+
+            <div className="app-card overflow-hidden p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-app-fg-muted">{s.cardAuditTitle}</p>
+              <p className="mt-2 text-sm text-app-fg-muted">{s.cardAuditDesc}</p>
+              <Link
+                href="/inbox-ai?tab=audit"
+                className="mt-4 inline-flex text-sm font-semibold text-cyan-300 underline decoration-cyan-500/35 underline-offset-4 hover:text-cyan-200"
+              >
+                {s.cardOpenAudit} →
+              </Link>
+            </div>
+
+            <CentroOperazioniDashboard
+              data={data}
+              loadError={loadError}
+              forceLoading={forceLoading}
+              forceError={forceError}
+              onForce={onForce}
+              centroControlloLabel={t.strumentiCentroControllo.pageTitle}
+            />
+          </div>
+        </section>
       </div>
+
+      <DuplicateManager open={dupOpen} onOpenChange={setDupOpen} />
     </div>
   )
 }

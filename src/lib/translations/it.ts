@@ -155,6 +155,15 @@ const translations: Translations = {
     consumiAi: 'Consumi AI',
     strumenti: 'Strumenti',
   },
+  strumentiCentroControllo: {
+    pageTitle: 'Centro controllo',
+    pageSubtitle: 'Coda unificata documenti — gestisci tutto da un\'unica schermata',
+    apprendimentoTitle: 'Apprendimento AI',
+    apprendimentoSubtitle: 'Statistiche e pattern appresi dal sistema di suggerimenti automatici',
+  },
+  strumentiAnalisiPrezzi: {
+    pageTitle: 'Analisi Prezzi',
+  },
   strumentiCentroOperazioni: {
     pageTitle: 'Centro operazioni',
     pageSubtitle:

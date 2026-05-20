@@ -1656,6 +1656,15 @@ export type Translations = {
     completato: string
     completata: string
   }
+  strumentiCentroControllo: {
+    pageTitle: string
+    pageSubtitle: string
+    apprendimentoTitle: string
+    apprendimentoSubtitle: string
+  }
+  strumentiAnalisiPrezzi: {
+    pageTitle: string
+  }
   strumentiCentroOperazioni: {
     pageTitle: string
     pageSubtitle: string

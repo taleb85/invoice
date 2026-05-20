@@ -152,6 +152,15 @@ const translations: Translations = {
     consumiAi: 'AI Usage',
     strumenti: 'Tools',
   },
+  strumentiCentroControllo: {
+    pageTitle: 'Control centre',
+    pageSubtitle: 'Unified document queue — manage everything from one screen',
+    apprendimentoTitle: 'AI learning',
+    apprendimentoSubtitle: 'Stats and patterns learned from automatic suggestions',
+  },
+  strumentiAnalisiPrezzi: {
+    pageTitle: 'Price analysis',
+  },
   strumentiCentroOperazioni: {
     pageTitle: 'Operations hub',
     pageSubtitle:

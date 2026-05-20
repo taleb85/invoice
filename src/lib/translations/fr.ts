@@ -103,6 +103,15 @@ const translations: Translations = {
     accessoSwitchOperator: 'Changer d’opérateur',
   },
   nav: { dashboard: 'Tableau de bord', dashboardAdmin: 'Admin', operatori: 'Opérateurs', fornitori: 'Fournisseurs', bolle: 'Bons de livraison', fatture: 'Factures', ordini: 'Commandes', archivio: 'Archive', logEmail: 'Journal email', sedi: 'Site et Utilisateurs', sediTitle: 'Site', sediNavGroupMaster: 'Sites', gestisciSedeNamed: 'Gérer {name}', gestisciSedi: 'Gérer les sites', tuttiFornitori: 'Tous les fournisseurs', cerca: 'Rechercher…', nessunRisultato: 'Aucun résultat', altriRisultati: 'de plus — cherchez ci-dessus', impostazioni: 'Paramètres', nuovaBolla: 'Nouveau BL', ricevuto: 'Reçu', operatorActiveHint: 'Indiquez qui est actif', esci: 'Déconnexion', guida: 'Aide', sedeGlobalOverview: 'Vue globale', bottomNavBackToSede: 'Retour au site', bottomNavScannerAi: 'Scanner IA', bottomNavProfile: 'Profil', bottomNavSediMap: 'Carte des sites', bottomNavGlobalReports: 'Rapports globaux', bottomNavNewOrder: 'Nouvelle commande', bottomNavPriceHistory: 'Historique des prix', bottomNavContact: 'Contacter', addNewDelivery: 'Nouveau BL', openRekki: 'Rekki', ariaMain: 'Navigation principale', ariaAdmin: 'Navigation administrateur', ariaFornitore: 'Navigation fournisseur', ariaCallSupplier: 'Appeler le fournisseur', notifications: 'Notifications', noNotifications: 'Aucune notification', errorAlert: 'Erreurs de synchro (24h)', analytics: 'Analytics', approvazioni: 'Approbations', attivita: 'Activité', backup: 'Sauvegarde', consumiAi: 'Consommation IA', strumenti: 'Outils' },
+  strumentiCentroControllo: {
+    pageTitle: 'Centre de contrôle',
+    pageSubtitle: 'File d\'attente unifiée — tout gérer depuis un seul écran',
+    apprendimentoTitle: 'Apprentissage IA',
+    apprendimentoSubtitle: 'Statistiques et modèles appris des suggestions automatiques',
+  },
+  strumentiAnalisiPrezzi: {
+    pageTitle: 'Analyse des prix',
+  },
   strumentiCentroOperazioni: {
     pageTitle: 'Centre des opérations',
     pageSubtitle:

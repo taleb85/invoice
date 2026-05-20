@@ -910,11 +910,24 @@ export default function CentroControlloClient({ sedeId }: Props) {
               </div>
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-app-fg">Centro operazioni</p>
+                  <p className="text-xs text-app-fg-muted">Sync storica email, OCR batch, ripassaggio documenti e altri strumenti operativi.</p>
+                </div>
+                <a
+                  href="/strumenti/centro-operazioni"
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Apri
+                </a>
+              </div>
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold text-app-fg">Apprendimento AI</p>
                   <p className="text-xs text-app-fg-muted">Statistiche e pattern di apprendimento automatico.</p>
                 </div>
                 <a
-                  href="/centro-controllo/apprendimento"
+                  href="/strumenti/centro-controllo/apprendimento"
                   className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-[11px] font-semibold text-cyan-200 transition-colors hover:bg-cyan-500/18"
                 >
                   <Brain className="w-3 h-3" />

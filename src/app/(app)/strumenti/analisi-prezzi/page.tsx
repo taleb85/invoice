@@ -85,7 +85,7 @@ export default function AnalisiPrezziPage() {
           </svg>
         }
       >
-        <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>Analisi Prezzi</h1>
+        <h1 className={APP_PAGE_HEADER_STRIP_H1_CLASS}>{t.strumentiAnalisiPrezzi.pageTitle}</h1>
       </AppPageHeaderStrip>
 
       {loading ? (
