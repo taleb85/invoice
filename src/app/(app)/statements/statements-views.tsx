@@ -4487,7 +4487,7 @@ export function VerificationStatusTab({
                       Rif.
                     </th>
                     <th
-                      className="w-[8rem] py-2 pl-0 pr-1 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
+                      className="w-[8rem] py-2 pl-1.5 pr-1 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
                       title={t.statements.colStatus}
                     >
                       {t.statements.colStatus}
@@ -4556,7 +4556,7 @@ export function VerificationStatusTab({
                           </span>
                         </td>
 
-                        <td className="w-[8rem] py-2 pl-0 pr-1 align-middle">
+                        <td className="w-[8rem] py-2 pl-1.5 pr-1 align-middle">
                           <span
                             className={`inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none whitespace-nowrap ${cfg.cls}`}
                             title={cfg.label}
