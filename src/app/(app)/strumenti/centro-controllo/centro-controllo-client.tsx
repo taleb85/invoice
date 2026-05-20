@@ -815,48 +815,60 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
                             <span>
                               <strong className="font-semibold text-app-fg">{statementStats.righe_anomale ?? statementStats.anomalie_totali}</strong>
-                              {' '}righe estratto conto con anomalie
+                              {' '}righe con anomalie
                               {statementStats.con_anomalie > 0 ? (
-                                <span className="text-app-fg-muted"> · {statementStats.con_anomalie} estratti conto coinvolti</span>
+                                <span className="text-app-fg-muted"> · {statementStats.con_anomalie} estratti conto</span>
                               ) : null}
                             </span>
                           </div>
-                          <p className="text-[11px] leading-relaxed text-app-fg-muted">
-                            Il triple-check chiude automaticamente righe con fattura trovata e importo allineato. Le restanti hanno importi discordanti o fatture mancanti nel sistema — non sono risolvibili in bulk senza correggere i dati.
-                          </p>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => void handleAutoRisolvi(false)}
-                              disabled={autoResolving || !sedeId}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/18 disabled:opacity-50"
-                            >
-                              {autoResolving ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Zap className="w-3 h-3" />
-                              )}
-                              {autoResolving
-                                ? 'Auto-risoluzione…'
-                                : `Auto-risolvi (${statementStats.righe_anomale ?? statementStats.anomalie_totali} righe)`}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleReprocessChecks}
-                              disabled={reprocessingChecks}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
-                            >
-                              {reprocessingChecks ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <RefreshCw className="w-3 h-3" />
-                              )}
-                              {reprocessingChecks ? 'Riprocesso…' : 'Riprocessa triple-check'}
-                            </button>
+
+                          {/* Action 1: Auto-risolvi */}
+                          <div className="rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5 space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-semibold text-app-fg">Chiudi anomalie risolvibili</p>
+                                <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
+                                  Cerca fatture già presenti in archivio e marca come <em>ok</em> le righe il cui importo corrisponde. Non modifica i dati, elimina solo i falsi allarmi.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => void handleAutoRisolvi(false)}
+                                disabled={autoResolving || !sedeId}
+                                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/18 disabled:opacity-50"
+                              >
+                                {autoResolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
+                                {autoResolving ? 'In corso…' : 'Esegui'}
+                              </button>
+                            </div>
+                            {autoRisolviResult && (
+                              <p className="text-[11px] leading-relaxed text-emerald-300">{autoRisolviResult}</p>
+                            )}
                           </div>
-                          {(autoRisolviResult || reprocessChecksResult) && (
-                            <p className="text-[11px] leading-relaxed text-emerald-300">{autoRisolviResult || reprocessChecksResult}</p>
-                          )}
+
+                          {/* Action 2: Riprocessa triple-check */}
+                          <div className="rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5 space-y-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-semibold text-app-fg">Ricalcola tutto il triple-check</p>
+                                <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
+                                  Riesegue il confronto fattura ↔ bolla ↔ estratto conto su ogni riga. Usa dopo aver caricato nuove fatture o DDT per aggiornare i risultati.
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={handleReprocessChecks}
+                                disabled={reprocessingChecks}
+                                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
+                              >
+                                {reprocessingChecks ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                {reprocessingChecks ? 'In corso…' : 'Ricalcola'}
+                              </button>
+                            </div>
+                            {reprocessChecksResult && (
+                              <p className="text-[11px] leading-relaxed text-emerald-300">{reprocessChecksResult}</p>
+                            )}
+                          </div>
                         </>
                       ) : (
                         <div className="flex items-center gap-2 text-xs text-app-fg-muted">
