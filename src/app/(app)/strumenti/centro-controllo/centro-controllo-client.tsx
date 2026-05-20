@@ -710,7 +710,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
           {error && (
             <div className="p-4 bg-rose-950/30 border border-rose-800/40 rounded-lg text-rose-300 text-sm">
               {error}
-              <button onClick={caricaCoda} className="ml-2 underline hover:no-underline">Riprova</button>
+              <button onClick={() => caricaCoda()} className="ml-2 underline hover:no-underline">Riprova</button>
             </div>
           )}
 

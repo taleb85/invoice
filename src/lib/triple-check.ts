@@ -227,9 +227,13 @@ export async function runTripleCheck(
 
   for (const line of lines) {
     const numNorm = normalizeNumeroFattura(line.numero)
-    const rawFattura = fatturePool.find(
+    const candidates = fatturePool.filter(
       (f) => f.numero_fattura != null && normalizeNumeroFattura(f.numero_fattura) === numNorm,
     )
+    // When duplicates exist (same numero, different importo), prefer the one matching the statement amount.
+    const rawFattura = candidates.length <= 1
+      ? candidates[0]
+      : (candidates.find((f) => f.importo != null && amountsMatchForTripleCheck(f.importo, line.importo)) ?? candidates[0])
 
     if (!rawFattura) {
       const bollaMatch = bollePool.find(

@@ -190,6 +190,7 @@ export async function GET(req: NextRequest) {
     received_at?: string | null
     document_date?: string | null
     extracted_pdf_dates?: unknown
+    missing_rows?: number | null
   }
   const subjectBest = new Map<string, StmtListRow>()
   const noSubject: StmtListRow[] = []
@@ -214,7 +215,7 @@ export async function GET(req: NextRequest) {
     (a, b) => String(b.received_at ?? '').localeCompare(String(a.received_at ?? '')),
   )
 
-  const hasMissing = deduped.some((s: { missing_rows?: number }) => (s.missing_rows ?? 0) > 0)
+  const hasMissing = deduped.some((s) => ((s.missing_rows as number | null) ?? 0) > 0)
 
   // Pulizia automatica: elimina statement errati (documenti non processabili come estratti conto)
   // e ripristina i documenti originali nella coda. Fire-and-forget per non rallentare la risposta.
