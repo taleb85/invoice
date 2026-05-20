@@ -1442,7 +1442,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
                 )}
               </div>
 
-              {(pin.join('').length === PIN_LENGTH || loading) && (
+              {(pin.join('').length === PIN_LENGTH || loading) && !showDeviceTrustSheet && (
                 <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-blue-500">
                   <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -1670,7 +1670,7 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
               </div>
 
               {/* Indicatore auto-login */}
-              {(pinFilled || loading) && (
+              {(pinFilled || loading) && !showDeviceTrustSheet && (
                 <p className="text-center text-xs text-blue-500 mt-2 flex items-center justify-center gap-1.5">
                   <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
