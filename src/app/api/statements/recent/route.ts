@@ -9,6 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
+import { countAnomalousStatementRows } from '@/lib/statement-auto-resolve'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -102,10 +103,13 @@ export async function GET(req: NextRequest) {
     fornitore_nome: d.fornitore_id ? (pendingFornitoreMap[d.fornitore_id] ?? null) : null,
   }))
 
+  const righe_anomale = await countAnomalousStatementRows(supabase, sedeId)
+
   return NextResponse.json({
     total,
     con_anomalie: conAnomalie,
     anomalie_totali: anomalieTotali,
+    righe_anomale,
     recenti,
     pending_count: pendingListWithFornitore.length,
     pending_list: pendingListWithFornitore,

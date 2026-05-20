@@ -14,6 +14,47 @@ export type AutoRisolviStatementResult = {
 
 type StatementRef = { id: string; fornitore_id: string | null; sede_id: string | null }
 
+const IN_CHUNK = 80
+
+function parseStatementJoin(
+  raw: { id: string; fornitore_id: string | null; sede_id: string | null } | Array<{ id: string; fornitore_id: string | null; sede_id: string | null }> | null,
+): StatementRef | null {
+  if (!raw) return null
+  const s = Array.isArray(raw) ? raw[0] : raw
+  return s?.id ? s : null
+}
+
+/** Conta righe statement non ok per sede (query a chunk, senza .in() gigante). */
+export async function countAnomalousStatementRows(
+  supabase: SupabaseClient,
+  sedeId: string,
+): Promise<number> {
+  const { data: statements } = await supabase
+    .from('statements')
+    .select('id')
+    .eq('sede_id', sedeId)
+
+  const ids = (statements ?? []).map((s) => s.id)
+  if (ids.length === 0) return 0
+
+  let total = 0
+  for (let i = 0; i < ids.length; i += IN_CHUNK) {
+    const chunk = ids.slice(i, i + IN_CHUNK)
+    const { count, error } = await supabase
+      .from('statement_rows')
+      .select('*', { count: 'exact', head: true })
+      .in('statement_id', chunk)
+      .neq('check_status', 'ok')
+
+    if (error) {
+      console.error('[statement-auto-resolve] count chunk error:', error.message)
+      continue
+    }
+    total += count ?? 0
+  }
+  return total
+}
+
 async function loadStatementsForSede(supabase: SupabaseClient, sedeId: string): Promise<StatementRef[]> {
   const { data } = await supabase
     .from('statements')
@@ -26,18 +67,54 @@ async function loadStatementIdsWithAnomalies(
   supabase: SupabaseClient,
   sedeId: string,
 ): Promise<StatementRef[]> {
-  const statements = await loadStatementsForSede(supabase, sedeId)
-  if (statements.length === 0) return []
+  const byId = new Map<string, StatementRef>()
 
-  const ids = statements.map((s) => s.id)
-  const { data: anomalousRows } = await supabase
+  // 1) Righe con check_status != ok (fonte verità per la coda)
+  const { data: rows, error: rowsError } = await supabase
     .from('statement_rows')
-    .select('statement_id')
-    .in('statement_id', ids)
+    .select('statement_id, statements!inner(id, fornitore_id, sede_id)')
+    .eq('statements.sede_id', sedeId)
     .neq('check_status', 'ok')
 
-  const anomalousIds = new Set((anomalousRows ?? []).map((r) => r.statement_id as string))
-  return statements.filter((s) => anomalousIds.has(s.id))
+  if (rowsError) {
+    console.error('[statement-auto-resolve] join query failed:', rowsError.message)
+  } else {
+    for (const row of rows ?? []) {
+      const stmt = parseStatementJoin(row.statements as Parameters<typeof parseStatementJoin>[0])
+      if (stmt) byId.set(stmt.id, stmt)
+    }
+  }
+
+  // 2) Fallback: estratti con missing_rows > 0 ma conteggi non allineati
+  if (byId.size === 0) {
+    const { data: staleStmts } = await supabase
+      .from('statements')
+      .select('id, fornitore_id, sede_id')
+      .eq('sede_id', sedeId)
+      .gt('missing_rows', 0)
+
+    for (const s of staleStmts ?? []) {
+      byId.set(s.id, s)
+    }
+  }
+
+  return [...byId.values()]
+}
+
+async function syncMissingRowsForSede(supabase: SupabaseClient, sedeId: string): Promise<void> {
+  const statements = await loadStatementsForSede(supabase, sedeId)
+  for (const stmt of statements) {
+    const { count } = await supabase
+      .from('statement_rows')
+      .select('*', { count: 'exact', head: true })
+      .eq('statement_id', stmt.id)
+      .neq('check_status', 'ok')
+
+    await supabase
+      .from('statements')
+      .update({ missing_rows: count ?? 0 })
+      .eq('id', stmt.id)
+  }
 }
 
 async function reprocessStatement(
@@ -50,6 +127,7 @@ async function reprocessStatement(
     .eq('statement_id', stmt.id)
 
   if (!rows?.length) {
+    await supabase.from('statements').update({ total_rows: 0, missing_rows: 0 }).eq('id', stmt.id)
     return { righe: 0, ok: 0, anomale: 0, error: `Statement ${stmt.id}: nessuna riga` }
   }
 
@@ -107,18 +185,14 @@ async function recheckFalseErrorsForSede(
   supabase: SupabaseClient,
   sedeId: string,
 ): Promise<{ fixed: number; okCount: number }> {
-  const statements = await loadStatementsForSede(supabase, sedeId)
-  const ids = statements.map((s) => s.id)
-  if (ids.length === 0) return { fixed: 0, okCount: 0 }
-
-  const { data: rows } = await supabase
+  const { data: rows, error } = await supabase
     .from('statement_rows')
-    .select('id, importo, fattura_id, bolle_json, check_status')
-    .in('statement_id', ids)
+    .select('id, importo, fattura_id, bolle_json, check_status, statements!inner(sede_id)')
+    .eq('statements.sede_id', sedeId)
     .eq('check_status', 'errore_importo')
     .not('fattura_id', 'is', null)
 
-  if (!rows?.length) return { fixed: 0, okCount: 0 }
+  if (error || !rows?.length) return { fixed: 0, okCount: 0 }
 
   let fixed = 0
   let okCount = 0
@@ -136,12 +210,12 @@ async function recheckFalseErrorsForSede(
       okCount++
     }
 
-    const { error } = await supabase
+    const { error: updErr } = await supabase
       .from('statement_rows')
       .update({ check_status: newStatus })
       .eq('id', row.id)
 
-    if (!error) fixed++
+    if (!updErr) fixed++
   }
 
   return { fixed, okCount }
@@ -157,7 +231,7 @@ export async function autoRisolviStatementRows(
   options?: { maxStatementsPerRound?: number; maxRounds?: number },
 ): Promise<AutoRisolviStatementResult> {
   const maxStatementsPerRound = options?.maxStatementsPerRound ?? 500
-  const maxRounds = options?.maxRounds ?? 3
+  const maxRounds = options?.maxRounds ?? 5
   const errors: string[] = []
 
   let statementsProcessed = 0
@@ -183,12 +257,15 @@ export async function autoRisolviStatementRows(
   }
 
   const falseErrors = await recheckFalseErrorsForSede(supabase, sedeId)
+  await syncMissingRowsForSede(supabase, sedeId)
+
+  const righeAnomaleFinali = await countAnomalousStatementRows(supabase, sedeId)
 
   return {
     statementsProcessed,
     righeRivalutate,
     righeOk,
-    righeAncoraAnomale: Math.max(0, righeAncoraAnomale - falseErrors.okCount),
+    righeAncoraAnomale: righeAnomaleFinali,
     falseErrorsFixed: falseErrors.fixed,
     falseErrorsOk: falseErrors.okCount,
     rounds,

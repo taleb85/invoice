@@ -106,6 +106,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
     total: number
     con_anomalie: number
     anomalie_totali: number
+    righe_anomale: number
     pending_count: number
     pending_list: Array<{
       id: string
@@ -808,14 +809,20 @@ export default function CentroControlloClient({ sedeId }: Props) {
                 <div className="px-4 py-3">
                   {statementStats.pending_count === 0 ? (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-app-fg-muted">
-                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                        Nessuno statement in sospeso
-                      </div>
-                      {statementStats.con_anomalie > 0 && (
-                        <div className="space-y-2">
+                      {(statementStats.righe_anomale ?? 0) > 0 || statementStats.con_anomalie > 0 ? (
+                        <>
+                          <div className="flex items-center gap-2 text-xs text-amber-200/90">
+                            <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                            <span>
+                              <strong className="font-semibold text-app-fg">{statementStats.righe_anomale ?? statementStats.anomalie_totali}</strong>
+                              {' '}righe estratto conto con anomalie
+                              {statementStats.con_anomalie > 0 ? (
+                                <span className="text-app-fg-muted"> · {statementStats.con_anomalie} estratti conto coinvolti</span>
+                              ) : null}
+                            </span>
+                          </div>
                           <p className="text-[11px] leading-relaxed text-app-fg-muted">
-                            Il triple-check automatico risolve importi allineati e fatture trovate. Restano in coda solo anomalie reali (importi discordanti o fatture mancanti).
+                            Il triple-check chiude automaticamente righe con fattura trovata e importo allineato. Le restanti hanno importi discordanti o fatture mancanti nel sistema — non sono risolvibili in bulk senza correggere i dati.
                           </p>
                           <div className="flex flex-wrap items-center gap-2">
                             <button
@@ -829,7 +836,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               ) : (
                                 <Zap className="w-3 h-3" />
                               )}
-                              {autoResolving ? 'Auto-risoluzione…' : `Auto-risolvi (${statementStats.con_anomalie} anomalie)`}
+                              {autoResolving
+                                ? 'Auto-risoluzione…'
+                                : `Auto-risolvi (${statementStats.righe_anomale ?? statementStats.anomalie_totali} righe)`}
                             </button>
                             <button
                               type="button"
@@ -846,8 +855,13 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             </button>
                           </div>
                           {(autoRisolviResult || reprocessChecksResult) && (
-                            <span className="block text-[11px] text-emerald-300">{autoRisolviResult || reprocessChecksResult}</span>
+                            <p className="text-[11px] leading-relaxed text-emerald-300">{autoRisolviResult || reprocessChecksResult}</p>
                           )}
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 text-xs text-app-fg-muted">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                          Nessuno statement in sospeso · triple-check allineato
                         </div>
                       )}
                     </div>
