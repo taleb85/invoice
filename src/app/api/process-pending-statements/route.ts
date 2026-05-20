@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let docsQuery = (supabase as any)
     .from('documenti_da_processare')
-    .select('id, file_url, file_name, content_type, oggetto_mail, fornitore_id, sede_id, created_at')
+    .select('id, file_url, file_name, content_type, oggetto_mail, fornitore_id, sede_id, data_documento, metadata, created_at')
     .eq('is_statement', true)
     .eq('sede_id', sede_id)
     .order('created_at', { ascending: false })
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   const { data: allDocs } = await docsQuery as { data: {
     id: string; file_url: string; file_name: string | null; content_type: string | null
     oggetto_mail: string | null; fornitore_id: string | null; sede_id: string | null
-    created_at: string
+    data_documento: string | null; metadata: Record<string, unknown> | null; created_at: string
   }[] | null }
 
   if (!allDocs?.length) {
@@ -149,12 +149,20 @@ export async function POST(req: NextRequest) {
           fornitore_id: doc.fornitore_id,
           email_subject: doc.oggetto_mail,
           received_at: doc.created_at,
+          document_date: doc.data_documento?.trim() || null,
           file_url: doc.file_url,
           status: 'error',
           total_rows: 0,
           missing_rows: 0,
         }])
-      await markDocRowsAsProcessed(doc.file_url)
+      // Riporta il documento in coda come comunicazione invece di marcarlo associato.
+      const meta = doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+        ? { ...(doc.metadata as Record<string, unknown>), pending_kind: 'comunicazione' }
+        : { pending_kind: 'comunicazione' }
+      await supabase
+        .from('documenti_da_processare')
+        .update({ is_statement: false, metadata: meta })
+        .eq('id', doc.id)
       return
     }
 
@@ -162,6 +170,7 @@ export async function POST(req: NextRequest) {
     const fornitoreId = doc.fornitore_id
 
     // ── 3. Create statement record (safe concurrent insert) ──────────────────
+    const docDate = doc.data_documento?.trim() || String(extractedPdfDates?.issued_date ?? '').trim() || null
     const { data: stmtRow, error: stmtErr } = await supabase
       .from('statements')
       .insert([{
@@ -169,6 +178,7 @@ export async function POST(req: NextRequest) {
         fornitore_id:         fornitoreId,
         email_subject:        doc.oggetto_mail,
         received_at:          doc.created_at,
+        document_date:        docDate,
         file_url:             doc.file_url,
         status:               rows.length ? 'processing' : 'error',
         total_rows:           rows.length,

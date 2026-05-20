@@ -1,5 +1,6 @@
 export type CommandId =
   | 'documento.scarta'
+  | 'documento.scarta_fattura'
   | 'documento.associa'
   | 'documento.finalizza_come_fattura'
   | 'documento.finalizza_come_bolla'

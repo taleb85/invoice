@@ -1,11 +1,20 @@
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 
-/** Oggetto mail tipico degli estratti conto (allineato alla scansione in scan-emails). */
+/**
+ * Oggetto mail tipico degli estratti conto (allineato alla scansione in scan-emails).
+ *
+ * NOTA: "Statement of Account" NON è un estratto conto processabile — è una comunicazione
+ * commerciale/lettera di riepilogo, non un documento con righe transazionali da estrarre.
+ * Per questo viene esplicitamente esclusa.
+ */
 export function emailSubjectLooksLikeStatement(subject: string | null | undefined): boolean {
   const s = (subject ?? '').toLowerCase()
   if (!s.trim()) return false
+
+  if (/statement\s+of\s+account/.test(s) || /statement\s+of\s+the\s+account/.test(s)) return false
+
   return (
-    s.includes('statement') ||
+    /\bstatement\b/.test(s) ||
     s.includes('account statement') ||
     s.includes('estratto conto') ||
     s.includes('estratto mensile') ||

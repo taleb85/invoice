@@ -52,16 +52,55 @@ type MatchedBy =
   | 'rekki_supplier'
   | 'unknown'
 
+/**
+ * Tentativo di estrarre un numero fattura/documento dal nome file originale
+ * o dall'oggetto email, quando Gemini non ha trovato nulla.
+ */
+function extractNumeroFromText(text: string | null | undefined): string | null {
+  if (!text?.trim()) return null
+  const s = text.trim()
+  const patterns = [
+    /fattura[\s._\-:]*n[°o]?\.?\s*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /(?:ft|fattura|invoice|inv)[\s._\-]*(\d[\d\-/._a-zA-Z]{2,30})/i,
+    /(\d{4,20})[\s._\-]*(?:fattura|ft|invoice|inv)/i,
+    /ordine[\s._\-]*n[°o]?\.?\s*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /numero\s*(?:fattura|documento|doc)[\s:_\-]*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /n[°o]?\.?\s*(?:fattura|doc)[\s._\-:]*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /doc\.?\s*(?:number|no)[\s._\-:]*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /([A-Z]{2,5}[\s._\-]\d{3,10}(?:[\s._\-]\d{2,4})?)/,
+  ]
+  for (const p of patterns) {
+    const m = s.match(p)
+    if (m?.[1]) {
+      let v = m[1].replace(/\s+/g, '').trim()
+      if (v.length > 30) v = v.slice(0, 30)
+      if (v.length >= 2) return v
+    }
+  }
+  return null
+}
+
 function buildMetadata(
   ocr: OcrResult,
   matchedBy: MatchedBy,
+  opts?: {
+    /** Fallback: estrai numero da nome file / oggetto mail se l'OCR non ha trovato nulla. */
+    fileName?: string | null
+    oggettoMail?: string | null
+  },
 ): Record<string, unknown> {
+  let numeroFattura = ocr.numero_fattura
+  if (!numeroFattura) {
+    numeroFattura =
+      extractNumeroFromText(opts?.fileName ?? opts?.oggettoMail ?? null)
+      ?? extractNumeroFromText(opts?.oggettoMail ?? opts?.fileName ?? null)
+  }
   return {
     ragione_sociale: ocr.ragione_sociale,
     p_iva: ocr.p_iva,
     indirizzo: ocr.indirizzo ?? null,
     data_fattura: ocr.data_fattura,
-    numero_fattura: ocr.numero_fattura,
+    numero_fattura: numeroFattura,
     tipo_documento: ocr.tipo_documento ?? null,
     promessa_invio_documento:
       ocr.promessa_invio_documento === true ? true : undefined,
@@ -97,6 +136,8 @@ function inferredSourceToMatchedBy(s: InferredFornitoreSource): MatchedBy {
     case 'rekki_supplier':
       return 'rekki_supplier'
     case 'ragione_sociale':
+      return 'ragione_sociale'
+    case 'cross_check':
       return 'ragione_sociale'
     default:
       return 'unknown'
@@ -173,11 +214,38 @@ export async function processLegacyPendingDoc(
       mittente: row.mittente,
       sede_id: row.sede_id,
       metadata: row.metadata,
+      emailBodyText: row.note ?? undefined,
     })
     if (inferred?.fornitore?.id) {
       fornitore = inferred.fornitore as Fornitore
       matchedBy = inferredSourceToMatchedBy(inferred.source)
     }
+  }
+
+  // ── Catena di qualità: valida fornitore, data e tipo documento (2/3 segnali) ──
+  // Se la confidenza è < 2 su qualsiasi campo, forza da_revisionare.
+  let qualityForcesReview = false
+  let qualityDate: string | null = null
+  let qualityType: string | null = null
+  try {
+    const { runQualityChain } = await import('@/lib/document-quality-chain')
+    const quality = await runQualityChain(service, {
+      mittente: row.mittente,
+      sedeId: row.sede_id,
+      ocrRagioneSociale: ocr.ragione_sociale,
+      ocrPiva: ocr.p_iva,
+      ocrDate: ocr.data_fattura,
+      ocrTipo: ocr.tipo_documento,
+      receivedAt: null,
+      fileName: row.file_name,
+      emailSubject: row.oggetto_mail,
+      fornitoreId: fornitore?.id ?? null,
+    })
+    qualityForcesReview = quality.needsReview
+    qualityDate = quality.documentDate
+    qualityType = quality.documentType
+  } catch {
+    // Se la quality chain fallisce, procede comunque con i dati OCR
   }
 
   const existingMeta =
@@ -188,7 +256,7 @@ export async function processLegacyPendingDoc(
   if (ocr.tipo_documento === 'curriculum') {
     const metadata: Record<string, unknown> = {
       ...existingMeta,
-      ...buildMetadata(ocr, matchedBy),
+      ...buildMetadata(ocr, matchedBy, { fileName: row.file_name, oggettoMail: row.oggetto_mail }),
       ocr_tipo: 'curriculum',
       rejected_reason: 'curriculum',
     }
@@ -199,7 +267,7 @@ export async function processLegacyPendingDoc(
         metadata,
         stato: normalizeDocumentoQueueStatoForDb('scartato'),
         note: noteFromEmailBody,
-        data_documento: documentDateYmdFromOcr(ocr),
+        data_documento: qualityDate ?? documentDateYmdFromOcr(ocr),
       })
       .eq('id', row.id)
     if (cvErr) return { status: 'error', message: cvErr.message }
@@ -233,8 +301,11 @@ export async function processLegacyPendingDoc(
 
   const effectivePendingKind = autoPendingKind ?? learnedPendingKind
 
-  const treatAsStatement = effectivePendingKind === 'statement'
-  const skipAutoBozza = treatAsStatement || effectivePendingKind === 'ordine'
+  // Se la quality chain suggerisce un tipo diverso, usalo (ha 2/3 segnali)
+  const finalPendingKind = qualityType ?? effectivePendingKind
+
+  const treatAsStatement = finalPendingKind === 'statement'
+  const skipAutoBozza = treatAsStatement || finalPendingKind === 'ordine'
 
   let registratoAutoFatturaId: string | null = null
   let registratoAutoBollaId: string | null = null
@@ -316,19 +387,23 @@ export async function processLegacyPendingDoc(
     needsDocRevision = true
   }
 
+  // Se la quality chain ha rilevato confidenza bassa (meno di 2 segnali su 3),
+  // forza la revisione manuale indipendentemente dagli altri controlli.
+  if (qualityForcesReview) needsDocRevision = true
+
   const pendingKindStored =
     needsDocRevision && duplicateSkippedFatturaId
       ? ('fattura' as const)
       : needsDocRevision
         ? suggestedPendingKind
-        : effectivePendingKind
+        : finalPendingKind
 
-  const isStatementDoc = effectivePendingKind === 'statement'
+  const isStatementDoc = finalPendingKind === 'statement'
   const isStatementEmail = emailSubjectLooksLikeStatement(row.oggetto_mail)
 
   const metadata: Record<string, unknown> = {
     ...existingMeta,
-    ...buildMetadata(ocr, matchedBy),
+    ...buildMetadata(ocr, matchedBy, { fileName: row.file_name, oggettoMail: row.oggetto_mail }),
     ocr_tipo: ocrTipoStored,
     ...(pendingKindStored ? { pending_kind: pendingKindStored } : {}),
     ...(duplicateSkippedFatturaId ? { duplicate_skipped_fattura_id: duplicateSkippedFatturaId } : {}),

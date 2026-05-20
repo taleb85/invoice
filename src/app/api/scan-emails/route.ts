@@ -62,6 +62,8 @@ import {
   senderMatchesEmailScanBlacklist,
 } from '@/lib/email-scan-blacklist'
 import { normalizeDocumentoQueueStatoForDb } from '@/lib/documenti-queue-stato'
+import { autoReinferSuppliers } from '@/lib/auto-supplier-reinfer'
+import { decryptImapPasswords } from '@/lib/imap-encryption'
 import {
   computeNextHistoricalChunk,
   historicalProgressLabel,
@@ -2201,6 +2203,16 @@ async function processEmails(
   mailDebugLog(
     `[PROCESS] Fine processEmails: ricevuti=${ricevuti} ignorate=${ignorate} bozzeCreate=${bozzaCreate} skippedAlready=${skippedAlreadyCompleted} preFiltered=${preFiltered} blacklistSkipped=${blacklistSkipped}`,
   )
+
+  // Rielabora TUTTI i documenti esistenti con la catena di qualità (fornitore 2/3, data, tipo).
+  // RecheckExisting = true: controlla anche documenti già abbinati per correggere date e tipi.
+  // Eseguito in fire-and-forget. Leggero: nessuna chiamata Gemini.
+  autoReinferSuppliers(supabase, {
+    sedeId: sedeFilter,
+    limit: 200,
+    recheckExisting: true,
+  }).catch(() => {})
+
   return {
     ricevuti,
     ignorate,
@@ -2572,6 +2584,14 @@ async function runEmailScanCore(params: RunEmailScanParams): Promise<EmailScanCo
   }
 
   const { data: sedi, error: sediErr } = await sediQuery
+
+  // Decifra password IMAP (cifrate con pgcrypto per GDPR)
+  if (sedi?.length) {
+    const decrypted = await decryptImapPasswords(supabase, sedi.map((s: { imap_password: string | null }) => s.imap_password))
+    for (let i = 0; i < sedi.length; i++) {
+      if (decrypted[i]) (sedi[i] as Record<string, unknown>).imap_password = decrypted[i]
+    }
+  }
 
   mailDebugLog(`[DB] Sedi con IMAP: ${sedi?.length ?? 0}${sediErr ? ` errore="${sediErr.message}"` : ''}`)
 
@@ -3156,6 +3176,15 @@ async function runHistoricalIncrementalScan(params: {
 
   const { data: sediRows, error } = await q
   if (error) throw new Error(error.message)
+
+  // Decifra password IMAP (cifrate con pgcrypto per GDPR)
+  if (sediRows?.length) {
+    const decrypted = await decryptImapPasswords(supabase, sediRows.map((s: { imap_password: string | null }) => s.imap_password))
+    for (let i = 0; i < sediRows.length; i++) {
+      if (decrypted[i]) (sediRows[i] as Record<string, unknown>).imap_password = decrypted[i]
+    }
+  }
+
   if (!sediRows?.length) {
     return { done: true, ricevuti: 0, ignorate: 0, messaggio: 'Nessuna sede con IMAP configurato.' }
   }

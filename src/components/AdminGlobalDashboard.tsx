@@ -100,7 +100,6 @@ export function AdminGlobalDashboard({
                   hasIssues ? 'border-amber-500/35' : 'border-app-soft-border'
                 }`}
               >
-                <div className="h-1 shrink-0 bg-gradient-to-r from-app-line-50 via-app-a-25 to-transparent" aria-hidden />
                 <div className="flex flex-1 flex-col p-5">
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="min-w-0">

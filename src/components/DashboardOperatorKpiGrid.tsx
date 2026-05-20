@@ -334,7 +334,7 @@ export default function DashboardOperatorKpiGrid({
       ),
     },
     {
-      href: withFiscalYearQuery('/statements/verifica', fy, verificaAnomalyParams),
+      href: withFiscalYearQuery('/statements/da-processare', fy, verificaAnomalyParams),
       label: t.statements.tabVerifica,
       value: k.statementsTotal,
       sub: stmtSub,

@@ -6,7 +6,7 @@ import {
   resolveFornitoreFromScanEmail,
   type FornitoreScanRow,
 } from '@/lib/fornitore-resolve-scan-email'
-import { resolveFornitoreByPartialName } from '@/lib/fornitore-infer-from-document'
+import { resolveFornitoreByPartialNameEnhanced } from '@/lib/fornitore-infer-from-document'
 
 /** Stesso subset usato in scan-emails `Fornitore`. */
 export type FornitoreScanFullRow = {
@@ -220,7 +220,7 @@ export async function tryBootstrapFornitoreFromOcrRagione(
   if (pivaHit === 'ambiguous') return { kind: 'ambiguous_match' }
   if (pivaHit?.id) return { kind: 'resolved', fornitore: pivaHit, created: false }
 
-  const partial = await resolveFornitoreByPartialName(supabase, rs, sede)
+  const partial = await resolveFornitoreByPartialNameEnhanced(supabase, rs, sede)
   if (partial?.id) return { kind: 'resolved', fornitore: partial as FornitoreScanRow, created: false }
 
   const ilike = await findFornitoreByNomeIlike(supabase, rs, sede)

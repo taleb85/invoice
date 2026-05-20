@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/utils/supabase/server'
+import { autoReinferSuppliers } from '@/lib/auto-supplier-reinfer'
 import { logger } from '@/lib/logger'
 
 export const maxDuration = 300 // 5 minutes
@@ -53,6 +54,15 @@ export async function GET(req: NextRequest) {
   }
   
   try {
+    // Rielabora TUTTI i documenti esistenti con la catena di qualità.
+    // RecheckExisting: controlla anche documenti già abbinati per correggere date/tipi.
+    // Leggero: nessuna chiamata Gemini.
+    const reinferResult = await autoReinferSuppliers(supabase, {
+      limit: 500,
+      recheckExisting: true,
+    })
+    logger.info(`[AUTO-REINFER] ${reinferResult.processed} processati, ${reinferResult.matched} match, ${reinferResult.dateFixed} date corrette, ${reinferResult.typeFixed} tipi corretti`)
+
     // 1. Find recent fatture from Rekki-linked suppliers
     const { data: fatture, error: fattureErr } = await supabase
       .from('fatture')

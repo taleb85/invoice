@@ -95,11 +95,10 @@ export async function POST(req: NextRequest) {
 
   const deviceId = String(body.deviceId ?? '').trim()
   const profileId = String(body.profileId ?? '').trim()
-  const sedeId = String(body.sedeId ?? '').trim()
   const deviceName = typeof body.deviceName === 'string' ? body.deviceName.trim().slice(0, 200) : null
 
-  if (!isUuid(deviceId) || !isUuid(profileId) || !isUuid(sedeId)) {
-    return NextResponse.json({ error: 'deviceId, profileId o sedeId non validi' }, { status: 400 })
+  if (!isUuid(deviceId) || !isUuid(profileId)) {
+    return NextResponse.json({ error: 'deviceId o profileId non validi' }, { status: 400 })
   }
   if (profileId !== user.id) {
     return NextResponse.json({ error: 'profileId non corrisponde alla sessione' }, { status: 403 })
@@ -119,7 +118,12 @@ export async function POST(req: NextRequest) {
   if (!isProfilesBranchDeskRole(r)) {
     return NextResponse.json({ error: 'Solo operatore o staff sede (responsabile di filiale)' }, { status: 403 })
   }
-  if (String(prof.sede_id ?? '') !== sedeId) {
+  const sedeId = String(prof.sede_id ?? '')
+  if (!sedeId) {
+    return NextResponse.json({ error: 'Profilo senza sede assegnata' }, { status: 400 })
+  }
+  const bodySedeId = String(body.sedeId ?? '').trim()
+  if (bodySedeId && isUuid(bodySedeId) && bodySedeId !== sedeId) {
     return NextResponse.json({ error: 'sedeId non coerente con il profilo' }, { status: 400 })
   }
 

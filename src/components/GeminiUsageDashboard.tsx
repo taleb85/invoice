@@ -149,7 +149,10 @@ interface UsageData {
   totalOutputTokens: number
   totalTokens: number
   totalCostUsd: number
+  totalCostGbp?: number
   avgCostPerScan: number
+  currency?: string
+  gbpRate?: number
   daily: DailyUsage[]
   recent: RecentCall[]
   perSede: PerSedeUsage[]
@@ -659,8 +662,8 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
               />
               <StatCard
                 label="Costo totale"
-                value={fmtCost(data.totalCostUsd)}
-                sub="USD stimato"
+                value={fmtCost(data.totalCostGbp ?? 0)}
+                sub={`~£${fmtCost(data.totalCostGbp ?? 0)} GBP`}
                 accent="#34d399"
               />
               <StatCard
@@ -679,6 +682,8 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
               <div className="rounded-lg border border-app-line-28 bg-app-line-5 px-4 py-2.5 text-[11px] text-app-fg-muted">
                 Prezzi {data.model}: ${data.pricing.inputPerMillion}/M token input &middot; $
                 {data.pricing.outputPerMillion}/M token output
+                {data.currency && ` · Mostrato in ${data.currency}`}
+                {data.gbpRate && ` (USD→${data.currency}: ${data.gbpRate})`}
               </div>
             )}
 
@@ -737,7 +742,7 @@ const GeminiUsageDashboard = forwardRef<GeminiUsageDashboardHandle, GeminiUsageD
                             {fmt(sede.totalTokens)}
                           </td>
                           <td className="px-4 py-2 text-right font-mono text-emerald-400">
-                            {fmtCost(sede.costUsd)}
+                            £{fmtCost(sede.costUsd * (data.gbpRate ?? 1))}
                           </td>
                         </tr>
                       ))}

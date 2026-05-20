@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { decryptImapPasswords } from '@/lib/imap-encryption'
+import { loadEmailScanBlacklistSet } from '@/lib/email-scan-blacklist'
 import { createServiceClient, getProfile, getRequestAuth } from '@/utils/supabase/server'
 import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 import { ImapFlow } from 'imapflow'
@@ -142,6 +144,14 @@ export async function GET(req: NextRequest) {
     .not('imap_password', 'is', null)
   if (filterSedeId) sediQuery = sediQuery.eq('id', filterSedeId) as typeof sediQuery
   const { data: sedi } = await sediQuery
+
+  // Decifra password IMAP (cifrate con pgcrypto per GDPR)
+  if (sedi?.length) {
+    const decrypted = await decryptImapPasswords(service, sedi.map((s: { imap_password: string | null }) => s.imap_password))
+    for (let i = 0; i < sedi.length; i++) {
+      if (decrypted[i]) (sedi[i] as Record<string, unknown>).imap_password = decrypted[i]
+    }
+  }
 
   const allDiscovered: DiscoveredSender[] = []
   const errors: string[] = []

@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { GEMINI_PRICING, getGeminiModelId } from '@/lib/gemini-vision'
+import { getGeminiPricing, getGeminiModelId } from '@/lib/gemini-vision'
 import { clearAiUsageLogForAdmin } from '@/lib/ai-usage-clear'
 
 export const dynamic = 'force-dynamic'
+
+/** Tasso di conversione USD→GBP. Sovrascrivibile via env GEMINI_GBP_RATE (default ~0.79). */
+function getGbpRate(): number {
+  const v = Number(process.env.GEMINI_GBP_RATE?.trim())
+  return v > 0 ? v : 0.79
+}
 
 type UsageRow = {
   id: string
@@ -96,6 +102,14 @@ export async function GET(req: NextRequest) {
   }
 
   const rows = (data ?? []) as UsageRow[]
+  const pricing = getGeminiPricing()
+  const gbpRate = getGbpRate()
+
+  /** Ricalcola il costo dai token usando i prezzi correnti (env var). */
+  function calcCostUsd(ti: number, to: number): number {
+    return (ti / 1_000_000) * pricing.inputPerMillion + (to / 1_000_000) * pricing.outputPerMillion
+  }
+
   let tokensInput = 0
   let tokensOutput = 0
   let costoTotaleUsd = 0
@@ -118,7 +132,7 @@ export async function GET(req: NextRequest) {
   for (const r of rows) {
     const ti = Number(r.tokens_input ?? 0)
     const to = Number(r.tokens_output ?? 0)
-    const rowCost = typeof r.costo_usd === 'number' ? r.costo_usd : Number(r.costo_usd ?? 0)
+    const rowCost = calcCostUsd(ti, to)
     tokensInput += ti
     tokensOutput += to
     costoTotaleUsd += Number.isFinite(rowCost) ? rowCost : 0
@@ -160,21 +174,23 @@ export async function GET(req: NextRequest) {
 
   const scansioni_totali = rows.length
   const costo_totale_usd = Math.round(costoTotaleUsd * 1_000_000) / 1_000_000
+  const costo_totale_gbp = Math.round(costoTotaleUsd * gbpRate * 1_000_000) / 1_000_000
   const costo_per_scan = scansioni_totali > 0 ? Math.round((costoTotaleUsd / scansioni_totali) * 1_000_000) / 1_000_000 : 0
 
   const chronological = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at))
-  const breakdown = chronological.map(r => ({
-    id: r.id,
-    data: r.created_at,
-    tipo: r.tipo,
-    sede_id: r.sede_id,
-    tokens_input: Number(r.tokens_input ?? 0),
-    tokens_output: Number(r.tokens_output ?? 0),
-    costo_usd:
-      typeof r.costo_usd === 'number'
-        ? Math.round(Number(r.costo_usd) * 100_000_000) / 100_000_000
-        : Number(r.costo_usd ?? 0),
-  }))
+  const breakdown = chronological.map(r => {
+    const ti = Number(r.tokens_input ?? 0)
+    const to = Number(r.tokens_output ?? 0)
+    return {
+      id: r.id,
+      data: r.created_at,
+      tipo: r.tipo,
+      sede_id: r.sede_id,
+      tokens_input: ti,
+      tokens_output: to,
+      costo_usd: Math.round(calcCostUsd(ti, to) * 100_000_000) / 100_000_000,
+    }
+  })
 
   const daily = Object.entries(dailyMap)
     .map(([date, v]) => {
@@ -215,16 +231,19 @@ export async function GET(req: NextRequest) {
     }))
     .sort((a, b) => b.calls - a.calls)
 
-  const recent = rows.slice(0, 80).map(r => ({
-    created_at: r.created_at,
-    user_id: '',
-    operation: r.model ?? getGeminiModelId(),
-    intent: r.tipo ?? '',
-    inputTokens: Number(r.tokens_input ?? 0),
-    outputTokens: Number(r.tokens_output ?? 0),
-    estimatedCostUsd:
-      typeof r.costo_usd === 'number' ? Number(r.costo_usd) : Number(r.costo_usd ?? 0),
-  }))
+  const recent = rows.slice(0, 80).map(r => {
+    const ti = Number(r.tokens_input ?? 0)
+    const to = Number(r.tokens_output ?? 0)
+    return {
+      created_at: r.created_at,
+      user_id: '',
+      operation: r.model ?? getGeminiModelId(),
+      intent: r.tipo ?? '',
+      inputTokens: ti,
+      outputTokens: to,
+      estimatedCostUsd: Math.round(calcCostUsd(ti, to) * 100_000_000) / 100_000_000,
+    }
+  })
 
   return NextResponse.json(
     {
@@ -237,13 +256,16 @@ export async function GET(req: NextRequest) {
         label_to_date: toUpper.slice(0, 10),
       },
       model: getGeminiModelId(),
-      pricing: GEMINI_PRICING,
+      pricing,
       scansioni_totali,
       tokens_input: tokensInput,
       tokens_output: tokensOutput,
       tokens_totali: tokensInput + tokensOutput,
       costo_totale_usd,
+      costo_totale_gbp,
       costo_per_scan,
+      currency: 'GBP',
+      gbpRate,
       breakdown,
       daily,
       perSede,
@@ -253,6 +275,7 @@ export async function GET(req: NextRequest) {
       totalOutputTokens: tokensOutput,
       totalTokens: tokensInput + tokensOutput,
       totalCostUsd: costo_totale_usd,
+      totalCostGbp: costo_totale_gbp,
       avgCostPerScan: costo_per_scan,
     },
     { headers: { 'Cache-Control': 'no-store, max-age=0' } },

@@ -140,6 +140,10 @@ export async function GET(req: NextRequest) {
   if (sedeId)      q = q.eq('sede_id',      sedeId)
   if (fornitoreId) q = q.eq('fornitore_id', fornitoreId)
 
+  // Esclude statement con errori di parsing (documenti non processabili come estratti conto,
+  // es. "Statement of Account" classificati erroneamente come statement).
+  q = q.neq('status', 'error')
+
   const { data, error } = await q
   if (error) {
     // Table does not exist yet (before migration) — only match this exact code
@@ -177,5 +181,54 @@ export async function GET(req: NextRequest) {
   })
 
   const hasMissing = deduped.some((s: { missing_rows?: number }) => (s.missing_rows ?? 0) > 0)
+
+  // Pulizia automatica: elimina statement errati (documenti non processabili come estratti conto)
+  // e ripristina i documenti originali nella coda. Fire-and-forget per non rallentare la risposta.
+  cleanupBadStatements(service).catch(() => {})
+
   return NextResponse.json({ statements: deduped, hasMissing })
+}
+
+/** Trova statement con status=error e total_rows=0, li elimina e ripristina i documenti originali. */
+async function cleanupBadStatements(supabase: ReturnType<typeof createServiceClient>) {
+  const { data: badStmts } = await supabase
+    .from('statements')
+    .select('id, file_url, sede_id, email_subject')
+    .eq('status', 'error')
+    .eq('total_rows', 0)
+    .limit(200)
+
+  if (!badStmts?.length) return
+
+  const fileUrls = [...new Set(badStmts.map(s => s.file_url).filter(Boolean))]
+
+  // Elimina le righe e gli statement errati
+  for (const stmt of badStmts) {
+    await supabase.from('statement_rows').delete().eq('statement_id', stmt.id)
+    await supabase.from('statements').delete().eq('id', stmt.id)
+  }
+
+  if (fileUrls.length) {
+    // Ripristina i documenti originali: toglie is_statement e marca come comunicazione
+    const { data: docs } = await supabase
+      .from('documenti_da_processare')
+      .select('id, is_statement, metadata')
+      .in('file_url', fileUrls)
+
+    if (docs?.length) {
+      for (const doc of docs) {
+        const meta = doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+          ? { ...(doc.metadata as Record<string, unknown>), pending_kind: 'comunicazione' }
+          : { pending_kind: 'comunicazione' }
+
+        await supabase
+          .from('documenti_da_processare')
+          .update({
+            is_statement: false,
+            metadata: meta,
+          })
+          .eq('id', doc.id)
+      }
+    }
+  }
 }

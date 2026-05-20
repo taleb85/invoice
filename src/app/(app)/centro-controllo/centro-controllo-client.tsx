@@ -28,6 +28,7 @@ import {
 } from '@/lib/command-system/registry'
 import { suggerisciAzione, registraConfermaApprendimento, registraEsecuzioneDiretta } from '@/lib/action-learning/engine'
 import { formattaPriorita, labelPendingKind } from '@/lib/command-system/utils'
+import { useDocumentActions } from '@/lib/document-actions-context'
 import { useManualDeliverySede } from '@/lib/use-effective-sede-id'
 import FixOcrDatesCard from '@/components/admin/fix-ocr-dates-card'
 import ReclassifyPendingKindCard from '@/components/admin/reclassify-pending-kind-card'
@@ -75,6 +76,7 @@ function SectionCard({ title, badge, action, children, className }: {
 export default function CentroControlloClient({ sedeId }: Props) {
   const { showToast } = useToast()
   const { effectiveSedeId } = useManualDeliverySede()
+  const { openActions } = useDocumentActions()
 
   // ── Coda documenti ───────────────────────────────────────────────────────
   const [items, setItems] = useState<CodaItem[]>([])
@@ -618,6 +620,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                     onEsegui={eseguiComando}
                     onConfermaSuggerimento={confermaSuggerimento}
                     onRifiutaSuggerimento={rifiutaSuggerimento}
+                    onApriAzioni={(item) => openActions(item)}
                   />
                 ))}
               </div>
@@ -1005,6 +1008,7 @@ function RigaDocumento({
   onEsegui,
   onConfermaSuggerimento,
   onRifiutaSuggerimento,
+  onApriAzioni,
 }: {
   item: CodaItem
   sedeId: string | null
@@ -1013,6 +1017,7 @@ function RigaDocumento({
   onEsegui: (item: CodaItem, commandId: CommandId) => void
   onConfermaSuggerimento: (item: CodaItem, commandId: CommandId) => void
   onRifiutaSuggerimento: (item: CodaItem, commandId: CommandId) => void
+  onApriAzioni?: (item: CodaItem) => void
 }) {
   const priorita = formattaPriorita(item.priorita)
   const isRunning = eseguendoId?.startsWith(item.id)
@@ -1207,6 +1212,12 @@ function RigaDocumento({
                   {cmd.label}
                 </button>
               ))}
+              <button
+                onClick={() => onApriAzioni?.(item)}
+                className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/25 bg-cyan-500/5 px-3 py-1.5 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-500/15"
+              >
+                Altre azioni...
+              </button>
             </div>
           )}
         </div>

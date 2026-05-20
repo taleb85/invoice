@@ -27,10 +27,10 @@ describe('normalizeTipoDocumento', () => {
     expect(normalizeTipoDocumento('Lieferschein')).toBe('bolla')
   })
 
-  it('mappa ordine e estratto conto a altro', () => {
-    expect(normalizeTipoDocumento('ordine')).toBe('altro')
+  it('mappa ordine come tipo distinto, estratto conto come altro', () => {
+    expect(normalizeTipoDocumento('ordine')).toBe('ordine')
     expect(normalizeTipoDocumento('estratto_conto')).toBe('altro')
-    expect(normalizeTipoDocumento('purchase_order')).toBe('altro')
+    expect(normalizeTipoDocumento('purchase_order')).toBe('ordine')
     expect(normalizeTipoDocumento('statement')).toBe('altro')
   })
 
@@ -189,6 +189,16 @@ describe('inferPendingDocumentKindForQueueRow', () => {
         metadata: null,
       }),
     ).toBe('statement')
+  })
+
+  it('NON classifica come statement "Statement of Account" (è comunicazione)', () => {
+    expect(
+      inferPendingDocumentKindForQueueRow({
+        oggetto_mail: 'C Carnevale Ltd Statement of Account - JOB000 - 31/03/2026',
+        file_name: null,
+        metadata: null,
+      }),
+    ).toBe('comunicazione')
   })
 
   it('classifica come ordine se l\'oggetto mail contiene "order confirmation"', () => {

@@ -16,6 +16,7 @@ import {
 import { effectiveIsMasterAdminPlane } from '@/lib/effective-operator-ui'
 import {
   ToastProvider,
+  useToast,
   desktopHeaderBarSurfaceClass,
   useDesktopHeaderToastBanner,
   type DesktopHeaderToastBanner,
@@ -24,6 +25,8 @@ import { localeFromCountryCode, type Locale } from '@/lib/translations'
 import DashboardMobileBottomNav from './DashboardMobileBottomNav'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
 import { AppActivitiesProvider } from '@/lib/app-activities-context'
+import { DocumentActionsProvider } from '@/lib/document-actions-context'
+import type { DocumentActionItem } from '@/components/DocumentActionsModal'
 import { EmailSyncProgressProvider } from './EmailSyncProgressProvider'
 import EmailSyncProgressBar from './EmailSyncProgressBar'
 import { isFornitoreProfileRoute, normalizeAppPath, showsMobileBottomBar } from '@/lib/mobile-hub-routes'
@@ -196,33 +199,133 @@ export default function AppShell({
           <ActiveOperatorSessionReconcile />
           <AdminActingRoleCookieSync />
           <ToastProvider>
-            {/*
-              Un solo contenitore `min-h-dvh` + colonna flex: evita fascia in basso (body #020617)
-              sotto il dock fisso e touch che non arrivano a `#app-main` su iOS.
-              ErrorBoundary fullPage: ultimo livello di sicurezza se AppShellMain,
-              DashboardMobileBottomNav o OperatorSwitchModal crashano — evita schermata
-              bianca; ha accesso ai token CSS del tema perché è dentro i provider.
-            */}
-            <ErrorBoundary fullPage sectionName="applicazione">
-              <div className="relative flex w-full min-h-dvh flex-col bg-transparent md:h-full md:min-h-0">
-                <OfflineBanner />
-                <EmailSyncProgressProvider>
-                  <AppActivitiesProvider>
-                    <ContextMenuProvider>
-                      <AppShellMain>{children}</AppShellMain>
-                    </ContextMenuProvider>
-                  </AppActivitiesProvider>
-                </EmailSyncProgressProvider>
-                <DashboardMobileBottomNav />
-                <OperatorSwitchModal />
-                <UpdatePrompt />
-              </div>
-            </ErrorBoundary>
+            <AppShellDocumentActions>
+              <ErrorBoundary fullPage sectionName="applicazione">
+                <div className="relative flex w-full min-h-dvh flex-col bg-transparent md:h-full md:min-h-0">
+                  <OfflineBanner />
+                  <EmailSyncProgressProvider>
+                    <AppActivitiesProvider>
+                      <ContextMenuProvider>
+                        <AppShellMain>{children}</AppShellMain>
+                      </ContextMenuProvider>
+                    </AppActivitiesProvider>
+                  </EmailSyncProgressProvider>
+                  <DashboardMobileBottomNav />
+                  <OperatorSwitchModal />
+                  <UpdatePrompt />
+                </div>
+              </ErrorBoundary>
+            </AppShellDocumentActions>
           </ToastProvider>
         </ActiveOperatorProvider>
         </NetworkProvider>
       </UserProvider>
     </LocaleProvider>
+  )
+}
+
+/** Componente interno che ha accesso a useToast e DocumentActionsProvider. */
+function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
+  const { showToast } = useToast()
+  const handleDocumentAction = useCallback(async (item: DocumentActionItem, actionId: string) => {
+    // Azioni che richiedono un dialogo (disponibili solo nel Centro Controllo)
+    const dialogOnly: Record<string, string> = {
+      'documento.associa': 'Usa il Centro Controllo per associare un fornitore',
+      'fattura.rifiuta': 'Usa il Centro Controllo per rifiutare la fattura',
+      'statement.assegna_fattura': 'Usa il Centro Controllo per assegnare una fattura',
+      'statement.associa_fornitore': 'Usa il Centro Controllo per associare un fornitore',
+    }
+    const dialogMsg = dialogOnly[actionId]
+    if (dialogMsg) {
+      showToast(dialogMsg, 'info')
+      return
+    }
+
+    // Apri documento
+    if (actionId === 'documento.apri') {
+      if (item.file_url) {
+        const url = `/api/open-document?documento_id=${encodeURIComponent(item.id)}&json=1`
+        const res = await fetch(url)
+        if (res.ok) {
+          const { url: docUrl } = await res.json()
+          if (docUrl) window.open(docUrl, '_blank')
+        }
+      }
+      return
+    }
+
+    const apiCalls: Record<string, { url: string; body: Record<string, unknown> }> = {
+      'documento.scarta': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'scarta' } },
+      'documento.finalizza_come_fattura': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'finalizza_tipo', kind: 'fattura' } },
+      'documento.finalizza_come_bolla': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'finalizza_tipo', kind: 'bolla' } },
+      'documento.finalizza_come_nota_credito': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'finalizza_tipo', kind: 'nota_credito' } },
+      'documento.finalizza_come_statement': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'finalizza_tipo', kind: 'statement' } },
+      'documento.finalizza_come_ordine': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'finalizza_tipo', kind: 'ordine' } },
+      'documento.finalizza_come_comunicazione': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'finalizza_tipo', kind: 'comunicazione' } },
+      'documento.finalizza_come_listino': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'finalizza_tipo', kind: 'listino' } },
+      'documento.rianalizza_ocr': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'rianalizza_ocr' } },
+      'documento.ignora_mittente': { url: '/api/documenti-da-processare', body: { id: item.id, azione: 'ignora_mittente' } },
+      'fattura.approva': { url: '/api/fatture/approve', body: { fattura_id: item.id, action: 'approve' } },
+      'statement.segna_come_ok': { url: '/api/statements/update-row-status', body: { rowId: item.id, status: 'ok' } },
+    }
+    // Scarta fattura → chiama l'API di rifiuto
+    if (actionId === 'documento.scarta_fattura') {
+      const res = await fetch('/api/fatture/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fattura_id: item.id, action: 'reject', reason: 'Scartata dall\'utente' }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast(data.error || `Errore ${res.status}`, 'error')
+        return
+      }
+      showToast('Fattura scartata', 'success')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('document-type-changed', { detail: { id: item.id } }))
+      }
+      return
+    }
+    // Per documenti già registrati (fatture, bolle), i finalizza_come_* aggiornano il tipo direttamente
+    // invece di creare un nuovo documento dalla coda.
+    const registeredReclassify: Record<string, { url: string; body: Record<string, unknown> }> = {
+      'documento.finalizza_come_nota_credito': { url: '/api/fatture/update-type', body: { id: item.id, is_credit_note: true } },
+      'documento.finalizza_come_fattura': { url: '/api/fatture/update-type', body: { id: item.id, is_credit_note: false } },
+    }
+    const isRegistered = item.origine === 'fattura' || item.origine === 'bolla_aperta'
+    const reclass = isRegistered && registeredReclassify[actionId]
+    if (reclass) {
+      const res = await fetch(reclass.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reclass.body) })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast(data.error || `Errore ${res.status}`, 'error')
+        return
+      }
+      showToast('Tipo documento aggiornato — AI aggiornata', 'success')
+      // Notifica la pagina che i dati duplicati sono cambiati
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('document-type-changed', { detail: { id: item.id } }))
+      }
+      return
+    }
+    const api = apiCalls[actionId]
+    if (!api) {
+      showToast(`Azione "${actionId}" non disponibile`, 'info')
+      return
+    }
+    const res = await fetch(api.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(api.body) })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      showToast(data.error || `Errore ${res.status}`, 'error')
+      return
+    }
+    showToast('Operazione completata', 'success')
+  }, [showToast])
+
+  return (
+    <DocumentActionsProvider onExecute={handleDocumentAction}>
+      {children}
+    </DocumentActionsProvider>
   )
 }
 

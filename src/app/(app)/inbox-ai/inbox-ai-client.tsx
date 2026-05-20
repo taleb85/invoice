@@ -6,6 +6,7 @@ import type { DupBollaGroup, DupFatturaGroup } from '@/lib/inbox-ai-duplicate-gr
 import { SUMMARY_HIGHLIGHT_SURFACE_CLASS } from '@/lib/summary-highlight-accent'
 import { createClient } from '@/utils/supabase/client'
 import { OpenDocumentInAppButton } from '@/components/OpenDocumentInAppButton'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
 import { compareInboxQueueNewestFirst } from '@/lib/inbox-ai-doc-queue-sort'
 import {
   GEMINI_AUTO_DISCARD_ALTRIO_MIN_CONF,
@@ -352,6 +353,15 @@ export default function InboxAiClient(props: {
 
   useEffect(() => {
     if (tab === 'fatture' || tab === 'bolle') void loadDuplicates()
+  }, [tab, loadDuplicates])
+
+  // Ricarica automaticamente i duplicati quando il tipo documento viene cambiato
+  useEffect(() => {
+    const handler = () => { if (tab === 'fatture' || tab === 'bolle') void loadDuplicates() }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('document-type-changed', handler)
+      return () => window.removeEventListener('document-type-changed', handler)
+    }
   }, [tab, loadDuplicates])
 
   const excludedForNextBatch = useMemo(() => {
@@ -1221,6 +1231,15 @@ export default function InboxAiClient(props: {
                           >
                             {t.log.activityInboxDiscard}
                           </button>
+                          <DocumentActionsButton item={{
+                            id: d.id,
+                            origine: 'documento_da_processare',
+                            fornitore_id: d.fornitore_id,
+                            fornitore_nome: d.fornitore?.nome ?? null,
+                            numero_documento: null,
+                            file_url: d.file_url ?? null,
+                            mittente: d.mittente ?? null,
+                          }} />
                         </div>
                       </div>
                     </li>
@@ -1397,6 +1416,14 @@ export default function InboxAiClient(props: {
                             >
                               Tieni questa / elimina le altre
                             </button>
+                            <DocumentActionsButton item={{
+                              id: f.id,
+                              origine: 'fattura',
+                              fornitore_id: g.fornitore_id,
+                              fornitore_nome: g.fornitore_nome,
+                              sede_id: null,
+                              numero_documento: f.numero_fattura,
+                            }} />
                           </div>
                         </li>
                       ))}
@@ -1475,6 +1502,14 @@ export default function InboxAiClient(props: {
                             >
                               Tieni questa / elimina le altre
                             </button>
+                            <DocumentActionsButton item={{
+                              id: b.id,
+                              origine: 'bolla_aperta',
+                              fornitore_id: g.fornitore_id,
+                              fornitore_nome: g.fornitore_nome,
+                              sede_id: null,
+                              numero_documento: b.numero_bolla,
+                            }} />
                           </div>
                         </li>
                       ))}

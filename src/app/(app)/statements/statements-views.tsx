@@ -63,6 +63,30 @@ async function parsePendingQueueMutationError(res: Response): Promise<string> {
   return res.statusText.trim() || `HTTP ${res.status}`
 }
 
+function extractNumeroFromDoc(doc: Documento | undefined): string | null {
+  if (!doc) return null
+  const s = `${doc.file_name ?? ''} ${doc.oggetto_mail ?? ''}`
+  if (!s.trim()) return null
+  const patterns = [
+    /fattura[\s._\-:]*n[°o]?\.?\s*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /(?:ft|fattura|invoice|inv)[\s._\-]*(\d[\d\-/._a-zA-Z]{2,30})/i,
+    /(\d{4,20})[\s._\-]*(?:fattura|ft|invoice|inv)/i,
+    /numero\s*(?:fattura|documento|doc)[\s:_\-]*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /n[°o]?\.?\s*(?:fattura|doc)[\s._\-:]*([a-zA-Z0-9][\-/a-zA-Z0-9._]{1,30})/i,
+    /([A-Z]{2,5}[\s._\-]\d{3,10}(?:[\s._\-]\d{2,4})?)/,
+    /(\d{5,20})/,
+  ]
+  for (const p of patterns) {
+    const m = s.match(p)
+    if (m?.[1]) {
+      let v = m[1].replace(/[^a-zA-Z0-9\-/._]/g, '').trim()
+      if (v.length > 30) v = v.slice(0, 30)
+      if (v.length >= 2) return v
+    }
+  }
+  return null
+}
+
 /* ── Types ──────────────────────────────────────────────────── */
 type OcrMetadata = {
   ragione_sociale:    string | null
@@ -230,13 +254,15 @@ type StmtExtractedPdfDates = {
 }
 
 function stmtOfficialDateIso(s: { document_date?: string | null; extracted_pdf_dates?: StmtExtractedPdfDates | null }): string | null {
-  const docDate = s.document_date?.trim()
-  if (docDate) return docDate
   const pdf = s.extracted_pdf_dates
+  // Priorità: last_payment_date (data effettiva documento) → issued_date (data emissione PDF) → document_date (DB)
+  const lastPay = pdf?.last_payment_date?.trim()
+  if (lastPay) return lastPay
   const issued = pdf?.issued_date?.trim()
   if (issued) return issued
-  const lastPay = pdf?.last_payment_date?.trim()
-  return lastPay || null
+  const docDate = s.document_date?.trim()
+  if (docDate) return docDate
+  return null
 }
 
 function hasStmtPdfSummary(pdf: StmtExtractedPdfDates | null | undefined): boolean {
@@ -1939,6 +1965,7 @@ export function PendingMatchesTab({
   async function setPendingKind(docId: string, kind: 'statement' | 'bolla' | 'fattura' | 'nota_credito' | 'comunicazione' | 'ordine') {
     // Solo aggiornamento locale del chip — nessuna chiamata API.
     // Il salvataggio effettivo avviene quando l'utente clicca il pulsante di conferma.
+    const doc = docs.find(d => d.id === docId)
     setDocs(prev =>
       prev.map(d => {
         if (d.id !== docId) return d
@@ -1952,6 +1979,16 @@ export function PendingMatchesTab({
       else next.delete(docId)
       return next
     })
+    if (
+      (kind === 'fattura' || kind === 'nota_credito') &&
+      !manualNumeroFattura[docId] &&
+      !doc?.metadata?.numero_fattura?.trim()
+    ) {
+      const candidate = extractNumeroFromDoc(doc)
+      if (candidate) {
+        setManualNumeroFattura(prev => ({ ...prev, [docId]: candidate }))
+      }
+    }
   }
 
   async function finalizzaTipo(docId: string) {
@@ -4117,7 +4154,7 @@ export function VerificationStatusTab({
 
         {/* Intestazione estratto + riepilogo campi letti dal PDF (account, plafond, ultimo pagamento, …) */}
         {selectedStmt && (
-          <div className="flex min-h-10 items-start justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-app-soft-border bg-transparent px-4 py-2.5">
             <div className="min-w-0 flex-1 pr-2">
               <p className="truncate text-sm font-semibold text-app-fg">
                 {selectedStmt.fornitore_nome ?? selectedStmt.email_subject ?? 'Statement'}
@@ -4131,10 +4168,12 @@ export function VerificationStatusTab({
                 />
               )}
               <div
-                className={`text-xs font-normal text-app-fg-muted ${hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'}`}
+                className={`flex flex-wrap items-center gap-x-1 gap-y-1 text-xs font-normal text-app-fg-muted ${hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'}`}
               >
-                <span className="text-app-fg-muted">{t.statements.receivedOn}</span>{' '}
-                <span className="tabular-nums text-app-fg">{formatStmtDate(selectedStmt.received_at)}</span>
+                <span className="text-app-fg-muted">
+                  {stmtOfficialDateIso(selectedStmt) ? t.statements.labelDocDate : t.statements.receivedOn}
+                </span>{' '}
+                <span className="tabular-nums text-app-fg">{formatStmtDate(stmtOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}</span>
                 {selectedStmt.file_url && (
                   <>
                     <span className="text-app-fg-muted"> · </span>

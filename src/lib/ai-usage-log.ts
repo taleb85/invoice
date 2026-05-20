@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getGeminiModelId, type GeminiUsage } from '@/lib/gemini-vision'
+import { getGeminiModelId, getGeminiPricing, type GeminiUsage } from '@/lib/gemini-vision'
 
 export async function recordAiUsage(
   supabase: SupabaseClient,
@@ -13,9 +13,10 @@ export async function recordAiUsage(
 ): Promise<void> {
   const tokensIn = input.usage.inputTokens
   const tokensOut = input.usage.outputTokens
+  const p = getGeminiPricing()
   const costUsd =
     input.usage.estimatedCostUsd ??
-    (tokensIn * 0.075 + tokensOut * 0.3) / 1_000_000
+    (tokensIn * p.inputPerMillion + tokensOut * p.outputPerMillion) / 1_000_000
 
   const row = {
     sede_id: input.sede_id,

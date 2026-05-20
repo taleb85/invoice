@@ -573,18 +573,6 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         completePendingAccessoNav()
         return
       }
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('sede_id')
-        .eq('id', u.user.id)
-        .maybeSingle()
-      const sedeId = String(prof?.sede_id ?? '')
-      if (!sedeId) {
-        deviceTrustInFlightRef.current = false
-        setDeviceTrustRegistering(false)
-        completePendingAccessoNav()
-        return
-      }
       const devId = getOrCreateSpDeviceId()
       let deviceName: string | null = null
       if (typeof navigator !== 'undefined' && typeof navigator.userAgent === 'string') {
@@ -596,7 +584,6 @@ function LoginFormInner({ sessionGateNext }: LoginFormProps) {
         body: JSON.stringify({
           deviceId: devId,
           profileId: u.user.id,
-          sedeId,
           deviceName,
         }),
         credentials: 'same-origin',

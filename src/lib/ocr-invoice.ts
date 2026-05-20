@@ -8,6 +8,7 @@ import {
   geminiGenerateVision,
   DOCUMENT_EXTRACTION_PROMPT,
   GeminiTransientError,
+  OCR_INVOICE_SCHEMA,
   type GeminiUsage,
 } from '@/lib/gemini-vision'
 import { logger } from '@/lib/logger'
@@ -597,7 +598,7 @@ export async function ocrInvoice(
 
     if (!mustUseVision && text) {
       try {
-        const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 900)
+        const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(text), 900, { responseSchema: OCR_INVOICE_SCHEMA })
         onUsage?.(res.usage)
         const outcome = parseOcrJson(res.text)
         return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
@@ -623,6 +624,7 @@ export async function ocrInvoice(
         base64,
         visionTextPrompt,
         900,
+        { responseSchema: OCR_INVOICE_SCHEMA },
       )
       onUsage?.(res.usage)
       const outcome = parseOcrJson(res.text)
@@ -645,7 +647,7 @@ export async function ocrInvoice(
     }
     logger.info(`[OCR] ${ctxLabel}: Testo estratto (${extracted.text.length} caratteri) — invio a Gemini testo`)
     try {
-      const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(extracted.text), 900)
+      const res = await geminiGenerateText(SYSTEM_PROMPT, textUserMsg(extracted.text), 900, { responseSchema: OCR_INVOICE_SCHEMA })
       onUsage?.(res.usage)
       const outcome = parseOcrJson(res.text)
       return finalizeParseOutcomeAndSanitize(outcome, logContext, ignoredCustomerNames)
@@ -672,6 +674,7 @@ export async function ocrInvoice(
       base64,
       visionTextPrompt,
       900,
+      { responseSchema: OCR_INVOICE_SCHEMA },
     )
     onUsage?.(res.usage)
     const outcome = parseOcrJson(res.text)
@@ -718,6 +721,7 @@ export async function ocrInvoiceFromEmailBody(
       SYSTEM_PROMPT,
       `Email message to parse:\n\n${truncateEmailBody(trimmed)}`,
       450,
+      { responseSchema: OCR_INVOICE_SCHEMA },
     )
     options?.onUsage?.(res.usage)
     const outcome = parseOcrJson(res.text)

@@ -42,24 +42,24 @@ export function normalizeNumeroBolla(raw: string | null | undefined): string | n
   let n = raw.trim()
 
   // Rimuovi prefissi testuali comuni (case-insensitive)
-  n = n.replace(/^(ddt|bolla|n\.?\s*|no\.?\s*|num\.?\s*|numero\s*|doc\.?\s*|dn\.?\s*|d\.n\.\s*)[:\s.]*/i, '')
+  n = n.replace(/^(?:fattura\s+|ft\s+|invoice\s+|ddt|bolla|n\.?\s*|no\.?\s*|num\.?\s*|numero\s*|documento\s+|doc\.?\s*|dn\.?\s*|d\.n\.\s*|order\s+|ordine\s+)[:\s.]*/i, '')
 
-  // Rimuovi spazi multipli
+  // Rimuovi spazi multipli e caratteri di separazione estranei a inizio/fine
   n = n.replace(/\s+/g, ' ').trim()
+  n = n.replace(/^[:\s.\-_,;]+|[:\s.\-_,;]+$/g, '').trim()
 
   // Se dopo la pulizia rimane vuoto, ritorna null
   if (!n) return null
 
   // Per numeri puramente numerici (solo cifre): validazione lunghezza
   if (/^\d+$/.test(n)) {
-    // Numeri documento tipici hanno 4-20 cifre (DDT brevi a 4-6 cifre, fatture lunghe fino a 20)
-    if (n.length < 3) return null
-    if (n.length > 30) return n.slice(0, 30) // tronca valori anomali
+    if (n.length < 2) return null
+    if (n.length > 30) return n.slice(0, 30)
     return n
   }
 
-  // Per codici alfanumerici (es. "DDT-2024-00123"): mantieni ma normalizza
-  if (/^[a-zA-Z0-9\-\/._]+$/.test(n)) {
+  // Per codici alfanumerici (es. "DDT-2024-00123" o "FT/2026/00123"): mantieni ma normalizza
+  if (/^[a-zA-Z0-9\-\/:._]+$/.test(n)) {
     return n
   }
 
@@ -69,7 +69,10 @@ export function normalizeNumeroBolla(raw: string | null | undefined): string | n
     return digitsOnly
   }
 
-  // Fallback: ritorna null se non riusciamo a validare
+  // Tentativo: estrai alfanumerico + separatori comuni
+  const alnum = n.replace(/[^a-zA-Z0-9\-/._]/g, '').replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
+  if (alnum.length >= 2) return alnum
+
   return null
 }
 
