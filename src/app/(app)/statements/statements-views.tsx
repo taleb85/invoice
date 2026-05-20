@@ -4464,15 +4464,28 @@ export function VerificationStatusTab({
             {/* Per-line results — desktop table (8 colonne, larghezza al contenuto, senza scroll) */}
             <div className="hidden min-w-0 w-full overflow-hidden md:block">
               <table className="w-full table-auto border-collapse text-[11px] leading-snug">
+                <colgroup>
+                  <col />
+                  <col className="w-[5.25rem]" />
+                  <col />
+                  <col />
+                  <col />
+                  <col />
+                  <col className="w-14" />
+                  <col className="w-10" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-app-line-15">
                     <th
-                      className="px-1.5 py-2 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
+                      className="w-0 whitespace-nowrap py-2 pl-1 pr-0.5 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
                       title={t.statements.colRef}
                     >
                       Rif.
                     </th>
-                    <th className="px-1.5 py-2 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
+                    <th
+                      className="w-[5.25rem] max-w-[5.25rem] py-2 pl-0 pr-1 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
+                      title={t.statements.colStatus}
+                    >
                       {t.statements.colStatus}
                     </th>
                     <StatementTripleColHead label={t.statements.tripleColStmtDate} />
@@ -4528,7 +4541,7 @@ export function VerificationStatusTab({
                             : ''
                       }`}
                       >
-                        <td className="max-w-[6.5rem] px-1.5 py-2 align-middle">
+                        <td className="w-0 max-w-[6.25rem] whitespace-nowrap py-2 pl-1 pr-0.5 align-middle">
                           <span
                             className={`block truncate font-mono font-bold ${
                               r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
@@ -4539,13 +4552,13 @@ export function VerificationStatusTab({
                           </span>
                         </td>
 
-                        <td className="max-w-[6.75rem] px-1.5 py-2 align-middle">
+                        <td className="w-[5.25rem] max-w-[5.25rem] py-2 pl-0 pr-1 align-middle">
                           <span
-                            className={`inline-flex max-w-full items-start gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-tight ${cfg.cls}`}
+                            className={`inline-flex max-w-full items-start gap-0.5 rounded-full border px-1 py-0.5 text-[9px] font-semibold leading-tight ${cfg.cls}`}
                             title={cfg.label}
                           >
-                            <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
-                            <span className="min-w-0 text-left [overflow-wrap:anywhere]">{cfg.label}</span>
+                            <span className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
+                            <span className="min-w-0 line-clamp-2 text-left [overflow-wrap:anywhere]">{cfg.label}</span>
                           </span>
                         </td>
 
