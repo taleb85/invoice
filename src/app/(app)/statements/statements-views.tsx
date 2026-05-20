@@ -266,6 +266,42 @@ function hasStmtPdfSummary(pdf: StmtExtractedPdfDates | null | undefined): boole
   return false
 }
 
+function statementColLabelParts(label: string): { primary: string; secondary: string } {
+  const parts = label.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return { primary: '—', secondary: '' }
+  if (parts.length === 1) return { primary: parts[0], secondary: '' }
+  return { primary: parts[0], secondary: parts.slice(1).join(' ') }
+}
+
+function StatementTripleColHead({
+  label,
+  align = 'left',
+}: {
+  label: string
+  align?: 'left' | 'right' | 'center'
+}) {
+  const { primary, secondary } = statementColLabelParts(label)
+  const alignCls =
+    align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
+  return (
+    <th
+      className={`whitespace-nowrap px-1 py-2 text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted ${alignCls}`}
+      title={label}
+    >
+      {secondary ? (
+        <>
+          <span className="block text-[8px] font-semibold normal-case tracking-normal text-app-fg-subtle">
+            {primary}
+          </span>
+          <span>{secondary}</span>
+        </>
+      ) : (
+        <span>{primary}</span>
+      )}
+    </th>
+  )
+}
+
 function StmtPdfSummaryGrid({
   pdf,
   t,
@@ -4425,44 +4461,28 @@ export function VerificationStatusTab({
             })}
             </div>
 
-            {/* Per-line results — desktop table (fluida, senza scroll orizzontale) */}
+            {/* Per-line results — desktop table (8 colonne, larghezza al contenuto, senza scroll) */}
             <div className="hidden min-w-0 w-full overflow-hidden md:block">
-              <table className="w-full table-fixed text-xs leading-snug">
-                <colgroup>
-                  <col className="w-[19%]" />
-                  <col className="w-[21%]" />
-                  <col className="w-[14%]" />
-                  <col className="w-[16%]" />
-                  <col className="w-[12%]" />
-                  <col className="w-[18%]" />
-                </colgroup>
+              <table className="w-full table-auto border-collapse text-[11px] leading-snug">
                 <thead>
                   <tr className="border-b border-app-line-15">
                     <th
                       className="px-1.5 py-2 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
                       title={t.statements.colRef}
                     >
-                      {t.statements.colRef}
+                      Rif.
                     </th>
                     <th className="px-1.5 py-2 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.colStatus}
                     </th>
-                    <th
-                      className="px-1.5 py-2 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
-                      title={`${t.statements.tripleColStmtDate} / ${t.statements.tripleColSysDate}`}
-                    >
-                      {t.statements.tripleColStmtDate.split(/\s+/)[0]}
-                    </th>
-                    <th
-                      className="px-1.5 py-2 text-right text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
-                      title={`${t.statements.tripleColStmtAmount} / ${t.statements.tripleColSysAmount}`}
-                    >
-                      {t.statements.colAmountShort}
-                    </th>
-                    <th className="px-1 py-2 text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
+                    <StatementTripleColHead label={t.statements.tripleColStmtDate} />
+                    <StatementTripleColHead label={t.statements.tripleColSysDate} />
+                    <StatementTripleColHead label={t.statements.tripleColStmtAmount} align="right" />
+                    <StatementTripleColHead label={t.statements.tripleColSysAmount} align="right" />
+                    <th className="w-14 whitespace-nowrap px-1 py-2 text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColChecks}
                     </th>
-                    <th className="px-1.5 py-2 text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
+                    <th className="w-10 whitespace-nowrap px-1 py-2 text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.colAction}
                     </th>
                   </tr>
@@ -4508,9 +4528,9 @@ export function VerificationStatusTab({
                             : ''
                       }`}
                       >
-                        <td className="max-w-0 px-1.5 py-2.5 align-middle">
+                        <td className="max-w-[6.5rem] px-1.5 py-2 align-middle">
                           <span
-                            className={`block truncate font-mono text-[11px] font-bold ${
+                            className={`block truncate font-mono font-bold ${
                               r.status === 'rekki_prezzo_discordanza' ? 'text-slate-50' : 'text-app-fg'
                             }`}
                             title={r.numero}
@@ -4519,67 +4539,61 @@ export function VerificationStatusTab({
                           </span>
                         </td>
 
-                        <td className="max-w-0 px-1.5 py-2.5 align-middle">
+                        <td className="max-w-[6.75rem] px-1.5 py-2 align-middle">
                           <span
-                            className={`inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-snug ${cfg.cls}`}
+                            className={`inline-flex max-w-full items-start gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-tight ${cfg.cls}`}
                             title={cfg.label}
                           >
-                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
-                            <span className="min-w-0 truncate">{cfg.label}</span>
+                            <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
+                            <span className="min-w-0 text-left [overflow-wrap:anywhere]">{cfg.label}</span>
                           </span>
                         </td>
 
-                        <td className="max-w-0 px-1.5 py-2.5 align-middle tabular-nums text-app-fg-muted">
-                          <div className="flex min-w-0 flex-col gap-0.5">
-                            <span
-                              className="block truncate whitespace-nowrap"
-                              title={`${t.statements.tripleColStmtDate}: ${stmtDateLabel}`}
-                            >
-                              <span className="text-[9px] font-bold uppercase text-app-fg-subtle">E</span>{' '}
-                              {stmtDateLabel}
-                            </span>
-                            <span
-                              className="block truncate whitespace-nowrap"
-                              title={`${t.statements.tripleColSysDate}: ${sysDateLabel}`}
-                            >
-                              <span className="text-[9px] font-bold uppercase text-app-fg-subtle">S</span>{' '}
-                              {sysDateLabel}
-                            </span>
-                          </div>
+                        <td
+                          className="whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
+                          title={`${t.statements.tripleColStmtDate}: ${stmtDateLabel}`}
+                        >
+                          {stmtDateLabel}
                         </td>
 
-                        <td className="max-w-0 px-1.5 py-2.5 text-right align-middle tabular-nums">
-                          <div className="ml-auto flex min-w-0 max-w-full flex-col items-end gap-0.5">
-                            <span
-                              className={`block truncate whitespace-nowrap text-[11px] font-bold ${
-                                r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-app-fg'
-                              }`}
-                              title={`${t.statements.tripleColStmtAmount}: ${stmtAmountLabel}`}
-                            >
-                              {stmtAmountLabel}
-                            </span>
-                            <span
-                              className={`block truncate whitespace-nowrap text-[10px] ${
-                                r.status === 'errore_importo'
-                                  ? 'text-red-300 font-bold'
-                                  : r.status === 'rekki_prezzo_discordanza'
-                                    ? 'text-amber-400 font-bold'
-                                    : 'text-app-fg-muted'
-                              }`}
-                              title={`${t.statements.tripleColSysAmount}: ${sysAmountLabel}`}
-                            >
-                              {sysAmountLabel}
-                            </span>
-                            {r.status === 'rekki_prezzo_discordanza' && r.deltaImporto !== null && (
-                              <span className="text-[9px] font-bold text-amber-400">
-                                Δ {r.deltaImporto > 0 ? '+' : ''}{formatCurrency(Math.abs(r.deltaImporto), countryCode, resolvedCurrency)}
-                              </span>
-                            )}
-                          </div>
+                        <td
+                          className="whitespace-nowrap px-1 py-2 align-middle tabular-nums text-app-fg-muted"
+                          title={`${t.statements.tripleColSysDate}: ${sysDateLabel}`}
+                        >
+                          {sysDateLabel}
                         </td>
 
-                        <td className="px-1 py-2.5 align-middle">
-                          <div className="mx-auto flex w-full max-w-[2.75rem] items-center gap-px">
+                        <td
+                          className={`whitespace-nowrap px-1 py-2 text-right align-middle font-bold tabular-nums ${
+                            r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-app-fg'
+                          }`}
+                          title={`${t.statements.tripleColStmtAmount}: ${stmtAmountLabel}`}
+                        >
+                          {stmtAmountLabel}
+                        </td>
+
+                        <td
+                          className={`whitespace-nowrap px-1 py-2 text-right align-middle tabular-nums ${
+                            r.status === 'errore_importo'
+                              ? 'text-red-300 font-bold'
+                              : r.status === 'rekki_prezzo_discordanza'
+                                ? 'text-amber-400 font-bold'
+                                : r.fattura?.importo != null
+                                  ? 'text-app-fg'
+                                  : 'text-app-fg-subtle'
+                          }`}
+                          title={`${t.statements.tripleColSysAmount}: ${sysAmountLabel}`}
+                        >
+                          {sysAmountLabel}
+                          {r.status === 'rekki_prezzo_discordanza' && r.deltaImporto !== null && (
+                            <span className="ml-1 text-[9px] font-bold text-amber-400">
+                              Δ{r.deltaImporto > 0 ? '+' : ''}{formatCurrency(Math.abs(r.deltaImporto), countryCode, resolvedCurrency)}
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="w-14 px-1 py-2 align-middle">
+                          <div className="mx-auto flex w-11 items-center justify-center gap-px">
                             {checks.map((pass, i) => {
                               const isLast = i === 3
                               if (r.status === 'rekki_prezzo_discordanza' && isLast) {
@@ -4587,7 +4601,7 @@ export function VerificationStatusTab({
                                   <div
                                     key={i}
                                     title={t.statements.rekkiCheckSegmentTooltip}
-                                    className="h-2.5 min-w-[0.2rem] flex-1 rounded-sm bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.45)]"
+                                    className="h-2.5 w-2.5 shrink-0 rounded-sm bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.45)]"
                                   />
                                 )
                               }
@@ -4595,22 +4609,22 @@ export function VerificationStatusTab({
                                 <div
                                   key={i}
                                   title={pass ? t.statements.kpiVerifiedOk : undefined}
-                                  className={`h-2.5 min-w-[0.2rem] flex-1 rounded-sm ${pass ? 'bg-green-500' : 'bg-app-line-35'}`}
+                                  className={`h-2.5 w-2.5 shrink-0 rounded-sm ${pass ? 'bg-green-500' : 'bg-app-line-35'}`}
                                 />
                               )
                             })}
                           </div>
                         </td>
 
-                        <td className="px-1.5 py-2.5 text-center align-middle">
+                        <td className="w-10 px-1 py-2 text-center align-middle">
                           {needAction && (
                             sollecitoState === 'sent' ? (
-                              <div className="mx-auto inline-flex max-w-full flex-col items-center gap-0.5">
+                              <div className="mx-auto inline-flex flex-col items-center gap-0.5">
                                 <span
-                                  className="inline-flex items-center gap-1 rounded-md border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-200"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.15)] bg-emerald-500/15 text-emerald-200"
                                   title={t.statements.btnSent}
                                 >
-                                  <svg className={`h-3.5 w-3.5 shrink-0 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg className={`h-4 w-4 shrink-0 ${icon.success}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                   </svg>
                                   <span className="sr-only">{t.statements.btnSent}</span>
