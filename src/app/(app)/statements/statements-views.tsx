@@ -4466,7 +4466,7 @@ export function VerificationStatusTab({
               <table className="w-full table-auto border-collapse text-[11px] leading-snug">
                 <colgroup>
                   <col />
-                  <col className="w-[5.25rem]" />
+                  <col className="w-[6.5rem]" />
                   <col />
                   <col />
                   <col />
@@ -4483,7 +4483,7 @@ export function VerificationStatusTab({
                       Rif.
                     </th>
                     <th
-                      className="w-[5.25rem] max-w-[5.25rem] py-2 pl-0 pr-1 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
+                      className="w-[6.5rem] max-w-[6.5rem] py-2 pl-0 pr-1 text-left text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted"
                       title={t.statements.colStatus}
                     >
                       {t.statements.colStatus}
@@ -4552,9 +4552,9 @@ export function VerificationStatusTab({
                           </span>
                         </td>
 
-                        <td className="w-[5.25rem] max-w-[5.25rem] py-2 pl-0 pr-1 align-middle">
+                        <td className="w-[6.5rem] max-w-[6.5rem] py-2 pl-0 pr-1 align-middle">
                           <span
-                            className={`inline-flex max-w-full items-start gap-0.5 rounded-full border px-1 py-0.5 text-[9px] font-semibold leading-tight ${cfg.cls}`}
+                            className={`inline-flex max-w-full items-start gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-tight ${cfg.cls}`}
                             title={cfg.label}
                           >
                             <span className={`mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_STYLE[r.status].dot}`} />
