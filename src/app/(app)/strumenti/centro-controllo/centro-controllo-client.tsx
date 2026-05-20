@@ -115,6 +115,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
     con_anomalie: number
     anomalie_totali: number
     righe_anomale: number
+    fattura_mancante_count?: number
     pending_count: number
     pending_list: Array<{
       id: string
@@ -154,6 +155,30 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const autoRisolviTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRisolviPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRisolviRanRef = useRef(false)
+
+  // ── AI cerca fatture mancanti ────────────────────────────────────────────
+  type AiScanChunkResult = {
+    fornitoreId: string
+    fornitoreNome: string | null
+    fattureMancanti: number
+    ricevuti: number
+    bozzeCreate: number
+    attachmentsProcessed: number
+    ok: boolean
+    error?: string
+  }
+  const [aiScanActive, setAiScanActive] = useState(false)
+  const [aiScanOffset, setAiScanOffset] = useState(0)
+  const [aiScanTotal, setAiScanTotal] = useState<number | null>(null)
+  const [aiScanResults, setAiScanResults] = useState<AiScanChunkResult[]>([])
+  const [aiScanSummary, setAiScanSummary] = useState<{
+    initialAnomalies: number
+    remainingAnomalies: number
+    resolved: number
+    fornitoriFailed: string[]
+  } | null>(null)
+  const [aiScanElapsed, setAiScanElapsed] = useState(0)
+  const aiScanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // ── Monitoraggio sistema ─────────────────────────────────────────────────
   const [sysMonitor, setSysMonitor] = useState<{
@@ -275,6 +300,64 @@ export default function CentroControlloClient({ sedeId }: Props) {
       }
     } catch { /* non-critical */ }
   }, [sedeId])
+
+  // ── AI cerca fatture mancanti ────────────────────────────────────────────
+  const handleAiCercaFattureMancanti = useCallback(async () => {
+    if (!sedeId) return
+    setAiScanActive(true)
+    setAiScanOffset(0)
+    setAiScanTotal(null)
+    setAiScanResults([])
+    setAiScanSummary(null)
+    setAiScanElapsed(0)
+    const startMs = Date.now()
+    if (aiScanTimerRef.current) clearInterval(aiScanTimerRef.current)
+    aiScanTimerRef.current = setInterval(() => {
+      setAiScanElapsed(Math.floor((Date.now() - startMs) / 1000))
+    }, 1000)
+    try {
+      let currentOffset = 0
+      for (;;) {
+        const res = await fetch('/api/centro-controllo/ai-cerca-fatture-mancanti', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sede_id: sedeId, offset: currentOffset, chunk_size: 3 }),
+        })
+        const data = await res.json() as {
+          done: boolean
+          offset: number
+          total: number
+          results: AiScanChunkResult[]
+          summary?: {
+            initialAnomalies: number
+            remainingAnomalies: number
+            resolved: number
+            fornitoriFailed: string[]
+          }
+          error?: string
+        }
+        if (!res.ok) {
+          showToast(data.error ?? `Errore ${res.status}`, 'error')
+          break
+        }
+        currentOffset = data.offset
+        setAiScanOffset(currentOffset)
+        setAiScanTotal(data.total)
+        setAiScanResults((prev) => [...prev, ...data.results])
+        if (data.done) {
+          if (data.summary) setAiScanSummary(data.summary)
+          await Promise.all([caricaCoda(1), caricaStatement()])
+          break
+        }
+        await new Promise((r) => setTimeout(r, 1500))
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Errore di rete', 'error')
+    } finally {
+      if (aiScanTimerRef.current) { clearInterval(aiScanTimerRef.current); aiScanTimerRef.current = null }
+      setAiScanActive(false)
+    }
+  }, [sedeId, caricaCoda, caricaStatement, showToast])
 
   // ── Elaborazione statement ──────────────────────────────────────────────
   const handleProcessaStatement = async () => {
@@ -949,6 +1032,93 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               <p className="text-[11px] leading-relaxed text-emerald-300">{reprocessChecksResult}</p>
                             )}
                           </div>
+
+                          {/* Action 3: AI — cerca fatture mancanti nella casella email */}
+                          {(statementStats.fattura_mancante_count ?? 0) > 0 && (
+                            <div className={`rounded-lg border px-3 py-2.5 space-y-2 transition-colors ${aiScanActive ? 'border-purple-500/35 bg-purple-500/5' : 'border-app-line-20 bg-white/[0.025]'}`}>
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <p className="text-[11px] font-semibold text-app-fg">Cerca fatture mancanti nella casella email</p>
+                                    <span className="inline-flex items-center rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-purple-300">AI</span>
+                                  </div>
+                                  {aiScanActive ? (
+                                    <div className="mt-1.5 space-y-1.5">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2 text-[11px] text-purple-300">
+                                          <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                          <span>
+                                            {aiScanTotal !== null
+                                              ? `Scansione fornitore ${Math.min(aiScanOffset, aiScanTotal)} / ${aiScanTotal}…`
+                                              : 'Carico lista fornitori…'}
+                                          </span>
+                                        </div>
+                                        <span className="shrink-0 font-mono text-[10px] tabular-nums text-purple-300/70">{aiScanElapsed}s</span>
+                                      </div>
+                                      {aiScanResults.length > 0 && (
+                                        <div className="max-h-20 overflow-y-auto space-y-0.5 rounded-md bg-black/20 px-2 py-1.5">
+                                          {aiScanResults.map((r) => (
+                                            <div key={r.fornitoreId} className="flex items-center gap-1.5 text-[10px]">
+                                              {r.ok ? (
+                                                <GlyphCheck className="w-2.5 h-2.5 shrink-0 text-emerald-400" aria-hidden />
+                                              ) : (
+                                                <span className="w-2.5 h-2.5 shrink-0 rounded-full bg-red-400/60" aria-hidden />
+                                              )}
+                                              <span className="truncate text-app-fg-muted">{r.fornitoreNome ?? r.fornitoreId}</span>
+                                              {r.ok ? (
+                                                <span className="ml-auto shrink-0 text-emerald-400/80">
+                                                  {r.bozzeCreate > 0 ? `+${r.bozzeCreate} doc` : 'nessuna novità'}
+                                                </span>
+                                              ) : (
+                                                <span className="ml-auto shrink-0 truncate text-red-300/80" title={r.error}>{r.error}</span>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      {aiScanTotal !== null && (
+                                        <div className="h-1 flex-1 overflow-hidden rounded-full bg-purple-900/40">
+                                          <div
+                                            className="h-full rounded-full bg-purple-400/70 transition-all duration-700 ease-linear"
+                                            style={{ width: `${aiScanTotal > 0 ? Math.round((aiScanOffset / aiScanTotal) * 100) : 0}%` }}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : aiScanSummary ? (
+                                    <div className="mt-1 space-y-0.5">
+                                      <p className={`text-[11px] leading-relaxed ${aiScanSummary.resolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
+                                        {aiScanSummary.resolved > 0
+                                          ? `✓ ${aiScanSummary.resolved} anomalie risolte. Rimangono ${aiScanSummary.remainingAnomalies}.`
+                                          : `Nessuna nuova fattura trovata in casella. Rimangono ${aiScanSummary.remainingAnomalies} anomalie.`}
+                                      </p>
+                                      {aiScanSummary.fornitoriFailed.length > 0 && (
+                                        <p className="text-[10px] text-red-300/70">
+                                          Errori: {aiScanSummary.fornitoriFailed.join(', ')}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
+                                      Scansiona la casella IMAP per ogni fornitore con fatture mancanti e importa i documenti trovati. Richiede email configurata sul fornitore.
+                                      {(statementStats.fattura_mancante_count ?? 0) > 0 && (
+                                        <span className="ml-1 font-semibold text-purple-300">{statementStats.fattura_mancante_count} righe da verificare.</span>
+                                      )}
+                                    </p>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleAiCercaFattureMancanti()}
+                                  disabled={aiScanActive || !sedeId}
+                                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
+                                >
+                                  {aiScanActive ? <Loader2 className="w-3 h-3 animate-spin" /> : <ScanLine className="w-3 h-3" />}
+                                  {aiScanActive ? 'Scansione…' : 'Avvia'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </>
                       ) : (
                         <div className="flex items-center gap-2 text-xs text-app-fg-muted">

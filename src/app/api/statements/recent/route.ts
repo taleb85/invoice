@@ -105,11 +105,29 @@ export async function GET(req: NextRequest) {
 
   const righe_anomale = await countAnomalousStatementRows(supabase, sedeId)
 
+  // Count fattura_mancante rows specifically (cannot be auto-resolved without email scan)
+  const { data: stmtIds } = await supabase.from('statements').select('id').eq('sede_id', sedeId)
+  let fatturaManantiCount = 0
+  if (stmtIds?.length) {
+    const ids = stmtIds.map((s) => s.id)
+    const IN_CHUNK = 80
+    for (let i = 0; i < ids.length; i += IN_CHUNK) {
+      const chunk = ids.slice(i, i + IN_CHUNK)
+      const { count } = await supabase
+        .from('statement_rows')
+        .select('*', { count: 'exact', head: true })
+        .in('statement_id', chunk)
+        .eq('check_status', 'fattura_mancante')
+      fatturaManantiCount += count ?? 0
+    }
+  }
+
   return NextResponse.json({
     total,
     con_anomalie: conAnomalie,
     anomalie_totali: anomalieTotali,
     righe_anomale,
+    fattura_mancante_count: fatturaManantiCount,
     recenti,
     pending_count: pendingListWithFornitore.length,
     pending_list: pendingListWithFornitore,

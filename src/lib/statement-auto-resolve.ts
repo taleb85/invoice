@@ -57,6 +57,83 @@ export async function countAnomalousStatementRows(
   return total
 }
 
+export type FornitoreConFattureMancanti = {
+  fornitoreId: string
+  fornitoreNome: string | null
+  count: number
+  /** Data minima delle righe anomale (YYYY-MM-DD). */
+  minData: string | null
+  /** Data massima delle righe anomale (YYYY-MM-DD). */
+  maxData: string | null
+}
+
+/**
+ * Restituisce i fornitori che hanno righe `fattura_mancante` negli estratti conto della sede,
+ * con numero di righe e finestra date — utile per lanciare scansioni IMAP mirate.
+ */
+export async function getFornitoriConFattureMancanti(
+  supabase: SupabaseClient,
+  sedeId: string,
+): Promise<FornitoreConFattureMancanti[]> {
+  const { data: statements } = await supabase
+    .from('statements')
+    .select('id, fornitore_id, fornitori(nome)')
+    .eq('sede_id', sedeId)
+
+  if (!statements?.length) return []
+
+  const stmtMap = new Map<
+    string,
+    { fornitoreId: string | null; fornitoreNome: string | null }
+  >()
+  for (const s of statements) {
+    const nome =
+      s.fornitori && !Array.isArray(s.fornitori)
+        ? (s.fornitori as { nome: string }).nome
+        : Array.isArray(s.fornitori)
+          ? (s.fornitori[0] as { nome: string } | undefined)?.nome ?? null
+          : null
+    stmtMap.set(s.id, { fornitoreId: s.fornitore_id ?? null, fornitoreNome: nome })
+  }
+
+  const ids = [...stmtMap.keys()]
+  const byFornitore = new Map<
+    string,
+    { nome: string | null; count: number; minData: string | null; maxData: string | null }
+  >()
+
+  for (let i = 0; i < ids.length; i += IN_CHUNK) {
+    const chunk = ids.slice(i, i + IN_CHUNK)
+    const { data: rows } = await supabase
+      .from('statement_rows')
+      .select('statement_id, data_doc')
+      .in('statement_id', chunk)
+      .eq('check_status', 'fattura_mancante')
+
+    for (const row of rows ?? []) {
+      const meta = stmtMap.get(row.statement_id)
+      if (!meta?.fornitoreId) continue
+      const fid = meta.fornitoreId
+      const prev = byFornitore.get(fid) ?? { nome: meta.fornitoreNome, count: 0, minData: null, maxData: null }
+      prev.count++
+      const d = row.data_doc ?? null
+      if (d) {
+        prev.minData = prev.minData === null || d < prev.minData ? d : prev.minData
+        prev.maxData = prev.maxData === null || d > prev.maxData ? d : prev.maxData
+      }
+      byFornitore.set(fid, prev)
+    }
+  }
+
+  return [...byFornitore.entries()].map(([fornitoreId, v]) => ({
+    fornitoreId,
+    fornitoreNome: v.nome,
+    count: v.count,
+    minData: v.minData,
+    maxData: v.maxData,
+  }))
+}
+
 async function loadStatementsForSede(supabase: SupabaseClient, sedeId: string): Promise<StatementRef[]> {
   const { data } = await supabase
     .from('statements')

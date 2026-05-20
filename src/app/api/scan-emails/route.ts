@@ -2339,6 +2339,53 @@ async function processStatementInBackground(
   mailDebugLog(`[STMT] OK Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)
 }
 
+export type FornitoreEmailScanResult = {
+  ok: boolean
+  error?: string
+  ricevuti: number
+  bozzeCreate: number
+  attachmentsProcessed: number
+  skippedAlreadyCompleted: number
+}
+
+/**
+ * Scansione IMAP mirata per un singolo fornitore.
+ * Importa le fatture (e DDT) dalla casella IMAP della sede, filtrando per
+ * mittenti associati al fornitore. Usata da ai-cerca-fatture-mancanti.
+ */
+export async function runEmailScanForFornitore(params: {
+  fornitoreId: string
+  filterSedeId: string
+  /** Giorni da cercare nella casella. Default 400 (≈ 13 mesi). */
+  lookbackDaysOverride?: number
+}): Promise<FornitoreEmailScanResult> {
+  try {
+    const result = await runEmailScanCore({
+      fornitoreId: params.fornitoreId,
+      filterSedeId: params.filterSedeId,
+      lookbackDaysOverride: params.lookbackDaysOverride ?? 400,
+      emailSyncScope: 'lookback',
+      imapSyncMode: 'historical',
+    })
+    return {
+      ok: true,
+      ricevuti: result.ricevuti,
+      bozzeCreate: result.bozzeCreate,
+      attachmentsProcessed: result.attachmentsProcessed,
+      skippedAlreadyCompleted: result.skippedAlreadyCompleted,
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Errore sconosciuto',
+      ricevuti: 0,
+      bozzeCreate: 0,
+      attachmentsProcessed: 0,
+      skippedAlreadyCompleted: 0,
+    }
+  }
+}
+
 /** Stessa coda della GET `/api/scan-emails` (cron `sync-emails`, test). Default `imapSyncMode`: `auto` (finestra 3h). */
 export async function runEmailSyncForAllSedi(opts?: { imapSyncMode?: ImapSyncMode }) {
   return queueEmailScan(() =>
