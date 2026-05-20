@@ -4473,8 +4473,8 @@ export function VerificationStatusTab({
                   <col className="w-[8rem]" />
                   <col className="w-0" />
                   <col className="w-0" />
-                  <col />
-                  <col />
+                  <col className="w-0" />
+                  <col className="w-0" />
                   <col className="w-14" />
                   <col className="w-10" />
                 </colgroup>
@@ -4494,8 +4494,8 @@ export function VerificationStatusTab({
                     </th>
                     <StatementTripleColHead label={t.statements.tripleColStmtDate} shrink />
                     <StatementTripleColHead label={t.statements.tripleColSysDate} shrink />
-                    <StatementTripleColHead label={t.statements.tripleColStmtAmount} align="right" />
-                    <StatementTripleColHead label={t.statements.tripleColSysAmount} align="right" />
+                    <StatementTripleColHead label={t.statements.tripleColStmtAmount} align="right" shrink />
+                    <StatementTripleColHead label={t.statements.tripleColSysAmount} align="right" shrink />
                     <th className="w-14 whitespace-nowrap px-1 py-2 text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-app-fg-muted">
                       {t.statements.tripleColChecks}
                     </th>
@@ -4581,7 +4581,7 @@ export function VerificationStatusTab({
                         </td>
 
                         <td
-                          className={`whitespace-nowrap px-1 py-2 text-right align-middle font-bold tabular-nums ${
+                          className={`w-0 whitespace-nowrap px-1 py-2 text-right align-middle font-bold tabular-nums ${
                             r.status === 'rekki_prezzo_discordanza' ? 'text-amber-50' : 'text-app-fg'
                           }`}
                           title={`${t.statements.tripleColStmtAmount}: ${stmtAmountLabel}`}
@@ -4590,7 +4590,7 @@ export function VerificationStatusTab({
                         </td>
 
                         <td
-                          className={`whitespace-nowrap px-1 py-2 text-right align-middle tabular-nums ${
+                          className={`w-0 whitespace-nowrap px-1 py-2 text-right align-middle tabular-nums ${
                             r.status === 'errore_importo'
                               ? 'text-red-300 font-bold'
                               : r.status === 'rekki_prezzo_discordanza'
