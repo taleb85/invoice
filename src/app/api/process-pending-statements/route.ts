@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { downloadStorageObjectByFileUrl } from '@/lib/documenti-storage-url'
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
+import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { logActivity, ACTIVITY_ACTIONS } from '@/lib/activity-logger'
 import { logger } from '@/lib/logger'
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
     const fornitoreId = doc.fornitore_id
 
     // ── 3. Create statement record (safe concurrent insert) ──────────────────
-    const docDate = doc.data_documento?.trim() || String(extractedPdfDates?.issued_date ?? '').trim() || null
+    const docDate = resolveStatementDocumentDate(extractedPdfDates, doc.data_documento)
     const { data: stmtRow, error: stmtErr } = await supabase
       .from('statements')
       .insert([{

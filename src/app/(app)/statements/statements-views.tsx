@@ -25,6 +25,7 @@ import {
 import { inferPendingDocumentKindForQueueRow } from '@/lib/document-bozza-routing'
 import { normalizeTipoDocumento } from '@/lib/ocr-tipo-documento'
 import { STATEMENTS_LAYOUT_REFRESH_EVENT } from '@/lib/statements-layout-refresh'
+import { statementOfficialDateIso } from '@/lib/statement-official-date'
 import {
   SUMMARY_HIGHLIGHT_ACCENTS,
   SUMMARY_HIGHLIGHT_SURFACE_CLASS,
@@ -251,18 +252,6 @@ type StmtExtractedPdfDates = {
   available_credit?: string | null
   payment_terms?: string | null
   last_payment_amount?: number | null
-}
-
-function stmtOfficialDateIso(s: { document_date?: string | null; extracted_pdf_dates?: StmtExtractedPdfDates | null }): string | null {
-  const pdf = s.extracted_pdf_dates
-  // Priorità: last_payment_date (data effettiva documento) → issued_date (data emissione PDF) → document_date (DB)
-  const lastPay = pdf?.last_payment_date?.trim()
-  if (lastPay) return lastPay
-  const issued = pdf?.issued_date?.trim()
-  if (issued) return issued
-  const docDate = s.document_date?.trim()
-  if (docDate) return docDate
-  return null
 }
 
 function hasStmtPdfSummary(pdf: StmtExtractedPdfDates | null | undefined): boolean {
@@ -4082,7 +4071,7 @@ export function VerificationStatusTab({
                     )}
                     <p className="mt-0.5 text-xs text-app-fg-muted">
                       {(() => {
-                        const official = stmtOfficialDateIso(s)
+                        const official = statementOfficialDateIso(s)
                         if (official) {
                           return (
                             <>
@@ -4171,9 +4160,9 @@ export function VerificationStatusTab({
                 className={`flex flex-wrap items-center gap-x-1 gap-y-1 text-xs font-normal text-app-fg-muted ${hasStmtPdfSummary(selectedStmt.extracted_pdf_dates) ? 'mt-2' : 'mt-1'}`}
               >
                 <span className="text-app-fg-muted">
-                  {stmtOfficialDateIso(selectedStmt) ? t.statements.labelDocDate : t.statements.receivedOn}
+                  {statementOfficialDateIso(selectedStmt) ? t.statements.labelDocDate : t.statements.receivedOn}
                 </span>{' '}
-                <span className="tabular-nums text-app-fg">{formatStmtDate(stmtOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}</span>
+                <span className="tabular-nums text-app-fg">{formatStmtDate(statementOfficialDateIso(selectedStmt) ?? selectedStmt.received_at)}</span>
                 {selectedStmt.file_url && (
                   <>
                     <span className="text-app-fg-muted"> · </span>

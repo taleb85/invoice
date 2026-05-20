@@ -26,6 +26,7 @@
     "process:rekki": "node scripts/run-cron-local.mjs /api/cron/rekki-auto-poll",
     "process:backup": "node scripts/run-cron-local.mjs /api/cron/backup",
     "process": "node scripts/run-cron-local.mjs",
+    "reprocess:statements": "REPROCESS_STMT_ALL=1 vitest run src/lib/__tests__/reprocess-statement-checks-all.integration.test.ts",
     "ai:analyze": "node scripts/ai-analyze.mjs"
   },
   "dependencies": {

@@ -3,6 +3,7 @@ import type { ScannedEmail } from '@/lib/mail-scanner'
 import type { OcrResult } from '@/lib/ocr-invoice'
 import { normalizeNumeroBolla } from '@/lib/fix-ocr-dates-helpers'
 import { ocrStatement, extractedPdfDatesToJson } from '@/lib/ocr-statement'
+import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { persistRekkiOrderStatement } from '@/lib/rekki-statement'
 import { documentDateYmdFromOcr } from '@/lib/safe-date'
@@ -191,6 +192,7 @@ async function processStatementInBackground(
     total_rows: results.length,
     missing_rows: missingRows,
     extracted_pdf_dates: extractedPdfDates,
+    document_date: resolveStatementDocumentDate(extractedPdfDates),
   }).eq('id', statementId)
 }
 

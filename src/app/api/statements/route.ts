@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient, getRequestAuth } from '@/utils/supabase/server'
 import { runTripleCheck } from '@/lib/triple-check'
+import { statementOfficialDateIso } from '@/lib/statement-official-date'
 
 export async function GET(req: NextRequest) {
   const { user } = await getRequestAuth()
@@ -122,6 +123,7 @@ export async function GET(req: NextRequest) {
         'fornitore_id',
         'file_url',
         'document_date',
+        'extracted_pdf_dates',
         'periodo',
         'totale_outstanding',
         'created_at',
@@ -173,12 +175,44 @@ export async function GET(req: NextRequest) {
 
   // Deduplica per file_url: stesso documento fisico non deve apparire piu' volte
   const seen = new Set<string>()
-  const deduped = statements.filter((s: Record<string, unknown>) => {
+  const dedupedByFile = statements.filter((s: Record<string, unknown>) => {
     const key = (s.file_url as string) ?? (s.id as string)
     if (seen.has(key)) return false
     seen.add(key)
     return true
   })
+
+  // Stesso oggetto email + fornitore + periodo → tieni solo l'ultima ricezione (reinvii)
+  type StmtListRow = Record<string, unknown> & {
+    id: string
+    fornitore_id?: string | null
+    email_subject?: string | null
+    received_at?: string | null
+    document_date?: string | null
+    extracted_pdf_dates?: unknown
+  }
+  const subjectBest = new Map<string, StmtListRow>()
+  const noSubject: StmtListRow[] = []
+  for (const s of dedupedByFile as StmtListRow[]) {
+    const subject = (s.email_subject ?? '').trim().toLowerCase()
+    const period =
+      statementOfficialDateIso({
+        document_date: s.document_date as string | null | undefined,
+        extracted_pdf_dates: s.extracted_pdf_dates as { issued_date?: string | null } | null | undefined,
+      }) ?? ''
+    if (!subject) {
+      noSubject.push(s)
+      continue
+    }
+    const key = `${String(s.fornitore_id ?? '')}:${subject}:${period}`
+    const prev = subjectBest.get(key)
+    if (!prev || String(s.received_at ?? '') > String(prev.received_at ?? '')) {
+      subjectBest.set(key, s)
+    }
+  }
+  const deduped = [...subjectBest.values(), ...noSubject].sort(
+    (a, b) => String(b.received_at ?? '').localeCompare(String(a.received_at ?? '')),
+  )
 
   const hasMissing = deduped.some((s: { missing_rows?: number }) => (s.missing_rows ?? 0) > 0)
 

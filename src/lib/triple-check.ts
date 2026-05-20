@@ -7,7 +7,7 @@
  *
  * For each statement line ({ numero, importo }):
  *   1. Find matching fattura by numero_fattura (ilike)
- *   2. Find associated bolle (via bolla_id FK + date proximity)
+ *   2. Find associated bolle (via bolla_id FK + importo/data)
  *   3. Compare amounts (`TRIPLE_CHECK_TOLERANCE`); Rekki vs fattura usa `REKKI_VS_FATTURA_TOLERANCE`.
  *
  * Returns an array of CheckResult objects.
@@ -80,11 +80,117 @@ export const TRIPLE_CHECK_TOLERANCE = 0.05
  */
 export const REKKI_VS_FATTURA_TOLERANCE = 0.01
 
+/** Stati bolla considerati per il match (DDT registrato, anche se fattura non ancora chiusa). */
+export const TRIPLE_CHECK_BOLLA_STATI = ['completato', 'in attesa'] as const
+
+export type TripleCheckBollaRow = {
+  id: string
+  numero_bolla: string | null
+  importo: number | null
+  data: string
+  fornitore_id: string
+}
+
+type FatturaMatchInput = {
+  fornitore_id: string
+  data: string
+  importo: number | null
+  bolla_id: string | null
+}
+
 type FatturaRow = {
   id: string; numero_fattura: string | null; importo: number | null
   data: string; file_url: string | null; fornitore_id: string; bolla_id: string | null
   fornitori: { id: string; nome: string; email: string | null } |
              { id: string; nome: string; email: string | null }[] | null
+}
+
+export function amountsMatchForTripleCheck(a: number, b: number, tolerance = TRIPLE_CHECK_TOLERANCE): boolean {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false
+  return Math.abs(a - b) <= tolerance
+}
+
+function dateWindowIso(centerIso: string, daysBefore: number, daysAfter: number): { from: string; to: string } {
+  const center = new Date(`${centerIso.slice(0, 10)}T12:00:00Z`)
+  const from = new Date(center)
+  from.setUTCDate(from.getUTCDate() - daysBefore)
+  const to = new Date(center)
+  to.setUTCDate(to.getUTCDate() + daysAfter)
+  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) }
+}
+
+function daysFromCenter(centerIso: string, dateIso: string): number {
+  const center = new Date(`${centerIso.slice(0, 10)}T12:00:00Z`).getTime()
+  const other = new Date(`${dateIso.slice(0, 10)}T12:00:00Z`).getTime()
+  return Math.abs(Math.round((other - center) / 86_400_000))
+}
+
+/**
+ * Trova le bolle collegate a una fattura senza sommare tutte le DDT del periodo
+ * (evita falsi `bolle_mancanti` quando fattura SI* e bolla SDN* hanno numeri diversi).
+ */
+export function findMatchingBolleForFattura(
+  rawFattura: FatturaMatchInput,
+  bollePool: TripleCheckBollaRow[],
+  lineImporto: number,
+): TripleCheckBollaRow[] {
+  if (rawFattura.bolla_id) {
+    const linked = bollePool.find((b) => b.id === rawFattura.bolla_id)
+    if (linked) return [linked]
+  }
+
+  const targetAmount = lineImporto > 0 ? lineImporto : (rawFattura.importo ?? 0)
+  const sameSupplier = (b: TripleCheckBollaRow) => b.fornitore_id === rawFattura.fornitore_id
+
+  const matchByAmountInWindow = (daysBefore: number, daysAfter: number): TripleCheckBollaRow[] => {
+    const { from, to } = dateWindowIso(rawFattura.data, daysBefore, daysAfter)
+    const candidates = bollePool.filter(
+      (b) =>
+        sameSupplier(b) &&
+        b.data >= from &&
+        b.data <= to &&
+        b.importo != null &&
+        amountsMatchForTripleCheck(b.importo, targetAmount),
+    )
+    if (candidates.length === 0) return []
+    candidates.sort((a, b) => daysFromCenter(rawFattura.data, a.data) - daysFromCenter(rawFattura.data, b.data))
+    return [candidates[0]]
+  }
+
+  for (const [before, after] of [[7, 7], [14, 14], [45, 5]] as const) {
+    const matched = matchByAmountInWindow(before, after)
+    if (matched.length) return matched
+  }
+
+  const sameDay = bollePool.filter((b) => sameSupplier(b) && b.data === rawFattura.data)
+  if (sameDay.length === 1) return sameDay
+
+  return []
+}
+
+function resolveCheckStatus(
+  line: StatementLine,
+  rawFattura: FatturaRow,
+  bolle: TripleCheckBollaRow[],
+): { status: CheckStatus; delta: number } {
+  const dbImporto = rawFattura.importo ?? 0
+  const delta = parseFloat((line.importo - dbImporto).toFixed(2))
+  const importiCombaciano = amountsMatchForTripleCheck(line.importo, dbImporto)
+
+  let status: CheckStatus
+  if (!importiCombaciano) {
+    status = 'errore_importo'
+  } else if (bolle.length === 0) {
+    status = 'bolle_mancanti'
+  } else {
+    const bolleSum = bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
+    const bolleOk =
+      amountsMatchForTripleCheck(bolleSum, line.importo) &&
+      amountsMatchForTripleCheck(bolleSum, dbImporto)
+    status = bolleOk ? 'ok' : 'bolle_mancanti'
+  }
+
+  return { status, delta }
 }
 
 export async function runTripleCheck(
@@ -99,14 +205,6 @@ export async function runTripleCheck(
     return { results, summary: { ok: 0, fattura_mancante: 0, bolle_mancanti: 0, errore_importo: 0, rekki_prezzo_discordanza: 0 } }
   }
 
-  // ── Bulk prefetch: one query for fatture, one for bolle ──────────────
-  //
-  // Old behaviour: 2 DB round-trips × N lines (N+1 per-line pattern).
-  // New behaviour: 2 round-trips total, then in-memory matching.
-  //
-  // Scope: load all fatture/bolle for the given (sede, fornitore) pair.
-  // In-memory ilike match replaces per-line .ilike() query.
-
   const baseFattureQ = supabase
     .from('fatture')
     .select('id, numero_fattura, importo, data, file_url, fornitore_id, bolla_id, fornitori(id, nome, email)')
@@ -119,25 +217,20 @@ export async function runTripleCheck(
   const baseBolleQ = supabase
     .from('bolle')
     .select('id, numero_bolla, importo, data, fornitore_id')
-    .eq('stato', 'completato')
+    .in('stato', [...TRIPLE_CHECK_BOLLA_STATI])
   let bolleQ: typeof baseBolleQ = baseBolleQ
   if (sede_id)      bolleQ = bolleQ.eq('sede_id',      sede_id)
   if (fornitore_id) bolleQ = bolleQ.eq('fornitore_id', fornitore_id)
   const { data: allBolleRaw } = await bolleQ
-  type BollaPoolRow = { id: string; numero_bolla: string | null; importo: number | null; data: string; fornitore_id: string }
-  const bollePool = (allBolleRaw ?? []) as BollaPoolRow[]
+  const bollePool = (allBolleRaw ?? []) as TripleCheckBollaRow[]
 
   for (const line of lines) {
-    // ── STEP 1: Find matching invoice (in-memory, normalized exact match) ────
     const numNorm = normalizeNumeroFattura(line.numero)
     const rawFattura = fatturePool.find(
       (f) => f.numero_fattura != null && normalizeNumeroFattura(f.numero_fattura) === numNorm,
     )
 
     if (!rawFattura) {
-      // Nessuna fattura trovata: prova a matchare il numero come bolla/DDT.
-      // Gli estratti conto spesso elencano numeri DDT (non fatture).
-      // Se troviamo una bolla → "bolle_mancanti" (manca la fattura di collegamento).
       const bollaMatch = bollePool.find(
         (b) => b.numero_bolla != null && normalizeNumeroFattura(b.numero_bolla) === numNorm,
       )
@@ -163,41 +256,14 @@ export async function runTripleCheck(
       file_url: rawFattura.file_url, fornitore_id: rawFattura.fornitore_id,
     }
 
-    // ── STEP 2: Filter bolle in-memory (date window + fornitore) ────────
-    const fatturaDate = rawFattura.data
-    const dateFrom    = new Date(fatturaDate); dateFrom.setDate(dateFrom.getDate() - 45)
-    const dateTo      = new Date(fatturaDate); dateTo.setDate(dateTo.getDate() + 5)
-    const dfStr = dateFrom.toISOString().slice(0, 10)
-    const dtStr = dateTo.toISOString().slice(0, 10)
+    const bolle = findMatchingBolleForFattura(rawFattura, bollePool, line.importo)
+    let { status, delta } = resolveCheckStatus(line, rawFattura, bolle)
 
-    const bolle = bollePool.filter(
-      (b) => b.fornitore_id === rawFattura.fornitore_id && b.data >= dfStr && b.data <= dtStr,
-    )
-
-    // ── STEP 3: Amount checks ───────────────────────────────────────────
-    const dbImporto         = rawFattura.importo ?? 0
-    const bolleSum          = bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
-    const delta             = parseFloat((line.importo - dbImporto).toFixed(2))
-    const importiCombaciano = Math.abs(delta) <= TRIPLE_CHECK_TOLERANCE
-
-    let status: CheckStatus
-
-    if (bolle.length === 0 && !rawFattura.bolla_id) {
-      status = 'bolle_mancanti'
-    } else if (!importiCombaciano) {
-      status = 'errore_importo'
-    } else if (bolle.length > 0) {
-      const bollaeDeltaOk = Math.abs(bolleSum - line.importo) <= TRIPLE_CHECK_TOLERANCE
-      status = bollaeDeltaOk ? 'ok' : 'bolle_mancanti'
-    } else {
-      status = 'ok'
-    }
-
-    // Rekki: fattura e bolle coerenti tra loro, ma totale ordine app ≠ prezzo fatturato → ambra dedicata
     if (line.rekki && fattura && bolle.length > 0) {
       const prezzoFattura = rawFattura.importo ?? 0
       const prezzoRekki    = line.importo
-      const invoiceMatchesBolle = Math.abs(prezzoFattura - bolleSum) <= TRIPLE_CHECK_TOLERANCE
+      const bolleSum = bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
+      const invoiceMatchesBolle = amountsMatchForTripleCheck(prezzoFattura, bolleSum)
       const rekkiVsFattura      = Math.abs(prezzoRekki - prezzoFattura) > REKKI_VS_FATTURA_TOLERANCE
       if (invoiceMatchesBolle && rekkiVsFattura) {
         status = 'rekki_prezzo_discordanza'

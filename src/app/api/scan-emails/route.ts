@@ -19,6 +19,7 @@ import {
 } from '@/lib/ocr-invoice'
 import { MIN_EMAIL_BODY_CHARS_FOR_SCAN, emailHasScannableBody } from '@/lib/mail-scanner'
 import { extractedPdfDatesToJson, ocrStatement } from '@/lib/ocr-statement'
+import { resolveStatementDocumentDate } from '@/lib/statement-official-date'
 import { runTripleCheck } from '@/lib/triple-check'
 import { isLikelyRekkiEmail, parseRekkiFromEmailParts } from '@/lib/rekki-parser'
 import { resolveFornitoreFromScanEmail } from '@/lib/fornitore-resolve-scan-email'
@@ -2322,6 +2323,7 @@ async function processStatementInBackground(
     total_rows:          results.length,
     missing_rows:        missingRows,
     extracted_pdf_dates: extractedPdfDates,
+    document_date:       resolveStatementDocumentDate(extractedPdfDates),
   }).eq('id', statementId)
 
   mailDebugLog(`[STMT] OK Statement ${statementId} completato: ${results.length} righe, ${missingRows} anomalie`)
