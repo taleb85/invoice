@@ -73,6 +73,14 @@ function SectionCard({ title, badge, action, children, className }: {
   )
 }
 
+const AUTO_RISOLVI_PHASES = [
+  'Carico gli estratti conto…',
+  'Cerco fatture abbinate…',
+  'Verifico importi riga per riga…',
+  'Chiudo i falsi allarmi…',
+  'Aggiorno il conteggio anomalie…',
+] as const
+
 export default function CentroControlloClient({ sedeId }: Props) {
   const { showToast } = useToast()
   const { effectiveSedeId } = useManualDeliverySede()
@@ -139,6 +147,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [reprocessChecksResult, setReprocessChecksResult] = useState<string | null>(null)
   const [autoResolving, setAutoResolving] = useState(false)
   const [autoRisolviResult, setAutoRisolviResult] = useState<string | null>(null)
+  const [autoRisolviElapsed, setAutoRisolviElapsed] = useState(0)
+  const [autoRisolviPhase, setAutoRisolviPhase] = useState(0)
+  const autoRisolviTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRisolviRanRef = useRef(false)
 
   // ── Monitoraggio sistema ─────────────────────────────────────────────────
@@ -306,7 +317,16 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const handleAutoRisolvi = useCallback(async (silent = false) => {
     if (!sedeId) return
     setAutoResolving(true)
+    setAutoRisolviElapsed(0)
+    setAutoRisolviPhase(0)
     if (!silent) setAutoRisolviResult(null)
+    const startMs = Date.now()
+    if (autoRisolviTimerRef.current) clearInterval(autoRisolviTimerRef.current)
+    autoRisolviTimerRef.current = setInterval(() => {
+      const secs = Math.floor((Date.now() - startMs) / 1000)
+      setAutoRisolviElapsed(secs)
+      setAutoRisolviPhase((p) => (p + 1) % AUTO_RISOLVI_PHASES.length)
+    }, 3000)
     try {
       const res = await fetch('/api/centro-controllo/auto-risolvi-statement', {
         method: 'POST',
@@ -328,6 +348,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
         showToast(e instanceof Error ? e.message : 'Errore di rete', 'error')
       }
     } finally {
+      if (autoRisolviTimerRef.current) {
+        clearInterval(autoRisolviTimerRef.current)
+        autoRisolviTimerRef.current = null
+      }
       setAutoResolving(false)
     }
   }, [sedeId, caricaCoda, caricaStatement, showToast])
@@ -823,13 +847,31 @@ export default function CentroControlloClient({ sedeId }: Props) {
                           </div>
 
                           {/* Action 1: Auto-risolvi */}
-                          <div className="rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5 space-y-2">
+                          <div className={`rounded-lg border px-3 py-2.5 space-y-2 transition-colors ${autoResolving ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-app-line-20 bg-white/[0.025]'}`}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
                                 <p className="text-[11px] font-semibold text-app-fg">Chiudi anomalie risolvibili</p>
-                                <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
-                                  Cerca fatture già presenti in archivio e marca come <em>ok</em> le righe il cui importo corrisponde. Non modifica i dati, elimina solo i falsi allarmi.
-                                </p>
+                                {autoResolving ? (
+                                  <div className="mt-1.5 space-y-1.5">
+                                    <div className="flex items-center gap-2 text-[11px] text-emerald-300">
+                                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                      <span>{AUTO_RISOLVI_PHASES[autoRisolviPhase]}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-1 flex-1 overflow-hidden rounded-full bg-emerald-900/40">
+                                        <div
+                                          className="h-full rounded-full bg-emerald-400/70 transition-all duration-[3000ms] ease-linear"
+                                          style={{ width: `${Math.min(95, (autoRisolviElapsed / 60) * 100)}%` }}
+                                        />
+                                      </div>
+                                      <span className="shrink-0 font-mono text-[10px] tabular-nums text-emerald-400/70">{autoRisolviElapsed}s</span>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
+                                    Cerca fatture già presenti in archivio e marca come <em>ok</em> le righe il cui importo corrisponde. Non modifica i dati, elimina solo i falsi allarmi.
+                                  </p>
+                                )}
                               </div>
                               <button
                                 type="button"
@@ -841,7 +883,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                                 {autoResolving ? 'In corso…' : 'Esegui'}
                               </button>
                             </div>
-                            {autoRisolviResult && (
+                            {autoRisolviResult && !autoResolving && (
                               <p className="text-[11px] leading-relaxed text-emerald-300">{autoRisolviResult}</p>
                             )}
                           </div>
