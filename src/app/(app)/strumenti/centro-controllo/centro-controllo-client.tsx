@@ -147,13 +147,22 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [reprocessingChecks, setReprocessingChecks] = useState(false)
   const [reprocessChecksResult, setReprocessChecksResult] = useState<string | null>(null)
   const [autoResolving, setAutoResolving] = useState(false)
-  const [autoRisolviResult, setAutoRisolviResult] = useState<{ message: string; risolte: number } | null>(null)
   const [autoRisolviElapsed, setAutoRisolviElapsed] = useState(0)
-  const [autoRisolviPhase, setAutoRisolviPhase] = useState(0)
-  const [autoRisolviLiveCount, setAutoRisolviLiveCount] = useState<{ checked: number; remaining: number } | null>(null)
-  const autoRisolviInitialRef = useRef<number | null>(null)
+  const [autoRisolviOffset, setAutoRisolviOffset] = useState(0)
+  const [autoRisolviTotal, setAutoRisolviTotal] = useState<number | null>(null)
+  const [autoRisolviResults, setAutoRisolviResults] = useState<Array<{
+    fornitoreId: string | null
+    fornitoreNome: string | null
+    righeOk: number
+    righeAnomale: number
+  }>>([])
+  const [autoRisolviSummary, setAutoRisolviSummary] = useState<{
+    fastFixed: number
+    falseErrorsOk: number
+    remainingAnomalies: number
+    resolved: number
+  } | null>(null)
   const autoRisolviTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const autoRisolviPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRisolviRanRef = useRef(false)
 
   // ── AI cerca fatture mancanti ────────────────────────────────────────────
@@ -399,71 +408,70 @@ export default function CentroControlloClient({ sedeId }: Props) {
     }
   }
 
-  // ── Auto-risolvi statement (triple-check bulk) ───────────────────────────
+  // ── Auto-risolvi statement (triple-check per fornitore) ──────────────────
   const handleAutoRisolvi = useCallback(async (silent = false) => {
     if (!sedeId) return
     setAutoResolving(true)
     setAutoRisolviElapsed(0)
-    setAutoRisolviPhase(0)
-    setAutoRisolviLiveCount(null)
-    autoRisolviInitialRef.current = statementStats?.righe_anomale ?? statementStats?.con_anomalie ?? null
-    if (!silent) setAutoRisolviResult(null)
+    setAutoRisolviOffset(0)
+    setAutoRisolviTotal(null)
+    setAutoRisolviResults([])
+    setAutoRisolviSummary(null)
     const startMs = Date.now()
-
-    // Tick: update elapsed + phase every 3s
     if (autoRisolviTimerRef.current) clearInterval(autoRisolviTimerRef.current)
     autoRisolviTimerRef.current = setInterval(() => {
-      const secs = Math.floor((Date.now() - startMs) / 1000)
-      setAutoRisolviElapsed(secs)
-      setAutoRisolviPhase((p) => (p + 1) % AUTO_RISOLVI_PHASES.length)
-    }, 3000)
-
-    // Poll: fetch live anomaly count every 2s to show progress
-    if (autoRisolviPollRef.current) clearInterval(autoRisolviPollRef.current)
-    autoRisolviPollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/statements/recent?sede_id=${encodeURIComponent(sedeId)}`)
-        if (res.ok) {
-          const data = await res.json() as { righe_anomale?: number }
-          const remaining = data.righe_anomale ?? 0
-          const initial = autoRisolviInitialRef.current ?? remaining
-          setAutoRisolviLiveCount({ checked: initial - remaining, remaining })
-        }
-      } catch { /* silent */ }
-    }, 2000)
+      setAutoRisolviElapsed(Math.floor((Date.now() - startMs) / 1000))
+    }, 1000)
     try {
-      const res = await fetch('/api/centro-controllo/auto-risolvi-statement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sede_id: sedeId }),
-      })
-      const data = await res.json() as { error?: string; message?: string; risolte?: number }
-      if (res.ok) {
-        const risolte = data.risolte ?? 0
-        setAutoRisolviResult({ message: data.message ?? 'Completato', risolte })
-        if (!silent && risolte > 0) {
-          showToast(data.message ?? 'Auto-risoluzione completata', 'success')
+      let currentOffset = 0
+      for (;;) {
+        const res = await fetch('/api/centro-controllo/auto-risolvi-per-fornitore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sede_id: sedeId, offset: currentOffset, chunk_size: 4 }),
+        })
+        const data = await res.json() as {
+          done: boolean
+          offset: number
+          total: number
+          fastFixed?: number
+          results: Array<{ fornitoreId: string | null; fornitoreNome: string | null; righeOk: number; righeAnomale: number }>
+          falseErrorsOk?: number
+          initialAnomalies?: number
+          remainingAnomalies?: number
+          error?: string
         }
-        await Promise.all([caricaCoda(1), caricaStatement()])
-      } else if (!silent) {
-        showToast(data.error || 'Errore auto-risolvi', 'error')
+        if (!res.ok) {
+          if (!silent) showToast(data.error ?? `Errore ${res.status}`, 'error')
+          break
+        }
+        currentOffset = data.offset
+        setAutoRisolviOffset(currentOffset)
+        setAutoRisolviTotal(data.total)
+        setAutoRisolviResults((prev) => [...prev, ...data.results])
+        if (data.done) {
+          const resolved = Math.max(0, (data.initialAnomalies ?? 0) - (data.remainingAnomalies ?? 0))
+          setAutoRisolviSummary({
+            fastFixed: data.fastFixed ?? 0,
+            falseErrorsOk: data.falseErrorsOk ?? 0,
+            remainingAnomalies: data.remainingAnomalies ?? 0,
+            resolved,
+          })
+          if (!silent && resolved > 0) {
+            showToast(`✓ ${resolved} anomalie risolte`, 'success')
+          }
+          await Promise.all([caricaCoda(1), caricaStatement()])
+          break
+        }
+        await new Promise((r) => setTimeout(r, 500))
       }
     } catch (e) {
-      if (!silent) {
-        showToast(e instanceof Error ? e.message : 'Errore di rete', 'error')
-      }
+      if (!silent) showToast(e instanceof Error ? e.message : 'Errore di rete', 'error')
     } finally {
-      if (autoRisolviTimerRef.current) {
-        clearInterval(autoRisolviTimerRef.current)
-        autoRisolviTimerRef.current = null
-      }
-      if (autoRisolviPollRef.current) {
-        clearInterval(autoRisolviPollRef.current)
-        autoRisolviPollRef.current = null
-      }
+      if (autoRisolviTimerRef.current) { clearInterval(autoRisolviTimerRef.current); autoRisolviTimerRef.current = null }
       setAutoResolving(false)
     }
-  }, [sedeId, caricaCoda, caricaStatement, showToast, statementStats?.righe_anomale, statementStats?.con_anomalie])
+  }, [sedeId, caricaCoda, caricaStatement, showToast])
 
   // ── Reprocess triple-check su statement esistenti ─────────────────────
   const handleReprocessChecks = async () => {
@@ -955,7 +963,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             </span>
                           </div>
 
-                          {/* Action 1: Auto-risolvi */}
+                          {/* Action 1: Auto-risolvi per fornitore */}
                           <div className={`rounded-lg border px-3 py-2.5 space-y-2 transition-colors ${autoResolving ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-app-line-20 bg-white/[0.025]'}`}>
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
@@ -965,26 +973,35 @@ export default function CentroControlloClient({ sedeId }: Props) {
                                     <div className="flex items-center justify-between gap-3">
                                       <div className="flex items-center gap-2 text-[11px] text-emerald-300">
                                         <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                        <span>{AUTO_RISOLVI_PHASES[autoRisolviPhase]}</span>
-                                      </div>
-                                      {autoRisolviLiveCount && (
-                                        <span className="shrink-0 font-mono text-[11px] tabular-nums text-emerald-200">
-                                          <strong>{autoRisolviLiveCount.checked}</strong>
-                                          <span className="text-emerald-400/60"> risolte · </span>
-                                          <strong>{autoRisolviLiveCount.remaining}</strong>
-                                          <span className="text-emerald-400/60"> rimaste</span>
+                                        <span>
+                                          {autoRisolviTotal !== null
+                                            ? `Fornitore ${Math.min(autoRisolviOffset, autoRisolviTotal)} / ${autoRisolviTotal}…`
+                                            : 'Chiudo falsi allarmi con fattura già presente…'}
                                         </span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <div className="h-1 flex-1 overflow-hidden rounded-full bg-emerald-900/40">
-                                        <div
-                                          className="h-full rounded-full bg-emerald-400/70 transition-all duration-[3000ms] ease-linear"
-                                          style={{ width: `${Math.min(95, (autoRisolviElapsed / 60) * 100)}%` }}
-                                        />
                                       </div>
                                       <span className="shrink-0 font-mono text-[10px] tabular-nums text-emerald-400/70">{autoRisolviElapsed}s</span>
                                     </div>
+                                    {autoRisolviResults.length > 0 && (
+                                      <div className="max-h-24 overflow-y-auto space-y-0.5 rounded-md bg-black/20 px-2 py-1.5">
+                                        {autoRisolviResults.map((r, i) => (
+                                          <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                                            <GlyphCheck className="w-2.5 h-2.5 shrink-0 text-emerald-400" aria-hidden />
+                                            <span className="truncate text-app-fg-muted">{r.fornitoreNome ?? '—'}</span>
+                                            <span className="ml-auto shrink-0 tabular-nums text-emerald-400/80">
+                                              {r.righeOk > 0 ? `+${r.righeOk} ok` : 'nessuna novità'}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {autoRisolviTotal !== null && autoRisolviTotal > 0 && (
+                                      <div className="h-1 overflow-hidden rounded-full bg-emerald-900/40">
+                                        <div
+                                          className="h-full rounded-full bg-emerald-400/70 transition-all duration-700 ease-linear"
+                                          style={{ width: `${Math.round((autoRisolviOffset / autoRisolviTotal) * 100)}%` }}
+                                        />
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
@@ -1002,9 +1019,14 @@ export default function CentroControlloClient({ sedeId }: Props) {
                                 {autoResolving ? 'In corso…' : 'Esegui'}
                               </button>
                             </div>
-                            {autoRisolviResult && !autoResolving && (
-                              <p className={`text-[11px] leading-relaxed ${autoRisolviResult.risolte > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
-                                {autoRisolviResult.message}
+                            {autoRisolviSummary && !autoResolving && (
+                              <p className={`text-[11px] leading-relaxed ${autoRisolviSummary.resolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
+                                {autoRisolviSummary.resolved > 0
+                                  ? `✓ ${[
+                                      autoRisolviSummary.fastFixed > 0 ? `${autoRisolviSummary.fastFixed} falsi allarmi chiusi` : '',
+                                      autoRisolviSummary.falseErrorsOk > 0 ? `${autoRisolviSummary.falseErrorsOk} importi corretti` : '',
+                                    ].filter(Boolean).join(', ')}. Restano ${autoRisolviSummary.remainingAnomalies} anomalie.`
+                                  : `Nessuna anomalia risolvibile automaticamente. Restano ${autoRisolviSummary.remainingAnomalies} righe — fatture non ancora caricate o importi discordanti.`}
                               </p>
                             )}
                           </div>

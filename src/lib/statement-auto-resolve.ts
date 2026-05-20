@@ -134,6 +134,152 @@ export async function getFornitoriConFattureMancanti(
   }))
 }
 
+type FornitoreGroup = {
+  fornitoreId: string | null
+  fornitoreNome: string | null
+  statements: StatementRef[]
+}
+
+async function loadFornitoriWithActionableAnomalies(
+  supabase: SupabaseClient,
+  sedeId: string,
+): Promise<FornitoreGroup[]> {
+  const stmtsWithAnomalies = await loadStatementIdsWithAnomalies(supabase, sedeId, true)
+  if (!stmtsWithAnomalies.length) return []
+
+  const fornitoreIds = [...new Set(stmtsWithAnomalies.map((s) => s.fornitore_id).filter(Boolean) as string[])]
+  const fornitoreNomeMap = new Map<string, string>()
+  for (let i = 0; i < fornitoreIds.length; i += IN_CHUNK) {
+    const chunk = fornitoreIds.slice(i, i + IN_CHUNK)
+    const { data } = await supabase.from('fornitori').select('id, nome').in('id', chunk)
+    for (const f of data ?? []) fornitoreNomeMap.set(f.id, f.nome)
+  }
+
+  const groups = new Map<string, FornitoreGroup>()
+  for (const stmt of stmtsWithAnomalies) {
+    const key = stmt.fornitore_id ?? '__unknown__'
+    if (!groups.has(key)) {
+      groups.set(key, {
+        fornitoreId: stmt.fornitore_id,
+        fornitoreNome: stmt.fornitore_id ? (fornitoreNomeMap.get(stmt.fornitore_id) ?? null) : null,
+        statements: [],
+      })
+    }
+    groups.get(key)!.statements.push(stmt)
+  }
+
+  return [...groups.values()]
+}
+
+export type AutoRisolviFornitoreChunkResult = {
+  done: boolean
+  offset: number
+  total: number
+  /** Righe chiuse con fast-path (solo al primo chunk, offset=0). */
+  fastFixed?: number
+  results: {
+    fornitoreId: string | null
+    fornitoreNome: string | null
+    statementsProcessed: number
+    righeOk: number
+    righeAnomale: number
+  }[]
+  /** Solo sull'ultimo chunk (done=true). */
+  falseErrorsOk?: number
+  initialAnomalies?: number
+  remainingAnomalies?: number
+}
+
+/**
+ * Versione chunked di `autoRisolviStatementRows`: processa un gruppo di fornitori per volta.
+ *
+ * Flusso:
+ *   - offset=0: fast-path globale → processa i primi `chunkSize` fornitori
+ *   - offset>0: processa il prossimo blocco di fornitori
+ *   - done=true: recheck falsi-errori → sync conteggi → conteggio finale anomalie
+ *
+ * Il client chiama in loop finché `done === true`.
+ */
+export async function autoRisolviPerFornitoreChunk(
+  supabase: SupabaseClient,
+  sedeId: string,
+  offset: number,
+  chunkSize: number,
+): Promise<AutoRisolviFornitoreChunkResult> {
+  let fastFixed: number | undefined
+
+  if (offset === 0) {
+    fastFixed = await fastCloseResolvedRows(supabase, sedeId)
+  }
+
+  const allGroups = await loadFornitoriWithActionableAnomalies(supabase, sedeId)
+  const total = allGroups.length
+
+  if (total === 0) {
+    const falseErrors = offset === 0 ? await recheckFalseErrorsForSede(supabase, sedeId) : { fixed: 0, okCount: 0 }
+    await syncMissingRowsForSede(supabase, sedeId)
+    const remaining = await countAnomalousStatementRows(supabase, sedeId)
+    return {
+      done: true,
+      offset: 0,
+      total: 0,
+      fastFixed,
+      results: [],
+      falseErrorsOk: falseErrors.okCount,
+      initialAnomalies: fastFixed ?? 0,
+      remainingAnomalies: remaining,
+    }
+  }
+
+  const chunk = allGroups.slice(offset, offset + chunkSize)
+  const isLastChunk = offset + chunkSize >= total
+
+  const results: AutoRisolviFornitoreChunkResult['results'] = []
+  for (const group of chunk) {
+    let statementsProcessed = 0
+    let righeOk = 0
+    let righeAnomale = 0
+    for (const stmt of group.statements) {
+      const r = await reprocessStatement(supabase, stmt)
+      statementsProcessed++
+      righeOk += r.ok
+      righeAnomale += r.anomale
+    }
+    results.push({
+      fornitoreId: group.fornitoreId,
+      fornitoreNome: group.fornitoreNome,
+      statementsProcessed,
+      righeOk,
+      righeAnomale,
+    })
+  }
+
+  if (isLastChunk) {
+    const initialAnomalies = await countAnomalousStatementRows(supabase, sedeId)
+    const falseErrors = await recheckFalseErrorsForSede(supabase, sedeId)
+    await syncMissingRowsForSede(supabase, sedeId)
+    const remainingAnomalies = await countAnomalousStatementRows(supabase, sedeId)
+    return {
+      done: true,
+      offset: offset + chunk.length,
+      total,
+      fastFixed,
+      results,
+      falseErrorsOk: falseErrors.okCount,
+      initialAnomalies,
+      remainingAnomalies,
+    }
+  }
+
+  return {
+    done: false,
+    offset: offset + chunk.length,
+    total,
+    fastFixed,
+    results,
+  }
+}
+
 async function loadStatementsForSede(supabase: SupabaseClient, sedeId: string): Promise<StatementRef[]> {
   const { data } = await supabase
     .from('statements')
