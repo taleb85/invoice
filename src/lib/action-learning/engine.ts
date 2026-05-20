@@ -56,17 +56,22 @@ export async function suggerisciAzione(item: CodaItem): Promise<AiSuggestion | n
     match_tipo?: string
   }
 
-  if (!result.azione_id || !result.confidenza || result.confidenza < 0.6) {
+  if (!result.azione_id || result.confidenza == null) {
+    return null
+  }
+
+  const confidenzaNorm = result.confidenza > 1 ? result.confidenza / 100 : result.confidenza
+  if (confidenzaNorm < 0.6) {
     return null
   }
 
   const totaliConferme = result.totali_conferme || 0
-  const autoEsegui = result.confidenza >= 0.95 && totaliConferme >= 10
+  const autoEsegui = confidenzaNorm >= 0.95 && totaliConferme >= 10
 
   return {
     azione_id: result.azione_id as CommandId,
     label: labelDaAzioneId(result.azione_id),
-    confidenza: result.confidenza,
+    confidenza: confidenzaNorm,
     totali_conferme: totaliConferme,
     match_tipo: (result.match_tipo as 'esatto' | 'generico') || 'generico',
     autoEsegui,

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (origine) query = query.eq('origine', origine)
     if (prioritaMax) query = query.lte('priorita', parseInt(prioritaMax))
 
-    const { data: items, error } = await query.limit(100)
+    const { data: items, error } = await query.limit(500)
 
     if (error) {
       console.error('[CentroControllo] Errore query v_coda_unificata:', error.message)

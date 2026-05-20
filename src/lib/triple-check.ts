@@ -181,7 +181,8 @@ function resolveCheckStatus(
   if (!importiCombaciano) {
     status = 'errore_importo'
   } else if (bolle.length === 0) {
-    status = 'bolle_mancanti'
+    // Fattura trovata e importo allineato: verifica sufficiente senza bolla collegata.
+    status = 'ok'
   } else {
     const bolleSum = bolle.reduce((s, b) => s + (b.importo ?? 0), 0)
     const bolleOk =

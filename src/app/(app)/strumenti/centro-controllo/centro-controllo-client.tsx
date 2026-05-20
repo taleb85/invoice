@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '@/lib/toast-context'
 import {
   AlertCircle,
@@ -125,6 +125,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
   // ── Reprocess triple-check ────────────────────────────────────────────────
   const [reprocessingChecks, setReprocessingChecks] = useState(false)
   const [reprocessChecksResult, setReprocessChecksResult] = useState<string | null>(null)
+  const [autoResolving, setAutoResolving] = useState(false)
+  const [autoRisolviResult, setAutoRisolviResult] = useState<string | null>(null)
+  const autoRisolviRanRef = useRef(false)
 
   // ── Monitoraggio sistema ─────────────────────────────────────────────────
   const [sysMonitor, setSysMonitor] = useState<{
@@ -166,13 +169,34 @@ export default function CentroControlloClient({ sedeId }: Props) {
       setItems(data.items || [])
 
       const suggMap = new Map<string, AiSuggestion>()
-      for (const item of (data.items || []) as CodaItem[]) {
+      const queueItems = (data.items || []) as CodaItem[]
+      for (const item of queueItems) {
         const sugg = await suggerisciAzione(item)
         if (!sugg) continue
-
         suggMap.set(item.id, sugg)
       }
       setSuggerimenti(suggMap)
+
+      let autoResolved = 0
+      for (const item of queueItems) {
+        const sugg = suggMap.get(item.id)
+        if (!sugg?.autoEsegui || sugg.azione_id !== 'statement.segna_come_ok') continue
+        const cmd = getComando(sugg.azione_id)
+        if (!cmd) continue
+        const result = await cmd.esegui({ item, sedeId })
+        if (result.success) {
+          await registraConfermaApprendimento(item, sugg.azione_id, true)
+          autoResolved++
+        }
+      }
+      if (autoResolved > 0) {
+        showToast(`AI: ${autoResolved} righe estratto conto verificate automaticamente`, 'success')
+        const reloadRes = await fetch(`/api/centro-controllo/coda?${params}`)
+        if (reloadRes.ok) {
+          const reloadData = await reloadRes.json()
+          setItems(reloadData.items || [])
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Errore caricamento coda')
     } finally {
@@ -231,6 +255,36 @@ export default function CentroControlloClient({ sedeId }: Props) {
       setProcessingStatements(false)
     }
   }
+
+  // ── Auto-risolvi statement (triple-check bulk) ───────────────────────────
+  const handleAutoRisolvi = useCallback(async (silent = false) => {
+    if (!sedeId) return
+    setAutoResolving(true)
+    if (!silent) setAutoRisolviResult(null)
+    try {
+      const res = await fetch('/api/centro-controllo/auto-risolvi-statement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sede_id: sedeId }),
+      })
+      const data = await res.json() as { error?: string; message?: string; risolte?: number }
+      if (res.ok) {
+        setAutoRisolviResult(data.message ?? 'Completato')
+        if (!silent && (data.risolte ?? 0) > 0) {
+          showToast(data.message ?? 'Auto-risoluzione completata', 'success')
+        }
+        await Promise.all([caricaCoda(), caricaStatement()])
+      } else if (!silent) {
+        showToast(data.error || 'Errore auto-risolvi', 'error')
+      }
+    } catch (e) {
+      if (!silent) {
+        showToast(e instanceof Error ? e.message : 'Errore di rete', 'error')
+      }
+    } finally {
+      setAutoResolving(false)
+    }
+  }, [sedeId, caricaCoda, caricaStatement, showToast])
 
   // ── Reprocess triple-check su statement esistenti ─────────────────────
   const handleReprocessChecks = async () => {
@@ -353,10 +407,16 @@ export default function CentroControlloClient({ sedeId }: Props) {
 
   // ── Init ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    caricaCoda()
     caricaStatement()
     caricaMonitoraggio()
-  }, [caricaCoda, caricaStatement, caricaMonitoraggio])
+    if (!sedeId) {
+      caricaCoda()
+      return
+    }
+    if (autoRisolviRanRef.current) return
+    autoRisolviRanRef.current = true
+    void handleAutoRisolvi(true)
+  }, [sedeId, caricaCoda, caricaStatement, caricaMonitoraggio, handleAutoRisolvi])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -667,22 +727,40 @@ export default function CentroControlloClient({ sedeId }: Props) {
                         Nessuno statement in sospeso
                       </div>
                       {statementStats.con_anomalie > 0 && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handleReprocessChecks}
-                            disabled={reprocessingChecks}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
-                          >
-                            {reprocessingChecks ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <RefreshCw className="w-3 h-3" />
-                            )}
-                            {reprocessingChecks ? 'Riprocesso…' : `Riprocessa triple-check (${statementStats.con_anomalie} anomalie)`}
-                          </button>
-                          {reprocessChecksResult && (
-                            <span className="text-[11px] text-emerald-300">{reprocessChecksResult}</span>
+                        <div className="space-y-2">
+                          <p className="text-[11px] leading-relaxed text-app-fg-muted">
+                            Il triple-check automatico risolve importi allineati e fatture trovate. Restano in coda solo anomalie reali (importi discordanti o fatture mancanti).
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleAutoRisolvi(false)}
+                              disabled={autoResolving || !sedeId}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/18 disabled:opacity-50"
+                            >
+                              {autoResolving ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Zap className="w-3 h-3" />
+                              )}
+                              {autoResolving ? 'Auto-risoluzione…' : `Auto-risolvi (${statementStats.con_anomalie} anomalie)`}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleReprocessChecks}
+                              disabled={reprocessingChecks}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-[11px] font-semibold text-amber-200 transition-colors hover:bg-amber-500/18 disabled:opacity-50"
+                            >
+                              {reprocessingChecks ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-3 h-3" />
+                              )}
+                              {reprocessingChecks ? 'Riprocesso…' : 'Riprocessa triple-check'}
+                            </button>
+                          </div>
+                          {(autoRisolviResult || reprocessChecksResult) && (
+                            <span className="block text-[11px] text-emerald-300">{autoRisolviResult || reprocessChecksResult}</span>
                           )}
                         </div>
                       )}
