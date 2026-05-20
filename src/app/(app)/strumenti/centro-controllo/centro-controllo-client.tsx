@@ -149,7 +149,10 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [autoRisolviResult, setAutoRisolviResult] = useState<string | null>(null)
   const [autoRisolviElapsed, setAutoRisolviElapsed] = useState(0)
   const [autoRisolviPhase, setAutoRisolviPhase] = useState(0)
+  const [autoRisolviLiveCount, setAutoRisolviLiveCount] = useState<{ checked: number; remaining: number } | null>(null)
+  const autoRisolviInitialRef = useRef<number | null>(null)
   const autoRisolviTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const autoRisolviPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRisolviRanRef = useRef(false)
 
   // ── Monitoraggio sistema ─────────────────────────────────────────────────
@@ -319,14 +322,32 @@ export default function CentroControlloClient({ sedeId }: Props) {
     setAutoResolving(true)
     setAutoRisolviElapsed(0)
     setAutoRisolviPhase(0)
+    setAutoRisolviLiveCount(null)
+    autoRisolviInitialRef.current = statementStats?.righe_anomale ?? statementStats?.con_anomalie ?? null
     if (!silent) setAutoRisolviResult(null)
     const startMs = Date.now()
+
+    // Tick: update elapsed + phase every 3s
     if (autoRisolviTimerRef.current) clearInterval(autoRisolviTimerRef.current)
     autoRisolviTimerRef.current = setInterval(() => {
       const secs = Math.floor((Date.now() - startMs) / 1000)
       setAutoRisolviElapsed(secs)
       setAutoRisolviPhase((p) => (p + 1) % AUTO_RISOLVI_PHASES.length)
     }, 3000)
+
+    // Poll: fetch live anomaly count every 2s to show progress
+    if (autoRisolviPollRef.current) clearInterval(autoRisolviPollRef.current)
+    autoRisolviPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/statements/recent?sede_id=${encodeURIComponent(sedeId)}`)
+        if (res.ok) {
+          const data = await res.json() as { righe_anomale?: number }
+          const remaining = data.righe_anomale ?? 0
+          const initial = autoRisolviInitialRef.current ?? remaining
+          setAutoRisolviLiveCount({ checked: initial - remaining, remaining })
+        }
+      } catch { /* silent */ }
+    }, 2000)
     try {
       const res = await fetch('/api/centro-controllo/auto-risolvi-statement', {
         method: 'POST',
@@ -352,9 +373,13 @@ export default function CentroControlloClient({ sedeId }: Props) {
         clearInterval(autoRisolviTimerRef.current)
         autoRisolviTimerRef.current = null
       }
+      if (autoRisolviPollRef.current) {
+        clearInterval(autoRisolviPollRef.current)
+        autoRisolviPollRef.current = null
+      }
       setAutoResolving(false)
     }
-  }, [sedeId, caricaCoda, caricaStatement, showToast])
+  }, [sedeId, caricaCoda, caricaStatement, showToast, statementStats?.righe_anomale, statementStats?.con_anomalie])
 
   // ── Reprocess triple-check su statement esistenti ─────────────────────
   const handleReprocessChecks = async () => {
@@ -853,9 +878,19 @@ export default function CentroControlloClient({ sedeId }: Props) {
                                 <p className="text-[11px] font-semibold text-app-fg">Chiudi anomalie risolvibili</p>
                                 {autoResolving ? (
                                   <div className="mt-1.5 space-y-1.5">
-                                    <div className="flex items-center gap-2 text-[11px] text-emerald-300">
-                                      <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                      <span>{AUTO_RISOLVI_PHASES[autoRisolviPhase]}</span>
+                                    <div className="flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-2 text-[11px] text-emerald-300">
+                                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                        <span>{AUTO_RISOLVI_PHASES[autoRisolviPhase]}</span>
+                                      </div>
+                                      {autoRisolviLiveCount && (
+                                        <span className="shrink-0 font-mono text-[11px] tabular-nums text-emerald-200">
+                                          <strong>{autoRisolviLiveCount.checked}</strong>
+                                          <span className="text-emerald-400/60"> risolte · </span>
+                                          <strong>{autoRisolviLiveCount.remaining}</strong>
+                                          <span className="text-emerald-400/60"> rimaste</span>
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <div className="h-1 flex-1 overflow-hidden rounded-full bg-emerald-900/40">
