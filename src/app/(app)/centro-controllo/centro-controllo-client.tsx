@@ -261,14 +261,25 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const caricaMonitoraggio = useCallback(async () => {
     setSysMonitorLoading(true)
     try {
-      const res = await fetch('/api/centro-operazioni/dashboard', { cache: 'no-store' })
+      const params = new URLSearchParams()
+      if (sedeId) params.set('sede_id', sedeId)
+      const res = await fetch(`/api/centro-operazioni/dashboard?${params}`, { cache: 'no-store' })
       if (res.ok) {
         const j = await res.json()
         setSysMonitor(j)
+      } else {
+        const j = await res.json().catch(() => ({}))
+        setSysMonitor(null)
+        if (res.status !== 403) {
+          showToast((j as { error?: string }).error || `Errore monitoraggio (${res.status})`, 'error')
+        }
       }
-    } catch { /* non-critical */ }
-    finally { setSysMonitorLoading(false) }
-  }, [])
+    } catch {
+      setSysMonitor(null)
+    } finally {
+      setSysMonitorLoading(false)
+    }
+  }, [sedeId, showToast])
 
   const handleForceCleanup = async () => {
     setForceCleanupLoading(true)
@@ -276,12 +287,12 @@ export default function CentroControlloClient({ sedeId }: Props) {
       const res = await fetch('/api/centro-operazioni/force-cleanup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify(sedeId ? { sede_id: sedeId } : {}),
       })
       const j = await res.json()
       if (res.ok) {
         showToast(`Cleanup: ${j.processed ?? 0} processati, ${j.scanned ?? 0} esaminati`, 'success')
-        await caricaMonitoraggio()
+        await Promise.all([caricaMonitoraggio(), caricaCoda()])
       } else {
         showToast(j.error || 'Errore cleanup', 'error')
       }

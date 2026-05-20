@@ -27,13 +27,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const filtered = (items ?? []).filter((i) => i.origine !== 'riga_statement')
+    const filtered = items ?? []
 
     const conteggi = {
       documenti_da_processare: filtered.filter((i) => i.origine === 'documento_da_processare').length || 0,
       fatture_pending: filtered.filter((i) => i.origine === 'fattura').length || 0,
       errori_sincronizzazione: filtered.filter((i) => i.origine === 'errore_sincronizzazione').length || 0,
       bolle_aperte: filtered.filter((i) => i.origine === 'bolla_aperta').length || 0,
+      righe_statement: filtered.filter((i) => i.origine === 'riga_statement').length || 0,
       totale: filtered.length || 0,
     }
 

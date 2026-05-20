@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createServiceClient, getProfile } from '@/utils/supabase/server'
-import { isSedePrivilegedRole } from '@/lib/roles'
+import { isMasterAdminRole, isSedePrivilegedRole } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,17 +13,22 @@ function startOfUtcDay(d: Date): string {
   return x.toISOString()
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const profile = await getProfile()
   if (!isSedePrivilegedRole(profile?.role)) {
     return NextResponse.json({ error: 'Accesso negato' }, { status: 403 })
   }
+
+  const querySede = new URL(request.url).searchParams.get('sede_id')?.trim() || null
 
   let scopeSedeId: string | null = profile?.sede_id ?? null
   if (!scopeSedeId) {
     const cookieStore = await cookies()
     const adminPick = cookieStore.get('admin-sede-id')?.value?.trim() || null
     if (adminPick) scopeSedeId = adminPick
+  }
+  if (querySede && (isMasterAdminRole(profile?.role) || querySede === profile?.sede_id)) {
+    scopeSedeId = querySede
   }
 
   const service = createServiceClient()
