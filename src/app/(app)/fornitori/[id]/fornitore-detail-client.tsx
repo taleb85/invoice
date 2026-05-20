@@ -5605,7 +5605,7 @@ function FornitoreDetailClient({
       </div>
 
       {/* ══ DESKTOP layout (md+) ═════════════════════════════════════ */}
-      <div className="hidden min-w-0 text-app-fg md:mx-4 md:mb-4 md:mt-2 md:block lg:mx-6 xl:mx-10">
+      <div className="hidden min-w-0 text-app-fg md:mx-0 md:mb-4 md:mt-2 md:block lg:mx-1 xl:mx-2">
         {/*
           Un solo `fornitore-desktop-main-x`: stesso canale orizzontale per header+tab e corpo (KPI / tabella / tab).
           Nessun `max-w-*` interno: su schermi larghi usa tutta la colonna main (oltre al padding della classe).
@@ -6029,7 +6029,7 @@ function FornitoreDetailClient({
               </>
             ) : null}
             <div
-              className={`min-w-0 scroll-mt-6 p-2.5 outline-none sm:p-3 md:p-3.5 md:scroll-mt-8 ${displayTab === 'dashboard' ? 'mt-6 lg:mt-8' : ''}`}
+              className={`min-w-0 scroll-mt-6 px-1 py-2.5 outline-none sm:px-1.5 sm:py-3 md:px-2 md:py-3.5 md:scroll-mt-8 ${displayTab === 'dashboard' ? 'mt-6 lg:mt-8' : ''}`}
               tabIndex={-1}
               data-supplier-tab-region
             >

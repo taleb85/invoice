@@ -432,9 +432,9 @@
     @apply px-4 md:px-6 lg:px-8 xl:px-10;
   }
 
-  /** Scheda fornitore desktop: meno margine laterale → più larghezza utile per KPI / tabella / tab. */
+  /** Scheda fornitore desktop: margini laterali minimi → massima larghezza utile per KPI / tabella / tab. */
   .fornitore-desktop-main-x {
-    @apply px-2 sm:px-3 md:px-4 lg:px-5 xl:px-6;
+    @apply px-1.5 sm:px-2 md:px-2 lg:px-2.5 xl:px-3;
   }
 
   /**
