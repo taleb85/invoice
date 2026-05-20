@@ -22,10 +22,14 @@ export type CommandId =
   | 'statement.assegna_fattura'
   | 'statement.ricalcola'
   | 'statement.associa_fornitore'
+  | 'bolla.rianalizza_ocr'
+  | 'bolla.converti_in_fattura'
+  | 'bolla.cambia_fornitore'
+  | 'bolla.elimina'
 
 export type CommandGroup = 'documento' | 'fattura' | 'statement' | 'generale'
 
-export type DocumentOrigine = 'documento_da_processare' | 'riga_statement' | 'fattura' | 'errore_sincronizzazione' | 'bolla_aperta'
+export type DocumentOrigine = 'documento_da_processare' | 'riga_statement' | 'fattura' | 'errore_sincronizzazione' | 'bolla_aperta' | 'bolla'
 
 export type PendingKind =
   | 'da_determinare'

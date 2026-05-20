@@ -90,6 +90,7 @@ const FornitoreConfermeOrdineTab = dynamic(
   { ssr: false, loading: () => <div className="h-64 animate-pulse rounded-xl bg-app-line-10/40" /> },
 )
 import DeleteButton from '@/components/DeleteButton'
+import DocumentActionsButton from '@/components/DocumentActionsButton'
 import {
   SUPPLIER_DETAIL_TAB_ACTIVE_UNDERLINE,
   SUPPLIER_DETAIL_TAB_HIGHLIGHT,
@@ -1771,6 +1772,7 @@ function numeroRefFromDocMetadata(metadata: unknown): string | null {
 /* ─── Bolle tab ──────────────────────────────────────────────────── */
 function BolleTab({
   fornitoreId,
+  fornitoreNome,
   dateFrom,
   dateToExclusive,
   pathname,
@@ -1780,6 +1782,7 @@ function BolleTab({
   currency,
 }: {
   fornitoreId: string
+  fornitoreNome: string
   dateFrom: string
   dateToExclusive: string
   pathname: string
@@ -1804,6 +1807,13 @@ function BolleTab({
   /** 1…3: passi mostrati durante Rianalizza (OCR) — allineati al lavoro lato server */
   const [ocrProgressStep, setOcrProgressStep] = useState(0)
   const ocrStepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Refresh bolle list when AppShell fires a bolla-mutated event (from DocumentActionsModal)
+  useEffect(() => {
+    const handler = () => setOcrEpoch((e) => e + 1)
+    window.addEventListener('bolla-mutated', handler)
+    return () => window.removeEventListener('bolla-mutated', handler)
+  }, [])
   const [reassignBollaId, setReassignBollaId] = useState<string | null>(null)
   const [fornitoriList, setFornitoriList] = useState<{ id: string; nome: string }[]>([])
   const [reassignBusyId, setReassignBusyId] = useState<string | null>(null)
@@ -2313,73 +2323,6 @@ function BolleTab({
                 </td>
                 <td className="px-3 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5 whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                    {canRianalizzaOcr && b.file_url ? (
-                      <button
-                        type="button"
-                        onClick={() => void runBollaOcr(b.id)}
-                        disabled={ocrBusyId === b.id || convertBusyId === b.id}
-                        title={
-                          ocrBusyId === b.id
-                            ? `${t.bolle.ocrRerunProgressTitle} (${ocrProgressStep}/3)`
-                            : t.bolle.riannalizzaOcr
-                        }
-                        className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-lg border border-amber-500/35 bg-amber-500/8 px-2.5 text-[11px] font-semibold text-amber-200/95 transition-colors hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
-                        aria-label={
-                          ocrBusyId === b.id && ocrProgressStep >= 1 && ocrProgressStep <= 3
-                            ? `${t.bolle.ocrRerunProgressTitle} — ${[t.bolle.ocrRerunStep1, t.bolle.ocrRerunStep2, t.bolle.ocrRerunStep3][ocrProgressStep - 1]}`
-                            : t.bolle.riannalizzaOcr
-                        }
-                      >
-                        {ocrBusyId === b.id ? (
-                          <>
-                            <span className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-amber-300 border-t-transparent" />
-                            <span className="font-mono text-[10px] font-bold tabular-nums">{ocrProgressStep}/3</span>
-                          </>
-                        ) : (
-                          <svg className={`h-3.5 w-3.5 ${icon.emailSync}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        )}
-                        {ocrBusyId === b.id ? null : <span>{t.bolle.riannalizzaOcr}</span>}
-                      </button>
-                    ) : null}
-                    {!readOnly && canRianalizzaOcr && b.file_url ? (
-                      <button
-                        type="button"
-                        onClick={() => void runConvertBollaToFattura(b.id)}
-                        disabled={ocrBusyId === b.id || convertBusyId === b.id}
-                        title={t.bolle.convertiInFatturaTitle}
-                        className="inline-flex h-7 max-w-[8rem] shrink-0 items-center justify-center gap-1 rounded-lg border border-emerald-500/35 bg-emerald-500/8 px-2.5 text-[11px] font-semibold text-emerald-200/95 transition-colors hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {convertBusyId === b.id ? (
-                          <span className="h-3 w-3 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
-                        ) : (
-                          <svg className={`h-3.5 w-3.5 shrink-0 ${icon.fatture}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        )}
-                        <span className="min-w-0 truncate">{t.bolle.convertiInFattura}</span>
-                      </button>
-                    ) : null}
-                    {!readOnly && canRianalizzaOcr ? (
-                      <div className="relative inline-flex">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            openSupplierPicker(e, b.id, b.sede_id)
-                          }}
-                          disabled={reassignBusyId === b.id}
-                          title="Cambia fornitore assegnato a questa bolla"
-                          className="inline-flex h-7 shrink-0 items-center justify-center gap-1 rounded-lg border border-indigo-500/35 bg-indigo-500/8 px-2.5 text-[11px] font-semibold text-indigo-200/95 transition-colors hover:bg-indigo-500/15 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          <span className="min-w-0 truncate">Cambia fornitore</span>
-                        </button>
-                      </div>
-                    ) : null}
                     {b.file_url && (
                       <OpenDocumentInAppButton
                         bollaId={b.id}
@@ -2393,14 +2336,19 @@ function BolleTab({
                       </OpenDocumentInAppButton>
                     )}
                     {!readOnly ? (
-                    <DeleteButton
-                      id={b.id}
-                      table="bolle"
-                      confirmMessage={t.bolle.deleteConfirm}
-                      className={FORNITORE_TABLE_DELETE_PILL}
-                      iconClassName="h-3.5 w-3.5"
-                      iconOnly
-                    />
+                      <DocumentActionsButton
+                        item={{
+                          id: b.id,
+                          origine: 'bolla',
+                          fornitore_id: fornitoreId,
+                          fornitore_nome: fornitoreNome,
+                          sede_id: b.sede_id ?? null,
+                          numero_documento: b.numero_bolla ?? null,
+                          file_url: b.file_url ?? null,
+                          data_doc: b.data ?? null,
+                        }}
+                        className="h-7 w-7"
+                      />
                     ) : null}
                   </div>
                 </td>
@@ -5383,6 +5331,7 @@ function FornitoreDetailClient({
         ((variant === 'desktop' && mdUp) || (variant === 'mobile' && !mdUp) ? (
           <BolleTab
             fornitoreId={fornitore.id}
+            fornitoreNome={fornitore.nome ?? ''}
             dateFrom={ledgerPeriod.from}
             dateToExclusive={ledgerDateToExclusive}
             pathname={pathname}

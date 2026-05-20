@@ -308,6 +308,55 @@ function AppShellDocumentActions({ children }: { children: React.ReactNode }) {
       }
       return
     }
+    // Bolla: cambia fornitore richiede picker UI nel pannello bolla
+    if (actionId === 'bolla.cambia_fornitore') {
+      showToast('Apri il pannello della bolla per cambiare il fornitore assegnato', 'info')
+      return
+    }
+
+    // Bolla: azioni che chiamano API dirette + notificano il tab di ricaricare
+    if (actionId === 'bolla.rianalizza_ocr') {
+      const res = await fetch('/api/admin/fix-ocr-dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bolla_id: item.id, limit: 1, allow_tipo_migrate: true }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast((data as { error?: string }).error || `Errore ${res.status}`, 'error')
+        return
+      }
+      showToast('OCR completato', 'success')
+      window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
+      return
+    }
+    if (actionId === 'bolla.converti_in_fattura') {
+      const res = await fetch('/api/bolle/convert-to-fattura', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bolla_id: item.id }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        showToast((data as { error?: string }).error || `Errore ${res.status}`, 'error')
+        return
+      }
+      showToast('Bolla convertita in fattura', 'success')
+      window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
+      return
+    }
+    if (actionId === 'bolla.elimina') {
+      const supabase = (await import('@/utils/supabase/client')).createClient()
+      const { error: delErr } = await supabase.from('bolle').delete().eq('id', item.id)
+      if (delErr) {
+        showToast(delErr.message, 'error')
+        return
+      }
+      showToast('Bolla eliminata', 'success')
+      window.dispatchEvent(new CustomEvent('bolla-mutated', { detail: { id: item.id } }))
+      return
+    }
+
     const api = apiCalls[actionId]
     if (!api) {
       showToast(`Azione "${actionId}" non disponibile`, 'info')

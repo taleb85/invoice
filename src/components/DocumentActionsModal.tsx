@@ -76,6 +76,11 @@ const ALL_ACTIONS: DocumentAction[] = [
   { id: 'statement.assegna_fattura', label: 'Assegna fattura a riga', descrizione: 'Collega una fattura esistente', icona: <FileText className="h-4 w-4" />, gruppo: 'stato', origini: ['riga_statement'] },
   // ── Documento ──
   { id: 'documento.apri', label: 'Apri documento', descrizione: 'Visualizza il file originale', icona: <ExternalLink className="h-4 w-4" />, gruppo: 'documento' },
+  // ── Bolla ──
+  { id: 'bolla.rianalizza_ocr', label: 'Rianalizza con OCR', descrizione: 'Ri-estrai dati con Gemini e aggiorna il documento', icona: <RotateCw className="h-4 w-4" />, gruppo: 'stato', origini: ['bolla'] },
+  { id: 'bolla.converti_in_fattura', label: 'Converti in fattura', descrizione: 'Trasforma questa bolla in una fattura registrata', icona: <Save className="h-4 w-4" />, gruppo: 'tipo', origini: ['bolla'] },
+  { id: 'bolla.cambia_fornitore', label: 'Cambia fornitore', descrizione: 'Riassegna a un fornitore diverso', icona: <UserCheck className="h-4 w-4" />, gruppo: 'fornitore', origini: ['bolla'] },
+  { id: 'bolla.elimina', label: 'Elimina bolla', descrizione: 'Rimuove definitivamente il documento', icona: <Archive className="h-4 w-4" />, gruppo: 'pericolose', pericolosa: true, origini: ['bolla'] },
 ]
 
 type DocumentActionsModalProps = {
