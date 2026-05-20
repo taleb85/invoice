@@ -12,6 +12,7 @@ import { APP_SECTION_MOBILE_LIST, APP_SECTION_TABLE_TBODY, APP_SECTION_TABLE_TR 
 import { openDocumentUrl } from '@/lib/open-document-url'
 import { documentiPublicRefUrl } from '@/lib/documenti-storage-url'
 import { iconAccentClass as icon } from '@/lib/icon-accent-classes'
+import { useToast } from '@/lib/toast-context'
 
 export type ConfermaOrdineRow = {
   id: string
@@ -59,6 +60,7 @@ export default function FornitoreConfermeOrdineTab({
 }) {
   const t = useT()
   const { locale, timezone } = useLocale()
+  const { showToast } = useToast()
   const fileRef = useRef<HTMLInputElement>(null)
   const [rows, setRows] = useState<ConfermaOrdineRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,6 +72,8 @@ export default function FornitoreConfermeOrdineTab({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [convertingId, setConvertingId] = useState<string | null>(null)
+  const [convertingAll, setConvertingAll] = useState(false)
 
   const confermeTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.conferme
   const migrationTheme = SUPPLIER_DETAIL_TAB_HIGHLIGHT.documenti
@@ -211,6 +215,47 @@ export default function FornitoreConfermeOrdineTab({
     await load()
   }
 
+  const callConvertApi = async (ids: string[], updateHint: boolean) => {
+    const res = await fetch(`/api/fornitori/${fornitoreId}/converti-ordini-in-bolle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ids, sede_id: sedeId, update_hint: updateHint }),
+    })
+    const json = await res.json() as { converted?: number; error?: string }
+    if (!res.ok || json.error) throw new Error(json.error ?? 'Errore conversione')
+    return json.converted ?? 0
+  }
+
+  const handleConvertOne = async (row: ConfermaOrdineRow) => {
+    setConvertingId(row.id)
+    setError(null)
+    try {
+      await callConvertApi([row.id], false)
+      showToast('Documento convertito in bolla', 'success')
+      await load()
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setConvertingId(null)
+    }
+  }
+
+  const handleConvertAll = async () => {
+    if (rows.length === 0) return
+    setConvertingAll(true)
+    setError(null)
+    try {
+      const n = await callConvertApi([], true)
+      showToast(`${n} document${n === 1 ? 'o convertito' : 'i convertiti'} in bolle. Il sistema ha imparato: i prossimi documenti di questo fornitore andranno in Bolle.`, 'success')
+      await load()
+    } catch (err) {
+      setError(String(err))
+    } finally {
+      setConvertingAll(false)
+    }
+  }
+
   if (tableMissing) {
     return (
       <div className={`supplier-detail-tab-shell mt-4 overflow-hidden ${migrationTheme.border}`}>
@@ -227,8 +272,29 @@ export default function FornitoreConfermeOrdineTab({
     <div className={`supplier-detail-tab-shell mt-4 flex flex-col overflow-hidden ${confermeTheme.border}`}>
       <div className={`app-card-bar-accent ${confermeTheme.bar}`} aria-hidden />
       <div className="min-w-0 flex-1">
-        <div className="border-b border-app-line-20 px-5 py-3.5">
+        <div className="flex items-center justify-between gap-3 border-b border-app-line-20 px-5 py-3.5">
           <p className="text-sm leading-relaxed text-app-fg">{t.fornitori.confermeOrdineIntro}</p>
+          {!readOnly && rows.length > 0 ? (
+            <button
+              type="button"
+              disabled={convertingAll}
+              onClick={() => void handleConvertAll()}
+              title="Converti tutti in bolle e impara per i prossimi documenti"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/8 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 transition-colors hover:border-emerald-400/50 hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {convertingAll ? (
+                <svg className="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden>
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              )}
+              Converti tutti in bolle
+            </button>
+          ) : null}
         </div>
 
         {!readOnly ? (
@@ -346,14 +412,24 @@ export default function FornitoreConfermeOrdineTab({
                       {pdfOpenTrigger}
                     </PublicPdfOpenMenu>
                     {!readOnly ? (
-                    <button
-                      type="button"
-                      disabled={deletingId === r.id}
-                      onClick={() => void handleDelete(r)}
-                      className={RED_ACTION_PILL}
-                    >
-                      {deletingId === r.id ? t.common.loading : t.common.delete}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        disabled={convertingId === r.id}
+                        onClick={() => void handleConvertOne(r)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-transparent px-2 py-1 text-[10px] font-semibold text-emerald-400/80 transition-colors hover:bg-emerald-500/10 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {convertingId === r.id ? t.common.loading : '→ Bolla'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deletingId === r.id}
+                        onClick={() => void handleDelete(r)}
+                        className={RED_ACTION_PILL}
+                      >
+                        {deletingId === r.id ? t.common.loading : t.common.delete}
+                      </button>
+                    </>
                     ) : null}
                   </div>
                 </div>
@@ -415,14 +491,24 @@ export default function FornitoreConfermeOrdineTab({
                       </td>
                       <td className="px-5 py-3 text-right">
                         {!readOnly ? (
-                        <button
-                          type="button"
-                          disabled={deletingId === r.id}
-                          onClick={() => void handleDelete(r)}
-                          className={RED_ACTION_PILL}
-                        >
-                          {deletingId === r.id ? t.common.loading : t.common.delete}
-                        </button>
+                        <div className="inline-flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={convertingId === r.id}
+                            onClick={() => void handleConvertOne(r)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/25 bg-transparent px-2 py-1 text-[10px] font-semibold text-emerald-400/80 transition-colors hover:bg-emerald-500/10 hover:text-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            {convertingId === r.id ? t.common.loading : '→ Bolla'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingId === r.id}
+                            onClick={() => void handleDelete(r)}
+                            className={RED_ACTION_PILL}
+                          >
+                            {deletingId === r.id ? t.common.loading : t.common.delete}
+                          </button>
+                        </div>
                         ) : (
                           <span className={`text-xs ${confermeSecondaryClass}`}>—</span>
                         )}
