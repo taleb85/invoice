@@ -2340,7 +2340,7 @@ function BolleTab({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
                         )}
-                        {ocrBusyId === b.id ? null : <span className="hidden xl:inline">{t.bolle.riannalizzaOcr}</span>}
+                        {ocrBusyId === b.id ? null : <span>{t.bolle.riannalizzaOcr}</span>}
                       </button>
                     ) : null}
                     {!readOnly && canRianalizzaOcr && b.file_url ? (
@@ -2358,7 +2358,7 @@ function BolleTab({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                           </svg>
                         )}
-                        <span className="hidden min-w-0 truncate xl:inline">{t.bolle.convertiInFattura}</span>
+                        <span className="min-w-0 truncate">{t.bolle.convertiInFattura}</span>
                       </button>
                     ) : null}
                     {!readOnly && canRianalizzaOcr ? (
@@ -2376,7 +2376,7 @@ function BolleTab({
                           <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
-                          <span className="hidden min-w-0 truncate xl:inline">Cambia fornitore</span>
+                          <span className="min-w-0 truncate">Cambia fornitore</span>
                         </button>
                       </div>
                     ) : null}
