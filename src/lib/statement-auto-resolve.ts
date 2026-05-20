@@ -5,6 +5,8 @@ export type AutoRisolviStatementResult = {
   statementsProcessed: number
   righeRivalutate: number
   righeOk: number
+  /** Rows closed by fast-path (fattura_id already linked, delta=0). */
+  fastFixed: number
   righeAncoraAnomale: number
   falseErrorsFixed: number
   falseErrorsOk: number
@@ -66,15 +68,23 @@ async function loadStatementsForSede(supabase: SupabaseClient, sedeId: string): 
 async function loadStatementIdsWithAnomalies(
   supabase: SupabaseClient,
   sedeId: string,
+  /** When true, only returns statements with actionable anomalies (bolle_mancanti / errore_importo).
+   *  fattura_mancante rows cannot be auto-resolved and are skipped to save time. */
+  skipFatturaMancante = false,
 ): Promise<StatementRef[]> {
   const byId = new Map<string, StatementRef>()
 
-  // 1) Righe con check_status != ok (fonte verità per la coda)
-  const { data: rows, error: rowsError } = await supabase
+  let query = supabase
     .from('statement_rows')
     .select('statement_id, statements!inner(id, fornitore_id, sede_id)')
     .eq('statements.sede_id', sedeId)
     .neq('check_status', 'ok')
+
+  if (skipFatturaMancante) {
+    query = query.neq('check_status', 'fattura_mancante')
+  }
+
+  const { data: rows, error: rowsError } = await query
 
   if (rowsError) {
     console.error('[statement-auto-resolve] join query failed:', rowsError.message)
@@ -85,8 +95,8 @@ async function loadStatementIdsWithAnomalies(
     }
   }
 
-  // 2) Fallback: estratti con missing_rows > 0 ma conteggi non allineati
-  if (byId.size === 0) {
+  // Fallback: estratti con missing_rows > 0 ma conteggi non allineati
+  if (byId.size === 0 && !skipFatturaMancante) {
     const { data: staleStmts } = await supabase
       .from('statements')
       .select('id, fornitore_id, sede_id')
@@ -222,28 +232,89 @@ async function recheckFalseErrorsForSede(
 }
 
 /**
+ * Fast-path: mark as 'ok' all statement_rows that already have a matching
+ * fattura (fattura_id IS NOT NULL) AND the amount is aligned (delta_importo = 0
+ * or NULL). No triple-check re-run needed — the invoice is already linked.
+ *
+ * Covers:
+ *   - bolle_mancanti  → fattura trovata, importo ok, DDT not required
+ *   - errore_importo  → false alarm where delta is actually 0
+ */
+async function fastCloseResolvedRows(
+  supabase: SupabaseClient,
+  sedeId: string,
+): Promise<number> {
+  // Fetch all statement IDs for this sede
+  const { data: stmts } = await supabase
+    .from('statements')
+    .select('id')
+    .eq('sede_id', sedeId)
+
+  const allIds = (stmts ?? []).map((s) => s.id as string)
+  if (allIds.length === 0) return 0
+
+  let totalFixed = 0
+
+  for (let i = 0; i < allIds.length; i += IN_CHUNK) {
+    const chunk = allIds.slice(i, i + IN_CHUNK)
+
+    const { data: toFix } = await supabase
+      .from('statement_rows')
+      .select('id')
+      .in('statement_id', chunk)
+      .in('check_status', ['bolle_mancanti', 'errore_importo'])
+      .not('fattura_id', 'is', null)
+      .or('delta_importo.is.null,delta_importo.eq.0')
+
+    if (!toFix?.length) continue
+
+    const fixIds = toFix.map((r) => r.id as string)
+    // Update in sub-chunks to stay within Supabase row limits
+    for (let j = 0; j < fixIds.length; j += IN_CHUNK) {
+      const sub = fixIds.slice(j, j + IN_CHUNK)
+      const { error } = await supabase
+        .from('statement_rows')
+        .update({ check_status: 'ok' })
+        .in('id', sub)
+      if (!error) totalFixed += sub.length
+    }
+  }
+
+  return totalFixed
+}
+
+/**
  * Rivaluta in bulk le righe estratto conto con triple-check aggiornato.
- * Le righe che diventano `ok` escono automaticamente da v_coda_unificata.
+ *
+ * Strategy:
+ *   1. Fast-path: close rows that already have a fattura_id and delta=0 in a
+ *      single DB update (no network round-trips per statement).
+ *   2. Slow-path: re-run runTripleCheck only on statements that still have
+ *      anomalous rows after the fast-path.
+ *   3. Sync missing_rows counts.
  */
 export async function autoRisolviStatementRows(
   supabase: SupabaseClient,
   sedeId: string,
   options?: { maxStatementsPerRound?: number; maxRounds?: number },
 ): Promise<AutoRisolviStatementResult> {
-  const maxStatementsPerRound = options?.maxStatementsPerRound ?? 500
-  const maxRounds = options?.maxRounds ?? 5
+  const maxStatementsPerRound = options?.maxStatementsPerRound ?? 200
+  const maxRounds = options?.maxRounds ?? 2
   const errors: string[] = []
 
+  // ── Step 1: Fast-path ────────────────────────────────────────────────────
+  const fastFixed = await fastCloseResolvedRows(supabase, sedeId)
+
+  // ── Step 2: Slow-path (triple-check re-run for remaining anomalies) ──────
   let statementsProcessed = 0
   let righeRivalutate = 0
-  let righeOk = 0
-  let righeAncoraAnomale = 0
+  let righeOk = fastFixed
   let rounds = 0
 
   for (let round = 0; round < maxRounds; round++) {
     rounds = round + 1
-
-    const toProcess = (await loadStatementIdsWithAnomalies(supabase, sedeId)).slice(0, maxStatementsPerRound)
+    // Skip fattura_mancante — can't be resolved without uploading invoices first
+    const toProcess = (await loadStatementIdsWithAnomalies(supabase, sedeId, true)).slice(0, maxStatementsPerRound)
     if (toProcess.length === 0) break
 
     for (const stmt of toProcess) {
@@ -252,11 +323,13 @@ export async function autoRisolviStatementRows(
       statementsProcessed++
       righeRivalutate += result.righe
       righeOk += result.ok
-      righeAncoraAnomale += result.anomale
     }
   }
 
+  // ── Step 3: False-error recheck (errore_importo with mismatched delta) ───
   const falseErrors = await recheckFalseErrorsForSede(supabase, sedeId)
+
+  // ── Step 4: Sync missing_rows counts on all statements ───────────────────
   await syncMissingRowsForSede(supabase, sedeId)
 
   const righeAnomaleFinali = await countAnomalousStatementRows(supabase, sedeId)
@@ -265,6 +338,7 @@ export async function autoRisolviStatementRows(
     statementsProcessed,
     righeRivalutate,
     righeOk,
+    fastFixed,
     righeAncoraAnomale: righeAnomaleFinali,
     falseErrorsFixed: falseErrors.fixed,
     falseErrorsOk: falseErrors.okCount,

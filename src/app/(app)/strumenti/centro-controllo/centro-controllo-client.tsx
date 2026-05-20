@@ -75,9 +75,9 @@ function SectionCard({ title, badge, action, children, className }: {
 
 const AUTO_RISOLVI_PHASES = [
   'Carico gli estratti conto…',
-  'Cerco fatture abbinate…',
+  'Chiudo falsi allarmi con fattura già presente…',
   'Verifico importi riga per riga…',
-  'Chiudo i falsi allarmi…',
+  'Ricalcolo il triple-check sui casi aperti…',
   'Aggiorno il conteggio anomalie…',
 ] as const
 
@@ -146,7 +146,7 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const [reprocessingChecks, setReprocessingChecks] = useState(false)
   const [reprocessChecksResult, setReprocessChecksResult] = useState<string | null>(null)
   const [autoResolving, setAutoResolving] = useState(false)
-  const [autoRisolviResult, setAutoRisolviResult] = useState<string | null>(null)
+  const [autoRisolviResult, setAutoRisolviResult] = useState<{ message: string; risolte: number } | null>(null)
   const [autoRisolviElapsed, setAutoRisolviElapsed] = useState(0)
   const [autoRisolviPhase, setAutoRisolviPhase] = useState(0)
   const [autoRisolviLiveCount, setAutoRisolviLiveCount] = useState<{ checked: number; remaining: number } | null>(null)
@@ -356,8 +356,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
       })
       const data = await res.json() as { error?: string; message?: string; risolte?: number }
       if (res.ok) {
-        setAutoRisolviResult(data.message ?? 'Completato')
-        if (!silent && (data.risolte ?? 0) > 0) {
+        const risolte = data.risolte ?? 0
+        setAutoRisolviResult({ message: data.message ?? 'Completato', risolte })
+        if (!silent && risolte > 0) {
           showToast(data.message ?? 'Auto-risoluzione completata', 'success')
         }
         await Promise.all([caricaCoda(1), caricaStatement()])
@@ -919,7 +920,9 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               </button>
                             </div>
                             {autoRisolviResult && !autoResolving && (
-                              <p className="text-[11px] leading-relaxed text-emerald-300">{autoRisolviResult}</p>
+                              <p className={`text-[11px] leading-relaxed ${autoRisolviResult.risolte > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
+                                {autoRisolviResult.message}
+                              </p>
                             )}
                           </div>
 

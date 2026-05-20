@@ -38,14 +38,19 @@ export async function POST(req: NextRequest) {
   })
 
   const risolte = result.righeOk + result.falseErrorsOk
-  const message =
-    risolte > 0
-      ? `Auto-risolte ${risolte} righe su ${result.righeRivalutate} rivalutate. Restano ${result.righeAncoraAnomale} anomalie reali (importi discordanti o fatture mancanti).`
-      : result.righeRivalutate > 0
-        ? `Rivalutate ${result.righeRivalutate} righe in ${result.statementsProcessed} estratti conto: nessuna risolvibile automaticamente. Restano ${result.righeAncoraAnomale} righe con anomalie reali.`
-        : result.righeAncoraAnomale > 0
-          ? `Impossibile rivalutare (errore query). Ci sono ancora ${result.righeAncoraAnomale} righe anomale — riprova o usa Riprocessa triple-check.`
-          : 'Nessuna riga estratto conto con anomalie.'
+  let message: string
+
+  if (risolte > 0) {
+    const parts: string[] = []
+    if (result.fastFixed > 0) parts.push(`${result.fastFixed} falsi allarmi chiusi`)
+    const slowFixed = risolte - result.fastFixed
+    if (slowFixed > 0) parts.push(`${slowFixed} righe riprocessate`)
+    message = `✓ ${parts.join(', ')}. Restano ${result.righeAncoraAnomale} anomalie che richiedono intervento manuale (fatture non ancora caricate o importi discordanti).`
+  } else if (result.righeAncoraAnomale > 0) {
+    message = `Nessuna anomalia risolvibile automaticamente. Le ${result.righeAncoraAnomale} righe rimaste sono fatture non ancora presenti in archivio — caricale e poi usa "Ricalcola tutto il triple-check".`
+  } else {
+    message = 'Nessuna anomalia negli estratti conto.'
+  }
 
   return NextResponse.json({ ok: true, ...result, risolte, message })
 }
