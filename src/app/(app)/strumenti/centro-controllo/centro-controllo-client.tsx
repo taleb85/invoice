@@ -165,6 +165,38 @@ export default function CentroControlloClient({ sedeId }: Props) {
   const autoRisolviTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const autoRisolviRanRef = useRef(false)
 
+  // ── Pipeline AI (Analisi → Ricerca email → Associazione) ────────────────
+  type PipelinePhase = 'idle' | 'analisi' | 'ricerca' | 'associazione' | 'done'
+  type PipelineFornitore = {
+    fornitoreId: string
+    fornitoreNome: string | null
+    // Fase 1 — Analisi
+    analisi?: {
+      fatturaMancante: number
+      bolleMancanti: number
+      erroreImporto: number
+      rekkiDiscordanza: number
+      total: number
+      hasEmail: boolean
+    }
+    // Fase 2 — Ricerca email
+    ricerca?: { imported: number; ok: boolean; error?: string }
+    // Fase 3 — Associazione
+    assoc?: { resolved: number; remaining: number }
+  }
+  const [pipelinePhase, setPipelinePhase] = useState<PipelinePhase>('idle')
+  const [pipelineActive, setPipelineActive] = useState(false)
+  const [pipelineElapsed, setPipelineElapsed] = useState(0)
+  const [pipelineFornitori, setPipelineFornitori] = useState<PipelineFornitore[]>([])
+  const [pipelineCurrentFornitore, setPipelineCurrentFornitore] = useState<string | null>(null)
+  const [pipelineFastFixed, setPipelineFastFixed] = useState(0)
+  const [pipelineSummary, setPipelineSummary] = useState<{
+    totalFornitori: number
+    totalResolved: number
+    remaining: number
+  } | null>(null)
+  const pipelineTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   // ── AI cerca fatture mancanti ────────────────────────────────────────────
   type AiScanChunkResult = {
     fornitoreId: string
@@ -365,6 +397,158 @@ export default function CentroControlloClient({ sedeId }: Props) {
     } finally {
       if (aiScanTimerRef.current) { clearInterval(aiScanTimerRef.current); aiScanTimerRef.current = null }
       setAiScanActive(false)
+    }
+  }, [sedeId, caricaCoda, caricaStatement, showToast])
+
+  // ── Pipeline AI (Analisi → Ricerca email → Associazione) ────────────────
+  const handlePipeline = useCallback(async () => {
+    if (!sedeId) return
+
+    setPipelinePhase('idle')
+    setPipelineActive(true)
+    setPipelineFornitori([])
+    setPipelineCurrentFornitore(null)
+    setPipelineSummary(null)
+    setPipelineFastFixed(0)
+    setPipelineElapsed(0)
+
+    pipelineTimerRef.current = setInterval(() => setPipelineElapsed((s) => s + 1), 1000)
+    const stop = () => {
+      if (pipelineTimerRef.current) { clearInterval(pipelineTimerRef.current); pipelineTimerRef.current = null }
+    }
+
+    try {
+      /* ── Fase 1: Analisi ──────────────────────────────────────────── */
+      setPipelinePhase('analisi')
+      const analysiMap = new Map<string, PipelineFornitore>()
+      let analisiOffset = 0
+      let analisiDone = false
+
+      while (!analisiDone) {
+        const res = await fetch('/api/centro-controllo/analisi-anomalie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sede_id: sedeId, offset: analisiOffset, chunk_size: 8 }),
+        })
+        if (!res.ok) throw new Error(`Analisi HTTP ${res.status}`)
+        const data = await res.json() as {
+          done: boolean; offset: number; total: number
+          results: { fornitoreId: string; fornitoreNome: string | null; fatturaMancante: number; bolleMancanti: number; erroreImporto: number; rekkiDiscordanza: number; pending: number; total: number; hasEmail: boolean }[]
+        }
+
+        for (const r of data.results) {
+          const entry: PipelineFornitore = {
+            fornitoreId: r.fornitoreId,
+            fornitoreNome: r.fornitoreNome,
+            analisi: {
+              fatturaMancante: r.fatturaMancante,
+              bolleMancanti: r.bolleMancanti,
+              erroreImporto: r.erroreImporto,
+              rekkiDiscordanza: r.rekkiDiscordanza,
+              total: r.total,
+              hasEmail: r.hasEmail,
+            },
+          }
+          analysiMap.set(r.fornitoreId, entry)
+          setPipelineCurrentFornitore(r.fornitoreNome)
+          setPipelineFornitori([...analysiMap.values()])
+        }
+
+        analisiDone = data.done
+        analisiOffset = data.offset
+      }
+
+      /* ── Fase 2: Ricerca email ────────────────────────────────────── */
+      setPipelinePhase('ricerca')
+      const emailFornitori = [...analysiMap.values()].filter(
+        (f) => (f.analisi?.fatturaMancante ?? 0) > 0 && f.analisi?.hasEmail,
+      )
+
+      if (emailFornitori.length > 0) {
+        let emailOffset = 0
+        let emailDone = false
+        while (!emailDone) {
+          const res = await fetch('/api/centro-controllo/ai-cerca-fatture-mancanti', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sede_id: sedeId, offset: emailOffset, chunk_size: 2 }),
+          })
+          if (!res.ok) throw new Error(`Ricerca email HTTP ${res.status}`)
+          const data = await res.json() as {
+            done: boolean; offset: number; total: number
+            results: { fornitoreId: string; fornitoreNome: string | null; ok: boolean; bozzeCreate: number; error?: string }[]
+          }
+
+          for (const r of data.results) {
+            const entry = analysiMap.get(r.fornitoreId)
+            if (entry) {
+              entry.ricerca = { imported: r.bozzeCreate, ok: r.ok, error: r.error }
+              setPipelineCurrentFornitore(r.fornitoreNome)
+              setPipelineFornitori([...analysiMap.values()])
+            }
+          }
+
+          emailDone = data.done
+          emailOffset = data.offset
+        }
+      }
+
+      /* ── Fase 3: Associazione (triple-check + chiudi risolte) ─────── */
+      setPipelinePhase('associazione')
+      let assocOffset = 0
+      let assocDone = false
+      let totalResolved = 0
+      let fastFixed = 0
+      let remainingAnomalies = 0
+
+      while (!assocDone) {
+        const res = await fetch('/api/centro-controllo/auto-risolvi-per-fornitore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sede_id: sedeId, offset: assocOffset, chunk_size: 4 }),
+        })
+        if (!res.ok) throw new Error(`Associazione HTTP ${res.status}`)
+        const data = await res.json() as {
+          done: boolean; offset: number; total: number
+          fastFixed?: number
+          results: { fornitoreId: string | null; fornitoreNome: string | null; statementsProcessed: number; righeOk: number; righeAnomale: number }[]
+          falseErrorsOk?: number
+          remainingAnomalies?: number
+        }
+
+        if (data.fastFixed) fastFixed += data.fastFixed
+        if (data.remainingAnomalies != null) remainingAnomalies = data.remainingAnomalies
+
+        for (const r of data.results) {
+          totalResolved += r.righeOk
+          const entry = analysiMap.get(r.fornitoreId ?? '')
+          if (entry) {
+            entry.assoc = { resolved: r.righeOk, remaining: r.righeAnomale }
+            setPipelineCurrentFornitore(r.fornitoreNome)
+            setPipelineFornitori([...analysiMap.values()])
+          }
+        }
+
+        assocDone = data.done
+        assocOffset = data.offset
+      }
+
+      setPipelineFastFixed(fastFixed)
+      setPipelineSummary({
+        totalFornitori: analysiMap.size,
+        totalResolved: totalResolved + fastFixed,
+        remaining: remainingAnomalies,
+      })
+      setPipelinePhase('done')
+      await caricaStatement()
+      await caricaCoda()
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Errore pipeline', 'error')
+      setPipelinePhase('idle')
+    } finally {
+      stop()
+      setPipelineActive(false)
+      setPipelineCurrentFornitore(null)
     }
   }, [sedeId, caricaCoda, caricaStatement, showToast])
 
@@ -963,75 +1147,175 @@ export default function CentroControlloClient({ sedeId }: Props) {
                             </span>
                           </div>
 
-                          {/* Action 1: Auto-risolvi per fornitore */}
-                          <div className={`rounded-lg border px-3 py-2.5 space-y-2 transition-colors ${autoResolving ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-app-line-20 bg-white/[0.025]'}`}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-[11px] font-semibold text-app-fg">Chiudi anomalie risolvibili</p>
-                                {autoResolving ? (
-                                  <div className="mt-1.5 space-y-1.5">
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="flex items-center gap-2 text-[11px] text-emerald-300">
-                                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                        <span>
-                                          {autoRisolviTotal !== null
-                                            ? `Fornitore ${Math.min(autoRisolviOffset, autoRisolviTotal)} / ${autoRisolviTotal}…`
-                                            : 'Chiudo falsi allarmi con fattura già presente…'}
-                                        </span>
-                                      </div>
-                                      <span className="shrink-0 font-mono text-[10px] tabular-nums text-emerald-400/70">{autoRisolviElapsed}s</span>
+                          {/* ── Pipeline AI: Analisi → Ricerca email → Associazione ── */}
+                          {(() => {
+                            const isRunning = pipelineActive
+                            const isDone = pipelinePhase === 'done'
+                            const phaseIndex = pipelinePhase === 'analisi' ? 0 : pipelinePhase === 'ricerca' ? 1 : pipelinePhase === 'associazione' ? 2 : isDone ? 3 : -1
+                            const phases = ['Analisi', 'Ricerca email', 'Associazione'] as const
+                            const phaseDot = (i: number) => {
+                              if (isDone || phaseIndex > i) return 'bg-emerald-400 text-black'
+                              if (phaseIndex === i) return 'bg-purple-400 text-black animate-pulse'
+                              return 'bg-app-line-15 text-app-fg-muted'
+                            }
+                            return (
+                              <div className={`rounded-lg border px-3 py-2.5 space-y-2 transition-colors ${isRunning ? 'border-purple-500/35 bg-purple-500/5' : isDone ? 'border-emerald-500/20 bg-emerald-500/[0.04]' : 'border-app-line-20 bg-white/[0.025]'}`}>
+                                {/* Header */}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <p className="text-[11px] font-semibold text-app-fg">Pipeline AI — Risoluzione anomalie</p>
+                                      <span className="inline-flex items-center rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-purple-300">AI</span>
                                     </div>
-                                    {autoRisolviResults.length > 0 && (
-                                      <div className="max-h-24 overflow-y-auto space-y-0.5 rounded-md bg-black/20 px-2 py-1.5">
-                                        {autoRisolviResults.map((r, i) => (
-                                          <div key={i} className="flex items-center gap-1.5 text-[10px]">
-                                            <GlyphCheck className="w-2.5 h-2.5 shrink-0 text-emerald-400" aria-hidden />
-                                            <span className="truncate text-app-fg-muted">{r.fornitoreNome ?? '—'}</span>
-                                            <span className="ml-auto shrink-0 tabular-nums text-emerald-400/80">
-                                              {r.righeOk > 0 ? `+${r.righeOk} ok` : 'nessuna novità'}
-                                            </span>
+
+                                    {/* Phase stepper */}
+                                    <div className="mt-1.5 flex items-center gap-1.5">
+                                      {phases.map((label, i) => (
+                                        <div key={i} className="flex items-center gap-1.5">
+                                          <div className={`flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold shrink-0 transition-colors ${phaseDot(i)}`}>
+                                            {isDone || phaseIndex > i ? '✓' : i + 1}
                                           </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {autoRisolviTotal !== null && autoRisolviTotal > 0 && (
-                                      <div className="h-1 overflow-hidden rounded-full bg-emerald-900/40">
-                                        <div
-                                          className="h-full rounded-full bg-emerald-400/70 transition-all duration-700 ease-linear"
-                                          style={{ width: `${Math.round((autoRisolviOffset / autoRisolviTotal) * 100)}%` }}
-                                        />
-                                      </div>
+                                          <span className={`text-[10px] ${phaseIndex === i ? 'text-purple-300 font-semibold' : isDone || phaseIndex > i ? 'text-emerald-300' : 'text-app-fg-muted'}`}>{label}</span>
+                                          {i < phases.length - 1 && <span className="text-app-fg-muted/40 text-[10px]">→</span>}
+                                        </div>
+                                      ))}
+                                      {isRunning && (
+                                        <span className="ml-auto font-mono text-[10px] tabular-nums text-purple-300/70">{pipelineElapsed}s</span>
+                                      )}
+                                    </div>
+
+                                    {/* Running: current fornitore label */}
+                                    {isRunning && pipelineCurrentFornitore && (
+                                      <p className="mt-1 text-[10px] text-purple-200/70 truncate">
+                                        <Loader2 className="w-2.5 h-2.5 animate-spin inline mr-1" />
+                                        {pipelineCurrentFornitore}…
+                                      </p>
                                     )}
                                   </div>
-                                ) : (
-                                  <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
-                                    Cerca fatture già presenti in archivio e marca come <em>ok</em> le righe il cui importo corrisponde. Non modifica i dati, elimina solo i falsi allarmi.
+
+                                  <button
+                                    type="button"
+                                    onClick={() => void handlePipeline()}
+                                    disabled={isRunning || !sedeId}
+                                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
+                                  >
+                                    {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : isDone ? <RefreshCw className="w-3 h-3" /> : <ScanLine className="w-3 h-3" />}
+                                    {isRunning ? 'In corso…' : isDone ? 'Riesegui' : 'Avvia'}
+                                  </button>
+                                </div>
+
+                                {/* Per-supplier table */}
+                                {pipelineFornitori.length > 0 && (
+                                  <div className="rounded-md bg-black/20 overflow-hidden">
+                                    {/* Column headers */}
+                                    <div className="grid grid-cols-[1fr_60px_52px_64px] gap-x-2 px-2 py-1 border-b border-app-line-10 text-[9px] uppercase tracking-wide text-app-fg-muted/60">
+                                      <span>Fornitore</span>
+                                      <span className="text-center">Anomalie</span>
+                                      <span className="text-center">Email</span>
+                                      <span className="text-center">Risolte</span>
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto divide-y divide-app-line-10/50">
+                                      {pipelineFornitori.map((f) => {
+                                        const hasManual = (f.assoc?.remaining ?? 0) > 0
+                                        return (
+                                          <div key={f.fornitoreId} className="grid grid-cols-[1fr_60px_52px_64px] gap-x-2 items-center px-2 py-1">
+                                            <div className="min-w-0">
+                                              <a
+                                                href={f.fornitoreId ? `/fornitori/${f.fornitoreId}` : '#'}
+                                                className="truncate block text-[10px] text-app-fg hover:text-purple-300 transition-colors"
+                                              >
+                                                {f.fornitoreNome ?? '—'}
+                                              </a>
+                                            </div>
+                                            {/* Anomalie */}
+                                            <div className="text-center text-[10px]">
+                                              {f.analisi ? (
+                                                <span className="text-amber-300/80 tabular-nums">{f.analisi.total}</span>
+                                              ) : (
+                                                <span className="text-app-fg-muted/40">—</span>
+                                              )}
+                                            </div>
+                                            {/* Email */}
+                                            <div className="text-center text-[10px]">
+                                              {f.ricerca ? (
+                                                f.ricerca.ok ? (
+                                                  <span className="text-emerald-400/80 tabular-nums">
+                                                    {f.ricerca.imported > 0 ? `+${f.ricerca.imported}` : '—'}
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-red-400/70" title={f.ricerca.error}>✗</span>
+                                                )
+                                              ) : (f.analisi && (f.analisi.fatturaMancante > 0) && f.analisi.hasEmail) ? (
+                                                pipelinePhase === 'ricerca' ? (
+                                                  <Loader2 className="w-2.5 h-2.5 animate-spin inline text-purple-300" />
+                                                ) : (
+                                                  <span className="text-app-fg-muted/40">—</span>
+                                                )
+                                              ) : (
+                                                <span className="text-app-fg-muted/30 text-[9px]">n/a</span>
+                                              )}
+                                            </div>
+                                            {/* Risolte / Restano */}
+                                            <div className="text-center text-[10px]">
+                                              {f.assoc ? (
+                                                <span className={hasManual ? 'text-amber-300/80' : 'text-emerald-400/80'}>
+                                                  {f.assoc.resolved > 0 ? `✓${f.assoc.resolved}` : ''}
+                                                  {hasManual ? ` ⚠${f.assoc.remaining}` : ''}
+                                                  {f.assoc.resolved === 0 && !hasManual ? '—' : ''}
+                                                </span>
+                                              ) : f.analisi ? (
+                                                pipelinePhase === 'associazione' ? (
+                                                  <Loader2 className="w-2.5 h-2.5 animate-spin inline text-purple-300" />
+                                                ) : (
+                                                  <span className="text-app-fg-muted/40">—</span>
+                                                )
+                                              ) : (
+                                                <span className="text-app-fg-muted/40">—</span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Summary after done */}
+                                {isDone && pipelineSummary && (
+                                  <div className="flex items-center justify-between gap-3 pt-0.5">
+                                    <p className={`text-[11px] leading-relaxed ${pipelineSummary.totalResolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
+                                      {pipelineSummary.totalResolved > 0
+                                        ? `✓ ${pipelineSummary.totalResolved} anomalie risolte.`
+                                        : 'Nessuna anomalia risolvibile automaticamente.'}
+                                      {pipelineSummary.remaining > 0 && (
+                                        <span className="text-amber-300"> {pipelineSummary.remaining} richiedono intervento manuale.</span>
+                                      )}
+                                    </p>
+                                    {pipelineSummary.remaining > 0 && (
+                                      <a
+                                        href="/statements/da-processare"
+                                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-amber-500/10 border border-amber-500/30 px-2 py-1 text-[10px] font-semibold text-amber-200 hover:bg-amber-500/20 transition-colors"
+                                      >
+                                        <ExternalLink className="w-2.5 h-2.5" />
+                                        Intervento manuale
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Idle: description */}
+                                {pipelinePhase === 'idle' && (
+                                  <p className="text-[11px] leading-relaxed text-app-fg-muted">
+                                    Esegue in sequenza: <span className="text-app-fg/70">analisi</span> delle anomalie per fornitore →
+                                    <span className="text-app-fg/70"> ricerca</span> fatture mancanti in casella email →
+                                    <span className="text-app-fg/70"> associazione</span> automatica di quelle trovate. Le righe non risolvibili vengono segnalate per intervento manuale.
                                   </p>
                                 )}
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => void handleAutoRisolvi(false)}
-                                disabled={autoResolving || !sedeId}
-                                className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-200 transition-colors hover:bg-emerald-500/18 disabled:opacity-50"
-                              >
-                                {autoResolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                                {autoResolving ? 'In corso…' : 'Esegui'}
-                              </button>
-                            </div>
-                            {autoRisolviSummary && !autoResolving && (
-                              <p className={`text-[11px] leading-relaxed ${autoRisolviSummary.resolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
-                                {autoRisolviSummary.resolved > 0
-                                  ? `✓ ${[
-                                      autoRisolviSummary.fastFixed > 0 ? `${autoRisolviSummary.fastFixed} falsi allarmi chiusi` : '',
-                                      autoRisolviSummary.falseErrorsOk > 0 ? `${autoRisolviSummary.falseErrorsOk} importi corretti` : '',
-                                    ].filter(Boolean).join(', ')}. Restano ${autoRisolviSummary.remainingAnomalies} anomalie.`
-                                  : `Nessuna anomalia risolvibile automaticamente. Restano ${autoRisolviSummary.remainingAnomalies} righe — fatture non ancora caricate o importi discordanti.`}
-                              </p>
-                            )}
-                          </div>
+                            )
+                          })()}
 
-                          {/* Action 2: Riprocessa triple-check */}
+                          {/* Ricalcola triple-check (fallback manuale) */}
                           <div className="rounded-lg border border-app-line-20 bg-white/[0.025] px-3 py-2.5 space-y-2">
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
@@ -1054,93 +1338,6 @@ export default function CentroControlloClient({ sedeId }: Props) {
                               <p className="text-[11px] leading-relaxed text-emerald-300">{reprocessChecksResult}</p>
                             )}
                           </div>
-
-                          {/* Action 3: AI — cerca fatture mancanti nella casella email */}
-                          {(statementStats.fattura_mancante_count ?? 0) > 0 && (
-                            <div className={`rounded-lg border px-3 py-2.5 space-y-2 transition-colors ${aiScanActive ? 'border-purple-500/35 bg-purple-500/5' : 'border-app-line-20 bg-white/[0.025]'}`}>
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5 flex-wrap">
-                                    <p className="text-[11px] font-semibold text-app-fg">Cerca fatture mancanti nella casella email</p>
-                                    <span className="inline-flex items-center rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-purple-300">AI</span>
-                                  </div>
-                                  {aiScanActive ? (
-                                    <div className="mt-1.5 space-y-1.5">
-                                      <div className="flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-2 text-[11px] text-purple-300">
-                                          <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                          <span>
-                                            {aiScanTotal !== null
-                                              ? `Scansione fornitore ${Math.min(aiScanOffset, aiScanTotal)} / ${aiScanTotal}…`
-                                              : 'Carico lista fornitori…'}
-                                          </span>
-                                        </div>
-                                        <span className="shrink-0 font-mono text-[10px] tabular-nums text-purple-300/70">{aiScanElapsed}s</span>
-                                      </div>
-                                      {aiScanResults.length > 0 && (
-                                        <div className="max-h-20 overflow-y-auto space-y-0.5 rounded-md bg-black/20 px-2 py-1.5">
-                                          {aiScanResults.map((r) => (
-                                            <div key={r.fornitoreId} className="flex items-center gap-1.5 text-[10px]">
-                                              {r.ok ? (
-                                                <GlyphCheck className="w-2.5 h-2.5 shrink-0 text-emerald-400" aria-hidden />
-                                              ) : (
-                                                <span className="w-2.5 h-2.5 shrink-0 rounded-full bg-red-400/60" aria-hidden />
-                                              )}
-                                              <span className="truncate text-app-fg-muted">{r.fornitoreNome ?? r.fornitoreId}</span>
-                                              {r.ok ? (
-                                                <span className="ml-auto shrink-0 text-emerald-400/80">
-                                                  {r.bozzeCreate > 0 ? `+${r.bozzeCreate} doc` : 'nessuna novità'}
-                                                </span>
-                                              ) : (
-                                                <span className="ml-auto shrink-0 truncate text-red-300/80" title={r.error}>{r.error}</span>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                      {aiScanTotal !== null && (
-                                        <div className="h-1 flex-1 overflow-hidden rounded-full bg-purple-900/40">
-                                          <div
-                                            className="h-full rounded-full bg-purple-400/70 transition-all duration-700 ease-linear"
-                                            style={{ width: `${aiScanTotal > 0 ? Math.round((aiScanOffset / aiScanTotal) * 100) : 0}%` }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : aiScanSummary ? (
-                                    <div className="mt-1 space-y-0.5">
-                                      <p className={`text-[11px] leading-relaxed ${aiScanSummary.resolved > 0 ? 'text-emerald-300' : 'text-amber-200/80'}`}>
-                                        {aiScanSummary.resolved > 0
-                                          ? `✓ ${aiScanSummary.resolved} anomalie risolte. Rimangono ${aiScanSummary.remainingAnomalies}.`
-                                          : `Nessuna nuova fattura trovata in casella. Rimangono ${aiScanSummary.remainingAnomalies} anomalie.`}
-                                      </p>
-                                      {aiScanSummary.fornitoriFailed.length > 0 && (
-                                        <p className="text-[10px] text-red-300/70">
-                                          Errori: {aiScanSummary.fornitoriFailed.join(', ')}
-                                        </p>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <p className="mt-0.5 text-[11px] leading-relaxed text-app-fg-muted">
-                                      Scansiona la casella IMAP per ogni fornitore con fatture mancanti e importa i documenti trovati. Richiede email configurata sul fornitore.
-                                      {(statementStats.fattura_mancante_count ?? 0) > 0 && (
-                                        <span className="ml-1 font-semibold text-purple-300">{statementStats.fattura_mancante_count} righe da verificare.</span>
-                                      )}
-                                    </p>
-                                  )}
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => void handleAiCercaFattureMancanti()}
-                                  disabled={aiScanActive || !sedeId}
-                                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-3 py-1.5 text-[11px] font-semibold text-purple-200 transition-colors hover:bg-purple-500/18 disabled:opacity-50"
-                                >
-                                  {aiScanActive ? <Loader2 className="w-3 h-3 animate-spin" /> : <ScanLine className="w-3 h-3" />}
-                                  {aiScanActive ? 'Scansione…' : 'Avvia'}
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </>
                       ) : (
                         <div className="flex items-center gap-2 text-xs text-app-fg-muted">

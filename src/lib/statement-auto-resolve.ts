@@ -1,6 +1,133 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { runTripleCheck, type StatementLine, TRIPLE_CHECK_TOLERANCE, amountsMatchForTripleCheck } from '@/lib/triple-check'
 
+export type FornitoreAnomaliaBreakdown = {
+  fornitoreId: string
+  fornitoreNome: string | null
+  fatturaMancante: number
+  bolleMancanti: number
+  erroreImporto: number
+  rekkiDiscordanza: number
+  pending: number
+  /** Totale righe non-ok */
+  total: number
+  /** True se questo fornitore ha almeno un'email configurata (ricerca IMAP possibile). */
+  hasEmail: boolean
+}
+
+/**
+ * Analisi read-only delle anomalie per fornitore.
+ * Non modifica dati — usata come Fase 1 della pipeline AI.
+ */
+export async function analyzeAnomaliePerFornitore(
+  supabase: SupabaseClient,
+  sedeId: string,
+  offset: number,
+  chunkSize: number,
+): Promise<{
+  done: boolean
+  offset: number
+  total: number
+  results: FornitoreAnomaliaBreakdown[]
+}> {
+  // Load all statements for sede (with fornitore info)
+  const { data: statements } = await supabase
+    .from('statements')
+    .select('id, fornitore_id, fornitori(nome)')
+    .eq('sede_id', sedeId)
+  if (!statements?.length) return { done: true, offset: 0, total: 0, results: [] }
+
+  // Build fornitore map
+  const stmtByFornitore = new Map<string, {
+    nome: string | null
+    stmtIds: string[]
+  }>()
+  for (const s of statements) {
+    const fid = s.fornitore_id ?? '__unknown__'
+    const nome =
+      s.fornitori && !Array.isArray(s.fornitori)
+        ? (s.fornitori as { nome: string }).nome
+        : Array.isArray(s.fornitori)
+          ? (s.fornitori[0] as { nome: string } | undefined)?.nome ?? null
+          : null
+    if (!stmtByFornitore.has(fid)) stmtByFornitore.set(fid, { nome, stmtIds: [] })
+    stmtByFornitore.get(fid)!.stmtIds.push(s.id)
+  }
+
+  // Keep only fornitori with at least one anomaly
+  const fornitoreCounts = new Map<string, {
+    nome: string | null
+    fatturaMancante: number
+    bolleMancanti: number
+    erroreImporto: number
+    rekkiDiscordanza: number
+    pending: number
+  }>()
+
+  const allStmtIds = statements.map((s) => s.id)
+  for (let i = 0; i < allStmtIds.length; i += IN_CHUNK) {
+    const chunk = allStmtIds.slice(i, i + IN_CHUNK)
+    const { data: rows } = await supabase
+      .from('statement_rows')
+      .select('statement_id, check_status')
+      .in('statement_id', chunk)
+      .neq('check_status', 'ok')
+
+    for (const row of rows ?? []) {
+      // Find fornitore for this statement
+      let fornitoreKey = '__unknown__'
+      for (const [fid, g] of stmtByFornitore.entries()) {
+        if (g.stmtIds.includes(row.statement_id)) { fornitoreKey = fid; break }
+      }
+      const nome = stmtByFornitore.get(fornitoreKey)?.nome ?? null
+      if (!fornitoreCounts.has(fornitoreKey)) {
+        fornitoreCounts.set(fornitoreKey, { nome, fatturaMancante: 0, bolleMancanti: 0, erroreImporto: 0, rekkiDiscordanza: 0, pending: 0 })
+      }
+      const c = fornitoreCounts.get(fornitoreKey)!
+      if (row.check_status === 'fattura_mancante') c.fatturaMancante++
+      else if (row.check_status === 'bolle_mancanti') c.bolleMancanti++
+      else if (row.check_status === 'errore_importo') c.erroreImporto++
+      else if (row.check_status === 'rekki_prezzo_discordanza') c.rekkiDiscordanza++
+      else if (row.check_status === 'pending') c.pending++
+    }
+  }
+
+  // Resolve email presence for fornitori with anomalies
+  const fornitoreIds = [...fornitoreCounts.keys()].filter((k) => k !== '__unknown__')
+  const emailSet = new Set<string>()
+  for (let i = 0; i < fornitoreIds.length; i += IN_CHUNK) {
+    const chunk = fornitoreIds.slice(i, i + IN_CHUNK)
+    const { data: withEmail } = await supabase
+      .from('fornitori')
+      .select('id')
+      .in('id', chunk)
+      .not('email', 'is', null)
+    for (const f of withEmail ?? []) emailSet.add(f.id)
+  }
+
+  // Sort by total anomalies desc
+  const allResults: FornitoreAnomaliaBreakdown[] = [...fornitoreCounts.entries()]
+    .map(([fid, c]) => ({
+      fornitoreId: fid === '__unknown__' ? '' : fid,
+      fornitoreNome: c.nome,
+      fatturaMancante: c.fatturaMancante,
+      bolleMancanti: c.bolleMancanti,
+      erroreImporto: c.erroreImporto,
+      rekkiDiscordanza: c.rekkiDiscordanza,
+      pending: c.pending,
+      total: c.fatturaMancante + c.bolleMancanti + c.erroreImporto + c.rekkiDiscordanza + c.pending,
+      hasEmail: emailSet.has(fid),
+    }))
+    .filter((r) => r.total > 0)
+    .sort((a, b) => b.total - a.total)
+
+  const total = allResults.length
+  const chunk = allResults.slice(offset, offset + chunkSize)
+  const done = offset + chunkSize >= total
+
+  return { done, offset: offset + chunk.length, total, results: chunk }
+}
+
 export type AutoRisolviStatementResult = {
   statementsProcessed: number
   righeRivalutate: number
